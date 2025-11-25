@@ -1,11 +1,13 @@
 # Active Context
 
 ## Current Focus
-- Project completed.
-- Ready for deployment/usage.
+- Preparing for GitHub Release.
+- Enhancing documentation (`README.md`, `CHANGELOG.md`).
+- Verifying project metadata.
 
 ## Active Tasks
-- [x] All planned tasks completed.
+- [ ] Enhance `README.md`
+- [ ] Create `CHANGELOG.md`
 
 
 
