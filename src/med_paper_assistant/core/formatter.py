@@ -4,8 +4,10 @@ from med_paper_assistant.core.exporter import WordExporter
 class Formatter:
     def __init__(self):
         self.exporter = WordExporter()
-        # Define templates directory relative to this file
-        self.templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+        # Define templates directory relative to the project root (assuming core is in src/med_paper_assistant/core)
+        # Go up 3 levels: core -> med_paper_assistant -> src -> root
+        self.templates_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "templates")
+
 
     def apply_template(self, draft_path: str, template_name: str, output_path: str) -> str:
         """

@@ -20,7 +20,7 @@ def test_formatter_real_template():
             f.write("# Introduction\nThis is a test introduction.\n")
             
     # Check if template exists
-    template_path = os.path.join(base_dir, "src", "med_paper_assistant", "templates", template_name)
+    template_path = os.path.join(base_dir, "templates", template_name)
     if not os.path.exists(template_path):
         pytest.skip(f"Template not found at {template_path}")
 

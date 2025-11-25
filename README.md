@@ -103,11 +103,11 @@
 ├── results/                # 存放分析結果 (圖表/表格)
 ├── drafts/                 # 存放生成的 Markdown 草稿
 ├── references/             # 本地文獻庫
+├── templates/              # 期刊 Word 範本
 ├── src/
 │   └── med_paper_assistant/
 │       ├── core/           # 核心邏輯 (Search, Analyzer, Drafter, Exporter, Formatter)
 │       ├── mcp_server/     # MCP 伺服器入口
-│       └── templates/      # 內建範本
 └── .agent/workflows/       # Agent 工作流程定義
 ```
 

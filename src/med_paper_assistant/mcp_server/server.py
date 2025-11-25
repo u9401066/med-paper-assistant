@@ -14,7 +14,7 @@ analyzer = Analyzer()
 formatter = Formatter()
 
 @mcp.tool()
-def search_literature(query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, sort: str = "relevance") -> str:
+def search_literature(query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, strategy: str = "relevance") -> str:
 
     """
     Search for medical literature based on a query using PubMed.
@@ -25,9 +25,9 @@ def search_literature(query: str, limit: int = 5, min_year: int = None, max_year
         min_year: Optional minimum publication year (e.g., 2020).
         max_year: Optional maximum publication year.
         article_type: Optional article type (e.g., "Review", "Clinical Trial", "Meta-Analysis").
-        sort: Sort order ("relevance", "pub_date", "author", "journal"). Default is "relevance".
+        strategy: Search strategy ("recent", "most_cited", "relevance", "impact", "agent_decided"). Default is "relevance".
     """
-    results = searcher.search(query, limit, min_year, max_year, article_type, sort)
+    results = searcher.search(query, limit, min_year, max_year, article_type, strategy)
     
     if not results:
         return "No results found."
@@ -179,6 +179,36 @@ def export_word(draft_filename: str, template_name: str, output_filename: str) -
 
 
 
+
+@mcp.prompt()
+def develop_concept() -> str:
+    """Guide the user to develop their research concept."""
+    with open(".agent/workflows/mdpaper_concept.md", "r") as f:
+        return f.read()
+
+@mcp.prompt()
+def write_draft_prompt() -> str:
+    """Guide the user to write a paper draft."""
+    with open(".agent/workflows/mdpaper_draft.md", "r") as f:
+        return f.read()
+
+@mcp.prompt()
+def analyze_data_prompt() -> str:
+    """Guide the user to analyze their data."""
+    with open(".agent/workflows/mdpaper_data_analysis.md", "r") as f:
+        return f.read()
+
+@mcp.prompt()
+def refine_content_prompt() -> str:
+    """Guide the user to refine specific content."""
+    with open(".agent/workflows/mdpaper_clarify.md", "r") as f:
+        return f.read()
+
+@mcp.prompt()
+def format_paper_prompt() -> str:
+    """Guide the user to format the paper to Word."""
+    with open(".agent/workflows/mdpaper_apply_format.md", "r") as f:
+        return f.read()
 
 if __name__ == "__main__":
     mcp.run()

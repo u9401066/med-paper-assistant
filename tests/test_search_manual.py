@@ -13,7 +13,7 @@ def test_search():
     query = "COVID-19 vaccine efficacy"
     print(f"Searching for: {query}")
     
-    results = searcher.search(query, limit=3)
+    results = searcher.search(query, limit=3, strategy="recent")
     
     if not results:
         print("No results found.")

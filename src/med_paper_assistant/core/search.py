@@ -1,6 +1,15 @@
 from Bio import Entrez
 from typing import List, Dict, Any
 
+from enum import Enum
+
+class SearchStrategy(Enum):
+    RECENT = "recent"
+    MOST_CITED = "most_cited"  # Proxy: Relevance (PubMed doesn't support citation sort directly without PMC)
+    RELEVANCE = "relevance"
+    IMPACT = "impact"          # Proxy: Journal (or Relevance)
+    AGENT_DECIDED = "agent_decided"
+
 class LiteratureSearcher:
     def __init__(self, email: str = "your.email@example.com"):
         """
@@ -71,9 +80,9 @@ class LiteratureSearcher:
         except Exception as e:
             return [{"error": str(e)}]
 
-    def search(self, query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, sort: str = "relevance") -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, strategy: str = "relevance") -> List[Dict[str, Any]]:
         """
-        Search PubMed for articles.
+        Search PubMed for articles using a specific strategy.
         
         Args:
             query: Search query string.
@@ -81,12 +90,29 @@ class LiteratureSearcher:
             min_year: Minimum publication year.
             max_year: Maximum publication year.
             article_type: Type of article (e.g., "Review", "Clinical Trial").
-            sort: Sort order ("relevance", "pub_date", etc.).
+            strategy: Search strategy ("recent", "most_cited", "relevance", "impact", "agent_decided").
             
         Returns:
             List of dictionaries containing article details.
         """
         try:
+            # Map strategy to PubMed sort parameter
+            sort_param = "relevance" # Default
+            
+            if strategy == SearchStrategy.RECENT.value:
+                sort_param = "pub_date"
+            elif strategy == SearchStrategy.MOST_CITED.value:
+                sort_param = "relevance" # Best proxy
+            elif strategy == SearchStrategy.RELEVANCE.value:
+                sort_param = "relevance"
+            elif strategy == SearchStrategy.IMPACT.value:
+                sort_param = "relevance" # Best proxy without IF data
+            elif strategy == SearchStrategy.AGENT_DECIDED.value:
+                # Agent logic could go here, but for now we default to relevance
+                # In a real agentic loop, the agent would choose the strategy *before* calling this tool.
+                # If passed here, we treat it as relevance.
+                sort_param = "relevance"
+            
             # Construct advanced query
             full_query = query
             
@@ -98,7 +124,7 @@ class LiteratureSearcher:
                 full_query += f" AND \"{article_type}\"[pt]"
             
             # Step 1: Search for IDs
-            handle = Entrez.esearch(db="pubmed", term=full_query, retmax=limit, sort=sort)
+            handle = Entrez.esearch(db="pubmed", term=full_query, retmax=limit, sort=sort_param)
             record = Entrez.read(handle)
             handle.close()
             
