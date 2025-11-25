@@ -2,7 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.0] - 2025-11-25
+## [Unreleased]
+
+### Added
+- **Citation Styles**: Support for Vancouver, APA, Harvard, Nature, and AMA styles.
+- **Local Search**: Ability to search saved references by title and abstract.
+- **Section Prompts**: Writing guidelines for major paper sections.
+- **Logging**: System-wide logging to `logs/` directory.
+- **Search Strategies**: Configurable strategies for PubMed search (Recent, Most Cited, Relevance).
+
+### Changed
+- Refactored `LiteratureSearcher` to use `SearchStrategy` enum.
+- Updated `Drafter` to support dynamic citation formatting.
+- Moved `templates/` to project root for better accessibility.
+
+## [0.1.0] - 2024-11-25
 
 ### Added
 - **Literature Search**: Integration with PubMed API for searching and fetching paper details.

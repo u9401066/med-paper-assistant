@@ -105,3 +105,29 @@ class ReferenceManager:
                     return json.load(f)
         
         return {}
+
+    def search_local(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Search within saved local references by keyword.
+        
+        Args:
+            query: Keyword to search in titles and abstracts.
+            
+        Returns:
+            List of matching metadata dictionaries.
+        """
+        results = []
+        query = query.lower()
+        
+        for pmid in self.list_references():
+            meta = self.get_metadata(pmid)
+            if not meta:
+                continue
+                
+            title = meta.get('title', '').lower()
+            abstract = meta.get('abstract', '').lower()
+            
+            if query in title or query in abstract:
+                results.append(meta)
+                
+        return results

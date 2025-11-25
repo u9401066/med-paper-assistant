@@ -25,3 +25,6 @@ systemPatterns.md
 techContext.md
 progress.md
 .agent_constitution.md
+logs/
+output/
+test_*/

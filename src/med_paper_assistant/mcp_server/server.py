@@ -1,21 +1,42 @@
 from mcp.server.fastmcp import FastMCP
-from med_paper_assistant.core.search import LiteratureSearcher
+from med_paper_assistant.core.search import LiteratureSearcher, SearchStrategy
 from med_paper_assistant.core.reference_manager import ReferenceManager
-from med_paper_assistant.core.drafter import Drafter
+from med_paper_assistant.core.drafter import Drafter, CitationStyle
 from med_paper_assistant.core.analyzer import Analyzer
-
 from med_paper_assistant.core.formatter import Formatter
+from med_paper_assistant.core.logger import setup_logger
 
-mcp = FastMCP("MedPaperAssistant")
-searcher = LiteratureSearcher(email="u9401066@gap.kmu.edu.tw")
+# Setup Logger
+logger = setup_logger()
+
+# Initialize Core Modules
+searcher = LiteratureSearcher(email="your.email@example.com")
+analyzer = Analyzer()
 ref_manager = ReferenceManager(searcher)
 drafter = Drafter(ref_manager)
-analyzer = Analyzer()
 formatter = Formatter()
+
+mcp = FastMCP("MedPaperAssistant")
+
+def format_results(results):
+    if not results:
+        return "No results found."
+        
+    if "error" in results[0]:
+        return f"Error searching PubMed: {results[0]['error']}"
+        
+    formatted_output = f"Found {len(results)} results:\n\n"
+    for i, paper in enumerate(results, 1):
+        formatted_output += f"{i}. {paper['title']}\n"
+        formatted_output += f"   Authors: {', '.join(paper['authors'][:3])}{' et al.' if len(paper['authors']) > 3 else ''}\n"
+        formatted_output += f"   Journal: {paper['journal']} ({paper['year']})\n"
+        formatted_output += f"   PMID: {paper['pmid']}\n"
+        formatted_output += f"   Abstract: {paper['abstract'][:200]}...\n\n"
+        
+    return formatted_output
 
 @mcp.tool()
 def search_literature(query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, strategy: str = "relevance") -> str:
-
     """
     Search for medical literature based on a query using PubMed.
     
@@ -27,23 +48,13 @@ def search_literature(query: str, limit: int = 5, min_year: int = None, max_year
         article_type: Optional article type (e.g., "Review", "Clinical Trial", "Meta-Analysis").
         strategy: Search strategy ("recent", "most_cited", "relevance", "impact", "agent_decided"). Default is "relevance".
     """
-    results = searcher.search(query, limit, min_year, max_year, article_type, strategy)
-    
-    if not results:
-        return "No results found."
-        
-    if "error" in results[0]:
-        return f"Error searching PubMed: {results[0]['error']}"
-        
-    formatted_output = f"Found {len(results)} results for '{query}':\n\n"
-    for i, paper in enumerate(results, 1):
-        formatted_output += f"{i}. {paper['title']}\n"
-        formatted_output += f"   Authors: {', '.join(paper['authors'][:3])}{' et al.' if len(paper['authors']) > 3 else ''}\n"
-        formatted_output += f"   Journal: {paper['journal']} ({paper['year']})\n"
-        formatted_output += f"   PMID: {paper['pmid']}\n"
-        formatted_output += f"   Abstract: {paper['abstract'][:200]}...\n\n"
-        
-    return formatted_output
+    logger.info(f"Searching literature: query='{query}', limit={limit}, strategy='{strategy}'")
+    try:
+        results = searcher.search(query, limit, min_year, max_year, article_type, strategy)
+        return format_results(results)
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        return f"Error: {e}"
 
 @mcp.tool()
 def save_reference(pmid: str) -> str:
@@ -65,7 +76,6 @@ def list_saved_references() -> str:
         return "No references saved."
     return f"Saved references (PMIDs): {', '.join(refs)}"
 
-
 @mcp.tool()
 def draft_section(topic: str, notes: str) -> str:
     """
@@ -77,6 +87,50 @@ def draft_section(topic: str, notes: str) -> str:
     """
     # Placeholder for drafting logic
     return f"Drafting section '{topic}' based on notes..."
+
+@mcp.tool()
+def set_citation_style(style: str) -> str:
+    """
+    Set the citation style for the current session.
+    
+    Args:
+        style: Citation style ("vancouver", "apa", "harvard", "nature", "ama").
+    """
+    try:
+        drafter.set_citation_style(style)
+        return f"Citation style set to: {style}"
+    except ValueError as e:
+        return str(e)
+
+@mcp.tool()
+def search_local_references(query: str) -> str:
+    """
+    Search within saved local references by keyword.
+    
+    Args:
+        query: Keyword to search in titles and abstracts.
+    """
+    results = ref_manager.search_local(query)
+    
+    if not results:
+        return f"No local references found matching '{query}'"
+    
+    output = f"Found {len(results)} matching references:\n"
+    for meta in results:
+        output += f"- PMID:{meta.get('pmid')} | {meta.get('title', 'Unknown')}\n"
+        
+    return output
+
+@mcp.tool()
+def get_section_template(section: str) -> str:
+    """
+    Get writing guidelines for a specific paper section.
+    
+    Args:
+        section: "introduction", "methods", "results", "discussion", "abstract"
+    """
+    from med_paper_assistant.core.prompts import SECTION_PROMPTS
+    return SECTION_PROMPTS.get(section.lower(), "Section not found. Available: " + ", ".join(SECTION_PROMPTS.keys()))
 
 @mcp.tool()
 def write_draft(filename: str, content: str) -> str:
@@ -109,9 +163,6 @@ def insert_citation(filename: str, target_text: str, pmid: str) -> str:
         return f"Citation inserted successfully in: {path}"
     except Exception as e:
         return f"Error inserting citation: {str(e)}"
-
-
-
 
 @mcp.tool()
 def analyze_dataset(filename: str) -> str:
@@ -175,10 +226,6 @@ def export_word(draft_filename: str, template_name: str, output_filename: str) -
         return f"Word document exported successfully to: {path}"
     except Exception as e:
         return f"Error exporting Word document: {str(e)}"
-
-
-
-
 
 @mcp.prompt()
 def develop_concept() -> str:
