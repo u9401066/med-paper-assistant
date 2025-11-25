@@ -21,5 +21,6 @@
   - **Analysis Workflow**: Defined `/mdpaper.data_analysis` and integrated results into draft.
   - **Refinement**: Defined `/mdpaper.clarify` for interactive content adjustment.
   - **Word Export**: Implemented `WordExporter` with smart template filling (replacing sections instead of appending).
-  - **Verification**: Passed manual and MCP integration tests.
+  - **Cleanup**: Refactored test suite, consolidated scripts, and removed temporary files.
+  - **Verification**: Passed full test suite (9 tests).
   - **Status**: Initial Release Ready.
