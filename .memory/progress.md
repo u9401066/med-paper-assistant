@@ -47,3 +47,27 @@
   - **SERVER_INSTRUCTIONS**: Agent guidance moved to FastMCP instructions parameter.
   - **Workflow Files**: Kept in `.agent/workflows/` for reference/Antigravity compatibility.
   - **VS Code Behavior**: `/mcp.mdpaper.concept` → dialog asks for "topic" → sends to agent.
+
+- **2025-11-25 (Update 4 - Major Refactor)**:
+  - **Modular Architecture**: Refactored server.py from ~500 lines to ~90 lines entry point.
+  - **New Structure**:
+    - `tools/` - 5 modules (search, reference, draft, analysis, export)
+    - `prompts/` - Guided workflow prompts
+    - `config.py` - Server configuration and constants
+  - **ARCHITECTURE.md**: Complete documentation of new structure.
+  - **Total**: 27 tools, 6 prompts.
+  - **Commit**: 096a57c
+
+- **2025-11-25 (Update 5 - Draft Prompt Enhancement)**:
+  - **MANDATORY Concept File**: `/mdpaper.draft` now requires concept file.
+  - Auto-scans `drafts/` for files with 'concept' in filename.
+  - Shows ⚠️ warning with file list if found (MUST USE).
+  - Shows ❌ ERROR and blocks if no concept file exists.
+  - Ensures innovation and discussion content is preserved.
+  - **Commit**: 4850c9f
+
+- **2025-11-25 (Research Project)**:
+  - **Topic**: Trachway vs Fiberscope for nasotracheal intubation
+  - **Literature search**: 16 references saved (PMIDs in references/)
+  - **Concept draft**: `concept_nasotracheal_intubation.md` (1014 words)
+  - **Introduction draft**: `introduction_nasotracheal.md` (620 words, 5 citations)
