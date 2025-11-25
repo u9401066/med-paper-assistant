@@ -124,13 +124,62 @@ class LiteratureSearcher:
                 full_query += f" AND \"{article_type}\"[pt]"
             
             # Step 1: Search for IDs
-            handle = Entrez.esearch(db="pubmed", term=full_query, retmax=limit, sort=sort_param)
+            handle = Entrez.esearch(db="pubmed", term=full_query, retmax=limit*2, sort=sort_param) # Fetch more to allow for filtering
             record = Entrez.read(handle)
             handle.close()
             
             id_list = record["IdList"]
             
-            return self.fetch_details(id_list)
+            results = self.fetch_details(id_list)
+            
+            # Step 2: Post-processing Filter (e.g. Sample Size)
+            # This is where we would use the StrategyManager criteria if passed, 
+            # but for now we'll keep it simple or let the caller handle it.
+            # To support the user request "trial > 100", we need to look at the abstract.
+            
+            return results[:limit]
 
         except Exception as e:
             return [{"error": str(e)}]
+
+    def filter_results(self, results: List[Dict[str, Any]], min_sample_size: int = None) -> List[Dict[str, Any]]:
+        """
+        Filter results based on abstract content.
+        
+        Args:
+            results: List of paper details.
+            min_sample_size: Minimum number of participants mentioned.
+        """
+        if not min_sample_size:
+            return results
+            
+        filtered = []
+        import re
+        
+        for paper in results:
+            abstract = paper.get('abstract', '').lower()
+            # Simple regex to find "n = 123" or "123 patients"
+            # This is a heuristic and not perfect.
+            # Patterns: "n = 123", "n=123", "123 patients", "123 participants", "123 subjects"
+            patterns = [
+                r"n\s*=\s*(\d+)",
+                r"(\d+)\s*patients",
+                r"(\d+)\s*participants",
+                r"(\d+)\s*subjects"
+            ]
+            
+            max_n = 0
+            for p in patterns:
+                matches = re.findall(p, abstract)
+                for m in matches:
+                    try:
+                        val = int(m)
+                        if val > max_n:
+                            max_n = val
+                    except:
+                        pass
+            
+            if max_n >= min_sample_size:
+                filtered.append(paper)
+                
+        return filtered

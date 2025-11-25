@@ -5,6 +5,8 @@ from med_paper_assistant.core.drafter import Drafter, CitationStyle
 from med_paper_assistant.core.analyzer import Analyzer
 from med_paper_assistant.core.formatter import Formatter
 from med_paper_assistant.core.logger import setup_logger
+from med_paper_assistant.core.strategy_manager import StrategyManager
+import json
 
 # Setup Logger
 logger = setup_logger()
@@ -15,6 +17,7 @@ analyzer = Analyzer()
 ref_manager = ReferenceManager(searcher)
 drafter = Drafter(ref_manager)
 formatter = Formatter()
+strategy_manager = StrategyManager()
 
 mcp = FastMCP("MedPaperAssistant")
 
@@ -36,22 +39,69 @@ def format_results(results):
     return formatted_output
 
 @mcp.tool()
-def search_literature(query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, strategy: str = "relevance") -> str:
+def configure_search_strategy(criteria_json: str) -> str:
+    """
+    Save a structured search strategy.
+    
+    Args:
+        criteria_json: JSON string with keys: keywords (list), exclusions (list), article_types (list), min_sample_size (int), date_range (str).
+    """
+    try:
+        criteria = json.loads(criteria_json)
+        return strategy_manager.save_strategy(criteria)
+    except Exception as e:
+        return f"Error configuring strategy: {str(e)}"
+
+@mcp.tool()
+def get_search_strategy() -> str:
+    """Get the currently saved search strategy."""
+    strategy = strategy_manager.load_strategy()
+    if not strategy:
+        return "No strategy saved."
+    return json.dumps(strategy.dict(), indent=2)
+
+@mcp.tool()
+def search_literature(query: str = "", limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, strategy: str = "relevance", use_saved_strategy: bool = False) -> str:
     """
     Search for medical literature based on a query using PubMed.
     
     Args:
-        query: The search query (e.g., "diabetes treatment guidelines").
+        query: The search query (e.g., "diabetes treatment guidelines"). Required if use_saved_strategy is False.
         limit: The maximum number of results to return.
         min_year: Optional minimum publication year (e.g., 2020).
         max_year: Optional maximum publication year.
         article_type: Optional article type (e.g., "Review", "Clinical Trial", "Meta-Analysis").
         strategy: Search strategy ("recent", "most_cited", "relevance", "impact", "agent_decided"). Default is "relevance".
+        use_saved_strategy: If True, uses the criteria from configure_search_strategy.
     """
-    logger.info(f"Searching literature: query='{query}', limit={limit}, strategy='{strategy}'")
+    logger.info(f"Searching literature: query='{query}', limit={limit}, strategy='{strategy}', use_saved_strategy={use_saved_strategy}")
     try:
+        min_sample_size = None
+        
+        if use_saved_strategy:
+            saved_criteria = strategy_manager.load_strategy()
+            if saved_criteria:
+                # Build query from saved criteria
+                query = strategy_manager.build_pubmed_query(saved_criteria)
+                min_sample_size = saved_criteria.min_sample_size
+                logger.info(f"Using saved strategy. Generated query: {query}")
+            else:
+                return "Error: No saved strategy found. Please use configure_search_strategy first."
+        
+        if not query:
+            return "Error: Query is required unless use_saved_strategy is True and a strategy is saved."
+
+        # Perform search
+        # Note: We pass limit*2 to searcher to allow for post-filtering, but searcher.search logic handles retmax.
+        # We might need to adjust searcher.search to return more if we are filtering.
+        # For now, let's rely on searcher.search returning what it finds.
         results = searcher.search(query, limit, min_year, max_year, article_type, strategy)
-        return format_results(results)
+        
+        # Apply sample size filter if needed
+        if min_sample_size:
+            results = searcher.filter_results(results, min_sample_size)
+            
+        return format_results(results[:limit])
     except Exception as e:
         logger.error(f"Search failed: {e}")
         return f"Error: {e}"
