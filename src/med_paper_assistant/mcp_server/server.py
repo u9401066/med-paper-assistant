@@ -4,9 +4,12 @@ from med_paper_assistant.core.reference_manager import ReferenceManager
 from med_paper_assistant.core.drafter import Drafter, CitationStyle
 from med_paper_assistant.core.analyzer import Analyzer
 from med_paper_assistant.core.formatter import Formatter
+from med_paper_assistant.core.template_reader import TemplateReader
+from med_paper_assistant.core.word_writer import WordWriter, InsertInstruction
 from med_paper_assistant.core.logger import setup_logger
 from med_paper_assistant.core.strategy_manager import StrategyManager
 import json
+import os
 
 # Setup Logger
 logger = setup_logger()
@@ -17,23 +20,37 @@ analyzer = Analyzer()
 ref_manager = ReferenceManager(searcher)
 drafter = Drafter(ref_manager)
 formatter = Formatter()
+template_reader = TemplateReader()
+word_writer = WordWriter()
 strategy_manager = StrategyManager()
 
 # Server Instructions (sent to agent, not shown to user)
 SERVER_INSTRUCTIONS = """
 You are MedPaper Assistant, helping researchers write medical papers.
 
-AVAILABLE PROMPTS:
-- concept: Help develop research concept (update concept.md, find gaps, search references)
-- strategy: Configure literature search strategy (keywords, exclusions, date range)
-- draft: Write paper draft from concept.md (use PMID citations, embed figures)
-- analysis: Analyze data in data/ directory (statistics, plots, Table 1)
-- clarify: Refine specific sections (make formal, shorter, add citations)
-- format: Export draft to Word using templates
+WORKFLOW FOR EXPORTING TO WORD:
+1. read_template - Get template structure (sections, word limits)
+2. read_draft - Get draft content 
+3. YOU (Agent) decide: Which draft sections map to which template sections
+4. insert_section - Insert content into specific sections (Agent specifies where)
+5. verify_document - Compare result with original draft
+6. YOU (Agent) review: Check for missing content, logic, flow
+7. check_word_limits - Verify all sections meet word limits
+8. save_document - Final output
 
-TOOLS: search_literature, save_reference, write_draft, insert_citation, 
-       analyze_dataset, run_statistical_test, create_plot, generate_table_one,
-       configure_search_strategy, export_word
+AVAILABLE PROMPTS:
+- concept: Develop research concept
+- strategy: Configure literature search strategy
+- draft: Write paper draft
+- analysis: Analyze data
+- clarify: Refine content
+- format: Export draft to Word (uses the 8-step workflow above)
+
+KEY TOOLS: 
+- search_literature, save_reference, write_draft
+- read_template, insert_section, verify_document, check_word_limits, save_document
+- analyze_dataset, generate_table_one, create_plot
+- count_words (for drafts)
 """
 
 mcp = FastMCP("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)
@@ -320,6 +337,8 @@ def create_plot(filename: str, plot_type: str, x_col: str, y_col: str) -> str:
 @mcp.tool()
 def export_word(draft_filename: str, template_name: str, output_filename: str) -> str:
     """
+    [LEGACY] Simple export - use the new workflow (read_template → insert_section → save_document) for better control.
+    
     Export a markdown draft to a Word document using a template.
     
     Args:
@@ -333,6 +352,470 @@ def export_word(draft_filename: str, template_name: str, output_filename: str) -
         return f"Word document exported successfully to: {path}"
     except Exception as e:
         return f"Error exporting Word document: {str(e)}"
+
+# ============================================================
+# NEW WORKFLOW: Template-based Word Export with Agent Control
+# ============================================================
+
+# Global state for document editing session
+_active_documents = {}
+
+@mcp.tool()
+def list_drafts() -> str:
+    """
+    List all available draft files in the drafts/ directory.
+    Use this to see what drafts are available for export.
+    
+    Returns:
+        List of draft files with their word counts.
+    """
+    import re
+    
+    drafts_dir = "drafts"
+    if not os.path.exists(drafts_dir):
+        return "📁 No drafts/ directory found. Create drafts using write_draft tool first."
+    
+    drafts = [f for f in os.listdir(drafts_dir) if f.endswith('.md')]
+    
+    if not drafts:
+        return "📁 No draft files found in drafts/ directory."
+    
+    output = "📄 **Available Drafts**\n\n"
+    output += "| # | Filename | Sections | Total Words |\n"
+    output += "|---|----------|----------|-------------|\n"
+    
+    for i, draft_file in enumerate(sorted(drafts), 1):
+        draft_path = os.path.join(drafts_dir, draft_file)
+        try:
+            with open(draft_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Count sections (headers)
+            sections = len(re.findall(r'^#+\s+', content, re.MULTILINE))
+            
+            # Count words (rough estimate)
+            words = len([w for w in content.split() if w.strip()])
+            
+            output += f"| {i} | {draft_file} | {sections} | {words} |\n"
+        except Exception as e:
+            output += f"| {i} | {draft_file} | Error | - |\n"
+    
+    return output
+
+@mcp.tool()
+def list_templates() -> str:
+    """
+    List all available Word templates.
+    
+    Returns:
+        List of template files in the templates/ directory.
+    """
+    try:
+        templates = template_reader.list_templates()
+        if not templates:
+            return "No templates found in templates/ directory."
+        
+        output = "📄 **Available Templates**\n\n"
+        for t in templates:
+            output += f"- {t}\n"
+        return output
+    except Exception as e:
+        return f"Error listing templates: {str(e)}"
+
+@mcp.tool()
+def read_template(template_name: str) -> str:
+    """
+    Read a Word template and get its structure.
+    Use this FIRST to understand what sections the template has and their word limits.
+    
+    Args:
+        template_name: Name of the template file (e.g., "Type of the Paper.docx").
+        
+    Returns:
+        Template structure including sections, styles, and word limits.
+    """
+    try:
+        return template_reader.get_template_summary(template_name)
+    except Exception as e:
+        return f"Error reading template: {str(e)}"
+
+@mcp.tool()
+def read_draft(filename: str) -> str:
+    """
+    Read a draft file and return its structure and content.
+    Use this to understand what content needs to be placed into the template.
+    
+    Args:
+        filename: Path to the markdown draft file.
+        
+    Returns:
+        Draft content organized by sections with word counts.
+    """
+    import re
+    
+    if not os.path.isabs(filename):
+        filename = os.path.join("drafts", filename)
+    
+    if not os.path.exists(filename):
+        return f"Error: Draft file not found: {filename}"
+    
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        sections = {}
+        current_section = None
+        current_content = []
+        
+        for line in content.split('\n'):
+            if line.startswith('#'):
+                if current_section and current_content:
+                    sections[current_section] = '\n'.join(current_content)
+                section_name = re.sub(r'^#+\s*\d*\.?\s*', '', line).strip()
+                current_section = section_name if section_name else "Untitled"
+                current_content = []
+            elif current_section:
+                current_content.append(line)
+        
+        if current_section and current_content:
+            sections[current_section] = '\n'.join(current_content)
+        
+        # Format output
+        output = f"📝 **Draft: {os.path.basename(filename)}**\n\n"
+        output += "| Section | Word Count | Preview |\n"
+        output += "|---------|------------|----------|\n"
+        
+        for sec_name, sec_content in sections.items():
+            words = len([w for w in sec_content.split() if w.strip()])
+            preview = sec_content[:50].replace('\n', ' ').strip() + "..."
+            output += f"| {sec_name} | {words} | {preview} |\n"
+        
+        output += "\n---\n\n"
+        output += "**Full Content by Section:**\n\n"
+        
+        for sec_name, sec_content in sections.items():
+            output += f"### {sec_name}\n\n"
+            output += sec_content.strip()[:500]
+            if len(sec_content) > 500:
+                output += f"\n\n*... ({len(sec_content)} characters total)*"
+            output += "\n\n"
+        
+        return output
+    except Exception as e:
+        return f"Error reading draft: {str(e)}"
+
+@mcp.tool()
+def start_document_session(template_name: str, session_id: str = "default") -> str:
+    """
+    Start a new document editing session by loading a template.
+    This creates an in-memory document that you can modify with insert_section.
+    
+    Args:
+        template_name: Name of the template file.
+        session_id: Unique identifier for this editing session (default: "default").
+        
+    Returns:
+        Confirmation and template structure.
+    """
+    try:
+        # Resolve template path
+        template_path = os.path.join(template_reader.templates_dir, template_name)
+        if not os.path.exists(template_path):
+            return f"Error: Template not found: {template_name}"
+        
+        # Load template into memory
+        doc = word_writer.create_document_from_template(template_path)
+        _active_documents[session_id] = {
+            "doc": doc,
+            "template": template_name,
+            "modifications": []
+        }
+        
+        # Get structure
+        structure = template_reader.get_template_summary(template_name)
+        
+        return f"✅ Document session '{session_id}' started with template: {template_name}\n\n{structure}"
+    except Exception as e:
+        return f"Error starting session: {str(e)}"
+
+@mcp.tool()
+def insert_section(session_id: str, section_name: str, content: str, mode: str = "replace") -> str:
+    """
+    Insert content into a specific section of the active document.
+    YOU (the Agent) decide which section to insert into based on your analysis.
+    
+    Args:
+        session_id: The document session ID (from start_document_session).
+        section_name: Target section name (e.g., "Introduction", "Methods").
+        content: The text content to insert (can include multiple paragraphs).
+        mode: "replace" (clear existing then insert) or "append" (add to existing).
+        
+    Returns:
+        Confirmation with word count for the section.
+    """
+    if session_id not in _active_documents:
+        return f"Error: No active session '{session_id}'. Use start_document_session first."
+    
+    try:
+        session = _active_documents[session_id]
+        doc = session["doc"]
+        
+        paragraphs = [p for p in content.split('\n') if p.strip()]
+        clear_existing = (mode == "replace")
+        
+        count = word_writer.insert_content_in_section(
+            doc, section_name, paragraphs, clear_existing=clear_existing
+        )
+        
+        session["modifications"].append({
+            "section": section_name,
+            "paragraphs": count,
+            "mode": mode
+        })
+        
+        # Count words in section
+        word_count = word_writer.count_words_in_section(doc, section_name)
+        
+        return f"✅ Inserted {count} paragraphs into '{section_name}' ({word_count} words)"
+    except Exception as e:
+        return f"Error inserting section: {str(e)}"
+
+@mcp.tool()
+def verify_document(session_id: str) -> str:
+    """
+    Get a summary of the current document state for verification.
+    Use this to check that all content was inserted correctly.
+    
+    Args:
+        session_id: The document session ID.
+        
+    Returns:
+        Document summary with all sections and word counts.
+    """
+    if session_id not in _active_documents:
+        return f"Error: No active session '{session_id}'."
+    
+    try:
+        session = _active_documents[session_id]
+        doc = session["doc"]
+        
+        counts = word_writer.get_all_word_counts(doc)
+        
+        output = f"📊 **Document Verification: {session['template']}**\n\n"
+        output += "| Section | Word Count |\n"
+        output += "|---------|------------|\n"
+        
+        total = 0
+        for section, count in counts.items():
+            output += f"| {section} | {count} |\n"
+            total += count
+        
+        output += f"| **TOTAL** | **{total}** |\n\n"
+        
+        output += f"**Modifications made:** {len(session['modifications'])}\n"
+        for mod in session["modifications"]:
+            output += f"- {mod['section']}: {mod['paragraphs']} paragraphs ({mod['mode']})\n"
+        
+        return output
+    except Exception as e:
+        return f"Error verifying document: {str(e)}"
+
+@mcp.tool()
+def check_word_limits(session_id: str, limits_json: str = None) -> str:
+    """
+    Check if all sections meet their word limits.
+    
+    Args:
+        session_id: The document session ID.
+        limits_json: Optional JSON string with custom limits, e.g., '{"Introduction": 800, "Abstract": 250}'.
+                     If not provided, uses default limits.
+        
+    Returns:
+        Word limit compliance report.
+    """
+    if session_id not in _active_documents:
+        return f"Error: No active session '{session_id}'."
+    
+    try:
+        session = _active_documents[session_id]
+        doc = session["doc"]
+        
+        counts = word_writer.get_all_word_counts(doc)
+        
+        # Default limits
+        limits = {
+            "Abstract": 250,
+            "Introduction": 800,
+            "Methods": 1500,
+            "Materials and Methods": 1500,
+            "Results": 1500,
+            "Discussion": 1500,
+            "Conclusions": 300,
+        }
+        
+        # Override with custom limits if provided
+        if limits_json:
+            custom_limits = json.loads(limits_json)
+            limits.update(custom_limits)
+        
+        output = "📏 **Word Limit Check**\n\n"
+        output += "| Section | Words | Limit | Status |\n"
+        output += "|---------|-------|-------|--------|\n"
+        
+        all_ok = True
+        for section, count in counts.items():
+            # Find matching limit (case-insensitive partial match)
+            limit = None
+            for limit_key, limit_val in limits.items():
+                if limit_key.lower() in section.lower() or section.lower() in limit_key.lower():
+                    limit = limit_val
+                    break
+            
+            if limit:
+                if count <= limit:
+                    status = "✅"
+                else:
+                    status = f"⚠️ Over by {count - limit}"
+                    all_ok = False
+                output += f"| {section} | {count} | {limit} | {status} |\n"
+            else:
+                output += f"| {section} | {count} | - | - |\n"
+        
+        if all_ok:
+            output += "\n✅ **All sections within word limits!**"
+        else:
+            output += "\n⚠️ **Some sections exceed word limits. Consider revising.**"
+        
+        return output
+    except Exception as e:
+        return f"Error checking word limits: {str(e)}"
+
+@mcp.tool()
+def save_document(session_id: str, output_filename: str) -> str:
+    """
+    Save the document to a Word file.
+    This is the final step after all content has been inserted and verified.
+    
+    Args:
+        session_id: The document session ID.
+        output_filename: Path to save the output file (e.g., "results/paper.docx").
+        
+    Returns:
+        Confirmation with file path.
+    """
+    if session_id not in _active_documents:
+        return f"Error: No active session '{session_id}'."
+    
+    try:
+        session = _active_documents[session_id]
+        doc = session["doc"]
+        
+        path = word_writer.save_document(doc, output_filename)
+        
+        # Clean up session
+        del _active_documents[session_id]
+        
+        return f"✅ Document saved successfully to: {path}\n\nSession '{session_id}' closed."
+    except Exception as e:
+        return f"Error saving document: {str(e)}"
+
+@mcp.tool()
+def count_words(filename: str, section: str = None) -> str:
+    """
+    Count words in a draft file. Essential for meeting journal word limits.
+    
+    Args:
+        filename: Path to the markdown draft file (e.g., "drafts/draft.md").
+        section: Optional specific section to count (e.g., "Introduction", "Abstract").
+                If not specified, counts all sections.
+    
+    Returns:
+        Word count statistics including total words, words per section, and character count.
+    """
+    import os
+    import re
+    
+    # Handle relative paths
+    if not os.path.isabs(filename):
+        filename = os.path.join("drafts", filename)
+    
+    if not os.path.exists(filename):
+        return f"Error: File not found: {filename}"
+    
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Parse sections
+        sections = {}
+        current_section = "Header"
+        current_content = []
+        
+        for line in content.split('\n'):
+            if line.startswith('#'):
+                if current_content:
+                    sections[current_section] = '\n'.join(current_content)
+                # Extract section name (remove # and numbers)
+                section_name = re.sub(r'^#+\s*\d*\.?\s*', '', line).strip()
+                current_section = section_name if section_name else "Untitled"
+                current_content = []
+            else:
+                current_content.append(line)
+        
+        # Save last section
+        if current_content:
+            sections[current_section] = '\n'.join(current_content)
+        
+        def count_text_words(text: str) -> int:
+            # Remove markdown formatting
+            text = re.sub(r'\[.*?\]\(.*?\)', '', text)  # Remove links
+            text = re.sub(r'[*_`#\[\]()]', '', text)    # Remove markdown chars
+            text = re.sub(r'\s+', ' ', text)            # Normalize whitespace
+            words = [w for w in text.split() if w.strip()]
+            return len(words)
+        
+        # Count specific section or all
+        if section:
+            # Find matching section (case-insensitive partial match)
+            matched = None
+            for sec_name in sections:
+                if section.lower() in sec_name.lower():
+                    matched = sec_name
+                    break
+            
+            if matched:
+                word_count = count_text_words(sections[matched])
+                char_count = len(sections[matched].replace('\n', '').replace(' ', ''))
+                return f"📊 Word Count for '{matched}':\n" \
+                       f"  Words: {word_count}\n" \
+                       f"  Characters (no spaces): {char_count}"
+            else:
+                return f"Section '{section}' not found. Available sections: {', '.join(sections.keys())}"
+        else:
+            # Count all sections
+            output = "📊 **Word Count Summary**\n\n"
+            output += "| Section | Words | Characters |\n"
+            output += "|---------|-------|------------|\n"
+            
+            total_words = 0
+            total_chars = 0
+            
+            for sec_name, sec_content in sections.items():
+                if sec_name == "References":
+                    continue  # Skip references section
+                words = count_text_words(sec_content)
+                chars = len(sec_content.replace('\n', '').replace(' ', ''))
+                total_words += words
+                total_chars += chars
+                output += f"| {sec_name[:30]} | {words} | {chars} |\n"
+            
+            output += f"| **Total** | **{total_words}** | **{total_chars}** |\n\n"
+            output += f"📝 Total word count (excluding References): **{total_words}** words"
+            
+            return output
+            
+    except Exception as e:
+        return f"Error counting words: {str(e)}"
 
 @mcp.prompt(name="concept", description="Develop research concept")
 def mdpaper_concept(topic: str) -> str:
@@ -362,31 +845,105 @@ def mdpaper_draft(section: str) -> str:
     return f"Help me write the {section} section of my paper."
 
 @mcp.prompt(name="analysis", description="Analyze data")
-def mdpaper_data_analysis(request: str) -> str:
+def mdpaper_data_analysis() -> str:
     """Analyze research data.
     
-    Args:
-        request: What to analyze (e.g., compare groups, run t-test, create plot)
+    This prompt automatically lists available data files for analysis.
     """
-    return f"Analyze my data: {request}"
+    # Get available data files
+    data_dir = "data"
+    data_files = []
+    if os.path.exists(data_dir):
+        data_files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
+    
+    message = "Analyze research data.\n\n"
+    
+    message += "📊 **Available Data Files:**\n"
+    if data_files:
+        for i, f in enumerate(data_files, 1):
+            message += f"  {i}. {f}\n"
+    else:
+        message += "  (No CSV files found in data/ folder)\n"
+    
+    message += "\n**Available Analysis Tools:**\n"
+    message += "- `analyze_dataset` - Get descriptive statistics\n"
+    message += "- `generate_table_one` - Create Table 1 (baseline characteristics)\n"
+    message += "- `run_statistical_test` - Run t-test, correlation, etc.\n"
+    message += "- `create_plot` - Create scatter, bar, box, histogram plots\n"
+    
+    message += "\nPlease help me analyze my data."
+    
+    return message
 
 @mcp.prompt(name="clarify", description="Refine content")
-def mdpaper_clarify(request: str) -> str:
+def mdpaper_clarify() -> str:
     """Refine paper content.
     
-    Args:
-        request: What to refine (e.g., make Introduction more formal, shorten Methods)
+    This prompt lists available drafts for refinement.
     """
-    return f"Refine my paper: {request}"
+    # Get available drafts
+    drafts_dir = "drafts"
+    drafts = []
+    if os.path.exists(drafts_dir):
+        drafts = [f for f in os.listdir(drafts_dir) if f.endswith('.md')]
+    
+    message = "Refine paper content.\n\n"
+    
+    message += "📄 **Available Drafts:**\n"
+    if drafts:
+        for i, d in enumerate(drafts, 1):
+            message += f"  {i}. {d}\n"
+    else:
+        message += "  (No drafts found)\n"
+    
+    message += "\n**Refinement Options:**\n"
+    message += "- Make language more formal/academic\n"
+    message += "- Shorten to meet word limits\n"
+    message += "- Add more citations\n"
+    message += "- Improve clarity and flow\n"
+    message += "- Check grammar and style\n"
+    
+    message += "\nWhich draft would you like to refine, and what changes do you need?"
+    
+    return message
 
 @mcp.prompt(name="format", description="Export to Word")
-def mdpaper_format(draft: str) -> str:
+def mdpaper_format() -> str:
     """Export draft to Word document.
     
-    Args:
-        draft: Draft file name to export (e.g., draft.md)
+    This prompt automatically lists available drafts and templates for the user to choose from.
     """
-    return f"Export {draft} to Word format."
+    # Get available drafts
+    drafts_dir = "drafts"
+    drafts = []
+    if os.path.exists(drafts_dir):
+        drafts = [f for f in os.listdir(drafts_dir) if f.endswith('.md')]
+    
+    # Get available templates
+    templates = template_reader.list_templates()
+    
+    # Build the prompt message
+    message = "Export a draft to Word format.\n\n"
+    
+    message += "📄 **Available Drafts:**\n"
+    if drafts:
+        for i, d in enumerate(drafts, 1):
+            message += f"  {i}. {d}\n"
+    else:
+        message += "  (No drafts found in drafts/ folder)\n"
+    
+    message += "\n📋 **Available Templates:**\n"
+    if templates:
+        for i, t in enumerate(templates, 1):
+            message += f"  {i}. {t}\n"
+    else:
+        message += "  (No templates found)\n"
+    
+    message += "\nPlease help me export a draft to Word. "
+    message += "Use the 8-step workflow: read_template → read_draft → start_document_session → "
+    message += "insert_section (for each section) → verify_document → check_word_limits → save_document"
+    
+    return message
 
 if __name__ == "__main__":
     mcp.run()

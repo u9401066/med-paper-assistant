@@ -123,10 +123,15 @@ class WordExporter:
             
             if i + 1 < len(doc.paragraphs):
                 next_p = doc.paragraphs[i+1]
-                for line in reversed(content_lines): # Insert in reverse order so they end up correct
-                    self._insert_line_before(doc, next_p, line)
+                # Insert in REVERSE order: insert_paragraph_before always inserts 
+                # directly before the target, so the last inserted ends up first.
+                # By inserting in reverse, we get the correct final order.
+                for line in reversed(content_lines):
+                    line = line.strip()
+                    if line:
+                        next_p.insert_paragraph_before(line)
             else:
-                # End of document, just append
+                # End of document, just append in normal order
                 for line in content_lines:
                     self._add_line_to_doc(doc, line)
 
