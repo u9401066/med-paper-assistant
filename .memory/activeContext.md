@@ -1,13 +1,13 @@
 # Active Context
 
 ## Current Focus
-- Finalizing Phase 1 features and Search Strategy workflow.
-- Syncing changes to GitHub (Git + MEM).
+- Preparing for GitHub Release.
+- Enhancing documentation (`README.md`, `CHANGELOG.md`).
+- Verifying project metadata.
 
 ## Active Tasks
-- [x] Implement Phase 1 Improvements.
-- [x] Implement Search Strategy Workflow.
-- [ ] Sync with remote repository.
+- [ ] Enhance `README.md`
+- [ ] Create `CHANGELOG.md`
 
 
 

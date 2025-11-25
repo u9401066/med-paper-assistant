@@ -24,9 +24,3 @@
   - **Cleanup**: Refactored test suite, consolidated scripts, and removed temporary files.
   - **Verification**: Passed full test suite (9 tests).
   - **Status**: Initial Release Ready.
-  - **Phase 1 Improvements**:
-    - **Citation Styles**: Added support for Vancouver, APA, Harvard, Nature, AMA.
-    - **Local Search**: Added `search_local` for saved references.
-    - **Section Prompts**: Added templates for Introduction, Methods, Results, etc.
-    - **Logging**: Implemented system-wide logging.
-  - **Search Strategy**: Implemented `/mdpaper.strategy` workflow with `StrategyManager` for complex criteria and sample size filtering.
