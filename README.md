@@ -16,9 +16,19 @@
 ### 前置需求
 *   Python 3.10+
 *   Git
-*   VSCode (建議搭配 Copilot 或 Antigravity)
+*   VSCode + GitHub Copilot
 
-### 安裝步驟
+### 快速安裝 (推薦)
+
+```bash
+git clone https://github.com/u9401066/med-paper-assistant.git
+cd med-paper-assistant
+./scripts/setup.sh
+```
+
+設定完成後，在 VS Code 中按 `Ctrl+Shift+P` → `Developer: Reload Window`
+
+### 手動安裝
 
 1.  **複製專案**
     ```bash
@@ -39,13 +49,17 @@
     ```
 
 4.  **配置 MCP**
-    在 VSCode 的 MCP 設定檔中加入本伺服器：
+    `.vscode/mcp.json` 會自動生成，或手動創建：
     ```json
     {
-      "mcpServers": {
-        "med-paper": {
+      "inputs": [],
+      "servers": {
+        "mdpaper": {
           "command": "/path/to/med-paper-assistant/.venv/bin/python",
-          "args": ["src/med_paper_assistant/mcp_server/server.py"]
+          "args": ["-m", "med_paper_assistant.mcp_server.server"],
+          "env": {
+            "PYTHONPATH": "/path/to/med-paper-assistant/src"
+          }
         }
       }
     }

@@ -317,33 +317,33 @@ def export_word(draft_filename: str, template_name: str, output_filename: str) -
     except Exception as e:
         return f"Error exporting Word document: {str(e)}"
 
-@mcp.prompt()
-def develop_concept() -> str:
-    """Guide the user to develop their research concept."""
+@mcp.prompt(name="mdpaper.concept", description="Develop research concept")
+def mdpaper_concept() -> str:
     with open(".agent/workflows/mdpaper_concept.md", "r") as f:
         return f.read()
 
-@mcp.prompt()
-def write_draft_prompt() -> str:
-    """Guide the user to write a paper draft."""
+@mcp.prompt(name="mdpaper.strategy", description="Configure search strategy")
+def mdpaper_strategy() -> str:
+    with open(".agent/workflows/mdpaper_strategy.md", "r") as f:
+        return f.read()
+
+@mcp.prompt(name="mdpaper.draft", description="Write paper draft")
+def mdpaper_draft() -> str:
     with open(".agent/workflows/mdpaper_draft.md", "r") as f:
         return f.read()
 
-@mcp.prompt()
-def analyze_data_prompt() -> str:
-    """Guide the user to analyze their data."""
+@mcp.prompt(name="mdpaper.analysis", description="Analyze data")
+def mdpaper_data_analysis() -> str:
     with open(".agent/workflows/mdpaper_data_analysis.md", "r") as f:
         return f.read()
 
-@mcp.prompt()
-def refine_content_prompt() -> str:
-    """Guide the user to refine specific content."""
+@mcp.prompt(name="mdpaper.clarify", description="Refine content")
+def mdpaper_clarify() -> str:
     with open(".agent/workflows/mdpaper_clarify.md", "r") as f:
         return f.read()
 
-@mcp.prompt()
-def format_paper_prompt() -> str:
-    """Guide the user to format the paper to Word."""
+@mcp.prompt(name="mdpaper.format", description="Export to Word")
+def mdpaper_format() -> str:
     with open(".agent/workflows/mdpaper_apply_format.md", "r") as f:
         return f.read()
 
