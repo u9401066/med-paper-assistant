@@ -18,5 +18,6 @@
   - **Workflow Automation**: Defined `/mdpaper.draft` workflow and templates.
   - **Advanced Search**: Implemented date range, article type, and sort options.
   - **Data Analysis**: Implemented `analyze_dataset`, `run_statistical_test`, and `create_plot`.
+  - **Analysis Workflow**: Defined `/mdpaper.data_analysis` and integrated results into draft.
   - **Verification**: Passed manual and MCP integration tests.
   - Ready for initial release/commit.
