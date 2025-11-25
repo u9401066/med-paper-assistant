@@ -22,4 +22,4 @@
   - **Refinement**: Defined `/mdpaper.clarify` for interactive content adjustment.
   - **Word Export**: Implemented `/mdpaper.apply_format` to export drafts to `.docx`.
   - **Verification**: Passed manual and MCP integration tests.
-  - Ready for initial release/commit.
+  - **Status**: Initial Release Ready.
