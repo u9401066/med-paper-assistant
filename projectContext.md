@@ -9,6 +9,9 @@
 - **Workflow Automation**: Standardized `/mdpaper.draft` workflow to generate drafts from `concept.md` and templates.
 - **Data Analysis**: Upload raw data to `data/`, perform statistical analysis, and generate figures/tables in `results/`.
 - **Refinement**: `/mdpaper.clarify` workflow to interactively refine specific sections of `concept.md` or drafts.
+- **Refinement**: `/mdpaper.clarify` workflow to interactively refine specific sections of `concept.md` or drafts.
+- **Template Flexibility**: Support user-uploaded template files for draft generation.
+- **Word Export**: `/mdpaper.apply_format` workflow to export drafts and figures to `.docx` using a template.
 - Assist in converting ideas into documentation (similar to Speckit).
 - Support various journal format templates.
 - Generate first drafts with correct citations and formatting.

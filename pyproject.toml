@@ -12,7 +12,8 @@ dependencies = [
     "matplotlib",
     "scipy",
     "seaborn",
-    "tabulate"
+    "tabulate",
+    "python-docx"
 ]
 
 [build-system]

@@ -5,8 +5,10 @@ description: Generate a medical paper draft from a concept file.
 1. Read the user's concept file to understand the research content.
    `view_file(AbsolutePath="/home/eric/workspace251125/concept.md")`
 
-2. Read the target journal template to understand the required structure.
-   `view_file(AbsolutePath="/home/eric/workspace251125/src/med_paper_assistant/templates/general_medical_journal.md")`
+2. Ask the user if they want to use a specific journal template.
+   - If yes, ask for the file path or upload.
+   - If no, use the default template: `src/med_paper_assistant/templates/general_medical_journal.md`.
+   `view_file(AbsolutePath="...")`
 
 3. (Optional) If there are PMIDs in `concept.md` that are not yet saved, use `save_reference` to fetch them.
 

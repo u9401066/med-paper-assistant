@@ -4,14 +4,18 @@ from med_paper_assistant.core.reference_manager import ReferenceManager
 from med_paper_assistant.core.drafter import Drafter
 from med_paper_assistant.core.analyzer import Analyzer
 
+from med_paper_assistant.core.exporter import WordExporter
+
 mcp = FastMCP("MedPaperAssistant")
 searcher = LiteratureSearcher(email="u9401066@gap.kmu.edu.tw")
 ref_manager = ReferenceManager(searcher)
 drafter = Drafter(ref_manager)
 analyzer = Analyzer()
+exporter = WordExporter()
 
 @mcp.tool()
 def search_literature(query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, sort: str = "relevance") -> str:
+
     """
     Search for medical literature based on a query using PubMed.
     
@@ -107,17 +111,7 @@ def insert_citation(filename: str, target_text: str, pmid: str) -> str:
         return f"Error inserting citation: {str(e)}"
 
 
-@mcp.tool()
-def apply_template(content: str, journal_name: str) -> str:
-    """
-    Apply a specific journal template to the content.
-    
-    Args:
-        content: The content to format.
-        journal_name: The name of the journal template (e.g., "NEJM").
-    """
-    # Placeholder for formatting logic
-    return f"Applying template '{journal_name}' to content..."
+
 
 @mcp.tool()
 def analyze_dataset(filename: str) -> str:
@@ -165,19 +159,25 @@ def create_plot(filename: str, plot_type: str, x_col: str, y_col: str) -> str:
     except Exception as e:
         return f"Error creating plot: {str(e)}"
 
-
-
 @mcp.tool()
-def apply_template(content: str, journal_name: str) -> str:
+def export_word(draft_filename: str, template_path: str, output_filename: str) -> str:
     """
-    Apply a specific journal template to the content.
+    Export a markdown draft to a Word document using a template.
     
     Args:
-        content: The content to format.
-        journal_name: The name of the journal template (e.g., "NEJM").
+        draft_filename: Path to the markdown draft file (e.g., "drafts/draft.md").
+        template_path: Path to the Word template file (e.g., "templates/sensors.docx").
+        output_filename: Path to save the output file (e.g., "results/paper.docx").
     """
-    # Placeholder for formatting logic
-    return f"Applying template '{journal_name}' to content..."
+    try:
+        path = exporter.export_to_word(draft_filename, template_path, output_filename)
+        return f"Word document exported successfully to: {path}"
+    except Exception as e:
+        return f"Error exporting Word document: {str(e)}"
+
+
+
+
 
 if __name__ == "__main__":
     mcp.run()

@@ -51,6 +51,36 @@ python src/med_paper_assistant/mcp_server/server.py
 
 歡迎提交 Issue 或 Pull Request！詳情請見 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-## 授權
+## 使用指南 (Usage Guide)
 
-本專案採用 [MIT License](LICENSE)。
+本助手透過一系列的 Agent Workflows 來協助您完成論文寫作：
+
+### 1. 準備階段 (Preparation)
+- **上傳資料**: 將您的原始數據 (CSV) 放入 `data/` 目錄。
+- **準備範本**: (選用) 如果您有特定的期刊格式，請準備好 Markdown 範本檔。
+
+### 2. 發展構想 (Concept Development)
+- **指令**: `/mdpaper.concept`
+- **流程**: Agent 會協助您填寫 `concept.md`，釐清研究假說、方法與預期結果。
+
+### 3. 資料分析 (Data Analysis)
+- **指令**: `/mdpaper.data_analysis`
+- **流程**: Agent 會讀取 `data/` 中的檔案，根據您的指示執行統計檢定 (T-test, Chi-square 等) 並繪製圖表。結果會存於 `results/`。
+
+### 4. 撰寫草稿 (Drafting)
+- **指令**: `/mdpaper.draft`
+- **流程**: Agent 會讀取 `concept.md`、分析結果與期刊範本，自動生成論文草稿。圖表會自動嵌入，引用文獻也會自動格式化。
+
+### 5. 內容修正 (Refinement)
+- **指令**: `/mdpaper.clarify`
+- **流程**: 針對草稿的特定段落進行互動式修改，例如「請改寫 Introduction 讓語氣更強烈」。
+
+### 6. 文獻檢索 (Literature Search)
+- 您也可以隨時要求 Agent 搜尋文獻：
+  - "幫我找 2024 年關於氣喘的 Review 文章"
+  - "搜尋 remifentanil 相關的臨床試驗"
+
+## 授權 (License)
+
+本專案採用 MIT 授權。
+License](LICENSE)。

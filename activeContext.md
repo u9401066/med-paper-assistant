@@ -1,12 +1,16 @@
 # Active Context
 
 ## Current Focus
-- Implementing `/mdpaper.clarify` workflow.
-- Enabling local adjustments to `concept.md` and drafts.
+- Implementing `.docx` export functionality.
+- Creating `/mdpaper.apply_format` workflow.
+- Handling image embedding in Word documents.
 
 ## Active Tasks
-- [ ] Create `.agent/workflows/mdpaper_clarify.md`
-- [ ] Verify Workflow
+- [ ] Add `python-docx`
+- [ ] Implement `WordExporter`
+- [ ] Create Workflow
+
+
 
 
 

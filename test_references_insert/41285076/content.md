@@ -1,9 +1,0 @@
-# Single-channel electrochemical biosensor for simultaneous monitoring of glucose and uric acid.
-
-**Authors**: Quan Changyun, Wen Liping, Yang Minghui, Xu Binjie
-**Journal**: Biosensors & bioelectronics (2025)
-**PMID**: 41285076
-
-## Abstract
-
-Given the metabolic interplay between glucose and uric acid, individuals should proactively monitor and be alert of elevated levels of both substances. For the first time, this paper describes a novel design of electrochemical biosensor based on screen-printed electrode of a single channel but capable of simultaneously measuring blood glucose and uric acid concentrations. Experimental results demonstrated that this single-channel biosensor exhibits good performance towards glucose and uric acid, such as broad linear range, good reproducibility, good stability, and strong resistance against interference. For spiked recovery experiments on human venous blood samples, the glucose recovery rate ranged from 95.9 % to 103.2 %, while the uric acid recovery rate ranged from 99.7 % to 104.9 %. And the relative standard deviation for both parameters was less than 5 %, indicating that this biosensor holds promising prospects for commercial application. This is truly the first time that enable simultaneous detection of glucose and uric acid concentrations using just one drop of blood and a single test strip. It reduces the number of blood draws required, lowers analysis costs, and significantly improves screening efficiency for individuals with diabetes and hyperuricemia.
