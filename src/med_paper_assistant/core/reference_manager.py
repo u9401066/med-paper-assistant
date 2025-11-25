@@ -72,3 +72,36 @@ class ReferenceManager:
         if not os.path.exists(self.base_dir):
             return []
         return [d for d in os.listdir(self.base_dir) if os.path.isdir(os.path.join(self.base_dir, d))]
+
+    def get_metadata(self, pmid: str) -> Dict[str, Any]:
+        """
+        Get metadata for a reference. If not saved locally, attempts to fetch and save it.
+        
+        Args:
+            pmid: PubMed ID.
+            
+        Returns:
+            Dictionary containing metadata, or empty dict if failed.
+        """
+        ref_dir = os.path.join(self.base_dir, pmid)
+        metadata_path = os.path.join(ref_dir, "metadata.json")
+        
+        # If exists locally, read it
+        if os.path.exists(metadata_path):
+            try:
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error reading metadata for {pmid}: {e}")
+                return {}
+        
+        # If not, try to save it first
+        print(f"Reference {pmid} not found locally. Attempting to fetch...")
+        result = self.save_reference(pmid)
+        if "Successfully saved" in result:
+            # Try reading again
+            if os.path.exists(metadata_path):
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        
+        return {}

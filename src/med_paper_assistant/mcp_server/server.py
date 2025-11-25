@@ -1,10 +1,12 @@
 from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.core.search import LiteratureSearcher
 from med_paper_assistant.core.reference_manager import ReferenceManager
+from med_paper_assistant.core.drafter import Drafter
 
 mcp = FastMCP("MedPaperAssistant")
 searcher = LiteratureSearcher(email="u9401066@gap.kmu.edu.tw")
 ref_manager = ReferenceManager(searcher)
+drafter = Drafter(ref_manager)
 
 @mcp.tool()
 def search_literature(query: str, limit: int = 5) -> str:
@@ -65,6 +67,35 @@ def draft_section(topic: str, notes: str) -> str:
     """
     # Placeholder for drafting logic
     return f"Drafting section '{topic}' based on notes..."
+
+@mcp.tool()
+def write_draft(filename: str, content: str) -> str:
+    """
+    Create a draft file with automatic citation formatting.
+    Use (PMID:123456) or [PMID:123456] in content to insert citations.
+    
+    Args:
+        filename: Name of the file (e.g., "draft.md").
+        content: The text content with citation placeholders.
+    """
+    try:
+        path = drafter.create_draft(filename, content)
+        return f"Draft created successfully at: {path}"
+    except Exception as e:
+        return f"Error creating draft: {str(e)}"
+
+@mcp.tool()
+def apply_template(content: str, journal_name: str) -> str:
+    """
+    Apply a specific journal template to the content.
+    
+    Args:
+        content: The content to format.
+        journal_name: The name of the journal template (e.g., "NEJM").
+    """
+    # Placeholder for formatting logic
+    return f"Applying template '{journal_name}' to content..."
+
 
 @mcp.tool()
 def apply_template(content: str, journal_name: str) -> str:

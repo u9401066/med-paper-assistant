@@ -5,6 +5,7 @@
 - Provide a VSCode-compatible tool/MCP for literature search (usable by Copilot/Antigravity).
 - Allow user-defined literature search parameters.
 - **Reference Management**: Save selected literature with metadata and content (abstract/full text) to a local `references/` directory.
+- **Draft Generation**: Create draft files in `drafts/` with automatic citation insertion and bibliography generation.
 - Assist in converting ideas into documentation (similar to Speckit).
 - Support various journal format templates.
 - Generate first drafts with correct citations and formatting.

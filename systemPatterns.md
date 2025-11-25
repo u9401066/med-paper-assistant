@@ -18,4 +18,8 @@
   - Directory: `references/{PMID}/`
   - `metadata.json`: JSON file containing citation info (Title, Authors, Journal, Year, DOI, etc.).
   - `content.md`: Markdown file containing the abstract or full text.
+- **Draft Storage**:
+  - Directory: `drafts/`
+  - Format: Markdown files with embedded citations (e.g., `[1]`) and a "References" section.
+
 
