@@ -22,7 +22,7 @@
 
 1.  **複製專案**
     ```bash
-    git clone https://github.com/your-username/med-paper-assistant.git
+    git clone https://github.com/u9401066/med-paper-assistant.git
     cd med-paper-assistant
     ```
 
