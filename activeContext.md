@@ -1,15 +1,15 @@
 # Active Context
 
 ## Current Focus
-- Refining the Citation Workflow.
-- Implementing `insert_citation` tool to safely add references without full file rewrites.
-- Verifying the new workflow.
+- Defining the `/mdpaper.draft` workflow.
+- Creating standard templates (`concept.md` and journal styles).
+- Ensuring the agent follows the format strictly.
 
 ## Active Tasks
-- [ ] Update Memory Bank with new Citation Workflow
-- [ ] Design `insert_citation` logic
-- [ ] Implement `insert_citation` in Drafter
-- [ ] Update MCP Server
+- [ ] Create `concept.md` template
+- [ ] Create `templates/general_medical_journal.md`
+- [ ] Create `.agent/workflows/mdpaper_draft.md`
+
 
 
 
