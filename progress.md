@@ -16,5 +16,6 @@
   - **Draft Generation**: Implemented `write_draft` with automatic citation formatting.
   - **Citation Insertion**: Implemented `insert_citation` for safe editing and renumbering.
   - **Workflow Automation**: Defined `/mdpaper.draft` workflow and templates.
+  - **Advanced Search**: Implemented date range, article type, and sort options.
   - **Verification**: Passed manual and MCP integration tests.
   - Ready for initial release/commit.

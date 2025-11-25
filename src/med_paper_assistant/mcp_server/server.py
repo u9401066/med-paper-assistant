@@ -9,15 +9,19 @@ ref_manager = ReferenceManager(searcher)
 drafter = Drafter(ref_manager)
 
 @mcp.tool()
-def search_literature(query: str, limit: int = 5) -> str:
+def search_literature(query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, sort: str = "relevance") -> str:
     """
     Search for medical literature based on a query using PubMed.
     
     Args:
         query: The search query (e.g., "diabetes treatment guidelines").
         limit: The maximum number of results to return.
+        min_year: Optional minimum publication year (e.g., 2020).
+        max_year: Optional maximum publication year.
+        article_type: Optional article type (e.g., "Review", "Clinical Trial", "Meta-Analysis").
+        sort: Sort order ("relevance", "pub_date", "author", "journal"). Default is "relevance".
     """
-    results = searcher.search(query, limit)
+    results = searcher.search(query, limit, min_year, max_year, article_type, sort)
     
     if not results:
         return "No results found."

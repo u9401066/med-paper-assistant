@@ -71,20 +71,34 @@ class LiteratureSearcher:
         except Exception as e:
             return [{"error": str(e)}]
 
-    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, sort: str = "relevance") -> List[Dict[str, Any]]:
         """
         Search PubMed for articles.
         
         Args:
             query: Search query string.
             limit: Maximum number of results to return.
+            min_year: Minimum publication year.
+            max_year: Maximum publication year.
+            article_type: Type of article (e.g., "Review", "Clinical Trial").
+            sort: Sort order ("relevance", "pub_date", etc.).
             
         Returns:
             List of dictionaries containing article details.
         """
         try:
+            # Construct advanced query
+            full_query = query
+            
+            if min_year or max_year:
+                date_range = f"{min_year or 1900}/{'01/01'}:{max_year or 3000}/{'12/31'}[dp]"
+                full_query += f" AND {date_range}"
+                
+            if article_type:
+                full_query += f" AND \"{article_type}\"[pt]"
+            
             # Step 1: Search for IDs
-            handle = Entrez.esearch(db="pubmed", term=query, retmax=limit)
+            handle = Entrez.esearch(db="pubmed", term=full_query, retmax=limit, sort=sort)
             record = Entrez.read(handle)
             handle.close()
             

@@ -1,17 +1,16 @@
 # Research Concept
 
 ## Title
-Efficacy of Honey in Treating Cough in Children
+[Draft] Impact of Steroid Type and Dose vs. Genetic Factors in NB
 
 ## Hypothesis / Research Question
-Honey is more effective than placebo in reducing cough frequency in children with upper respiratory tract infections.
+Does the type and dose of steroid administered in NB (Nerve Block?) have a greater effect on clinical outcomes than genetic influence?
 
 ## Key Results
-- Honey significantly reduced cough frequency compared to placebo.
-- No significant adverse effects were observed.
+[To be determined]
 
 ## Methodology
-Randomized controlled trial involving 100 children aged 2-5 years.
+[To be determined]
 
 ## References (PMIDs)
-- PMID:41285088
+[List relevant PMIDs here]

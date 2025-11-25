@@ -1,14 +1,15 @@
 # Active Context
 
 ## Current Focus
-- Defining the `/mdpaper.draft` workflow.
-- Creating standard templates (`concept.md` and journal styles).
-- Ensuring the agent follows the format strictly.
+- Enhancing the Search MCP tool.
+- Implementing customizable search strategies (Date, Type, Sort).
+- Integrating these options into the MCP server.
 
 ## Active Tasks
-- [ ] Create `concept.md` template
-- [ ] Create `templates/general_medical_journal.md`
-- [ ] Create `.agent/workflows/mdpaper_draft.md`
+- [ ] Design Advanced Search Interface
+- [ ] Update `LiteratureSearcher`
+- [ ] Update MCP Server
+
 
 
 
