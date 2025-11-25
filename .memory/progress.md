@@ -1,10 +1,19 @@
 # Progress
 
 ## Milestones
-- [ ] Project Initialization
-  - [ ] Memory Bank Setup
-  - [ ] Agent Constitution Setup
-  - [ ] Python Environment Setup
+- [x] Project Initialization
+  - [x] Memory Bank Setup
+  - [x] Agent Constitution Setup
+  - [x] Python Environment Setup
+- [x] Core Features
+  - [x] PubMed Integration
+  - [x] Reference Management
+  - [x] Draft Generation
+  - [x] Data Analysis
+  - [x] Word Export
+- [x] Table 1 Generator (PR merged)
+- [x] Search Strategy Manager
+- [x] MCP Prompts Improvement
 
 ## Status
 - **2025-11-25**: 
@@ -24,3 +33,11 @@
   - **Cleanup**: Refactored test suite, consolidated scripts, and removed temporary files.
   - **Verification**: Passed full test suite (9 tests).
   - **Status**: Initial Release Ready.
+
+- **2025-11-25 (Update 2)**:
+  - **Table 1 Generator**: Added `generate_table_one()` for baseline characteristics tables with automatic statistical tests.
+  - **Search Strategy Manager**: Added `configure_search_strategy` and `get_search_strategy` tools.
+  - **MCP Prompts**: Renamed to `mdpaper.*` format with short descriptions.
+  - **Setup Script**: Added `scripts/setup.sh` for one-click installation.
+  - **Total Tools**: 16 tools, 6 prompts.
+  - **Tests**: 19 tests (18 passed, 1 minor string format issue).

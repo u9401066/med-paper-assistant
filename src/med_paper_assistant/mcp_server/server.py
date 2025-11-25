@@ -19,7 +19,24 @@ drafter = Drafter(ref_manager)
 formatter = Formatter()
 strategy_manager = StrategyManager()
 
-mcp = FastMCP("MedPaperAssistant")
+# Server Instructions (sent to agent, not shown to user)
+SERVER_INSTRUCTIONS = """
+You are MedPaper Assistant, helping researchers write medical papers.
+
+AVAILABLE PROMPTS:
+- concept: Help develop research concept (update concept.md, find gaps, search references)
+- strategy: Configure literature search strategy (keywords, exclusions, date range)
+- draft: Write paper draft from concept.md (use PMID citations, embed figures)
+- analysis: Analyze data in data/ directory (statistics, plots, Table 1)
+- clarify: Refine specific sections (make formal, shorter, add citations)
+- format: Export draft to Word using templates
+
+TOOLS: search_literature, save_reference, write_draft, insert_citation, 
+       analyze_dataset, run_statistical_test, create_plot, generate_table_one,
+       configure_search_strategy, export_word
+"""
+
+mcp = FastMCP("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)
 
 def format_results(results):
     if not results:
@@ -317,35 +334,29 @@ def export_word(draft_filename: str, template_name: str, output_filename: str) -
     except Exception as e:
         return f"Error exporting Word document: {str(e)}"
 
-@mcp.prompt(name="mdpaper.concept", description="Develop research concept")
+@mcp.prompt(name="concept", description="Develop research concept")
 def mdpaper_concept() -> str:
-    with open(".agent/workflows/mdpaper_concept.md", "r") as f:
-        return f.read()
+    return ""
 
-@mcp.prompt(name="mdpaper.strategy", description="Configure search strategy")
+@mcp.prompt(name="strategy", description="Configure search strategy")
 def mdpaper_strategy() -> str:
-    with open(".agent/workflows/mdpaper_strategy.md", "r") as f:
-        return f.read()
+    return ""
 
-@mcp.prompt(name="mdpaper.draft", description="Write paper draft")
+@mcp.prompt(name="draft", description="Write paper draft")
 def mdpaper_draft() -> str:
-    with open(".agent/workflows/mdpaper_draft.md", "r") as f:
-        return f.read()
+    return ""
 
-@mcp.prompt(name="mdpaper.analysis", description="Analyze data")
+@mcp.prompt(name="analysis", description="Analyze data")
 def mdpaper_data_analysis() -> str:
-    with open(".agent/workflows/mdpaper_data_analysis.md", "r") as f:
-        return f.read()
+    return ""
 
-@mcp.prompt(name="mdpaper.clarify", description="Refine content")
+@mcp.prompt(name="clarify", description="Refine content")
 def mdpaper_clarify() -> str:
-    with open(".agent/workflows/mdpaper_clarify.md", "r") as f:
-        return f.read()
+    return ""
 
-@mcp.prompt(name="mdpaper.format", description="Export to Word")
+@mcp.prompt(name="format", description="Export to Word")
 def mdpaper_format() -> str:
-    with open(".agent/workflows/mdpaper_apply_format.md", "r") as f:
-        return f.read()
+    return ""
 
 if __name__ == "__main__":
     mcp.run()

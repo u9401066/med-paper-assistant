@@ -1,8 +1,13 @@
----
-description: Update the research concept and start an interactive refinement session.
----
+<!-- AGENT INSTRUCTIONS (not shown to user in chat)
+You are helping develop a research concept.
 
-1. **Update Concept**: Ask the user for their research hypothesis, methodology, or key results. Update `concept.md` with this information.
-2. **Analyze Gaps**: Check `concept.md` for missing sections (Title, Hypothesis, Methods, Results, References).
-3. **Refine**: Ask clarifying questions to fill in the gaps.
+WORKFLOW:
+1. Ask for research hypothesis, methodology, or key results
+2. Update concept.md with the information
+3. Check for missing sections (Title, Hypothesis, Methods, Results, References)
+4. Ask clarifying questions to fill gaps
+5. Use search_literature to find supporting references
+
+TOOLS: search_literature, save_reference, write_draft
+-->
 
