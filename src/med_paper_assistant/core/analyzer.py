@@ -1,9 +1,10 @@
 import os
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 class Analyzer:
     def __init__(self, data_dir: str = "data", results_dir: str = "results"):
@@ -122,3 +123,172 @@ class Analyzer:
         plt.close()
         
         return output_path
+
+    def generate_table_one(
+        self,
+        filename: str,
+        group_col: str,
+        continuous_cols: List[str],
+        categorical_cols: List[str],
+        output_name: str = None
+    ) -> str:
+        """
+        Generate Table 1 (baseline characteristics) for medical papers.
+        
+        This is a standard table in medical research showing patient demographics
+        and baseline characteristics, stratified by treatment groups.
+        
+        Args:
+            filename: Name of the CSV file.
+            group_col: Column name for grouping (e.g., "treatment", "group").
+            continuous_cols: List of continuous variable column names (e.g., ["age", "weight"]).
+            categorical_cols: List of categorical variable column names (e.g., ["sex", "diabetes"]).
+            output_name: Output filename for the table (optional).
+            
+        Returns:
+            Markdown formatted Table 1.
+        """
+        df = self.load_data(filename)
+        
+        # Get groups
+        groups = df[group_col].unique()
+        n_groups = len(groups)
+        
+        # Initialize results list
+        rows = []
+        
+        # Header row
+        header = ["Variable", "Overall (N={})".format(len(df))]
+        for group in groups:
+            n = len(df[df[group_col] == group])
+            header.append(f"{group} (N={n})")
+        header.append("P-value")
+        
+        # Process continuous variables
+        for col in continuous_cols:
+            if col not in df.columns:
+                continue
+                
+            # Overall stats
+            overall_mean = df[col].mean()
+            overall_std = df[col].std()
+            overall_str = f"{overall_mean:.1f} ± {overall_std:.1f}"
+            
+            row = [col, overall_str]
+            
+            # Group stats
+            group_data = []
+            for group in groups:
+                group_vals = df[df[group_col] == group][col].dropna()
+                mean_val = group_vals.mean()
+                std_val = group_vals.std()
+                row.append(f"{mean_val:.1f} ± {std_val:.1f}")
+                group_data.append(group_vals)
+            
+            # P-value (t-test for 2 groups, ANOVA for >2 groups)
+            if n_groups == 2:
+                try:
+                    _, p_val = stats.ttest_ind(group_data[0], group_data[1])
+                    row.append(self._format_pvalue(p_val))
+                except:
+                    row.append("N/A")
+            elif n_groups > 2:
+                try:
+                    _, p_val = stats.f_oneway(*group_data)
+                    row.append(self._format_pvalue(p_val))
+                except:
+                    row.append("N/A")
+            else:
+                row.append("-")
+                
+            rows.append(row)
+        
+        # Process categorical variables
+        for col in categorical_cols:
+            if col not in df.columns:
+                continue
+                
+            categories = df[col].dropna().unique()
+            
+            for cat in categories:
+                # Overall count
+                overall_count = (df[col] == cat).sum()
+                overall_pct = overall_count / len(df) * 100
+                overall_str = f"{overall_count} ({overall_pct:.1f}%)"
+                
+                row = [f"{col}: {cat}", overall_str]
+                
+                # Group counts for chi-square
+                contingency_data = []
+                for group in groups:
+                    group_df = df[df[group_col] == group]
+                    count = (group_df[col] == cat).sum()
+                    pct = count / len(group_df) * 100 if len(group_df) > 0 else 0
+                    row.append(f"{count} ({pct:.1f}%)")
+                    contingency_data.append(count)
+                
+                # P-value only for first category of each variable
+                if cat == categories[0]:
+                    try:
+                        # Create contingency table
+                        contingency = pd.crosstab(df[group_col], df[col])
+                        chi2, p_val, _, _ = stats.chi2_contingency(contingency)
+                        row.append(self._format_pvalue(p_val))
+                    except:
+                        row.append("N/A")
+                else:
+                    row.append("")
+                    
+                rows.append(row)
+        
+        # Create markdown table
+        markdown = self._create_markdown_table(header, rows)
+        
+        # Add title and footnote
+        table_output = "## Table 1. Baseline Characteristics\n\n"
+        table_output += markdown
+        table_output += "\n\n*Values are presented as mean ± SD for continuous variables and n (%) for categorical variables.*\n"
+        table_output += "*P-values: Student's t-test or ANOVA for continuous variables; Chi-square test for categorical variables.*\n"
+        
+        # Save to file if output_name specified
+        if output_name:
+            if not output_name.endswith(".md"):
+                output_name += ".md"
+            output_path = os.path.join(self.tables_dir, output_name)
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(table_output)
+            return f"Table 1 saved to: {output_path}\n\n{table_output}"
+        
+        return table_output
+    
+    def _format_pvalue(self, p: float) -> str:
+        """Format p-value according to medical conventions."""
+        if p < 0.001:
+            return "<0.001"
+        elif p < 0.01:
+            return f"{p:.3f}"
+        elif p < 0.05:
+            return f"{p:.3f}*"
+        else:
+            return f"{p:.3f}"
+    
+    def _create_markdown_table(self, header: List[str], rows: List[List[str]]) -> str:
+        """Create a markdown table from header and rows."""
+        # Calculate column widths
+        all_rows = [header] + rows
+        col_widths = [max(len(str(row[i])) for row in all_rows) for i in range(len(header))]
+        
+        # Create header
+        header_str = "| " + " | ".join(str(h).ljust(w) for h, w in zip(header, col_widths)) + " |"
+        separator = "|-" + "-|-".join("-" * w for w in col_widths) + "-|"
+        
+        # Create rows
+        row_strs = []
+        for row in rows:
+            # Ensure row has correct number of columns
+            while len(row) < len(header):
+                row.append("")
+            row_str = "| " + " | ".join(str(cell).ljust(w) for cell, w in zip(row, col_widths)) + " |"
+            row_strs.append(row_str)
+        
+        return header_str + "\n" + separator + "\n" + "\n".join(row_strs)
