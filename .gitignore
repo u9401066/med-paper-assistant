@@ -17,3 +17,11 @@ results/
 test_data/
 test_results/
 
+
+# Memory Bank (Private Development Context)
+projectContext.md
+activeContext.md
+systemPatterns.md
+techContext.md
+progress.md
+.agent_constitution.md
