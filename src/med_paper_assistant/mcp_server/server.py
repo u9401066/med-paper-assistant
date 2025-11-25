@@ -187,6 +187,186 @@ def set_citation_style(style: str) -> str:
         return str(e)
 
 @mcp.tool()
+def format_references(pmids: str, style: str = "vancouver", journal: str = None) -> str:
+    """
+    Format a list of references according to a specific citation style or journal format.
+    Use this to get properly formatted references for the References section.
+    
+    Args:
+        pmids: Comma-separated list of PMIDs (e.g., "31645286,28924371,33160604").
+        style: Citation style ("vancouver", "apa", "harvard", "nature", "ama", "mdpi", "nlm").
+               Default is "vancouver".
+        journal: Optional journal name for journal-specific formatting 
+                (e.g., "sensors", "lancet", "bja", "anesthesiology").
+                If provided, overrides the style parameter.
+    
+    Returns:
+        Formatted reference list ready for insertion into the References section.
+    """
+    from med_paper_assistant.core.drafter import JOURNAL_CITATION_CONFIGS
+    
+    pmid_list = [p.strip() for p in pmids.split(",") if p.strip()]
+    
+    if not pmid_list:
+        return "Error: No PMIDs provided."
+    
+    # Style-specific configurations
+    STYLE_CONFIGS = {
+        "vancouver": {"author_format": "last_initials", "max_authors": 6, "et_al_threshold": 3},
+        "apa": {"author_format": "last_comma_initials", "max_authors": 7, "et_al_threshold": 6},
+        "harvard": {"author_format": "last_comma_initials", "max_authors": 3, "et_al_threshold": 3},
+        "nature": {"author_format": "last_initials", "max_authors": 5, "et_al_threshold": 5},
+        "ama": {"author_format": "last_initials", "max_authors": 6, "et_al_threshold": 6},
+        "mdpi": {"author_format": "last_comma_initials", "max_authors": 6, "et_al_threshold": 6},
+        "nlm": {"author_format": "last_initials", "max_authors": 6, "et_al_threshold": 6},
+    }
+    
+    # Get configuration
+    if journal and journal.lower() in JOURNAL_CITATION_CONFIGS:
+        config = JOURNAL_CITATION_CONFIGS[journal.lower()]
+        style_name = f"{journal.upper()} format"
+    else:
+        config = STYLE_CONFIGS.get(style.lower(), STYLE_CONFIGS["vancouver"])
+        style_name = style.upper()
+    
+    output = f"📚 **Formatted References ({style_name})**\n\n"
+    
+    for i, pmid in enumerate(pmid_list, 1):
+        metadata = ref_manager.get_metadata(pmid)
+        
+        if not metadata:
+            output += f"[{i}] PMID:{pmid} - Reference not found in local library. Use save_reference first.\n"
+            continue
+        
+        # Format authors based on config
+        authors = metadata.get('authors', [])
+        author_format = config.get('author_format', 'full')
+        max_authors = config.get('max_authors', 6)
+        et_al_threshold = config.get('et_al_threshold', 3)
+        
+        formatted_authors = _format_authors(authors, author_format, max_authors, et_al_threshold)
+        
+        # Build reference string
+        title = metadata.get('title', 'Unknown Title').rstrip('.')  # Remove trailing period
+        journal_name = metadata.get('journal', 'Unknown Journal')
+        year = metadata.get('year', 'Unknown')
+        volume = metadata.get('volume', '')
+        pages = metadata.get('pages', '')
+        
+        # Helper function to add separator after authors
+        def author_separator(authors_text):
+            """Add appropriate separator after author list."""
+            # Check if already ends with punctuation
+            if authors_text.endswith('.') or authors_text.endswith(','):
+                return authors_text + " "  # already has punctuation
+            else:
+                return authors_text + ". "  # add period and space
+        
+        # Build reference string with proper punctuation
+        author_block = author_separator(formatted_authors)
+        
+        # Use template format or style-specific format
+        if style.lower() == "vancouver" or (journal and config.get('style') == 'vancouver'):
+            ref_str = f"[{i}] {author_block}{title}. {journal_name} ({year})."
+            if volume:
+                ref_str = f"[{i}] {author_block}{title}. {journal_name} {year}; {volume}"
+                if pages:
+                    ref_str += f": {pages}"
+                ref_str += "."
+        elif style.lower() == "apa":
+            ref_str = f"{formatted_authors} ({year}). {title}. *{journal_name}*"
+            if volume:
+                ref_str += f", {volume}"
+                if pages:
+                    ref_str += f", {pages}"
+            ref_str += "."
+        elif style.lower() == "harvard":
+            ref_str = f"{formatted_authors} ({year}) '{title}', *{journal_name}*"
+            if volume:
+                ref_str += f", vol. {volume}"
+                if pages:
+                    ref_str += f", pp. {pages}"
+            ref_str += "."
+        elif style.lower() == "nature" or style.lower() == "ama":
+            ref_str = f"{i}. {author_block}{title}. {journal_name}"
+            if volume:
+                ref_str += f" {volume}"
+                if pages:
+                    ref_str += f", {pages}"
+            ref_str += f" ({year})."
+        elif style.lower() == "mdpi":
+            ref_str = f"{i}. {author_block}{title}. *{journal_name}* **{year}**"
+            if volume:
+                ref_str += f", *{volume}*"
+                if pages:
+                    ref_str += f", {pages}"
+            ref_str += "."
+        else:
+            ref_str = f"[{i}] {author_block}{title}. {journal_name} ({year}). PMID:{pmid}."
+        
+        output += ref_str + "\n"
+    
+    output += f"\n*Total: {len(pmid_list)} references*"
+    return output
+
+
+def _format_authors(authors: list, format_type: str, max_authors: int, et_al_threshold: int) -> str:
+    """Helper function to format author names according to style.
+    
+    PubMed returns author names as "Lastname Firstname" (e.g., "Cho Sang-Hyeon").
+    """
+    if not authors:
+        return "Unknown Author"
+    
+    # Truncate if too many authors
+    use_et_al = len(authors) > et_al_threshold
+    display_authors = authors[:max_authors] if not use_et_al else authors[:et_al_threshold]
+    
+    formatted = []
+    for author in display_authors:
+        # PubMed format: "Lastname Firstname" or "Lastname First-Middle" or "Lastname F"
+        parts = author.split()
+        if len(parts) >= 2:
+            # First part is last name, rest are first/middle names
+            last_name = parts[0]
+            first_parts = parts[1:]
+            
+            if format_type == "last_initials":
+                # "Cho SH" - Last name + initials without space
+                initials = "".join([p[0].upper() for p in first_parts if p])
+                formatted.append(f"{last_name} {initials}")
+            elif format_type == "last_initials_space":
+                # "Cho S H" - Last name + initials with space
+                initials = " ".join([p[0].upper() for p in first_parts if p])
+                formatted.append(f"{last_name} {initials}")
+            elif format_type == "last_comma_initials":
+                # "Cho, S.H." - Last name, comma, initials with dots
+                initials = ".".join([p[0].upper() for p in first_parts if p]) + "."
+                formatted.append(f"{last_name}, {initials}")
+            elif format_type == "initials_last":
+                # "S.H. Cho" - Initials first, then last name
+                initials = ".".join([p[0].upper() for p in first_parts if p]) + "."
+                formatted.append(f"{initials} {last_name}")
+            else:
+                # "full" - use as-is
+                formatted.append(author)
+        else:
+            formatted.append(author)
+    
+    # Join authors
+    if len(formatted) == 1:
+        result = formatted[0]
+    elif len(formatted) == 2:
+        result = f"{formatted[0]}, {formatted[1]}"
+    else:
+        result = ", ".join(formatted)
+    
+    if use_et_al:
+        result += ", et al."
+    
+    return result
+
+@mcp.tool()
 def search_local_references(query: str) -> str:
     """
     Search within saved local references by keyword.
