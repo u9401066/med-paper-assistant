@@ -42,7 +42,67 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         Args:
             section: Which section to write (Introduction, Methods, Results, Discussion, or all)
         """
-        return f"Help me write the {section} section of my paper."
+        # [MANDATORY] Find concept files - innovation and discussion depend on this!
+        drafts_dir = "drafts"
+        concept_files = []
+        if os.path.exists(drafts_dir):
+            for f in os.listdir(drafts_dir):
+                if f.endswith('.md') and 'concept' in f.lower():
+                    concept_files.append(f)
+        
+        message = f"Help me write the {section} section of my paper.\n\n"
+        
+        # [MANDATORY] Concept file section
+        message += "=" * 60 + "\n"
+        message += "⚠️  **[MANDATORY] CONCEPT FILE REQUIRED** ⚠️\n"
+        message += "=" * 60 + "\n\n"
+        
+        if concept_files:
+            message += "📋 **Found Concept Files (MUST USE):**\n"
+            for i, cf in enumerate(concept_files, 1):
+                message += f"  {i}. drafts/{cf}\n"
+            message += "\n"
+            message += "🔴 **CRITICAL INSTRUCTION:**\n"
+            message += "You MUST read the concept file(s) above using `read_draft` tool FIRST!\n"
+            message += "The concept file contains:\n"
+            message += "  - Research innovation and novelty\n"
+            message += "  - Key hypotheses and study design\n"
+            message += "  - Literature gaps being addressed\n"
+            message += "  - Expected contributions\n"
+            message += "\nWithout this, the paper will lack originality and meaningful discussion!\n"
+        else:
+            message += "❌ **NO CONCEPT FILE FOUND!**\n\n"
+            message += "🚨 **ACTION REQUIRED:**\n"
+            message += "Before writing any section, you MUST first:\n"
+            message += "  1. Use `/mdpaper.concept` prompt to develop research concept\n"
+            message += "  2. OR use `write_draft` tool to create a concept file\n"
+            message += "  3. The concept file should be named with 'concept' in the filename\n"
+            message += "     (e.g., 'concept_study_topic.md')\n\n"
+            message += "⛔ **DO NOT proceed with writing until a concept file exists!**\n"
+        
+        message += "\n" + "-" * 60 + "\n"
+        
+        # Also list saved references
+        refs_dir = "references"
+        saved_refs = []
+        if os.path.exists(refs_dir):
+            saved_refs = [d for d in os.listdir(refs_dir) if os.path.isdir(os.path.join(refs_dir, d))]
+        
+        message += "\n📚 **Saved References:** "
+        if saved_refs:
+            message += f"{len(saved_refs)} references available\n"
+            message += "  Use `list_saved_references` to see details\n"
+        else:
+            message += "None (use `search_literature` and `save_reference` first)\n"
+        
+        message += "\n**Writing Workflow:**\n"
+        message += "1. 📖 Read concept file (MANDATORY)\n"
+        message += "2. 📚 Review saved references\n"
+        message += "3. 📝 Get section template with `get_section_template`\n"
+        message += "4. ✍️  Write section with `write_draft` or `draft_section`\n"
+        message += "5. 🔢 Check word count with `count_words`\n"
+        
+        return message
 
     @mcp.prompt(name="analysis", description="Analyze data")
     def mdpaper_data_analysis() -> str:
