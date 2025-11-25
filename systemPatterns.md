@@ -12,3 +12,10 @@
 ## Design Patterns
 - **Context Persistence**: The agent reads the Memory Bank at the start of a session and updates it at the end or during significant state changes.
 - **Constitution Adherence**: The agent checks the Constitution to ensure compliance with user preferences (e.g., language).
+
+## Data Structures
+- **Reference Storage**:
+  - Directory: `references/{PMID}/`
+  - `metadata.json`: JSON file containing citation info (Title, Authors, Journal, Year, DOI, etc.).
+  - `content.md`: Markdown file containing the abstract or full text.
+

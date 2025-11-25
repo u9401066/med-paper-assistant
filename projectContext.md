@@ -4,6 +4,7 @@
 - Develop a suite for assisting in writing medical papers.
 - Provide a VSCode-compatible tool/MCP for literature search (usable by Copilot/Antigravity).
 - Allow user-defined literature search parameters.
+- **Reference Management**: Save selected literature with metadata and content (abstract/full text) to a local `references/` directory.
 - Assist in converting ideas into documentation (similar to Speckit).
 - Support various journal format templates.
 - Generate first drafts with correct citations and formatting.

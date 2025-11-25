@@ -1,14 +1,15 @@
 # Active Context
 
 ## Current Focus
-- Finalizing the initial version of the Medical Paper Assistant.
-- Committing changes to version control.
-- Verifying system stability.
+- Implementing the Reference Management system.
+- Refactoring search logic to support fetching specific papers.
+- Integrating reference saving into the MCP server.
 
 ## Active Tasks
-- [x] Implement PubMed Search
-- [x] Test MCP Server
-- [ ] Git Commit
-- [ ] Final Verification
+- [ ] Update Memory Bank with Reference Management requirements
+- [ ] Design Reference File Structure
+- [ ] Refactor LiteratureSearcher
+- [ ] Implement ReferenceManager
+
 
 

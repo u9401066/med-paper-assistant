@@ -1,8 +1,10 @@
 from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.core.search import LiteratureSearcher
+from med_paper_assistant.core.reference_manager import ReferenceManager
 
 mcp = FastMCP("MedPaperAssistant")
 searcher = LiteratureSearcher(email="u9401066@gap.kmu.edu.tw")
+ref_manager = ReferenceManager(searcher)
 
 @mcp.tool()
 def search_literature(query: str, limit: int = 5) -> str:
@@ -30,6 +32,27 @@ def search_literature(query: str, limit: int = 5) -> str:
         formatted_output += f"   Abstract: {paper['abstract'][:200]}...\n\n"
         
     return formatted_output
+
+@mcp.tool()
+def save_reference(pmid: str) -> str:
+    """
+    Save a reference to the local library.
+    
+    Args:
+        pmid: The PubMed ID of the article to save.
+    """
+    return ref_manager.save_reference(pmid)
+
+@mcp.tool()
+def list_saved_references() -> str:
+    """
+    List all saved references in the local library.
+    """
+    refs = ref_manager.list_references()
+    if not refs:
+        return "No references saved."
+    return f"Saved references (PMIDs): {', '.join(refs)}"
+
 
 @mcp.tool()
 def draft_section(topic: str, notes: str) -> str:
