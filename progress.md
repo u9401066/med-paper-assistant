@@ -19,5 +19,6 @@
   - **Advanced Search**: Implemented date range, article type, and sort options.
   - **Data Analysis**: Implemented `analyze_dataset`, `run_statistical_test`, and `create_plot`.
   - **Analysis Workflow**: Defined `/mdpaper.data_analysis` and integrated results into draft.
+  - **Refinement**: Defined `/mdpaper.clarify` for interactive content adjustment.
   - **Verification**: Passed manual and MCP integration tests.
   - Ready for initial release/commit.

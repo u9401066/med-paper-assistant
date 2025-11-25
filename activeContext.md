@@ -1,14 +1,13 @@
 # Active Context
 
 ## Current Focus
-- Implementing the Data Analysis system.
-- Adding `pandas`, `matplotlib`, `scipy` dependencies.
-- Creating tools for statistical testing and plotting.
+- Implementing `/mdpaper.clarify` workflow.
+- Enabling local adjustments to `concept.md` and drafts.
 
 ## Active Tasks
-- [ ] Add dependencies
-- [ ] Implement `Analyzer` class
-- [ ] Update MCP Server
+- [ ] Create `.agent/workflows/mdpaper_clarify.md`
+- [ ] Verify Workflow
+
 
 
 
