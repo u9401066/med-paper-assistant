@@ -335,28 +335,58 @@ def export_word(draft_filename: str, template_name: str, output_filename: str) -
         return f"Error exporting Word document: {str(e)}"
 
 @mcp.prompt(name="concept", description="Develop research concept")
-def mdpaper_concept() -> str:
-    return ""
+def mdpaper_concept(topic: str) -> str:
+    """Develop a research concept.
+    
+    Args:
+        topic: Your research topic or hypothesis
+    """
+    return f"Help me develop a research concept about: {topic}"
 
 @mcp.prompt(name="strategy", description="Configure search strategy")
-def mdpaper_strategy() -> str:
-    return ""
+def mdpaper_strategy(keywords: str) -> str:
+    """Configure literature search strategy.
+    
+    Args:
+        keywords: Main keywords for searching (e.g., anesthesia, pain management)
+    """
+    return f"Configure a literature search strategy for: {keywords}"
 
 @mcp.prompt(name="draft", description="Write paper draft")
-def mdpaper_draft() -> str:
-    return ""
+def mdpaper_draft(section: str) -> str:
+    """Write a paper draft section.
+    
+    Args:
+        section: Which section to write (Introduction, Methods, Results, Discussion, or all)
+    """
+    return f"Help me write the {section} section of my paper."
 
 @mcp.prompt(name="analysis", description="Analyze data")
-def mdpaper_data_analysis() -> str:
-    return ""
+def mdpaper_data_analysis(request: str) -> str:
+    """Analyze research data.
+    
+    Args:
+        request: What to analyze (e.g., compare groups, run t-test, create plot)
+    """
+    return f"Analyze my data: {request}"
 
 @mcp.prompt(name="clarify", description="Refine content")
-def mdpaper_clarify() -> str:
-    return ""
+def mdpaper_clarify(request: str) -> str:
+    """Refine paper content.
+    
+    Args:
+        request: What to refine (e.g., make Introduction more formal, shorten Methods)
+    """
+    return f"Refine my paper: {request}"
 
 @mcp.prompt(name="format", description="Export to Word")
-def mdpaper_format() -> str:
-    return ""
+def mdpaper_format(draft: str) -> str:
+    """Export draft to Word document.
+    
+    Args:
+        draft: Draft file name to export (e.g., draft.md)
+    """
+    return f"Export {draft} to Word format."
 
 if __name__ == "__main__":
     mcp.run()

@@ -41,3 +41,9 @@
   - **Setup Script**: Added `scripts/setup.sh` for one-click installation.
   - **Total Tools**: 16 tools, 6 prompts.
   - **Tests**: 19 tests (18 passed, 1 minor string format issue).
+
+- **2025-11-25 (Update 3)**:
+  - **MCP Prompts Refactor**: Prompts now have required arguments for user input dialog.
+  - **SERVER_INSTRUCTIONS**: Agent guidance moved to FastMCP instructions parameter.
+  - **Workflow Files**: Kept in `.agent/workflows/` for reference/Antigravity compatibility.
+  - **VS Code Behavior**: `/mcp.mdpaper.concept` → dialog asks for "topic" → sends to agent.
