@@ -5,14 +5,11 @@ description: Generate a medical paper draft from a concept file.
 1. Read the user's concept file to understand the research content.
    `view_file(AbsolutePath="/home/eric/workspace251125/concept.md")`
 
-2. Ask the user if they want to use a specific journal template.
-   - If yes, ask for the file path or upload.
-   - If no, use the default template: `src/med_paper_assistant/templates/general_medical_journal.md`.
-   `view_file(AbsolutePath="...")`
+1. **Read Context**: Read `concept.md` and any results in `results/`.
+2. **Select Template**: Ask the user which journal template to use (default to `general_medical_journal.md` or `Type of the Paper.docx`).
+3. **Generate Draft**: Write the paper draft to `drafts/` (e.g., `drafts/paper.md`). Use `(PMID:xxxx)` for citations.
+4. **Insert Citations**: Use the `insert_citation` tool to resolve PMIDs and generate the bibliography.
 
-3. (Optional) If there are PMIDs in `concept.md` that are not yet saved, use `save_reference` to fetch them.
-
-4. Generate the draft content.
    - Map the "Key Results" and "Methodology" from `concept.md` to the "Results" and "Methods" sections of the template.
    - Check `results/figures/` for any generated plots. If found, embed them in the "Results" section using markdown image syntax `![Caption](results/figures/filename.png)`.
    - Expand the "Hypothesis" into the "Introduction".

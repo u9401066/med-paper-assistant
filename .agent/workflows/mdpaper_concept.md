@@ -2,10 +2,7 @@
 description: Update the research concept and start an interactive refinement session.
 ---
 
-1. Update `concept.md` with the user's provided hypothesis or research question.
-   `write_to_file(TargetFile="/home/eric/workspace251125/concept.md", ...)`
+1. **Update Concept**: Ask the user for their research hypothesis, methodology, or key results. Update `concept.md` with this information.
+2. **Analyze Gaps**: Check `concept.md` for missing sections (Title, Hypothesis, Methods, Results, References).
+3. **Refine**: Ask clarifying questions to fill in the gaps.
 
-2. Analyze the concept for missing information (Title, Methodology, Specifics).
-
-3. Ask the user clarifying questions to refine the concept.
-   `notify_user(Message="Please clarify...")`
