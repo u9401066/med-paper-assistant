@@ -12,4 +12,8 @@ references/
 test_references/
 drafts/
 test_drafts/
+data/
+results/
+test_data/
+test_results/
 

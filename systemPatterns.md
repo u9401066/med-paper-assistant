@@ -23,6 +23,10 @@
   - Format: Markdown files with embedded citations (e.g., `[1]`) and a "References" section.
 - **Citation Workflow**:
   - Agent reads draft -> Identifies insertion point -> Uses `insert_citation` tool -> Tool updates file and bibliography safely.
+- **Data & Results**:
+  - `data/`: Raw CSV/Excel files.
+  - `results/`: Generated `figures/` (PNG/SVG) and `tables/` (Markdown/CSV).
+
 
 
 

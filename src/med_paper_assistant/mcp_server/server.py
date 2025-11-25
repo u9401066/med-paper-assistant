@@ -2,11 +2,13 @@ from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.core.search import LiteratureSearcher
 from med_paper_assistant.core.reference_manager import ReferenceManager
 from med_paper_assistant.core.drafter import Drafter
+from med_paper_assistant.core.analyzer import Analyzer
 
 mcp = FastMCP("MedPaperAssistant")
 searcher = LiteratureSearcher(email="u9401066@gap.kmu.edu.tw")
 ref_manager = ReferenceManager(searcher)
 drafter = Drafter(ref_manager)
+analyzer = Analyzer()
 
 @mcp.tool()
 def search_literature(query: str, limit: int = 5, min_year: int = None, max_year: int = None, article_type: str = None, sort: str = "relevance") -> str:
@@ -116,6 +118,53 @@ def apply_template(content: str, journal_name: str) -> str:
     """
     # Placeholder for formatting logic
     return f"Applying template '{journal_name}' to content..."
+
+@mcp.tool()
+def analyze_dataset(filename: str) -> str:
+    """
+    Analyze a dataset and return descriptive statistics.
+    
+    Args:
+        filename: Name of the CSV file in the data/ directory.
+    """
+    try:
+        return analyzer.describe_data(filename)
+    except Exception as e:
+        return f"Error analyzing data: {str(e)}"
+
+@mcp.tool()
+def run_statistical_test(filename: str, test_type: str, col1: str, col2: str = None) -> str:
+    """
+    Run a statistical test on the dataset.
+    
+    Args:
+        filename: Name of the CSV file.
+        test_type: Type of test ("t-test", "correlation").
+        col1: First column name.
+        col2: Second column name (optional depending on test).
+    """
+    try:
+        return analyzer.run_statistical_test(filename, test_type, col1, col2)
+    except Exception as e:
+        return f"Error running test: {str(e)}"
+
+@mcp.tool()
+def create_plot(filename: str, plot_type: str, x_col: str, y_col: str) -> str:
+    """
+    Create a plot from the dataset.
+    
+    Args:
+        filename: Name of the CSV file.
+        plot_type: Type of plot ("scatter", "bar", "box", "histogram").
+        x_col: Column for X-axis.
+        y_col: Column for Y-axis.
+    """
+    try:
+        path = analyzer.create_plot(filename, plot_type, x_col, y_col)
+        return f"Plot created successfully at: {path}"
+    except Exception as e:
+        return f"Error creating plot: {str(e)}"
+
 
 
 @mcp.tool()

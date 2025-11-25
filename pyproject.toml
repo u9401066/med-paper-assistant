@@ -8,6 +8,11 @@ dependencies = [
     "mcp",
     "pydantic",
     "biopython",
+    "pandas",
+    "matplotlib",
+    "scipy",
+    "seaborn",
+    "tabulate"
 ]
 
 [build-system]
