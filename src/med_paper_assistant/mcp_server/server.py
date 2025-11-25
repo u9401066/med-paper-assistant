@@ -85,6 +85,23 @@ def write_draft(filename: str, content: str) -> str:
         return f"Error creating draft: {str(e)}"
 
 @mcp.tool()
+def insert_citation(filename: str, target_text: str, pmid: str) -> str:
+    """
+    Insert a citation into an existing draft.
+    
+    Args:
+        filename: The draft file name.
+        target_text: The text segment after which the citation should be inserted.
+        pmid: The PubMed ID to cite.
+    """
+    try:
+        path = drafter.insert_citation(filename, target_text, pmid)
+        return f"Citation inserted successfully in: {path}"
+    except Exception as e:
+        return f"Error inserting citation: {str(e)}"
+
+
+@mcp.tool()
 def apply_template(content: str, journal_name: str) -> str:
     """
     Apply a specific journal template to the content.

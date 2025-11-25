@@ -14,5 +14,6 @@
   - **PubMed Integration**: Implemented `search_literature` using `biopython`.
   - **Reference Management**: Implemented `save_reference` and local storage structure.
   - **Draft Generation**: Implemented `write_draft` with automatic citation formatting.
+  - **Citation Insertion**: Implemented `insert_citation` for safe editing and renumbering.
   - **Verification**: Passed manual and MCP integration tests.
   - Ready for initial release/commit.
