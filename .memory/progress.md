@@ -155,3 +155,34 @@
   - **Total Tools**: 41 (was 39)
 
 
+
+- **MCP Server Modular Refactoring** (COMPLETED - 2025-11-26):
+  - **Goal**: Clean up and organize mcp_server module structure
+  - **Changes**:
+    - Split `config.py` (154 lines) into:
+      - `config.py` (49 lines) - Server configuration only
+      - `instructions.py` (112 lines) - TOOL_GUIDE and server instructions
+    - Cleaned tools imports (removed unused `Literal` from project_tools.py)
+    - Verified prompts module structure (already well organized)
+    - Validated server.py integration
+  - **Final Structure**:
+    ```
+    mcp_server/
+    ├── config.py          # 49 lines - paths, settings, word limits
+    ├── instructions.py    # 112 lines - TOOL_GUIDE, get_server_instructions()
+    ├── server.py          # 108 lines - entry point
+    ├── tools/             # 1881 lines total
+    │   ├── __init__.py
+    │   ├── analysis_tools.py
+    │   ├── draft_tools.py
+    │   ├── export_tools.py
+    │   ├── project_tools.py
+    │   ├── reference_tools.py
+    │   └── search_tools.py
+    ├── prompts/           # 143 lines total
+    │   ├── __init__.py
+    │   └── prompts.py
+    └── templates/
+    ```
+  - **Total**: 42 tools, 7 prompts
+  - **New Feature**: `setup_project_interactive` with MCP Elicitation for dropdown menus
