@@ -439,15 +439,14 @@ These settings are saved in `project.json` and `.memory/activeContext.md`
         """
         Interactively configure the current project step-by-step.
         
-        Uses elicitation to ask user for:
+        If the project is already configured, returns current status and suggests next steps.
+        Otherwise, uses elicitation to ask user for:
         1. Paper type (required)
         2. Interaction preferences (optional)
         3. Project memo/notes (optional)
         
-        This provides a guided setup experience.
-        
         Returns:
-            Configuration summary after setup.
+            Configuration summary or project status with next steps.
         """
         current = project_manager.get_current_project()
         
@@ -462,7 +461,46 @@ Please first select or create a project:
         
         info = project_manager.get_project_info(current)
         project_name = info.get('name', current)
+        paper_type = info.get('paper_type', '')
+        prefs = info.get('interaction_preferences', {})
+        stats = info.get('stats', {})
         
+        # Check if project is already configured (has paper_type set)
+        if paper_type:
+            paper_type_info = project_manager.PAPER_TYPES.get(paper_type, {})
+            
+            # Return current status and ask agent to inquire about next steps
+            return f"""## 📁 專案: {project_name}
+
+| 設定 | 值 |
+|------|-----|
+| **Paper Type** | {paper_type_info.get('name', paper_type)} |
+| **Status** | {info.get('status', 'concept')} |
+| **Target Journal** | {info.get('target_journal', 'Not set')} |
+
+### 專案內容
+- 📝 Drafts: {stats.get('drafts', 0)} files
+- 📚 References: {stats.get('references', 0)} saved
+- 📊 Data files: {stats.get('data_files', 0)}
+
+### 互動偏好
+- **Style:** {prefs.get('interaction_style', 'Default')}
+
+### Memo
+{info.get('memo', '[No memo]')}
+
+---
+**[AGENT: 請詢問用戶想要進行什麼操作]**
+
+建議選項:
+1. 📚 搜尋文獻 (`search_literature`)
+2. ✍️ 撰寫論文段落 (`/mdpaper.draft`)
+3. 📊 分析資料 (`/mdpaper.analysis`)
+4. 📄 匯出 Word (`/mdpaper.format`)
+5. ⚙️ 修改專案設定 (`update_project_settings`)
+"""
+        
+        # Project not configured yet - run setup wizard
         # Step 1: Paper Type (Required) - using enum for dropdown selection
         paper_type_result = await ctx.elicit(
             message=f"Setting up project: **{project_name}**\n\nSelect paper type:",
