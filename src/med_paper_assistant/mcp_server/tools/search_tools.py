@@ -14,7 +14,7 @@ from med_paper_assistant.core.logger import setup_logger
 logger = setup_logger()
 
 
-def format_search_results(results: list) -> str:
+def format_search_results(results: list, include_doi: bool = True) -> str:
     """Format search results for display."""
     if not results:
         return "No results found."
@@ -24,11 +24,33 @@ def format_search_results(results: list) -> str:
         
     formatted_output = f"Found {len(results)} results:\n\n"
     for i, paper in enumerate(results, 1):
-        formatted_output += f"{i}. {paper['title']}\n"
-        formatted_output += f"   Authors: {', '.join(paper['authors'][:3])}{' et al.' if len(paper['authors']) > 3 else ''}\n"
-        formatted_output += f"   Journal: {paper['journal']} ({paper['year']})\n"
-        formatted_output += f"   PMID: {paper['pmid']}\n"
-        formatted_output += f"   Abstract: {paper['abstract'][:200]}...\n\n"
+        formatted_output += f"{i}. **{paper['title']}**\n"
+        authors = paper.get('authors', [])
+        formatted_output += f"   Authors: {', '.join(authors[:3])}{' et al.' if len(authors) > 3 else ''}\n"
+        journal = paper.get('journal', 'Unknown Journal')
+        year = paper.get('year', '')
+        volume = paper.get('volume', '')
+        pages = paper.get('pages', '')
+        
+        journal_info = f"{journal} ({year})"
+        if volume:
+            journal_info += f"; {volume}"
+            if pages:
+                journal_info += f": {pages}"
+        formatted_output += f"   Journal: {journal_info}\n"
+        formatted_output += f"   PMID: {paper.get('pmid', '')}"
+        
+        if include_doi and paper.get('doi'):
+            formatted_output += f" | DOI: {paper['doi']}"
+        if paper.get('pmc_id'):
+            formatted_output += f" | PMC: {paper['pmc_id']} 📄"
+        
+        formatted_output += "\n"
+        
+        abstract = paper.get('abstract', '')
+        if abstract:
+            formatted_output += f"   Abstract: {abstract[:200]}...\n"
+        formatted_output += "\n"
         
     return formatted_output
 
@@ -107,4 +129,64 @@ def register_search_tools(mcp: FastMCP, searcher: LiteratureSearcher, strategy_m
             return format_search_results(results[:limit])
         except Exception as e:
             logger.error(f"Search failed: {e}")
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def find_related_articles(pmid: str, limit: int = 5) -> str:
+        """
+        Find articles related to a given PubMed article.
+        Uses PubMed's "Related Articles" feature to find similar papers.
+        
+        Args:
+            pmid: PubMed ID of the source article.
+            limit: Maximum number of related articles to return.
+            
+        Returns:
+            List of related articles with details.
+        """
+        logger.info(f"Finding related articles for PMID: {pmid}")
+        try:
+            results = searcher.get_related_articles(pmid, limit)
+            
+            if not results:
+                return f"No related articles found for PMID {pmid}."
+            
+            if "error" in results[0]:
+                return f"Error finding related articles: {results[0]['error']}"
+            
+            output = f"📚 **Related Articles for PMID {pmid}** ({len(results)} found)\n\n"
+            output += format_search_results(results)
+            return output
+        except Exception as e:
+            logger.error(f"Find related articles failed: {e}")
+            return f"Error: {e}"
+
+    @mcp.tool()
+    def find_citing_articles(pmid: str, limit: int = 10) -> str:
+        """
+        Find articles that cite a given PubMed article.
+        Uses PubMed Central's citation data to find papers that reference this article.
+        
+        Args:
+            pmid: PubMed ID of the source article.
+            limit: Maximum number of citing articles to return.
+            
+        Returns:
+            List of citing articles with details.
+        """
+        logger.info(f"Finding citing articles for PMID: {pmid}")
+        try:
+            results = searcher.get_citing_articles(pmid, limit)
+            
+            if not results:
+                return f"No citing articles found for PMID {pmid}. (Article may not be indexed in PMC or has no citations yet.)"
+            
+            if "error" in results[0]:
+                return f"Error finding citing articles: {results[0]['error']}"
+            
+            output = f"📖 **Articles Citing PMID {pmid}** ({len(results)} found)\n\n"
+            output += format_search_results(results)
+            return output
+        except Exception as e:
+            logger.error(f"Find citing articles failed: {e}")
             return f"Error: {e}"

@@ -13,7 +13,9 @@ dependencies = [
     "scipy",
     "seaborn",
     "tabulate",
-    "python-docx"
+    "python-docx",
+    "requests",
+    "pypdf"
 ]
 
 [build-system]

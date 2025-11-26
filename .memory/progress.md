@@ -71,3 +71,18 @@
   - **Literature search**: 16 references saved (PMIDs in references/)
   - **Concept draft**: `concept_nasotracheal_intubation.md` (1014 words)
   - **Introduction draft**: `introduction_nasotracheal.md` (620 words, 5 citations)
+
+- **Reference Enhancement Update**:
+  - **Pre-formatted Citations**: metadata.json now includes Vancouver, APA, Nature, in-text formats
+  - **PDF Fulltext**: Automatic download from PMC Open Access (📄 indicator in list)
+  - **Fulltext Reading**: pypdf extracts text for analysis
+  - **Citation Network**: find_related_articles, find_citing_articles tools
+  - **Rich Metadata**: DOI, PMC ID, MeSH terms, keywords, volume/issue/pages
+  - **New Tools Added**:
+    - `get_reference_details` - Complete reference info with all citation formats
+    - `read_reference_fulltext` - Extract and read PDF content
+    - `retry_pdf_download` - Retry failed PDF downloads
+    - `find_related_articles` - PubMed related articles search
+    - `find_citing_articles` - Citation network exploration
+  - **Dependencies**: Added `requests`, `pypdf` to pyproject.toml
+  - **Total Tools**: 33 (was 27)
