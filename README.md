@@ -231,13 +231,40 @@ Before starting, organize your files:
 
 **Command**: \`/mcp.mdpaper.concept\`
 
-This guided workflow helps you clarify your research idea:
-- Define your research hypothesis
-- Outline your methodology
-- Identify key expected results
-- List potential references (PMIDs)
+This guided workflow helps you develop a well-structured research concept with **novelty protection**:
+
+```mermaid
+flowchart LR
+    A["📚 Literature Search"] --> B["🔍 Gap Identification"]
+    B --> C{"❓ User Confirms Gap"}
+    C -->|Yes| D["✍️ Concept Writing"]
+    C -->|No| B
+    D --> E["✅ Validate Concept"]
+```
+
+**Step-by-step process:**
+
+1. **📚 Literature Search** (Mandatory)
+   - Agent searches PubMed for 5-10 relevant studies
+   - Key papers are saved to your reference library
+
+2. **🔍 Gap Identification** (Mandatory)
+   - Agent presents literature summary
+   - Identifies research gaps and limitations
+   - **🛑 Asks you to confirm** which gap your research addresses
+
+3. **✍️ Concept Writing** (After your confirmation)
+   - Creates structured concept with protected sections:
+     - 🔒 **NOVELTY STATEMENT** - What's new (protected)
+     - 🔒 **KEY SELLING POINTS** - Your 3-5 key differentiators (protected)
+     - 📝 Background, Methods, Expected Outcomes (editable)
+
+4. **✅ Validation**
+   - Use `validate_concept` tool to verify completeness
 
 The output is saved to \`drafts/concept_*.md\`.
+
+> 💡 **Why Protected Sections?** The 🔒 markers ensure your key innovations are preserved when writing the full paper. The Agent must ask before modifying these sections.
 
 #### Step 3: Configure Search Strategy
 
@@ -319,6 +346,31 @@ Output: `results/your_paper.docx`
 | └ `templates/` | Internal templates for Agent guidance (`.md`) |
 | `tests/` | Test suite |
 | `.memory/` | Project context files |
+| └ `.agent_constitution.md` | **Agent behavior rules (dynamically loaded)** |
+
+---
+
+### ⚖️ Agent Constitution
+
+The MCP server dynamically loads the Agent Constitution from `.memory/.agent_constitution.md`. This file defines the core behavior rules that Copilot must follow.
+
+**Default Constitution:**
+```markdown
+# Agent Constitution
+
+## Core Directives
+1. **Language**: Communicate in Traditional Chinese (繁體中文)
+2. **Memory Bank Maintenance**: Read/update Memory files at task start/end
+3. **Code Quality**: Write clean, documented, efficient code
+4. **User Privacy**: Do not store sensitive information
+
+## Interaction Guidelines
+- Be helpful and proactive
+- Clarify ambiguous requests
+- Provide step-by-step explanations
+```
+
+**To customize:** Edit `.memory/.agent_constitution.md` and reload VS Code. The new rules will be automatically applied.
 
 ---
 
@@ -600,13 +652,40 @@ flowchart LR
 
 **指令**：\`/mcp.mdpaper.concept\`
 
-這個引導式流程會幫助您釐清研究想法：
-- 定義研究假說
-- 描述研究方法
-- 列出預期的關鍵結果
-- 列出潛在的參考文獻（PMIDs）
+這個引導式流程會幫助您建構具有**創新性保護**的結構化研究構想：
+
+```mermaid
+flowchart LR
+    A["📚 文獻搜尋"] --> B["🔍 缺口識別"]
+    B --> C{"❓ 用戶確認缺口"}
+    C -->|是| D["✍️ 概念撰寫"]
+    C -->|否| B
+    D --> E["✅ 驗證概念"]
+```
+
+**逐步流程：**
+
+1. **📚 文獻搜尋**（強制）
+   - Agent 搜尋 PubMed 找出 5-10 篇相關研究
+   - 重要文獻自動儲存到參考文獻庫
+
+2. **🔍 缺口識別**（強制）
+   - Agent 呈現文獻摘要
+   - 識別研究缺口與限制
+   - **🛑 詢問您確認**您的研究要解決哪個缺口
+
+3. **✍️ 概念撰寫**（用戶確認後）
+   - 建立具有保護區塊的結構化概念：
+     - 🔒 **NOVELTY STATEMENT** - 創新性聲明（受保護）
+     - 🔒 **KEY SELLING POINTS** - 您的 3-5 個核心賣點（受保護）
+     - 📝 背景、方法、預期結果（可編輯）
+
+4. **✅ 驗證**
+   - 使用 `validate_concept` 工具驗證完整性
 
 輸出會儲存到 \`drafts/concept_*.md\`。
+
+> 💡 **為什麼需要受保護區塊？** 🔒 標記確保您的關鍵創新點在撰寫完整論文時被保留。Agent 必須在修改這些區塊前先詢問您。
 
 #### 步驟 3：設定搜尋策略
 
@@ -688,6 +767,31 @@ flowchart LR
 | └ `templates/` | Agent 引導用內部範本（`.md`） |
 | `tests/` | 測試套件 |
 | `.memory/` | 專案脈絡檔案 |
+| └ `.agent_constitution.md` | **Agent 行為規則（動態載入）** |
+
+---
+
+### ⚖️ Agent 憲法
+
+MCP 伺服器會動態載入 `.memory/.agent_constitution.md` 中的 Agent 憲法。此檔案定義 Copilot 必須遵循的核心行為規則。
+
+**預設憲法：**
+```markdown
+# Agent Constitution
+
+## Core Directives
+1. **Language**: 使用繁體中文溝通
+2. **Memory Bank Maintenance**: 在任務開始/結束時讀取/更新 Memory 檔案
+3. **Code Quality**: 撰寫乾淨、有文件、高效的程式碼
+4. **User Privacy**: 不儲存敏感資訊
+
+## Interaction Guidelines
+- 主動提供幫助
+- 澄清模糊的請求
+- 提供逐步說明
+```
+
+**自訂方式：** 編輯 `.memory/.agent_constitution.md` 並重新載入 VS Code，新規則將自動套用。
 
 ---
 

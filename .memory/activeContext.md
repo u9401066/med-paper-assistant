@@ -62,8 +62,11 @@ src/med_paper_assistant/mcp_server/
 ## Recent Changes (Agent Instructions Enhancement)
 - ✅ Expanded SERVER_INSTRUCTIONS with detailed tool selection guide
 - ✅ Added decision tree for quick tool selection
-- ✅ Organized 32 tools into 5 categories with usage tables
-- 🔜 **FUTURE**: Consider tool naming convention for grouping (ref_*, search_*, data_*, etc.)
+- ✅ Organized 33 tools into 5 categories with usage tables
+- ✅ **Agent Constitution**: Dynamically loaded from `.memory/.agent_constitution.md`
+  - Copilot follows constitution rules automatically
+  - Users can edit constitution file to customize Agent behavior
+  - No code changes needed - just edit file and reload VS Code
 
 ---
 
