@@ -5,10 +5,53 @@ MCP tools for managing multiple research paper projects.
 Each project has isolated drafts, references, data, and results.
 """
 
-from typing import Optional, List, Dict, Any
-from mcp.server.fastmcp import FastMCP
+from typing import Optional, List, Dict, Any, Literal
+from pydantic import BaseModel, Field
+from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.elicitation import AcceptedElicitation, DeclinedElicitation, CancelledElicitation
 
 from med_paper_assistant.core.project_manager import ProjectManager
+
+
+# ============================================
+# Pydantic Models for Elicitation
+# ============================================
+
+class PaperTypeSelection(BaseModel):
+    """Schema for paper type selection during interactive setup."""
+    paper_type: Literal[
+        'original-research', 
+        'systematic-review', 
+        'meta-analysis', 
+        'case-report', 
+        'review-article', 
+        'letter', 
+        'other'
+    ] = Field(description="Type of research paper you are writing")
+
+
+class InteractionPreferences(BaseModel):
+    """Schema for interaction preferences during interactive setup."""
+    interaction_style: str = Field(
+        default="",
+        description="How should I interact? (e.g., 'Be concise', 'Explain reasoning', '中文回答')"
+    )
+    language_preference: str = Field(
+        default="",
+        description="Language preferences (e.g., 'British English', 'Technical vocabulary')"
+    )
+    writing_style: str = Field(
+        default="",
+        description="Writing style notes (e.g., 'Formal academic', 'Active voice')"
+    )
+
+
+class ProjectMemo(BaseModel):
+    """Schema for project memo during interactive setup."""
+    memo: str = Field(
+        default="",
+        description="Notes, reminders, deadlines, or context for this project"
+    )
 
 
 def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
@@ -390,3 +433,113 @@ These settings are saved in `project.json` and `.memory/activeContext.md`
             return output
         else:
             return f"❌ Error: {result.get('error', 'Unknown error')}"
+
+    # ============================================
+    # Interactive Setup Tool with Elicitation
+    # ============================================
+    
+    @mcp.tool()
+    async def setup_project_interactive(ctx: Context) -> str:
+        """
+        Interactively configure the current project step-by-step.
+        
+        Uses elicitation to ask user for:
+        1. Paper type (required)
+        2. Interaction preferences (optional)
+        3. Project memo/notes (optional)
+        
+        This provides a guided setup experience.
+        
+        Returns:
+            Configuration summary after setup.
+        """
+        current = project_manager.get_current_project()
+        
+        if not current:
+            return """❌ No project selected!
+
+Please first select or create a project:
+- `list_projects()` - see available projects
+- `switch_project(slug)` - select a project
+- `create_project(name="...")` - create new project
+"""
+        
+        info = project_manager.get_project_info(current)
+        project_name = info.get('name', current)
+        
+        # Step 1: Paper Type (Required)
+        paper_type_result = await ctx.elicit(
+            message=f"Setting up project: **{project_name}**\n\nWhat type of paper are you writing?",
+            schema=PaperTypeSelection
+        )
+        
+        if isinstance(paper_type_result, CancelledElicitation):
+            return "Setup cancelled."
+        
+        if isinstance(paper_type_result, DeclinedElicitation):
+            return "Setup declined. You can run this tool again when ready."
+        
+        # Save paper type immediately
+        paper_type = paper_type_result.data.paper_type
+        project_manager.update_project_settings(paper_type=paper_type)
+        
+        # Step 2: Interaction Preferences (Optional)
+        prefs_result = await ctx.elicit(
+            message="How would you like me to interact with you?\n\n(Leave blank to skip)",
+            schema=InteractionPreferences
+        )
+        
+        if isinstance(prefs_result, AcceptedElicitation):
+            prefs = prefs_result.data
+            interaction_preferences = {}
+            if prefs.interaction_style:
+                interaction_preferences["interaction_style"] = prefs.interaction_style
+            if prefs.language_preference:
+                interaction_preferences["language"] = prefs.language_preference
+            if prefs.writing_style:
+                interaction_preferences["writing_style"] = prefs.writing_style
+            
+            if interaction_preferences:
+                project_manager.update_project_settings(
+                    interaction_preferences=interaction_preferences
+                )
+        
+        # Step 3: Project Memo (Optional)
+        memo_result = await ctx.elicit(
+            message="Any notes, reminders, or context for this project?\n\n(e.g., deadlines, co-authors, IRB info)",
+            schema=ProjectMemo
+        )
+        
+        if isinstance(memo_result, AcceptedElicitation) and memo_result.data.memo:
+            project_manager.update_project_settings(memo=memo_result.data.memo)
+        
+        # Get final settings
+        final_info = project_manager.get_project_info(current)
+        final_prefs = final_info.get("interaction_preferences", {})
+        
+        paper_type_info = project_manager.PAPER_TYPES.get(paper_type, {})
+        
+        return f"""✅ Project Setup Complete!
+
+## {project_name}
+
+| Setting | Value |
+|---------|-------|
+| **Paper Type** | {paper_type_info.get('name', paper_type)} |
+| **Typical Sections** | {paper_type_info.get('sections', 'N/A')} |
+| **Target Journal** | {final_info.get('target_journal', 'Not set')} |
+
+### Interaction Preferences
+- **Style:** {final_prefs.get('interaction_style', 'Default')}
+- **Language:** {final_prefs.get('language', 'Default')}
+- **Writing:** {final_prefs.get('writing_style', 'Default')}
+
+### Memo
+{final_info.get('memo', '[No memo]')}
+
+---
+**Next Steps:**
+1. Edit `concept.md` to define your research concept
+2. Use `search_literature` to find relevant papers
+3. Use `write_draft` to start writing sections
+"""

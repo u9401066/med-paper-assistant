@@ -84,14 +84,39 @@ med-paper-assistant/
 - Agent 收到指令後應該用自己的話開始對話
 - 字數從 1500-3000 減少到 300-900
 
-**Example:**
+### 🟡 MCP Prompt UX Limitation (2025-11-26)
+**User Request:** 用戶想要 `/mdpaper.project` 像 `/speckit.specify` 一樣：
+- 變成藍色後，用戶可以在後面繼續輸入文字
+- 不跳出額外視窗詢問參數
+
+**Root Cause:** 這是 **VS Code Copilot 客戶端的行為**，不是 FastMCP 可以控制的：
+- 如果 prompt 定義了 `arguments`，VS Code 會跳出對話框詢問
+- 如果沒有 arguments，prompt 內容會直接展開到對話中
+
+**✅ Solution Found: Elicitation (2025-11-26)**
+FastMCP 支援 **Elicitation** 功能（`mcp` 1.22.0）：
+- 讓 tool 可以暫停執行並向用戶請求輸入
+- 用戶在客戶端看到對話框填寫資料
+- 支援 Pydantic schema 定義輸入格式
+
+**Implementation:**
+```python
+from mcp.server.elicitation import AcceptedElicitation, DeclinedElicitation
+from pydantic import BaseModel
+from typing import Literal
+
+class PaperTypeSelection(BaseModel):
+    paper_type: Literal['original-research', 'meta-analysis', ...]
+
+@mcp.tool
+async def configure_project(ctx: Context) -> str:
+    result = await ctx.elicit("What type of paper?", schema=PaperTypeSelection)
+    if result.action == "accept":
+        # result.data.paper_type contains the selection
+        ...
 ```
-[AGENT INSTRUCTION] Configure project "my-project".
-1. Call get_paper_types(), ask user to select ONE
-2. Ask about interaction preferences
-3. Save with update_project_settings()
-Start by asking: "What type of paper are you writing?"
-```
+
+**Reference:** https://gofastmcp.com/servers/elicitation
 
 ---
 *Last Updated: 2025-11-26*
