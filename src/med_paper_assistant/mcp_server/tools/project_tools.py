@@ -5,7 +5,7 @@ MCP tools for managing multiple research paper projects.
 Each project has isolated drafts, references, data, and results.
 """
 
-from typing import Optional, List, Dict, Any, Literal
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.elicitation import AcceptedElicitation, DeclinedElicitation, CancelledElicitation
@@ -19,15 +19,9 @@ from med_paper_assistant.core.project_manager import ProjectManager
 
 class PaperTypeSelection(BaseModel):
     """Schema for paper type selection during interactive setup."""
-    paper_type: Literal[
-        'original-research', 
-        'systematic-review', 
-        'meta-analysis', 
-        'case-report', 
-        'review-article', 
-        'letter', 
-        'other'
-    ] = Field(description="Type of research paper you are writing")
+    paper_type: str = Field(
+        description="Paper type: original-research, systematic-review, meta-analysis, case-report, review-article, letter, or other"
+    )
 
 
 class InteractionPreferences(BaseModel):
