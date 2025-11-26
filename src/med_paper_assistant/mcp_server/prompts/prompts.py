@@ -10,6 +10,7 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.core.template_reader import TemplateReader
+from med_paper_assistant.core.project_manager import get_project_manager
 
 
 def _get_concept_template() -> str:
@@ -18,6 +19,39 @@ def _get_concept_template() -> str:
     if template_path.exists():
         return template_path.read_text(encoding="utf-8")
     return ""
+
+
+def _get_project_status() -> str:
+    """Get current project status for prompt context."""
+    pm = get_project_manager()
+    current = pm.get_current_project()
+    
+    if current:
+        info = pm.get_project_info(current)
+        if info.get("success"):
+            paths = info.get("paths", {})
+            stats = info.get("stats", {})
+            return f"""
+📁 **Current Project:** {info.get('name', current)} ({current})
+   Status: {info.get('status', 'unknown')} | Drafts: {stats.get('drafts', 0)} | Refs: {stats.get('references', 0)}
+   Paths: drafts → `{paths.get('drafts', '')}`, refs → `{paths.get('references', '')}`
+"""
+    
+    # No project selected
+    projects = pm.list_projects()
+    if projects.get("projects"):
+        project_list = ", ".join([p["slug"] for p in projects["projects"]])
+        return f"""
+⚠️ **No Project Selected!**
+   Available: {project_list}
+   → Use `switch_project(slug)` to select, or `create_project(name)` to create new.
+"""
+    else:
+        return """
+⚠️ **No Projects Found!**
+   → Use `create_project(name="Your Research Topic")` to start.
+   → This creates isolated directories for drafts, references, data, and results.
+"""
 
 
 def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
@@ -32,6 +66,21 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
             topic: Your research topic or hypothesis
         """
         message = f"Help me develop a research concept about: **{topic}**\n\n"
+        
+        # Project status check
+        message += "=" * 60 + "\n"
+        message += "📁 **PROJECT STATUS**\n"
+        message += "=" * 60 + "\n"
+        message += _get_project_status() + "\n"
+        
+        # If no project, prompt to create one
+        pm = get_project_manager()
+        if not pm.get_current_project():
+            message += "🔴 **ACTION REQUIRED:** Create or select a project first!\n"
+            message += "```\n"
+            message += f'create_project(name="{topic}", description="Research on {topic}")\n'
+            message += "```\n"
+            message += "This ensures all your work is organized in one place.\n\n"
         
         message += "=" * 60 + "\n"
         message += "📋 **CONCEPT DEVELOPMENT WORKFLOW**\n"
@@ -109,8 +158,15 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         message += "4. **📝 Editable content**: Can improve freely\n"
         message += "5. **Research Gap section**: Must include literature evidence\n\n"
         
-        # Check for existing concept files
-        drafts_dir = "drafts"
+        # Check for existing concept files in project or default location
+        try:
+            paths = pm.get_project_paths()
+            drafts_dir = paths.get("drafts", "drafts")
+            concept_output = f"`{paths.get('concept', 'concept.md')}`"
+        except (ValueError, KeyError):
+            drafts_dir = "drafts"
+            concept_output = "`drafts/concept_{topic}.md`"
+        
         concept_files = []
         if os.path.exists(drafts_dir):
             for f in os.listdir(drafts_dir):
@@ -126,9 +182,9 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
             message += "   → You may read these for reference or create a new one\n"
         else:
             message += "📄 **No existing concept files**\n"
-            message += "   → Will create: `drafts/concept_{topic}.md`\n"
+            message += f"   → Will create: {concept_output}\n"
         
-        message += "\n**Output File:** `drafts/concept_{topic}.md`\n"
+        message += f"\n**Output File:** {concept_output}\n"
         message += "\n**After Completion:** Use `validate_concept` to verify all required sections\n"
         
         return message
@@ -141,7 +197,9 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         Args:
             keywords: Main keywords for searching (e.g., anesthesia, pain management)
         """
-        return f"Configure a literature search strategy for: {keywords}"
+        message = f"Configure a literature search strategy for: {keywords}\n\n"
+        message += _get_project_status()
+        return message
 
     @mcp.prompt(name="draft", description="Write paper draft")
     def mdpaper_draft(section: str) -> str:
@@ -151,8 +209,18 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         Args:
             section: Which section to write (Introduction, Methods, Results, Discussion, or all)
         """
+        pm = get_project_manager()
+        
+        # Get paths based on current project
+        try:
+            paths = pm.get_project_paths()
+            drafts_dir = paths.get("drafts", "drafts")
+            refs_dir = paths.get("references", "references")
+        except (ValueError, KeyError):
+            drafts_dir = "drafts"
+            refs_dir = "references"
+        
         # [MANDATORY] Find concept files - innovation and discussion depend on this!
-        drafts_dir = "drafts"
         concept_files = []
         novelty_files = []
         if os.path.exists(drafts_dir):
@@ -165,6 +233,9 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         
         message = f"Help me write the {section} section of my paper.\n\n"
         
+        # Project status
+        message += _get_project_status() + "\n"
+        
         # [MANDATORY] Concept file section
         message += "=" * 60 + "\n"
         message += "⚠️  **[MANDATORY] CONCEPT FILE REQUIRED** ⚠️\n"
@@ -173,7 +244,7 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         if concept_files:
             message += "📋 **Found Concept Files (MUST USE):**\n"
             for i, cf in enumerate(concept_files, 1):
-                message += f"  {i}. drafts/{cf}\n"
+                message += f"  {i}. {drafts_dir}/{cf}\n"
             message += "\n"
             message += "🔴 **CRITICAL INSTRUCTION:**\n"
             message += "You MUST read the concept file(s) above using `read_draft` tool FIRST!\n"
@@ -211,13 +282,12 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         if novelty_files:
             message += "\n📊 **Novelty Analysis Available:**\n"
             for nf in novelty_files:
-                message += f"  - drafts/{nf}\n"
+                message += f"  - {drafts_dir}/{nf}\n"
             message += "  (Contains literature gaps and innovation rationale)\n"
         
         message += "\n" + "-" * 60 + "\n"
         
         # Also list saved references
-        refs_dir = "references"
         saved_refs = []
         if os.path.exists(refs_dir):
             saved_refs = [d for d in os.listdir(refs_dir) if os.path.isdir(os.path.join(refs_dir, d))]
@@ -246,19 +316,28 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         
         This prompt automatically lists available data files for analysis.
         """
-        data_dir = "data"
+        pm = get_project_manager()
+        
+        # Get data directory based on current project
+        try:
+            paths = pm.get_project_paths()
+            data_dir = paths.get("data", "data")
+        except (ValueError, KeyError):
+            data_dir = "data"
+        
         data_files = []
         if os.path.exists(data_dir):
             data_files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
         
         message = "Analyze research data.\n\n"
+        message += _get_project_status() + "\n"
         
         message += "📊 **Available Data Files:**\n"
         if data_files:
             for i, f in enumerate(data_files, 1):
-                message += f"  {i}. {f}\n"
+                message += f"  {i}. {data_dir}/{f}\n"
         else:
-            message += "  (No CSV files found in data/ folder)\n"
+            message += f"  (No CSV files found in {data_dir}/ folder)\n"
         
         message += "\n**Available Analysis Tools:**\n"
         message += "- `analyze_dataset` - Get descriptive statistics\n"
@@ -277,17 +356,26 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         
         This prompt lists available drafts for refinement.
         """
-        drafts_dir = "drafts"
+        pm = get_project_manager()
+        
+        # Get drafts directory based on current project
+        try:
+            paths = pm.get_project_paths()
+            drafts_dir = paths.get("drafts", "drafts")
+        except (ValueError, KeyError):
+            drafts_dir = "drafts"
+        
         drafts = []
         if os.path.exists(drafts_dir):
             drafts = [f for f in os.listdir(drafts_dir) if f.endswith('.md')]
         
         message = "Refine paper content.\n\n"
+        message += _get_project_status() + "\n"
         
         message += "📄 **Available Drafts:**\n"
         if drafts:
             for i, d in enumerate(drafts, 1):
-                message += f"  {i}. {d}\n"
+                message += f"  {i}. {drafts_dir}/{d}\n"
         else:
             message += "  (No drafts found)\n"
         
@@ -309,8 +397,18 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         
         This prompt automatically lists available drafts and templates.
         """
+        pm = get_project_manager()
+        
+        # Get directories based on current project
+        try:
+            paths = pm.get_project_paths()
+            drafts_dir = paths.get("drafts", "drafts")
+            results_dir = paths.get("results", "results")
+        except (ValueError, KeyError):
+            drafts_dir = "drafts"
+            results_dir = "results"
+        
         # Get available drafts
-        drafts_dir = "drafts"
         drafts = []
         if os.path.exists(drafts_dir):
             drafts = [f for f in os.listdir(drafts_dir) if f.endswith('.md')]
@@ -319,13 +417,14 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         templates = template_reader.list_templates()
         
         message = "Export a draft to Word format.\n\n"
+        message += _get_project_status() + "\n"
         
         message += "📄 **Available Drafts:**\n"
         if drafts:
             for i, d in enumerate(drafts, 1):
-                message += f"  {i}. {d}\n"
+                message += f"  {i}. {drafts_dir}/{d}\n"
         else:
-            message += "  (No drafts found in drafts/ folder)\n"
+            message += f"  (No drafts found in {drafts_dir}/ folder)\n"
         
         message += "\n📋 **Available Templates:**\n"
         if templates:
@@ -334,6 +433,7 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         else:
             message += "  (No templates found)\n"
         
+        message += f"\n**Output Location:** `{results_dir}/`\n"
         message += "\nPlease help me export a draft to Word. "
         message += "Use the 8-step workflow: read_template → read_draft → start_document_session → "
         message += "insert_section (for each section) → verify_document → check_word_limits → save_document"

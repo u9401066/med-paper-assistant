@@ -33,6 +33,7 @@ from med_paper_assistant.core.template_reader import TemplateReader
 from med_paper_assistant.core.word_writer import WordWriter
 from med_paper_assistant.core.logger import setup_logger
 from med_paper_assistant.core.strategy_manager import StrategyManager
+from med_paper_assistant.core.project_manager import ProjectManager
 
 # Server modules
 from med_paper_assistant.mcp_server.config import SERVER_INSTRUCTIONS, DEFAULT_EMAIL
@@ -43,6 +44,7 @@ from med_paper_assistant.mcp_server.tools import (
     register_analysis_tools,
     register_export_tools,
 )
+from med_paper_assistant.mcp_server.tools.project_tools import register_project_tools
 from med_paper_assistant.mcp_server.prompts import register_prompts
 
 
@@ -65,8 +67,9 @@ def create_server() -> FastMCP:
     # Initialize core modules
     searcher = LiteratureSearcher(email=DEFAULT_EMAIL)
     analyzer = Analyzer()
-    ref_manager = ReferenceManager(searcher)
-    drafter = Drafter(ref_manager)
+    project_manager = ProjectManager()  # Multi-project support
+    ref_manager = ReferenceManager(searcher, project_manager=project_manager)
+    drafter = Drafter(ref_manager, project_manager=project_manager)
     formatter = Formatter()
     template_reader = TemplateReader()
     word_writer = WordWriter()
@@ -76,6 +79,9 @@ def create_server() -> FastMCP:
     mcp = FastMCP("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)
 
     # Register all tools
+    logger.info("Registering project tools...")
+    register_project_tools(mcp, project_manager)
+    
     logger.info("Registering search tools...")
     register_search_tools(mcp, searcher, strategy_manager)
     

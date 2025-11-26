@@ -79,7 +79,7 @@ After setup completes:
 
 In VS Code's Copilot Chat panel:
 1. Type `/mcp` and press Enter
-2. You should see `mdpaper (33 tools)` in the list
+2. You should see `mdpaper (39 tools)` in the list
 3. If you see this, the installation was successful! 🎉
 
 #### Manual Installation (If Setup Script Fails)
@@ -504,7 +504,7 @@ chmod +x scripts/setup.sh
 
 在 VS Code 的 Copilot Chat 面板中：
 1. 輸入 `/mcp` 並按 Enter
-2. 您應該會看到列表中有 `mdpaper (33 tools)`
+2. 您應該會看到列表中有 `mdpaper (39 tools)`
 3. 如果看到這個，表示安裝成功！🎉
 
 #### 手動安裝（如果腳本失敗）

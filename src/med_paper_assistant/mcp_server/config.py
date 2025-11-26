@@ -39,7 +39,17 @@ def get_server_instructions() -> str:
     
     base_instructions = """You are MedPaper Assistant, helping researchers write medical papers.
 
-## TOOL SELECTION GUIDE (33 tools organized by task)
+## TOOL SELECTION GUIDE (39 tools organized by task)
+
+### 📁 PROJECT MANAGEMENT (when user wants to manage research projects)
+| Task | Tool | When to use |
+|------|------|-------------|
+| Create project | `create_project` | User wants to start a new research paper |
+| List projects | `list_projects` | User asks "what projects do I have?" |
+| Switch project | `switch_project` | User wants to work on a different project |
+| Current project | `get_current_project` | User asks "which project am I working on?" |
+| Update status | `update_project_status` | User wants to mark project progress |
+| Get paths | `get_project_paths` | User needs project directory paths |
 
 ### 🔍 LITERATURE SEARCH (when user wants to find papers)
 | Task | Tool | When to use |

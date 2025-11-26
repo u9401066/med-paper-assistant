@@ -1,21 +1,48 @@
 import os
 import json
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from med_paper_assistant.core.search import LiteratureSearcher
 
+if TYPE_CHECKING:
+    from med_paper_assistant.core.project_manager import ProjectManager
+
+
 class ReferenceManager:
-    def __init__(self, searcher: LiteratureSearcher, base_dir: str = "references"):
+    def __init__(
+        self, 
+        searcher: LiteratureSearcher, 
+        base_dir: str = "references",
+        project_manager: Optional["ProjectManager"] = None
+    ):
         """
         Initialize the ReferenceManager.
         
         Args:
             searcher: Instance of LiteratureSearcher to fetch details.
-            base_dir: Directory to store references.
+            base_dir: Default directory to store references (used if no project active).
+            project_manager: Optional ProjectManager for multi-project support.
         """
         self.searcher = searcher
-        self.base_dir = base_dir
-        if not os.path.exists(self.base_dir):
-            os.makedirs(self.base_dir)
+        self._default_base_dir = base_dir
+        self._project_manager = project_manager
+        
+        # Ensure default directory exists
+        if not os.path.exists(self._default_base_dir):
+            os.makedirs(self._default_base_dir)
+    
+    @property
+    def base_dir(self) -> str:
+        """
+        Get the current references directory.
+        Uses project directory if a project is active, otherwise default.
+        """
+        if self._project_manager:
+            try:
+                paths = self._project_manager.get_project_paths()
+                return paths.get("references", self._default_base_dir)
+            except (ValueError, KeyError):
+                pass
+        return self._default_base_dir
 
     def save_reference(self, pmid: str, download_pdf: bool = True) -> str:
         """

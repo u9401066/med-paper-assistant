@@ -1,7 +1,10 @@
 import os
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 from med_paper_assistant.core.reference_manager import ReferenceManager
+
+if TYPE_CHECKING:
+    from med_paper_assistant.core.project_manager import ProjectManager
 
 from enum import Enum
 
@@ -55,20 +58,44 @@ JOURNAL_CITATION_CONFIGS = {
 }
 
 class Drafter:
-    def __init__(self, reference_manager: ReferenceManager, drafts_dir: str = "drafts", citation_style: str = CitationStyle.VANCOUVER.value):
+    def __init__(
+        self, 
+        reference_manager: ReferenceManager, 
+        drafts_dir: str = "drafts", 
+        citation_style: str = CitationStyle.VANCOUVER.value,
+        project_manager: Optional["ProjectManager"] = None
+    ):
         """
         Initialize the Drafter.
         
         Args:
             reference_manager: Instance of ReferenceManager to retrieve citation info.
-            drafts_dir: Directory to store drafts.
+            drafts_dir: Default directory to store drafts (used if no project active).
             citation_style: Default citation style.
+            project_manager: Optional ProjectManager for multi-project support.
         """
         self.ref_manager = reference_manager
-        self.drafts_dir = drafts_dir
+        self._default_drafts_dir = drafts_dir
         self.citation_style = citation_style
-        if not os.path.exists(self.drafts_dir):
-            os.makedirs(self.drafts_dir)
+        self._project_manager = project_manager
+        
+        # Ensure default directory exists
+        if not os.path.exists(self._default_drafts_dir):
+            os.makedirs(self._default_drafts_dir)
+    
+    @property
+    def drafts_dir(self) -> str:
+        """
+        Get the current drafts directory.
+        Uses project directory if a project is active, otherwise default.
+        """
+        if self._project_manager:
+            try:
+                paths = self._project_manager.get_project_paths()
+                return paths.get("drafts", self._default_drafts_dir)
+            except (ValueError, KeyError):
+                pass
+        return self._default_drafts_dir
 
     def set_citation_style(self, style: str):
         """Set the citation style."""

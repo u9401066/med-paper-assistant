@@ -8,6 +8,8 @@ dist/
 .vscode/
 .idea/
 .env
+
+# Legacy directories (before multi-project support)
 references/
 test_references/
 drafts/
@@ -17,7 +19,9 @@ results/
 test_data/
 test_results/
 
-
+# Multi-project structure
+projects/
+.current_project
 
 logs/
 output/

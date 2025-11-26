@@ -111,28 +111,32 @@
     - [x] Phase 6: Test and Git commit
 
 - **Entrez Modular Refactoring** (COMPLETED):
-  - **Goal**: Refactor large search.py (~550 lines) into modular package
+  - Refactored search.py (~550 lines) into core/entrez/ package
+  - 6 submodules: base, search, pdf, citation, batch, utils
+  - All 9 Entrez utilities covered
+  - Backward-compatible facade
+
+- **Multi-Project Support** (COMPLETED - 2025-11-26):
+  - **Goal**: Isolate each research paper in its own workspace
   - **New Structure**:
     ```
-    core/entrez/
-    ├── __init__.py     # Package exports (LiteratureSearcher, SearchStrategy)
-    ├── base.py         # EntrezBase class with configuration
-    ├── search.py       # SearchMixin (esearch, efetch, filter)
-    ├── pdf.py          # PDFMixin (PMC fulltext download)
-    ├── citation.py     # CitationMixin (elink - related, citing, references)
-    ├── batch.py        # BatchMixin (history server operations)
-    └── utils.py        # UtilsMixin (esummary, espell, egquery, einfo, ecitmatch)
+    projects/{project-slug}/
+    ├── project.json      # Metadata (name, status, target journal)
+    ├── concept.md        # Research concept with 🔒 protected sections
+    ├── drafts/           # Paper drafts
+    ├── references/       # Literature by PMID
+    ├── data/             # Analysis data
+    └── results/          # Exported documents
     ```
-  - **All 9 Entrez Utils Covered**:
-    - esearch: Article search
-    - efetch: Full article details
-    - elink: Citation network (related, citing, references)
-    - esummary: Quick metadata
-    - espell: Query spell checking
-    - egquery: Database counts (deprecated warning)
-    - einfo: Database info
-    - ecitmatch: Find by citation
-    - History Server: Batch operations with WebEnv/QueryKey
-  - **Backward Compatibility**: search.py now facade, imports from entrez/
-  - **Tests**: 18/18 passed after bug fix (ESummary author format)
+  - **New Tools (6)**:
+    - create_project: Create new research project
+    - list_projects: List all projects
+    - switch_project: Switch active project
+    - get_current_project: Get current project info
+    - update_project_status: Update project status (concept→drafting→review→submitted→published)
+    - get_project_paths: Get all project paths
+  - **Project-Aware Prompts**: All prompts show current project status
+  - **Migration**: Existing drafts/ and references/ moved to projects/nasotracheal-intubation-comparison/
+  - **Total Tools**: 39 (was 33)
+
 
