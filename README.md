@@ -78,8 +78,8 @@ After setup completes:
 **Step 4: Verify Installation**
 
 In VS Code's Copilot Chat panel:
-1. Type \`/mcp\` and press Enter
-2. You should see \`mdpaper (33 tools)\` in the list
+1. Type `/mcp` and press Enter
+2. You should see `mdpaper (32 tools)` in the list
 3. If you see this, the installation was successful! 🎉
 
 #### Manual Installation (If Setup Script Fails)
@@ -286,9 +286,9 @@ Interactively improve specific sections:
 
 #### Step 7: Export to Word
 
-**Command**: \`/mcp.mdpaper.format\`
+**Command**: `/mcp.mdpaper.format`
 
-This follows an 8-step workflow:
+This follows a 7-step workflow:
 1. Read template structure
 2. Read draft content
 3. Map sections
@@ -297,7 +297,7 @@ This follows an 8-step workflow:
 6. Check word limits
 7. Save final document
 
-Output: \`results/your_paper.docx\`
+Output: `results/your_paper.docx`
 
 ---
 
@@ -321,15 +321,15 @@ Output: \`results/your_paper.docx\`
 
 ---
 
-### 🛠️ Available Tools (33 Total)
+### 🛠️ Available Tools (32 Total)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
-| **Search** (6) | \`search_literature\`, \`find_related_articles\`, \`find_citing_articles\`, \`configure_search_strategy\`, \`get_search_strategy\` | Literature discovery |
-| **Reference** (8) | \`save_reference\`, \`list_saved_references\`, \`search_local_references\`, \`get_reference_details\`, \`read_reference_fulltext\`, \`retry_pdf_download\`, \`format_references\`, \`set_citation_style\` | Reference management |
-| **Writing** (7) | \`write_draft\`, \`read_draft\`, \`list_drafts\`, \`insert_citation\`, \`draft_section\`, \`get_section_template\`, \`count_words\` | Manuscript preparation |
-| **Analysis** (4) | \`analyze_dataset\`, \`run_statistical_test\`, \`create_plot\`, \`generate_table_one\` | Data analysis |
-| **Export** (10) | \`read_template\`, \`list_templates\`, \`start_document_session\`, \`insert_section\`, \`verify_document\`, \`check_word_limits\`, \`save_document\`, \`export_word\` | Document export |
+| **Search** (5) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy` | Literature discovery |
+| **Reference** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | Reference management |
+| **Writing** (7) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words` | Manuscript preparation |
+| **Analysis** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | Data analysis |
+| **Export** (8) | `read_template`, `list_templates`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | Document export |
 
 ---
 
@@ -440,8 +440,8 @@ chmod +x scripts/setup.sh
 **步驟 4：驗證安裝**
 
 在 VS Code 的 Copilot Chat 面板中：
-1. 輸入 \`/mcp\` 並按 Enter
-2. 您應該會看到列表中有 \`mdpaper (33 tools)\`
+1. 輸入 `/mcp` 並按 Enter
+2. 您應該會看到列表中有 `mdpaper (32 tools)`
 3. 如果看到這個，表示安裝成功！🎉
 
 #### 手動安裝（如果腳本失敗）
@@ -654,9 +654,9 @@ flowchart LR
 
 #### 步驟 7：匯出到 Word
 
-**指令**：\`/mcp.mdpaper.format\`
+**指令**：`/mcp.mdpaper.format`
 
-依照 8 步驟流程：
+依照 7 步驟流程：
 1. 讀取範本結構
 2. 讀取草稿內容
 3. 對應章節
@@ -665,7 +665,7 @@ flowchart LR
 6. 檢查字數限制
 7. 儲存最終文件
 
-輸出：\`results/your_paper.docx\`
+輸出：`results/your_paper.docx`
 
 ---
 
@@ -689,15 +689,15 @@ flowchart LR
 
 ---
 
-### 🛠️ 可用工具（共 33 個）
+### 🛠️ 可用工具（共 32 個）
 
 | 類別 | 工具 | 說明 |
 |------|------|------|
-| **搜尋** (6) | \`search_literature\`, \`find_related_articles\`, \`find_citing_articles\`, \`configure_search_strategy\`, \`get_search_strategy\` | 文獻探索 |
-| **參考文獻** (8) | \`save_reference\`, \`list_saved_references\`, \`search_local_references\`, \`get_reference_details\`, \`read_reference_fulltext\`, \`retry_pdf_download\`, \`format_references\`, \`set_citation_style\` | 參考文獻管理 |
-| **寫作** (7) | \`write_draft\`, \`read_draft\`, \`list_drafts\`, \`insert_citation\`, \`draft_section\`, \`get_section_template\`, \`count_words\` | 草稿準備 |
-| **分析** (4) | \`analyze_dataset\`, \`run_statistical_test\`, \`create_plot\`, \`generate_table_one\` | 數據分析 |
-| **匯出** (10) | \`read_template\`, \`list_templates\`, \`start_document_session\`, \`insert_section\`, \`verify_document\`, \`check_word_limits\`, \`save_document\`, \`export_word\` | 文件匯出 |
+| **搜尋** (5) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy` | 文獻探索 |
+| **參考文獻** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | 參考文獻管理 |
+| **寫作** (7) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words` | 草稿準備 |
+| **分析** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | 數據分析 |
+| **匯出** (8) | `read_template`, `list_templates`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | 文件匯出 |
 
 ---
 

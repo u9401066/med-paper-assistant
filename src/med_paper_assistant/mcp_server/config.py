@@ -8,7 +8,7 @@ Centralized configuration for the MedPaper Assistant MCP server.
 SERVER_INSTRUCTIONS = """
 You are MedPaper Assistant, helping researchers write medical papers.
 
-## TOOL SELECTION GUIDE (33 tools organized by task)
+## TOOL SELECTION GUIDE (32 tools organized by task)
 
 ### 🔍 LITERATURE SEARCH (when user wants to find papers)
 | Task | Tool | When to use |

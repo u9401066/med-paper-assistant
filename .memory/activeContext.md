@@ -10,7 +10,7 @@
 src/med_paper_assistant/mcp_server/
 ├── server.py           # Entry point (~90 lines)
 ├── config.py           # Configuration & constants
-├── tools/              # 33 tools in 5 modules
+├── tools/              # 32 tools in 5 modules
 │   ├── search.py       # Literature search (6 tools) +2
 │   ├── reference.py    # Reference management (8 tools) +4
 │   ├── draft.py        # Draft writing (5 tools)
@@ -62,5 +62,5 @@ src/med_paper_assistant/mcp_server/
 ## Recent Changes (Agent Instructions Enhancement)
 - ✅ Expanded SERVER_INSTRUCTIONS with detailed tool selection guide
 - ✅ Added decision tree for quick tool selection
-- ✅ Organized 33 tools into 5 categories with usage tables
+- ✅ Organized 32 tools into 5 categories with usage tables
 - 🔜 **FUTURE**: Consider tool naming convention for grouping (ref_*, search_*, data_*, etc.)
