@@ -5,7 +5,8 @@ MCP tools for managing multiple research paper projects.
 Each project has isolated drafts, references, data, and results.
 """
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
+from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.elicitation import AcceptedElicitation, DeclinedElicitation, CancelledElicitation
 
@@ -13,19 +14,25 @@ from med_paper_assistant.core.project_manager import ProjectManager
 
 
 # ============================================
-# Pydantic Models for Elicitation
+# Pydantic Models for Elicitation (MCP SDK requires schema)
 # ============================================
 
-# Paper type options as a list for elicitation
-PAPER_TYPE_OPTIONS = [
-    "original-research",
-    "systematic-review", 
-    "meta-analysis",
-    "case-report",
-    "review-article",
-    "letter",
-    "other"
-]
+class PaperTypeSchema(BaseModel):
+    """Paper type selection with enum options."""
+    paper_type: Literal[
+        'original-research', 
+        'systematic-review', 
+        'meta-analysis', 
+        'case-report', 
+        'review-article', 
+        'letter', 
+        'other'
+    ] = Field(description="Select paper type")
+
+
+class TextInputSchema(BaseModel):
+    """Simple text input schema."""
+    value: str = Field(default="", description="Enter text (leave empty to skip)")
 
 
 def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
@@ -441,10 +448,10 @@ Please first select or create a project:
         info = project_manager.get_project_info(current)
         project_name = info.get('name', current)
         
-        # Step 1: Paper Type (Required) - using list for dropdown selection
+        # Step 1: Paper Type (Required) - using Literal enum for selection
         paper_type_result = await ctx.elicit(
             message=f"Setting up project: **{project_name}**\n\nSelect paper type:",
-            response_type=PAPER_TYPE_OPTIONS
+            schema=PaperTypeSchema
         )
         
         if isinstance(paper_type_result, CancelledElicitation):
@@ -454,28 +461,28 @@ Please first select or create a project:
             return "Setup declined. You can run this tool again when ready."
         
         # Save paper type immediately
-        paper_type = paper_type_result.data
+        paper_type = paper_type_result.data.paper_type
         project_manager.update_project_settings(paper_type=paper_type)
         
         # Step 2: Interaction Preferences (Optional) - simple string input
         prefs_result = await ctx.elicit(
             message="Interaction preferences? (e.g., '中文回答', 'Be concise', 'Explain reasoning')\n\nLeave blank to skip.",
-            response_type=str
+            schema=TextInputSchema
         )
         
-        if isinstance(prefs_result, AcceptedElicitation) and prefs_result.data:
+        if isinstance(prefs_result, AcceptedElicitation) and prefs_result.data.value:
             project_manager.update_project_settings(
-                interaction_preferences={"interaction_style": prefs_result.data}
+                interaction_preferences={"interaction_style": prefs_result.data.value}
             )
         
         # Step 3: Project Memo (Optional) - simple string input
         memo_result = await ctx.elicit(
             message="Project notes/memo? (e.g., deadlines, co-authors, IRB info)\n\nLeave blank to skip.",
-            response_type=str
+            schema=TextInputSchema
         )
         
-        if isinstance(memo_result, AcceptedElicitation) and memo_result.data:
-            project_manager.update_project_settings(memo=memo_result.data)
+        if isinstance(memo_result, AcceptedElicitation) and memo_result.data.value:
+            project_manager.update_project_settings(memo=memo_result.data.value)
         
         # Get final settings
         final_info = project_manager.get_project_info(current)
