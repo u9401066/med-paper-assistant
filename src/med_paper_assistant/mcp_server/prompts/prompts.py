@@ -71,8 +71,20 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
     # ========================================
     @mcp.prompt(name="project", description="Setup and configure a research project")
     def mdpaper_project(project_name: str = "") -> str:
+        pm = get_project_manager()
+        
         if project_name:
-            return f"create_project(name=\"{project_name}\") then setup_project_interactive()"
+            # Check if project exists (completion would suggest existing ones)
+            projects = pm.list_projects().get("projects", [])
+            existing_slugs = [p.get("slug", "") for p in projects]
+            
+            if project_name in existing_slugs:
+                # Existing project selected via completion
+                return f"switch_project(slug=\"{project_name}\") then setup_project_interactive()"
+            else:
+                # New project name
+                return f"create_project(name=\"{project_name}\") then setup_project_interactive()"
+        
         return "setup_project_interactive()"
 
     # ========================================
