@@ -6,7 +6,6 @@ Each project has isolated drafts, references, data, and results.
 """
 
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.elicitation import AcceptedElicitation, DeclinedElicitation, CancelledElicitation
 
@@ -17,35 +16,16 @@ from med_paper_assistant.core.project_manager import ProjectManager
 # Pydantic Models for Elicitation
 # ============================================
 
-class PaperTypeSelection(BaseModel):
-    """Schema for paper type selection during interactive setup."""
-    paper_type: str = Field(
-        description="Paper type: original-research, systematic-review, meta-analysis, case-report, review-article, letter, or other"
-    )
-
-
-class InteractionPreferences(BaseModel):
-    """Schema for interaction preferences during interactive setup."""
-    interaction_style: str = Field(
-        default="",
-        description="How should I interact? (e.g., 'Be concise', 'Explain reasoning', '中文回答')"
-    )
-    language_preference: str = Field(
-        default="",
-        description="Language preferences (e.g., 'British English', 'Technical vocabulary')"
-    )
-    writing_style: str = Field(
-        default="",
-        description="Writing style notes (e.g., 'Formal academic', 'Active voice')"
-    )
-
-
-class ProjectMemo(BaseModel):
-    """Schema for project memo during interactive setup."""
-    memo: str = Field(
-        default="",
-        description="Notes, reminders, deadlines, or context for this project"
-    )
+# Paper type options as a list for elicitation
+PAPER_TYPE_OPTIONS = [
+    "original-research",
+    "systematic-review", 
+    "meta-analysis",
+    "case-report",
+    "review-article",
+    "letter",
+    "other"
+]
 
 
 def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
@@ -461,10 +441,10 @@ Please first select or create a project:
         info = project_manager.get_project_info(current)
         project_name = info.get('name', current)
         
-        # Step 1: Paper Type (Required)
+        # Step 1: Paper Type (Required) - using list for dropdown selection
         paper_type_result = await ctx.elicit(
-            message=f"Setting up project: **{project_name}**\n\nWhat type of paper are you writing?",
-            schema=PaperTypeSelection
+            message=f"Setting up project: **{project_name}**\n\nSelect paper type:",
+            response_type=PAPER_TYPE_OPTIONS
         )
         
         if isinstance(paper_type_result, CancelledElicitation):
@@ -474,38 +454,28 @@ Please first select or create a project:
             return "Setup declined. You can run this tool again when ready."
         
         # Save paper type immediately
-        paper_type = paper_type_result.data.paper_type
+        paper_type = paper_type_result.data
         project_manager.update_project_settings(paper_type=paper_type)
         
-        # Step 2: Interaction Preferences (Optional)
+        # Step 2: Interaction Preferences (Optional) - simple string input
         prefs_result = await ctx.elicit(
-            message="How would you like me to interact with you?\n\n(Leave blank to skip)",
-            schema=InteractionPreferences
+            message="Interaction preferences? (e.g., '中文回答', 'Be concise', 'Explain reasoning')\n\nLeave blank to skip.",
+            response_type=str
         )
         
-        if isinstance(prefs_result, AcceptedElicitation):
-            prefs = prefs_result.data
-            interaction_preferences = {}
-            if prefs.interaction_style:
-                interaction_preferences["interaction_style"] = prefs.interaction_style
-            if prefs.language_preference:
-                interaction_preferences["language"] = prefs.language_preference
-            if prefs.writing_style:
-                interaction_preferences["writing_style"] = prefs.writing_style
-            
-            if interaction_preferences:
-                project_manager.update_project_settings(
-                    interaction_preferences=interaction_preferences
-                )
+        if isinstance(prefs_result, AcceptedElicitation) and prefs_result.data:
+            project_manager.update_project_settings(
+                interaction_preferences={"interaction_style": prefs_result.data}
+            )
         
-        # Step 3: Project Memo (Optional)
+        # Step 3: Project Memo (Optional) - simple string input
         memo_result = await ctx.elicit(
-            message="Any notes, reminders, or context for this project?\n\n(e.g., deadlines, co-authors, IRB info)",
-            schema=ProjectMemo
+            message="Project notes/memo? (e.g., deadlines, co-authors, IRB info)\n\nLeave blank to skip.",
+            response_type=str
         )
         
-        if isinstance(memo_result, AcceptedElicitation) and memo_result.data.memo:
-            project_manager.update_project_settings(memo=memo_result.data.memo)
+        if isinstance(memo_result, AcceptedElicitation) and memo_result.data:
+            project_manager.update_project_settings(memo=memo_result.data)
         
         # Get final settings
         final_info = project_manager.get_project_info(current)
