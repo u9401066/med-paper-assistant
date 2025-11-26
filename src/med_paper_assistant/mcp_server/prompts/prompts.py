@@ -28,20 +28,12 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         current = pm.get_current_project()
         
         if current:
-            return f"""[AGENT INSTRUCTION] Configure project "{current}".
-1. Call get_paper_types(), ask user to select ONE
-2. Ask about interaction preferences (language, style)  
-3. Ask for project memo/notes
-4. Save with update_project_settings()
-Start by asking: "What type of paper are you writing?" and show the options."""
+            # Direct instruction to call the elicitation tool
+            return f"Call setup_project_interactive() now to configure project '{current}' with interactive prompts."
         elif project_name:
-            return f"""[AGENT INSTRUCTION] Create project "{project_name}".
-1. Call create_project(name="{project_name}")
-2. Then configure: get_paper_types → ask user → update_project_settings
-Start by creating the project."""
+            return f"First call create_project(name=\"{project_name}\"), then call setup_project_interactive() to configure it."
         else:
-            return """[AGENT INSTRUCTION] No project selected.
-Call list_projects() to check available projects, then ask user which to configure or if they want to create a new one."""
+            return "Call list_projects() to see available projects, then ask user which to configure."
 
     # ========================================
     # /mdpaper.concept - Develop research concept
