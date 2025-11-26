@@ -62,148 +62,46 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         """
         Setup and configure a research project with paper type and preferences.
         
-        This prompt guides you through:
-        1. Creating or selecting a project
-        2. Choosing paper type (required)
-        3. Setting interaction preferences
-        4. Adding project memo/notes
-        
         Args:
             project_name: Name for new project, or leave empty to configure existing.
         """
         pm = get_project_manager()
         current = pm.get_current_project()
         
-        message = "# 📁 Project Setup & Configuration\n\n"
+        # Build a concise context message
+        lines = []
         
-        # Check current project status
         if current:
             info = pm.get_project_info(current)
             paper_type = info.get("paper_type", "")
-            message += f"**Current Project:** {info.get('name', current)} (`{current}`)\n"
-            message += f"**Paper Type:** {info.get('paper_type_info', {}).get('name', 'Not configured')}\n\n"
+            prefs = info.get("interaction_preferences", {})
+            memo = info.get("memo", "")
             
-            if not paper_type:
-                message += "⚠️ **Paper type not configured!** This is required for proper templates.\n\n"
+            lines.append(f"Configure project: **{info.get('name', current)}**")
+            lines.append("")
+            lines.append(f"Current settings:")
+            lines.append(f"- Paper type: {info.get('paper_type_info', {}).get('name', '❌ Not set')}")
+            lines.append(f"- Interaction style: {prefs.get('interaction_style', 'Not set')}")
+            lines.append(f"- Memo: {memo[:50] + '...' if len(memo) > 50 else memo or 'None'}")
+        elif project_name:
+            lines.append(f"Create new project: **{project_name}**")
         else:
-            message += "⚠️ **No project selected!**\n\n"
-            if project_name:
-                message += f"Creating new project: **{project_name}**\n\n"
+            lines.append("**No project selected.** Please provide a project name or use `list_projects` first.")
+            return "\n".join(lines)
         
-        message += "---\n\n"
+        lines.append("")
+        lines.append("---")
+        lines.append("**WORKFLOW:** Ask the user ONE question at a time:")
+        lines.append("")
+        lines.append("1️⃣ **Paper type** - Use `get_paper_types` to show options, ask user to choose")
+        lines.append("2️⃣ **Interaction preferences** - Ask how they want you to interact (language, style)")  
+        lines.append("3️⃣ **Project memo** - Ask for any notes/reminders")
+        lines.append("")
+        lines.append("After each answer, save with `update_project_settings`.")
+        lines.append("")
+        lines.append("**START:** Ask the user which paper type they are writing.")
         
-        # Paper type selection (MANDATORY)
-        message += "## 📄 STEP 1: Paper Type (REQUIRED)\n\n"
-        message += "**You MUST select a paper type.** This determines:\n"
-        message += "- Concept template sections\n"
-        message += "- Progress milestones\n"
-        message += "- Export format requirements\n\n"
-        
-        message += "| Type | Description | Typical Sections |\n"
-        message += "|------|-------------|------------------|\n"
-        message += "| `original-research` | Clinical trial, cohort, cross-sectional | IMRAD |\n"
-        message += "| `systematic-review` | Systematic literature review | PRISMA format |\n"
-        message += "| `meta-analysis` | Review with quantitative synthesis | PRISMA + Forest plots |\n"
-        message += "| `case-report` | Single case or case series | Intro, Case, Discussion |\n"
-        message += "| `review-article` | Narrative or invited review | Flexible sections |\n"
-        message += "| `letter` | Brief communication/commentary | Single section |\n"
-        message += "| `other` | Editorial, perspective, etc. | Varies |\n\n"
-        
-        message += "**❓ ASK THE USER:** Which paper type are you writing?\n\n"
-        
-        message += "---\n\n"
-        
-        # Interaction preferences
-        message += "## 💬 STEP 2: Interaction Preferences\n\n"
-        message += "**❓ ASK THE USER these questions:**\n\n"
-        
-        message += "### How do you want me to interact with you?\n"
-        message += "Examples:\n"
-        message += "- \"Ask before making major changes to my concept\"\n"
-        message += "- \"Be concise, don't over-explain\"\n"
-        message += "- \"Explain your reasoning for suggestions\"\n"
-        message += "- \"Proactively suggest improvements\"\n"
-        message += "- \"只用中文回答\" (Chinese only)\n\n"
-        
-        message += "### Language preferences?\n"
-        message += "Examples:\n"
-        message += "- \"Use British English\"\n"
-        message += "- \"Technical vocabulary appropriate for [field]\"\n"
-        message += "- \"Avoid jargon, keep accessible\"\n\n"
-        
-        message += "### Writing style notes?\n"
-        message += "Examples:\n"
-        message += "- \"Formal academic tone\"\n"
-        message += "- \"Active voice preferred\"\n"
-        message += "- \"Match style of [target journal]\"\n\n"
-        
-        message += "---\n\n"
-        
-        # Project memo
-        message += "## 📝 STEP 3: Project Memo\n\n"
-        message += "**❓ ASK THE USER:**\n\n"
-        message += "Any notes, reminders, or context I should remember for this project?\n\n"
-        message += "Examples:\n"
-        message += "- \"Deadline: March 2025 for [conference]\"\n"
-        message += "- \"Co-author Dr. X prefers [style]\"\n"
-        message += "- \"IRB approval #12345\"\n"
-        message += "- \"Data collection ongoing until [date]\"\n"
-        message += "- \"Key competitor paper: PMID 12345678\"\n\n"
-        
-        message += "---\n\n"
-        
-        # Action
-        message += "## ⚡ ACTIONS\n\n"
-        
-        if not current and project_name:
-            message += f"""After collecting answers, run:
-```python
-create_project(
-    name="{project_name}",
-    paper_type="[user's choice]",
-    description="[brief description]",
-    memo="[user's notes]"
-)
-
-update_project_settings(
-    interaction_style="[user's preference]",
-    language_preference="[user's preference]",
-    writing_style="[user's preference]"
-)
-```
-"""
-        elif current:
-            message += f"""After collecting answers, run:
-```python
-update_project_settings(
-    paper_type="[user's choice]",
-    interaction_style="[user's preference]",
-    language_preference="[user's preference]",
-    writing_style="[user's preference]",
-    memo="[user's notes]"
-)
-```
-"""
-        else:
-            message += """First create a project:
-```python
-create_project(
-    name="[ask user for project name]",
-    paper_type="[user's choice]",
-    description="[brief description]"
-)
-```
-
-Then configure settings with `update_project_settings`.
-"""
-        
-        message += "\n---\n\n"
-        message += "**🔴 IMPORTANT:** Do NOT proceed until you have asked and received answers for:\n"
-        message += "1. ✅ Paper type (REQUIRED)\n"
-        message += "2. ✅ Interaction preferences\n"
-        message += "3. ✅ Project memo/notes\n"
-        
-        return message
+        return "\n".join(lines)
 
     @mcp.prompt(name="concept", description="Develop research concept with literature-based gap analysis")
     def mdpaper_concept(topic: str) -> str:

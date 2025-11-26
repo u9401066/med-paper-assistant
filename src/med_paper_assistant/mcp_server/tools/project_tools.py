@@ -103,23 +103,13 @@ def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
         """
         types = project_manager.get_paper_types()
         
-        lines = ["# 📄 Available Paper Types\n"]
+        lines = ["**Which type of paper are you writing?**\n"]
         
         for key, info in types.items():
-            sections = ", ".join(info.get("sections", []))
-            lines.append(f"""## {info['name']} (`{key}`)
-- **Description:** {info['description']}
-- **Typical Sections:** {sections}
-- **Typical Word Count:** ~{info['typical_words']} words
-""")
+            lines.append(f"- **{info['name']}** (`{key}`) - {info['description']}")
         
-        lines.append("""---
-**Usage:**
-```python
-create_project(name="My Study", paper_type="meta-analysis")
-```
-Or use `/mdpaper.project` for guided setup.
-""")
+        lines.append("")
+        lines.append("Please tell me the type (e.g., 'original-research' or 'meta-analysis').")
         
         return "\n".join(lines)
 
