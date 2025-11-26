@@ -258,3 +258,176 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
                 
         except Exception as e:
             return f"Error counting words: {str(e)}"
+
+    @mcp.tool()
+    def validate_concept(filename: str) -> str:
+        """
+        Validate a concept file before proceeding to draft writing.
+        Checks that all required sections are complete and protected content is defined.
+        
+        Args:
+            filename: Path to the concept file (e.g., "concept_study.md").
+        
+        Returns:
+            Validation report with checklist status and any warnings.
+        """
+        if not os.path.isabs(filename):
+            filename = os.path.join("drafts", filename)
+        
+        if not os.path.exists(filename):
+            return f"❌ Error: Concept file not found: {filename}\n\n" \
+                   f"Use `/mdpaper.concept` to create a concept file first."
+        
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Validation checklist
+            checks = {
+                "novelty_statement": {
+                    "name": "🔒 NOVELTY STATEMENT",
+                    "required": True,
+                    "patterns": [r"🔒\s*NOVELTY STATEMENT", r"What is new\?", r"novelty"],
+                    "found": False,
+                    "has_content": False
+                },
+                "selling_points": {
+                    "name": "🔒 KEY SELLING POINTS",
+                    "required": True,
+                    "patterns": [r"🔒\s*KEY SELLING POINTS", r"Selling Point \d"],
+                    "found": False,
+                    "has_content": False,
+                    "count": 0
+                },
+                "background": {
+                    "name": "📝 Background",
+                    "required": False,
+                    "patterns": [r"📝\s*Background", r"##\s*Background"],
+                    "found": False,
+                    "has_content": False
+                },
+                "research_gap": {
+                    "name": "📝 Research Gap",
+                    "required": False,
+                    "patterns": [r"📝\s*Research Gap", r"##\s*Research Gap"],
+                    "found": False,
+                    "has_content": False
+                },
+                "research_question": {
+                    "name": "📝 Research Question/Hypothesis",
+                    "required": False,
+                    "patterns": [r"Research Question", r"Hypothesis"],
+                    "found": False,
+                    "has_content": False
+                },
+                "methods": {
+                    "name": "📝 Methods Overview",
+                    "required": False,
+                    "patterns": [r"📝\s*Methods", r"##\s*Methods", r"Study Design"],
+                    "found": False,
+                    "has_content": False
+                },
+                "expected_outcomes": {
+                    "name": "📝 Expected Outcomes",
+                    "required": False,
+                    "patterns": [r"📝\s*Expected", r"##\s*Expected Outcomes"],
+                    "found": False,
+                    "has_content": False
+                }
+            }
+            
+            # Check each section
+            lines = content.split('\n')
+            current_section = None
+            section_content = []
+            
+            for i, line in enumerate(lines):
+                # Check for section headers
+                for key, check in checks.items():
+                    for pattern in check["patterns"]:
+                        if re.search(pattern, line, re.IGNORECASE):
+                            check["found"] = True
+                            current_section = key
+                            section_content = []
+                            break
+                
+                # Collect content for current section
+                if current_section and not line.startswith('#') and not line.startswith('🔒') and not line.startswith('📝'):
+                    stripped = line.strip()
+                    if stripped and not stripped.startswith('<!--') and not stripped.startswith('>'):
+                        if not stripped.startswith('[') or ']' not in stripped:  # Not a placeholder
+                            section_content.append(stripped)
+                            checks[current_section]["has_content"] = True
+            
+            # Count selling points
+            selling_points_matches = re.findall(r'Selling Point \d+.*?:.*?\S', content, re.IGNORECASE)
+            checks["selling_points"]["count"] = len(selling_points_matches)
+            if checks["selling_points"]["count"] >= 3:
+                checks["selling_points"]["has_content"] = True
+            
+            # Generate report
+            output = f"📋 **Concept Validation Report**\n"
+            output += f"📄 File: `{os.path.basename(filename)}`\n\n"
+            
+            output += "## 🔒 Protected Sections (Required)\n\n"
+            output += "| Section | Found | Has Content | Status |\n"
+            output += "|---------|-------|-------------|--------|\n"
+            
+            required_pass = True
+            for key in ["novelty_statement", "selling_points"]:
+                check = checks[key]
+                found = "✅" if check["found"] else "❌"
+                has_content = "✅" if check["has_content"] else "❌"
+                
+                if check["found"] and check["has_content"]:
+                    status = "✅ PASS"
+                else:
+                    status = "❌ MISSING"
+                    required_pass = False
+                
+                extra = ""
+                if key == "selling_points":
+                    extra = f" ({check['count']} points)"
+                
+                output += f"| {check['name']}{extra} | {found} | {has_content} | {status} |\n"
+            
+            output += "\n## 📝 Editable Sections (Optional)\n\n"
+            output += "| Section | Found | Has Content |\n"
+            output += "|---------|-------|-------------|\n"
+            
+            for key in ["background", "research_gap", "research_question", "methods", "expected_outcomes"]:
+                check = checks[key]
+                found = "✅" if check["found"] else "⚪"
+                has_content = "✅" if check["has_content"] else "⚪"
+                output += f"| {check['name']} | {found} | {has_content} |\n"
+            
+            # Final verdict
+            output += "\n---\n\n"
+            
+            if required_pass:
+                output += "## ✅ VALIDATION PASSED\n\n"
+                output += "The concept file has all required protected sections.\n"
+                output += "You may proceed with `/mdpaper.draft` to write the paper.\n\n"
+                output += "**Remember:**\n"
+                output += "- 🔒 Protected content must be preserved in the final paper\n"
+                output += "- Ask user before modifying any 🔒 sections\n"
+            else:
+                output += "## ❌ VALIDATION FAILED\n\n"
+                output += "**Missing required sections:**\n"
+                
+                if not checks["novelty_statement"]["found"] or not checks["novelty_statement"]["has_content"]:
+                    output += "- 🔒 NOVELTY STATEMENT is missing or empty\n"
+                    output += "  → What makes this research unique?\n"
+                
+                if checks["selling_points"]["count"] < 3:
+                    output += f"- 🔒 KEY SELLING POINTS has only {checks['selling_points']['count']} points (need at least 3)\n"
+                    output += "  → What are the main contributions?\n"
+                
+                output += "\n**Action Required:**\n"
+                output += "Please complete the missing sections before proceeding to draft writing.\n"
+                output += "Use `write_draft` to update the concept file.\n"
+            
+            return output
+            
+        except Exception as e:
+            return f"❌ Error validating concept: {str(e)}"

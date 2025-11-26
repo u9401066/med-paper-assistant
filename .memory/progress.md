@@ -85,4 +85,27 @@
     - `find_related_articles` - PubMed related articles search
     - `find_citing_articles` - Citation network exploration
   - **Dependencies**: Added `requests`, `pypdf` to pyproject.toml
-  - **Total Tools**: 33 (was 27)
+  - **Total Tools**: 32
+
+- **Documentation Enhancement Update**:
+  - **Bilingual README.md**: English + 繁體中文 with language toggle
+  - **Bilingual CONTRIBUTING.md**: Detailed contribution guidelines
+  - **Mermaid Diagrams**: Replaced ASCII art with GitHub-native flowcharts
+  - **Tables**: Replaced ASCII directory trees with markdown tables
+  - **Tool Count Fix**: Corrected from 33 to 32 across all documentation
+  - **SERVER_INSTRUCTIONS**: Enhanced with tool selection guide and decision tree
+
+- **Concept Enhancement Design** (IN PROGRESS):
+  - **Goal**: Preserve novelty and selling points throughout paper writing
+  - **Approaches Selected**:
+    1. Structured Concept Template with 🔒/📝 markers
+    2. Integrated Concept Development (single step with mandatory literature search + user confirmation)
+    3. Novelty Checklist Validation before draft
+  - **Modification Policy**: Agent can refine wording but must ask before major changes
+  - **Implementation Phases**:
+    - [x] Phase 1: Design planning and Memory recording
+    - [x] Phase 2: Create Concept Template (`mcp_server/templates/`)
+    - [x] Phase 3: Implement Integrated Concept Development (literature → gap confirmation → concept)
+    - [x] Phase 4: Implement `validate_concept` tool
+    - [x] Phase 5: Update Draft Prompt protection (🔒 markers)
+    - [ ] Phase 6: Test and Git commit

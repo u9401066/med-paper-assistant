@@ -6,23 +6,132 @@ Prompts provide guided workflows for common tasks.
 """
 
 import os
+from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.core.template_reader import TemplateReader
 
 
+def _get_concept_template() -> str:
+    """Load the concept template from internal templates directory."""
+    template_path = Path(__file__).parent.parent / "templates" / "concept_template.md"
+    if template_path.exists():
+        return template_path.read_text(encoding="utf-8")
+    return ""
+
+
 def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
     """Register all prompts with the MCP server."""
     
-    @mcp.prompt(name="concept", description="Develop research concept")
+    @mcp.prompt(name="concept", description="Develop research concept with literature-based gap analysis")
     def mdpaper_concept(topic: str) -> str:
         """
-        Develop a research concept.
+        Develop a research concept with mandatory literature search and user confirmation.
         
         Args:
             topic: Your research topic or hypothesis
         """
-        return f"Help me develop a research concept about: {topic}"
+        message = f"Help me develop a research concept about: **{topic}**\n\n"
+        
+        message += "=" * 60 + "\n"
+        message += "📋 **CONCEPT DEVELOPMENT WORKFLOW**\n"
+        message += "=" * 60 + "\n\n"
+        
+        message += "⚠️ **MANDATORY WORKFLOW** - Complete ALL steps in order:\n\n"
+        
+        message += "---\n"
+        message += "## 📚 STEP 1: Literature Search (REQUIRED)\n"
+        message += "---\n"
+        message += "You MUST search existing literature FIRST:\n\n"
+        message += "```\n"
+        message += "1. Use `search_literature` with topic keywords\n"
+        message += "2. Find 5-10 relevant recent studies\n"
+        message += "3. Use `save_reference` for key papers\n"
+        message += "4. Summarize what's been done:\n"
+        message += "   - Main findings of existing studies\n"
+        message += "   - Methods commonly used\n"
+        message += "   - Limitations mentioned in papers\n"
+        message += "```\n\n"
+        
+        message += "---\n"
+        message += "## 🔍 STEP 2: Research Gap Identification (REQUIRED)\n"
+        message += "---\n"
+        message += "Based on literature, identify gaps and **ASK USER TO CONFIRM**:\n\n"
+        message += "```\n"
+        message += "Present to user:\n"
+        message += "┌─────────────────────────────────────────────────────┐\n"
+        message += "│ 📊 LITERATURE SUMMARY                               │\n"
+        message += "│ • Study 1: [brief finding]                         │\n"
+        message += "│ • Study 2: [brief finding]                         │\n"
+        message += "│ • Study 3: [brief finding]                         │\n"
+        message += "├─────────────────────────────────────────────────────┤\n"
+        message += "│ 🔍 IDENTIFIED RESEARCH GAPS                         │\n"
+        message += "│ 1. Gap A: [what hasn't been studied]               │\n"
+        message += "│ 2. Gap B: [limitation of current methods]          │\n"
+        message += "│ 3. Gap C: [unexplored population/setting]          │\n"
+        message += "├─────────────────────────────────────────────────────┤\n"
+        message += "│ ❓ QUESTIONS FOR USER                               │\n"
+        message += "│ • Which gap does your research address?            │\n"
+        message += "│ • Any gaps I missed?                               │\n"
+        message += "│ • What's your unique approach?                     │\n"
+        message += "└─────────────────────────────────────────────────────┘\n"
+        message += "```\n\n"
+        message += "🛑 **STOP AND WAIT** for user response before proceeding!\n\n"
+        
+        message += "---\n"
+        message += "## ✍️ STEP 3: Concept Writing (After User Confirmation)\n"
+        message += "---\n"
+        message += "Only after user confirms the gap, write concept using TEMPLATE:\n\n"
+        
+        message += "### 🔒 PROTECTED Sections (User must approve changes):\n"
+        message += "| Section | Content | Status |\n"
+        message += "|---------|---------|--------|\n"
+        message += "| 🔒 NOVELTY STATEMENT | What's new, why not done before, what will change | ⚠️ REQUIRED |\n"
+        message += "| 🔒 KEY SELLING POINTS | 3-5 key differentiators (user-defined) | ⚠️ REQUIRED |\n"
+        message += "| 🔒 Author Notes | Personal notes, do not include in paper | Optional |\n\n"
+        
+        message += "### 📝 EDITABLE Sections (Can freely improve):\n"
+        message += "| Section | Content |\n"
+        message += "|---------|--------|\n"
+        message += "| 📝 Background | Context from literature search |\n"
+        message += "| 📝 Research Gap | Gap confirmed by user in Step 2 |\n"
+        message += "| 📝 Research Question | Based on confirmed gap |\n"
+        message += "| 📝 Methods Overview | Planned methodology |\n"
+        message += "| 📝 Expected Outcomes | Anticipated results |\n"
+        message += "| 📝 Target Journal | If known |\n\n"
+        
+        message += "---\n"
+        message += "## ⚠️ CRITICAL RULES\n"
+        message += "---\n"
+        message += "1. **MUST search literature** before writing concept\n"
+        message += "2. **MUST present gaps and ASK user** before finalizing\n"
+        message += "3. **🔒 Protected content**: Ask user before any modification\n"
+        message += "4. **📝 Editable content**: Can improve freely\n"
+        message += "5. **Research Gap section**: Must include literature evidence\n\n"
+        
+        # Check for existing concept files
+        drafts_dir = "drafts"
+        concept_files = []
+        if os.path.exists(drafts_dir):
+            for f in os.listdir(drafts_dir):
+                if f.endswith('.md') and 'concept' in f.lower():
+                    concept_files.append(f)
+        
+        message += "---\n"
+        message += "## 📁 CURRENT STATUS\n"
+        message += "---\n"
+        
+        if concept_files:
+            message += f"📄 **Existing Concept Files:** {', '.join(concept_files)}\n"
+            message += "   → You may read these for reference or create a new one\n"
+        else:
+            message += "📄 **No existing concept files**\n"
+            message += "   → Will create: `drafts/concept_{topic}.md`\n"
+        
+        message += "\n**Output File:** `drafts/concept_{topic}.md`\n"
+        message += "\n**After Completion:** Use `validate_concept` to verify all required sections\n"
+        
+        return message
 
     @mcp.prompt(name="strategy", description="Configure search strategy")
     def mdpaper_strategy(keywords: str) -> str:
@@ -45,10 +154,14 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
         # [MANDATORY] Find concept files - innovation and discussion depend on this!
         drafts_dir = "drafts"
         concept_files = []
+        novelty_files = []
         if os.path.exists(drafts_dir):
             for f in os.listdir(drafts_dir):
-                if f.endswith('.md') and 'concept' in f.lower():
-                    concept_files.append(f)
+                if f.endswith('.md'):
+                    if 'concept' in f.lower():
+                        concept_files.append(f)
+                    if 'novelty' in f.lower():
+                        novelty_files.append(f)
         
         message = f"Help me write the {section} section of my paper.\n\n"
         
@@ -70,6 +183,20 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
             message += "  - Literature gaps being addressed\n"
             message += "  - Expected contributions\n"
             message += "\nWithout this, the paper will lack originality and meaningful discussion!\n"
+            
+            # Add protection reminder for structured concepts
+            message += "\n" + "-" * 60 + "\n"
+            message += "🔒 **PROTECTED CONTENT WARNING**\n"
+            message += "-" * 60 + "\n"
+            message += "If the concept file contains `🔒` markers, those sections are PROTECTED:\n"
+            message += "- `🔒 NOVELTY STATEMENT` - Core innovation, must preserve in Introduction/Discussion\n"
+            message += "- `🔒 KEY SELLING POINTS` - Must highlight throughout the paper\n"
+            message += "- `🔒 Author Notes` - Do not include in paper, for reference only\n\n"
+            message += "**Rules for Protected Content:**\n"
+            message += "1. ✅ You MUST incorporate protected content into the paper\n"
+            message += "2. ✅ You CAN refine wording for academic style\n"
+            message += "3. ⛔ You MUST ASK before making substantial changes\n"
+            message += "4. ⛔ NEVER delete or weaken protected selling points\n"
         else:
             message += "❌ **NO CONCEPT FILE FOUND!**\n\n"
             message += "🚨 **ACTION REQUIRED:**\n"
@@ -79,6 +206,13 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
             message += "  3. The concept file should be named with 'concept' in the filename\n"
             message += "     (e.g., 'concept_study_topic.md')\n\n"
             message += "⛔ **DO NOT proceed with writing until a concept file exists!**\n"
+        
+        # Show novelty analysis if exists
+        if novelty_files:
+            message += "\n📊 **Novelty Analysis Available:**\n"
+            for nf in novelty_files:
+                message += f"  - drafts/{nf}\n"
+            message += "  (Contains literature gaps and innovation rationale)\n"
         
         message += "\n" + "-" * 60 + "\n"
         
@@ -96,11 +230,12 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
             message += "None (use `search_literature` and `save_reference` first)\n"
         
         message += "\n**Writing Workflow:**\n"
-        message += "1. 📖 Read concept file (MANDATORY)\n"
+        message += "1. 📖 Read concept file (MANDATORY) - Note 🔒 protected sections\n"
         message += "2. 📚 Review saved references\n"
         message += "3. 📝 Get section template with `get_section_template`\n"
         message += "4. ✍️  Write section with `write_draft` or `draft_section`\n"
         message += "5. 🔢 Check word count with `count_words`\n"
+        message += "6. ✅ Verify protected content is preserved\n"
         
         return message
 

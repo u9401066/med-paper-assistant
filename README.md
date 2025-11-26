@@ -79,7 +79,7 @@ After setup completes:
 
 In VS Code's Copilot Chat panel:
 1. Type `/mcp` and press Enter
-2. You should see `mdpaper (32 tools)` in the list
+2. You should see `mdpaper (33 tools)` in the list
 3. If you see this, the installation was successful! 🎉
 
 #### Manual Installation (If Setup Script Fails)
@@ -313,21 +313,22 @@ Output: `results/your_paper.docx`
 | └ `metadata.json` | Citation info, formatted references |
 | └ `content.md` | Abstract and notes |
 | └ `fulltext.pdf` | PDF (if available from PMC) |
-| `templates/` | Journal Word templates |
+| `templates/` | Journal Word templates (`.docx` for export) |
 | `src/med_paper_assistant/core/` | Core logic modules |
 | `src/med_paper_assistant/mcp_server/` | MCP server implementation |
+| └ `templates/` | Internal templates for Agent guidance (`.md`) |
 | `tests/` | Test suite |
 | `.memory/` | Project context files |
 
 ---
 
-### 🛠️ Available Tools (32 Total)
+### 🛠️ Available Tools (33 Total)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
 | **Search** (5) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy` | Literature discovery |
 | **Reference** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | Reference management |
-| **Writing** (7) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words` | Manuscript preparation |
+| **Writing** (8) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept` | Manuscript preparation |
 | **Analysis** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | Data analysis |
 | **Export** (8) | `read_template`, `list_templates`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | Document export |
 
@@ -441,7 +442,7 @@ chmod +x scripts/setup.sh
 
 在 VS Code 的 Copilot Chat 面板中：
 1. 輸入 `/mcp` 並按 Enter
-2. 您應該會看到列表中有 `mdpaper (32 tools)`
+2. 您應該會看到列表中有 `mdpaper (33 tools)`
 3. 如果看到這個，表示安裝成功！🎉
 
 #### 手動安裝（如果腳本失敗）
@@ -681,21 +682,22 @@ flowchart LR
 | └ `metadata.json` | 引用資訊、格式化的參考文獻 |
 | └ `content.md` | 摘要與筆記 |
 | └ `fulltext.pdf` | PDF（若可從 PMC 取得） |
-| `templates/` | 期刊 Word 範本 |
+| `templates/` | 期刊 Word 範本（`.docx` 用於匯出） |
 | `src/med_paper_assistant/core/` | 核心邏輯模組 |
 | `src/med_paper_assistant/mcp_server/` | MCP 伺服器實作 |
+| └ `templates/` | Agent 引導用內部範本（`.md`） |
 | `tests/` | 測試套件 |
 | `.memory/` | 專案脈絡檔案 |
 
 ---
 
-### 🛠️ 可用工具（共 32 個）
+### 🛠️ 可用工具（共 33 個）
 
 | 類別 | 工具 | 說明 |
 |------|------|------|
 | **搜尋** (5) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy` | 文獻探索 |
 | **參考文獻** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | 參考文獻管理 |
-| **寫作** (7) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words` | 草稿準備 |
+| **寫作** (8) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept` | 草稿準備 |
 | **分析** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | 數據分析 |
 | **匯出** (8) | `read_template`, `list_templates`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | 文件匯出 |
 

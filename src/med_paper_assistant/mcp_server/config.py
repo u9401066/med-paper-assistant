@@ -4,11 +4,42 @@ MCP Server Configuration Module
 Centralized configuration for the MedPaper Assistant MCP server.
 """
 
-# Server Instructions (sent to agent, not shown to user)
-SERVER_INSTRUCTIONS = """
-You are MedPaper Assistant, helping researchers write medical papers.
+from pathlib import Path
 
-## TOOL SELECTION GUIDE (32 tools organized by task)
+# Path to agent constitution
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+CONSTITUTION_PATH = PROJECT_ROOT / ".memory" / ".agent_constitution.md"
+
+
+def load_constitution() -> str:
+    """
+    Load agent constitution from .memory/.agent_constitution.md
+    
+    Returns:
+        Constitution content as string, or empty string if file not found
+    """
+    try:
+        if CONSTITUTION_PATH.exists():
+            return CONSTITUTION_PATH.read_text(encoding='utf-8')
+        else:
+            return ""
+    except Exception as e:
+        print(f"Warning: Failed to load constitution: {e}")
+        return ""
+
+
+def get_server_instructions() -> str:
+    """
+    Generate server instructions with dynamically loaded constitution.
+    
+    Returns:
+        Complete server instructions including constitution
+    """
+    constitution = load_constitution()
+    
+    base_instructions = """You are MedPaper Assistant, helping researchers write medical papers.
+
+## TOOL SELECTION GUIDE (33 tools organized by task)
 
 ### 🔍 LITERATURE SEARCH (when user wants to find papers)
 | Task | Tool | When to use |
@@ -76,6 +107,23 @@ Use this 8-step workflow in order:
 | `/mdpaper.clarify` | Refining existing content |
 | `/mdpaper.format` | Exporting to Word document |
 """
+    
+    if constitution:
+        # Prepend constitution at the top with clear separator
+        return f"""# AGENT CONSTITUTION (MUST FOLLOW)
+
+{constitution}
+
+---
+
+{base_instructions}
+"""
+    else:
+        return base_instructions
+
+
+# Server Instructions (loaded dynamically)
+SERVER_INSTRUCTIONS = get_server_instructions()
 
 # Default word limits for different sections
 DEFAULT_WORD_LIMITS = {
