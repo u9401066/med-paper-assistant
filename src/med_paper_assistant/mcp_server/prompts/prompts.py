@@ -11,6 +11,7 @@ DESIGN PRINCIPLE:
 import os
 from pathlib import Path
 from mcp.server.fastmcp import FastMCP
+from mcp.types import PromptReference, Completion
 
 from med_paper_assistant.core.template_reader import TemplateReader
 from med_paper_assistant.core.project_manager import get_project_manager
@@ -18,6 +19,52 @@ from med_paper_assistant.core.project_manager import get_project_manager
 
 def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
     """Register all prompts with the MCP server."""
+    
+    # ========================================
+    # Completion Handler for prompt arguments
+    # ========================================
+    @mcp.completion()
+    async def handle_completion(ref, argument, context):
+        """
+        Provide autocomplete suggestions for prompt arguments.
+        
+        This enables IDE-like completion when users type prompt arguments.
+        For example, when using /mdpaper.project, suggest existing project names.
+        """
+        pm = get_project_manager()
+        
+        # Handle prompt completions
+        if isinstance(ref, PromptReference):
+            prompt_name = ref.name
+            arg_name = argument.name
+            partial_value = argument.value or ""
+            
+            # /mdpaper.project - suggest existing projects
+            if prompt_name == "project" and arg_name == "project_name":
+                projects = pm.list_projects().get("projects", [])
+                suggestions = []
+                for p in projects:
+                    slug = p.get("slug", "")
+                    name = p.get("name", "")
+                    # Filter by partial match
+                    if partial_value.lower() in slug.lower() or partial_value.lower() in name.lower():
+                        suggestions.append(slug)
+                return Completion(
+                    values=suggestions[:10],  # Max 10 suggestions
+                    total=len(suggestions),
+                    hasMore=len(suggestions) > 10
+                )
+            
+            # /mdpaper.draft - suggest sections
+            if prompt_name == "draft" and arg_name == "section":
+                sections = ["Introduction", "Methods", "Results", "Discussion", "Abstract", "Conclusion", "all"]
+                suggestions = [s for s in sections if partial_value.lower() in s.lower()]
+                return Completion(values=suggestions)
+            
+            # /mdpaper.concept - no completion needed for topic (free text)
+            # /mdpaper.strategy - no completion needed for keywords (free text)
+        
+        return None
     
     # ========================================
     # /mdpaper.project - Configure project
