@@ -23,6 +23,7 @@ class ProjectManager:
     Each project has:
     - project.json: metadata and settings
     - concept.md: research concept
+    - .memory/: project-specific AI memory (activeContext.md, progress.md)
     - drafts/: paper drafts
     - references/: saved references (by PMID)
     - data/: analysis data files
@@ -30,10 +31,56 @@ class ProjectManager:
     """
     
     # Subdirectories for each project
-    PROJECT_DIRS = ["drafts", "references", "data", "results"]
+    PROJECT_DIRS = ["drafts", "references", "data", "results", ".memory"]
     
     # Current project state file
     STATE_FILE = ".current_project"
+    
+    # Paper types and their characteristics
+    PAPER_TYPES = {
+        "original-research": {
+            "name": "Original Research",
+            "description": "Clinical trial, cohort study, cross-sectional study",
+            "sections": ["Introduction", "Methods", "Results", "Discussion", "Conclusion"],
+            "typical_words": 3000
+        },
+        "systematic-review": {
+            "name": "Systematic Review",
+            "description": "Systematic literature review without meta-analysis",
+            "sections": ["Introduction", "Methods", "Results", "Discussion", "Conclusion"],
+            "typical_words": 4000
+        },
+        "meta-analysis": {
+            "name": "Meta-Analysis",
+            "description": "Systematic review with quantitative synthesis",
+            "sections": ["Introduction", "Methods", "Results", "Discussion", "Conclusion"],
+            "typical_words": 4500
+        },
+        "case-report": {
+            "name": "Case Report",
+            "description": "Single case or case series",
+            "sections": ["Introduction", "Case Presentation", "Discussion", "Conclusion"],
+            "typical_words": 1500
+        },
+        "review-article": {
+            "name": "Review Article",
+            "description": "Narrative review or invited review",
+            "sections": ["Introduction", "Body (multiple sections)", "Conclusion"],
+            "typical_words": 5000
+        },
+        "letter": {
+            "name": "Letter / Correspondence",
+            "description": "Brief communication or commentary",
+            "sections": ["Main Text"],
+            "typical_words": 500
+        },
+        "other": {
+            "name": "Other",
+            "description": "Editorial, perspective, methodology paper, etc.",
+            "sections": ["Varies"],
+            "typical_words": 2000
+        }
+    }
     
     def __init__(self, base_path: str = "."):
         """
@@ -68,7 +115,10 @@ class ProjectManager:
         name: str, 
         description: str = "",
         authors: Optional[List[str]] = None,
-        target_journal: str = ""
+        target_journal: str = "",
+        paper_type: str = "",
+        interaction_preferences: Optional[Dict[str, Any]] = None,
+        memo: str = ""
     ) -> Dict[str, Any]:
         """
         Create a new research paper project.
@@ -78,6 +128,9 @@ class ProjectManager:
             description: Brief description of the research.
             authors: List of author names.
             target_journal: Target journal for submission.
+            paper_type: Type of paper (original-research, meta-analysis, etc.)
+            interaction_preferences: User preferences for AI interaction.
+            memo: Additional notes and reminders.
             
         Returns:
             Project info dictionary.
@@ -92,6 +145,13 @@ class ProjectManager:
                 "slug": slug
             }
         
+        # Validate paper type
+        if paper_type and paper_type not in self.PAPER_TYPES:
+            return {
+                "success": False,
+                "error": f"Invalid paper type '{paper_type}'. Valid types: {list(self.PAPER_TYPES.keys())}"
+            }
+        
         # Create project directory structure
         project_path.mkdir(parents=True)
         for subdir in self.PROJECT_DIRS:
@@ -104,6 +164,10 @@ class ProjectManager:
             "description": description,
             "authors": authors or [],
             "target_journal": target_journal,
+            "paper_type": paper_type,
+            "paper_type_info": self.PAPER_TYPES.get(paper_type, {}) if paper_type else {},
+            "interaction_preferences": interaction_preferences or {},
+            "memo": memo,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
             "status": "concept"  # concept → drafting → review → submitted
@@ -113,11 +177,14 @@ class ProjectManager:
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(project_config, f, indent=2, ensure_ascii=False)
         
-        # Create empty concept.md with template
-        concept_template = self._get_concept_template(name)
+        # Create concept.md with type-specific template
+        concept_template = self._get_concept_template(name, paper_type)
         concept_path = project_path / "concept.md"
         with open(concept_path, 'w', encoding='utf-8') as f:
             f.write(concept_template)
+        
+        # Create project memory files
+        self._create_project_memory(project_path, name, paper_type, interaction_preferences or {}, memo)
         
         # Set as current project
         self._save_current_project(slug)
@@ -129,6 +196,7 @@ class ProjectManager:
             "path": str(project_path),
             "structure": {
                 "concept": str(concept_path),
+                "memory": str(project_path / ".memory"),
                 "drafts": str(project_path / "drafts"),
                 "references": str(project_path / "references"),
                 "data": str(project_path / "data"),
@@ -136,9 +204,19 @@ class ProjectManager:
             }
         }
     
-    def _get_concept_template(self, project_name: str) -> str:
-        """Get concept template with project name filled in."""
-        return f"""# Research Concept: {project_name}
+    def _get_concept_template(self, project_name: str, paper_type: str = "") -> str:
+        """Get concept template based on paper type."""
+        type_info = self.PAPER_TYPES.get(paper_type, {})
+        type_name = type_info.get("name", "Research Paper")
+        sections = type_info.get("sections", ["Introduction", "Methods", "Results", "Discussion"])
+        
+        # Base template header
+        template = f"""# Research Concept: {project_name}
+
+**Paper Type:** {type_name}
+**Created:** {datetime.now().strftime('%Y-%m-%d')}
+
+---
 
 ## 🔒 NOVELTY STATEMENT
 <!-- Protected: Agent must ask before modifying -->
@@ -152,7 +230,168 @@ class ProjectManager:
 2. 
 3. 
 
-## 📝 Background
+"""
+        # Paper-type specific sections
+        if paper_type == "meta-analysis":
+            template += """## 📝 Background
+
+[Rationale for this meta-analysis]
+
+## 📝 Research Question (PICO)
+
+- **P**opulation: 
+- **I**ntervention: 
+- **C**omparison: 
+- **O**utcome: 
+
+## 📝 Eligibility Criteria
+
+### Inclusion Criteria
+- 
+
+### Exclusion Criteria
+- 
+
+## 📝 Search Strategy
+
+**Databases:** PubMed, Embase, Cochrane Library, ...
+
+**Search Terms:**
+- 
+
+## 📝 Data Extraction Plan
+
+[Variables to extract]
+
+## 📝 Risk of Bias Assessment
+
+[Tool to use: RoB 2, ROBINS-I, NOS, etc.]
+
+## 📝 Statistical Analysis Plan
+
+- Effect measure: OR / RR / MD / SMD
+- Heterogeneity: I², Q statistic
+- Subgroup analyses:
+- Sensitivity analyses:
+
+## 📝 Expected Outcomes
+
+[Expected findings and impact]
+
+## 📝 PROSPERO Registration
+
+[Registration number if applicable]
+
+"""
+        elif paper_type == "systematic-review":
+            template += """## 📝 Background
+
+[Rationale for this systematic review]
+
+## 📝 Research Question
+
+[Primary question this review addresses]
+
+## 📝 Eligibility Criteria
+
+### Inclusion Criteria
+- 
+
+### Exclusion Criteria
+- 
+
+## 📝 Search Strategy
+
+**Databases:** PubMed, Embase, Cochrane Library, ...
+
+**Search Terms:**
+- 
+
+## 📝 Study Selection Process
+
+[Screening process, number of reviewers]
+
+## 📝 Data Extraction
+
+[Variables to extract]
+
+## 📝 Quality Assessment
+
+[Tool: GRADE, CASP, etc.]
+
+## 📝 Synthesis Method
+
+[Narrative synthesis approach]
+
+## 📝 Expected Outcomes
+
+[Expected findings]
+
+"""
+        elif paper_type == "case-report":
+            template += """## 📝 Background
+
+[Why this case is worth reporting]
+
+## 📝 Case Summary
+
+**Patient:** [Age, sex, relevant demographics]
+**Chief Complaint:** 
+**History:**
+**Examination:**
+**Investigations:**
+**Diagnosis:**
+**Treatment:**
+**Outcome:**
+
+## 📝 Discussion Points
+
+1. What makes this case unique?
+2. What can other clinicians learn?
+3. Relevant literature to cite
+
+## 📝 Educational Messages
+
+- 
+
+## 📝 Patient Consent
+
+[Consent status for publication]
+
+"""
+        elif paper_type == "review-article":
+            template += """## 📝 Background
+
+[Topic overview and importance]
+
+## 📝 Scope of Review
+
+[What will and won't be covered]
+
+## 📝 Main Sections
+
+1. [Section 1 topic]
+2. [Section 2 topic]
+3. [Section 3 topic]
+4. [Section 4 topic]
+
+## 📝 Key Messages
+
+1. 
+2. 
+3. 
+
+## 📝 Search Strategy
+
+[How literature was identified]
+
+## 📝 Future Directions
+
+[What remains to be studied]
+
+"""
+        else:  # original-research or other
+            template += """## 📝 Background
 
 [Research background and context]
 
@@ -165,23 +404,239 @@ class ProjectManager:
 
 ## 📝 Research Question / Hypothesis
 
-[Primary research question]
+**Primary:** 
+**Secondary:** 
+
+## 📝 Study Design
+
+[Type of study: RCT, cohort, cross-sectional, etc.]
 
 ## 📝 Methods Overview
 
-[Brief methods description]
+### Participants
+- Inclusion criteria:
+- Exclusion criteria:
+- Sample size:
+
+### Intervention / Exposure
+- 
+
+### Outcomes
+- Primary:
+- Secondary:
+
+### Statistical Analysis
+- 
 
 ## 📝 Expected Outcomes
 
 [Expected results and impact]
 
-## 📝 Target Journal
+## 📝 Ethical Considerations
+
+[IRB approval, consent, etc.]
+
+"""
+        
+        template += """## 📝 Target Journal
 
 [Target journal and rationale]
+
+## 🔒 Author Notes
+<!-- Private notes, do not include in paper -->
+
+[Personal reminders and notes]
+
+---
+"""
+        return template
+    
+    def _create_project_memory(
+        self, 
+        project_path: Path, 
+        project_name: str,
+        paper_type: str = "",
+        interaction_preferences: Dict[str, Any] = None,
+        memo: str = ""
+    ) -> None:
+        """Create project-specific memory files."""
+        memory_dir = project_path / ".memory"
+        prefs = interaction_preferences or {}
+        type_info = self.PAPER_TYPES.get(paper_type, {})
+        
+        # activeContext.md - Current research focus
+        active_context = f"""# Active Context: {project_name}
+
+## Project Settings
+
+| Setting | Value |
+|---------|-------|
+| **Paper Type** | {type_info.get('name', 'Not specified')} |
+| **Typical Words** | {type_info.get('typical_words', 'N/A')} |
+| **Sections** | {', '.join(type_info.get('sections', []))} |
+| **Target Journal** | [To be determined] |
+
+## User Preferences
+
+### Interaction Style
+{prefs.get('interaction_style', '- [Not specified - ask user how they prefer to interact]')}
+
+### Language Preferences
+{prefs.get('language', '- [Not specified]')}
+
+### Writing Style Notes
+{prefs.get('writing_style', '- [Not specified]')}
+
+## Current Focus
+- [What you're currently working on]
+
+## Recent Decisions
+- [Important decisions made]
+
+## Key References
+- [Important papers to cite]
+
+## Blockers / Questions
+- [Issues to resolve]
+
+## Memo / Notes
+{memo if memo else '[No memo yet]'}
+
+---
+*Last Updated: {datetime.now().strftime('%Y-%m-%d')}*
+"""
+        with open(memory_dir / "activeContext.md", 'w', encoding='utf-8') as f:
+            f.write(active_context)
+        
+        # progress.md - Research milestones (varies by paper type)
+        if paper_type == "meta-analysis":
+            progress = f"""# Research Progress: {project_name}
+
+**Paper Type:** Meta-Analysis
+
+## Milestones
+
+- **Protocol Development** (IN PROGRESS):
+  - [ ] Define PICO question
+  - [ ] Register on PROSPERO
+  - [ ] Develop search strategy
+  - [ ] Define eligibility criteria
+
+- **Literature Search** (NOT STARTED):
+  - [ ] Search all databases
+  - [ ] Remove duplicates
+  - [ ] Title/abstract screening
+  - [ ] Full-text screening
+  - [ ] Create PRISMA flowchart
+
+- **Data Extraction** (NOT STARTED):
+  - [ ] Create extraction form
+  - [ ] Extract data from included studies
+  - [ ] Verify extraction accuracy
+
+- **Risk of Bias Assessment** (NOT STARTED):
+  - [ ] Assess each study
+  - [ ] Create summary table
+  - [ ] Generate risk of bias plots
+
+- **Statistical Analysis** (NOT STARTED):
+  - [ ] Calculate effect sizes
+  - [ ] Pool results (forest plot)
+  - [ ] Assess heterogeneity
+  - [ ] Subgroup analyses
+  - [ ] Sensitivity analyses
+  - [ ] Publication bias (funnel plot)
+
+- **Writing** (NOT STARTED):
+  - [ ] Draft Introduction
+  - [ ] Draft Methods
+  - [ ] Draft Results (with figures/tables)
+  - [ ] Draft Discussion
+  - [ ] Write Abstract
+  - [ ] Prepare PRISMA checklist
+
+- **Submission** (NOT STARTED):
+  - [ ] Format for target journal
+  - [ ] Co-author review
+  - [ ] Submit manuscript
 
 ---
 *Created: {datetime.now().strftime('%Y-%m-%d')}*
 """
+        elif paper_type == "case-report":
+            progress = f"""# Research Progress: {project_name}
+
+**Paper Type:** Case Report
+
+## Milestones
+
+- **Case Documentation** (IN PROGRESS):
+  - [ ] Collect patient information
+  - [ ] Obtain patient consent
+  - [ ] Document timeline of events
+  - [ ] Gather images/investigations
+
+- **Literature Review** (NOT STARTED):
+  - [ ] Search for similar cases
+  - [ ] Identify what makes this unique
+  - [ ] Find relevant background literature
+
+- **Writing** (NOT STARTED):
+  - [ ] Draft Introduction
+  - [ ] Write Case Presentation
+  - [ ] Draft Discussion
+  - [ ] Write Conclusion
+  - [ ] Prepare teaching points
+
+- **Submission** (NOT STARTED):
+  - [ ] Format for target journal
+  - [ ] Prepare figures
+  - [ ] Co-author review
+  - [ ] Submit manuscript
+
+---
+*Created: {datetime.now().strftime('%Y-%m-%d')}*
+"""
+        else:  # original-research, review-article, or other
+            progress = f"""# Research Progress: {project_name}
+
+**Paper Type:** {type_info.get('name', 'Research Paper')}
+
+## Milestones
+
+- **Concept Development** (IN PROGRESS):
+  - [ ] Define research question
+  - [ ] Literature review
+  - [ ] Identify research gap
+  - [ ] Define methodology
+
+- **Data Collection** (NOT STARTED):
+  - [ ] Prepare data collection tools
+  - [ ] Collect data
+  - [ ] Data cleaning
+
+- **Analysis** (NOT STARTED):
+  - [ ] Statistical analysis
+  - [ ] Generate figures/tables
+  - [ ] Interpret results
+
+- **Writing** (NOT STARTED):
+  - [ ] Draft Introduction
+  - [ ] Draft Methods
+  - [ ] Draft Results
+  - [ ] Draft Discussion
+  - [ ] Write Abstract
+
+- **Submission** (NOT STARTED):
+  - [ ] Format for target journal
+  - [ ] Co-author review
+  - [ ] Submit manuscript
+
+---
+*Created: {datetime.now().strftime('%Y-%m-%d')}*
+"""
+        with open(memory_dir / "progress.md", 'w', encoding='utf-8') as f:
+            f.write(progress)
     
     def switch_project(self, slug: str) -> Dict[str, Any]:
         """
@@ -296,6 +751,7 @@ class ProjectManager:
         return {
             "root": str(project_path),
             "concept": str(project_path / "concept.md"),
+            "memory": str(project_path / ".memory"),
             "drafts": str(project_path / "drafts"),
             "references": str(project_path / "references"),
             "data": str(project_path / "data"),
@@ -391,6 +847,147 @@ class ProjectManager:
             "message": f"Project status updated to '{status}'",
             "slug": slug
         }
+    
+    def update_project_settings(
+        self,
+        slug: Optional[str] = None,
+        paper_type: Optional[str] = None,
+        target_journal: Optional[str] = None,
+        interaction_preferences: Optional[Dict[str, Any]] = None,
+        memo: Optional[str] = None,
+        authors: Optional[List[str]] = None,
+        description: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Update project settings.
+        
+        Args:
+            slug: Project slug. If None, uses current project.
+            paper_type: Type of paper.
+            target_journal: Target journal.
+            interaction_preferences: User preferences for AI interaction.
+            memo: Additional notes.
+            authors: Author list.
+            description: Project description.
+            
+        Returns:
+            Updated project info.
+        """
+        if slug is None:
+            slug = self.get_current_project()
+            if slug is None:
+                return {"success": False, "error": "No project selected"}
+        
+        project_path = self.projects_dir / slug
+        config_path = project_path / "project.json"
+        
+        if not config_path.exists():
+            return {"success": False, "error": f"Project '{slug}' not found"}
+        
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        # Validate paper type if provided
+        if paper_type is not None:
+            if paper_type not in self.PAPER_TYPES:
+                return {
+                    "success": False,
+                    "error": f"Invalid paper type '{paper_type}'. Valid types: {list(self.PAPER_TYPES.keys())}"
+                }
+            config["paper_type"] = paper_type
+            config["paper_type_info"] = self.PAPER_TYPES[paper_type]
+        
+        # Update other fields if provided
+        if target_journal is not None:
+            config["target_journal"] = target_journal
+        if interaction_preferences is not None:
+            # Merge with existing preferences
+            existing_prefs = config.get("interaction_preferences", {})
+            existing_prefs.update(interaction_preferences)
+            config["interaction_preferences"] = existing_prefs
+        if memo is not None:
+            config["memo"] = memo
+        if authors is not None:
+            config["authors"] = authors
+        if description is not None:
+            config["description"] = description
+        
+        config["updated_at"] = datetime.now().isoformat()
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        
+        # Also update memory files if interaction_preferences or memo changed
+        if interaction_preferences is not None or memo is not None:
+            self._update_project_memory(project_path, config)
+        
+        return {
+            "success": True,
+            "message": "Project settings updated successfully",
+            "slug": slug,
+            "updated_fields": [
+                k for k, v in {
+                    "paper_type": paper_type,
+                    "target_journal": target_journal,
+                    "interaction_preferences": interaction_preferences,
+                    "memo": memo,
+                    "authors": authors,
+                    "description": description
+                }.items() if v is not None
+            ]
+        }
+    
+    def _update_project_memory(self, project_path: Path, config: Dict[str, Any]) -> None:
+        """Update project memory files with new settings."""
+        memory_path = project_path / ".memory" / "activeContext.md"
+        if not memory_path.exists():
+            return
+        
+        prefs = config.get("interaction_preferences", {})
+        memo = config.get("memo", "")
+        type_info = config.get("paper_type_info", {})
+        
+        # Read existing content
+        content = memory_path.read_text(encoding='utf-8')
+        
+        # Update User Preferences section
+        new_prefs_section = f"""## User Preferences
+
+### Interaction Style
+{prefs.get('interaction_style', '- [Not specified]')}
+
+### Language Preferences
+{prefs.get('language', '- [Not specified]')}
+
+### Writing Style Notes
+{prefs.get('writing_style', '- [Not specified]')}"""
+
+        # Try to replace existing preferences section
+        import re
+        pattern = r'## User Preferences.*?(?=\n## |\Z)'
+        if re.search(pattern, content, re.DOTALL):
+            content = re.sub(pattern, new_prefs_section + '\n\n', content, flags=re.DOTALL)
+        
+        # Update memo section
+        new_memo_section = f"""## Memo / Notes
+{memo if memo else '[No memo yet]'}"""
+        
+        memo_pattern = r'## Memo / Notes.*?(?=\n---|\Z)'
+        if re.search(memo_pattern, content, re.DOTALL):
+            content = re.sub(memo_pattern, new_memo_section + '\n\n', content, flags=re.DOTALL)
+        
+        # Update timestamp
+        content = re.sub(
+            r'\*Last Updated:.*?\*',
+            f"*Last Updated: {datetime.now().strftime('%Y-%m-%d')}*",
+            content
+        )
+        
+        memory_path.write_text(content, encoding='utf-8')
+    
+    def get_paper_types(self) -> Dict[str, Dict[str, Any]]:
+        """Return available paper types and their info."""
+        return self.PAPER_TYPES
     
     def delete_project(self, slug: str, confirm: bool = False) -> Dict[str, Any]:
         """

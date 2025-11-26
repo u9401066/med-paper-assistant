@@ -137,6 +137,21 @@
     - get_project_paths: Get all project paths
   - **Project-Aware Prompts**: All prompts show current project status
   - **Migration**: Existing drafts/ and references/ moved to projects/nasotracheal-intubation-comparison/
-  - **Total Tools**: 39 (was 33)
+
+- **Project Configuration & Memory** (COMPLETED - 2025-11-26):
+  - **Goal**: Per-project settings, preferences, and AI memory
+  - **New Prompt**: `/mdpaper.project` - Guided project setup
+  - **Paper Types (7)**:
+    - original-research, systematic-review, meta-analysis
+    - case-report, review-article, letter, other
+  - **Type-specific Templates**: concept.md and progress.md vary by paper type
+  - **User Preferences**: interaction_style, language, writing_style stored in project
+  - **Project Memo**: Persistent notes for each project
+  - **New Tools (2)**:
+    - get_paper_types: List available paper types
+    - update_project_settings: Update paper type, preferences, memo
+  - **Project Memory**: Each project has `.memory/` with activeContext.md and progress.md
+  - **System Memory**: Root `.memory/` now development-only
+  - **Total Tools**: 41 (was 39)
 
 
