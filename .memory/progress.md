@@ -95,7 +95,7 @@
   - **Tool Count Fix**: Corrected from 33 to 32 across all documentation
   - **SERVER_INSTRUCTIONS**: Enhanced with tool selection guide and decision tree
 
-- **Concept Enhancement Design** (IN PROGRESS):
+- **Concept Enhancement Design** (COMPLETED):
   - **Goal**: Preserve novelty and selling points throughout paper writing
   - **Approaches Selected**:
     1. Structured Concept Template with 🔒/📝 markers
@@ -108,4 +108,31 @@
     - [x] Phase 3: Implement Integrated Concept Development (literature → gap confirmation → concept)
     - [x] Phase 4: Implement `validate_concept` tool
     - [x] Phase 5: Update Draft Prompt protection (🔒 markers)
-    - [ ] Phase 6: Test and Git commit
+    - [x] Phase 6: Test and Git commit
+
+- **Entrez Modular Refactoring** (COMPLETED):
+  - **Goal**: Refactor large search.py (~550 lines) into modular package
+  - **New Structure**:
+    ```
+    core/entrez/
+    ├── __init__.py     # Package exports (LiteratureSearcher, SearchStrategy)
+    ├── base.py         # EntrezBase class with configuration
+    ├── search.py       # SearchMixin (esearch, efetch, filter)
+    ├── pdf.py          # PDFMixin (PMC fulltext download)
+    ├── citation.py     # CitationMixin (elink - related, citing, references)
+    ├── batch.py        # BatchMixin (history server operations)
+    └── utils.py        # UtilsMixin (esummary, espell, egquery, einfo, ecitmatch)
+    ```
+  - **All 9 Entrez Utils Covered**:
+    - esearch: Article search
+    - efetch: Full article details
+    - elink: Citation network (related, citing, references)
+    - esummary: Quick metadata
+    - espell: Query spell checking
+    - egquery: Database counts (deprecated warning)
+    - einfo: Database info
+    - ecitmatch: Find by citation
+    - History Server: Batch operations with WebEnv/QueryKey
+  - **Backward Compatibility**: search.py now facade, imports from entrez/
+  - **Tests**: 18/18 passed after bug fix (ESummary author format)
+

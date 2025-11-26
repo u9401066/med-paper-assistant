@@ -11,6 +11,14 @@ med-paper-assistant/
 ├── src/
 │   └── med_paper_assistant/
 │       ├── core/                    # Core business logic
+│       │   ├── entrez/              # 🆕 Modular Entrez package
+│       │   │   ├── __init__.py      # Package exports
+│       │   │   ├── base.py          # EntrezBase class
+│       │   │   ├── search.py        # SearchMixin (esearch, efetch)
+│       │   │   ├── pdf.py           # PDFMixin (PMC fulltext)
+│       │   │   ├── citation.py      # CitationMixin (elink)
+│       │   │   ├── batch.py         # BatchMixin (history server)
+│       │   │   └── utils.py         # UtilsMixin (esummary, espell, etc.)
 │       │   ├── analyzer.py          # Data analysis and statistics
 │       │   ├── drafter.py           # Draft creation and citation formatting
 │       │   ├── exporter.py          # Legacy Word export
@@ -18,7 +26,7 @@ med-paper-assistant/
 │       │   ├── logger.py            # Logging configuration
 │       │   ├── prompts.py           # Section writing guidelines
 │       │   ├── reference_manager.py # Reference storage and retrieval
-│       │   ├── search.py            # PubMed literature search
+│       │   ├── search.py            # Backward-compatible facade → entrez/
 │       │   ├── strategy_manager.py  # Search strategy persistence
 │       │   ├── template_reader.py   # Word template analysis
 │       │   └── word_writer.py       # Precise Word document manipulation
@@ -34,9 +42,13 @@ med-paper-assistant/
 │       │   │   ├── analysis_tools.py    # Data analysis tools
 │       │   │   └── export_tools.py      # Word export tools
 │       │   │
-│       │   └── prompts/             # MCP prompt definitions
-│       │       ├── __init__.py
-│       │       └── prompts.py       # Guided workflow prompts
+│       │   ├── prompts/             # MCP prompt definitions
+│       │   │   ├── __init__.py
+│       │   │   └── prompts.py       # Guided workflow prompts
+│       │   │
+│       │   └── templates/           # Internal templates (concept)
+│       │       ├── concept_template.md
+│       │       └── README.md
 │       │
 │       └── templates/               # Document templates
 │           └── general_medical_journal.md
@@ -57,7 +69,8 @@ The core layer contains all business logic, independent of the MCP protocol:
 
 | Module | Responsibility |
 |--------|----------------|
-| `search.py` | PubMed API integration, search strategies |
+| `entrez/` | 🆕 Modular Entrez package with all 9 Entrez utilities |
+| `search.py` | Backward-compatible facade → entrez/ package |
 | `reference_manager.py` | Local reference storage, metadata management |
 | `drafter.py` | Draft file creation, citation formatting |
 | `analyzer.py` | CSV data analysis, statistics, Table 1 generation |
@@ -65,6 +78,27 @@ The core layer contains all business logic, independent of the MCP protocol:
 | `word_writer.py` | Precise Word document manipulation |
 | `formatter.py` | Document formatting utilities |
 | `strategy_manager.py` | Search strategy persistence |
+
+### Entrez Submodules (`core/entrez/`)
+
+The Entrez package encapsulates all PubMed API operations:
+
+| Module | Mixin Class | Entrez Utils | Methods |
+|--------|-------------|--------------|---------|
+| `base.py` | `EntrezBase` | - | Configuration (email, api_key) |
+| `search.py` | `SearchMixin` | esearch, efetch | search, fetch_details, filter_results |
+| `pdf.py` | `PDFMixin` | - | get_pmc_fulltext_url, download_pmc_pdf |
+| `citation.py` | `CitationMixin` | elink | get_related_articles, get_citing_articles, get_article_references |
+| `batch.py` | `BatchMixin` | history | search_with_history, fetch_batch_from_history |
+| `utils.py` | `UtilsMixin` | esummary, espell, egquery, einfo, ecitmatch | quick_fetch_summary, spell_check_query, validate_mesh_terms, find_by_citation, export_citations, get_database_info, get_database_counts |
+
+The `LiteratureSearcher` class uses multiple inheritance to combine all mixins:
+
+```python
+class LiteratureSearcher(SearchMixin, PDFMixin, CitationMixin, BatchMixin, UtilsMixin, EntrezBase):
+    """Unified interface for all Entrez operations."""
+    pass
+```
 
 ### 2. MCP Server Layer (`mcp_server/`)
 

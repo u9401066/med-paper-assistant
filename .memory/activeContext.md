@@ -7,17 +7,29 @@
 
 ## Architecture (Refactored + Enhanced)
 ```
-src/med_paper_assistant/mcp_server/
-├── server.py           # Entry point (~90 lines)
-├── config.py           # Configuration & constants
-├── tools/              # 33 tools in 5 modules
-│   ├── search.py       # Literature search (6 tools) +2
-│   ├── reference.py    # Reference management (8 tools) +4
-│   ├── draft.py        # Draft writing (5 tools)
-│   ├── analysis.py     # Data analysis (4 tools)
-│   └── export.py       # Word export (10 tools)
-└── prompts/
-    └── prompts.py      # 6 guided workflow prompts
+src/med_paper_assistant/
+├── core/
+│   ├── entrez/                 # 🆕 Modular Entrez package (refactored)
+│   │   ├── __init__.py         # Package exports
+│   │   ├── base.py             # EntrezBase with config
+│   │   ├── search.py           # SearchMixin (esearch, efetch)
+│   │   ├── pdf.py              # PDFMixin (PMC fulltext)
+│   │   ├── citation.py         # CitationMixin (elink)
+│   │   ├── batch.py            # BatchMixin (history server)
+│   │   └── utils.py            # UtilsMixin (esummary, espell, etc.)
+│   ├── search.py               # Backward-compatible facade → entrez/
+│   ├── drafter.py, analyzer.py, exporter.py, formatter.py, reference_manager.py
+├── mcp_server/
+│   ├── server.py               # Entry point (~90 lines)
+│   ├── config.py               # Configuration & constants
+│   ├── tools/                  # 33 tools in 5 modules
+│   │   ├── search.py           # Literature search (6 tools)
+│   │   ├── reference.py        # Reference management (8 tools)
+│   │   ├── draft.py            # Draft writing (8 tools)
+│   │   ├── analysis.py         # Data analysis (4 tools)
+│   │   └── export.py           # Word export (8 tools)
+│   └── prompts/
+│       └── prompts.py          # 6 guided workflow prompts
 ```
 
 ## MCP Prompts (6 total)
