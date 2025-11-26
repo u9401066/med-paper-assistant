@@ -73,5 +73,25 @@ med-paper-assistant/
 - `letter`: Brief communication
 - `other`: Editorial, perspective
 
+## 🔴 Known Issues / TODO
+
+### ✅ Prompt Design Issue (2025-11-26) - FIXED
+**Problem:** MCP prompts (`/mdpaper.*`) 目前會把所有 prompt 內容直接輸出到 Copilot 輸入欄位
+
+**Solution Applied:**
+- 所有 prompts 改為極簡的 `[AGENT INSTRUCTION]` 格式
+- Prompt 只包含 Agent 需要執行的步驟
+- Agent 收到指令後應該用自己的話開始對話
+- 字數從 1500-3000 減少到 300-900
+
+**Example:**
+```
+[AGENT INSTRUCTION] Configure project "my-project".
+1. Call get_paper_types(), ask user to select ONE
+2. Ask about interaction preferences
+3. Save with update_project_settings()
+Start by asking: "What type of paper are you writing?"
+```
+
 ---
 *Last Updated: 2025-11-26*
