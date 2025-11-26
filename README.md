@@ -354,20 +354,30 @@ Output: `results/your_paper.docx`
 
 The MCP server dynamically loads the Agent Constitution from `.memory/.agent_constitution.md`. This file defines the core behavior rules that Copilot must follow.
 
-**Default Constitution:**
+**Constitution Structure:**
+
+| Part | Content |
+|------|--------|
+| **Part 1: System Development** | Language rules, Memory Bank maintenance, Code quality, Privacy |
+| **Part 2: Research Operations** | Concept workflow, Protected content rules, Draft writing rules |
+
+**Key Rules for Protected Content (🔒):**
+
 ```markdown
-# Agent Constitution
+## 2.2 🔒 Protected Content Rules
 
-## Core Directives
-1. **Language**: Communicate in Traditional Chinese (繁體中文)
-2. **Memory Bank Maintenance**: Read/update Memory files at task start/end
-3. **Code Quality**: Write clean, documented, efficient code
-4. **User Privacy**: Do not store sensitive information
+| Section | Description | Rule |
+|---------|-------------|------|
+| 🔒 NOVELTY STATEMENT | Innovation declaration | Must ask before modifying |
+| 🔒 KEY SELLING POINTS | Core differentiators (3-5) | Must ask before modifying |
+| 🔒 Author Notes | Private notes | Do not modify |
 
-## Interaction Guidelines
-- Be helpful and proactive
-- Clarify ambiguous requests
-- Provide step-by-step explanations
+Modification Rules:
+✅ Can refine wording
+✅ Can improve academic expression
+⛔ MUST ask user before substantial changes
+⛔ NEVER delete protected content
+⛔ NEVER weaken selling points
 ```
 
 **To customize:** Edit `.memory/.agent_constitution.md` and reload VS Code. The new rules will be automatically applied.
@@ -775,20 +785,30 @@ flowchart LR
 
 MCP 伺服器會動態載入 `.memory/.agent_constitution.md` 中的 Agent 憲法。此檔案定義 Copilot 必須遵循的核心行為規則。
 
-**預設憲法：**
+**憲法結構：**
+
+| 部分 | 內容 |
+|------|------|
+| **第一部分：系統開發** | 語言規則、Memory Bank 維護、程式碼品質、隱私 |
+| **第二部分：研究操作** | Concept 流程、受保護內容規則、Draft 撰寫規則 |
+
+**受保護內容規則 (🔒)：**
+
 ```markdown
-# Agent Constitution
+## 2.2 🔒 受保護內容規則
 
-## Core Directives
-1. **Language**: 使用繁體中文溝通
-2. **Memory Bank Maintenance**: 在任務開始/結束時讀取/更新 Memory 檔案
-3. **Code Quality**: 撰寫乾淨、有文件、高效的程式碼
-4. **User Privacy**: 不儲存敏感資訊
+| 區塊 | 說明 | 規則 |
+|------|------|------|
+| 🔒 NOVELTY STATEMENT | 研究創新性聲明 | 必須詢問才能修改 |
+| 🔒 KEY SELLING POINTS | 核心賣點（3-5點）| 必須詢問才能修改 |
+| 🔒 Author Notes | 作者私人備註 | 不可修改 |
 
-## Interaction Guidelines
-- 主動提供幫助
-- 澄清模糊的請求
-- 提供逐步說明
+修改規則：
+✅ 可以潤飾文字
+✅ 可以改善學術表達
+⛔ 實質修改前必須詢問用戶
+⛔ 絕不可刪除受保護內容
+⛔ 絕不可弱化核心賣點
 ```
 
 **自訂方式：** 編輯 `.memory/.agent_constitution.md` 並重新載入 VS Code，新規則將自動套用。
