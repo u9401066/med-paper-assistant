@@ -6,8 +6,9 @@ Each project has isolated drafts, references, data, and results.
 """
 
 from typing import Optional, List, Dict, Any
-from mcp.server.fastmcp import FastMCP, Context
-from mcp.server.elicitation import AcceptedElicitation, DeclinedElicitation, CancelledElicitation
+from mcp.server.fastmcp import FastMCP
+from fastmcp import Context
+from fastmcp.server.elicitation import AcceptedElicitation, DeclinedElicitation, CancelledElicitation
 
 from med_paper_assistant.core.project_manager import ProjectManager
 
