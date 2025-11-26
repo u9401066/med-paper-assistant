@@ -58,3 +58,9 @@ src/med_paper_assistant/mcp_server/
 - ✅ Rich metadata: DOI, PMC ID, MeSH terms, keywords, volume/issue/pages
 - ✅ Dependencies: Added `requests`, `pypdf` to pyproject.toml
 - ✅ Total tools: 33
+
+## Recent Changes (Agent Instructions Enhancement)
+- ✅ Expanded SERVER_INSTRUCTIONS with detailed tool selection guide
+- ✅ Added decision tree for quick tool selection
+- ✅ Organized 33 tools into 5 categories with usage tables
+- 🔜 **FUTURE**: Consider tool naming convention for grouping (ref_*, search_*, data_*, etc.)
