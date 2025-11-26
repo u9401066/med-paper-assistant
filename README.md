@@ -222,13 +222,10 @@ flowchart LR
 
 Before starting, organize your files:
 
-\`\`\`
-med-paper-assistant/
-├── data/
-│   └── your_data.csv        # Place your research data here
-├── templates/
-│   └── journal_template.docx # (Optional) Journal Word template
-\`\`\`
+| Directory | Purpose |
+|-----------|--------|
+| `data/` | Place your CSV research data here |
+| `templates/` | (Optional) Journal Word templates |
 
 #### Step 2: Develop Your Research Concept
 
@@ -306,26 +303,21 @@ Output: \`results/your_paper.docx\`
 
 ### 📂 Project Structure
 
-\`\`\`
-med-paper-assistant/
-├── data/                    # Raw data files (CSV)
-├── results/                 # Analysis outputs
-│   ├── figures/            # Generated plots
-│   └── tables/             # Generated tables
-├── drafts/                  # Markdown drafts
-├── references/              # Local reference library
-│   └── {PMID}/             # Each reference folder contains:
-│       ├── metadata.json   # Citation info, formatted references
-│       ├── content.md      # Abstract and notes
-│       └── fulltext.pdf    # PDF (if available from PMC)
-├── templates/               # Journal Word templates
-├── src/
-│   └── med_paper_assistant/
-│       ├── core/           # Core logic modules
-│       └── mcp_server/     # MCP server implementation
-├── tests/                   # Test suite
-└── .memory/                 # Project context files
-\`\`\`
+| Directory | Purpose |
+|-----------|--------|
+| `data/` | Raw data files (CSV) |
+| `results/figures/` | Generated plots |
+| `results/tables/` | Generated tables |
+| `drafts/` | Markdown drafts |
+| `references/{PMID}/` | Local reference library |
+| └ `metadata.json` | Citation info, formatted references |
+| └ `content.md` | Abstract and notes |
+| └ `fulltext.pdf` | PDF (if available from PMC) |
+| `templates/` | Journal Word templates |
+| `src/med_paper_assistant/core/` | Core logic modules |
+| `src/med_paper_assistant/mcp_server/` | MCP server implementation |
+| `tests/` | Test suite |
+| `.memory/` | Project context files |
 
 ---
 
@@ -598,13 +590,10 @@ flowchart LR
 
 開始之前，請整理您的檔案：
 
-\`\`\`
-med-paper-assistant/
-├── data/
-│   └── your_data.csv        # 將研究數據放在這裡
-├── templates/
-│   └── journal_template.docx # （選用）期刊 Word 範本
-\`\`\`
+| 目錄 | 用途 |
+|------|------|
+| `data/` | 將您的 CSV 研究數據放在這裡 |
+| `templates/` | （選用）期刊 Word 範本 |
 
 #### 步驟 2：發展研究構想
 
@@ -682,26 +671,21 @@ med-paper-assistant/
 
 ### 📂 專案結構
 
-\`\`\`
-med-paper-assistant/
-├── data/                    # 原始資料檔案（CSV）
-├── results/                 # 分析結果
-│   ├── figures/            # 生成的圖表
-│   └── tables/             # 生成的表格
-├── drafts/                  # Markdown 草稿
-├── references/              # 本地文獻庫
-│   └── {PMID}/             # 每個參考文獻資料夾包含：
-│       ├── metadata.json   # 引用資訊、格式化的參考文獻
-│       ├── content.md      # 摘要與筆記
-│       └── fulltext.pdf    # PDF（若可從 PMC 取得）
-├── templates/               # 期刊 Word 範本
-├── src/
-│   └── med_paper_assistant/
-│       ├── core/           # 核心邏輯模組
-│       └── mcp_server/     # MCP 伺服器實作
-├── tests/                   # 測試套件
-└── .memory/                 # 專案脈絡檔案
-\`\`\`
+| 目錄 | 用途 |
+|------|------|
+| `data/` | 原始資料檔案（CSV） |
+| `results/figures/` | 生成的圖表 |
+| `results/tables/` | 生成的表格 |
+| `drafts/` | Markdown 草稿 |
+| `references/{PMID}/` | 本地文獻庫 |
+| └ `metadata.json` | 引用資訊、格式化的參考文獻 |
+| └ `content.md` | 摘要與筆記 |
+| └ `fulltext.pdf` | PDF（若可從 PMC 取得） |
+| `templates/` | 期刊 Word 範本 |
+| `src/med_paper_assistant/core/` | 核心邏輯模組 |
+| `src/med_paper_assistant/mcp_server/` | MCP 伺服器實作 |
+| `tests/` | 測試套件 |
+| `.memory/` | 專案脈絡檔案 |
 
 ---
 
