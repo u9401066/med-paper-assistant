@@ -1,28 +1,43 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
-.DS_Store
+*.egg-info/
 build/
 dist/
-*.egg-info/
+
+# IDE
 .vscode/
 .idea/
+.DS_Store
+
+# Environment
 .env
 
-# Legacy directories (before multi-project support)
-references/
-test_references/
-drafts/
-test_drafts/
-data/
-results/
-test_data/
-test_results/
-
-# Multi-project structure
+# Project runtime data (inside projects/)
 projects/
+
+# Current project tracker
 .current_project
 
-logs/
-output/
-test_*/
+# Pytest cache
+.pytest_cache/
+
+# Test fixtures - keep in tests/ only
+tests/test_data/
+tests/test_drafts/
+tests/test_drafts_insert/
+tests/test_export/
+tests/test_formatter/
+tests/test_references/
+tests/test_references_draft/
+tests/test_references_insert/
+tests/test_results/
+
+# Legacy root directories (should not exist)
+/drafts/
+/references/
+/results/
+/data/
+/logs/
+/output/

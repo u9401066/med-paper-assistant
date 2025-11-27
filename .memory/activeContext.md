@@ -1,20 +1,20 @@
 # Active Context
 
 ## Current Work
-清理根目錄結構，移除與 projects/ 重複的目錄。
+整理專案目錄結構，確保測試資料只在 tests/ 內。
 
 ## Recently Completed
-- **目錄清理** (2025-11-27):
-  - 刪除根目錄的 `drafts/`, `references/`, `results/`
-  - 刪除空的 `data/` 和 `logs/`
-  - 這些目錄應該存在於 `projects/{project-slug}/` 內
+- **目錄結構整理** (2025-11-27):
+  - 確認所有 test_* 目錄都在 `tests/` 內
+  - 更新 `.gitignore` 明確指定規則
+  - 根目錄已清理乾淨
 
-## Current Directory Structure
+## Directory Structure
 ```
 med-paper-assistant/
-├── .memory/              # System memory (development only)
-├── projects/             # All research projects
-│   └── {project-slug}/
+├── .memory/              # System memory (dev only)
+├── projects/             # Research projects (gitignored)
+│   └── {slug}/
 │       ├── concept.md
 │       ├── drafts/
 │       ├── references/
@@ -22,12 +22,16 @@ med-paper-assistant/
 │       └── results/
 ├── src/                  # Source code
 ├── tests/                # Test suite
-├── test_*/               # Test fixtures (pytest)
+│   ├── test_*.py         # Test files
+│   ├── test_data/        # Test fixtures (gitignored)
+│   ├── test_drafts/
+│   ├── test_references/
+│   └── test_results/
 ├── templates/            # Word templates
 └── scripts/              # Setup scripts
 ```
 
-## Notes
-- 每個專案的檔案都應該在 `projects/{slug}/` 內
-- 根目錄不應有 drafts, references, results, data 等目錄
-- `test_*` 目錄是 pytest fixtures，保留供測試使用
+## .gitignore Rules
+- `projects/` - 使用者資料不進 git
+- `tests/test_*/` - 測試 fixtures 不進 git
+- `/drafts/`, `/references/` 等 - 禁止根目錄有這些資料夾
