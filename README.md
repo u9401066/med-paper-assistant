@@ -54,19 +54,32 @@ cd med-paper-assistant
 
 **Step 2: Run the Setup Script**
 
+**Linux/macOS:**
 \`\`\`bash
-# Make the script executable (Linux/Mac only)
+# Make the script executable
 chmod +x scripts/setup.sh
 
 # Run the setup script
 ./scripts/setup.sh
 \`\`\`
 
+**Windows (PowerShell - Recommended):**
+\`\`\`powershell
+# Run the PowerShell setup script
+.\scripts\setup.ps1
+\`\`\`
+
+**Windows (Command Prompt):**
+\`\`\`cmd
+# Run the batch setup script
+scripts\setup.bat
+\`\`\`
+
 This script will:
 1. ✅ Create a Python virtual environment (\`.venv/\`)
 2. ✅ Install all required dependencies
-3. ✅ Create the \`.vscode/mcp.json\` configuration file
-4. ✅ Set up the project directory structure
+3. ✅ Create the \`.vscode/mcp.json\` configuration file (with correct paths for your OS)
+4. ✅ Verify the installation
 
 **Step 3: Reload VS Code**
 
@@ -332,11 +345,12 @@ Output: `results/your_paper.docx`
 
 | Directory | Purpose |
 |-----------|--------|
-| `data/` | Raw data files (CSV) |
-| `results/figures/` | Generated plots |
-| `results/tables/` | Generated tables |
-| `drafts/` | Markdown drafts |
-| `references/{PMID}/` | Local reference library |
+| `projects/` | Research projects (isolated workspaces) |
+| `projects/{slug}/concept.md` | Research concept with protected sections |
+| `projects/{slug}/drafts/` | Markdown drafts |
+| `projects/{slug}/references/{PMID}/` | Local reference library |
+| `projects/{slug}/data/` | Raw data files (CSV) |
+| `projects/{slug}/results/` | Generated outputs (figures, tables, docx) |
 | └ `metadata.json` | Citation info, formatted references |
 | └ `content.md` | Abstract and notes |
 | └ `fulltext.pdf` | PDF (if available from PMC) |
@@ -384,7 +398,7 @@ Modification Rules:
 
 ---
 
-### 🛠️ Available Tools (33 Total)
+### 🛠️ Available Tools (42 Total)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
@@ -473,19 +487,32 @@ cd med-paper-assistant
 
 **步驟 2：執行安裝腳本**
 
+**Linux/macOS：**
 \`\`\`bash
-# 給予腳本執行權限（僅 Linux/Mac 需要）
+# 給予腳本執行權限
 chmod +x scripts/setup.sh
 
 # 執行安裝腳本
 ./scripts/setup.sh
 \`\`\`
 
+**Windows（PowerShell - 推薦）：**
+\`\`\`powershell
+# 執行 PowerShell 安裝腳本
+.\scripts\setup.ps1
+\`\`\`
+
+**Windows（命令提示字元）：**
+\`\`\`cmd
+# 執行批次安裝腳本
+scripts\setup.bat
+\`\`\`
+
 這個腳本會自動完成：
 1. ✅ 建立 Python 虛擬環境（\`.venv/\`）
 2. ✅ 安裝所有必要的套件
-3. ✅ 建立 \`.vscode/mcp.json\` 設定檔
-4. ✅ 設定專案目錄結構
+3. ✅ 建立 \`.vscode/mcp.json\` 設定檔（自動偵測作業系統）
+4. ✅ 驗證安裝
 
 > 💡 **什麼是虛擬環境？**
 > 虛擬環境是一個隔離的 Python 環境，讓這個專案的套件與系統的 Python 分開。這樣可以避免與其他專案產生衝突。
@@ -763,11 +790,12 @@ flowchart LR
 
 | 目錄 | 用途 |
 |------|------|
-| `data/` | 原始資料檔案（CSV） |
-| `results/figures/` | 生成的圖表 |
-| `results/tables/` | 生成的表格 |
-| `drafts/` | Markdown 草稿 |
-| `references/{PMID}/` | 本地文獻庫 |
+| `projects/` | 研究專案（獨立工作區）|
+| `projects/{slug}/concept.md` | 研究概念（含受保護區塊）|
+| `projects/{slug}/drafts/` | Markdown 草稿 |
+| `projects/{slug}/references/{PMID}/` | 本地文獻庫 |
+| `projects/{slug}/data/` | 原始資料檔案（CSV）|
+| `projects/{slug}/results/` | 生成的輸出（圖表、表格、docx）|
 | └ `metadata.json` | 引用資訊、格式化的參考文獻 |
 | └ `content.md` | 摘要與筆記 |
 | └ `fulltext.pdf` | PDF（若可從 PMC 取得） |
@@ -815,7 +843,7 @@ MCP 伺服器會動態載入 `.memory/.agent_constitution.md` 中的 Agent 憲�
 
 ---
 
-### 🛠️ 可用工具（共 33 個）
+### 🛠️ 可用工具（共 42 個）
 
 | 類別 | 工具 | 說明 |
 |------|------|------|

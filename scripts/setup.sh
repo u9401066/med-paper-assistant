@@ -39,11 +39,7 @@ cat > .vscode/mcp.json << EOF
 }
 EOF
 
-# 4. 創建必要目錄
-echo "📁 創建工作目錄..."
-mkdir -p data drafts results references
-
-# 5. 驗證安裝
+# 4. 驗證安裝
 echo "✅ 驗證安裝..."
 python -c "from med_paper_assistant.mcp_server.server import mcp; print(f'  MCP Server 載入成功: {len(mcp._tool_manager._tools)} 個工具, {len(mcp._prompt_manager._prompts)} 個 prompts')"
 
@@ -58,6 +54,7 @@ echo "  2. 輸入 'Developer: Reload Window'"
 echo "  3. 在 Copilot Chat 中輸入 / 即可看到 mdpaper 指令"
 echo ""
 echo "🔧 可用指令:"
+echo "  /mdpaper.project  - 設定研究專案"
 echo "  /mdpaper.concept  - 發展研究概念"
 echo "  /mdpaper.strategy - 配置搜尋策略"
 echo "  /mdpaper.draft    - 撰寫論文草稿"
