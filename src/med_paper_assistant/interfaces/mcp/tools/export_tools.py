@@ -17,9 +17,7 @@ import os
 import json
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.core.formatter import Formatter
-from med_paper_assistant.core.template_reader import TemplateReader
-from med_paper_assistant.core.word_writer import WordWriter
+from med_paper_assistant.infrastructure.services import Formatter, TemplateReader, WordWriter
 
 
 # Global state for document editing sessions

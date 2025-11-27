@@ -10,56 +10,23 @@ A comprehensive tool for medical research paper writing, providing:
 Architecture (DDD):
     domain/         - Core business logic and entities
     application/    - Use cases and application services
-    infrastructure/ - External services and persistence
-    interfaces/     - MCP server and other interfaces
+    infrastructure/ - External services, persistence, and services
+    interfaces/     - MCP server (interfaces/mcp/)
     shared/         - Shared constants and utilities
-    core/           - Legacy modules (being migrated)
-    mcp_server/     - Legacy MCP server (being migrated)
 """
 
 __version__ = "0.1.0"
 
-# Domain exports
-from med_paper_assistant.domain.entities import Project, Reference, Draft
-from med_paper_assistant.domain.value_objects import CitationStyle, CitationFormat
+# Interface exports (main entry point)
+from med_paper_assistant.interfaces.mcp import create_server, mcp
 
-# Application exports
-from med_paper_assistant.application import (
-    CreateProjectUseCase,
-    SearchLiteratureUseCase,
-    SaveReferenceUseCase,
-)
-
-# Infrastructure exports
-from med_paper_assistant.infrastructure import (
-    AppConfig,
-    ProjectRepository,
-    ReferenceRepository,
-    PubMedClient,
-)
-
-# Interface exports
-from med_paper_assistant.interfaces.mcp import create_server, run_server
+def run_server():
+    """Run the MCP server."""
+    mcp.run()
 
 __all__ = [
-    # Version
     "__version__",
-    # Domain
-    "Project",
-    "Reference",
-    "Draft",
-    "CitationStyle",
-    "CitationFormat",
-    # Application
-    "CreateProjectUseCase",
-    "SearchLiteratureUseCase",
-    "SaveReferenceUseCase",
-    # Infrastructure
-    "AppConfig",
-    "ProjectRepository",
-    "ReferenceRepository",
-    "PubMedClient",
-    # Interface
     "create_server",
+    "mcp",
     "run_server",
 ]

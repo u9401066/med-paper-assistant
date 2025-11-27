@@ -1,16 +1,15 @@
 import os
 import json
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
-from med_paper_assistant.core.search import LiteratureSearcher
 
 if TYPE_CHECKING:
-    from med_paper_assistant.core.project_manager import ProjectManager
+    from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 
 
 class ReferenceManager:
     def __init__(
         self, 
-        searcher: LiteratureSearcher, 
+        searcher,  # LiteratureSearcher or compatible interface
         base_dir: str = "references",
         project_manager: Optional["ProjectManager"] = None
     ):

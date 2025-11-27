@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.elicitation import AcceptedElicitation, DeclinedElicitation, CancelledElicitation
 
-from med_paper_assistant.core.project_manager import ProjectManager
+from med_paper_assistant.infrastructure.persistence import ProjectManager
 
 
 # ============================================

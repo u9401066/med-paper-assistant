@@ -13,7 +13,7 @@ Module Structure:
     utils.py        - Utility functions (spell check, MeSH, export)
 
 Usage:
-    from med_paper_assistant.core.entrez import LiteratureSearcher
+    from med_paper_assistant.infrastructure.external.entrez import LiteratureSearcher
     
     searcher = LiteratureSearcher(email="your@email.com")
     results = searcher.search("diabetes treatment", limit=10)

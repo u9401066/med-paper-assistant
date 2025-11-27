@@ -1,10 +1,10 @@
 import os
 import re
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
-from med_paper_assistant.core.reference_manager import ReferenceManager
+from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 
 if TYPE_CHECKING:
-    from med_paper_assistant.core.project_manager import ProjectManager
+    from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 
 from enum import Enum
 

@@ -6,8 +6,8 @@ Tools for reference management, citation formatting, and bibliography generation
 
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.core.reference_manager import ReferenceManager
-from med_paper_assistant.core.drafter import Drafter, CitationStyle, JOURNAL_CITATION_CONFIGS
+from med_paper_assistant.infrastructure.persistence import ReferenceManager
+from med_paper_assistant.infrastructure.services import Drafter, CitationStyle, JOURNAL_CITATION_CONFIGS
 
 
 def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter):

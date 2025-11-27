@@ -8,7 +8,7 @@ import os
 import re
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.core.drafter import Drafter
+from med_paper_assistant.infrastructure.services import Drafter
 
 
 def register_draft_tools(mcp: FastMCP, drafter: Drafter):
@@ -33,7 +33,7 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
         Args:
             section: "introduction", "methods", "results", "discussion", "abstract"
         """
-        from med_paper_assistant.core.prompts import SECTION_PROMPTS
+        from med_paper_assistant.infrastructure.services import SECTION_PROMPTS
         return SECTION_PROMPTS.get(
             section.lower(), 
             "Section not found. Available: " + ", ".join(SECTION_PROMPTS.keys())

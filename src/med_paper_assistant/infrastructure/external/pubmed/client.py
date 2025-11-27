@@ -107,8 +107,8 @@ class PubMedClient:
             email: Email address required by NCBI Entrez API.
             api_key: Optional NCBI API key for higher rate limits.
         """
-        # Lazy import to avoid dependency issues during DDD migration
-        from med_paper_assistant.core.entrez import LiteratureSearcher
+        # Import from infrastructure/external/entrez
+        from med_paper_assistant.infrastructure.external.entrez import LiteratureSearcher
         self._searcher = LiteratureSearcher(email=email, api_key=api_key)
     
     def search(

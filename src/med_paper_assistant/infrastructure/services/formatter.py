@@ -1,5 +1,5 @@
 import os
-from med_paper_assistant.core.exporter import WordExporter
+from med_paper_assistant.infrastructure.services.exporter import WordExporter
 
 class Formatter:
     def __init__(self):

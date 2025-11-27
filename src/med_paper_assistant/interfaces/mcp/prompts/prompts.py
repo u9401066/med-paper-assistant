@@ -13,8 +13,8 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 from mcp.types import PromptReference, Completion
 
-from med_paper_assistant.core.template_reader import TemplateReader
-from med_paper_assistant.core.project_manager import get_project_manager
+from med_paper_assistant.infrastructure.services import TemplateReader
+from med_paper_assistant.infrastructure.persistence import get_project_manager
 
 
 def register_prompts(mcp: FastMCP, template_reader: TemplateReader):

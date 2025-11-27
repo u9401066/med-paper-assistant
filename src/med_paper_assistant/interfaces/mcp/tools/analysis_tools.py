@@ -6,8 +6,8 @@ Tools for data analysis, statistical tests, Table 1 generation, and visualizatio
 
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.core.analyzer import Analyzer
-from med_paper_assistant.core.logger import setup_logger
+from med_paper_assistant.infrastructure.services import Analyzer
+from med_paper_assistant.infrastructure.logging import setup_logger
 
 logger = setup_logger()
 

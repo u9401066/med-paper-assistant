@@ -7,9 +7,9 @@ Tools for literature search, search strategy configuration, and result formattin
 import json
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.core.search import LiteratureSearcher, SearchStrategy
-from med_paper_assistant.core.strategy_manager import StrategyManager
-from med_paper_assistant.core.logger import setup_logger
+from med_paper_assistant.infrastructure.external.pubmed.client import SearchStrategy
+from med_paper_assistant.infrastructure.services import StrategyManager
+from med_paper_assistant.infrastructure.logging import setup_logger
 
 logger = setup_logger()
 
@@ -55,7 +55,7 @@ def format_search_results(results: list, include_doi: bool = True) -> str:
     return formatted_output
 
 
-def register_search_tools(mcp: FastMCP, searcher: LiteratureSearcher, strategy_manager: StrategyManager):
+def register_search_tools(mcp: FastMCP, searcher, strategy_manager: StrategyManager):
     """Register all search-related tools with the MCP server."""
     
     @mcp.tool()
