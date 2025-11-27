@@ -72,8 +72,17 @@ def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
         - data/ (analysis data files)
         - results/ (exported Word documents)
         
+        IMPORTANT: The 'name' parameter MUST be in English for proper slug generation.
+        If user provides a non-English name (e.g., Chinese, Japanese, Korean),
+        YOU (the Agent) must translate it to English before calling this tool.
+        
+        Examples:
+        - "死亡率預測" → "Mortality Prediction"
+        - "鼻腔氣管插管比較" → "Nasotracheal Intubation Comparison"
+        
         Args:
-            name: Human-readable project name (e.g., "Nasotracheal Intubation Comparison").
+            name: Project name in ENGLISH (e.g., "Mortality Prediction Study").
+                  Agent must translate non-English names before calling.
             description: Brief description of the research.
             target_journal: Target journal for submission (optional).
             paper_type: Type of paper. One of:
