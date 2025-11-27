@@ -1,32 +1,33 @@
 # Active Context
 
 ## Current Work
-MCP Server 模組重構完成。
+清理根目錄結構，移除與 projects/ 重複的目錄。
 
 ## Recently Completed
-- **MCP Server Refactoring** (2025-11-26):
-  - Split `config.py` → `config.py` + `instructions.py`
-  - Cleaned unused imports in tools modules
-  - Validated all 42 tools and 7 prompts working correctly
-  - Added `setup_project_interactive` with MCP Elicitation API
+- **目錄清理** (2025-11-27):
+  - 刪除根目錄的 `drafts/`, `references/`, `results/`
+  - 刪除空的 `data/` 和 `logs/`
+  - 這些目錄應該存在於 `projects/{project-slug}/` 內
 
-## Architecture Summary
+## Current Directory Structure
 ```
-mcp_server/
-├── config.py          # 49 lines - paths, settings, word limits
-├── instructions.py    # 112 lines - TOOL_GUIDE, get_server_instructions()
-├── server.py          # 108 lines - entry point
-├── tools/             # 1881 lines (6 modules)
-├── prompts/           # 143 lines (2 files)
-└── templates/         # Word/MDPI templates
+med-paper-assistant/
+├── .memory/              # System memory (development only)
+├── projects/             # All research projects
+│   └── {project-slug}/
+│       ├── concept.md
+│       ├── drafts/
+│       ├── references/
+│       ├── data/
+│       └── results/
+├── src/                  # Source code
+├── tests/                # Test suite
+├── test_*/               # Test fixtures (pytest)
+├── templates/            # Word templates
+└── scripts/              # Setup scripts
 ```
-
-## Key Patterns
-- **Elicitation**: Use `ctx.elicit()` with Pydantic models for user input
-- **Enum Dropdown**: Use `json_schema_extra={"enum": [...], "enumNames": [...]}` in Pydantic
-- **Server Instructions**: Constitution + TOOL_GUIDE combined via `get_server_instructions()`
 
 ## Notes
-- MCP SDK 1.22.0 uses `schema=` parameter for elicitation
-- fastmcp package (external) uses `response_type=` - different from mcp.server.fastmcp
-- All tools registered successfully (42 tools, 7 prompts)
+- 每個專案的檔案都應該在 `projects/{slug}/` 內
+- 根目錄不應有 drafts, references, results, data 等目錄
+- `test_*` 目錄是 pytest fixtures，保留供測試使用
