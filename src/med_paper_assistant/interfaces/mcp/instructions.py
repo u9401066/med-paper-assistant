@@ -5,7 +5,14 @@ Contains the tool selection guide and server instructions for the AI agent.
 Separated from config.py for better maintainability.
 """
 
-TOOL_GUIDE = """## TOOL SELECTION GUIDE (42 tools)
+TOOL_GUIDE = """## TOOL SELECTION GUIDE (43 tools)
+
+### ⚠️ MANDATORY VALIDATION RULE
+**Before writing ANY draft (except concept.md), you MUST:**
+1. Run `validate_concept(concept.md)`
+2. Ensure novelty score ≥ 75 in all 3 rounds
+3. If validation fails → STOP and ask user to fix concept first
+4. Never skip this step!
 
 ### 📁 PROJECT MANAGEMENT
 | Tool | When to use |
@@ -41,17 +48,18 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (42 tools)
 | `retry_pdf_download` | Retry failed PDF download |
 | `set_citation_style` | Set citation format |
 
-### ✍️ WRITING
+### ✍️ WRITING (⚠️ Requires concept validation first!)
 | Tool | When to use |
 |------|-------------|
-| `write_draft` | Create/update draft file |
+| `validate_concept` | **MANDATORY before drafting** - Full validation with novelty scoring |
+| `validate_concept_quick` | Quick structural check only |
+| `write_draft` | Create/update draft file (⚠️ blocked if concept invalid) |
 | `read_draft` | Read draft content |
 | `list_drafts` | List available drafts |
-| `draft_section` | Draft a specific section |
+| `draft_section` | Draft a specific section (⚠️ blocked if concept invalid) |
 | `insert_citation` | Add citation to text |
 | `count_words` | Count words in draft |
 | `get_section_template` | Get section guidelines |
-| `validate_concept` | Validate concept file |
 
 ### 📊 DATA ANALYSIS
 | Tool | When to use |
@@ -71,11 +79,18 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (42 tools)
 7. `check_word_limits` → Verify limits
 8. `save_document` → Export final file
 
+## 🔒 PROTECTED CONTENT RULES
+| Section | Must appear in | Rule |
+|---------|---------------|------|
+| 🔒 NOVELTY STATEMENT | Introduction | Cannot weaken or remove |
+| 🔒 KEY SELLING POINTS | Discussion | Must emphasize all points |
+| 🔒 Author Notes | Never exported | Do not include in drafts |
+
 ## QUICK DECISION TREE
 - "search/find papers" → `search_literature`
 - "save this paper" → `save_reference`
 - "my saved papers" → `list_saved_references`
-- "write/draft" → `write_draft`
+- "write/draft" → **`validate_concept` first!** → `write_draft`
 - "analyze data" → `analyze_dataset`
 - "export to Word" → Use export workflow
 - "Table 1" → `generate_table_one`
@@ -87,7 +102,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (42 tools)
 | `/mdpaper.project` | Setup/configure project |
 | `/mdpaper.concept` | Develop research concept |
 | `/mdpaper.strategy` | Configure search strategy |
-| `/mdpaper.draft` | Write paper sections |
+| `/mdpaper.draft` | Write paper sections (validates concept first!) |
 | `/mdpaper.analysis` | Analyze data |
 | `/mdpaper.clarify` | Refine content |
 | `/mdpaper.format` | Export to Word |

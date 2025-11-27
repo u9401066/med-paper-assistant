@@ -2,6 +2,11 @@
 Draft Tools Module
 
 Tools for creating and editing paper drafts, section templates, and word counting.
+
+Key Features:
+- Automatic concept validation before draft processing
+- Novelty scoring with 3-round LLM evaluation (75+ threshold)
+- Integration with ConceptValidator service
 """
 
 import os
@@ -9,21 +14,122 @@ import re
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import Drafter
+from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
+
+
+# Global validator instance
+_concept_validator = ConceptValidator()
+
+
+def _get_concept_path() -> str:
+    """Get the path to the current project's concept.md file."""
+    from med_paper_assistant.infrastructure.persistence import get_project_manager
+    pm = get_project_manager()
+    current = pm.get_current_project()
+    
+    if current.get("project_path"):
+        return os.path.join(current["project_path"], "concept.md")
+    return None
+
+
+def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
+    """
+    Enforce concept validation before draft operations.
+    
+    This is a MANDATORY check that runs before any draft writing.
+    
+    Args:
+        require_novelty: Whether to require novelty check (default: True)
+    
+    Returns:
+        Tuple of (can_proceed: bool, message: str, protected_content: dict)
+    """
+    concept_path = _get_concept_path()
+    
+    if not concept_path or not os.path.exists(concept_path):
+        return (
+            False, 
+            "❌ **VALIDATION REQUIRED**\n\n"
+            "No concept.md found for current project.\n"
+            "You must create and validate a concept file first:\n\n"
+            "1. Use `/mdpaper.concept` to develop your research concept\n"
+            "2. Fill in 🔒 NOVELTY STATEMENT\n"
+            "3. Fill in 🔒 KEY SELLING POINTS (at least 3)\n"
+            "4. Run `validate_concept` to verify\n\n"
+            "Draft writing is blocked until concept validation passes.",
+            {}
+        )
+    
+    # Run validation
+    result = _concept_validator.validate(
+        concept_path,
+        run_novelty_check=require_novelty,
+        run_consistency_check=True,
+        force_refresh=False  # Use cache if available
+    )
+    
+    if not result.overall_passed:
+        report = _concept_validator.generate_report(result)
+        return (
+            False,
+            f"❌ **CONCEPT VALIDATION FAILED**\n\n"
+            f"You must fix the following issues before writing drafts:\n\n"
+            f"{report}\n\n"
+            f"**Draft writing is blocked until validation passes.**",
+            {}
+        )
+    
+    # Extract protected content for reference
+    novelty_section = result.sections.get("novelty_statement")
+    selling_section = result.sections.get("selling_points")
+    
+    protected_content = {
+        "novelty_statement": novelty_section.content if novelty_section else "",
+        "selling_points": selling_section.content if selling_section else "",
+        "novelty_score": result.novelty_average
+    }
+    
+    return (
+        True,
+        f"✅ Concept validation passed (Novelty score: {result.novelty_average:.1f}/100)",
+        protected_content
+    )
 
 
 def register_draft_tools(mcp: FastMCP, drafter: Drafter):
     """Register all draft-related tools with the MCP server."""
     
     @mcp.tool()
-    def draft_section(topic: str, notes: str) -> str:
+    def draft_section(topic: str, notes: str, skip_validation: bool = False) -> str:
         """
         Draft a section of a medical paper based on notes.
+        
+        ⚠️ REQUIRES: Valid concept.md with novelty check passed.
+        
+        This tool enforces concept validation before drafting. The draft must:
+        - Preserve 🔒 NOVELTY STATEMENT in Introduction
+        - Preserve 🔒 KEY SELLING POINTS in Discussion
+        - Not weaken or remove protected content
         
         Args:
             topic: The topic of the section (e.g., "Introduction").
             notes: Raw notes or bullet points to convert into text.
+            skip_validation: For internal use only. Do not set to True.
         """
-        return f"Drafting section '{topic}' based on notes..."
+        # Enforce validation
+        if not skip_validation:
+            can_proceed, message, protected = _enforce_concept_validation()
+            if not can_proceed:
+                return message
+        
+        # Remind about protected content
+        reminder = ""
+        if topic.lower() == "introduction":
+            reminder = "\n\n⚠️ **REMINDER**: Introduction must reflect the 🔒 NOVELTY STATEMENT."
+        elif topic.lower() == "discussion":
+            reminder = "\n\n⚠️ **REMINDER**: Discussion must emphasize 🔒 KEY SELLING POINTS."
+        
+        return f"Drafting section '{topic}' based on notes...{reminder}"
 
     @mcp.tool()
     def get_section_template(section: str) -> str:
@@ -40,18 +146,47 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
         )
 
     @mcp.tool()
-    def write_draft(filename: str, content: str) -> str:
+    def write_draft(filename: str, content: str, skip_validation: bool = False) -> str:
         """
         Create a draft file with automatic citation formatting.
         Use (PMID:123456) or [PMID:123456] in content to insert citations.
         
+        ⚠️ REQUIRES: Valid concept.md with novelty check passed.
+        
+        This tool enforces concept validation before creating paper drafts.
+        The validation ensures:
+        - 🔒 NOVELTY STATEMENT is defined and scored 75+
+        - 🔒 KEY SELLING POINTS has at least 3 points
+        
+        Exception: Writing to concept.md itself does not require validation.
+        
         Args:
             filename: Name of the file (e.g., "draft.md").
             content: The text content with citation placeholders.
+            skip_validation: For internal use only. Do not set to True.
         """
+        # Skip validation for concept.md files (they're being created/edited)
+        is_concept_file = "concept" in filename.lower()
+        
+        if not skip_validation and not is_concept_file:
+            can_proceed, message, protected = _enforce_concept_validation()
+            if not can_proceed:
+                return message
+        
         try:
             path = drafter.create_draft(filename, content)
-            return f"Draft created successfully at: {path}"
+            
+            # Add reminder about protected content
+            reminder = ""
+            if not is_concept_file:
+                reminder = (
+                    "\n\n📝 **Protected Content Reminder:**\n"
+                    "- 🔒 NOVELTY STATEMENT must be reflected in Introduction\n"
+                    "- 🔒 KEY SELLING POINTS must be emphasized in Discussion\n"
+                    "- Ask user before modifying any protected content"
+                )
+            
+            return f"Draft created successfully at: {path}{reminder}"
         except Exception as e:
             return f"Error creating draft: {str(e)}"
 
@@ -260,174 +395,95 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
             return f"Error counting words: {str(e)}"
 
     @mcp.tool()
-    def validate_concept(filename: str) -> str:
+    def validate_concept(filename: str, run_novelty_check: bool = True) -> str:
         """
         Validate a concept file before proceeding to draft writing.
-        Checks that all required sections are complete and protected content is defined.
+        
+        This tool performs comprehensive validation including:
+        1. Structural validation - Required sections present
+        2. Novelty evaluation - LLM-based scoring (3 rounds, 75+ threshold)
+        3. Consistency check - Alignment between sections
+        
+        The novelty check uses 3 evaluation rounds. All rounds must score
+        75+ out of 100 for the concept to pass. This ensures the NOVELTY
+        STATEMENT truly describes novel contributions.
         
         Args:
-            filename: Path to the concept file (e.g., "concept_study.md").
+            filename: Path to the concept file (e.g., "concept.md").
+            run_novelty_check: Whether to run LLM-based novelty scoring (default: True).
         
         Returns:
-            Validation report with checklist status and any warnings.
+            Validation report with checklist status, novelty scores, and suggestions.
         """
+        # Resolve path
         if not os.path.isabs(filename):
-            filename = os.path.join("drafts", filename)
+            # Try project concept.md first, then drafts/
+            from med_paper_assistant.infrastructure.persistence import get_project_manager
+            pm = get_project_manager()
+            current = pm.get_current_project()
+            
+            if current.get("project_path"):
+                project_concept = os.path.join(current["project_path"], "concept.md")
+                if os.path.exists(project_concept) and filename in ["concept.md", project_concept]:
+                    filename = project_concept
+                else:
+                    filename = os.path.join("drafts", filename)
+            else:
+                filename = os.path.join("drafts", filename)
         
         if not os.path.exists(filename):
             return f"❌ Error: Concept file not found: {filename}\n\n" \
                    f"Use `/mdpaper.concept` to create a concept file first."
         
         try:
-            with open(filename, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # Validation checklist
-            checks = {
-                "novelty_statement": {
-                    "name": "🔒 NOVELTY STATEMENT",
-                    "required": True,
-                    "patterns": [r"🔒\s*NOVELTY STATEMENT", r"What is new\?", r"novelty"],
-                    "found": False,
-                    "has_content": False
-                },
-                "selling_points": {
-                    "name": "🔒 KEY SELLING POINTS",
-                    "required": True,
-                    "patterns": [r"🔒\s*KEY SELLING POINTS", r"Selling Point \d"],
-                    "found": False,
-                    "has_content": False,
-                    "count": 0
-                },
-                "background": {
-                    "name": "📝 Background",
-                    "required": False,
-                    "patterns": [r"📝\s*Background", r"##\s*Background"],
-                    "found": False,
-                    "has_content": False
-                },
-                "research_gap": {
-                    "name": "📝 Research Gap",
-                    "required": False,
-                    "patterns": [r"📝\s*Research Gap", r"##\s*Research Gap"],
-                    "found": False,
-                    "has_content": False
-                },
-                "research_question": {
-                    "name": "📝 Research Question/Hypothesis",
-                    "required": False,
-                    "patterns": [r"Research Question", r"Hypothesis"],
-                    "found": False,
-                    "has_content": False
-                },
-                "methods": {
-                    "name": "📝 Methods Overview",
-                    "required": False,
-                    "patterns": [r"📝\s*Methods", r"##\s*Methods", r"Study Design"],
-                    "found": False,
-                    "has_content": False
-                },
-                "expected_outcomes": {
-                    "name": "📝 Expected Outcomes",
-                    "required": False,
-                    "patterns": [r"📝\s*Expected", r"##\s*Expected Outcomes"],
-                    "found": False,
-                    "has_content": False
-                }
-            }
-            
-            # Check each section
-            lines = content.split('\n')
-            current_section = None
-            section_content = []
-            
-            for i, line in enumerate(lines):
-                # Check for section headers
-                for key, check in checks.items():
-                    for pattern in check["patterns"]:
-                        if re.search(pattern, line, re.IGNORECASE):
-                            check["found"] = True
-                            current_section = key
-                            section_content = []
-                            break
-                
-                # Collect content for current section
-                if current_section and not line.startswith('#') and not line.startswith('🔒') and not line.startswith('📝'):
-                    stripped = line.strip()
-                    if stripped and not stripped.startswith('<!--') and not stripped.startswith('>'):
-                        if not stripped.startswith('[') or ']' not in stripped:  # Not a placeholder
-                            section_content.append(stripped)
-                            checks[current_section]["has_content"] = True
-            
-            # Count selling points
-            selling_points_matches = re.findall(r'Selling Point \d+.*?:.*?\S', content, re.IGNORECASE)
-            checks["selling_points"]["count"] = len(selling_points_matches)
-            if checks["selling_points"]["count"] >= 3:
-                checks["selling_points"]["has_content"] = True
+            # Use the ConceptValidator service
+            result = _concept_validator.validate(
+                filename,
+                run_novelty_check=run_novelty_check,
+                run_consistency_check=True,
+                run_citation_check=False,
+                force_refresh=True
+            )
             
             # Generate report
-            output = f"📋 **Concept Validation Report**\n"
-            output += f"📄 File: `{os.path.basename(filename)}`\n\n"
-            
-            output += "## 🔒 Protected Sections (Required)\n\n"
-            output += "| Section | Found | Has Content | Status |\n"
-            output += "|---------|-------|-------------|--------|\n"
-            
-            required_pass = True
-            for key in ["novelty_statement", "selling_points"]:
-                check = checks[key]
-                found = "✅" if check["found"] else "❌"
-                has_content = "✅" if check["has_content"] else "❌"
-                
-                if check["found"] and check["has_content"]:
-                    status = "✅ PASS"
-                else:
-                    status = "❌ MISSING"
-                    required_pass = False
-                
-                extra = ""
-                if key == "selling_points":
-                    extra = f" ({check['count']} points)"
-                
-                output += f"| {check['name']}{extra} | {found} | {has_content} | {status} |\n"
-            
-            output += "\n## 📝 Editable Sections (Optional)\n\n"
-            output += "| Section | Found | Has Content |\n"
-            output += "|---------|-------|-------------|\n"
-            
-            for key in ["background", "research_gap", "research_question", "methods", "expected_outcomes"]:
-                check = checks[key]
-                found = "✅" if check["found"] else "⚪"
-                has_content = "✅" if check["has_content"] else "⚪"
-                output += f"| {check['name']} | {found} | {has_content} |\n"
-            
-            # Final verdict
-            output += "\n---\n\n"
-            
-            if required_pass:
-                output += "## ✅ VALIDATION PASSED\n\n"
-                output += "The concept file has all required protected sections.\n"
-                output += "You may proceed with `/mdpaper.draft` to write the paper.\n\n"
-                output += "**Remember:**\n"
-                output += "- 🔒 Protected content must be preserved in the final paper\n"
-                output += "- Ask user before modifying any 🔒 sections\n"
-            else:
-                output += "## ❌ VALIDATION FAILED\n\n"
-                output += "**Missing required sections:**\n"
-                
-                if not checks["novelty_statement"]["found"] or not checks["novelty_statement"]["has_content"]:
-                    output += "- 🔒 NOVELTY STATEMENT is missing or empty\n"
-                    output += "  → What makes this research unique?\n"
-                
-                if checks["selling_points"]["count"] < 3:
-                    output += f"- 🔒 KEY SELLING POINTS has only {checks['selling_points']['count']} points (need at least 3)\n"
-                    output += "  → What are the main contributions?\n"
-                
-                output += "\n**Action Required:**\n"
-                output += "Please complete the missing sections before proceeding to draft writing.\n"
-                output += "Use `write_draft` to update the concept file.\n"
-            
-            return output
+            return _concept_validator.generate_report(result)
             
         except Exception as e:
             return f"❌ Error validating concept: {str(e)}"
+
+    @mcp.tool()
+    def validate_concept_quick(filename: str) -> str:
+        """
+        Quick structural validation without LLM calls.
+        
+        Use this for fast checks when you just need to verify sections exist.
+        For full validation with novelty scoring, use validate_concept.
+        
+        Args:
+            filename: Path to the concept file.
+        
+        Returns:
+            Quick validation report (structure only).
+        """
+        if not os.path.isabs(filename):
+            from med_paper_assistant.infrastructure.persistence import get_project_manager
+            pm = get_project_manager()
+            current = pm.get_current_project()
+            
+            if current.get("project_path"):
+                project_concept = os.path.join(current["project_path"], "concept.md")
+                if os.path.exists(project_concept) and filename in ["concept.md", project_concept]:
+                    filename = project_concept
+                else:
+                    filename = os.path.join("drafts", filename)
+            else:
+                filename = os.path.join("drafts", filename)
+        
+        if not os.path.exists(filename):
+            return f"❌ Error: Concept file not found: {filename}"
+        
+        try:
+            result = _concept_validator.validate_structure_only(filename)
+            return _concept_validator.generate_report(result)
+        except Exception as e:
+            return f"❌ Error: {str(e)}"

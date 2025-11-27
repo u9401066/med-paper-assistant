@@ -109,7 +109,21 @@ Flow: search_literature() → save_reference() → 確認 research gap → write
     @mcp.prompt(name="draft", description="Write paper draft")
     def mdpaper_draft(section: str) -> str:
         return f"""Section: {section}
-Flow: read_draft(concept.md) → 確保含🔒protected content → get_section_template() → write_draft() → count_words()"""
+
+⚠️ MANDATORY: validate_concept(concept.md) 必須先通過才能撰寫 draft！
+
+Flow:
+1. validate_concept(concept.md) → 確認通過（novelty score 75+, 3/3 rounds）
+2. 如果驗證失敗 → 停止並要求用戶修正 concept
+3. 驗證通過後 → read_draft(concept.md) 取得 🔒protected content
+4. get_section_template({section}) → 取得寫作指南
+5. draft_section() 或 write_draft() → 撰寫（必須保留 🔒 內容）
+6. count_words() → 確認字數
+
+🔒 Protected Content Rules:
+- Introduction 必須體現 🔒 NOVELTY STATEMENT
+- Discussion 必須強調 🔒 KEY SELLING POINTS  
+- 修改 🔒 區塊前必須詢問用戶"""
 
     # ========================================
     # /mdpaper.analysis - Analyze data

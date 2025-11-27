@@ -9,7 +9,48 @@
 - [x] Multi-Project Support
 - [x] Project Configuration & Memory
 - [x] MCP Server Modular Refactoring
-- [x] **DDD Architecture Refactoring** (NEW)
+- [x] DDD Architecture Refactoring
+- [x] **Novelty Validation System** (NEW)
+
+## Novelty Validation System (2025-11-27)
+
+### Overview
+Implemented comprehensive concept validation with multi-round novelty scoring:
+
+```
+domain/services/
+└── novelty_scorer.py      # Scoring criteria, dimensions, LLM prompts
+
+infrastructure/services/
+└── concept_validator.py   # Validation service with caching
+```
+
+### Key Features
+| Feature | Description |
+|---------|-------------|
+| **3-Round Scoring** | Multiple independent evaluations for reliability |
+| **75+ Threshold** | All rounds must pass to proceed |
+| **5 Dimensions** | Uniqueness, Significance, Gap Alignment, Specificity, Verifiability |
+| **Consistency Check** | Cross-section alignment validation |
+| **Actionable Feedback** | Specific suggestions when validation fails |
+| **24h Cache** | Results cached to avoid redundant evaluations |
+
+### New Tools
+- `validate_concept` - Full validation with novelty scoring
+- `validate_concept_quick` - Fast structural check only
+
+### Tool Count
+- Total: 43 tools (was 42)
+
+### Architecture
+```
+ConceptValidator
+├── _validate_structure()    # Required sections check
+├── _evaluate_novelty()      # 3-round scoring
+├── _check_consistency()     # Section alignment
+├── _check_citation_support() # Citation coverage
+└── generate_report()        # Human-readable output
+```
 
 ## DDD Architecture (2025-11-27)
 

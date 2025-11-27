@@ -14,6 +14,7 @@ from .strategy_manager import StrategyManager
 from .prompts import SECTION_PROMPTS
 from .exporter import WordExporter
 from .concept_template_reader import ConceptTemplateReader
+from .concept_validator import ConceptValidator
 
 __all__ = [
     "Analyzer",
@@ -27,4 +28,5 @@ __all__ = [
     "SECTION_PROMPTS",
     "WordExporter",
     "ConceptTemplateReader",
+    "ConceptValidator",
 ]

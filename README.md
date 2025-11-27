@@ -398,13 +398,89 @@ Modification Rules:
 
 ---
 
-### 🛠️ Available Tools (42 Total)
+### 🎯 Novelty Validation System
+
+The system includes an intelligent **Novelty Validation** feature that ensures research concepts truly describe novel contributions before proceeding to draft writing.
+
+#### How It Works
+
+```mermaid
+flowchart LR
+    A["📝 Concept File"] --> B["🔍 Structure Check"]
+    B --> C{"Required sections?"}
+    C -->|No| D["❌ FAIL"]
+    C -->|Yes| E["🎯 Novelty Scoring"]
+    E --> F["Round 1"]
+    E --> G["Round 2"]
+    E --> H["Round 3"]
+    F & G & H --> I{"All ≥ 75?"}
+    I -->|No| J["❌ FAIL + Suggestions"]
+    I -->|Yes| K["✅ PASS"]
+```
+
+#### Scoring Mechanism
+
+| Setting | Value | Description |
+|---------|-------|-------------|
+| **Rounds** | 3 | Number of independent evaluations |
+| **Threshold** | 75/100 | Minimum score per round |
+| **Pass Criteria** | All 3 rounds ≥ 75 | Must pass all rounds |
+
+#### Evaluation Dimensions
+
+| Dimension | Weight | What It Checks |
+|-----------|--------|----------------|
+| **Uniqueness** | 25% | Is the approach/method unique? |
+| **Significance** | 25% | Is the contribution meaningful? |
+| **Gap Alignment** | 20% | Does novelty address the research gap? |
+| **Specificity** | 15% | Is the claim specific and concrete? |
+| **Verifiability** | 15% | Can the claim be verified/tested? |
+
+#### Example Validation Report
+
+```
+📋 Concept Validation Report
+📄 File: concept.md
+
+## 🔒 Protected Sections (Required)
+| Section | Found | Has Content | Status |
+|---------|-------|-------------|--------|
+| 🔒 NOVELTY STATEMENT | ✅ | ✅ | ✅ PASS |
+| 🔒 KEY SELLING POINTS (4 points) | ✅ | ✅ | ✅ PASS |
+
+## 🎯 Novelty Evaluation
+**Status:** ✅ PASSED
+**Average Score:** 82.3/100
+**Threshold:** 75
+
+| Round | Score | Status |
+|-------|-------|--------|
+| 1 | 84 | ✅ |
+| 2 | 79 | ✅ |
+| 3 | 84 | ✅ |
+
+## ✅ VALIDATION PASSED
+```
+
+#### Key Design Decisions
+
+1. **Mandatory Before Draft Writing**: The system enforces validation before any concept file can be used for draft generation.
+
+2. **Multi-Round Evaluation**: Using 3 rounds increases reliability and reduces false positives.
+
+3. **High Threshold**: Requiring 75+ ensures only well-articulated novelty claims pass.
+
+4. **Actionable Feedback**: Failed validations provide specific suggestions for improvement.
+
+---
+
+### 🛠️ Available Tools (43 Total)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
 | **Search** (5) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy` | Literature discovery |
 | **Reference** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | Reference management |
-| **Writing** (8) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept` | Manuscript preparation |
+| **Writing** (9) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick` | Manuscript preparation |
 | **Analysis** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | Data analysis |
 | **Export** (8) | `read_template`, `list_templates`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | Document export |
 
@@ -843,13 +919,44 @@ MCP 伺服器會動態載入 `.memory/.agent_constitution.md` 中的 Agent 憲�
 
 ---
 
-### 🛠️ 可用工具（共 42 個）
+### 🎯 新穎性驗證系統
+
+系統內建智慧型**新穎性驗證**功能，確保研究概念在撰寫草稿前真正描述了創新貢獻。
+
+#### 運作方式
+
+| 設定 | 值 | 說明 |
+|------|---|------|
+| **評分輪數** | 3 | 獨立評估的次數 |
+| **通過門檻** | 75/100 | 每輪最低分數 |
+| **通過條件** | 3 輪皆 ≥ 75 | 必須全部通過 |
+
+#### 評估維度
+
+| 維度 | 權重 | 檢查項目 |
+|------|------|----------|
+| **獨特性** | 25% | 方法/途徑是否獨特？ |
+| **重要性** | 25% | 貢獻是否有意義？ |
+| **缺口對齊** | 20% | 新穎性是否解決研究缺口？ |
+| **具體性** | 15% | 宣稱是否具體明確？ |
+| **可驗證性** | 15% | 宣稱是否可被驗證/測試？ |
+
+#### 設計原則
+
+1. **草稿撰寫前強制驗證**：系統強制在使用概念檔案生成草稿前進行驗證
+2. **多輪評估**：使用 3 輪評估提高可靠性，減少誤判
+3. **高門檻**：要求 75+ 確保只有表達清晰的新穎性宣稱能通過
+4. **可操作的回饋**：驗證失敗時提供具體改進建議
+
+---
+
+### 🛠️ 可用工具（共 43 個）
 
 | 類別 | 工具 | 說明 |
 |------|------|------|
 | **搜尋** (5) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy` | 文獻探索 |
 | **參考文獻** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | 參考文獻管理 |
-| **寫作** (8) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept` | 草稿準備 |
+| **寫作** (9) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick` | 草稿準備 |
 | **分析** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | 數據分析 |
 | **匯出** (8) | `read_template`, `list_templates`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | 文件匯出 |
 
