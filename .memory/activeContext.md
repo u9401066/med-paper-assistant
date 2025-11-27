@@ -1,29 +1,33 @@
 # Active Context
 
-## Current Work
-修正模組初始化時不建立根目錄資料夾的問題。
+## Current Focus
+DDD Architecture Refactoring - COMPLETED
 
-## Recently Completed
-- **目錄初始化修正** (2025-11-27):
-  - 移除 `analyzer.py` 初始化時建立 data/, results/ 的程式碼
-  - 移除 `reference_manager.py` 初始化時建立 references/ 的程式碼
-  - 移除 `drafter.py` 初始化時建立 drafts/ 的程式碼
-  - 修改 `logger.py` 使用系統臨時目錄而非 logs/
-  - 目錄現在只在專案建立時 (`create_project`) 才會建立
+## Recent Changes (2025-11-27)
+- Implemented full DDD (Domain-Driven Design) architecture
+- Created 5 new layers: domain/, application/, infrastructure/, interfaces/, shared/
+- All layers tested and importing correctly
+- Backward compatibility maintained with core/ and mcp_server/
 
-## Directory Creation Rules
-- **專案建立時** (`project_manager.create_project`): 建立完整專案結構
-- **儲存檔案時**: 各模組在實際儲存時建立必要的子目錄
-- **初始化時**: 不建立任何目錄（避免污染根目錄）
-
-## Clean Root Directory
+## DDD Structure
 ```
-med-paper-assistant/
-├── .memory/          # System memory
-├── projects/         # All research projects
-├── src/              # Source code
-├── tests/            # Test suite
-├── scripts/          # Setup scripts
-├── templates/        # Word templates
-└── (no data/drafts/references/results/logs)
+src/med_paper_assistant/
+├── shared/          # Constants, Exceptions
+├── domain/          # Entities, Value Objects, Services
+├── application/     # Use Cases
+├── infrastructure/  # Persistence, External APIs, Config
+├── interfaces/      # MCP Server wrapper
+├── core/            # Legacy (preserved)
+└── mcp_server/      # Legacy (preserved)
 ```
+
+## Next Steps
+1. Gradually migrate core/ code to new architecture
+2. Update mcp_server/tools/ to use new use cases
+3. Add more use cases for draft, export, analysis
+
+## Status
+✅ All DDD layers complete and tested
+✅ Imports verified
+⏳ Memory Bank updated
+⏳ Git commit pending
