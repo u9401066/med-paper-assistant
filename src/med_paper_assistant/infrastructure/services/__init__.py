@@ -13,6 +13,7 @@ from .word_writer import WordWriter
 from .strategy_manager import StrategyManager
 from .prompts import SECTION_PROMPTS
 from .exporter import WordExporter
+from .concept_template_reader import ConceptTemplateReader
 
 __all__ = [
     "Analyzer",
@@ -25,4 +26,5 @@ __all__ = [
     "StrategyManager",
     "SECTION_PROMPTS",
     "WordExporter",
+    "ConceptTemplateReader",
 ]

@@ -7,6 +7,7 @@ from .reference_repository import ReferenceRepository
 from .file_storage import FileStorage
 from .reference_manager import ReferenceManager
 from .project_manager import ProjectManager, get_project_manager
+from .project_memory_manager import ProjectMemoryManager
 
 __all__ = [
     "ProjectRepository",
@@ -15,4 +16,5 @@ __all__ = [
     "ReferenceManager",
     "ProjectManager",
     "get_project_manager",
+    "ProjectMemoryManager",
 ]
