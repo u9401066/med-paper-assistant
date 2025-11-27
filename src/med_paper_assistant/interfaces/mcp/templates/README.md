@@ -12,27 +12,55 @@ This directory contains **internal templates** used by the MCP server and AI Age
 | Directory | Purpose | Format |
 |-----------|---------|--------|
 | `/templates/` (root) | Word document templates for export | `.docx` |
-| `/src/.../mcp_server/templates/` (here) | Internal templates for Agent guidance | `.md` |
+| `/src/.../interfaces/mcp/templates/` (here) | Internal templates for Agent guidance | `.md` |
 
 | 目錄 | 用途 | 格式 |
 |------|------|------|
 | `/templates/` (根目錄) | Word 文件輸出範本 | `.docx` |
-| `/src/.../mcp_server/templates/` (此處) | Agent 引導用內部範本 | `.md` |
+| `/src/.../interfaces/mcp/templates/` (此處) | Agent 引導用內部範本 | `.md` |
 
-## Available Templates | 可用範本
+## Template Architecture | 範本架構
 
-### `concept_template.md`
-**Research Concept Template | 研究概念範本**
+The concept template system uses a **base + paper-type** architecture:
 
-A structured template for developing research concepts with:
-- 🔒 **Protected sections**: Novelty Statement, Key Selling Points, Author Notes
-- 📝 **Editable sections**: Background, Research Gap, Methods, Expected Outcomes
-- ⚠️ **Required markers**: Fields that must be completed before drafting
+```
+templates/
+├── concept_base.md              # Common sections (NOVELTY, SELLING POINTS, etc.)
+├── concept_original_research.md # Original research specific sections
+├── concept_meta_analysis.md     # Meta-analysis specific sections
+├── concept_systematic_review.md # Systematic review specific sections
+├── concept_case_report.md       # Case report specific sections
+├── concept_review_article.md    # Review article specific sections
+└── README.md                    # This file
+```
 
-用於開發研究概念的結構化範本，包含：
-- 🔒 **受保護區塊**：創新性聲明、核心賣點、作者備註
-- 📝 **可編輯區塊**：背景、研究缺口、方法、預期結果
-- ⚠️ **必填標記**：撰寫草稿前必須完成的欄位
+### How it works | 運作方式
+
+1. **`concept_base.md`** contains:
+   - Project header with variables (`{{PROJECT_NAME}}`, `{{PAPER_TYPE}}`, etc.)
+   - 🔒 Protected sections (NOVELTY STATEMENT, KEY SELLING POINTS, Author Notes)
+   - 📝 Common editable sections (Background, Research Gap, Expected Outcomes)
+   - `{{PAPER_TYPE_SECTIONS}}` placeholder for paper-type specific content
+
+2. **Paper-type templates** (e.g., `concept_meta_analysis.md`) contain:
+   - Sections specific to that paper type
+   - Required fields for that methodology
+
+3. **At project creation**:
+   - `concept_base.md` is loaded
+   - Variables are replaced
+   - Paper-type sections are inserted at `{{PAPER_TYPE_SECTIONS}}`
+
+### Variables | 變數
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PROJECT_NAME}}` | Project name | "Ketamine vs Propofol Study" |
+| `{{PAPER_TYPE}}` | Paper type display name | "Meta-Analysis" |
+| `{{CREATED_DATE}}` | Creation date | "2025-01-15" |
+| `{{PAPER_TYPE_SECTIONS}}` | Paper-type specific content | (inserted from type template) |
+| `{{TARGET_JOURNAL}}` | Target journal | "Anesthesiology" |
+| `{{MEMO}}` | Initial memo/notes | User-provided notes |
 
 ## Section Markers | 區塊標記
 
@@ -48,14 +76,48 @@ A structured template for developing research concepts with:
 | 📝 可編輯 | 可自由改進 | 可直接修改 |
 | ⚠️ 必填 | 繼續前必須填寫 | 空白時驗證失敗 |
 
+## Paper-Type Specific Sections | 論文類型專屬區塊
+
+### Original Research
+- Study Design, Participants, Intervention/Exposure, Outcomes
+- Statistical Analysis, Ethical Considerations
+
+### Meta-Analysis
+- PICO Question, Eligibility Criteria, Search Strategy
+- Risk of Bias Assessment, Statistical Analysis Plan
+- PROSPERO Registration
+
+### Systematic Review
+- Research Question, Study Selection Process
+- Quality Assessment, Data Synthesis Method
+
+### Case Report
+- Case Significance, Case Presentation, Timeline
+- Discussion Points, Patient Consent, CARE Checklist
+
+### Review Article
+- Review Scope, Structure/Outline, Key Messages
+- Future Directions, Visual Elements Planning
+
 ## Usage | 使用方式
 
 These templates are used internally by:
-1. **`/mdpaper.concept` prompt**: Guides concept development
-2. **`validate_concept` tool**: Checks template completeness
-3. **`/mdpaper.draft` prompt**: References protected sections
+1. **`create_project` tool**: Generates concept.md using templates
+2. **`/mdpaper.concept` prompt**: Guides concept development
+3. **`validate_concept` tool**: Checks template completeness
+4. **`/mdpaper.draft` prompt**: References protected sections
 
 這些範本由以下內部使用：
-1. **`/mdpaper.concept` 提示**：引導概念開發
-2. **`validate_concept` 工具**：檢查範本完整性
-3. **`/mdpaper.draft` 提示**：參照受保護區塊
+1. **`create_project` 工具**：使用範本生成 concept.md
+2. **`/mdpaper.concept` 提示**：引導概念開發
+3. **`validate_concept` 工具**：檢查範本完整性
+4. **`/mdpaper.draft` 提示**：參照受保護區塊
+
+## Modifying Templates | 修改範本
+
+To customize templates:
+1. Edit the appropriate `.md` file
+2. Restart MCP server to apply changes
+3. New projects will use updated templates
+
+⚠️ **Note**: Existing projects keep their original concept.md - templates only affect new projects.

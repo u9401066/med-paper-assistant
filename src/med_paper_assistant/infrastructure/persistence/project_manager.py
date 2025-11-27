@@ -178,7 +178,12 @@ class ProjectManager:
             json.dump(project_config, f, indent=2, ensure_ascii=False)
         
         # Create concept.md with type-specific template
-        concept_template = self._get_concept_template(name, paper_type)
+        concept_template = self._get_concept_template(
+            project_name=name, 
+            paper_type=paper_type,
+            target_journal=target_journal,
+            memo=memo
+        )
         concept_path = project_path / "concept.md"
         with open(concept_path, 'w', encoding='utf-8') as f:
             f.write(concept_template)
@@ -204,252 +209,141 @@ class ProjectManager:
             }
         }
     
-    def _get_concept_template(self, project_name: str, paper_type: str = "") -> str:
-        """Get concept template based on paper type."""
+    def _get_concept_template(
+        self, 
+        project_name: str, 
+        paper_type: str = "",
+        target_journal: str = "",
+        memo: str = ""
+    ) -> str:
+        """Get concept template by reading from template files.
+        
+        Architecture:
+        - concept_base.md: Common template with shared sections
+        - concept_{paper_type}.md: Paper-type specific sections
+        
+        Variables replaced:
+        - {{PROJECT_NAME}} -> project_name
+        - {{PAPER_TYPE}} -> paper type name  
+        - {{CREATED_DATE}} -> current date
+        - {{PAPER_TYPE_SECTIONS}} -> content from paper-type template
+        - {{TARGET_JOURNAL}} -> target journal name
+        - {{MEMO}} -> initial memo/notes
+        """
         type_info = self.PAPER_TYPES.get(paper_type, {})
         type_name = type_info.get("name", "Research Paper")
-        sections = type_info.get("sections", ["Introduction", "Methods", "Results", "Discussion"])
         
-        # Base template header
-        template = f"""# Research Concept: {project_name}
+        # Template directory
+        templates_dir = (
+            Path(__file__).parent.parent.parent 
+            / "interfaces" / "mcp" / "templates"
+        )
+        
+        # Read base template
+        base_template_path = templates_dir / "concept_base.md"
+        if base_template_path.exists():
+            template = base_template_path.read_text(encoding="utf-8")
+        else:
+            # Fallback minimal template
+            template = self._get_fallback_template(project_name, type_name)
+            return template
+        
+        # Read paper-type specific sections
+        paper_type_sections = self._read_paper_type_template(templates_dir, paper_type)
+        
+        # Replace variables
+        template = template.replace("{{PROJECT_NAME}}", project_name)
+        template = template.replace("{{PAPER_TYPE}}", type_name)
+        template = template.replace("{{CREATED_DATE}}", datetime.now().strftime('%Y-%m-%d'))
+        template = template.replace("{{PAPER_TYPE_SECTIONS}}", paper_type_sections)
+        template = template.replace("{{TARGET_JOURNAL}}", target_journal or "[To be determined]")
+        template = template.replace("{{MEMO}}", memo or "> [Personal notes and reminders]")
+        
+        return template
+    
+    def _read_paper_type_template(self, templates_dir: Path, paper_type: str) -> str:
+        """Read paper-type specific template file.
+        
+        File naming convention:
+        - concept_original_research.md
+        - concept_meta_analysis.md
+        - concept_systematic_review.md
+        - concept_case_report.md
+        - concept_review_article.md
+        """
+        # Map paper_type to filename
+        type_to_file = {
+            "original-research": "concept_original_research.md",
+            "meta-analysis": "concept_meta_analysis.md",
+            "systematic-review": "concept_systematic_review.md",
+            "case-report": "concept_case_report.md",
+            "review-article": "concept_review_article.md",
+        }
+        
+        filename = type_to_file.get(paper_type)
+        if not filename:
+            return "## 📝 Research Question\n\n> [State your research question]\n\n## 📝 Methods Overview\n\n> [Describe your methodology]"
+        
+        template_path = templates_dir / filename
+        if template_path.exists():
+            return template_path.read_text(encoding="utf-8")
+        else:
+            return f"<!-- Template file not found: {filename} -->"
+    
+    def _get_fallback_template(self, project_name: str, type_name: str) -> str:
+        """Minimal fallback template when template files are missing."""
+        return f"""# Research Concept: {project_name}
 
 **Paper Type:** {type_name}
 **Created:** {datetime.now().strftime('%Y-%m-%d')}
 
 ---
 
-## 🔒 NOVELTY STATEMENT
-<!-- Protected: Agent must ask before modifying -->
+## 🔒 NOVELTY STATEMENT ⚠️ REQUIRED
 
-[Define the unique contribution of this research]
+**What is new?**
+> [Describe the novel aspect]
 
-## 🔒 KEY SELLING POINTS
-<!-- Protected: User-defined, Agent must preserve -->
+**Why hasn't this been done before?**
+> [Explain the gap]
+
+**What will this change?**
+> [Describe the impact]
+
+---
+
+## 🔒 KEY SELLING POINTS ⚠️ REQUIRED
 
 1. 
 2. 
 3. 
 
-"""
-        # Paper-type specific sections
-        if paper_type == "meta-analysis":
-            template += """## 📝 Background
+---
 
-[Rationale for this meta-analysis]
+## 📝 Background
 
-## 📝 Research Question (PICO)
-
-- **P**opulation: 
-- **I**ntervention: 
-- **C**omparison: 
-- **O**utcome: 
-
-## 📝 Eligibility Criteria
-
-### Inclusion Criteria
-- 
-
-### Exclusion Criteria
-- 
-
-## 📝 Search Strategy
-
-**Databases:** PubMed, Embase, Cochrane Library, ...
-
-**Search Terms:**
-- 
-
-## 📝 Data Extraction Plan
-
-[Variables to extract]
-
-## 📝 Risk of Bias Assessment
-
-[Tool to use: RoB 2, ROBINS-I, NOS, etc.]
-
-## 📝 Statistical Analysis Plan
-
-- Effect measure: OR / RR / MD / SMD
-- Heterogeneity: I², Q statistic
-- Subgroup analyses:
-- Sensitivity analyses:
-
-## 📝 Expected Outcomes
-
-[Expected findings and impact]
-
-## 📝 PROSPERO Registration
-
-[Registration number if applicable]
-
-"""
-        elif paper_type == "systematic-review":
-            template += """## 📝 Background
-
-[Rationale for this systematic review]
+> [Research background]
 
 ## 📝 Research Question
 
-[Primary question this review addresses]
-
-## 📝 Eligibility Criteria
-
-### Inclusion Criteria
-- 
-
-### Exclusion Criteria
-- 
-
-## 📝 Search Strategy
-
-**Databases:** PubMed, Embase, Cochrane Library, ...
-
-**Search Terms:**
-- 
-
-## 📝 Study Selection Process
-
-[Screening process, number of reviewers]
-
-## 📝 Data Extraction
-
-[Variables to extract]
-
-## 📝 Quality Assessment
-
-[Tool: GRADE, CASP, etc.]
-
-## 📝 Synthesis Method
-
-[Narrative synthesis approach]
-
-## 📝 Expected Outcomes
-
-[Expected findings]
-
-"""
-        elif paper_type == "case-report":
-            template += """## 📝 Background
-
-[Why this case is worth reporting]
-
-## 📝 Case Summary
-
-**Patient:** [Age, sex, relevant demographics]
-**Chief Complaint:** 
-**History:**
-**Examination:**
-**Investigations:**
-**Diagnosis:**
-**Treatment:**
-**Outcome:**
-
-## 📝 Discussion Points
-
-1. What makes this case unique?
-2. What can other clinicians learn?
-3. Relevant literature to cite
-
-## 📝 Educational Messages
-
-- 
-
-## 📝 Patient Consent
-
-[Consent status for publication]
-
-"""
-        elif paper_type == "review-article":
-            template += """## 📝 Background
-
-[Topic overview and importance]
-
-## 📝 Scope of Review
-
-[What will and won't be covered]
-
-## 📝 Main Sections
-
-1. [Section 1 topic]
-2. [Section 2 topic]
-3. [Section 3 topic]
-4. [Section 4 topic]
-
-## 📝 Key Messages
-
-1. 
-2. 
-3. 
-
-## 📝 Search Strategy
-
-[How literature was identified]
-
-## 📝 Future Directions
-
-[What remains to be studied]
-
-"""
-        else:  # original-research or other
-            template += """## 📝 Background
-
-[Research background and context]
-
-## 📝 Research Gap
-
-[Gap identified from literature review]
-
-**Literature Evidence:**
-- 
-
-## 📝 Research Question / Hypothesis
-
-**Primary:** 
-**Secondary:** 
-
-## 📝 Study Design
-
-[Type of study: RCT, cohort, cross-sectional, etc.]
+> [Primary research question]
 
 ## 📝 Methods Overview
 
-### Participants
-- Inclusion criteria:
-- Exclusion criteria:
-- Sample size:
-
-### Intervention / Exposure
-- 
-
-### Outcomes
-- Primary:
-- Secondary:
-
-### Statistical Analysis
-- 
+> [Brief methods]
 
 ## 📝 Expected Outcomes
 
-[Expected results and impact]
+> [Expected results]
 
-## 📝 Ethical Considerations
-
-[IRB approval, consent, etc.]
-
-"""
-        
-        template += """## 📝 Target Journal
-
-[Target journal and rationale]
+---
 
 ## 🔒 Author Notes
-<!-- Private notes, do not include in paper -->
 
-[Personal reminders and notes]
+> [Personal notes]
 
 ---
 """
-        return template
     
     def _create_project_memory(
         self, 

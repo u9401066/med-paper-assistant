@@ -1,9 +1,8 @@
-# Research Concept Template
-# 研究概念範本
+# Research Concept: {{PROJECT_NAME}}
 
-> **Template Version**: 1.0
-> **Purpose**: Structured concept development with novelty and selling points protection
-> **用途**: 結構化概念開發，保護創新性與核心賣點
+**Paper Type**: {{PAPER_TYPE}}
+**Created**: {{CREATED_DATE}}
+**Status**: concept
 
 ---
 
@@ -25,7 +24,6 @@
 <!-- 
 研究創新性聲明 - 此區塊受保護
 Agent 在修改前必須詢問用戶確認
-Describe what makes this research novel/unique compared to existing studies
 -->
 
 **What is new?** (這項研究的新穎之處是什麼？)
@@ -54,10 +52,7 @@ Describe what makes this research novel/unique compared to existing studies
 ---
 
 ## 📝 Background | 研究背景
-<!-- 
-研究背景 - 可自由修改
-Provide context and background information
--->
+<!-- 研究背景 - 可自由修改 -->
 
 ### Current State of Knowledge | 現有知識
 > [Summarize what is currently known about the topic]
@@ -68,10 +63,7 @@ Provide context and background information
 ---
 
 ## 📝 Research Gap | 研究缺口
-<!-- 
-研究缺口 - 可修改但需與 NOVELTY STATEMENT 一致
-Identify the specific gap your research addresses
--->
+<!-- 研究缺口 - 可修改但需與 NOVELTY STATEMENT 一致 -->
 
 ### Identified Gap | 已識別的缺口
 > [Describe the specific gap in current knowledge/practice]
@@ -81,41 +73,12 @@ Identify the specific gap your research addresses
 
 ---
 
-## 📝 Research Question / Hypothesis | 研究問題/假設
-<!-- 
-研究問題 - 可修改但需與 NOVELTY STATEMENT 一致
--->
-
-### Primary Question | 主要研究問題
-> [State your primary research question]
-
-### Hypothesis | 假設
-> [State your hypothesis if applicable]
-
----
-
-## 📝 Methods Overview | 方法概述
-<!-- 
-方法概述 - 可自由修改
-Brief overview of planned methodology
--->
-
-### Study Design | 研究設計
-> [Describe the study design]
-
-### Population/Sample | 研究對象
-> [Describe the target population or sample]
-
-### Key Measurements | 主要測量指標
-> [List the primary outcomes and measurements]
+{{PAPER_TYPE_SECTIONS}}
 
 ---
 
 ## 📝 Expected Outcomes | 預期結果
-<!-- 
-預期結果 - 可修改但需與 KEY SELLING POINTS 一致
-What do you expect to find?
--->
+<!-- 預期結果 - 可修改但需與 KEY SELLING POINTS 一致 -->
 
 ### Primary Outcomes | 主要結果
 > [Describe expected primary outcomes]
@@ -126,11 +89,8 @@ What do you expect to find?
 ---
 
 ## 📝 Target Journal | 目標期刊
-<!-- 
-目標期刊 - 可自由修改
--->
 
-- **Journal Name**: [Target journal]
+- **Journal Name**: {{TARGET_JOURNAL}}
 - **Impact Factor**: [IF if known]
 - **Word Limit**: [Word limit if known]
 - **Special Requirements**: [Any special requirements]
@@ -138,20 +98,14 @@ What do you expect to find?
 ---
 
 ## 🔒 Author Notes | 作者備註
-<!-- 
-作者私人備註 - 受保護
-Personal notes that should not be modified by Agent
--->
+<!-- 作者私人備註 - 受保護，不可被 Agent 修改，不納入論文 -->
 
-> [Any personal notes, reminders, or context for yourself]
+{{MEMO}}
 
 ---
 
 ## Validation Checklist | 驗證清單
-<!-- 
-This checklist is used by validate_concept tool
-Agent should ensure all items are checked before proceeding to draft
--->
+<!-- validate_concept 工具使用此清單 -->
 
 - [ ] NOVELTY STATEMENT is complete and specific
 - [ ] At least 3 KEY SELLING POINTS are defined
@@ -161,5 +115,4 @@ Agent should ensure all items are checked before proceeding to draft
 - [ ] Expected Outcomes align with Selling Points
 
 ---
-
-*Template created by MedPaper Assistant | 由 MedPaper Assistant 創建*
+*Template created by MedPaper Assistant*
