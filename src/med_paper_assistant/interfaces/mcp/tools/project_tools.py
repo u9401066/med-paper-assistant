@@ -11,6 +11,7 @@ from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.elicitation import AcceptedElicitation, DeclinedElicitation, CancelledElicitation
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
+from med_paper_assistant.domain.paper_types import get_paper_type_dict
 
 
 # ============================================
@@ -107,7 +108,7 @@ def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
         )
         
         if result.get("success"):
-            type_info = project_manager.PAPER_TYPES.get(paper_type, {})
+            type_info = get_paper_type_dict(paper_type) if paper_type else {}
             type_name = type_info.get("name", "Not specified")
             
             return f"""✅ Project Created Successfully!
@@ -476,7 +477,7 @@ Please first select or create a project:
         
         # Check if project is already configured (has paper_type set)
         if paper_type:
-            paper_type_info = project_manager.PAPER_TYPES.get(paper_type, {})
+            paper_type_info = get_paper_type_dict(paper_type)
             
             # Return current status and ask agent to inquire about next steps
             return f"""## 📁 專案: {project_name}
@@ -550,7 +551,7 @@ Please first select or create a project:
         final_info = project_manager.get_project_info(current)
         final_prefs = final_info.get("interaction_preferences", {})
         
-        paper_type_info = project_manager.PAPER_TYPES.get(paper_type, {})
+        paper_type_info = get_paper_type_dict(paper_type) if paper_type else {}
         
         return f"""✅ Project Setup Complete!
 
