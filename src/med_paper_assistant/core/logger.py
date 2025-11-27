@@ -1,18 +1,24 @@
 import os
 import logging
+import tempfile
 from datetime import datetime
+from pathlib import Path
 
-def setup_logger(name: str = "med_paper_assistant", log_dir: str = "logs"):
+def setup_logger(name: str = "med_paper_assistant", log_dir: str = None):
     """
     Setup a logger with file and console handlers.
     
     Args:
         name: Logger name.
-        log_dir: Directory to store log files.
+        log_dir: Directory to store log files. If None, uses system temp directory.
         
     Returns:
         Configured logger instance.
     """
+    # Use temp directory to avoid polluting project root
+    if log_dir is None:
+        log_dir = os.path.join(tempfile.gettempdir(), "med_paper_assistant_logs")
+    
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
         

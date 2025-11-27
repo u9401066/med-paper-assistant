@@ -1,36 +1,29 @@
 # Active Context
 
 ## Current Work
-新增 Windows 安裝腳本，更新 README 文件。
+修正模組初始化時不建立根目錄資料夾的問題。
 
 ## Recently Completed
-- **Windows Setup Scripts** (2025-11-27):
-  - 新增 `scripts/setup.ps1` (PowerShell)
-  - 新增 `scripts/setup.bat` (Command Prompt)
-  - 更新 `scripts/setup.sh` (Linux/macOS)
-  - 更新 README 雙語安裝說明
-  - 更新專案結構說明（projects/ 結構）
-  - 更新工具數量（33→42）
+- **目錄初始化修正** (2025-11-27):
+  - 移除 `analyzer.py` 初始化時建立 data/, results/ 的程式碼
+  - 移除 `reference_manager.py` 初始化時建立 references/ 的程式碼
+  - 移除 `drafter.py` 初始化時建立 drafts/ 的程式碼
+  - 修改 `logger.py` 使用系統臨時目錄而非 logs/
+  - 目錄現在只在專案建立時 (`create_project`) 才會建立
 
-## Setup Scripts
-| Script | Platform | Usage |
-|--------|----------|-------|
-| `setup.sh` | Linux/macOS | `./scripts/setup.sh` |
-| `setup.ps1` | Windows PowerShell | `.\scripts\setup.ps1` |
-| `setup.bat` | Windows CMD | `scripts\setup.bat` |
+## Directory Creation Rules
+- **專案建立時** (`project_manager.create_project`): 建立完整專案結構
+- **儲存檔案時**: 各模組在實際儲存時建立必要的子目錄
+- **初始化時**: 不建立任何目錄（避免污染根目錄）
 
-## Directory Structure
+## Clean Root Directory
 ```
 med-paper-assistant/
-├── projects/             # Research projects
-│   └── {slug}/
-│       ├── concept.md
-│       ├── drafts/
-│       ├── references/
-│       ├── data/
-│       └── results/
-├── src/                  # Source code
-├── tests/                # Test suite
-├── scripts/              # Setup scripts (sh, ps1, bat)
-└── templates/            # Word templates
+├── .memory/          # System memory
+├── projects/         # All research projects
+├── src/              # Source code
+├── tests/            # Test suite
+├── scripts/          # Setup scripts
+├── templates/        # Word templates
+└── (no data/drafts/references/results/logs)
 ```

@@ -19,10 +19,8 @@ class Analyzer:
         self.results_dir = results_dir
         self.figures_dir = os.path.join(results_dir, "figures")
         self.tables_dir = os.path.join(results_dir, "tables")
-        
-        for d in [self.data_dir, self.results_dir, self.figures_dir, self.tables_dir]:
-            if not os.path.exists(d):
-                os.makedirs(d)
+        # Note: Directories are created on-demand when saving files,
+        # not at initialization to avoid polluting root directory
 
     def load_data(self, filename: str) -> pd.DataFrame:
         """Load data from a CSV file."""

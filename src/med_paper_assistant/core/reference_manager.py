@@ -25,10 +25,8 @@ class ReferenceManager:
         self.searcher = searcher
         self._default_base_dir = base_dir
         self._project_manager = project_manager
-        
-        # Ensure default directory exists
-        if not os.path.exists(self._default_base_dir):
-            os.makedirs(self._default_base_dir)
+        # Note: Directory is created on-demand when saving references,
+        # not at initialization to avoid polluting root directory
     
     @property
     def base_dir(self) -> str:

@@ -78,10 +78,8 @@ class Drafter:
         self._default_drafts_dir = drafts_dir
         self.citation_style = citation_style
         self._project_manager = project_manager
-        
-        # Ensure default directory exists
-        if not os.path.exists(self._default_drafts_dir):
-            os.makedirs(self._default_drafts_dir)
+        # Note: Directory is created on-demand when writing drafts,
+        # not at initialization to avoid polluting root directory
     
     @property
     def drafts_dir(self) -> str:
