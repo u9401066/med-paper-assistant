@@ -11,7 +11,42 @@
 - [x] MCP Server Modular Refactoring
 - [x] DDD Architecture Refactoring
 - [x] Novelty Validation System
-- [x] **Draw.io MCP Integration** (NEW)
+- [x] Draw.io MCP Integration
+- [x] **Draw.io Agent-Generated XML Support** (2025-11-28)
+
+## Draw.io Agent-Generated XML (2025-11-28)
+
+### Problem
+原本 `create_diagram` 工具只產生硬編碼模板（開始→處理→結束），無法根據描述生成複雜圖表。
+
+### Solution
+讓 Agent (Copilot) 自己生成 Draw.io XML，MCP 工具只負責驗證和發送到瀏覽器。
+
+### Changes
+```
+mcp-server/src/drawio_mcp_server/
+├── tools/diagram_tools.py   # 新增 xml 參數和格式說明
+├── web_client.py            # 修正 port 檢測和 lazy start
+└── server.py                # 移除預先啟動避免阻塞
+```
+
+### New Workflow
+```
+用戶請求 → Agent 生成 XML → create_diagram(xml=...) → 驗證 → 瀏覽器顯示
+```
+
+### Key Features
+| Feature | Description |
+|---------|-------------|
+| **xml 參數** | Agent 可直接傳入 Draw.io XML |
+| **格式說明** | 參數描述包含完整 XML 格式文檔 |
+| **智能 Port 檢測** | 使用 socket 檢查 port 狀態 |
+| **Lazy Start** | Web 服務首次使用時才啟動 |
+| **避免重複開啟** | 提示 Agent 不要重複呼叫 open_browser |
+
+### Test Results
+- ✅ 畫一隻馬：成功生成卡通馬圖
+- ✅ 研究路線圖：成功生成 6 階段詳細流程圖
 
 ## Draw.io MCP Integration (2025-11-28)
 
