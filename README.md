@@ -3,9 +3,20 @@
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white"></a>
   <a href="https://modelcontextprotocol.io/"><img alt="MCP" src="https://img.shields.io/badge/MCP-Compatible-green?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMiAyMGMtNC40MSAwLTgtMy41OS04LThzMy41OS04IDgtOCA4IDMuNTkgOCA4LTMuNTkgOC04IDh6Ii8+PC9zdmc+"></a>
+  <a href="https://github.com/features/copilot"><img alt="Copilot" src="https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white"></a>
   <a href="https://github.com/u9401066/med-paper-assistant"><img alt="License" src="https://img.shields.io/badge/License-MIT-yellow?logo=opensourceinitiative&logoColor=white"></a>
   <a href="https://pubmed.ncbi.nlm.nih.gov/"><img alt="PubMed" src="https://img.shields.io/badge/PubMed-Integration-orange?logo=pubmed&logoColor=white"></a>
   <a href="https://github.com/u9401066/med-paper-assistant/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
+</p>
+
+<p align="center">
+  <b>🔬 The First Guided & Exploratory Medical Paper Writing Tool</b><br>
+  <i>Powered by MCP + GitHub Copilot</i>
+</p>
+
+<p align="center">
+  <b>🔬 首款引導式、探索式醫學論文寫作工具</b><br>
+  <i>由 MCP + GitHub Copilot 驅動</i>
 </p>
 
 [English](#english) | [繁體中文](#繁體中文)
@@ -14,6 +25,26 @@
 
 <a name="english"></a>
 ## 🇬🇧 English
+
+### 🎯 Why This Tool?
+
+**Traditional paper writing tools** require you to know exactly what you want before you start. But research is rarely that linear.
+
+**Medical Paper Assistant** is different:
+- 🔍 **Explore First, Decide Later** - Browse literature freely, save interesting papers, then decide your research direction
+- 💬 **Conversational Workflow** - Chat naturally with AI to refine your ideas, not fight with forms
+- 🧭 **Guided Process** - Step-by-step prompts guide you from concept to publication-ready manuscript
+- 🔗 **Native MCP + Copilot Integration** - Works directly inside VS Code, no context switching
+
+### 💡 What Makes Us Unique
+
+| Traditional Tools | Medical Paper Assistant |
+|-------------------|------------------------|
+| Fixed templates, rigid workflow | Flexible, exploratory approach |
+| Separate apps for search/write/cite | All-in-one integrated experience |
+| Manual reference management | Auto-save with PDF & citation formats |
+| Export then format | Direct Word export with journal styles |
+| Learn complex UI | Natural language conversation |
 
 ### Overview
 
@@ -552,14 +583,62 @@ pytest tests/ -v
 
 ---
 
+### 🤝 Contributing
+
+We welcome contributions from the community! Whether you're a medical researcher with workflow ideas, a developer who wants to add features, or someone who found a bug - we'd love to hear from you.
+
+**Ways to contribute:**
+- 🐛 **Report bugs** - Open an issue describing the problem
+- 💡 **Suggest features** - Share your ideas for new tools or workflows
+- 📝 **Improve documentation** - Help make the README clearer
+- 🔧 **Submit code** - Fork, code, and send a PR
+- 🌐 **Translations** - Help translate to other languages
+
+**Getting started:**
+1. Fork this repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+---
+
 ### 📄 License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
+### ⭐ Star History
+
+If you find this project helpful, please consider giving it a star! It helps others discover the project.
+
+---
+
 <a name="繁體中文"></a>
 ## 🇹🇼 繁體中文
+
+### 🎯 為什麼選擇這個工具？
+
+**傳統論文寫作工具**要求你在開始前就知道確切的方向。但研究很少是這麼線性的。
+
+**Medical Paper Assistant** 不一樣：
+- 🔍 **先探索，後決定** - 自由瀏覽文獻、儲存有興趣的論文，再決定研究方向
+- 💬 **對話式工作流程** - 用自然語言與 AI 對話來精煉想法，不用填表單
+- 🧭 **引導式流程** - 一步步的提示引導你從構思到可投稿的論文
+- 🔗 **原生 MCP + Copilot 整合** - 直接在 VS Code 中運作，不用切換應用程式
+
+### 💡 我們的獨特之處
+
+| 傳統工具 | Medical Paper Assistant |
+|---------|------------------------|
+| 固定模板、僵化流程 | 彈性、探索式方法 |
+| 搜尋/寫作/引用分開多個 App | 一站式整合體驗 |
+| 手動管理參考文獻 | 自動儲存 + PDF + 引用格式 |
+| 匯出後再排版 | 直接匯出符合期刊格式的 Word |
+| 學習複雜介面 | 自然語言對話 |
 
 ### 概述
 
@@ -1068,14 +1147,34 @@ pytest tests/ -v
 
 ---
 
+### 🤝 參與貢獻
+
+我們歡迎社群的貢獻！無論你是有工作流程想法的醫學研究人員、想添加功能的開發者，或是發現 bug 的使用者 - 我們都很樂意聽到你的聲音。
+
+**貢獻方式：**
+- 🐛 **回報 Bug** - 開 issue 描述問題
+- 💡 **建議功能** - 分享你對新工具或工作流程的想法
+- 📝 **改善文件** - 幫忙讓 README 更清楚
+- 🔧 **提交程式碼** - Fork、開發、送 PR
+- 🌐 **翻譯** - 幫忙翻譯成其他語言
+
+**開始貢獻：**
+1. Fork 這個 repository
+2. 建立功能分支 (`git checkout -b feature/amazing-feature`)
+3. Commit 你的修改 (`git commit -m 'Add amazing feature'`)
+4. Push 到分支 (`git push origin feature/amazing-feature`)
+5. 開一個 Pull Request
+
+詳細指南請參閱 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+---
+
 ### 📄 授權
 
 本專案採用 MIT 授權。詳見 [LICENSE](LICENSE) 檔案。
 
 ---
 
-## 🤝 Contributing 貢獻
+### ⭐ 給顆星星
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-歡迎貢獻！請參閱 [CONTRIBUTING.md](CONTRIBUTING.md) 了解貢獻指南。
+如果你覺得這個專案有幫助，請考慮給它一顆星！這能幫助其他人發現這個專案。
