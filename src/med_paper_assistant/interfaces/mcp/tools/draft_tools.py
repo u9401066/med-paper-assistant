@@ -7,14 +7,17 @@ Key Features:
 - Automatic concept validation before draft processing
 - Novelty scoring with 3-round LLM evaluation (75+ threshold)
 - Integration with ConceptValidator service
+- Project context validation before operations
 """
 
 import os
 import re
+from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
+from .project_context import ensure_project_context, get_project_list_for_prompt
 
 
 # Global validator instance
@@ -96,11 +99,32 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
     )
 
 
+def _validate_project_context(project: Optional[str]) -> tuple:
+    """
+    Validate project context before draft operations.
+    
+    Args:
+        project: Optional project slug to validate.
+        
+    Returns:
+        Tuple of (is_valid: bool, error_message: str or None)
+    """
+    is_valid, msg, project_info = ensure_project_context(project)
+    if not is_valid:
+        return False, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+    return True, None
+
+
 def register_draft_tools(mcp: FastMCP, drafter: Drafter):
     """Register all draft-related tools with the MCP server."""
     
     @mcp.tool()
-    def draft_section(topic: str, notes: str, skip_validation: bool = False) -> str:
+    def draft_section(
+        topic: str, 
+        notes: str, 
+        project: Optional[str] = None,
+        skip_validation: bool = False
+    ) -> str:
         """
         Draft a section of a medical paper based on notes.
         
@@ -114,8 +138,14 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
         Args:
             topic: The topic of the section (e.g., "Introduction").
             notes: Raw notes or bullet points to convert into text.
+            project: Project slug. Agent should confirm with user before calling.
             skip_validation: For internal use only. Do not set to True.
         """
+        # Validate project context first
+        is_valid, error_msg = _validate_project_context(project)
+        if not is_valid:
+            return error_msg
+        
         # Enforce validation
         if not skip_validation:
             can_proceed, message, protected = _enforce_concept_validation()
@@ -146,7 +176,12 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
         )
 
     @mcp.tool()
-    def write_draft(filename: str, content: str, skip_validation: bool = False) -> str:
+    def write_draft(
+        filename: str, 
+        content: str, 
+        project: Optional[str] = None,
+        skip_validation: bool = False
+    ) -> str:
         """
         Create a draft file with automatic citation formatting.
         Use (PMID:123456) or [PMID:123456] in content to insert citations.
@@ -163,8 +198,14 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
         Args:
             filename: Name of the file (e.g., "draft.md").
             content: The text content with citation placeholders.
+            project: Project slug. Agent should confirm with user before calling.
             skip_validation: For internal use only. Do not set to True.
         """
+        # Validate project context first
+        is_valid, error_msg = _validate_project_context(project)
+        if not is_valid:
+            return error_msg
+        
         # Skip validation for concept.md files (they're being created/edited)
         is_concept_file = "concept" in filename.lower()
         
@@ -191,7 +232,12 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
             return f"Error creating draft: {str(e)}"
 
     @mcp.tool()
-    def insert_citation(filename: str, target_text: str, pmid: str) -> str:
+    def insert_citation(
+        filename: str, 
+        target_text: str, 
+        pmid: str,
+        project: Optional[str] = None
+    ) -> str:
         """
         Insert a citation into an existing draft.
         
@@ -199,7 +245,13 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
             filename: The draft file name.
             target_text: The text segment after which the citation should be inserted.
             pmid: The PubMed ID to cite.
+            project: Project slug. Agent should confirm with user before calling.
         """
+        # Validate project context first
+        is_valid, error_msg = _validate_project_context(project)
+        if not is_valid:
+            return error_msg
+        
         try:
             path = drafter.insert_citation(filename, target_text, pmid)
             return f"Citation inserted successfully in: {path}"
@@ -207,14 +259,23 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
             return f"Error inserting citation: {str(e)}"
 
     @mcp.tool()
-    def list_drafts() -> str:
+    def list_drafts(project: Optional[str] = None) -> str:
         """
         List all available draft files in the drafts/ directory.
         Use this to see what drafts are available for export.
         
+        Args:
+            project: Project slug. If not specified, uses current project.
+        
         Returns:
             List of draft files with their word counts.
         """
+        # Validate project context if specified
+        if project:
+            is_valid, error_msg = _validate_project_context(project)
+            if not is_valid:
+                return error_msg
+        
         drafts_dir = "drafts"
         if not os.path.exists(drafts_dir):
             return "📁 No drafts/ directory found. Create drafts using write_draft tool first."
@@ -244,17 +305,24 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
         return output
 
     @mcp.tool()
-    def read_draft(filename: str) -> str:
+    def read_draft(filename: str, project: Optional[str] = None) -> str:
         """
         Read a draft file and return its structure and content.
         Use this to understand what content needs to be placed into the template.
         
         Args:
             filename: Path to the markdown draft file.
+            project: Project slug. If not specified, uses current project.
             
         Returns:
             Draft content organized by sections with word counts.
         """
+        # Validate project context if specified
+        if project:
+            is_valid, error_msg = _validate_project_context(project)
+            if not is_valid:
+                return error_msg
+        
         if not os.path.isabs(filename):
             filename = os.path.join("drafts", filename)
         
@@ -395,7 +463,11 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
             return f"Error counting words: {str(e)}"
 
     @mcp.tool()
-    def validate_concept(filename: str, run_novelty_check: bool = True) -> str:
+    def validate_concept(
+        filename: str, 
+        project: Optional[str] = None,
+        run_novelty_check: bool = True
+    ) -> str:
         """
         Validate a concept file before proceeding to draft writing.
         
@@ -410,11 +482,17 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
         
         Args:
             filename: Path to the concept file (e.g., "concept.md").
+            project: Project slug. Agent should confirm with user before calling.
             run_novelty_check: Whether to run LLM-based novelty scoring (default: True).
         
         Returns:
             Validation report with checklist status, novelty scores, and suggestions.
         """
+        # Validate project context first
+        is_valid, error_msg = _validate_project_context(project)
+        if not is_valid:
+            return error_msg
+        
         # Resolve path
         if not os.path.isabs(filename):
             # Try project concept.md first, then drafts/
@@ -452,7 +530,7 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
             return f"❌ Error validating concept: {str(e)}"
 
     @mcp.tool()
-    def validate_concept_quick(filename: str) -> str:
+    def validate_concept_quick(filename: str, project: Optional[str] = None) -> str:
         """
         Quick structural validation without LLM calls.
         
@@ -461,10 +539,17 @@ def register_draft_tools(mcp: FastMCP, drafter: Drafter):
         
         Args:
             filename: Path to the concept file.
+            project: Project slug. If not specified, uses current project.
         
         Returns:
             Quick validation report (structure only).
         """
+        # Validate project context if specified
+        if project:
+            is_valid, error_msg = _validate_project_context(project)
+            if not is_valid:
+                return error_msg
+        
         if not os.path.isabs(filename):
             from med_paper_assistant.infrastructure.persistence import get_project_manager
             pm = get_project_manager()

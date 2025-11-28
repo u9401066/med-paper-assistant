@@ -7,6 +7,21 @@ Separated from config.py for better maintainability.
 
 TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 
+### ⚠️ CRITICAL: PROJECT CONTEXT RULE
+**Before ANY operation that modifies project content, you MUST:**
+1. Call `get_current_project()` to confirm active project
+2. Show the project name to user: "目前專案: [project name]，確認要在這個專案操作嗎？"
+3. If user wants different project → `switch_project(slug="xxx")`
+4. If uncertain which project → `list_projects()` then ask user
+
+**Tools that require project confirmation:**
+- All `write_draft`, `draft_section`, `insert_citation` operations
+- All `save_reference` operations  
+- All `validate_concept` operations
+- All export operations
+
+**Exception:** `search_literature` can run without project (just searching)
+
 ### 🌐 LANGUAGE RULES
 **NEVER translate academic English content:**
 - Paper titles → Keep original English (e.g., "Impact of liberal preoperative...")

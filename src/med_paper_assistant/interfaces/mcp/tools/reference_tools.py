@@ -4,10 +4,12 @@ Reference Tools Module
 Tools for reference management, citation formatting, and bibliography generation.
 """
 
+from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager, ProjectManager
 from med_paper_assistant.infrastructure.services import Drafter, CitationStyle, JOURNAL_CITATION_CONFIGS
+from .project_context import ensure_project_context, get_project_list_for_prompt
 
 
 def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter):
@@ -35,7 +37,7 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         return ""
     
     @mcp.tool()
-    def save_reference(pmid: str, download_pdf: bool = True) -> str:
+    def save_reference(pmid: str, download_pdf: bool = True, project: Optional[str] = None) -> str:
         """
         Save a reference to the local library with enhanced metadata and optional PDF.
         
@@ -51,7 +53,15 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         Args:
             pmid: The PubMed ID of the article to save.
             download_pdf: Whether to attempt downloading PDF from PMC (default: True).
+            project: Project slug to save to. If not specified, uses current project.
+                     Agent should confirm project with user before calling.
         """
+        # Validate project context if specified
+        if project:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+        
         # Ensure we have somewhere to save the reference
         project_msg = _ensure_project_exists()
         
@@ -59,13 +69,22 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         return result + project_msg
 
     @mcp.tool()
-    def list_saved_references() -> str:
+    def list_saved_references(project: Optional[str] = None) -> str:
         """
         List all saved references in the local library with summary info.
+        
+        Args:
+            project: Project slug to list from. If not specified, uses current project.
         
         Returns:
             List of PMIDs with title, year, and PDF availability.
         """
+        # Validate project context if specified
+        if project:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+        
         refs = ref_manager.list_references()
         if not refs:
             return "No references saved."
