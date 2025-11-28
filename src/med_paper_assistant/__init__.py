@@ -18,15 +18,15 @@ Architecture (DDD):
 __version__ = "0.1.0"
 
 # Interface exports (main entry point)
-from med_paper_assistant.interfaces.mcp import create_server, mcp
+from med_paper_assistant.interfaces.mcp import create_server, main
 
 def run_server():
     """Run the MCP server."""
-    mcp.run()
+    main()
 
 __all__ = [
     "__version__",
     "create_server",
-    "mcp",
+    "main",
     "run_server",
 ]
