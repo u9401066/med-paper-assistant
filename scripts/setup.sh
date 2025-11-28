@@ -30,7 +30,7 @@ cat > .vscode/mcp.json << EOF
   "servers": {
     "mdpaper": {
       "command": "${PROJECT_DIR}/.venv/bin/python",
-      "args": ["-m", "med_paper_assistant.mcp_server.server"],
+      "args": ["-m", "med_paper_assistant.interfaces.mcp.server"],
       "env": {
         "PYTHONPATH": "${PROJECT_DIR}/src"
       }
@@ -41,7 +41,7 @@ EOF
 
 # 4. 驗證安裝
 echo "✅ 驗證安裝..."
-python -c "from med_paper_assistant.mcp_server.server import mcp; print(f'  MCP Server 載入成功: {len(mcp._tool_manager._tools)} 個工具, {len(mcp._prompt_manager._prompts)} 個 prompts')"
+python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server 載入成功: {len(mcp._tool_manager._tools)} 個工具, {len(mcp._prompt_manager._prompts)} 個 prompts')"
 
 echo ""
 echo "=========================================="

@@ -97,7 +97,7 @@ cat > "$MCP_JSON" << EOF
   "servers": {
     "mdpaper": {
       "command": "$MDPAPER_PYTHON",
-      "args": ["-m", "med_paper_assistant.mcp_server.server"],
+      "args": ["-m", "med_paper_assistant.interfaces.mcp.server"],
       "cwd": "$PROJECT_ROOT"
     },
     "drawio": {

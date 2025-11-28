@@ -54,7 +54,7 @@ echo   "inputs": [],
 echo   "servers": {
 echo     "mdpaper": {
 echo       "command": "${workspaceFolder}/.venv/Scripts/python.exe",
-echo       "args": ["-m", "med_paper_assistant.mcp_server.server"],
+echo       "args": ["-m", "med_paper_assistant.interfaces.mcp.server"],
 echo       "env": {
 echo         "PYTHONPATH": "${workspaceFolder}/src"
 echo       }
@@ -66,7 +66,7 @@ echo        mcp.json created!
 echo.
 
 echo [6/6] Verifying installation...
-python -c "from med_paper_assistant.mcp_server.server import mcp; print(f'        MCP Server loaded: {len(mcp._tool_manager._tools)} tools')"
+python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'        MCP Server loaded: {len(mcp._tool_manager._tools)} tools')"
 echo.
 
 echo ==========================================

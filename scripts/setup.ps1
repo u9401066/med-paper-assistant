@@ -53,7 +53,7 @@ $mcpConfig = @"
   "servers": {
     "mdpaper": {
       "command": "`${workspaceFolder}/.venv/Scripts/python.exe",
-      "args": ["-m", "med_paper_assistant.mcp_server.server"],
+      "args": ["-m", "med_paper_assistant.interfaces.mcp.server"],
       "env": {
         "PYTHONPATH": "`${workspaceFolder}/src"
       }
@@ -67,7 +67,7 @@ Write-Host "   ✅ mcp.json 已創建" -ForegroundColor Green
 
 # 6. 驗證安裝
 Write-Host "✅ 驗證安裝..." -ForegroundColor Yellow
-$verifyResult = python -c "from med_paper_assistant.mcp_server.server import mcp; print(f'  MCP Server 載入成功: {len(mcp._tool_manager._tools)} 個工具')"
+$verifyResult = python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server 載入成功: {len(mcp._tool_manager._tools)} 個工具')"
 Write-Host $verifyResult -ForegroundColor Green
 
 Write-Host ""
