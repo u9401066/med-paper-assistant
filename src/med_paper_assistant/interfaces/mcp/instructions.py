@@ -103,6 +103,21 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 | `create_plot` | Create visualizations |
 | `generate_table_one` | Generate baseline characteristics table |
 
+### 🎨 DIAGRAM TOOLS (with Draw.io MCP)
+| Tool | When to use |
+|------|-------------|
+| `save_diagram` | Save diagram to project's results/figures |
+| `save_diagram_standalone` | Save diagram without project |
+| `list_diagrams` | List diagrams in project |
+
+**DIAGRAM WORKFLOW (with Draw.io MCP):**
+1. User asks for diagram → Confirm project first
+2. Call `drawio.create_diagram()` → Shows in browser
+3. User edits in browser → Says "存檔" or "save"
+4. Call `drawio.get_diagram_content()` → Get XML
+5. Call `mdpaper.save_diagram(project="xxx", content=...)` → Save to project
+6. If no project → Use `save_diagram_standalone()` or ask user to create project
+
 ### 📄 WORD EXPORT (workflow)
 1. `list_templates` → Available templates
 2. `read_template` → Get template structure
@@ -128,6 +143,8 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 - "ready to write, have references" → `convert_exploration_to_project` → `create_project`
 - "write/draft" → **`validate_concept` first!** → `write_draft`
 - "analyze data" → `analyze_dataset`
+- "create diagram" → **Confirm project first** → `drawio.create_diagram()`
+- "save diagram" → `drawio.get_diagram_content()` → `save_diagram(project=...)`
 - "export to Word" → Use export workflow
 - "Table 1" → `generate_table_one`
 - "references format" → `format_references`

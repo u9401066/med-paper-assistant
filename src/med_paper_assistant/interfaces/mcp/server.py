@@ -47,6 +47,7 @@ from med_paper_assistant.interfaces.mcp.tools import (
     register_draft_tools,
     register_analysis_tools,
     register_export_tools,
+    register_diagram_tools,
 )
 from med_paper_assistant.interfaces.mcp.tools.project_tools import register_project_tools
 from med_paper_assistant.interfaces.mcp.prompts import register_prompts
@@ -147,6 +148,9 @@ def create_server() -> FastMCP:
     
     logger.info("Registering analysis tools...")
     register_analysis_tools(mcp, analyzer)
+    
+    logger.info("Registering diagram tools...")
+    register_diagram_tools(mcp, project_manager)
     
     logger.info("Registering export tools...")
     register_export_tools(mcp, formatter, template_reader, word_writer)
