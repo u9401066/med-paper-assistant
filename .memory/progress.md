@@ -12,7 +12,87 @@
 - [x] DDD Architecture Refactoring
 - [x] Novelty Validation System
 - [x] Draw.io MCP Integration
-- [x] **Draw.io Agent-Generated XML Support** (2025-11-28)
+- [x] Draw.io Agent-Generated XML Support (2025-11-28)
+- [x] **Draw.io Smart Save & User Events** (2025-11-28)
+- [x] **Draw.io Load File & Full Feature Test** (2025-11-28)
+
+## Draw.io Load File & Full Feature Test (2025-11-28)
+
+### New Features
+
+#### 1. Load File Tool
+```python
+load_file_impl(file_path: str, tab_name: Optional[str] = None)
+```
+- 載入現有 .drawio 檔案到瀏覽器編輯器
+- 自動使用檔名作為分頁名稱
+- 支援完整 Draw.io XML 格式
+
+#### 2. Debug Logging System
+前端錯誤可回報到後端終端機，方便除錯：
+```typescript
+// 前端
+fetch('/api/mcp', { body: { action: 'debug_log', message: '...' } });
+
+// 後端 (route.ts)
+console.log(`[BROWSER DEBUG] ${message}`);
+```
+
+### Test Results
+| Test | Description | Status |
+|------|-------------|--------|
+| Simple diagram | "Test" box | ✅ |
+| Baseball field | Full field with bases, lines, outfield | ✅ |
+| User save | Ctrl+S triggers user_save event | ✅ |
+| Load file | load_file loads .drawio | ✅ |
+| Tab switching | Multiple tabs work | ✅ |
+
+### Files Changed
+| File | Changes |
+|------|---------|
+| `tab_tools.py` | Added `load_file_impl` |
+| `diagram-context.tsx` | Added debug logging |
+| `route.ts` | Added `debug_log` action |
+| `page.tsx` | Improved handleSave logging |
+
+## Draw.io Smart Save & User Events (2025-11-28)
+
+### New Features
+
+#### 1. Smart Save Workflow
+```
+save_tab() 無路徑 → 回傳提示 → Agent 詢問/自動判斷 → save_tab(path)
+```
+
+#### 2. User Event Query (Pull Model)
+```
+瀏覽器操作 → 事件隊列 → Agent 需要時呼叫 get_user_events()
+```
+- 隱私保護：不自動發送給 AI
+- 節省 Token：按需拉取
+
+#### 3. Browser Save Button
+- Ctrl+S 觸發檔案下載
+- 檔名格式：`diagram-2025-11-28T10-30-00.drawio`
+- 防抖動：2 秒內不重複
+
+### MCP-to-MCP Collaboration (TODO)
+```
+用戶「存到專案」
+    ↓
+Agent → MDPaper MCP (取專案路徑)
+    ↓
+Agent → Draw.io MCP (save_tab)
+```
+
+### Files Changed
+| File | Changes |
+|------|---------|
+| `tab_tools.py` | `save_tab` 可選路徑 |
+| `web_tools.py` | 新增 `get_user_events` |
+| `web_client.py` | 新增事件查詢 API |
+| `api/mcp/route.ts` | 新增 `user_save`, `events` |
+| `page.tsx` | `onSave` + 檔案下載 |
 
 ## Draw.io Agent-Generated XML (2025-11-28)
 

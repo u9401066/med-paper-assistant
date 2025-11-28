@@ -1,56 +1,54 @@
 # Active Context
 
 ## Current Focus
-Draw.io MCP Tools Enhancement - COMPLETED
+Draw.io MCP 全功能完成與穩定化
 
 ## Recent Changes (2025-11-28)
 
-### Draw.io MCP 智能圖表生成
-- **問題**: `create_diagram` 只產生硬編碼模板，無法根據描述生成複雜圖表
-- **解決方案**: 讓 Agent (Copilot) 直接生成 Draw.io XML，工具只負責發送到瀏覽器
+### 1. Draw.io MCP 完整功能測試 ✅
 
-#### 修改的檔案
-1. `diagram_tools.py`:
-   - 新增 `xml` 參數讓 Agent 可直接傳入 XML
-   - 參數描述包含完整 Draw.io XML 格式說明
-   - 新增 `display_xml_impl()` 和 `_send_xml_to_browser()` 函數
-   - 修正提示訊息避免重複開啟瀏覽器
+所有功能測試通過：
+- ✅ `create_diagram` - 用 Agent 生成 XML 創建複雜圖表
+- ✅ `load_file` - 載入現有 .drawio 檔案
+- ✅ `save_tab` - 智能存檔（無路徑時詢問用戶）
+- ✅ 分頁管理 - 多分頁切換正常
+- ✅ 用戶存檔事件 - Ctrl+S 觸發下載和事件記錄
 
-2. `web_client.py`:
-   - 新增 `is_port_in_use()` 使用 socket 檢查 port
-   - `is_running()` 增加重試機制和更長 timeout
-   - `start_web_server()` 智能處理 port 佔用情況
+### 2. 除錯日誌系統 (Debug Logging)
 
-3. `server.py`:
-   - 移除預先啟動 Web 服務，改為 lazy start
-   - 避免 MCP initialize 超時問題
+新增前端到後端的除錯日誌機制：
 
-### 新工作流程
-```
-用戶「畫研究路線圖」
-    ↓
-Copilot 讀取 concept.md
-    ↓
-Copilot 生成 Draw.io XML
-    ↓
-呼叫 create_diagram(xml=...) MCP 工具
-    ↓
-格式驗證 + 發送到瀏覽器
-    ↓
-圖表即時顯示
+```typescript
+// diagram-context.tsx
+fetch('/api/mcp', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'debug_log', message: '...', ... }),
+});
+
+// route.ts
+if (action === 'debug_log') {
+    console.log(`[BROWSER DEBUG] ${message}`, JSON.stringify(rest));
+}
 ```
 
-### 測試結果
-- ✅ 畫一隻馬：成功生成馬的卡通圖
-- ✅ 研究路線圖：成功生成 6 階段詳細路線圖並儲存
+### 3. 測試案例通過
 
-## Previous Session (2025-11-27)
-- MCP Tools 模組化重構完成
-- 29 個 Python 檔案，10 個模組目錄
-- Git commit: dbf192e
+| 測試 | 描述 | 狀態 |
+|------|------|------|
+| 創建簡單圖表 | "Test" 方框 | ✅ |
+| 創建棒球場 | 完整棒球場圖（外野、內野、壘包、壘線） | ✅ |
+| 用戶存檔 | Ctrl+S 觸發 user_save 事件 | ✅ |
+| 載入檔案 | load_file 載入 .drawio | ✅ |
+
+## 修改的檔案
+
+| 檔案 | 變更 |
+|------|------|
+| `diagram-context.tsx` | 新增 debug logging 到後端 |
+| `route.ts` | 新增 `debug_log` action |
+| `page.tsx` | 改善 handleSave 日誌格式 |
 
 ## Status
-✅ Draw.io MCP 智能圖表生成完成
-✅ Web 服務啟動問題修正
-✅ README 更新
-⏳ Git commit and push pending
+✅ 所有 Draw.io MCP 功能完成並測試通過
+✅ 除錯日誌系統完成
+⏳ Git commit and push
