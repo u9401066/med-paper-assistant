@@ -134,6 +134,22 @@ In VS Code's Copilot Chat panel:
 2. You should see `mdpaper (41 tools)` in the list
 3. If you see this, the installation was successful! 🎉
 
+#### Optional: Setup Draw.io Integration
+
+For diagram generation (CONSORT/PRISMA flowcharts), run:
+
+```bash
+# Initialize submodules and setup Draw.io
+./scripts/setup-integrations.sh
+```
+
+This adds the `drawio` MCP server with tools for creating diagrams.
+
+To use Draw.io:
+1. Start the web app: `./scripts/start-drawio.sh`
+2. Reload VS Code
+3. Use drawio tools in Copilot Chat
+
 #### Manual Installation (If Setup Script Fails)
 
 <details>
@@ -754,6 +770,22 @@ scripts\setup.bat
 1. 輸入 `/mcp` 並按 Enter
 2. 您應該會看到列表中有 `mdpaper (41 tools)`
 3. 如果看到這個，表示安裝成功！🎉
+
+#### 選用：設定 Draw.io 整合
+
+如需圖表生成功能（CONSORT/PRISMA 流程圖），執行：
+
+```bash
+# 初始化子模組並設定 Draw.io
+./scripts/setup-integrations.sh
+```
+
+這會新增 `drawio` MCP 伺服器，提供圖表生成工具。
+
+使用方式：
+1. 啟動網頁應用：`./scripts/start-drawio.sh`
+2. 重新載入 VS Code
+3. 在 Copilot Chat 中使用 drawio 工具
 
 #### 手動安裝（如果腳本失敗）
 

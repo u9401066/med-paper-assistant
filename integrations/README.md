@@ -6,18 +6,43 @@ This folder contains integrated external tools that extend Medical Paper Assista
 
 **Purpose**: Generate diagrams (CONSORT, PRISMA, study flow) from natural language via Draw.io
 
-### Submodule Management
+**Repository**: https://github.com/u9401066/next-ai-draw-io
+
+### Quick Setup
 
 ```bash
-# Update to latest version (when your fork has new commits)
+# From project root
+./scripts/setup-integrations.sh
+```
+
+### Submodule Management
+
+#### 🔄 Update when your fork has new commits
+
+```bash
+# Option 1: One-liner from project root
+git submodule update --remote integrations/next-ai-draw-io
+git add integrations/next-ai-draw-io
+git commit -m "chore: update next-ai-draw-io submodule"
+
+# Option 2: Manual pull
 cd integrations/next-ai-draw-io
 git pull origin main
 cd ../..
 git add integrations/next-ai-draw-io
 git commit -m "chore: update next-ai-draw-io submodule"
+```
 
-# Or use this one-liner from project root
-git submodule update --remote integrations/next-ai-draw-io
+#### 📥 For users cloning this repo
+
+```bash
+# Clone with submodules
+git clone --recurse-submodules https://github.com/u9401066/med-paper-assistant.git
+
+# Or initialize after clone
+git clone https://github.com/u9401066/med-paper-assistant.git
+cd med-paper-assistant
+git submodule update --init --recursive
 ```
 
 ### Setup
