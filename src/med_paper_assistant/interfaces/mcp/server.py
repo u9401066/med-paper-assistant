@@ -61,9 +61,13 @@ class LiteratureSearcher:
         from med_paper_assistant.infrastructure.external.entrez import LiteratureSearcher as EntrezSearcher
         self._entrez_searcher = EntrezSearcher(email=email)
     
-    def search(self, query, limit=5, min_year=None, max_year=None, article_type=None, strategy="relevance"):
-        results = self._client.search(query, limit, min_year, max_year, article_type)
-        return [r.to_dict() for r in results]
+    def search(self, query, limit=5, min_year=None, max_year=None, article_type=None, strategy="relevance", date_from=None, date_to=None, date_type="edat"):
+        # Use Entrez searcher directly for full date support
+        results = self._entrez_searcher.search(
+            query, limit, min_year, max_year, article_type, strategy,
+            date_from=date_from, date_to=date_to, date_type=date_type
+        )
+        return results
     
     def fetch_details(self, id_list):
         results = self._client.fetch_by_pmids(id_list)

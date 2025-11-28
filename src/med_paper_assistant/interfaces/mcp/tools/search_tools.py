@@ -86,7 +86,10 @@ def register_search_tools(mcp: FastMCP, searcher, strategy_manager: StrategyMana
         query: str = "", 
         limit: int = 5, 
         min_year: int = None, 
-        max_year: int = None, 
+        max_year: int = None,
+        date_from: str = None,
+        date_to: str = None,
+        date_type: str = "edat",
         article_type: str = None, 
         strategy: str = "relevance", 
         use_saved_strategy: bool = False
@@ -100,6 +103,14 @@ def register_search_tools(mcp: FastMCP, searcher, strategy_manager: StrategyMana
             limit: The maximum number of results to return.
             min_year: Optional minimum publication year (e.g., 2020).
             max_year: Optional maximum publication year.
+            date_from: Precise start date in YYYY/MM/DD format (e.g., "2025/10/01").
+                       More precise than min_year. If provided, overrides min_year.
+            date_to: Precise end date in YYYY/MM/DD format (e.g., "2025/11/28").
+                     More precise than max_year. If provided, overrides max_year.
+            date_type: Which date field to search. Options:
+                       - "edat" (default): Entrez date - when added to PubMed (best for NEW articles)
+                       - "pdat": Publication date
+                       - "mdat": Modification date
             article_type: Optional article type (e.g., "Review", "Clinical Trial", "Meta-Analysis").
             strategy: Search strategy ("recent", "most_cited", "relevance", "impact", "agent_decided"). 
                      Default is "relevance".
@@ -121,7 +132,11 @@ def register_search_tools(mcp: FastMCP, searcher, strategy_manager: StrategyMana
             if not query:
                 return "Error: Query is required unless use_saved_strategy is True and a strategy is saved."
 
-            results = searcher.search(query, limit, min_year, max_year, article_type, strategy)
+            results = searcher.search(
+                query, limit, min_year, max_year, 
+                article_type, strategy,
+                date_from=date_from, date_to=date_to, date_type=date_type
+            )
             
             if min_sample_size:
                 results = searcher.filter_results(results, min_sample_size)

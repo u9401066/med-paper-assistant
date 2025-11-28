@@ -28,7 +28,10 @@ class SearchMixin:
         min_year: Optional[int] = None, 
         max_year: Optional[int] = None, 
         article_type: Optional[str] = None, 
-        strategy: str = "relevance"
+        strategy: str = "relevance",
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
+        date_type: str = "edat"
     ) -> List[Dict[str, Any]]:
         """
         Search PubMed for articles using a specific strategy.
@@ -36,10 +39,16 @@ class SearchMixin:
         Args:
             query: Search query string.
             limit: Maximum number of results to return.
-            min_year: Minimum publication year.
-            max_year: Maximum publication year.
+            min_year: Minimum publication year (legacy, use date_from for precision).
+            max_year: Maximum publication year (legacy, use date_to for precision).
             article_type: Type of article (e.g., "Review", "Clinical Trial").
             strategy: Search strategy ("recent", "most_cited", "relevance", "impact", "agent_decided").
+            date_from: Precise start date in YYYY/MM/DD format (e.g., "2025/10/01").
+            date_to: Precise end date in YYYY/MM/DD format (e.g., "2025/11/28").
+            date_type: Date field to search. Options:
+                       - "edat" (default): Entrez date (when added to PubMed) - best for finding new articles
+                       - "pdat": Publication date
+                       - "mdat": Modification date
             
         Returns:
             List of dictionaries containing article details.
@@ -62,7 +71,16 @@ class SearchMixin:
             # Construct advanced query
             full_query = query
             
-            if min_year or max_year:
+            # Date range handling - prefer precise dates over year-only
+            if date_from or date_to:
+                # Use precise date format: YYYY/MM/DD
+                # date_type: edat (Entrez date), pdat (Publication date), mdat (Modification date)
+                start_date = date_from if date_from else "1900/01/01"
+                end_date = date_to if date_to else "3000/12/31"
+                date_range = f"{start_date}:{end_date}[{date_type}]"
+                full_query += f" AND {date_range}"
+            elif min_year or max_year:
+                # Legacy year-only format
                 date_range = f"{min_year or 1900}/01/01:{max_year or 3000}/12/31[dp]"
                 full_query += f" AND {date_range}"
                 
