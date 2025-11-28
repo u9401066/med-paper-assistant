@@ -27,29 +27,36 @@ cd "$DRAWIO_DIR"
 
 # Check for Node.js
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is not installed. Please install Node.js 18+ first."
-    echo "   https://nodejs.org/"
-    exit 1
+    echo "⚠️  Node.js is not installed."
+    echo "   The Draw.io web app requires Node.js 18+"
+    echo "   Install from: https://nodejs.org/"
+    echo ""
+    echo "   Continuing with MCP server setup only..."
+    SKIP_NEXTJS=true
+else
+    NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+    if [ "$NODE_VERSION" -lt 18 ]; then
+        echo "⚠️  Node.js version 18+ required. Found: $(node -v)"
+        echo "   Continuing with MCP server setup only..."
+        SKIP_NEXTJS=true
+    else
+        echo "✅ Node.js $(node -v) detected"
+        SKIP_NEXTJS=false
+    fi
 fi
 
-NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 18 ]; then
-    echo "❌ Node.js version 18+ required. Found: $(node -v)"
-    exit 1
-fi
-
-echo "✅ Node.js $(node -v) detected"
-
-# Install npm dependencies
-echo "📦 Installing npm dependencies..."
-npm install
-
-# Setup environment file
-if [ ! -f ".env.local" ]; then
-    if [ -f "env.example" ]; then
-        cp env.example .env.local
-        echo "📝 Created .env.local from template"
-        echo "   ⚠️  Please edit .env.local to configure your LLM provider"
+# Install npm dependencies (if Node.js available)
+if [ "$SKIP_NEXTJS" = false ]; then
+    echo "📦 Installing npm dependencies..."
+    npm install
+    
+    # Setup environment file
+    if [ ! -f ".env.local" ]; then
+        if [ -f "env.example" ]; then
+            cp env.example .env.local
+            echo "📝 Created .env.local from template"
+            echo "   ⚠️  Please edit .env.local to configure your LLM provider"
+        fi
     fi
 fi
 
