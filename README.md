@@ -583,6 +583,24 @@ pytest tests/ -v
 
 ---
 
+### 🗺️ Roadmap
+
+We're actively developing new features. Here's what's coming:
+
+| Status | Feature | Description |
+|--------|---------|-------------|
+| 🔜 | **Draw.io Integration** | Generate CONSORT/PRISMA flowcharts from concept files via [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) |
+| 🔜 | **Table Generator** | Auto-generate Table 1 (baseline characteristics) from CSV data |
+| 📋 | **Multi-language Support** | Full UI localization beyond English/Chinese |
+| 📋 | **Journal Style Library** | Pre-configured styles for major medical journals |
+| 📋 | **Collaboration Mode** | Multi-author workflow with version control |
+
+**Legend:** 🔜 In Progress | 📋 Planned
+
+Want to help? Check out [CONTRIBUTING.md](CONTRIBUTING.md) or open an issue to discuss!
+
+---
+
 ### 🤝 Contributing
 
 We welcome contributions from the community! Whether you're a medical researcher with workflow ideas, a developer who wants to add features, or someone who found a bug - we'd love to hear from you.
@@ -1144,6 +1162,24 @@ pytest tests/test_search.py
 # 顯示詳細輸出
 pytest tests/ -v
 \`\`\`
+
+---
+
+### 🗺️ 開發藍圖
+
+我們正在積極開發新功能，以下是規劃中的項目：
+
+| 狀態 | 功能 | 說明 |
+|------|------|------|
+| 🔜 | **Draw.io 整合** | 從 concept 檔案生成 CONSORT/PRISMA 流程圖，透過 [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) |
+| 🔜 | **表格生成器** | 從 CSV 數據自動生成 Table 1（基線特徵表）|
+| 📋 | **多語言支援** | 完整 UI 本地化，不只英文/中文 |
+| 📋 | **期刊樣式庫** | 預設主要醫學期刊的格式設定 |
+| 📋 | **協作模式** | 多作者工作流程與版本控制 |
+
+**圖例：** 🔜 進行中 | 📋 規劃中
+
+想幫忙？查看 [CONTRIBUTING.md](CONTRIBUTING.md) 或開 issue 來討論！
 
 ---
 
