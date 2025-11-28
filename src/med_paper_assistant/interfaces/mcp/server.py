@@ -12,13 +12,18 @@ Architecture:
     server.py (this file) - Main entry point, initializes and registers all modules
     config.py - Server configuration and constants
     tools/ - MCP tool definitions organized by functionality
-        search_tools.py - Literature search and strategy
-        reference_tools.py - Reference and citation management
-        draft_tools.py - Draft creation and word counting
-        analysis_tools.py - Data analysis and visualization
-        export_tools.py - Word document export workflow
+        project/     - Project management (CRUD, settings, exploration)
+        draft/       - Draft writing and templates
+        search/      - Literature search (PubMed)
+        reference/   - Reference management and citation
+        analysis/    - Data analysis and visualization
+        validation/  - Concept and idea validation
+        discussion/  - Academic debate (future)
+        review/      - Peer review simulation (future)
+        export/      - Word document export
+        diagram/     - Draw.io integration
+        _shared/     - Shared utilities
     prompts/ - MCP prompt definitions
-        prompts.py - Guided workflows for common tasks
 """
 
 from mcp.server.fastmcp import FastMCP
@@ -42,14 +47,15 @@ from med_paper_assistant.infrastructure.external.pubmed import PubMedClient
 # Server modules
 from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS, DEFAULT_EMAIL
 from med_paper_assistant.interfaces.mcp.tools import (
+    register_project_tools,
     register_search_tools,
     register_reference_tools,
     register_draft_tools,
     register_analysis_tools,
+    register_validation_tools,
     register_export_tools,
     register_diagram_tools,
 )
-from med_paper_assistant.interfaces.mcp.tools.project_tools import register_project_tools
 from med_paper_assistant.interfaces.mcp.prompts import register_prompts
 
 
@@ -148,6 +154,9 @@ def create_server() -> FastMCP:
     
     logger.info("Registering analysis tools...")
     register_analysis_tools(mcp, analyzer)
+    
+    logger.info("Registering validation tools...")
+    register_validation_tools(mcp)
     
     logger.info("Registering diagram tools...")
     register_diagram_tools(mcp, project_manager)

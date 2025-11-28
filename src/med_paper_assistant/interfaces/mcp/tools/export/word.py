@@ -1,16 +1,7 @@
 """
-Export Tools Module
+Word Export Tools
 
-Tools for Word document export using the 8-step workflow:
-1. read_template - Get template structure
-2. read_draft - Get draft content  
-3. start_document_session - Begin editing session
-4. insert_section - Insert content (Agent decides where)
-5. verify_document - Check content placement
-6. check_word_limits - Verify word limits
-7. save_document - Final output
-
-Also includes the legacy export_word tool for simple exports.
+Full Word export workflow with session management.
 """
 
 import os
@@ -29,13 +20,13 @@ def get_active_documents() -> dict:
     return _active_documents
 
 
-def register_export_tools(
+def register_word_export_tools(
     mcp: FastMCP, 
     formatter: Formatter,
     template_reader: TemplateReader,
     word_writer: WordWriter
 ):
-    """Register all export-related tools with the MCP server."""
+    """Register Word export tools."""
     
     # ============================================================
     # LEGACY EXPORT
@@ -49,9 +40,9 @@ def register_export_tools(
         Export a markdown draft to a Word document using a template.
         
         Args:
-            draft_filename: Path to the markdown draft file (e.g., "drafts/draft.md").
+            draft_filename: Path to the markdown draft file.
             template_name: Name of the template file in templates/ or full path.
-            output_filename: Path to save the output file (e.g., "results/paper.docx").
+            output_filename: Path to save the output file.
         """
         try:
             path = formatter.apply_template(draft_filename, template_name, output_filename)
@@ -60,7 +51,7 @@ def register_export_tools(
             return f"Error exporting Word document: {str(e)}"
 
     # ============================================================
-    # NEW WORKFLOW: Template-based Word Export with Agent Control
+    # NEW WORKFLOW
     # ============================================================
 
     @mcp.tool()
@@ -87,7 +78,7 @@ def register_export_tools(
     def read_template(template_name: str) -> str:
         """
         Read a Word template and get its structure.
-        Use this FIRST to understand what sections the template has and their word limits.
+        Use this FIRST to understand what sections the template has.
         
         Args:
             template_name: Name of the template file (e.g., "Type of the Paper.docx").
@@ -104,11 +95,10 @@ def register_export_tools(
     def start_document_session(template_name: str, session_id: str = "default") -> str:
         """
         Start a new document editing session by loading a template.
-        This creates an in-memory document that you can modify with insert_section.
         
         Args:
             template_name: Name of the template file.
-            session_id: Unique identifier for this editing session (default: "default").
+            session_id: Unique identifier for this editing session.
             
         Returns:
             Confirmation and template structure.
@@ -140,13 +130,12 @@ def register_export_tools(
     ) -> str:
         """
         Insert content into a specific section of the active document.
-        YOU (the Agent) decide which section to insert into based on your analysis.
         
         Args:
-            session_id: The document session ID (from start_document_session).
+            session_id: The document session ID.
             section_name: Target section name (e.g., "Introduction", "Methods").
-            content: The text content to insert (can include multiple paragraphs).
-            mode: "replace" (clear existing then insert) or "append" (add to existing).
+            content: The text content to insert.
+            mode: "replace" (clear existing) or "append" (add to existing).
             
         Returns:
             Confirmation with word count for the section.
@@ -181,7 +170,6 @@ def register_export_tools(
     def verify_document(session_id: str) -> str:
         """
         Get a summary of the current document state for verification.
-        Use this to check that all content was inserted correctly.
         
         Args:
             session_id: The document session ID.
@@ -224,9 +212,7 @@ def register_export_tools(
         
         Args:
             session_id: The document session ID.
-            limits_json: Optional JSON string with custom limits, 
-                        e.g., '{"Introduction": 800, "Abstract": 250}'.
-                        If not provided, uses default limits.
+            limits_json: Optional JSON with custom limits.
             
         Returns:
             Word limit compliance report.
@@ -240,7 +226,6 @@ def register_export_tools(
             
             counts = word_writer.get_all_word_counts(doc)
             
-            # Default limits
             limits = {
                 "Abstract": 250,
                 "Introduction": 800,
@@ -280,7 +265,7 @@ def register_export_tools(
             if all_ok:
                 output += "\n✅ **All sections within word limits!**"
             else:
-                output += "\n⚠️ **Some sections exceed word limits. Consider revising.**"
+                output += "\n⚠️ **Some sections exceed word limits.**"
             
             return output
         except Exception as e:
@@ -290,11 +275,10 @@ def register_export_tools(
     def save_document(session_id: str, output_filename: str) -> str:
         """
         Save the document to a Word file.
-        This is the final step after all content has been inserted and verified.
         
         Args:
             session_id: The document session ID.
-            output_filename: Path to save the output file (e.g., "results/paper.docx").
+            output_filename: Path to save the output file.
             
         Returns:
             Confirmation with file path.

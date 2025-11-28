@@ -1,28 +1,25 @@
 """
-Reference Tools Module
+Reference Manager Tools
 
-Tools for reference management, citation formatting, and bibliography generation.
+save_reference, list, search, format, citation management
 """
 
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.infrastructure.persistence import ReferenceManager, ProjectManager
-from med_paper_assistant.infrastructure.services import Drafter, CitationStyle, JOURNAL_CITATION_CONFIGS
-from .project_context import ensure_project_context, get_project_list_for_prompt
+from med_paper_assistant.infrastructure.persistence import ReferenceManager
+from med_paper_assistant.infrastructure.services import Drafter
+from .._shared import ensure_project_context, get_project_list_for_prompt
 
 
-def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter):
-    """Register all reference-related tools with the MCP server."""
+def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter):
+    """Register reference management tools."""
     
-    # Get project manager from ref_manager for auto-project creation
+    # Get project manager for auto-project creation
     project_manager = ref_manager._project_manager
     
     def _ensure_project_exists() -> str:
-        """
-        Ensure a project exists for saving references.
-        Returns info message if temp project was created.
-        """
+        """Ensure a project exists for saving references."""
         if project_manager is None:
             return ""
         
@@ -30,7 +27,6 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         if current:
             return ""
         
-        # No project - create temp exploration workspace
         result = project_manager.get_or_create_temp_project()
         if result.get("success"):
             return "\n\n💡 *已自動建立文獻探索工作區。找到研究方向後，使用 `convert_exploration_to_project` 轉換為正式專案。*"
@@ -48,23 +44,18 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         - PDF fulltext if available from PubMed Central (Open Access)
         
         If no project is active, automatically creates an exploration workspace.
-        Use `convert_exploration_to_project` to convert to a formal project later.
         
         Args:
             pmid: The PubMed ID of the article to save.
             download_pdf: Whether to attempt downloading PDF from PMC (default: True).
-            project: Project slug to save to. If not specified, uses current project.
-                     Agent should confirm project with user before calling.
+            project: Project slug to save to. Agent should confirm with user.
         """
-        # Validate project context if specified
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
         
-        # Ensure we have somewhere to save the reference
         project_msg = _ensure_project_exists()
-        
         result = ref_manager.save_reference(pmid, download_pdf=download_pdf)
         return result + project_msg
 
@@ -79,7 +70,6 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         Returns:
             List of PMIDs with title, year, and PDF availability.
         """
-        # Validate project context if specified
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
@@ -175,7 +165,6 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         Read the fulltext PDF content of a saved reference.
         
         Only works if the PDF was downloaded from PubMed Central.
-        Use this to get detailed information beyond the abstract.
         
         Args:
             pmid: PubMed ID of the reference.
@@ -204,9 +193,6 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         """
         Retry downloading PDF for a reference that doesn't have one.
         
-        Useful if you saved a reference earlier without PDF download,
-        or want to try again for an article that might now be available.
-        
         Args:
             pmid: PubMed ID of the reference.
         """
@@ -229,19 +215,15 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
     @mcp.tool()
     def format_references(pmids: str, style: str = "vancouver", journal: str = None) -> str:
         """
-        Format a list of references according to a specific citation style or journal format.
-        Uses the pre-formatted citations stored in metadata when available.
+        Format a list of references according to a specific citation style.
         
         Args:
             pmids: Comma-separated list of PMIDs (e.g., "31645286,28924371,33160604").
             style: Citation style ("vancouver", "apa", "harvard", "nature", "ama", "mdpi", "nlm").
-                   Default is "vancouver".
-            journal: Optional journal name for journal-specific formatting 
-                    (e.g., "sensors", "lancet", "bja", "anesthesiology").
-                    If provided, overrides the style parameter.
+            journal: Optional journal name for journal-specific formatting.
         
         Returns:
-            Formatted reference list ready for insertion into the References section.
+            Formatted reference list ready for insertion.
         """
         pmid_list = [p.strip() for p in pmids.split(",") if p.strip()]
         
@@ -255,10 +237,9 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
             metadata = ref_manager.get_metadata(pmid)
             
             if not metadata:
-                output += f"[{i}] PMID:{pmid} - Reference not found in local library. Use save_reference first.\n"
+                output += f"[{i}] PMID:{pmid} - Reference not found. Use save_reference first.\n"
                 continue
             
-            # Use pre-formatted citation if available
             citation = metadata.get('citation', {})
             
             if style.lower() == "vancouver" and citation.get('vancouver'):
@@ -268,7 +249,6 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
             elif style.lower() == "nature" and citation.get('nature'):
                 output += f"{i}. {citation['nature']}\n"
             else:
-                # Fallback to basic format
                 authors = metadata.get('authors', [])
                 title = metadata.get('title', 'Unknown Title')
                 journal_name = metadata.get('journal', 'Unknown Journal')

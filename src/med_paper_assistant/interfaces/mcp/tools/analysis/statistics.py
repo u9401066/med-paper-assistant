@@ -1,20 +1,19 @@
 """
-Analysis Tools Module
+Statistics Tools
 
-Tools for data analysis, statistical tests, Table 1 generation, and visualization.
+analyze_dataset, run_statistical_test, generate_table_one
 """
 
 from mcp.server.fastmcp import FastMCP
-
 from med_paper_assistant.infrastructure.services import Analyzer
 from med_paper_assistant.infrastructure.logging import setup_logger
 
 logger = setup_logger()
 
 
-def register_analysis_tools(mcp: FastMCP, analyzer: Analyzer):
-    """Register all analysis-related tools with the MCP server."""
-    
+def register_statistics_tools(mcp: FastMCP, analyzer: Analyzer):
+    """Register statistics analysis tools."""
+
     @mcp.tool()
     def analyze_dataset(filename: str) -> str:
         """
@@ -89,20 +88,3 @@ def register_analysis_tools(mcp: FastMCP, analyzer: Analyzer):
             return analyzer.run_statistical_test(filename, test_type, col1, col2)
         except Exception as e:
             return f"Error running test: {str(e)}"
-
-    @mcp.tool()
-    def create_plot(filename: str, plot_type: str, x_col: str, y_col: str) -> str:
-        """
-        Create a plot from the dataset.
-        
-        Args:
-            filename: Name of the CSV file.
-            plot_type: Type of plot ("scatter", "bar", "box", "histogram").
-            x_col: Column for X-axis.
-            y_col: Column for Y-axis.
-        """
-        try:
-            path = analyzer.create_plot(filename, plot_type, x_col, y_col)
-            return f"Plot created successfully at: {path}"
-        except Exception as e:
-            return f"Error creating plot: {str(e)}"

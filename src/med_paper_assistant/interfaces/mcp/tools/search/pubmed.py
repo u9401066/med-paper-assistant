@@ -1,13 +1,13 @@
 """
-Search Tools Module
+PubMed Search Tools
 
-Tools for literature search, search strategy configuration, and result formatting.
+search_literature, find_related_articles, find_citing_articles, search strategy
 """
 
 import json
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.infrastructure.external.pubmed.client import SearchStrategy
+from med_paper_assistant.infrastructure.external.pubmed.client import PubMedClient
 from med_paper_assistant.infrastructure.services import StrategyManager
 from med_paper_assistant.infrastructure.logging import setup_logger
 
@@ -55,8 +55,8 @@ def format_search_results(results: list, include_doi: bool = True) -> str:
     return formatted_output
 
 
-def register_search_tools(mcp: FastMCP, searcher, strategy_manager: StrategyManager):
-    """Register all search-related tools with the MCP server."""
+def register_pubmed_tools(mcp: FastMCP, searcher: PubMedClient, strategy_manager: StrategyManager):
+    """Register PubMed search tools."""
     
     @mcp.tool()
     def configure_search_strategy(criteria_json: str) -> str:
