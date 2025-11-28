@@ -1,0 +1,3 @@
+[submodule "integrations/next-ai-draw-io"]
+	path = integrations/next-ai-draw-io
+	url = https://github.com/u9401066/next-ai-draw-io.git

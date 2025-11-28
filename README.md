@@ -589,7 +589,7 @@ We're actively developing new features. Here's what's coming:
 
 | Status | Feature | Description |
 |--------|---------|-------------|
-| 🔜 | **Draw.io Integration** | Generate CONSORT/PRISMA flowcharts from concept files via [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) |
+| ✅ | **Draw.io Integration** | Generate CONSORT/PRISMA flowcharts from concept files via [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) - see [integrations/](integrations/) |
 | 🔜 | **Table Generator** | Auto-generate Table 1 (baseline characteristics) from CSV data |
 | 📋 | **Multi-language Support** | Full UI localization beyond English/Chinese |
 | 📋 | **Journal Style Library** | Pre-configured styles for major medical journals |
@@ -1171,7 +1171,7 @@ pytest tests/ -v
 
 | 狀態 | 功能 | 說明 |
 |------|------|------|
-| 🔜 | **Draw.io 整合** | 從 concept 檔案生成 CONSORT/PRISMA 流程圖，透過 [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) |
+| ✅ | **Draw.io 整合** | 從 concept 檔案生成 CONSORT/PRISMA 流程圖，透過 [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) - 見 [integrations/](integrations/) |
 | 🔜 | **表格生成器** | 從 CSV 數據自動生成 Table 1（基線特徵表）|
 | 📋 | **多語言支援** | 完整 UI 本地化，不只英文/中文 |
 | 📋 | **期刊樣式庫** | 預設主要醫學期刊的格式設定 |
