@@ -7,6 +7,16 @@ Separated from config.py for better maintainability.
 
 TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 
+### 🌐 LANGUAGE RULES
+**NEVER translate academic English content:**
+- Paper titles → Keep original English (e.g., "Impact of liberal preoperative...")
+- Journal names → Keep original (e.g., "British journal of anaesthesia")
+- Author names → Keep original
+- Medical terms → Keep original (e.g., "remimazolam", "ECMO")
+- Abstract content → Keep original
+
+**Only translate when explicitly asked by user.**
+
 ### ⚠️ MANDATORY VALIDATION RULE
 **Before writing ANY draft (except concept.md), you MUST:**
 1. Run `validate_concept(concept.md)`
