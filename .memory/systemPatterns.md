@@ -1,20 +1,40 @@
 # System Patterns
 
-## Architecture (Modular - 2025-11-25)
+## Architecture Overview
+
+### Main MCP Server (DDD Pattern - 2025-11-27)
 ```
-src/med_paper_assistant/mcp_server/
-├── server.py           # Entry point (~90 lines)
-├── config.py           # SERVER_INSTRUCTIONS, constants
-├── tools/              # Tool modules
-│   ├── __init__.py     # register_all_tools()
-│   ├── search.py       # search_literature, configure_search_strategy, etc.
-│   ├── reference.py    # save_reference, format_references, etc.
-│   ├── draft.py        # write_draft, insert_citation, etc.
-│   ├── analysis.py     # analyze_dataset, generate_table_one, etc.
-│   └── export.py       # Word export workflow (10 tools)
-└── prompts/
-    ├── __init__.py     # register_prompts()
-    └── prompts.py      # 6 guided workflow prompts
+src/med_paper_assistant/
+├── domain/              # Core business logic
+│   ├── entities/        # Project, Reference, Draft
+│   ├── value_objects/   # CitationStyle, SearchCriteria
+│   └── services/        # CitationFormatter, NoveltyScorer
+├── application/         # Use cases
+│   └── use_cases/       # CreateProject, SearchLiterature
+├── infrastructure/      # Technical concerns
+│   ├── persistence/     # ProjectManager, ReferenceManager
+│   ├── services/        # Analyzer, Drafter, Formatter
+│   └── external/        # PubMedClient
+└── interfaces/mcp/      # MCP server (43 tools)
+    ├── __main__.py      # Entry point (avoids RuntimeWarning)
+    ├── server.py        # FastMCP setup
+    └── tools/           # Modular tool registration
+```
+
+### Draw.io MCP Server (Submodule - 2025-11-28)
+```
+integrations/next-ai-draw-io/
+├── app/                 # Next.js 15 frontend
+│   └── api/             # REST APIs for MCP
+└── mcp-server/
+    └── src/drawio_mcp_server/
+        ├── __main__.py      # Entry point
+        ├── server.py        # FastMCP (10 tools)
+        ├── config.py        # Environment config
+        ├── web_client.py    # HTTP client
+        ├── diagram_generator.py
+        ├── validator.py     # XML validation
+        └── tools/           # Modular tools
 ```
 
 - **Memory Bank**: .memory/ directory for context persistence.

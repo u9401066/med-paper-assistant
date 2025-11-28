@@ -10,7 +10,56 @@
 - [x] Project Configuration & Memory
 - [x] MCP Server Modular Refactoring
 - [x] DDD Architecture Refactoring
-- [x] **Novelty Validation System** (NEW)
+- [x] Novelty Validation System
+- [x] **Draw.io MCP Integration** (NEW)
+
+## Draw.io MCP Integration (2025-11-28)
+
+### Overview
+Integrated Draw.io diagram creation/editing as a submodule with its own MCP server:
+
+```
+integrations/next-ai-draw-io/           # Git submodule
+├── app/                                # Next.js 15 frontend
+│   ├── api/mcp/route.ts               # MCP communication API
+│   └── api/tabs/route.ts              # Tab management API
+└── mcp-server/                         # Python MCP server
+    └── src/drawio_mcp_server/
+        ├── __main__.py                # Entry point
+        ├── server.py                  # FastMCP server (10 tools)
+        ├── config.py                  # Configuration management
+        ├── web_client.py              # HTTP client for Next.js
+        ├── diagram_generator.py       # XML generation
+        ├── validator.py               # XML validation
+        ├── templates.py               # Diagram templates
+        └── tools/                     # Modular tool definitions
+            ├── diagram_tools.py       # create/edit/read
+            ├── template_tools.py      # templates & export
+            ├── tab_tools.py           # tab management
+            └── web_tools.py           # web service control
+```
+
+### Key Features
+| Feature | Description |
+|---------|-------------|
+| **10 MCP Tools** | Create, edit, read, export diagrams |
+| **Auto Web Start** | MCP auto-starts Next.js server |
+| **Multi-Tab** | Multiple diagrams in tabs |
+| **XML Validation** | Validates Draw.io XML before sending |
+| **9 Diagram Types** | flowchart, aws, gcp, azure, mindmap, sequence, er, network, custom |
+
+### MCP RuntimeWarning Fix
+Fixed Python module import warnings for both MCP servers:
+
+```python
+# Before: python -m package.server (causes RuntimeWarning)
+# After:  python -m package (uses __main__.py)
+```
+
+Updated:
+- `med_paper_assistant.interfaces.mcp/__main__.py` - New entry point
+- `med_paper_assistant.interfaces.mcp/__init__.py` - Lazy imports
+- `.vscode/mcp.json` - Updated args to use package module
 
 ## Novelty Validation System (2025-11-27)
 

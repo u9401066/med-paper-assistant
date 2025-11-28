@@ -159,9 +159,10 @@ def create_server() -> FastMCP:
     return mcp
 
 
-# Create the server instance
-mcp = create_server()
-
+# Note: Server instance is created lazily via __main__.py or create_server()
+# This avoids RuntimeWarning when running with python -m
 
 if __name__ == "__main__":
+    # Direct execution (not recommended, use python -m instead)
+    mcp = create_server()
     mcp.run()
