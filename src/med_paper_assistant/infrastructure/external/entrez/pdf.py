@@ -7,6 +7,9 @@ Provides functionality to download PDFs from PubMed Central Open Access.
 from Bio import Entrez
 from typing import Optional
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PDFMixin:
@@ -62,7 +65,10 @@ class PDFMixin:
             pmc_id = self._get_pmc_id(pmid)
             
             if not pmc_id:
+                logger.info(f"PMID {pmid}: No PMC ID found - article not in PubMed Central Open Access")
                 return False
+            
+            logger.info(f"PMID {pmid}: Found PMC ID {pmc_id}, attempting PDF download...")
             
             # Try to get the PDF from PMC
             oa_url = f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/pdf/"
@@ -73,14 +79,18 @@ class PDFMixin:
             
             response = requests.get(oa_url, headers=headers, allow_redirects=True, timeout=30)
             
-            if response.status_code == 200 and 'application/pdf' in response.headers.get('Content-Type', ''):
+            content_type = response.headers.get('Content-Type', '')
+            
+            if response.status_code == 200 and 'application/pdf' in content_type:
                 with open(output_path, 'wb') as f:
                     f.write(response.content)
+                logger.info(f"PMID {pmid}: PDF downloaded successfully ({len(response.content)} bytes)")
                 return True
             
+            logger.warning(f"PMID {pmid}: PDF download failed - status={response.status_code}, content_type={content_type}")
             return False
         except Exception as e:
-            print(f"Error downloading PDF: {e}")
+            logger.error(f"PMID {pmid}: Error downloading PDF - {e}")
             return False
 
     def _get_pmc_id(self, pmid: str) -> Optional[str]:
@@ -103,7 +113,11 @@ class PDFMixin:
                     if linkset.get('LinkName') == 'pubmed_pmc':
                         links = linkset.get('Link', [])
                         if links:
-                            return links[0]['Id']
+                            pmc_id = links[0]['Id']
+                            logger.debug(f"PMID {pmid} -> PMC{pmc_id}")
+                            return pmc_id
+            logger.debug(f"PMID {pmid}: No PMC link found")
             return None
-        except Exception:
+        except Exception as e:
+            logger.error(f"PMID {pmid}: Error looking up PMC ID - {e}")
             return None

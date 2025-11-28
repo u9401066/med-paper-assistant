@@ -5,7 +5,7 @@ Contains the tool selection guide and server instructions for the AI agent.
 Separated from config.py for better maintainability.
 """
 
-TOOL_GUIDE = """## TOOL SELECTION GUIDE (43 tools)
+TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 
 ### ⚠️ MANDATORY VALIDATION RULE
 **Before writing ANY draft (except concept.md), you MUST:**
@@ -27,6 +27,15 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (43 tools)
 | `get_paper_types` | List available paper types |
 | `update_project_settings` | Change paper type or preferences |
 
+### 🔍 LITERATURE EXPLORATION (NEW!)
+| Tool | When to use |
+|------|-------------|
+| `start_exploration` | Start exploring literature without formal project |
+| `get_exploration_status` | Check exploration workspace contents |
+| `convert_exploration_to_project` | Convert exploration to formal project |
+
+**Workflow:** User wants to browse papers first → `start_exploration` → search & save → `convert_exploration_to_project`
+
 ### 🔍 LITERATURE SEARCH
 | Tool | When to use |
 |------|-------------|
@@ -39,7 +48,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (43 tools)
 ### 📚 REFERENCE MANAGEMENT
 | Tool | When to use |
 |------|-------------|
-| `save_reference` | Save PMID to library (downloads PDF if available) |
+| `save_reference` | Save PMID to library (auto-creates exploration workspace if no project) |
 | `list_saved_references` | List saved papers |
 | `search_local_references` | Search within saved library |
 | `get_reference_details` | Get complete citation info |
@@ -87,9 +96,11 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (43 tools)
 | 🔒 Author Notes | Never exported | Do not include in drafts |
 
 ## QUICK DECISION TREE
+- "just want to browse/explore papers" → `start_exploration`
 - "search/find papers" → `search_literature`
-- "save this paper" → `save_reference`
+- "save this paper" → `save_reference` (auto-creates workspace if needed)
 - "my saved papers" → `list_saved_references`
+- "ready to write, have references" → `convert_exploration_to_project` → `create_project`
 - "write/draft" → **`validate_concept` first!** → `write_draft`
 - "analyze data" → `analyze_dataset`
 - "export to Word" → Use export workflow
@@ -99,6 +110,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (43 tools)
 ## PROMPTS
 | Prompt | Use when |
 |--------|----------|
+| `/mdpaper.search` | Literature exploration (auto-creates temp workspace) |
 | `/mdpaper.project` | Setup/configure project |
 | `/mdpaper.concept` | Develop research concept |
 | `/mdpaper.strategy` | Configure search strategy |

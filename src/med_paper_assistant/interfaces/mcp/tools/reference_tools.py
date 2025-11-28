@@ -6,12 +6,33 @@ Tools for reference management, citation formatting, and bibliography generation
 
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.infrastructure.persistence import ReferenceManager
+from med_paper_assistant.infrastructure.persistence import ReferenceManager, ProjectManager
 from med_paper_assistant.infrastructure.services import Drafter, CitationStyle, JOURNAL_CITATION_CONFIGS
 
 
 def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter):
     """Register all reference-related tools with the MCP server."""
+    
+    # Get project manager from ref_manager for auto-project creation
+    project_manager = ref_manager._project_manager
+    
+    def _ensure_project_exists() -> str:
+        """
+        Ensure a project exists for saving references.
+        Returns info message if temp project was created.
+        """
+        if project_manager is None:
+            return ""
+        
+        current = project_manager.get_current_project()
+        if current:
+            return ""
+        
+        # No project - create temp exploration workspace
+        result = project_manager.get_or_create_temp_project()
+        if result.get("success"):
+            return "\n\n💡 *已自動建立文獻探索工作區。找到研究方向後，使用 `convert_exploration_to_project` 轉換為正式專案。*"
+        return ""
     
     @mcp.tool()
     def save_reference(pmid: str, download_pdf: bool = True) -> str:
@@ -24,11 +45,18 @@ def register_reference_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafte
         - Abstract as markdown
         - PDF fulltext if available from PubMed Central (Open Access)
         
+        If no project is active, automatically creates an exploration workspace.
+        Use `convert_exploration_to_project` to convert to a formal project later.
+        
         Args:
             pmid: The PubMed ID of the article to save.
             download_pdf: Whether to attempt downloading PDF from PMC (default: True).
         """
-        return ref_manager.save_reference(pmid, download_pdf=download_pdf)
+        # Ensure we have somewhere to save the reference
+        project_msg = _ensure_project_exists()
+        
+        result = ref_manager.save_reference(pmid, download_pdf=download_pdf)
+        return result + project_msg
 
     @mcp.tool()
     def list_saved_references() -> str:

@@ -231,6 +231,46 @@ flowchart LR
     E --> F["📄 Export<br/>/format"]
 ```
 
+#### 🆕 Literature Exploration Mode (Recommended for Beginners!)
+
+**Don't know what to research?** Start by exploring literature first!
+
+**Command**: `/mcp.mdpaper.search`
+
+```mermaid
+flowchart LR
+    A["🔍 Start Exploration"] --> B["📚 Search & Save Papers"]
+    B --> C{"Found Direction?"}
+    C -->|Not yet| B
+    C -->|Yes!| D["📁 Convert to Project"]
+    D --> E["✍️ Start Writing"]
+```
+
+**How it works:**
+
+1. **Start exploring** - Automatically creates a temporary workspace
+   ```
+   start_exploration()
+   ```
+
+2. **Search and save interesting papers** - No project commitment required
+   ```
+   search_literature(query="your interest topic")
+   save_reference(pmid="12345678")  # Save interesting ones
+   ```
+
+3. **When you find a direction** - Convert to formal project with all references
+   ```
+   convert_exploration_to_project(
+       name="Your Research Title",
+       paper_type="original-research"
+   )
+   ```
+
+> 💡 **Benefit**: All references saved during exploration are automatically transferred to your new project!
+
+---
+
 #### Step 1: Prepare Your Data
 
 Before starting, organize your files:
@@ -751,6 +791,46 @@ flowchart LR
     D --> E["🔄 內容修正<br/>/clarify"]
     E --> F["📄 格式匯出<br/>/format"]
 ```
+
+#### 🆕 文獻探索模式（推薦新手使用！）
+
+**還不確定研究方向？** 先從探索文獻開始！
+
+**指令**：`/mcp.mdpaper.search`
+
+```mermaid
+flowchart LR
+    A["🔍 開始探索"] --> B["📚 搜尋並儲存論文"]
+    B --> C{"找到方向了嗎？"}
+    C -->|還沒| B
+    C -->|找到了！| D["📁 轉換成正式專案"]
+    D --> E["✍️ 開始撰寫"]
+```
+
+**使用方式：**
+
+1. **開始探索** - 自動建立臨時工作區
+   ```
+   start_exploration()
+   ```
+
+2. **搜尋並儲存有興趣的論文** - 不需要事先決定專案
+   ```
+   search_literature(query="您感興趣的主題")
+   save_reference(pmid="12345678")  # 儲存有興趣的論文
+   ```
+
+3. **找到研究方向後** - 將探索內容轉換成正式專案
+   ```
+   convert_exploration_to_project(
+       name="Your Research Title",  # 英文名稱
+       paper_type="original-research"
+   )
+   ```
+
+> 💡 **好處**：探索期間儲存的所有文獻都會自動轉移到新專案！
+
+---
 
 #### 步驟 1：準備您的資料
 

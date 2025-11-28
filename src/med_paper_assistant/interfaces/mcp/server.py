@@ -57,6 +57,9 @@ class LiteratureSearcher:
     """Wrapper for backward compatibility with existing code."""
     def __init__(self, email: str):
         self._client = PubMedClient(email=email)
+        # Also initialize the Entrez searcher for PDF downloads
+        from med_paper_assistant.infrastructure.external.entrez import LiteratureSearcher as EntrezSearcher
+        self._entrez_searcher = EntrezSearcher(email=email)
     
     def search(self, query, limit=5, min_year=None, max_year=None, article_type=None, strategy="relevance"):
         results = self._client.search(query, limit, min_year, max_year, article_type)
@@ -76,6 +79,23 @@ class LiteratureSearcher:
     
     def download_pdf(self, pmid):
         return self._client.download_pdf(pmid)
+    
+    def download_pmc_pdf(self, pmid: str, output_path: str) -> bool:
+        """
+        Download PDF from PubMed Central if available.
+        
+        Uses the Entrez searcher's PDF download functionality which:
+        1. Finds the PMC ID via elink
+        2. Downloads the PDF from PMC Open Access
+        
+        Args:
+            pmid: PubMed ID.
+            output_path: Path to save the PDF file.
+            
+        Returns:
+            True if download successful, False otherwise.
+        """
+        return self._entrez_searcher.download_pmc_pdf(pmid, output_path)
 
 
 def create_server() -> FastMCP:

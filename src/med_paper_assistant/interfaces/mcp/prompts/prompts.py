@@ -104,6 +104,23 @@ Flow: search_literature() → save_reference() → 確認 research gap → write
 詢問: exclusions, year range, article types, sample size → configure_search_strategy()"""
 
     # ========================================
+    # /mdpaper.search - Literature Exploration (NEW!)
+    # ========================================
+    @mcp.prompt(name="search", description="Explore literature without formal project")
+    def mdpaper_search(topic: str = "") -> str:
+        return f"""Topic: {topic or "（詢問用戶感興趣的主題）"}
+
+文獻探索工作流程：
+1. 如果沒有 active project → start_exploration() 建立探索工作區
+2. search_literature(query=topic) → 搜尋相關文獻
+3. 詢問用戶有興趣的論文 → save_reference(pmid) 保存
+4. find_related_articles() / find_citing_articles() → 擴展搜尋
+5. 詢問用戶：要繼續探索還是開始正式研究？
+6. 準備好時 → convert_exploration_to_project(name="...", paper_type="...")
+
+💡 這個模式讓用戶「先找靈感，再定方向」"""
+
+    # ========================================
     # /mdpaper.draft - Write paper section
     # ========================================
     @mcp.prompt(name="draft", description="Write paper draft")
