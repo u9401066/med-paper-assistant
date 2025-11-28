@@ -10,12 +10,12 @@
 </p>
 
 <p align="center">
-  <b>🔬 The First Guided & Exploratory Medical Paper Writing Tool</b><br>
+  <b>🔬 A Guided & Exploratory Medical Paper Writing Tool</b><br>
   <i>Powered by MCP + GitHub Copilot</i>
 </p>
 
 <p align="center">
-  <b>🔬 首款引導式、探索式醫學論文寫作工具</b><br>
+  <b>🔬 引導式、探索式醫學論文寫作工具</b><br>
   <i>由 MCP + GitHub Copilot 驅動</i>
 </p>
 
