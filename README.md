@@ -607,6 +607,8 @@ We're actively developing new features. Here's what's coming:
 | Status | Feature | Description |
 |--------|---------|-------------|
 | ✅ | **Draw.io Integration** | Generate CONSORT/PRISMA flowcharts from concept files via [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) - see [integrations/](integrations/) |
+| ✅ | **Skills System** | Workflow definitions that guide AI through complex tasks (literature review, concept development) - see [.skills/](.skills/) |
+| ✅ | **Parallel Search** | Generate multiple search queries and execute in parallel for comprehensive literature coverage |
 | 🔜 | **Table Generator** | Auto-generate Table 1 (baseline characteristics) from CSV data |
 | 📋 | **Multi-language Support** | Full UI localization beyond English/Chinese |
 | 📋 | **Journal Style Library** | Pre-configured styles for major medical journals |

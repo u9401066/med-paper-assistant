@@ -56,6 +56,7 @@ from med_paper_assistant.interfaces.mcp.tools import (
     register_export_tools,
     register_diagram_tools,
 )
+from med_paper_assistant.interfaces.mcp.tools.skill import register_skill_tools
 from med_paper_assistant.interfaces.mcp.prompts import register_prompts
 
 
@@ -163,6 +164,9 @@ def create_server() -> FastMCP:
     
     logger.info("Registering export tools...")
     register_export_tools(mcp, formatter, template_reader, word_writer)
+
+    logger.info("Registering skill tools...")
+    register_skill_tools(mcp)
 
     # Register prompts
     logger.info("Registering prompts...")

@@ -205,3 +205,180 @@ def register_pubmed_tools(mcp: FastMCP, searcher: PubMedClient, strategy_manager
         except Exception as e:
             logger.error(f"Find citing articles failed: {e}")
             return f"Error: {e}"
+
+    @mcp.tool()
+    def generate_search_queries(
+        topic: str,
+        strategy: str = "comprehensive",
+        include_mesh: bool = True,
+        include_synonyms: bool = True
+    ) -> str:
+        """
+        根據主題生成多組搜尋語法，供並行搜尋使用。
+        
+        這個工具返回多個搜尋 queries，Agent 應該**並行呼叫** search_literature
+        對每個 query 執行搜尋，然後使用 merge_search_results 合併結果。
+        
+        Args:
+            topic: 搜尋主題（如 "remimazolam ICU sedation"）
+            strategy: 搜尋策略
+                - "comprehensive": 全面搜尋，多組不同角度的 queries
+                - "focused": 精確搜尋，較少但更精確的 queries  
+                - "exploratory": 探索性搜尋，包含更廣泛的相關概念
+            include_mesh: 是否包含 MeSH 詞彙的搜尋
+            include_synonyms: 是否包含同義詞/別名
+            
+        Returns:
+            JSON 格式的搜尋策略，包含多個 queries 供並行執行
+        """
+        logger.info(f"Generating search queries for topic: {topic}, strategy: {strategy}")
+        
+        # 解析主題詞彙
+        words = topic.lower().split()
+        
+        queries = []
+        
+        # Query 1: 精確標題搜尋
+        queries.append({
+            "id": "q1_title",
+            "query": f"({topic})[Title]",
+            "purpose": "精確標題匹配",
+            "expected": "高相關性，較少結果"
+        })
+        
+        # Query 2: 標題/摘要搜尋
+        queries.append({
+            "id": "q2_tiab",
+            "query": f"({topic})[Title/Abstract]",
+            "purpose": "標題或摘要包含關鍵字",
+            "expected": "中等相關性，適量結果"
+        })
+        
+        # Query 3: 組合詞搜尋（用 AND 連接）
+        and_query = " AND ".join(words)
+        queries.append({
+            "id": "q3_and",
+            "query": and_query,
+            "purpose": "所有關鍵字都必須出現",
+            "expected": "較嚴格的篩選"
+        })
+        
+        if strategy in ["comprehensive", "exploratory"]:
+            # Query 4: 部分詞彙搜尋（擴展）
+            if len(words) >= 2:
+                # 取主要詞彙組合
+                main_word = words[0]
+                context_words = " OR ".join(words[1:])
+                queries.append({
+                    "id": "q4_partial",
+                    "query": f"{main_word} AND ({context_words})",
+                    "purpose": "主要詞彙 + 任一情境詞",
+                    "expected": "較寬鬆的匹配"
+                })
+        
+        if include_mesh:
+            # Query 5: MeSH 詞彙搜尋
+            mesh_query = f"({topic})[MeSH Terms]"
+            queries.append({
+                "id": "q5_mesh",
+                "query": mesh_query,
+                "purpose": "使用 MeSH 標準詞彙",
+                "expected": "醫學概念標準化匹配"
+            })
+        
+        if strategy == "exploratory":
+            # Query 6: 相關概念擴展
+            # 這裡可以加入更多領域知識
+            queries.append({
+                "id": "q6_broad",
+                "query": f"({words[0]})[Title] AND review[Publication Type]",
+                "purpose": "找相關的 Review 文章",
+                "expected": "了解領域全貌"
+            })
+        
+        result = {
+            "topic": topic,
+            "strategy": strategy,
+            "queries_count": len(queries),
+            "queries": queries,
+            "instruction": "請並行呼叫 search_literature 對每個 query 執行搜尋，" +
+                          "然後呼叫 merge_search_results 合併結果。",
+            "example": {
+                "parallel_calls": [
+                    f"search_literature(query=\"{q['query']}\", limit=20)" 
+                    for q in queries[:2]
+                ] + ["..."]
+            }
+        }
+        
+        return json.dumps(result, indent=2, ensure_ascii=False)
+
+    @mcp.tool()
+    def merge_search_results(results_json: str) -> str:
+        """
+        合併多個搜尋結果並去重。
+        
+        在並行執行多個 search_literature 後，使用此工具合併結果。
+        
+        Args:
+            results_json: JSON 格式的搜尋結果陣列，每個元素包含：
+                - query_id: 搜尋 ID（對應 generate_search_queries 返回的 id）
+                - pmids: PMID 列表
+                
+                例如：
+                [
+                    {"query_id": "q1_title", "pmids": ["12345", "67890"]},
+                    {"query_id": "q2_tiab", "pmids": ["67890", "11111"]}
+                ]
+                
+        Returns:
+            合併後的結果，包含去重後的 PMID 列表和來源分析
+        """
+        logger.info("Merging search results")
+        
+        try:
+            results = json.loads(results_json)
+        except json.JSONDecodeError as e:
+            return f"Error: Invalid JSON format - {e}"
+        
+        # 收集所有 PMID 和來源
+        pmid_sources = {}  # pmid -> [source_ids]
+        all_pmids = []
+        
+        for result in results:
+            query_id = result.get("query_id", "unknown")
+            pmids = result.get("pmids", [])
+            
+            for pmid in pmids:
+                pmid = str(pmid).strip()
+                if pmid not in pmid_sources:
+                    pmid_sources[pmid] = []
+                    all_pmids.append(pmid)
+                pmid_sources[pmid].append(query_id)
+        
+        # 分析結果
+        multi_source = {pmid: sources for pmid, sources in pmid_sources.items() if len(sources) > 1}
+        single_source = {pmid: sources[0] for pmid, sources in pmid_sources.items() if len(sources) == 1}
+        
+        # 按來源分組
+        by_query = {}
+        for result in results:
+            query_id = result.get("query_id", "unknown")
+            by_query[query_id] = len(result.get("pmids", []))
+        
+        output = {
+            "total_unique": len(all_pmids),
+            "total_with_duplicates": sum(by_query.values()),
+            "duplicates_removed": sum(by_query.values()) - len(all_pmids),
+            "by_query": by_query,
+            "appeared_in_multiple_queries": {
+                "count": len(multi_source),
+                "pmids": list(multi_source.keys())[:10],  # 只顯示前 10 個
+                "note": "這些文獻被多個搜尋策略找到，可能更相關"
+            },
+            "unique_pmids": all_pmids,
+            "next_step": "使用 save_reference(pmid=...) 儲存感興趣的文獻，" +
+                        "或使用 get_reference_details(pmid=...) 取得詳細資訊"
+        }
+        
+        return json.dumps(output, indent=2, ensure_ascii=False)

@@ -1,11 +1,67 @@
 # Active Context
 
 ## Current Focus
-Draw.io WebSocket 即時通訊系統 - 穩定性修復完成
+Skills 技能系統與並行搜尋功能開發完成
 
 ## Recent Changes (2025-12-01)
 
-### 1. WebSocket 連線穩定性修復 ✅ (LATEST!)
+### 1. Skills 技能系統 ✅ (LATEST!)
+
+建立完整的技能系統，讓 AI Agent 知道如何組合多個工具完成複雜任務：
+
+**核心概念:**
+```
+工具 (Tool) = 單一能力（搜尋、儲存、分析...）
+技能 (Skill) = 完整知識（如何做好一件事）
+```
+
+**新增檔案:**
+| 檔案 | 說明 |
+|------|------|
+| `.skills/README.md` | Skills 系統說明 |
+| `.skills/_template.md` | Skill 檔案模板 |
+| `.skills/ARCHITECTURE.md` | 架構設計文件 |
+| `.skills/INTEGRATION.md` | 整合方案說明 |
+| `.skills/research/literature_review.md` | 系統性文獻回顧技能 |
+| `.skills/research/concept_development.md` | 研究概念發展技能 |
+| `.skills/research/parallel_search.md` | 並行搜尋技能 |
+
+**MCP 工具:**
+| 工具 | 功能 |
+|------|------|
+| `list_skills` | 列出所有可用技能 |
+| `load_skill` | 載入特定技能內容 |
+| `suggest_skill` | 根據任務描述建議技能 |
+
+### 2. 並行搜尋功能 ✅
+
+利用 Agent 並行呼叫能力加速文獻搜尋：
+
+**新增工具:**
+| 工具 | 功能 |
+|------|------|
+| `generate_search_queries` | 根據主題生成多組搜尋語法 |
+| `merge_search_results` | 合併多個搜尋結果並去重 |
+
+**工作流程:**
+```
+1. generate_search_queries(topic="remimazolam ICU") 
+   → 返回 5 組不同角度的搜尋語法
+
+2. 並行呼叫 search_literature × 5
+   → 同時執行所有搜尋
+
+3. merge_search_results(results=[...])
+   → 合併去重，分析來源
+```
+
+**測試結果:**
+- 搜尋 "remimazolam ICU sedation"
+- 5 組策略並行執行
+- 找到 42 篇去重後文獻
+- 12 篇被多個策略找到（高相關性）
+
+### 3. WebSocket 連線穩定性修復 ✅
 
 修復 WebSocket 不斷重連的問題，原因是 React callback 依賴變化導致：
 

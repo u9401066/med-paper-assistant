@@ -20,6 +20,73 @@
 - [x] **Smart Dev Server Start Script** (2025-12-01)
 - [x] **WebSocket Real-time Communication** (2025-12-01)
 - [x] **WebSocket Connection Stability Fix** (2025-12-01)
+- [x] **Skills System** (2025-12-01)
+- [x] **Parallel Search Feature** (2025-12-01)
+
+## Skills System & Parallel Search (2025-12-01)
+
+### Overview
+建立完整的技能系統，讓 AI Agent 知道如何組合多個工具完成複雜任務。
+同時實作並行搜尋功能，利用 Agent 並行呼叫能力加速文獻搜尋。
+
+### Skills System
+
+**核心概念:**
+- 工具 (Tool) = 單一能力
+- 技能 (Skill) = 完整工作流程知識
+
+**新增檔案:**
+```
+.skills/
+├── README.md                    # 系統說明
+├── _template.md                 # Skill 模板
+├── ARCHITECTURE.md              # 架構設計
+├── INTEGRATION.md               # 整合方案
+└── research/
+    ├── literature_review.md     # 文獻回顧技能
+    ├── concept_development.md   # 概念發展技能
+    └── parallel_search.md       # 並行搜尋技能
+```
+
+**MCP 工具:**
+| 工具 | 功能 |
+|------|------|
+| `list_skills` | 列出所有可用技能 |
+| `load_skill` | 載入特定技能內容 |
+| `suggest_skill` | 根據任務描述建議技能 |
+
+### Parallel Search
+
+**新增工具:**
+| 工具 | 功能 |
+|------|------|
+| `generate_search_queries` | 根據主題生成多組搜尋語法 |
+| `merge_search_results` | 合併多個搜尋結果並去重 |
+
+**工作流程:**
+```
+generate_search_queries(topic="xxx")
+    ↓ 返回 5 組 queries
+並行呼叫 search_literature × 5
+    ↓ 同時執行
+merge_search_results(results=[...])
+    ↓ 合併去重
+42 篇文獻（含來源分析）
+```
+
+**測試結果:**
+- 主題: "remimazolam ICU sedation"
+- 並行執行 5 組搜尋策略
+- 找到 56 篇（含重複）
+- 去重後 42 篇
+- 12 篇被多個策略找到（高相關性指標）
+
+### Copilot Instructions 更新
+在 `.github/copilot-instructions.md` 加入:
+- Skills 索引表
+- 執行流程說明
+- 跨 MCP 協調指引
+- 並行搜尋模式說明
 
 ## WebSocket Connection Stability Fix (2025-12-01)
 
