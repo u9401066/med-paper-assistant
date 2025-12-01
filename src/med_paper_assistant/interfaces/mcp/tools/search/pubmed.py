@@ -211,7 +211,8 @@ def register_pubmed_tools(mcp: FastMCP, searcher: PubMedClient, strategy_manager
         topic: str,
         strategy: str = "comprehensive",
         include_mesh: bool = True,
-        include_synonyms: bool = True
+        include_synonyms: bool = True,
+        use_saved_strategy: bool = True
     ) -> str:
         """
         根據主題生成多組搜尋語法，供並行搜尋使用。
@@ -227,38 +228,84 @@ def register_pubmed_tools(mcp: FastMCP, searcher: PubMedClient, strategy_manager
                 - "exploratory": 探索性搜尋，包含更廣泛的相關概念
             include_mesh: 是否包含 MeSH 詞彙的搜尋
             include_synonyms: 是否包含同義詞/別名
+            use_saved_strategy: 是否使用已儲存的搜尋策略（date_range, exclusions, article_types）
             
         Returns:
             JSON 格式的搜尋策略，包含多個 queries 供並行執行
         """
         logger.info(f"Generating search queries for topic: {topic}, strategy: {strategy}")
         
+        # 載入已儲存的策略設定
+        saved_strategy = None
+        date_filter = ""
+        exclusion_filter = ""
+        article_type_filter = ""
+        
+        if use_saved_strategy:
+            saved_strategy = strategy_manager.load_strategy()
+            if saved_strategy:
+                logger.info(f"Using saved strategy: {saved_strategy}")
+                
+                # 處理日期範圍
+                if saved_strategy.date_range:
+                    # 支援格式: "2020-2024" 或 "5 years" 或 "last 10 years"
+                    dr = saved_strategy.date_range.lower()
+                    if "-" in dr and len(dr.split("-")) == 2:
+                        parts = dr.split("-")
+                        if parts[0].isdigit() and parts[1].isdigit():
+                            date_filter = f" AND ({parts[0]}:{parts[1]}[dp])"
+                    elif "year" in dr:
+                        import re
+                        match = re.search(r'(\d+)\s*year', dr)
+                        if match:
+                            years = int(match.group(1))
+                            from datetime import datetime
+                            current_year = datetime.now().year
+                            start_year = current_year - years
+                            date_filter = f" AND ({start_year}:{current_year}[dp])"
+                
+                # 處理排除詞
+                if saved_strategy.exclusions:
+                    exclusions = [f'NOT "{ex}"' for ex in saved_strategy.exclusions]
+                    exclusion_filter = " " + " ".join(exclusions)
+                
+                # 處理文章類型
+                if saved_strategy.article_types:
+                    types = [f'"{t}"[Publication Type]' for t in saved_strategy.article_types]
+                    article_type_filter = f" AND ({' OR '.join(types)})"
+        
         # 解析主題詞彙
         words = topic.lower().split()
+        
+        # 建立過濾器字串（用於追加到每個查詢）
+        filters = f"{date_filter}{article_type_filter}{exclusion_filter}".strip()
         
         queries = []
         
         # Query 1: 精確標題搜尋
+        base_q1 = f"({topic})[Title]"
         queries.append({
             "id": "q1_title",
-            "query": f"({topic})[Title]",
+            "query": f"{base_q1}{filters}" if filters else base_q1,
             "purpose": "精確標題匹配",
             "expected": "高相關性，較少結果"
         })
         
         # Query 2: 標題/摘要搜尋
+        base_q2 = f"({topic})[Title/Abstract]"
         queries.append({
             "id": "q2_tiab",
-            "query": f"({topic})[Title/Abstract]",
+            "query": f"{base_q2}{filters}" if filters else base_q2,
             "purpose": "標題或摘要包含關鍵字",
             "expected": "中等相關性，適量結果"
         })
         
         # Query 3: 組合詞搜尋（用 AND 連接）
         and_query = " AND ".join(words)
+        base_q3 = f"({and_query})"
         queries.append({
             "id": "q3_and",
-            "query": and_query,
+            "query": f"{base_q3}{filters}" if filters else and_query,
             "purpose": "所有關鍵字都必須出現",
             "expected": "較嚴格的篩選"
         })
@@ -269,19 +316,20 @@ def register_pubmed_tools(mcp: FastMCP, searcher: PubMedClient, strategy_manager
                 # 取主要詞彙組合
                 main_word = words[0]
                 context_words = " OR ".join(words[1:])
+                base_q4 = f"({main_word} AND ({context_words}))"
                 queries.append({
                     "id": "q4_partial",
-                    "query": f"{main_word} AND ({context_words})",
+                    "query": f"{base_q4}{filters}" if filters else f"{main_word} AND ({context_words})",
                     "purpose": "主要詞彙 + 任一情境詞",
                     "expected": "較寬鬆的匹配"
                 })
         
         if include_mesh:
             # Query 5: MeSH 詞彙搜尋
-            mesh_query = f"({topic})[MeSH Terms]"
+            base_q5 = f"({topic})[MeSH Terms]"
             queries.append({
                 "id": "q5_mesh",
-                "query": mesh_query,
+                "query": f"{base_q5}{filters}" if filters else base_q5,
                 "purpose": "使用 MeSH 標準詞彙",
                 "expected": "醫學概念標準化匹配"
             })
@@ -289,13 +337,15 @@ def register_pubmed_tools(mcp: FastMCP, searcher: PubMedClient, strategy_manager
         if strategy == "exploratory":
             # Query 6: 相關概念擴展
             # 這裡可以加入更多領域知識
+            base_q6 = f"({words[0]})[Title] AND review[Publication Type]"
             queries.append({
                 "id": "q6_broad",
-                "query": f"({words[0]})[Title] AND review[Publication Type]",
+                "query": f"{base_q6}{date_filter}{exclusion_filter}" if (date_filter or exclusion_filter) else base_q6,
                 "purpose": "找相關的 Review 文章",
                 "expected": "了解領域全貌"
             })
         
+        # 構建結果
         result = {
             "topic": topic,
             "strategy": strategy,
@@ -310,6 +360,18 @@ def register_pubmed_tools(mcp: FastMCP, searcher: PubMedClient, strategy_manager
                 ] + ["..."]
             }
         }
+        
+        # 加入已應用的策略資訊
+        if saved_strategy:
+            result["applied_strategy"] = {
+                "date_range": saved_strategy.date_range or "not set",
+                "exclusions": saved_strategy.exclusions or [],
+                "article_types": saved_strategy.article_types or [],
+                "note": "已儲存的搜尋策略已自動整合到查詢中"
+            }
+        else:
+            result["applied_strategy"] = None
+            result["tip"] = "可使用 configure_search_strategy 設定日期範圍、排除詞等，下次生成查詢時會自動套用"
         
         return json.dumps(result, indent=2, ensure_ascii=False)
 

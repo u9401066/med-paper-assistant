@@ -60,19 +60,27 @@
 **新增工具:**
 | 工具 | 功能 |
 |------|------|
-| `generate_search_queries` | 根據主題生成多組搜尋語法 |
+| `generate_search_queries` | 根據主題生成多組搜尋語法（自動整合策略）|
 | `merge_search_results` | 合併多個搜尋結果並去重 |
 
 **工作流程:**
 ```
-generate_search_queries(topic="xxx")
-    ↓ 返回 5 組 queries
+configure_search_strategy(...)  ← 可選：設定日期、排除詞、文章類型
+    ↓ 持久化儲存
+generate_search_queries(topic="xxx", use_saved_strategy=True)
+    ↓ 返回 5 組 queries（已整合策略）
 並行呼叫 search_literature × 5
     ↓ 同時執行
 merge_search_results(results=[...])
     ↓ 合併去重
 42 篇文獻（含來源分析）
 ```
+
+**策略整合 (2025-12-01 新增):**
+- `configure_search_strategy()` 設定持久化策略
+- `generate_search_queries()` 自動讀取並整合策略到查詢
+- 支援: date_range, exclusions, article_types
+- 無需重複設定，策略自動套用到所有生成的查詢
 
 **測試結果:**
 - 主題: "remimazolam ICU sedation"

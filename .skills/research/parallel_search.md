@@ -7,36 +7,58 @@
 這個技能展示如何利用 Agent 的並行呼叫能力來加速文獻搜尋。
 
 **核心概念**：
-1. 策略 tool 返回多組搜尋語法
-2. Agent 並行呼叫搜尋 tool
-3. 合併 tool 整合結果
+1. 預設搜尋策略（日期、排除詞、文章類型）
+2. 策略 tool 返回多組搜尋語法（自動整合策略設定）
+3. Agent 並行呼叫搜尋 tool
+4. 合併 tool 整合結果
 
 ## 使用工具
 
 | 工具 | 用途 |
 |------|------|
-| `generate_search_queries` | 根據主題生成多組搜尋語法 |
+| `configure_search_strategy` | 設定搜尋策略（日期範圍、排除詞、文章類型等）|
+| `get_search_strategy` | 查看目前的搜尋策略 |
+| `generate_search_queries` | 根據主題生成多組搜尋語法（**自動整合策略**）|
 | `search_literature` | 執行單一搜尋（可並行呼叫多次）|
 | `merge_search_results` | 合併多個搜尋結果並去重 |
 
 ## 工作流程
+
+### Step 0: （可選）設定搜尋策略
+
+```
+呼叫：configure_search_strategy(criteria_json={
+    "date_range": "2019-2024",          # 限制 2019-2024 年
+    "exclusions": ["animal", "review"], # 排除動物實驗和 review
+    "article_types": ["Clinical Trial", "Randomized Controlled Trial"],
+    "min_sample_size": 20
+})
+
+返回：Strategy saved successfully
+```
 
 ### Step 1: 生成搜尋策略
 
 ```
 呼叫：generate_search_queries(
     topic="remimazolam ICU sedation",
-    strategy="comprehensive"  # or "focused", "exploratory"
+    strategy="comprehensive",  # or "focused", "exploratory"
+    use_saved_strategy=True    # 預設為 True，自動套用已儲存策略
 )
 
 返回：
 {
   "queries": [
-    {"id": "q1", "query": "remimazolam[Title] AND ICU[Title/Abstract]", "purpose": "精確匹配"},
-    {"id": "q2", "query": "remimazolam AND intensive care unit", "purpose": "標準搜尋"},
-    {"id": "q3", "query": "remimazolam AND critical care AND sedation", "purpose": "擴展概念"},
-    {"id": "q4", "query": "(remimazolam OR CNS7056) AND mechanical ventilation", "purpose": "藥物別名+相關情境"}
+    {"id": "q1", "query": "(remimazolam ICU sedation)[Title] AND (2019:2024[dp]) AND (\"Clinical Trial\"[Publication Type] OR \"Randomized Controlled Trial\"[Publication Type]) NOT \"animal\" NOT \"review\"", ...},
+    {"id": "q2", "query": "(remimazolam ICU sedation)[Title/Abstract] AND (2019:2024[dp]) ...", ...},
+    ...
   ],
+  "applied_strategy": {
+    "date_range": "2019-2024",
+    "exclusions": ["animal", "review"],
+    "article_types": ["Clinical Trial", "Randomized Controlled Trial"],
+    "note": "已儲存的搜尋策略已自動整合到查詢中"
+  },
   "instruction": "請並行執行這些搜尋，然後呼叫 merge_search_results 合併結果"
 }
 ```
@@ -49,20 +71,13 @@ Agent 看到 instruction 後，會這樣做：
 <parallel_tool_calls>
   <tool_call id="1">
     <name>search_literature</name>
-    <args>{"query": "remimazolam[Title] AND ICU[Title/Abstract]", "query_id": "q1"}</args>
+    <args>{"query": "(remimazolam ICU sedation)[Title] AND ...", "limit": 20}</args>
   </tool_call>
   <tool_call id="2">
     <name>search_literature</name>
-    <args>{"query": "remimazolam AND intensive care unit", "query_id": "q2"}</args>
+    <args>{"query": "(remimazolam ICU sedation)[Title/Abstract] AND ...", "limit": 20}</args>
   </tool_call>
-  <tool_call id="3">
-    <name>search_literature</name>
-    <args>{"query": "remimazolam AND critical care AND sedation", "query_id": "q3"}</args>
-  </tool_call>
-  <tool_call id="4">
-    <name>search_literature</name>
-    <args>{"query": "(remimazolam OR CNS7056) AND mechanical ventilation", "query_id": "q4"}</args>
-  </tool_call>
+  <!-- ... 更多並行呼叫 ... -->
 </parallel_tool_calls>
 ```
 
@@ -70,30 +85,54 @@ Agent 看到 instruction 後，會這樣做：
 
 ```
 呼叫：merge_search_results(
-    results=[
-      {"query_id": "q1", "pmids": ["123", "456", "789"]},
-      {"query_id": "q2", "pmids": ["456", "012", "345"]},
-      {"query_id": "q3", "pmids": ["789", "678", "901"]},
-      {"query_id": "q4", "pmids": ["234", "567"]}
-    ]
+    results_json='[
+      {"query_id": "q1_title", "pmids": ["123", "456", "789"]},
+      {"query_id": "q2_tiab", "pmids": ["456", "012", "345"]},
+      {"query_id": "q3_and", "pmids": ["789", "678", "901"]},
+      {"query_id": "q4_partial", "pmids": ["234", "567"]}
+    ]'
 )
 
 返回：
 {
   "total_unique": 10,
-  "by_query": {
-    "q1": 3,
-    "q2": 3,
-    "q3": 3,
-    "q4": 2
+  "total_with_duplicates": 11,
+  "duplicates_removed": 1,
+  "by_query": {...},
+  "appeared_in_multiple_queries": {
+    "count": 2,
+    "pmids": ["456", "789"],
+    "note": "這些文獻被多個搜尋策略找到，可能更相關"
   },
-  "overlap_analysis": {
-    "appeared_in_multiple": ["456", "789"],
-    "unique_to_q1": ["123"],
-    "unique_to_q4": ["234", "567"]
-  },
-  "merged_pmids": ["123", "456", "789", "012", "345", "678", "901", "234", "567"]
+  "unique_pmids": [...]
 }
+```
+
+## 策略整合說明
+
+### 工具分工
+
+| 工具 | 職責 |
+|------|------|
+| `configure_search_strategy` | **設定持久化策略**：日期範圍、排除詞、文章類型 |
+| `generate_search_queries` | **生成多角度查詢**：自動整合已儲存策略到每個查詢 |
+| `search_literature` | **執行搜尋**：直接用整合好的 query |
+
+### 避免重複的設計
+
+```
+configure_search_strategy()  ─────┐
+                                  │
+                                  ▼
+                         [StrategyManager 持久化]
+                                  │
+                                  │ 自動讀取
+                                  ▼
+generate_search_queries(use_saved_strategy=True)
+                                  │
+                                  │ 策略已整合到 query
+                                  ▼
+search_literature(query=...)  ← 直接用整合好的 query
 ```
 
 ## 優點
@@ -102,6 +141,7 @@ Agent 看到 instruction 後，會這樣做：
 2. **更全面**：不同角度的關鍵字組合
 3. **可追蹤**：知道每篇文獻來自哪個搜尋
 4. **可重現**：策略被記錄下來
+5. **策略整合**：日期/排除詞自動套用到所有查詢
 
 ## 進階：自適應搜尋
 
