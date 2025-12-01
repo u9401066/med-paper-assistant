@@ -19,6 +19,59 @@
 - [x] **Draw.io Incremental Editing System** (2025-12-01)
 - [x] **Smart Dev Server Start Script** (2025-12-01)
 - [x] **WebSocket Real-time Communication** (2025-12-01)
+- [x] **WebSocket Connection Stability Fix** (2025-12-01)
+
+## WebSocket Connection Stability Fix (2025-12-01)
+
+### Problem
+WebSocket 連線不斷斷線重連（每 ~350ms），原因是 React callback 依賴變化導致 `connect` 函數重新執行。
+
+### Symptom
+```
+[WS] Client connected: client-xxx (total: 1)
+[WS] Client disconnected: client-xxx (remaining: 0)
+[WS] Client connected: client-yyy (total: 1)
+... (重複)
+```
+
+### Solution
+
+**1. useWebSocket.ts 修改:**
+```typescript
+// 使用 ref 儲存 callbacks 避免重連
+const callbacksRef = useRef({
+  onDiagramUpdate,
+  onPendingOperations,
+  onConnected,
+  onDisconnected,
+});
+
+// 更新 callbacks ref
+useEffect(() => {
+  callbacksRef.current = { ... };
+}, [callbacks]);
+
+// handleMessage 使用 ref
+const handleMessage = useCallback((event) => {
+  callbacksRef.current.onDiagramUpdate?.(payload);
+}, []); // 移除依賴
+```
+
+**2. diagram-context.tsx 修改:**
+```typescript
+// 使用 ref 避免循環依賴
+const sendOperationResultRef = useRef<typeof sendOperationResult | null>(null);
+
+useEffect(() => {
+  sendOperationResultRef.current = sendOperationResult;
+}, [sendOperationResult]);
+```
+
+### Result
+- ✅ WebSocket 連線穩定維持
+- ✅ 不再不斷斷線重連
+- ✅ Fallback 機制正常運作
+- ✅ 畫貓測試成功！
 
 ## WebSocket Real-time Communication (2025-12-01)
 
