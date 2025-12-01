@@ -1,79 +1,97 @@
 # Active Context
 
 ## Current Focus
-Draw.io MCP 繪圖指南系統實作完成
+Draw.io 增量編輯系統 (Incremental Editing) - 減少 XML Token 消耗
 
-## Recent Changes (2025-11-29)
+## Recent Changes (2025-12-01)
 
-### 1. 繪圖指南工具 (Drawing Guidelines Tools) ✅
+### 1. 增量編輯系統實作 ✅
 
-新增繪圖指南系統，確保圖表品質一致：
+實作差異式編輯，取代每次全量 XML 傳輸：
 
-**新增工具:**
-| 工具 | 描述 |
+**設計文件:**
+| 文件 | 說明 |
 |------|------|
-| `get_drawing_guidelines` | 取得繪圖最佳實踐（邊線、顏色、形狀、佈局） |
-| `get_style_string` | 生成 Draw.io style 字串 |
-| `list_available_styles` | 列出所有可用樣式和顏色 |
+| `docs/INCREMENTAL_EDITING_RFC.md` | 設計 RFC |
+| `docs/DIFF_COMMUNICATION_DESIGN.md` | 雙向 Diff 通訊設計 |
 
-**新增檔案:**
+**前端新增:**
 | 檔案 | 說明 |
 |------|------|
-| `drawing_guidelines.py` | 繪圖標準定義（350+ 行） |
-| `tools/guideline_tools.py` | MCP 工具實作 |
+| `lib/diagram-diff-tracker.ts` | XML 差異追蹤器 |
+| `lib/diagram-operations-handler.ts` | 增量操作處理器 |
+| `contexts/diagram-context.tsx` | 整合 diff 追蹤 + 輪詢 |
 
-### 2. 繪圖標準規範
+**後端新增:**
+| 檔案 | 說明 |
+|------|------|
+| `tools/diff_tools.py` | MCP 差異工具 |
+| `web_client.py` | 新增 diff API 方法 |
 
-**連接線 (Edge Styles):**
-- ⭐⭐⭐ `orthogonal` - 正交轉角線（推薦）
-- ⭐ `straight` - 直線
-- ⭐⭐ `curved` - 曲線
-- ER專用 `entityRelation` - ER 圖關係線
+**API 端點 (route.ts):**
+| 端點 | 說明 |
+|------|------|
+| `GET ?action=get_changes` | 取得用戶變更 |
+| `GET ?action=check_pending_ops` | 檢查待執行操作 |
+| `POST apply_operations` | 應用增量操作 |
+| `POST report_changes` | 回報用戶變更 |
+| `POST sync_diff_state` | 同步 diff 狀態 |
 
-**顏色規範:**
-| 顏色 | fillColor | strokeColor | 用途 |
-|------|-----------|-------------|------|
-| 藍色 | #dae8fc | #6c8ebf | 處理步驟 |
-| 綠色 | #d5e8d4 | #82b366 | 開始/成功 |
-| 黃色 | #fff2cc | #d6b656 | 決策 |
-| 橘色 | #ffe6cc | #d79b00 | 輸出/警告 |
-| 紫色 | #e1d5e7 | #9673a6 | 外部系統 |
-| 紅色 | #f8cecc | #b85450 | 結束/錯誤 |
+### 2. Port 佔用問題解決 ✅
 
-**佈局規範:**
-- 水平間距: 60px
-- 垂直間距: 40px
-- 畫布邊距: 40px
-- 網格大小: 20px
-
-### 3. Previous Session (2025-11-28)
-
-Draw.io MCP 全功能完成：
-- ✅ `create_diagram` - Agent 生成 XML 創建圖表
-- ✅ `load_file` - 載入現有 .drawio 檔案
-- ✅ `save_tab` - 智能存檔
-- ✅ 分頁管理 - 多分頁切換
-- ✅ 用戶存檔事件 - Ctrl+S 觸發下載
-
-### 4. 測試通過
+創建智能啟動腳本自動處理 port 佔用：
 
 ```bash
-# 繪圖指南工具測試
-=== Test 1: General Guidelines === ✅
-=== Test 2: Edge Style String === ✅
-=== Test 3: Shape Style String === ✅
+# 新命令
+npm run dev:smart
+
+# 或直接
+./scripts/start-dev.sh 6002
 ```
 
-## 修改的檔案
+**新增檔案:**
+- `scripts/start-dev.sh` - 智能啟動腳本
 
-| 檔案 | 變更 |
-|------|------|
-| `drawing_guidelines.py` | 新增繪圖標準模組 |
-| `tools/guideline_tools.py` | 新增指南工具 |
-| `tools/__init__.py` | 註冊 guideline_tools |
-| `README.md` | 新增繪圖指南文檔 |
+### 3. 差異操作類型
+
+```typescript
+type DiagramOperation = 
+  | 'add_node'     // 新增節點
+  | 'modify_node'  // 修改節點
+  | 'delete_node'  // 刪除節點
+  | 'add_edge'     // 新增連線
+  | 'modify_edge'  // 修改連線
+  | 'delete_edge'; // 刪除連線
+```
+
+### 4. 輪詢機制
+
+前端每 2 秒檢查待執行操作，每 3 秒回報變更：
+```typescript
+// diagram-context.tsx
+useEffect(() => {
+  const opsInterval = setInterval(checkAndApplyPendingOperations, 2000);
+  const changesInterval = setInterval(reportChangesToServer, 3000);
+  // ...
+}, []);
+```
+
+## Previous Session (2025-11-29)
+
+### 繪圖指南工具 ✅
+- `get_drawing_guidelines` - 取得繪圖最佳實踐
+- `get_style_string` - 生成 style 字串
+- `list_available_styles` - 列出可用樣式
+
+### 上游同步 ✅
+從 DayuanJiang/next-ai-draw-io 合併改進：
+- maxDuration: 60 → 300 秒
+- 空內容過濾（Bedrock API 相容）
+- 複製按鈕
 
 ## Status
-✅ 繪圖指南工具實作完成
-✅ 測試通過
-⏳ Git commit and push
+✅ 增量編輯系統基礎設施完成
+✅ Port 智能啟動腳本
+✅ 測試通過 (simple-test.py)
+⏳ 完整場景測試（貓 → 狗屋 → 走路）
+⏳ 考慮 WebSocket 替代 Polling

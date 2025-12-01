@@ -16,6 +16,125 @@
 - [x] **Draw.io Smart Save & User Events** (2025-11-28)
 - [x] **Draw.io Load File & Full Feature Test** (2025-11-28)
 - [x] **Draw.io Drawing Guidelines Tools** (2025-11-29)
+- [x] **Draw.io Incremental Editing System** (2025-12-01)
+- [x] **Smart Dev Server Start Script** (2025-12-01)
+
+## Draw.io Incremental Editing System (2025-12-01)
+
+### Overview
+實作差異式編輯系統，減少 XML token 消耗，支援人機協作。
+
+### Architecture
+
+```
+┌─────────────────┐     Polling      ┌─────────────────┐
+│   MCP Server    │◄────────────────►│   Next.js API   │
+│  (diff_tools)   │                  │   (route.ts)    │
+└─────────────────┘                  └─────────────────┘
+        │                                    │
+        │ Operations                         │ Changes
+        ▼                                    ▼
+┌─────────────────────────────────────────────────────┐
+│              Browser (Draw.io Editor)               │
+│  ┌──────────────────┐  ┌─────────────────────────┐  │
+│  │ DiagramDiffTracker│  │DiagramOperationsHandler│  │
+│  └──────────────────┘  └─────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+```
+
+### New Files
+
+**Frontend (TypeScript):**
+| File | Description |
+|------|-------------|
+| `lib/diagram-diff-tracker.ts` | XML 差異追蹤器 |
+| `lib/diagram-operations-handler.ts` | 增量操作處理器 (450+ lines) |
+| `scripts/start-dev.sh` | 智能 port 啟動腳本 |
+
+**Backend (Python):**
+| File | Description |
+|------|-------------|
+| `tools/diff_tools.py` | MCP 差異工具 (580+ lines) |
+
+**Documentation:**
+| File | Description |
+|------|-------------|
+| `docs/INCREMENTAL_EDITING_RFC.md` | 設計 RFC |
+| `docs/DIFF_COMMUNICATION_DESIGN.md` | 雙向 Diff 通訊設計 |
+
+### MCP Tools (diff_tools.py)
+| Tool | Description |
+|------|-------------|
+| `get_diagram_changes` | 取得用戶變更摘要 |
+| `apply_diagram_changes` | 應用增量操作 |
+| `get_diagram_elements` | 取得元素列表 (含 ID) |
+| `sync_diagram_state` | 同步狀態，設定新基準 |
+
+### Operation Types
+```python
+OperationType = Literal[
+    "add_node",      # 新增節點
+    "modify_node",   # 修改節點
+    "delete_node",   # 刪除節點
+    "add_edge",      # 新增連線
+    "modify_edge",   # 修改連線
+    "delete_edge",   # 刪除連線
+]
+```
+
+### API Endpoints (route.ts)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `?action=get_changes` | GET | 取得用戶變更 |
+| `?action=check_pending_ops` | GET | 檢查待執行操作 |
+| `?action=get_apply_result` | GET | 取得操作結果 |
+| `apply_operations` | POST | 發送增量操作 |
+| `report_changes` | POST | 回報用戶變更 |
+| `operation_result` | POST | 回報操作結果 |
+| `set_base_xml` | POST | 設定基準 XML |
+| `sync_diff_state` | POST | 同步 diff 狀態 |
+
+### Polling Mechanism
+```typescript
+// diagram-context.tsx
+useEffect(() => {
+  // 每 2 秒檢查待執行操作
+  const opsInterval = setInterval(checkAndApplyPendingOperations, 2000);
+  // 每 3 秒回報變更
+  const changesInterval = setInterval(reportChangesToServer, 3000);
+  return () => {
+    clearInterval(opsInterval);
+    clearInterval(changesInterval);
+  };
+}, []);
+```
+
+### Smart Dev Server Script
+解決 port 佔用問題：
+```bash
+# 新增命令
+npm run dev:smart
+
+# scripts/start-dev.sh 功能：
+# - 自動檢測 port 是否被佔用
+# - 自動殺死佔用進程（最多 3 次重試）
+# - 支援自訂 port 參數
+```
+
+### Test Results
+```bash
+$ python simple-test.py
+測試 Web 連線...
+✅ Web 服務正在運行
+測試顯示圖表...
+結果: {'success': True, 'tabId': 'tab-xxx', 'tabName': 'Test'}
+✅ 測試完成
+```
+
+### Future Improvements
+- [ ] WebSocket 替代 Polling（更即時）
+- [ ] 完整場景測試（貓 → 狗屋 → 走路）
+- [ ] 衝突解決 UI
 
 ## Draw.io Drawing Guidelines Tools (2025-11-29)
 
