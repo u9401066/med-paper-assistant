@@ -15,6 +15,65 @@
 - [x] Draw.io Agent-Generated XML Support (2025-11-28)
 - [x] **Draw.io Smart Save & User Events** (2025-11-28)
 - [x] **Draw.io Load File & Full Feature Test** (2025-11-28)
+- [x] **Draw.io Drawing Guidelines Tools** (2025-11-29)
+
+## Draw.io Drawing Guidelines Tools (2025-11-29)
+
+### New Features
+
+#### 1. Drawing Guidelines Module
+新增 `drawing_guidelines.py` 模組，定義繪圖標準：
+
+**連接線樣式 (推薦正交轉角線):**
+```python
+EDGE_STYLES = {
+    "orthogonal": "edgeStyle=orthogonalEdgeStyle;rounded=1;...",  # ⭐⭐⭐
+    "straight": "edgeStyle=none;",
+    "curved": "edgeStyle=orthogonalEdgeStyle;curved=1;",
+    "entityRelation": "edgeStyle=entityRelationEdgeStyle;",
+}
+```
+
+**標準顏色規範:**
+| 顏色 | fillColor | strokeColor | 用途 |
+|------|-----------|-------------|------|
+| 藍色 | #dae8fc | #6c8ebf | 處理步驟 |
+| 綠色 | #d5e8d4 | #82b366 | 開始/成功 |
+| 黃色 | #fff2cc | #d6b656 | 決策 |
+| 紅色 | #f8cecc | #b85450 | 結束/錯誤 |
+
+**佈局規範:**
+- 水平間距: 60px
+- 垂直間距: 40px
+- 畫布邊距: 40px
+
+#### 2. MCP Tools
+| 工具 | 描述 |
+|------|------|
+| `get_drawing_guidelines` | 取得繪圖最佳實踐 |
+| `get_style_string` | 生成 Draw.io style 字串 |
+| `list_available_styles` | 列出所有可用樣式 |
+
+### Test Results
+```
+=== Test 1: General Guidelines === ✅
+=== Test 2: Edge Style String === ✅  
+→ style="edgeStyle=orthogonalEdgeStyle;rounded=1;...endArrow=classic;"
+=== Test 3: Shape Style String === ✅
+→ style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
+```
+
+### Files Created
+| File | Description |
+|------|-------------|
+| `drawing_guidelines.py` | 繪圖標準定義（350+ 行） |
+| `tools/guideline_tools.py` | MCP 工具實作 |
+
+### Files Changed
+| File | Changes |
+|------|---------|
+| `tools/__init__.py` | 註冊 guideline_tools |
+| `README.md` | 新增繪圖指南文檔 |
 
 ## Draw.io Load File & Full Feature Test (2025-11-28)
 
