@@ -206,10 +206,11 @@ cat > .vscode/mcp.json << 'EOF'
   "inputs": [],
   "servers": {
     "mdpaper": {
-      "command": "\${workspaceFolder}/.venv/bin/python",
-      "args": ["-m", "med_paper_assistant.mcp_server.server"],
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
       "env": {
-        "PYTHONPATH": "\${workspaceFolder}/src"
+        "PYTHONPATH": "${workspaceFolder}/src"
       }
     }
   }
@@ -849,10 +850,11 @@ cat > .vscode/mcp.json << 'EOF'
   "inputs": [],
   "servers": {
     "mdpaper": {
-      "command": "\${workspaceFolder}/.venv/bin/python",
-      "args": ["-m", "med_paper_assistant.mcp_server.server"],
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
       "env": {
-        "PYTHONPATH": "\${workspaceFolder}/src"
+        "PYTHONPATH": "${workspaceFolder}/src"
       }
     }
   }
