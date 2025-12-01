@@ -1,97 +1,72 @@
 # Active Context
 
 ## Current Focus
-Draw.io 增量編輯系統 (Incremental Editing) - 減少 XML Token 消耗
+Draw.io WebSocket 即時通訊系統 - 取代 HTTP Polling
 
 ## Recent Changes (2025-12-01)
 
-### 1. 增量編輯系統實作 ✅
+### 1. WebSocket 即時通訊系統 ✅ (NEW!)
 
-實作差異式編輯，取代每次全量 XML 傳輸：
+實作 WebSocket 取代 HTTP Polling，提供即時雙向通訊：
 
-**設計文件:**
-| 文件 | 說明 |
-|------|------|
-| `docs/INCREMENTAL_EDITING_RFC.md` | 設計 RFC |
-| `docs/DIFF_COMMUNICATION_DESIGN.md` | 雙向 Diff 通訊設計 |
-
-**前端新增:**
-| 檔案 | 說明 |
-|------|------|
-| `lib/diagram-diff-tracker.ts` | XML 差異追蹤器 |
-| `lib/diagram-operations-handler.ts` | 增量操作處理器 |
-| `contexts/diagram-context.tsx` | 整合 diff 追蹤 + 輪詢 |
-
-**後端新增:**
-| 檔案 | 說明 |
-|------|------|
-| `tools/diff_tools.py` | MCP 差異工具 |
-| `web_client.py` | 新增 diff API 方法 |
-
-**API 端點 (route.ts):**
-| 端點 | 說明 |
-|------|------|
-| `GET ?action=get_changes` | 取得用戶變更 |
-| `GET ?action=check_pending_ops` | 檢查待執行操作 |
-| `POST apply_operations` | 應用增量操作 |
-| `POST report_changes` | 回報用戶變更 |
-| `POST sync_diff_state` | 同步 diff 狀態 |
-
-### 2. Port 佔用問題解決 ✅
-
-創建智能啟動腳本自動處理 port 佔用：
-
-```bash
-# 新命令
-npm run dev:smart
-
-# 或直接
-./scripts/start-dev.sh 6002
+**架構:**
+```
+Browser ←WebSocket→ WS Server (6003) ←HTTP→ Next.js API (6002) ←HTTP→ MCP Server
 ```
 
 **新增檔案:**
-- `scripts/start-dev.sh` - 智能啟動腳本
+| 檔案 | 說明 |
+|------|------|
+| `lib/websocket/types.ts` | WebSocket 訊息類型定義 |
+| `lib/websocket/server.ts` | WebSocket server 模組 |
+| `lib/websocket/useWebSocket.ts` | React hook (瀏覽器端) |
+| `lib/websocket/index.ts` | 模組匯出 |
+| `scripts/ws-server.ts` | 獨立 WebSocket server |
+| `test-websocket.py` | 整合測試腳本 |
 
-### 3. 差異操作類型
+**啟動方式:**
+```bash
+# 分開啟動
+npm run dev:ws   # WebSocket server (port 6003/6004)
+npm run dev      # Next.js (port 6002)
 
-```typescript
-type DiagramOperation = 
-  | 'add_node'     // 新增節點
-  | 'modify_node'  // 修改節點
-  | 'delete_node'  // 刪除節點
-  | 'add_edge'     // 新增連線
-  | 'modify_edge'  // 修改連線
-  | 'delete_edge'; // 刪除連線
+# 同時啟動
+npm run dev:all
 ```
 
-### 4. 輪詢機制
+**訊息類型:**
+| 類型 | 方向 | 說明 |
+|------|------|------|
+| `diagram_update` | Server→Client | 新圖表載入 |
+| `pending_operations` | Server→Client | 待執行操作 |
+| `changes_report` | Client→Server | 用戶變更報告 |
+| `operation_result` | Client→Server | 操作執行結果 |
+| `ping/pong` | 雙向 | 心跳檢測 |
 
-前端每 2 秒檢查待執行操作，每 3 秒回報變更：
-```typescript
-// diagram-context.tsx
-useEffect(() => {
-  const opsInterval = setInterval(checkAndApplyPendingOperations, 2000);
-  const changesInterval = setInterval(reportChangesToServer, 3000);
-  // ...
-}, []);
+**Fallback 機制:**
+- WebSocket 連線時: 使用 WebSocket 即時通訊
+- WebSocket 斷線時: 自動降級到 HTTP Polling (10秒間隔)
+
+### 2. 增量編輯系統 ✅ (昨日完成)
+
+差異式編輯，減少 XML token 消耗：
+
+**前端:**
+- `lib/diagram-diff-tracker.ts` - XML 差異追蹤
+- `lib/diagram-operations-handler.ts` - 操作處理器
+
+**後端:**
+- `tools/diff_tools.py` - MCP 差異工具
+
+### 3. Port 佔用問題 ✅
+
+```bash
+npm run dev:smart  # 自動處理 port 佔用
 ```
-
-## Previous Session (2025-11-29)
-
-### 繪圖指南工具 ✅
-- `get_drawing_guidelines` - 取得繪圖最佳實踐
-- `get_style_string` - 生成 style 字串
-- `list_available_styles` - 列出可用樣式
-
-### 上游同步 ✅
-從 DayuanJiang/next-ai-draw-io 合併改進：
-- maxDuration: 60 → 300 秒
-- 空內容過濾（Bedrock API 相容）
-- 複製按鈕
 
 ## Status
+✅ WebSocket 即時通訊實作完成
 ✅ 增量編輯系統基礎設施完成
 ✅ Port 智能啟動腳本
-✅ 測試通過 (simple-test.py)
+✅ 整合測試通過 (test-websocket.py 4/4)
 ⏳ 完整場景測試（貓 → 狗屋 → 走路）
-⏳ 考慮 WebSocket 替代 Polling

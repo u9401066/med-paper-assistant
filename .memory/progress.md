@@ -18,6 +18,92 @@
 - [x] **Draw.io Drawing Guidelines Tools** (2025-11-29)
 - [x] **Draw.io Incremental Editing System** (2025-12-01)
 - [x] **Smart Dev Server Start Script** (2025-12-01)
+- [x] **WebSocket Real-time Communication** (2025-12-01)
+
+## WebSocket Real-time Communication (2025-12-01)
+
+### Overview
+實作 WebSocket 取代 HTTP Polling，提供即時雙向通訊。
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Browser (Draw.io)                       │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │  diagram-context.tsx                                    │ │
+│  │  └── useWebSocket hook → ws://localhost:6003           │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              ↕ WebSocket
+┌─────────────────────────────────────────────────────────────┐
+│              WebSocket Server (獨立 Node.js)                 │
+│              Port 6003 (WS) / 6004 (HTTP API)               │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │  scripts/ws-server.ts                                   │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              ↕ HTTP (轉發)
+┌─────────────────────────────────────────────────────────────┐
+│              Next.js API (app/api/mcp/route.ts)             │
+│              Port 6002                                       │
+└─────────────────────────────────────────────────────────────┘
+                              ↕ HTTP
+┌─────────────────────────────────────────────────────────────┐
+│              MCP Server (Python FastMCP)                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### New Files
+
+| File | Description |
+|------|-------------|
+| `lib/websocket/types.ts` | 訊息類型定義 |
+| `lib/websocket/server.ts` | WebSocket server 模組 |
+| `lib/websocket/useWebSocket.ts` | React hook (瀏覽器端) |
+| `lib/websocket/index.ts` | 模組匯出 |
+| `scripts/ws-server.ts` | 獨立 WebSocket server |
+| `test-websocket.py` | 整合測試腳本 |
+
+### Message Types
+
+| Type | Direction | Description |
+|------|-----------|-------------|
+| `connection_ack` | S→C | 連線確認 |
+| `diagram_update` | S→C | 圖表更新推送 |
+| `pending_operations` | S→C | 待執行操作 |
+| `changes_report` | C→S | 用戶變更報告 |
+| `operation_result` | C→S | 操作執行結果 |
+| `subscribe` | C→S | 訂閱 tab |
+| `ping/pong` | 雙向 | 心跳檢測 |
+
+### npm Scripts
+
+```bash
+npm run dev:ws   # 啟動 WebSocket server (6003/6004)
+npm run dev      # 啟動 Next.js (6002)
+npm run dev:all  # 同時啟動兩者 (需要 concurrently)
+```
+
+### Test Results
+
+```bash
+$ python test-websocket.py
+==================================================
+WebSocket 整合測試
+==================================================
+  ✅ PASS: WS Server Status
+  ✅ PASS: Display via Next.js
+  ✅ PASS: Apply Operations
+  ✅ PASS: Direct WS API
+
+通過: 4/4
+```
+
+### Fallback Mechanism
+
+- WebSocket 連線時: 即時通訊
+- WebSocket 斷線時: 自動降級到 HTTP Polling (10秒間隔)
 
 ## Draw.io Incremental Editing System (2025-12-01)
 
@@ -132,7 +218,7 @@ $ python simple-test.py
 ```
 
 ### Future Improvements
-- [ ] WebSocket 替代 Polling（更即時）
+- [x] WebSocket 替代 Polling（更即時）✅ 已完成
 - [ ] 完整場景測試（貓 → 狗屋 → 走路）
 - [ ] 衝突解決 UI
 
