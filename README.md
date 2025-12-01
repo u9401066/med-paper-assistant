@@ -131,7 +131,7 @@ After setup completes:
 
 In VS Code's Copilot Chat panel:
 1. Type `/mcp` and press Enter
-2. You should see `mdpaper (41 tools)` in the list
+2. You should see `mdpaper (49 tools)` in the list (or with `drawio (15 tools)` if you enabled Draw.io integration)
 3. If you see this, the installation was successful! 🎉
 
 #### Optional: Setup Draw.io Integration
@@ -570,15 +570,120 @@ flowchart LR
 
 ---
 
-### 🛠️ Available Tools (43 Total)
+### 🧠 Skills System
+
+Skills are **complete workflow definitions** that guide the AI through complex multi-step tasks. Unlike individual tools that perform single actions, Skills define the entire process from start to finish.
+
+> 📁 **See full documentation**: [.skills/README.md](.skills/README.md)
+
+#### When to Use Skills
+
+| User Request | Skill to Load |
+|--------------|---------------|
+| "Help me do a literature review" | `literature_review` |
+| "Develop my research concept" | `concept_development` |
+| "Search for papers on [topic]" | `parallel_search` |
+| "Write the Introduction section" | `draft_introduction` |
+| "Write the Discussion" | `draft_discussion` |
+
+#### How It Works
+
+```mermaid
+flowchart LR
+    A["🗣️ User Request"] --> B["🔍 Identify Intent"]
+    B --> C["📖 Load Skill"]
+    C --> D["🔧 Follow Workflow"]
+    D --> E["✅ Deliverables"]
+```
+
+**Example**: When you say "help me do a literature review", the AI:
+1. Loads `.skills/research/literature_review.md`
+2. Follows the defined phases (search → screen → synthesize)
+3. Asks at decision points
+4. Produces the expected deliverables
+
+#### Skill Tools
+
+| Tool | Purpose |
+|------|---------|
+| `list_skills` | Show all available skills |
+| `load_skill` | Load a specific skill's workflow |
+| `suggest_skill` | Get skill recommendation based on task |
+
+---
+
+### ⚡ Parallel Search
+
+Parallel Search dramatically speeds up literature discovery by running multiple search strategies simultaneously.
+
+#### How It Works
+
+```mermaid
+flowchart LR
+    A["🎯 Topic"] --> B["generate_search_queries"]
+    B --> C["5 Query Strategies"]
+    C --> D["⚡ Parallel Execution"]
+    D --> E["merge_search_results"]
+    E --> F["📊 Deduplicated Results"]
+```
+
+#### Usage Example
+
+```
+User: "Find papers about remimazolam ICU sedation"
+
+AI executes:
+1. generate_search_queries(topic="remimazolam ICU sedation")
+   → Returns 5 different query strategies
+
+2. Parallel execution of search_literature × 5
+   → All queries run simultaneously
+
+3. merge_search_results(...)
+   → Returns: 42 unique papers (56 total, 14 duplicates removed)
+   → Papers found by multiple strategies are flagged as "high relevance"
+```
+
+#### Strategy Integration
+
+Configure your search strategy once, and it automatically applies to all parallel queries:
+
+```
+configure_search_strategy({
+    "date_range": "2020-2025",
+    "exclusions": ["animal", "review"],
+    "article_types": ["Clinical Trial", "RCT"]
+})
+
+generate_search_queries(topic="...", use_saved_strategy=True)
+→ All 5 queries include date filters, exclusions, and article type restrictions
+```
+
+---
+
+### 🛠️ Available Tools (49 mdpaper + 15 drawio)
+
+#### 📚 mdpaper Tools (49 total)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
-| **Search** (5) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy` | Literature discovery |
+| **Search** (7) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results` | Literature discovery with [parallel search](#-parallel-search) |
 | **Reference** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | Reference management |
 | **Writing** (9) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick` | Manuscript preparation |
 | **Analysis** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | Data analysis |
 | **Export** (8) | `read_template`, `list_templates`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | Document export |
+| **Project** (9) | `create_project`, `list_projects`, `switch_project`, `get_current_project`, `update_project_status`, `get_project_paths`, `get_paper_types`, `update_project_settings`, `start_exploration` | Project management |
+| **Skills** (3) | `list_skills`, `load_skill`, `suggest_skill` | Workflow automation via [Skills System](#-skills-system) |
+| **Diagram** (1) | `save_diagram` | Save diagrams to project |
+
+#### 🎨 drawio Tools (15 total) - [Optional Integration](integrations/)
+
+| Category | Tools | Description |
+|----------|-------|-------------|
+| **Diagram** | `create_diagram`, `edit_diagram`, `get_diagram_info`, `apply_diagram_changes` | Create and edit diagrams |
+| **Templates** | `list_templates`, `create_from_template` | Architecture templates (AWS, GCP, Azure) |
+| **Guidelines** | `get_drawing_guidelines`, `get_style`, `list_styles` | Drawing best practices |
+| **File** | `load_file`, `save_tab` | File management |
 
 ---
 
@@ -606,15 +711,17 @@ We're actively developing new features. Here's what's coming:
 
 | Status | Feature | Description |
 |--------|---------|-------------|
-| ✅ | **Draw.io Integration** | Generate CONSORT/PRISMA flowcharts from concept files via [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) - see [integrations/](integrations/) |
-| ✅ | **Skills System** | Workflow definitions that guide AI through complex tasks (literature review, concept development) - see [.skills/](.skills/) |
-| ✅ | **Parallel Search** | Generate multiple search queries and execute in parallel for comprehensive literature coverage |
-| 🔜 | **Table Generator** | Auto-generate Table 1 (baseline characteristics) from CSV data |
-| 📋 | **Multi-language Support** | Full UI localization beyond English/Chinese |
-| 📋 | **Journal Style Library** | Pre-configured styles for major medical journals |
+| ✅ | **[Draw.io Integration](integrations/)** | Generate CONSORT/PRISMA flowcharts with real-time WebSocket sync via [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) |
+| ✅ | **[Skills System](.skills/)** | Workflow definitions guiding AI through complex tasks - see [documentation](.skills/README.md) |
+| ✅ | **Parallel Search** | Generate multiple search queries and execute in parallel - [how it works](#-parallel-search) |
+| ✅ | **Search Strategy Integration** | Configure once, apply everywhere - strategy auto-integrates into parallel queries |
+| ✅ | **Table 1 Generator** | Auto-generate baseline characteristics table from CSV via `generate_table_one` |
+| 🔜 | **Multi-language Support** | Full UI localization beyond English/Chinese |
+| 🔜 | **Journal Style Library** | Pre-configured styles for major medical journals |
 | 📋 | **Collaboration Mode** | Multi-author workflow with version control |
+| 📋 | **AI-Assisted Review** | Use LLM to review and improve manuscript sections |
 
-**Legend:** 🔜 In Progress | 📋 Planned
+**Legend:** ✅ Complete | 🔜 In Progress | 📋 Planned
 
 Want to help? Check out [CONTRIBUTING.md](CONTRIBUTING.md) or open an issue to discuss!
 
@@ -771,7 +878,7 @@ scripts\setup.bat
 
 在 VS Code 的 Copilot Chat 面板中：
 1. 輸入 `/mcp` 並按 Enter
-2. 您應該會看到列表中有 `mdpaper (41 tools)`
+2. 您應該會看到列表中有 `mdpaper (49 tools)`（如果啟用 Draw.io 整合，還會有 `drawio (15 tools)`）
 3. 如果看到這個，表示安裝成功！🎉
 
 #### 選用：設定 Draw.io 整合
@@ -1171,15 +1278,90 @@ MCP 伺服器會動態載入 `.memory/.agent_constitution.md` 中的 Agent 憲�
 
 ---
 
-### 🛠️ 可用工具（共 43 個）
+### 🧠 技能系統
+
+技能（Skills）是**完整的工作流程定義**，引導 AI 完成複雜的多步驟任務。與執行單一動作的工具不同，技能定義了從開始到完成的整個流程。
+
+> 📁 **完整說明文件**：[.skills/README.md](.skills/README.md)
+
+#### 何時使用技能
+
+| 使用者請求 | 要載入的技能 |
+|-----------|-------------|
+| 「幫我做文獻回顧」 | `literature_review` |
+| 「發展研究概念」 | `concept_development` |
+| 「搜尋 [主題] 的論文」 | `parallel_search` |
+| 「寫 Introduction」 | `draft_introduction` |
+| 「寫 Discussion」 | `draft_discussion` |
+
+#### 技能工具
+
+| 工具 | 用途 |
+|------|------|
+| `list_skills` | 顯示所有可用技能 |
+| `load_skill` | 載入特定技能的工作流程 |
+| `suggest_skill` | 根據任務描述建議適合的技能 |
+
+---
+
+### ⚡ 並行搜尋
+
+並行搜尋透過同時執行多組搜尋策略，大幅加速文獻探索。
+
+#### 運作方式
+
+```
+1. generate_search_queries(topic="remimazolam ICU sedation")
+   → 返回 5 組不同的查詢策略
+
+2. 並行執行 search_literature × 5
+   → 所有查詢同時執行
+
+3. merge_search_results(...)
+   → 返回：42 篇獨特論文（總共 56 篇，移除 14 篇重複）
+   → 被多個策略找到的論文標記為「高相關性」
+```
+
+#### 策略整合
+
+設定一次搜尋策略，自動套用到所有並行查詢：
+
+```
+configure_search_strategy({
+    "date_range": "2020-2025",
+    "exclusions": ["animal", "review"],
+    "article_types": ["Clinical Trial", "RCT"]
+})
+
+generate_search_queries(topic="...", use_saved_strategy=True)
+→ 所有 5 組查詢都包含日期篩選、排除詞和文章類型限制
+```
+
+---
+
+### 🛠️ 可用工具（共 49 + 15 個）
+
+#### 📚 mdpaper 工具（49 個）
 
 | 類別 | 工具 | 說明 |
 |------|------|------|
-| **搜尋** (5) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy` | 文獻探索 |
+| **搜尋** (7) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results` | 文獻探索，支援[並行搜尋](#-並行搜尋) |
 | **參考文獻** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | 參考文獻管理 |
 | **寫作** (9) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick` | 草稿準備 |
 | **分析** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | 數據分析 |
 | **匯出** (8) | `read_template`, `list_templates`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | 文件匯出 |
+| **專案** (9) | `create_project`, `list_projects`, `switch_project`, `get_current_project`, `update_project_status`, `get_project_paths`, `get_paper_types`, `update_project_settings`, `start_exploration` | 專案管理 |
+| **技能** (3) | `list_skills`, `load_skill`, `suggest_skill` | 透過[技能系統](#-技能系統)自動化工作流程 |
+| **圖表** (1) | `save_diagram` | 儲存圖表到專案 |
+
+#### 🎨 drawio 工具（15 個）- [選用整合](integrations/)
+
+| 類別 | 工具 | 說明 |
+|------|------|------|
+| **圖表** | `create_diagram`, `edit_diagram`, `get_diagram_info`, `apply_diagram_changes` | 建立和編輯圖表 |
+| **範本** | `list_templates`, `create_from_template` | 架構範本（AWS、GCP、Azure）|
+| **指引** | `get_drawing_guidelines`, `get_style`, `list_styles` | 繪圖最佳實踐 |
+| **檔案** | `load_file`, `save_tab` | 檔案管理 |
 
 ---
 
@@ -1207,13 +1389,17 @@ pytest tests/ -v
 
 | 狀態 | 功能 | 說明 |
 |------|------|------|
-| ✅ | **Draw.io 整合** | 從 concept 檔案生成 CONSORT/PRISMA 流程圖，透過 [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) - 見 [integrations/](integrations/) |
-| 🔜 | **表格生成器** | 從 CSV 數據自動生成 Table 1（基線特徵表）|
-| 📋 | **多語言支援** | 完整 UI 本地化，不只英文/中文 |
-| 📋 | **期刊樣式庫** | 預設主要醫學期刊的格式設定 |
+| ✅ | **[Draw.io 整合](integrations/)** | 透過 [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) 生成 CONSORT/PRISMA 流程圖，支援即時 WebSocket 同步 |
+| ✅ | **[技能系統](.skills/)** | 工作流程定義，引導 AI 完成複雜任務 - 見[說明文件](.skills/README.md) |
+| ✅ | **並行搜尋** | 生成多組搜尋語法並同時執行 - [運作方式](#-並行搜尋) |
+| ✅ | **搜尋策略整合** | 設定一次，處處套用 - 策略自動整合到並行查詢 |
+| ✅ | **Table 1 生成器** | 透過 `generate_table_one` 從 CSV 自動生成基線特徵表 |
+| 🔜 | **多語言支援** | 完整 UI 本地化，不只英文/中文 |
+| 🔜 | **期刊樣式庫** | 預設主要醫學期刊的格式設定 |
 | 📋 | **協作模式** | 多作者工作流程與版本控制 |
+| 📋 | **AI 輔助審稿** | 使用 LLM 審閱並改善論文段落 |
 
-**圖例：** 🔜 進行中 | 📋 規劃中
+**圖例：** ✅ 已完成 | 🔜 進行中 | 📋 規劃中
 
 想幫忙？查看 [CONTRIBUTING.md](CONTRIBUTING.md) 或開 issue 來討論！
 

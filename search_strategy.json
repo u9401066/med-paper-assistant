@@ -1,0 +1,20 @@
+{
+  "keywords": [
+    "anesthesia",
+    "artificial intelligence",
+    "machine learning",
+    "deep learning"
+  ],
+  "exclusions": [
+    "case report",
+    "letter",
+    "comment"
+  ],
+  "article_types": [
+    "Journal Article",
+    "Review",
+    "Clinical Trial"
+  ],
+  "min_sample_size": null,
+  "date_range": "2020-2025"
+}
