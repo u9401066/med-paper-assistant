@@ -26,6 +26,40 @@
 - [x] **MedPaper Dashboard** (2025-12-02)
 - [x] **pubmed-search-mcp 子模組獨立化** (2025-12-02)
 - [x] **工具架構重構** (2025-12-02)
+- [ ] **Foam Integration** (Planned)
+- [ ] **Project File Manager** (Planned)
+
+## Foam 整合規劃 (2025-12-02)
+
+### Problem
+MedPaper 目前缺少：
+1. **參考文獻關聯視覺化** - 無法看到文獻之間的引用關係
+2. **研究筆記連結** - 筆記之間沒有 wikilink 支援
+3. **專案檔案瀏覽** - 缺少視覺化的檔案管理介面
+
+### Solution
+整合 [Foam](https://github.com/foambubble/foam) VS Code 擴展：
+
+**Foam 提供的功能:**
+| 功能 | 說明 |
+|------|------|
+| `[[wikilinks]]` | 快速連結筆記和參考文獻 |
+| Backlinks Panel | 查看誰引用了當前文件 |
+| Graph Visualization | 知識圖譜視覺化 |
+| Orphan Detection | 找出孤立的筆記 |
+| Link Sync on Rename | 重命名時自動更新連結 |
+
+**MedPaper 需要額外開發:**
+| 功能 | 說明 |
+|------|------|
+| Project File Manager | 專案檔案的視覺化瀏覽 |
+| Reference Graph | 參考文獻的引用關係圖 |
+
+### Implementation Plan
+1. **Phase 1**: 推薦用戶安裝 Foam 擴展
+2. **Phase 2**: 儲存參考文獻時自動建立 wikilink 相容格式
+3. **Phase 3**: Dashboard 新增檔案瀏覽元件
+4. **Phase 4**: 整合 Foam 的 Graph API（如果有）
 
 ## pubmed-search-mcp 子模組獨立化 (2025-12-02)
 

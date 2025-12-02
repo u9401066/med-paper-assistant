@@ -717,6 +717,8 @@ We're actively developing new features. Here's what's coming:
 | ✅ | **Table 1 Generator** | Auto-generate baseline characteristics table from CSV via `generate_table_one` |
 | 🔜 | **Multi-language Support** | Full UI localization beyond English/Chinese |
 | 🔜 | **Journal Style Library** | Pre-configured styles for major medical journals |
+| 📋 | **[Foam](https://github.com/foambubble/foam) Integration** | Wikilink reference checking, backlinks panel, graph visualization for research notes - knowledge management for researchers |
+| 📋 | **Project File Manager** | Visual file browser for project drafts, references, and figures - complements Foam's note-linking |
 | 📋 | **Collaboration Mode** | Multi-author workflow with version control |
 | 📋 | **AI-Assisted Review** | Use LLM to review and improve manuscript sections |
 
@@ -1394,6 +1396,8 @@ pytest tests/ -v
 | ✅ | **Table 1 生成器** | 透過 `generate_table_one` 從 CSV 自動生成基線特徵表 |
 | 🔜 | **多語言支援** | 完整 UI 本地化，不只英文/中文 |
 | 🔜 | **期刊樣式庫** | 預設主要醫學期刊的格式設定 |
+| 📋 | **[Foam](https://github.com/foambubble/foam) 整合** | Wikilink 參考文獻檢查、反向連結面板、知識圖譜 - 研究人員的知識管理系統 |
+| 📋 | **專案檔案管理器** | 專案草稿、參考文獻、圖表的視覺化檔案瀏覽器 - 補充 Foam 的筆記連結功能 |
 | 📋 | **協作模式** | 多作者工作流程與版本控制 |
 | 📋 | **AI 輔助審稿** | 使用 LLM 審閱並改善論文段落 |
 
