@@ -2,6 +2,42 @@
 
 This folder contains integrated external tools that extend Medical Paper Assistant's capabilities.
 
+## 🔬 pubmed-search-mcp
+
+**Purpose**: PubMed literature search with parallel query and strategy management
+
+**Repository**: https://github.com/u9401066/pubmed-search-mcp
+
+### Features
+
+| Tool | Description |
+|------|-------------|
+| `search_literature` | Search PubMed for medical literature |
+| `find_related_articles` | Find related articles by PMID |
+| `find_citing_articles` | Find articles citing a PMID |
+| `fetch_article_details` | Get detailed article info |
+| `configure_search_strategy` | Set date range, exclusions, article types |
+| `get_search_strategy` | View current strategy |
+| `generate_search_queries` | Generate parallel search queries |
+| `merge_search_results` | Merge and deduplicate results |
+| `expand_search_queries` | Expand search with synonyms/related terms |
+
+### Standalone Usage
+
+```bash
+# Install
+pip install pubmed-search[mcp]
+
+# Run as standalone MCP server
+python -m pubmed_search.mcp your@email.com
+```
+
+### Integrated Usage (Default)
+
+The search tools are automatically registered in med-paper-assistant. No additional setup needed.
+
+---
+
 ## 📊 next-ai-draw-io
 
 **Purpose**: Generate diagrams (CONSORT, PRISMA, study flow) from natural language via Draw.io
