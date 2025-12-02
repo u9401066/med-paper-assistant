@@ -42,7 +42,8 @@ from med_paper_assistant.infrastructure.services import (
     WordWriter,
     StrategyManager,
 )
-from med_paper_assistant.infrastructure.external.pubmed import PubMedClient
+from pubmed_search import PubMedClient
+from pubmed_search.entrez import LiteratureSearcher as EntrezSearcher
 
 # Server modules
 from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS, DEFAULT_EMAIL
@@ -66,7 +67,6 @@ class LiteratureSearcher:
     def __init__(self, email: str):
         self._client = PubMedClient(email=email)
         # Also initialize the Entrez searcher for PDF downloads
-        from med_paper_assistant.infrastructure.external.entrez import LiteratureSearcher as EntrezSearcher
         self._entrez_searcher = EntrezSearcher(email=email)
     
     def search(self, query, limit=5, min_year=None, max_year=None, article_type=None, strategy="relevance", date_from=None, date_to=None, date_type="edat"):

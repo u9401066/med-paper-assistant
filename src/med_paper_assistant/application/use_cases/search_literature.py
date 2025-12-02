@@ -7,8 +7,7 @@ Handles searching for literature on PubMed.
 from dataclasses import dataclass, field
 from typing import Optional, List
 
-from med_paper_assistant.infrastructure.external.pubmed import PubMedClient
-from med_paper_assistant.infrastructure.external.pubmed.client import SearchStrategy, SearchResult
+from pubmed_search import PubMedClient, SearchStrategy, SearchResult
 
 
 @dataclass

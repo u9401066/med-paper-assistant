@@ -7,7 +7,7 @@ Tools for literature search and search strategy.
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import StrategyManager
-from med_paper_assistant.infrastructure.external.pubmed.client import PubMedClient
+from pubmed_search import PubMedClient
 
 from .pubmed import register_pubmed_tools
 

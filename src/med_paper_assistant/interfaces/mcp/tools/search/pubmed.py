@@ -7,7 +7,7 @@ search_literature, find_related_articles, find_citing_articles, search strategy
 import json
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.infrastructure.external.pubmed.client import PubMedClient
+from pubmed_search import PubMedClient
 from med_paper_assistant.infrastructure.services import StrategyManager
 from med_paper_assistant.infrastructure.logging import setup_logger
 
