@@ -24,6 +24,43 @@
 - [x] **Parallel Search Feature** (2025-12-01)
 - [x] **Iterative Search Expansion** (2025-12-01)
 - [x] **MedPaper Dashboard** (2025-12-02)
+- [x] **pubmed-search-mcp 子模組獨立化** (2025-12-02)
+- [x] **工具架構重構** (2025-12-02)
+
+## pubmed-search-mcp 子模組獨立化 (2025-12-02)
+
+### Problem
+PubMed 搜尋功能是通用功能，不應該只能在 med-paper-assistant 中使用。
+
+### Solution
+將搜尋功能抽取為獨立的 Git 子模組 `pubmed-search-mcp`：
+- 獨立 GitHub repo: https://github.com/u9401066/pubmed-search-mcp
+- 可單獨安裝使用
+- 也可作為子模組整合
+
+### Changes
+
+| 變更 | 說明 |
+|------|------|
+| 新增 `integrations/pubmed-search-mcp/` | Git 子模組 |
+| 刪除 `infrastructure/external/entrez/*.py` | 本地代碼移除 |
+| 刪除 `tools/search/pubmed.py` | 使用子模組的 register_search_tools |
+| 修改 `strategy_manager.py` | 重新導出子模組的 StrategyManager |
+| 修改 `server.py` | 使用子模組的 LiteratureSearcher |
+
+### 工具架構重構 (2025-12-02)
+
+**從 56 個工具 → 52 個工具：**
+
+| 類別 | 工具數 | 變更 |
+|------|--------|------|
+| PROJECT | 15 | +diagram 工具 |
+| WRITING | 16 | 合併 export |
+| SEARCH | 10 | 使用子模組 |
+| REFERENCE | 8 | 不變 |
+| SKILL | 3 | 不變 |
+| ~~ANALYSIS~~ | ~~4~~ | 移除，獨立專案 |
+| ~~DIAGRAM~~ | ~~3~~ | 合併到 PROJECT |
 
 ## MedPaper Dashboard (2025-12-02)
 

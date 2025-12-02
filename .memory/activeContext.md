@@ -1,102 +1,71 @@
 # Active Context
 
 ## Current Focus
-Skills 技能系統與並行搜尋功能開發完成
+pubmed-search-mcp 子模組獨立化 + 工具架構重構
 
-## Recent Changes (2025-12-01)
+## Recent Changes (2025-12-02)
 
-### 1. Skills 技能系統 ✅ (LATEST!)
+### 1. pubmed-search-mcp 子模組獨立化 ✅ (LATEST!)
 
-建立完整的技能系統，讓 AI Agent 知道如何組合多個工具完成複雜任務：
+將 PubMed 搜尋功能抽取為獨立的 Git 子模組：
 
-**核心概念:**
+**架構:**
 ```
-工具 (Tool) = 單一能力（搜尋、儲存、分析...）
-技能 (Skill) = 完整知識（如何做好一件事）
+med-paper-assistant/
+└── integrations/
+    └── pubmed-search-mcp/     # Git 子模組
+        └── src/pubmed_search/
+            ├── entrez/         # Entrez API 核心
+            ├── client.py       # PubMedClient
+            └── mcp/            # 獨立 MCP Server
+                ├── server.py   # create_server()
+                ├── tools.py    # 9 個搜尋工具
+                └── strategy.py # StrategyManager
 ```
 
-**新增檔案:**
-| 檔案 | 說明 |
+**子模組功能:**
+| 工具 | 說明 |
 |------|------|
-| `.skills/README.md` | Skills 系統說明 |
-| `.skills/_template.md` | Skill 檔案模板 |
-| `.skills/ARCHITECTURE.md` | 架構設計文件 |
-| `.skills/INTEGRATION.md` | 整合方案說明 |
-| `.skills/research/literature_review.md` | 系統性文獻回顧技能 |
-| `.skills/research/concept_development.md` | 研究概念發展技能 |
-| `.skills/research/parallel_search.md` | 並行搜尋技能 |
+| `search_literature` | PubMed 搜尋 |
+| `find_related_articles` | 找相關文章 |
+| `find_citing_articles` | 找引用文章 |
+| `fetch_article_details` | 取得文章詳情 |
+| `configure_search_strategy` | 設定搜尋策略 |
+| `get_search_strategy` | 取得搜尋策略 |
+| `generate_search_queries` | 生成並行查詢 |
+| `merge_search_results` | 合併結果 |
+| `expand_search_queries` | 擴展搜尋 |
 
-**MCP 工具:**
-| 工具 | 功能 |
-|------|------|
-| `list_skills` | 列出所有可用技能 |
-| `load_skill` | 載入特定技能內容 |
-| `suggest_skill` | 根據任務描述建議技能 |
-
-### 2. 並行搜尋功能 ✅
-
-利用 Agent 並行呼叫能力加速文獻搜尋：
-
-**新增工具:**
-| 工具 | 功能 |
-|------|------|
-| `generate_search_queries` | 根據主題生成多組搜尋語法 |
-| `merge_search_results` | 合併多個搜尋結果並去重 |
-
-**工作流程:**
-```
-1. generate_search_queries(topic="remimazolam ICU") 
-   → 返回 5 組不同角度的搜尋語法
-
-2. 並行呼叫 search_literature × 5
-   → 同時執行所有搜尋
-
-3. merge_search_results(results=[...])
-   → 合併去重，分析來源
+**獨立使用:**
+```bash
+pip install pubmed-search[mcp]
+python -m pubmed_search.mcp your@email.com
 ```
 
-**測試結果:**
-- 搜尋 "remimazolam ICU sedation"
-- 5 組策略並行執行
-- 找到 42 篇去重後文獻
-- 12 篇被多個策略找到（高相關性）
-
-### 3. WebSocket 連線穩定性修復 ✅
-
-修復 WebSocket 不斷重連的問題，原因是 React callback 依賴變化導致：
-
-**問題症狀:**
-```
-[WS] Client connected: client-xxx (total: 1)
-[WS] Client disconnected: client-xxx (remaining: 0)
-[WS] Client connected: client-yyy (total: 1)
-[WS] Client disconnected: client-yyy (remaining: 0)
-... (每 ~350ms 重複)
+**整合使用:**
+```python
+from pubmed_search.mcp import register_search_tools
+register_search_tools(mcp_server, searcher, strategy_manager)
 ```
 
-**修復方案:**
-| 檔案 | 修改 |
-|------|------|
-| `lib/websocket/useWebSocket.ts` | 使用 `callbacksRef` 儲存 callbacks，避免依賴變化 |
-| `contexts/diagram-context.tsx` | 使用 `sendOperationResultRef` 避免循環依賴 |
+### 2. 工具架構重構 ✅
 
-**修改細節:**
-1. `useWebSocket.ts`:
-   - 新增 `callbacksRef` 保存 `onDiagramUpdate`, `onPendingOperations`, `onConnected`, `onDisconnected`
-   - `handleMessage` 使用 `callbacksRef.current` 呼叫 callbacks
-   - 移除 `connect` 函數的不必要依賴
-   - 新增空 URL 檢查避免無效連線
+從 56 個工具精簡為 52 個，更清晰的分類：
 
-2. `diagram-context.tsx`:
-   - 新增 `sendOperationResultRef` 避免 `handlePendingOperationsWS` 的循環依賴
-   - 移除 `handleDiagramUpdateWS` 的 `loadDiagram` 依賴
+| 類別 | 工具數 | 說明 |
+|------|--------|------|
+| **PROJECT** | 15 | 專案管理、探索、圖表 |
+| **WRITING** | 16 | 草稿、模板、驗證、匯出 |
+| **SEARCH** | 10 | PubMed 搜尋 (子模組) |
+| **REFERENCE** | 8 | 參考文獻、引用 |
+| **SKILL** | 3 | 工作流程技能 |
 
-**修復結果:**
-- WebSocket 連線穩定維持
-- 不再有不斷斷線重連的問題
-- Fallback 機制正常運作
+**變更:**
+- ❌ 移除 `analysis/` → 獨立 data-analysis-mcp 專案
+- ❌ 移除 `diagram/` → 整合到 `project/diagrams.py`
+- ✅ 搜尋功能使用 pubmed-search-mcp 子模組
 
-### 2. WebSocket 即時通訊系統 ✅
+### 3. Skills 技能系統 ✅ (Previous)
 
 實作 WebSocket 取代 HTTP Polling，提供即時雙向通訊：
 
