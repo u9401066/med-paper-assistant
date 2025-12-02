@@ -21,6 +21,7 @@
 | `generate_search_queries` | 根據主題生成多組搜尋語法（**自動整合策略**）|
 | `search_literature` | 執行單一搜尋（可並行呼叫多次）|
 | `merge_search_results` | 合併多個搜尋結果並去重 |
+| `expand_search_queries` | **擴展搜尋**：結果不夠時生成更多查詢 |
 
 ## 工作流程
 
@@ -143,18 +144,89 @@ search_literature(query=...)  ← 直接用整合好的 query
 4. **可重現**：策略被記錄下來
 5. **策略整合**：日期/排除詞自動套用到所有查詢
 
-## 進階：自適應搜尋
+## 進階：迭代式搜尋擴展
+
+當初始搜尋結果不夠時，使用 `expand_search_queries` 擴展：
 
 ```
 Phase 1: 初始搜尋
-  → 並行執行 4 組基本搜尋
-  → 發現某些方向結果很少
+  → generate_search_queries(topic="remimazolam ICU sedation")
+  → 並行執行 5 組查詢
+  → merge_search_results → 只找到 15 篇，不夠！
 
-Phase 2: 補充搜尋（Agent 決定）
-  → 對結果少的方向，生成新的搜尋語法
-  → 再次並行執行
+Phase 2: 擴展搜尋
+  → expand_search_queries(
+      topic="remimazolam ICU sedation",
+      existing_query_ids="q1_title,q2_tiab,q3_and,q4_partial,q5_mesh",
+      expansion_type="synonyms"  # 同義詞擴展
+    )
+  → 返回 4 組新查詢（使用 sedation → conscious sedation 等同義詞）
+  → 並行執行新查詢
+  → merge_search_results（包含所有結果）→ 共 32 篇
 
-Phase 3: 合併所有結果
+Phase 3: 如果還不夠，繼續擴展
+  → expand_search_queries(..., expansion_type="related")
+  → 返回相關概念查詢（propofol, dexmedetomidine 比較研究）
+  → 並行執行 → 合併 → 共 58 篇
+```
+
+### 擴展類型選擇指南
+
+| 情況 | 使用 expansion_type | 預期效果 |
+|------|---------------------|----------|
+| 擔心遺漏不同術語的文獻 | `synonyms` | sedation → conscious sedation, procedural sedation |
+| 想找類似主題的比較研究 | `related` | remimazolam → propofol, midazolam |
+| 結果太少，需要更多 | `broader` | 使用 OR 搜尋、移除日期限制 |
+| 結果太多，想精選高品質 | `narrower` | 限定 RCT、Meta-analysis、最近 2 年 |
+
+### 完整迭代流程圖
+
+```
+                    ┌─────────────────────┐
+                    │ generate_search_    │
+                    │ queries(topic)      │
+                    └─────────┬───────────┘
+                              │ 5 組查詢
+                              ▼
+                    ┌─────────────────────┐
+                    │ 並行執行            │
+                    │ search_literature   │
+                    └─────────┬───────────┘
+                              │
+                              ▼
+                    ┌─────────────────────┐
+                    │ merge_search_       │
+                    │ results             │
+                    └─────────┬───────────┘
+                              │
+                              ▼
+                    ┌─────────────────────┐
+               ┌────┤ 結果足夠嗎？        │
+               │    └─────────┬───────────┘
+               │              │ No
+               │              ▼
+               │    ┌─────────────────────┐
+               │    │ expand_search_      │
+               │    │ queries(type=...)   │
+               │    └─────────┬───────────┘
+               │              │ 新查詢
+               │              ▼
+               │    ┌─────────────────────┐
+               │    │ 並行執行新查詢      │
+               │    └─────────┬───────────┘
+               │              │
+               │              ▼
+               │    ┌─────────────────────┐
+               │    │ merge（含所有結果） │
+               │    └─────────┬───────────┘
+               │              │
+               │              └─────────────┐
+               │                            │
+               │ Yes                        │ 重複直到足夠
+               ▼                            │
+        ┌──────────────┐                    │
+        │ 完成搜尋     │ ◄──────────────────┘
+        └──────────────┘
 ```
 
 ## Copilot Instructions 整合
@@ -168,6 +240,11 @@ Phase 3: 合併所有結果
 1. **並行呼叫** `search_literature` 對每個 query
 2. 收集所有結果
 3. 呼叫 `merge_search_results` 合併
+4. **如果結果不夠**：
+   - 呼叫 `expand_search_queries` 生成更多查詢
+   - 並行執行新查詢
+   - 再次 merge（包含所有結果）
+   - 重複直到足夠
 
 這是利用並行能力加速搜尋的標準模式。
 ```

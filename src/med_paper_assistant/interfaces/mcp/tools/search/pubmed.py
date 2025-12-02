@@ -440,7 +440,247 @@ def register_pubmed_tools(mcp: FastMCP, searcher: PubMedClient, strategy_manager
             },
             "unique_pmids": all_pmids,
             "next_step": "使用 save_reference(pmid=...) 儲存感興趣的文獻，" +
-                        "或使用 get_reference_details(pmid=...) 取得詳細資訊"
+                        "或使用 get_reference_details(pmid=...) 取得詳細資訊",
+            "need_more": "如果結果不夠，使用 expand_search_queries 生成更多搜尋策略"
         }
         
         return json.dumps(output, indent=2, ensure_ascii=False)
+
+    @mcp.tool()
+    def expand_search_queries(
+        topic: str,
+        existing_query_ids: str = "",
+        expansion_type: str = "synonyms",
+        use_saved_strategy: bool = True
+    ) -> str:
+        """
+        擴展搜尋查詢，當初始搜尋結果不夠時使用。
+        
+        這個工具生成**額外的**搜尋策略，與初始查詢不重複。
+        適合在 generate_search_queries + merge_search_results 後，
+        發現結果不夠時使用。
+        
+        Args:
+            topic: 原始搜尋主題
+            existing_query_ids: 已執行的查詢 ID（逗號分隔），避免重複
+                              例如："q1_title,q2_tiab,q3_and"
+            expansion_type: 擴展類型
+                - "synonyms": 同義詞擴展（如 sedation → conscious sedation, procedural sedation）
+                - "related": 相關概念（如 ICU → critical care, intensive care）
+                - "broader": 更廣泛的搜尋（放寬限制）
+                - "narrower": 更精確的搜尋（加強限制）
+                - "author": 搜尋關鍵作者的其他文獻
+                - "citation": 基於已找到文獻的引用網絡
+            use_saved_strategy: 是否套用已儲存的搜尋策略
+            
+        Returns:
+            新的搜尋查詢，可並行執行後與之前結果合併
+        """
+        logger.info(f"Expanding search for topic: {topic}, type: {expansion_type}")
+        
+        # 解析已執行的查詢
+        existing = set(existing_query_ids.split(",")) if existing_query_ids else set()
+        
+        # 載入策略設定
+        filters = ""
+        if use_saved_strategy:
+            saved_strategy = strategy_manager.load_strategy()
+            if saved_strategy:
+                date_filter = ""
+                exclusion_filter = ""
+                article_type_filter = ""
+                
+                if saved_strategy.date_range:
+                    dr = saved_strategy.date_range.lower()
+                    if "-" in dr and len(dr.split("-")) == 2:
+                        parts = dr.split("-")
+                        if parts[0].isdigit() and parts[1].isdigit():
+                            date_filter = f" AND ({parts[0]}:{parts[1]}[dp])"
+                
+                if saved_strategy.exclusions:
+                    exclusions = [f'NOT "{ex}"' for ex in saved_strategy.exclusions]
+                    exclusion_filter = " " + " ".join(exclusions)
+                
+                if saved_strategy.article_types:
+                    types = [f'"{t}"[Publication Type]' for t in saved_strategy.article_types]
+                    article_type_filter = f" AND ({' OR '.join(types)})"
+                
+                filters = f"{date_filter}{article_type_filter}{exclusion_filter}".strip()
+        
+        words = topic.lower().split()
+        queries = []
+        query_counter = len(existing) + 1
+        
+        if expansion_type == "synonyms":
+            # 生成同義詞擴展查詢
+            # 常見醫學同義詞對照
+            synonym_map = {
+                "sedation": ["conscious sedation", "procedural sedation", "moderate sedation", "deep sedation"],
+                "icu": ["intensive care unit", "critical care unit", "CCU"],
+                "anesthesia": ["anaesthesia", "anesthetic", "anaesthetic"],
+                "pain": ["analgesia", "analgesic", "nociception"],
+                "surgery": ["surgical", "operative", "perioperative", "intraoperative"],
+                "ventilation": ["mechanical ventilation", "respiratory support", "ventilator"],
+                "hypotension": ["low blood pressure", "hemodynamic instability"],
+                "mortality": ["death", "survival", "fatality"],
+                "prediction": ["predictive", "prognostic", "forecasting"],
+                "machine learning": ["ML", "artificial intelligence", "AI", "deep learning", "neural network"],
+            }
+            
+            for word in words:
+                word_lower = word.lower()
+                if word_lower in synonym_map:
+                    for synonym in synonym_map[word_lower][:2]:  # 取前 2 個同義詞
+                        new_topic = topic.replace(word, synonym)
+                        query_id = f"q{query_counter}_syn_{word_lower[:3]}"
+                        if query_id not in existing:
+                            base_q = f"({new_topic})[Title/Abstract]"
+                            queries.append({
+                                "id": query_id,
+                                "query": f"{base_q}{filters}" if filters else base_q,
+                                "purpose": f"同義詞擴展: {word} → {synonym}",
+                                "expected": "找到使用不同術語的相關文獻"
+                            })
+                            query_counter += 1
+                            
+        elif expansion_type == "related":
+            # 相關概念擴展
+            related_concepts = {
+                "sedation": ["analgesia", "anxiolysis", "hypnotic"],
+                "icu": ["emergency department", "operating room", "PACU", "ward"],
+                "anesthesia": ["sedation", "regional block", "nerve block"],
+                "remimazolam": ["midazolam", "propofol", "dexmedetomidine", "benzodiazepine"],
+                "propofol": ["remimazolam", "etomidate", "ketamine"],
+                "hypotension": ["bradycardia", "tachycardia", "arrhythmia", "shock"],
+            }
+            
+            for word in words:
+                word_lower = word.lower()
+                if word_lower in related_concepts:
+                    for related in related_concepts[word_lower][:2]:
+                        other_words = [w for w in words if w.lower() != word_lower]
+                        if other_words:
+                            new_topic = f"{related} {' '.join(other_words)}"
+                            query_id = f"q{query_counter}_rel_{word_lower[:3]}"
+                            if query_id not in existing:
+                                base_q = f"({new_topic})[Title/Abstract]"
+                                queries.append({
+                                    "id": query_id,
+                                    "query": f"{base_q}{filters}" if filters else base_q,
+                                    "purpose": f"相關概念: {word} → {related}",
+                                    "expected": "找到相關但不同主題的文獻"
+                                })
+                                query_counter += 1
+                                
+        elif expansion_type == "broader":
+            # 更廣泛的搜尋（放寬限制）
+            # 使用 OR 而非 AND
+            if len(words) >= 2:
+                or_query = " OR ".join(words)
+                query_id = f"q{query_counter}_broad_or"
+                if query_id not in existing:
+                    queries.append({
+                        "id": query_id,
+                        "query": f"({or_query})[Title/Abstract]{filters}",
+                        "purpose": "放寬搜尋：任一關鍵字",
+                        "expected": "更多結果，相關性可能較低"
+                    })
+                    query_counter += 1
+            
+            # 只用主要詞彙
+            main_word = words[0]
+            query_id = f"q{query_counter}_broad_main"
+            if query_id not in existing:
+                queries.append({
+                    "id": query_id,
+                    "query": f"({main_word})[Title]{filters}",
+                    "purpose": f"只搜尋主要詞彙: {main_word}",
+                    "expected": "更廣泛的結果"
+                })
+                query_counter += 1
+                
+            # 移除日期限制（如果有的話）
+            if filters and "[dp]" in filters:
+                no_date_filters = filters.split(" AND ")[0]  # 移除日期部分
+                query_id = f"q{query_counter}_broad_nodate"
+                if query_id not in existing:
+                    queries.append({
+                        "id": query_id,
+                        "query": f"({topic})[Title/Abstract]",  # 無日期限制
+                        "purpose": "移除日期限制",
+                        "expected": "包含較舊的文獻"
+                    })
+                    query_counter += 1
+                    
+        elif expansion_type == "narrower":
+            # 更精確的搜尋
+            # 加入更多限制
+            query_id = f"q{query_counter}_narrow_rct"
+            if query_id not in existing:
+                queries.append({
+                    "id": query_id,
+                    "query": f"({topic})[Title] AND (randomized controlled trial[pt] OR RCT[tiab]){filters}",
+                    "purpose": "限定 RCT 研究",
+                    "expected": "高品質證據"
+                })
+                query_counter += 1
+            
+            query_id = f"q{query_counter}_narrow_meta"
+            if query_id not in existing:
+                queries.append({
+                    "id": query_id,
+                    "query": f"({topic})[Title/Abstract] AND (meta-analysis[pt] OR systematic review[pt]){filters}",
+                    "purpose": "限定 Meta-analysis/SR",
+                    "expected": "綜合性證據"
+                })
+                query_counter += 1
+                
+            query_id = f"q{query_counter}_narrow_recent"
+            if query_id not in existing:
+                from datetime import datetime
+                current_year = datetime.now().year
+                queries.append({
+                    "id": query_id,
+                    "query": f"({topic})[Title] AND ({current_year-2}:{current_year}[dp])",
+                    "purpose": "限定最近 2 年",
+                    "expected": "最新研究"
+                })
+                query_counter += 1
+        
+        # 如果沒有生成任何查詢，提供預設擴展
+        if not queries:
+            # 使用萬用卡擴展
+            query_id = f"q{query_counter}_wildcard"
+            queries.append({
+                "id": query_id,
+                "query": f"({words[0]}*)[Title/Abstract]{filters}",
+                "purpose": "萬用卡擴展",
+                "expected": "包含詞幹變化"
+            })
+            query_counter += 1
+            
+            # 使用 All Fields
+            query_id = f"q{query_counter}_allfields"
+            queries.append({
+                "id": query_id,
+                "query": f"({topic})[All Fields]{filters}",
+                "purpose": "搜尋所有欄位",
+                "expected": "最廣泛的搜尋"
+            })
+        
+        result = {
+            "topic": topic,
+            "expansion_type": expansion_type,
+            "existing_queries": list(existing),
+            "new_queries_count": len(queries),
+            "queries": queries,
+            "instruction": "請並行執行這些新查詢，然後將結果與之前的結果一起傳給 merge_search_results",
+            "available_expansion_types": [
+                {"type": "synonyms", "description": "同義詞擴展"},
+                {"type": "related", "description": "相關概念"},
+                {"type": "broader", "description": "放寬限制"},
+                {"type": "narrower", "description": "更精確搜尋"},
+            ]
+        }
+        
+        return json.dumps(result, indent=2, ensure_ascii=False)

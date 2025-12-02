@@ -131,7 +131,7 @@ After setup completes:
 
 In VS Code's Copilot Chat panel:
 1. Type `/mcp` and press Enter
-2. You should see `mdpaper (49 tools)` in the list (or with `drawio (15 tools)` if you enabled Draw.io integration)
+2. You should see `mdpaper (50 tools)` in the list (or with `drawio (15 tools)` if you enabled Draw.io integration)
 3. If you see this, the installation was successful! 🎉
 
 #### Optional: Setup Draw.io Integration
@@ -667,7 +667,7 @@ generate_search_queries(topic="...", use_saved_strategy=True)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
-| **Search** (7) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results` | Literature discovery with [parallel search](#-parallel-search) |
+| **Search** (8) | `search_literature`, `find_related_articles`, `find_citing_articles`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries` | Literature discovery with [parallel search](#-parallel-search) |
 | **Reference** (8) | `save_reference`, `list_saved_references`, `search_local_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style` | Reference management |
 | **Writing** (9) | `write_draft`, `read_draft`, `list_drafts`, `insert_citation`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick` | Manuscript preparation |
 | **Analysis** (4) | `analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one` | Data analysis |
@@ -878,7 +878,7 @@ scripts\setup.bat
 
 在 VS Code 的 Copilot Chat 面板中：
 1. 輸入 `/mcp` 並按 Enter
-2. 您應該會看到列表中有 `mdpaper (49 tools)`（如果啟用 Draw.io 整合，還會有 `drawio (15 tools)`）
+2. 您應該會看到列表中有 `mdpaper (50 tools)`（如果啟用 Draw.io 整合，還會有 `drawio (15 tools)`）
 3. 如果看到這個，表示安裝成功！🎉
 
 #### 選用：設定 Draw.io 整合

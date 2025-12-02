@@ -139,7 +139,23 @@ Skill 可能需要呼叫多個 MCP 的工具（mdpaper + drawio），這是正�
 
 4. 呼叫 merge_search_results(results_json="[{query_id, pmids}, ...]")
    → 返回去重後的完整列表
+
+5. **如果結果不夠**，使用 expand_search_queries 擴展搜尋：
+   expand_search_queries(
+     topic="原始主題",
+     existing_query_ids="q1_title,q2_tiab,q3_and,...",
+     expansion_type="synonyms"  # 或 "related", "broader", "narrower"
+   )
+   → 返回更多搜尋語法，並行執行後再次 merge
 ```
+
+**搜尋擴展類型**：
+| 類型 | 說明 | 使用時機 |
+|------|------|----------|
+| `synonyms` | 同義詞擴展 (sedation → conscious sedation) | 擔心遺漏使用不同術語的文獻 |
+| `related` | 相關概念 (propofol → remimazolam) | 想找類似主題的比較研究 |
+| `broader` | 放寬限制（OR 搜尋、移除日期限制）| 結果太少 |
+| `narrower` | 更精確（RCT、Meta-analysis、最近 2 年）| 結果太多，想找高品質證據 |
 
 **搜尋策略整合**：
 - `configure_search_strategy()` 設定持久化策略（日期範圍、排除詞、文章類型）
@@ -151,3 +167,4 @@ Skill 可能需要呼叫多個 MCP 的工具（mdpaper + drawio），這是正�
 - 更全面（多角度搜尋）
 - 可追蹤（知道每篇來自哪個搜尋）
 - 策略整合（日期/排除詞自動套用）
+- **可迭代擴展**（結果不夠時繼續搜尋）

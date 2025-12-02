@@ -22,6 +22,45 @@
 - [x] **WebSocket Connection Stability Fix** (2025-12-01)
 - [x] **Skills System** (2025-12-01)
 - [x] **Parallel Search Feature** (2025-12-01)
+- [x] **Iterative Search Expansion** (2025-12-01)
+
+## Iterative Search Expansion (2025-12-01)
+
+### Problem
+並行搜尋雖然高效，但 `generate_search_queries` 只產生 5 組固定查詢。
+當結果不足時，需要能夠迭代擴展搜尋。
+
+### Solution
+
+**新增工具:** `expand_search_queries`
+
+**擴展方向:**
+| Direction | 說明 | 範例 |
+|-----------|------|------|
+| `synonyms` | 同義詞擴展 | sedation → conscious sedation, procedural sedation |
+| `related_concepts` | 相關概念 | propofol → remimazolam, dexmedetomidine |
+| `different_fields` | 不同欄位 | [Title] → [Title/Abstract], [MeSH] |
+| `broader_terms` | 更廣泛 | ICU → critical care, intensive care |
+| `author_search` | 作者追蹤 | 根據已找到文獻的關鍵作者 |
+
+**迭代工作流程:**
+```
+Phase 1: generate_search_queries → 並行搜尋 → merge
+    ↓ 結果 < 需要數量?
+Phase 2: expand_search_queries(direction="synonyms") → 並行搜尋 → merge
+    ↓ 還不夠?
+Phase 3: expand_search_queries(direction="related_concepts") → ...
+```
+
+**技術細節:**
+- 追蹤已執行的 query IDs，避免重複
+- 新 queries 命名: `exp_{direction}_{n}`
+- 自動整合已儲存的搜尋策略
+
+**檔案修改:**
+- `src/med_paper_assistant/interfaces/mcp/tools/search/pubmed.py`: 新增 `expand_search_queries()`
+- `.github/copilot-instructions.md`: 新增步驟 5 說明迭代擴展
+- `.skills/research/parallel_search.md`: 新增「進階：迭代式搜尋擴展」段落
 
 ## Skills System & Parallel Search (2025-12-01)
 
