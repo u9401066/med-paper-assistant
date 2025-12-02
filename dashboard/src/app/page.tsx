@@ -7,6 +7,7 @@ import { ProjectSelector } from '@/components/ProjectSelector';
 import { FocusSelector } from '@/components/FocusSelector';
 import { ProjectCard } from '@/components/ProjectCard';
 import { EnvironmentBadge } from '@/components/EnvironmentBadge';
+import { DiagramsPanel } from '@/components/DiagramsPanel';
 import { ProjectFocus } from '@/types/project';
 
 type TabType = 'projects' | 'focus' | 'diagrams';
@@ -156,42 +157,10 @@ export default function Home() {
 
         {/* Diagrams Tab */}
         {activeTab === 'diagrams' && (
-          <div>
-            {currentProject ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-white rounded-lg border border-gray-200">
-                  <h3 className="font-medium text-gray-900 mb-2">Diagrams</h3>
-                  <p className="text-sm text-gray-500">
-                    Project diagrams will appear here.
-                  </p>
-                </div>
-                
-                {isVSCodeBrowser ? (
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-700">
-                      🎨 Draw.io editor opens in a separate browser tab when in VS Code.
-                    </p>
-                    <button
-                      onClick={() => window.open('http://localhost:3001', '_blank')}
-                      className="mt-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium
-                                hover:bg-yellow-200 transition-colors"
-                    >
-                      Open Draw.io Editor
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-gray-100 border border-gray-200 rounded-lg text-center">
-                    <p className="text-sm text-gray-500 mb-2">Draw.io Editor</p>
-                    <p className="text-xs text-gray-400">Embedded editor coming soon...</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">Select a project first</p>
-              </div>
-            )}
-          </div>
+          <DiagramsPanel
+            projectSlug={currentProject?.slug || null}
+            isVSCodeBrowser={isVSCodeBrowser}
+          />
         )}
       </main>
 

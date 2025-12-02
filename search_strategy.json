@@ -1,20 +1,23 @@
 {
   "keywords": [
     "anesthesia",
-    "artificial intelligence",
-    "machine learning",
-    "deep learning"
+    "ICU",
+    "transfer",
+    "transport",
+    "intrahospital",
+    "critically ill"
   ],
   "exclusions": [
-    "case report",
-    "letter",
-    "comment"
+    "pediatric",
+    "neonatal",
+    "veterinary"
   ],
   "article_types": [
     "Journal Article",
     "Review",
-    "Clinical Trial"
+    "Clinical Trial",
+    "Meta-Analysis"
   ],
-  "min_sample_size": null,
-  "date_range": "2020-2025"
+  "min_sample_size": 0,
+  "date_range": "2019-2025"
 }

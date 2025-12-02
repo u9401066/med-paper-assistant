@@ -2,15 +2,9 @@
 Entrez Module - NCBI Entrez API Integration
 
 This module provides a modular interface to NCBI's Entrez E-utilities.
-Refactored from the original search.py for better maintainability.
 
-Module Structure:
-    base.py         - Base configuration and shared utilities
-    search.py       - Core search functionality (esearch, efetch)
-    pdf.py          - PDF download from PMC Open Access
-    citation.py     - Citation network (related, citing, references)
-    batch.py        - Batch processing with History Server
-    utils.py        - Utility functions (spell check, MeSH, export)
+Re-exports from pubmed-search-mcp submodule for backward compatibility.
+Falls back to local implementation if submodule not installed.
 
 Usage:
     from med_paper_assistant.infrastructure.external.entrez import LiteratureSearcher
@@ -19,35 +13,39 @@ Usage:
     results = searcher.search("diabetes treatment", limit=10)
 """
 
-from .base import EntrezBase, SearchStrategy
-from .search import SearchMixin
-from .pdf import PDFMixin
-from .citation import CitationMixin
-from .batch import BatchMixin
-from .utils import UtilsMixin
+try:
+    # Try to import from the submodule first
+    from pubmed_search.entrez import (
+        LiteratureSearcher,
+        EntrezBase,
+        SearchStrategy,
+        SearchMixin,
+        PDFMixin,
+        CitationMixin,
+        BatchMixin,
+        UtilsMixin,
+    )
+except ImportError:
+    # Fallback to local implementation if submodule not installed
+    from .base import EntrezBase, SearchStrategy
+    from .search import SearchMixin
+    from .pdf import PDFMixin
+    from .citation import CitationMixin
+    from .batch import BatchMixin
+    from .utils import UtilsMixin
 
-
-class LiteratureSearcher(
-    SearchMixin,
-    PDFMixin,
-    CitationMixin,
-    BatchMixin,
-    UtilsMixin,
-    EntrezBase
-):
-    """
-    Complete literature search interface combining all Entrez functionality.
-    
-    This class uses mixins to provide a clean, modular API while maintaining
-    backward compatibility with the original LiteratureSearcher interface.
-    
-    Example:
-        >>> searcher = LiteratureSearcher(email="researcher@example.com")
-        >>> results = searcher.search("machine learning diagnosis", limit=5)
-        >>> for paper in results:
-        ...     print(paper['title'])
-    """
-    pass
+    class LiteratureSearcher(
+        SearchMixin,
+        PDFMixin,
+        CitationMixin,
+        BatchMixin,
+        UtilsMixin,
+        EntrezBase
+    ):
+        """
+        Complete literature search interface combining all Entrez functionality.
+        """
+        pass
 
 
 __all__ = [
