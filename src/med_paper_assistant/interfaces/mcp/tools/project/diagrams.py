@@ -1,7 +1,10 @@
 """
-Draw.io Integration Tools
+Diagram Management Tools (Project Integration)
 
 save_diagram, save_diagram_standalone, list_diagrams
+
+These tools save Draw.io diagrams to project's results/figures directory.
+They work with the separate drawio-mcp server that handles diagram creation/editing.
 """
 
 import base64
@@ -14,7 +17,7 @@ from med_paper_assistant.infrastructure.persistence import ProjectManager
 from .._shared import ensure_project_context, get_project_list_for_prompt
 
 
-def register_drawio_tools(mcp: FastMCP, project_manager: ProjectManager):
+def register_diagram_tools(mcp: FastMCP, project_manager: ProjectManager):
     """Register Draw.io integration tools."""
     
     @mcp.tool()

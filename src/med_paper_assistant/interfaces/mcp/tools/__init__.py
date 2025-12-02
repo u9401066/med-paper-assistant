@@ -4,17 +4,18 @@ MCP Tools Module
 Provides all tool registration functions for the MedPaper Assistant MCP server.
 
 Structure:
-- project/     - Project management (CRUD, settings, exploration)
+- project/     - Project management (CRUD, settings, exploration, diagrams)
 - draft/       - Draft writing and templates
-- search/      - Literature search (PubMed)
+- search/      - Literature search (PubMed) - uses pubmed-search-mcp submodule
 - reference/   - Reference management and citation
-- analysis/    - Data analysis and visualization
 - validation/  - Concept and idea validation
-- discussion/  - Academic debate (future)
-- review/      - Peer review simulation (future)
 - export/      - Word document export
-- diagram/     - Draw.io integration
+- skill/       - Workflow skills management
 - _shared/     - Shared utilities
+
+Removed:
+- analysis/    - Moved to separate project (data-analysis-mcp)
+- diagram/     - Merged into project/ module
 """
 
 # Import register functions from each module
@@ -22,10 +23,8 @@ from .project import register_project_tools
 from .draft import register_draft_tools
 from .search import register_search_tools
 from .reference import register_reference_tools
-from .analysis import register_analysis_tools
 from .validation import register_validation_tools
 from .export import register_export_tools
-from .diagram import register_diagram_tools
 
 # Shared utilities
 from ._shared import (
@@ -43,10 +42,8 @@ __all__ = [
     "register_draft_tools",
     "register_search_tools",
     "register_reference_tools",
-    "register_analysis_tools",
     "register_validation_tools",
     "register_export_tools",
-    "register_diagram_tools",
     # Shared utilities
     "ensure_project_context",
     "validate_project_slug",
