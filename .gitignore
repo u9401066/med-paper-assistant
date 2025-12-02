@@ -15,7 +15,7 @@ dist/
 .env
 
 # Project runtime data (inside projects/)
-projects/
+/projects/
 
 # Current project tracker
 .current_project
