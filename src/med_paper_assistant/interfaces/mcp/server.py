@@ -14,7 +14,7 @@ Architecture:
     tools/ - MCP tool definitions organized by functionality
         project/     - Project management (CRUD, settings, exploration)
         draft/       - Draft writing and templates
-        search/      - Literature search (PubMed)
+        search/      - Literature search (PubMed) - uses pubmed-search-mcp submodule
         reference/   - Reference management and citation
         analysis/    - Data analysis and visualization
         validation/  - Concept and idea validation
@@ -42,8 +42,8 @@ from med_paper_assistant.infrastructure.services import (
     WordWriter,
     StrategyManager,
 )
-from pubmed_search import PubMedClient
-from pubmed_search.entrez import LiteratureSearcher as EntrezSearcher
+# Use LiteratureSearcher from pubmed-search-mcp submodule
+from pubmed_search.entrez import LiteratureSearcher
 
 # Server modules
 from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS, DEFAULT_EMAIL
@@ -59,55 +59,6 @@ from med_paper_assistant.interfaces.mcp.tools import (
 )
 from med_paper_assistant.interfaces.mcp.tools.skill import register_skill_tools
 from med_paper_assistant.interfaces.mcp.prompts import register_prompts
-
-
-# Create a LiteratureSearcher-compatible wrapper
-class LiteratureSearcher:
-    """Wrapper for backward compatibility with existing code."""
-    def __init__(self, email: str):
-        self._client = PubMedClient(email=email)
-        # Also initialize the Entrez searcher for PDF downloads
-        self._entrez_searcher = EntrezSearcher(email=email)
-    
-    def search(self, query, limit=5, min_year=None, max_year=None, article_type=None, strategy="relevance", date_from=None, date_to=None, date_type="edat"):
-        # Use Entrez searcher directly for full date support
-        results = self._entrez_searcher.search(
-            query, limit, min_year, max_year, article_type, strategy,
-            date_from=date_from, date_to=date_to, date_type=date_type
-        )
-        return results
-    
-    def fetch_details(self, id_list):
-        results = self._client.fetch_by_pmids(id_list)
-        return [r.to_dict() for r in results]
-    
-    def find_related_articles(self, pmid, limit=5):
-        results = self._client.find_related(pmid, limit)
-        return [r.to_dict() for r in results]
-    
-    def find_citing_articles(self, pmid, limit=10):
-        results = self._client.find_citing(pmid, limit)
-        return [r.to_dict() for r in results]
-    
-    def download_pdf(self, pmid):
-        return self._client.download_pdf(pmid)
-    
-    def download_pmc_pdf(self, pmid: str, output_path: str) -> bool:
-        """
-        Download PDF from PubMed Central if available.
-        
-        Uses the Entrez searcher's PDF download functionality which:
-        1. Finds the PMC ID via elink
-        2. Downloads the PDF from PMC Open Access
-        
-        Args:
-            pmid: PubMed ID.
-            output_path: Path to save the PDF file.
-            
-        Returns:
-            True if download successful, False otherwise.
-        """
-        return self._entrez_searcher.download_pmc_pdf(pmid, output_path)
 
 
 def create_server() -> FastMCP:
@@ -127,6 +78,7 @@ def create_server() -> FastMCP:
     logger.info("Initializing MedPaper Assistant MCP Server...")
 
     # Initialize core modules
+    # Use LiteratureSearcher directly from pubmed-search-mcp submodule
     searcher = LiteratureSearcher(email=DEFAULT_EMAIL)
     analyzer = Analyzer()
     project_manager = ProjectManager()  # Multi-project support

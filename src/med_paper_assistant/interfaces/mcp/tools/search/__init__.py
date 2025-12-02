@@ -2,19 +2,22 @@
 Search Tools Module
 
 Tools for literature search and search strategy.
+Now uses pubmed-search-mcp submodule.
 """
 
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.infrastructure.services import StrategyManager
-from pubmed_search import PubMedClient
-
-from .pubmed import register_pubmed_tools
-
-
-def register_search_tools(mcp: FastMCP, pubmed_client: PubMedClient, strategy_manager: StrategyManager):
-    """Register all search-related tools with the MCP server."""
-    register_pubmed_tools(mcp, pubmed_client, strategy_manager)
+from pubmed_search import LiteratureSearcher
+from pubmed_search.mcp import register_search_tools as register_pubmed_tools
+from pubmed_search.mcp.strategy import StrategyManager
 
 
-__all__ = ["register_search_tools"]
+def register_search_tools(mcp: FastMCP, searcher: LiteratureSearcher, strategy_manager: StrategyManager):
+    """Register all search-related tools with the MCP server.
+    
+    Now delegates to pubmed_search.mcp.register_search_tools from submodule.
+    """
+    register_pubmed_tools(mcp, searcher, strategy_manager)
+
+
+__all__ = ["register_search_tools", "StrategyManager"]
