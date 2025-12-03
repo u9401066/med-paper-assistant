@@ -4,6 +4,7 @@ Reference Manager Tools
 save_reference, list, search, format, citation management
 """
 
+import os
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
@@ -12,7 +13,7 @@ from med_paper_assistant.infrastructure.services import Drafter
 from .._shared import ensure_project_context, get_project_list_for_prompt
 
 
-def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter):
+def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter, project_manager):
     """Register reference management tools."""
     
     # Get project manager for auto-project creation
@@ -273,4 +274,64 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
                 output += f"[{i}] {author_str}. {title}. {journal_name}. {year}. PMID:{pmid}\n"
         
         output += f"\n*Total: {len(pmid_list)} references*"
+        return output
+
+    @mcp.tool()
+    def rebuild_foam_aliases(project: Optional[str] = None) -> str:
+        """
+        Rebuild Foam alias files for all references in a project.
+        
+        Use this to create Foam-compatible wikilink files for existing references
+        that were saved before the Foam integration was added.
+        
+        Args:
+            project: Project slug. If not specified, uses current project.
+            
+        Returns:
+            Summary of created alias files.
+        """
+        if project:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+        
+        refs_dir = ref_manager.base_dir
+        if not os.path.exists(refs_dir):
+            return f"❌ References directory not found: {refs_dir}"
+        
+        created = []
+        skipped = []
+        
+        for pmid_dir in os.listdir(refs_dir):
+            pmid_path = os.path.join(refs_dir, pmid_dir)
+            if not os.path.isdir(pmid_path):
+                continue
+            
+            metadata = ref_manager.get_metadata(pmid_dir)
+            if not metadata:
+                continue
+            
+            citation_key = ref_manager._generate_citation_key(metadata)
+            alias_path = os.path.join(refs_dir, f"{citation_key}.md")
+            
+            if os.path.exists(alias_path):
+                skipped.append(citation_key)
+                continue
+            
+            # Create alias
+            ref_manager._create_foam_alias(pmid_dir, citation_key)
+            created.append(citation_key)
+        
+        output = f"📚 **Foam Alias Rebuild Complete**\n\n"
+        output += f"✅ Created: {len(created)} new aliases\n"
+        output += f"⏭️ Skipped: {len(skipped)} (already exist)\n\n"
+        
+        if created:
+            output += "**New aliases:**\n"
+            for key in created[:10]:
+                output += f"- `[[{key}]]`\n"
+            if len(created) > 10:
+                output += f"- ... and {len(created) - 10} more\n"
+        
+        output += "\n💡 Now you can use `[[author_year_pmid]]` in your drafts for hover preview!"
         return output

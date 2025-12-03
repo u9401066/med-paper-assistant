@@ -96,7 +96,7 @@ def create_server() -> FastMCP:
     register_search_tools(mcp, searcher, strategy_manager)
     
     logger.info("Registering reference tools...")
-    register_reference_tools(mcp, ref_manager, drafter)
+    register_reference_tools(mcp, ref_manager, drafter, project_manager)
     
     logger.info("Registering draft tools...")
     register_draft_tools(mcp, drafter)
