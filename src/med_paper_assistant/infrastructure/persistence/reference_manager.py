@@ -73,14 +73,21 @@ class ReferenceManager:
         # Add pre-formatted citation strings to metadata
         article['citation'] = self._format_citation(article)
         
+        # Generate citation key for Foam (e.g., "smith2023")
+        citation_key = self._generate_citation_key(article)
+        article['citation_key'] = citation_key
+        
         # Save metadata
         with open(os.path.join(ref_dir, "metadata.json"), "w", encoding="utf-8") as f:
             json.dump(article, f, indent=2, ensure_ascii=False)
             
-        # Save content (Markdown)
+        # Save content (Markdown) - main file for Foam preview
         content = self._generate_content_md(article)
         with open(os.path.join(ref_dir, "content.md"), "w", encoding="utf-8") as f:
             f.write(content)
+        
+        # Create Foam-friendly alias file (e.g., smith2023.md -> symlink or redirect)
+        self._create_foam_alias(pmid, citation_key)
         
         # Attempt to download PDF if available from PMC
         pdf_status = ""
@@ -90,9 +97,78 @@ class ReferenceManager:
                 pdf_status = " PDF downloaded from PMC."
             else:
                 pdf_status = " (No open access PDF available)"
-            
-        return f"Successfully saved reference {pmid} to {ref_dir}.{pdf_status}"
+        
+        foam_tip = f"\n💡 Foam: Use [[{citation_key}]] or [[{pmid}]] to link this reference."
+        return f"Successfully saved reference {pmid} to {ref_dir}.{pdf_status}{foam_tip}"
     
+    def _generate_citation_key(self, article: Dict[str, Any]) -> str:
+        """
+        Generate a human-friendly citation key (e.g., 'smith2023').
+        
+        Args:
+            article: Article metadata dictionary.
+            
+        Returns:
+            Citation key string like 'smith2023' or 'smith-jones2023'.
+        """
+        authors_full = article.get('authors_full', [])
+        authors = article.get('authors', [])
+        year = article.get('year', '')
+        
+        # Get first author last name
+        first_author = ""
+        if authors_full and isinstance(authors_full[0], dict):
+            first_author = authors_full[0].get('last_name', '').lower()
+        elif authors:
+            # Fallback: extract from string format "Last First"
+            first_author = authors[0].split()[0].lower() if authors[0] else ""
+        
+        if not first_author:
+            first_author = "unknown"
+        
+        # Clean up special characters
+        import re
+        first_author = re.sub(r'[^a-z]', '', first_author)
+        
+        return f"{first_author}{year}"
+    
+    def _create_foam_alias(self, pmid: str, citation_key: str):
+        """
+        Create a Foam-friendly alias file that redirects to the main content.
+        This allows users to use [[smith2023]] instead of [[41285088]].
+        
+        Args:
+            pmid: PubMed ID.
+            citation_key: Human-friendly citation key.
+        """
+        alias_path = os.path.join(self.base_dir, f"{citation_key}.md")
+        
+        # Don't overwrite if already exists (might be different paper)
+        if os.path.exists(alias_path):
+            # Append a letter to make unique
+            for suffix in 'abcdefghij':
+                alt_path = os.path.join(self.base_dir, f"{citation_key}{suffix}.md")
+                if not os.path.exists(alt_path):
+                    alias_path = alt_path
+                    break
+        
+        # Create a redirect file that includes the content
+        # This way Foam can preview it directly
+        ref_dir = os.path.join(self.base_dir, pmid)
+        content_path = os.path.join(ref_dir, "content.md")
+        
+        if os.path.exists(content_path):
+            with open(content_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Add alias info to the top
+            alias_content = f"<!-- Alias for PMID:{pmid} -->\n"
+            alias_content += f"<!-- See also: [[{pmid}/content]] -->\n\n"
+            alias_content += content
+            
+            with open(alias_path, 'w', encoding='utf-8') as f:
+                f.write(alias_content)
+
     def _format_citation(self, article: Dict[str, Any]) -> Dict[str, str]:
         """
         Generate pre-formatted citation strings in multiple formats.
@@ -240,6 +316,7 @@ class ReferenceManager:
     def _generate_content_md(self, article: Dict[str, Any]) -> str:
         """
         Generate markdown content for the reference.
+        Optimized for Foam hover preview - shows citation formats at the top.
         
         Args:
             article: Article metadata dictionary.
@@ -247,7 +324,24 @@ class ReferenceManager:
         Returns:
             Markdown formatted content string.
         """
-        content = f"# {article.get('title', 'Unknown Title')}\n\n"
+        pmid = article.get('pmid', '')
+        title = article.get('title', 'Unknown Title')
+        
+        # YAML frontmatter for Foam (enables better linking)
+        content = "---\n"
+        content += f"pmid: \"{pmid}\"\n"
+        content += f"type: reference\n"
+        content += f"year: {article.get('year', '')}\n"
+        if article.get('doi'):
+            content += f"doi: \"{article['doi']}\"\n"
+        # First author last name for easy referencing
+        authors_full = article.get('authors_full', [])
+        if authors_full and isinstance(authors_full[0], dict):
+            first_author = authors_full[0].get('last_name', '')
+            content += f"first_author: \"{first_author}\"\n"
+        content += "---\n\n"
+        
+        content += f"# {title}\n\n"
         
         # Authors
         authors = article.get('authors', [])
@@ -272,12 +366,25 @@ class ReferenceManager:
         content += f"**Journal**: {journal_info}\n\n"
         
         # IDs
-        content += f"**PMID**: {article.get('pmid', '')}\n"
+        content += f"**PMID**: {pmid}\n"
         if article.get('doi'):
-            content += f"**DOI**: {article['doi']}\n"
+            content += f"**DOI**: [{article['doi']}](https://doi.org/{article['doi']})\n"
         if article.get('pmc_id'):
             content += f"**PMC**: {article['pmc_id']}\n"
         content += "\n"
+        
+        # Citation formats (visible in Foam hover preview!)
+        citation = article.get('citation', {})
+        if citation:
+            content += "## 📋 Citation Formats\n\n"
+            if citation.get('vancouver'):
+                content += f"**Vancouver**: {citation['vancouver']}\n\n"
+            if citation.get('apa'):
+                content += f"**APA**: {citation['apa']}\n\n"
+            if citation.get('nature'):
+                content += f"**Nature**: {citation['nature']}\n\n"
+            if citation.get('in_text'):
+                content += f"**In-text**: ({citation['in_text']})\n\n"
         
         # Keywords
         keywords = article.get('keywords', [])
