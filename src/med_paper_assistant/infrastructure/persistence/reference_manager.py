@@ -98,22 +98,24 @@ class ReferenceManager:
             else:
                 pdf_status = " (No open access PDF available)"
         
-        foam_tip = f"\n💡 Foam: Use [[{citation_key}]] or [[{pmid}]] to link this reference."
+        foam_tip = f"\n💡 Foam: Use [[{citation_key}]] to link this reference."
         return f"Successfully saved reference {pmid} to {ref_dir}.{pdf_status}{foam_tip}"
     
     def _generate_citation_key(self, article: Dict[str, Any]) -> str:
         """
-        Generate a human-friendly citation key (e.g., 'smith2023').
+        Generate a human-friendly citation key with PMID for verification.
+        Format: 'smith2023_41285088' (author + year + underscore + PMID)
         
         Args:
             article: Article metadata dictionary.
             
         Returns:
-            Citation key string like 'smith2023' or 'smith-jones2023'.
+            Citation key string like 'smith2023_41285088'.
         """
         authors_full = article.get('authors_full', [])
         authors = article.get('authors', [])
         year = article.get('year', '')
+        pmid = article.get('pmid', '')
         
         # Get first author last name
         first_author = ""
@@ -130,27 +132,24 @@ class ReferenceManager:
         import re
         first_author = re.sub(r'[^a-z]', '', first_author)
         
-        return f"{first_author}{year}"
+        # Format: author + year + underscore + PMID for easy verification
+        return f"{first_author}{year}_{pmid}"
     
     def _create_foam_alias(self, pmid: str, citation_key: str):
         """
         Create a Foam-friendly alias file that redirects to the main content.
-        This allows users to use [[smith2023]] instead of [[41285088]].
+        This allows users to use [[smith2023_41285088]] for easy linking and verification.
         
         Args:
             pmid: PubMed ID.
-            citation_key: Human-friendly citation key.
+            citation_key: Human-friendly citation key with PMID (e.g., 'smith2023_41285088').
         """
         alias_path = os.path.join(self.base_dir, f"{citation_key}.md")
         
-        # Don't overwrite if already exists (might be different paper)
+        # Since citation_key now includes PMID, collisions are impossible
+        # But still check just in case
         if os.path.exists(alias_path):
-            # Append a letter to make unique
-            for suffix in 'abcdefghij':
-                alt_path = os.path.join(self.base_dir, f"{citation_key}{suffix}.md")
-                if not os.path.exists(alt_path):
-                    alias_path = alt_path
-                    break
+            return  # Already exists, no need to create
         
         # Create a redirect file that includes the content
         # This way Foam can preview it directly
@@ -163,7 +162,7 @@ class ReferenceManager:
             
             # Add alias info to the top
             alias_content = f"<!-- Alias for PMID:{pmid} -->\n"
-            alias_content += f"<!-- See also: [[{pmid}/content]] -->\n\n"
+            alias_content += f"<!-- Verify: https://pubmed.ncbi.nlm.nih.gov/{pmid}/ -->\n\n"
             alias_content += content
             
             with open(alias_path, 'w', encoding='utf-8') as f:
