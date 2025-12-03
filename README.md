@@ -150,6 +150,27 @@ To use Draw.io:
 2. Reload VS Code
 3. Use drawio tools in Copilot Chat
 
+#### Optional: Recommended VS Code Extensions
+
+These extensions enhance your research workflow:
+
+| Extension | Purpose | Install |
+|-----------|---------|---------|
+| **[Project Manager](https://marketplace.visualstudio.com/items?itemName=alefragnani.project-manager)** | Quick project switching, sidebar, tags | `ext install alefragnani.project-manager` |
+| **[Foam](https://marketplace.visualstudio.com/items?itemName=foam.foam-vscode)** | Wikilinks, backlinks, knowledge graph | `ext install foam.foam-vscode` |
+
+**Why Foam?** 
+- Link your research notes with `[[wikilinks]]`
+- See which notes reference a paper via Backlinks panel
+- Visualize connections between concepts with Graph view
+- Find orphaned notes (saved but never cited)
+
+**Quick Install:**
+```bash
+code --install-extension alefragnani.project-manager
+code --install-extension foam.foam-vscode
+```
+
 #### Manual Installation (If Setup Script Fails)
 
 <details>
@@ -718,7 +739,7 @@ We're actively developing new features. Here's what's coming:
 | 🔜 | **Multi-language Support** | Full UI localization beyond English/Chinese |
 | 🔜 | **Journal Style Library** | Pre-configured styles for major medical journals |
 | 📋 | **[Foam](https://github.com/foambubble/foam) Integration** | Wikilink reference checking, backlinks panel, graph visualization for research notes - knowledge management for researchers |
-| 📋 | **Project File Manager** | Visual file browser for project drafts, references, and figures - complements Foam's note-linking |
+| 📋 | **Dashboard File Browser** | Integrate [Chonky](https://chonky.io/) React file browser into Dashboard for visual project file management |
 | 📋 | **Collaboration Mode** | Multi-author workflow with version control |
 | 📋 | **AI-Assisted Review** | Use LLM to review and improve manuscript sections |
 
@@ -897,6 +918,27 @@ scripts\setup.bat
 1. 啟動網頁應用：`./scripts/start-drawio.sh`
 2. 重新載入 VS Code
 3. 在 Copilot Chat 中使用 drawio 工具
+
+#### 選用：推薦的 VS Code 擴展
+
+這些擴展可以增強你的研究工作流程：
+
+| 擴展 | 用途 | 安裝 |
+|------|------|------|
+| **[Project Manager](https://marketplace.visualstudio.com/items?itemName=alefragnani.project-manager)** | 快速切換專案、側邊欄、標籤 | `ext install alefragnani.project-manager` |
+| **[Foam](https://marketplace.visualstudio.com/items?itemName=foam.foam-vscode)** | Wikilinks、反向連結、知識圖譜 | `ext install foam.foam-vscode` |
+
+**為什麼推薦 Foam？**
+- 用 `[[wikilinks]]` 連結你的研究筆記
+- 透過 Backlinks 面板查看哪些筆記引用了某篇論文
+- 用 Graph 視覺化概念之間的關聯
+- 找出孤立的筆記（已儲存但從未被引用）
+
+**快速安裝：**
+```bash
+code --install-extension alefragnani.project-manager
+code --install-extension foam.foam-vscode
+```
 
 #### 手動安裝（如果腳本失敗）
 
@@ -1397,7 +1439,7 @@ pytest tests/ -v
 | 🔜 | **多語言支援** | 完整 UI 本地化，不只英文/中文 |
 | 🔜 | **期刊樣式庫** | 預設主要醫學期刊的格式設定 |
 | 📋 | **[Foam](https://github.com/foambubble/foam) 整合** | Wikilink 參考文獻檢查、反向連結面板、知識圖譜 - 研究人員的知識管理系統 |
-| 📋 | **專案檔案管理器** | 專案草稿、參考文獻、圖表的視覺化檔案瀏覽器 - 補充 Foam 的筆記連結功能 |
+| 📋 | **Dashboard 檔案瀏覽器** | 整合 [Chonky](https://chonky.io/) React 檔案瀏覽元件到 Dashboard，視覺化管理專案檔案 |
 | 📋 | **協作模式** | 多作者工作流程與版本控制 |
 | 📋 | **AI 輔助審稿** | 使用 LLM 審閱並改善論文段落 |
 

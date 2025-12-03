@@ -1,11 +1,76 @@
 # Active Context
 
 ## Current Focus
-pubmed-search-mcp 子模組獨立化 + 工具架構重構 + Foam 整合規劃
+Dashboard 專案切換 + 自動開啟/關閉文件功能
+
+## Recent Changes (2025-12-03)
+
+### 0. Dashboard 專案切換增強 ✅ (LATEST!)
+
+實作 **方案 A+B**：切換專案時自動開啟文件 + 可選擇關閉其他文件
+
+**功能:**
+```
+Dashboard 切換專案
+    ↓
+彈出對話框：
+  [🔄 開啟新專案 + 關閉其他文件]  ← 使用 vscode:// command URI
+  [📂 只開啟新專案文件]           ← 只開啟
+  [取消]
+    ↓
+自動開啟 concept.md, draft.md
+```
+
+**修改的檔案:**
+| 檔案 | 變更 |
+|------|------|
+| `dashboard/src/components/ProjectSelector.tsx` | 新增切換選項對話框 |
+| `dashboard/src/hooks/useProjects.ts` | 支援 openFiles, closeOthers 選項 |
+| `dashboard/src/app/api/projects/current/route.ts` | 返回 filesToOpen 路徑 |
+| `src/.../tools/project/workspace.py` | 新增 3 個 MCP 工具 |
+
+**新增 MCP 工具 (3 個):**
+| 工具 | 說明 |
+|------|------|
+| `close_other_project_files` | 關閉其他專案文件的指引 |
+| `open_project_files` | 開啟專案核心文件 |
+| `get_project_file_paths` | 取得專案檔案路徑 |
+
+**技術細節:**
+- 使用 `vscode://file/path` URI 開啟文件
+- 使用 `vscode://command:workbench.action.closeAllEditors` 關閉所有編輯器
+- 用戶手動開檔不受影響
 
 ## Recent Changes (2025-12-02)
 
-### 0. Foam 整合規劃 ✅ (LATEST!)
+### 0. 推薦擴展 + Chonky 檔案瀏覽器 ✅ (LATEST!)
+
+**README 更新:**
+- 新增「推薦的 VS Code 擴展」區塊
+- 推薦 Project Manager + Foam 擴展
+- 提供快速安裝指令
+
+**Dashboard 檔案瀏覽器規劃:**
+使用現成的 [Chonky](https://chonky.io/) React 元件（不造輪子！）：
+- 772 GitHub Stars
+- 12k 週下載
+- TypeScript 支援
+- 支援拖放、Grid/List 視圖、鍵盤快捷鍵
+
+**實作計劃:**
+```
+dashboard/
+├── src/components/
+│   └── FileBrowser.tsx  # 整合 Chonky
+├── package.json         # 新增 chonky 依賴
+```
+
+**安裝:**
+```bash
+npm install chonky chonky-icon-fontawesome
+```
+
+### 1. Foam 整合規劃 ✅
 
 調研 [Foam](https://github.com/foambubble/foam) VS Code 擴展，規劃未來整合：
 

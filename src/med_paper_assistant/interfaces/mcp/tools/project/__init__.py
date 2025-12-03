@@ -7,6 +7,7 @@ Split into submodules for maintainability:
 - settings: update_settings, get_paper_types, update_status  
 - exploration: start_exploration, convert_to_project
 - diagrams: save_diagram, list_diagrams (Draw.io integration)
+- workspace: VS Code integration for file opening/closing
 """
 
 from mcp.server.fastmcp import FastMCP
@@ -16,6 +17,7 @@ from .crud import register_crud_tools
 from .settings import register_settings_tools
 from .exploration import register_exploration_tools
 from .diagrams import register_diagram_tools
+from .workspace import register_workspace_tools
 
 
 def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
@@ -24,6 +26,7 @@ def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
     register_settings_tools(mcp, project_manager)
     register_exploration_tools(mcp, project_manager)
     register_diagram_tools(mcp, project_manager)
+    register_workspace_tools(mcp, project_manager)
 
 
 __all__ = ["register_project_tools"]

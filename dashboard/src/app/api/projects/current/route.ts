@@ -5,9 +5,17 @@ import path from 'path';
 const CURRENT_PROJECT_FILE = path.join(process.cwd(), '..', '.current_project');
 const PROJECTS_DIR = path.join(process.cwd(), '..', 'projects');
 
+// 取得專案的核心文件路徑
+function getProjectFiles(projectPath: string): string[] {
+  return [
+    path.join(projectPath, 'concept.md'),
+    path.join(projectPath, 'drafts', 'draft.md'),
+  ];
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { slug } = await request.json();
+    const { slug, openFiles = true } = await request.json();
     
     if (!slug) {
       return NextResponse.json(
@@ -36,6 +44,20 @@ export async function POST(request: NextRequest) {
     const content = await fs.readFile(projectJsonPath, 'utf-8');
     const data = JSON.parse(content);
 
+    // 收集要開啟的文件路徑
+    const filesToOpen: string[] = [];
+    if (openFiles) {
+      const candidateFiles = getProjectFiles(projectPath);
+      for (const filePath of candidateFiles) {
+        try {
+          await fs.access(filePath);
+          filesToOpen.push(filePath);
+        } catch {
+          // 文件不存在，跳過
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       project: {
@@ -50,6 +72,8 @@ export async function POST(request: NextRequest) {
         updatedAt: data.updated_at,
         memo: data.memo,
       },
+      filesToOpen,  // 返回要開啟的文件路徑
+      projectPath,  // 返回專案路徑
     });
   } catch (error) {
     console.error('Error switching project:', error);
