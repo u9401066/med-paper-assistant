@@ -47,24 +47,7 @@
 
 ## 📋 規劃中 (Planned)
 
-### Phase 4: Medical Calculator Integration
-**靈感來源: [medical-calc-mcp](https://github.com/u9401066/medical-calc-mcp)**
-
-| Feature | Description | Benefit |
-|---------|-------------|---------|
-| **Calculator MCP** | 整合 68+ 醫學計算器 | 論文中可直接計算臨床指標 |
-| Prompts 整合 | `sepsis_evaluation`, `preoperative_risk` | 標準化臨床評估流程 |
-| 專科計算器 | 麻醉、重症、腎臟、心臟... | 專科論文支援 |
-
-**使用情境:**
-```
-User: 幫我算這個病人的 APACHE II 分數
-AI: 使用 medical-calc-mcp 的 apache_ii_score 計算...
-    GCS: 15, 年齡: 65, 體溫: 38.5°C...
-    → APACHE II = 18, 預估死亡率 25%
-```
-
-### Phase 5: API & Deployment
+### Phase 4: API & Deployment
 **參考 medical-calc-mcp 的部署架構**
 
 | Feature | Description | Use Case |
@@ -84,7 +67,7 @@ AI: 使用 medical-calc-mcp 的 apache_ii_score 計算...
 └─────────────────┴─────────────────┴─────────────────────────┘
 ```
 
-### Phase 6: Collaboration & Review
+### Phase 5: Collaboration & Review
 
 | Feature | Description |
 |---------|-------------|

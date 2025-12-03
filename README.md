@@ -845,8 +845,7 @@ We're actively developing new features. Here's what's coming:
 | ✅ | **[PubMed MCP](integrations/pubmed-search-mcp/)** | Independent MCP server for literature search - can be used standalone |
 | 🔜 | **Multi-language Support** | Full UI localization beyond English/Chinese |
 | 🔜 | **Journal Style Library** | Pre-configured styles for major medical journals |
-| 📋 | **[Medical Calculators](https://github.com/u9401066/medical-calc-mcp)** | Integrate 68+ medical calculators (BMI, GFR, APACHE II, etc.) via medical-calc-mcp |
-| 📋 | **REST API Mode** | Expose MCP tools as REST API for external integrations (like medical-calc-mcp) |
+| 📋 | **REST API Mode** | Expose MCP tools as REST API for external integrations |
 | 📋 | **Dashboard File Browser** | Integrate [Chonky](https://chonky.io/) React file browser into Dashboard for visual project file management |
 | 📋 | **Collaboration Mode** | Multi-author workflow with version control |
 | 📋 | **AI-Assisted Review** | Use LLM to review and improve manuscript sections |
@@ -1651,8 +1650,7 @@ pytest tests/ -v
 | ✅ | **[PubMed MCP](integrations/pubmed-search-mcp/)** | 獨立的 MCP 伺服器用於文獻搜尋 - 可單獨使用 |
 | 🔜 | **多語言支援** | 完整 UI 本地化，不只英文/中文 |
 | 🔜 | **期刊樣式庫** | 預設主要醫學期刊的格式設定 |
-| 📋 | **[醫學計算器](https://github.com/u9401066/medical-calc-mcp)** | 整合 68+ 醫學計算器 (BMI, GFR, APACHE II 等) 透過 medical-calc-mcp |
-| 📋 | **REST API 模式** | 將 MCP 工具以 REST API 形式公開，供外部整合（如 medical-calc-mcp）|
+| 📋 | **REST API 模式** | 將 MCP 工具以 REST API 形式公開，供外部整合 |
 | 📋 | **Dashboard 檔案瀏覽器** | 整合 [Chonky](https://chonky.io/) React 檔案瀏覽元件到 Dashboard，視覺化管理專案檔案 |
 | 📋 | **協作模式** | 多作者工作流程與版本控制 |
 | 📋 | **AI 輔助審稿** | 使用 LLM 審閱並改善論文段落 |
