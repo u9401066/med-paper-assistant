@@ -28,8 +28,53 @@
 - [x] **工具架構重構** (2025-12-02)
 - [x] **推薦擴展文件** (2025-12-02)
 - [x] **Dashboard 專案切換增強** (2025-12-03)
-- [ ] **Foam Integration** (Planned)
+- [x] **Foam Integration** (2025-12-03)
+- [x] **pubmed-search-mcp 獨立 MCP 伺服器** (2025-12-03)
+- [ ] **Medical Calculators Integration** (Planned - via medical-calc-mcp)
+- [ ] **REST API Mode** (Planned)
 - [ ] **Dashboard File Browser with Chonky** (Planned)
+
+## Foam Integration (2025-12-03)
+
+### 功能說明
+整合 Foam VS Code 擴展，提供參考文獻的 Wikilink 管理：
+
+| 功能 | 說明 |
+|------|------|
+| Citation Key | `author_year_pmid` 格式（如 `tang2023_38049909`）|
+| Foam Alias | 自動建立 `tang2023_38049909.md` → 指向 PMID 目錄 |
+| Hover Preview | 滑鼠移到 `[[citation_key]]` 顯示摘要 |
+| ⭐ Preferred Style | 偏好引用格式標示在最前面 |
+| YAML Frontmatter | pmid, type, year, doi, first_author |
+
+### 技術實現
+| 檔案 | 修改 |
+|------|------|
+| `reference_manager.py` | `_generate_citation_key()`, `_create_foam_alias()`, `_get_preferred_citation_style()` |
+| `manager.py` | `rebuild_foam_aliases()` 工具, `set_citation_style()` 儲存設定 |
+| `project_manager.py` | `update_project_settings(settings=dict)` |
+| `.foam.json` | Foam workspace 識別 |
+| `.vscode/settings.json` | Foam wikilink 設定 |
+
+### 新增 MCP 工具
+| 工具 | 說明 |
+|------|------|
+| `rebuild_foam_aliases` | 為現有參考文獻重建 Foam aliases |
+
+## pubmed-search-mcp 獨立 MCP (2025-12-03)
+
+### 功能說明
+在 `.vscode/mcp.json` 新增 pubmed-search-mcp 作為獨立 MCP 伺服器，
+與 mdpaper 並行運作，可直接使用 `mcp_pubmed_*` 工具。
+
+### 設定
+```json
+"pubmed": {
+  "type": "stdio",
+  "command": "${workspaceFolder}/integrations/pubmed-search-mcp/.venv/bin/python",
+  "args": ["-m", "pubmed_search_mcp"]
+}
+```
 
 ## Dashboard 專案切換增強 (2025-12-03)
 

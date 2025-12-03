@@ -841,9 +841,12 @@ We're actively developing new features. Here's what's coming:
 | ✅ | **Parallel Search** | Generate multiple search queries and execute in parallel - [how it works](#-parallel-search) |
 | ✅ | **Search Strategy Integration** | Configure once, apply everywhere - strategy auto-integrates into parallel queries |
 | ✅ | **Table 1 Generator** | Auto-generate baseline characteristics table from CSV via `generate_table_one` |
+| ✅ | **[Foam](https://github.com/foambubble/foam) Integration** | Wikilinks `[[citation_key]]`, hover preview, backlinks panel for reference management |
+| ✅ | **[PubMed MCP](integrations/pubmed-search-mcp/)** | Independent MCP server for literature search - can be used standalone |
 | 🔜 | **Multi-language Support** | Full UI localization beyond English/Chinese |
 | 🔜 | **Journal Style Library** | Pre-configured styles for major medical journals |
-| 📋 | **[Foam](https://github.com/foambubble/foam) Integration** | Wikilink reference checking, backlinks panel, graph visualization for research notes - knowledge management for researchers |
+| 📋 | **[Medical Calculators](https://github.com/u9401066/medical-calc-mcp)** | Integrate 68+ medical calculators (BMI, GFR, APACHE II, etc.) via medical-calc-mcp |
+| 📋 | **REST API Mode** | Expose MCP tools as REST API for external integrations (like medical-calc-mcp) |
 | 📋 | **Dashboard File Browser** | Integrate [Chonky](https://chonky.io/) React file browser into Dashboard for visual project file management |
 | 📋 | **Collaboration Mode** | Multi-author workflow with version control |
 | 📋 | **AI-Assisted Review** | Use LLM to review and improve manuscript sections |
@@ -1644,9 +1647,12 @@ pytest tests/ -v
 | ✅ | **並行搜尋** | 生成多組搜尋語法並同時執行 - [運作方式](#-並行搜尋) |
 | ✅ | **搜尋策略整合** | 設定一次，處處套用 - 策略自動整合到並行查詢 |
 | ✅ | **Table 1 生成器** | 透過 `generate_table_one` 從 CSV 自動生成基線特徵表 |
+| ✅ | **[Foam](https://github.com/foambubble/foam) 整合** | Wikilinks `[[citation_key]]`、懸停預覽、反向連結面板 - 參考文獻管理 |
+| ✅ | **[PubMed MCP](integrations/pubmed-search-mcp/)** | 獨立的 MCP 伺服器用於文獻搜尋 - 可單獨使用 |
 | 🔜 | **多語言支援** | 完整 UI 本地化，不只英文/中文 |
 | 🔜 | **期刊樣式庫** | 預設主要醫學期刊的格式設定 |
-| 📋 | **[Foam](https://github.com/foambubble/foam) 整合** | Wikilink 參考文獻檢查、反向連結面板、知識圖譜 - 研究人員的知識管理系統 |
+| 📋 | **[醫學計算器](https://github.com/u9401066/medical-calc-mcp)** | 整合 68+ 醫學計算器 (BMI, GFR, APACHE II 等) 透過 medical-calc-mcp |
+| 📋 | **REST API 模式** | 將 MCP 工具以 REST API 形式公開，供外部整合（如 medical-calc-mcp）|
 | 📋 | **Dashboard 檔案瀏覽器** | 整合 [Chonky](https://chonky.io/) React 檔案瀏覽元件到 Dashboard，視覺化管理專案檔案 |
 | 📋 | **協作模式** | 多作者工作流程與版本控制 |
 | 📋 | **AI 輔助審稿** | 使用 LLM 審閱並改善論文段落 |

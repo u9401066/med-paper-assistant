@@ -34,6 +34,9 @@ tests/test_references_draft/
 tests/test_references_insert/
 tests/test_results/
 
+# Foam test directory
+test_foam_refs/
+
 # Legacy root directories (should not exist)
 /drafts/
 /references/
