@@ -168,6 +168,25 @@ class ReferenceManager:
             with open(alias_path, 'w', encoding='utf-8') as f:
                 f.write(alias_content)
 
+    def _get_preferred_citation_style(self) -> Optional[str]:
+        """
+        Get the preferred citation style from project settings.
+        
+        Returns:
+            Citation style string (e.g., 'apa', 'vancouver') or None if not set.
+        """
+        if self._project_manager:
+            try:
+                current_slug = self._project_manager.get_current_project()
+                if current_slug:
+                    project_info = self._project_manager.get_project_info(current_slug)
+                    if project_info.get('success'):
+                        settings = project_info.get('settings', {})
+                        return settings.get('citation_style')
+            except (ValueError, KeyError):
+                pass
+        return None
+
     def _format_citation(self, article: Dict[str, Any]) -> Dict[str, str]:
         """
         Generate pre-formatted citation strings in multiple formats.
@@ -373,15 +392,34 @@ class ReferenceManager:
         content += "\n"
         
         # Citation formats (visible in Foam hover preview!)
+        # Show the project's preferred style first with ⭐
         citation = article.get('citation', {})
         if citation:
+            preferred_style = self._get_preferred_citation_style()
             content += "## 📋 Citation Formats\n\n"
-            if citation.get('vancouver'):
-                content += f"**Vancouver**: {citation['vancouver']}\n\n"
-            if citation.get('apa'):
-                content += f"**APA**: {citation['apa']}\n\n"
-            if citation.get('nature'):
-                content += f"**Nature**: {citation['nature']}\n\n"
+            
+            # Style order: preferred first, then others
+            style_order = ['vancouver', 'apa', 'nature']
+            if preferred_style and preferred_style in style_order:
+                style_order.remove(preferred_style)
+                style_order.insert(0, preferred_style)
+            
+            style_labels = {
+                'vancouver': 'Vancouver',
+                'apa': 'APA', 
+                'nature': 'Nature',
+                'harvard': 'Harvard',
+                'ama': 'AMA'
+            }
+            
+            for style in style_order:
+                if citation.get(style):
+                    label = style_labels.get(style, style.title())
+                    if style == preferred_style:
+                        content += f"**⭐ {label}**: {citation[style]}\n\n"
+                    else:
+                        content += f"**{label}**: {citation[style]}\n\n"
+            
             if citation.get('in_text'):
                 content += f"**In-text**: ({citation['in_text']})\n\n"
         

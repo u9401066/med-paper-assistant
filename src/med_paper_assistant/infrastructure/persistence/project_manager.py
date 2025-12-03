@@ -392,7 +392,8 @@ class ProjectManager:
         interaction_preferences: Optional[Dict[str, Any]] = None,
         memo: Optional[str] = None,
         authors: Optional[List[str]] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
+        settings: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Update project settings.
@@ -405,6 +406,7 @@ class ProjectManager:
             memo: Additional notes.
             authors: Author list.
             description: Project description.
+            settings: Additional settings dict (e.g., citation_style).
             
         Returns:
             Updated project info.
@@ -456,6 +458,13 @@ class ProjectManager:
         if description is not None:
             config["description"] = description
             updated_fields.append("description")
+        
+        # Update generic settings dict (e.g., citation_style)
+        if settings is not None:
+            existing_settings = config.get("settings", {})
+            existing_settings.update(settings)
+            config["settings"] = existing_settings
+            updated_fields.append("settings")
         
         config["updated_at"] = datetime.now().isoformat()
         self._save_config(project_path, config)

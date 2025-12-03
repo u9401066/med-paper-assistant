@@ -201,14 +201,25 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
     @mcp.tool()
     def set_citation_style(style: str) -> str:
         """
-        Set the citation style for the current session.
+        Set the citation style for the current project and session.
+        This affects how references are displayed and formatted.
         
         Args:
             style: Citation style ("vancouver", "apa", "harvard", "nature", "ama").
         """
         try:
             drafter.set_citation_style(style)
-            return f"Citation style set to: {style}"
+            
+            # Also save to project settings if a project is active
+            current = project_manager.get_current_project()
+            if current:
+                project_manager.update_project_settings(
+                    slug=current['slug'],
+                    settings={'citation_style': style}
+                )
+                return f"Citation style set to: {style} (saved to project: {current['name']})"
+            
+            return f"Citation style set to: {style} (session only, no active project)"
         except ValueError as e:
             return str(e)
 
