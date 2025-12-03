@@ -159,25 +159,120 @@ These extensions enhance your research workflow:
 | **[Project Manager](https://marketplace.visualstudio.com/items?itemName=alefragnani.project-manager)** | Quick project switching, sidebar, tags | `ext install alefragnani.project-manager` |
 | **[Foam](https://marketplace.visualstudio.com/items?itemName=foam.foam-vscode)** | Wikilinks, backlinks, hover preview | `ext install foam.foam-vscode` |
 
-**Why Foam?** 
-- 🔗 Link your research notes with `[[wikilinks]]`
-- 📖 **Hover Preview** - See reference content by hovering over `[[link]]` (no clicking needed!)
-- 🔙 See which notes reference a paper via Backlinks panel
-- 🕸️ Visualize connections between concepts with Graph view
-- 🔍 Find orphaned notes (saved but never cited)
-
-**Example Workflow with Foam:**
-```markdown
-# My Draft
-
-According to [[smith2023-remimazolam]], the drug shows...
-                    ↑
-            Hover here to see the paper abstract instantly!
-```
-
 **Quick Install:**
 ```bash
 code --install-extension alefragnani.project-manager
+code --install-extension foam.foam-vscode
+```
+
+---
+
+### 📚 Foam Integration for Reference Management
+
+Medical Paper Assistant integrates with [Foam](https://foambubble.github.io/foam/) to provide a powerful reference linking and preview system.
+
+#### What is Foam?
+
+Foam is a personal knowledge management system inspired by Roam Research. It turns your Markdown files into a connected knowledge graph with:
+- **Wikilinks** `[[link]]` - Link between notes
+- **Hover Preview** - See content without opening files
+- **Backlinks** - See which notes reference the current note
+- **Graph Visualization** - Visualize connections
+
+#### Setup Foam for This Project
+
+**Step 1: Install Foam Extension**
+
+In VS Code:
+1. Press `Ctrl+Shift+X` (Extensions panel)
+2. Search for `foam.foam-vscode`
+3. Click **Install**
+4. Reload VS Code (`Ctrl+Shift+P` → `Developer: Reload Window`)
+
+**Step 2: Save References with Citation Keys**
+
+When you save a reference, the system automatically creates Foam-compatible files:
+
+```
+# Using MCP tool
+save_reference(pmid="38049909")
+
+# Creates:
+references/
+├── 38049909/
+│   ├── content.md       ← Main content with all citation formats
+│   └── metadata.json    ← Structured data
+└── tang2023_38049909.md ← Foam alias for easy linking
+```
+
+**Step 3: Use Wikilinks in Your Draft**
+
+```markdown
+# My Research Draft
+
+According to [[tang2023_38049909]], remimazolam shows promising results
+for ICU sedation compared to propofol.
+
+The study by [[smith2024_41285088]] also supports this finding...
+```
+
+**Step 4: Hover to Preview**
+
+Move your mouse over any `[[link]]` to instantly see:
+- 📄 Paper title and authors
+- 📋 All citation formats (Vancouver, APA, Nature)
+- 📝 Full abstract
+- 🔗 Clickable DOI link
+
+![Foam Hover Preview](docs/images/foam-hover.png)
+
+#### Citation Key Format
+
+References are saved with a human-friendly + verifiable format:
+
+```
+[[author_year_pmid]]
+   │      │     │
+   │      │     └── PMID for verification
+   │      └── Publication year
+   └── First author's last name
+
+Example: [[tang2023_38049909]]
+         → Tang et al., 2023, PMID: 38049909
+         → Verify: https://pubmed.ncbi.nlm.nih.gov/38049909/
+```
+
+#### Citation Formats in Preview
+
+When you hover over a reference, you'll see all citation formats. The project's preferred format is marked with ⭐:
+
+```markdown
+## 📋 Citation Formats
+
+**⭐ APA**: Tang, Y., Gao, X., ... (2023). Remimazolam besylate versus...
+
+**Vancouver**: Tang Y, Gao X, et al. Remimazolam besylate versus...
+
+**Nature**: Tang Y, et al. Remimazolam besylate versus... *Crit Care* **27**...
+
+**In-text**: (Tang et al., 2023)
+```
+
+To set your preferred citation style:
+```
+set_citation_style(style="apa")  # Options: vancouver, apa, nature, harvard, ama
+```
+
+#### Foam Features for Research
+
+| Feature | How to Use | Benefit |
+|---------|------------|---------|
+| **Hover Preview** | Mouse over `[[link]]` | See abstract without opening file |
+| **Backlinks Panel** | Open any reference file | See which drafts cite this paper |
+| **Graph View** | `Ctrl+Shift+P` → `Foam: Show Graph` | Visualize paper connections |
+| **Orphan References** | `Ctrl+Shift+P` → `Foam: Show Orphans` | Find saved but uncited papers |
+
+---
 code --install-extension foam.foam-vscode
 ```
 
@@ -938,27 +1033,120 @@ scripts\setup.bat
 | **[Project Manager](https://marketplace.visualstudio.com/items?itemName=alefragnani.project-manager)** | 快速切換專案、側邊欄、標籤 | `ext install alefragnani.project-manager` |
 | **[Foam](https://marketplace.visualstudio.com/items?itemName=foam.foam-vscode)** | Wikilinks、反向連結、浮動預覽 | `ext install foam.foam-vscode` |
 
-**為什麼推薦 Foam？**
-- 🔗 用 `[[wikilinks]]` 連結你的研究筆記
-- 📖 **浮動預覽** - 滑鼠懸停在 `[[連結]]` 上即可看到內容（不用點擊！）
-- 🔙 透過 Backlinks 面板查看哪些筆記引用了某篇論文
-- 🕸️ 用 Graph 視覺化概念之間的關聯
-- 🔍 找出孤立的筆記（已儲存但從未被引用）
-
-**Foam 使用範例：**
-```markdown
-# 我的草稿
-
-根據 [[smith2023-remimazolam]] 的研究，該藥物顯示...
-              ↑
-      滑鼠懸停這裡即可立即看到論文摘要！
-```
-
 **快速安裝：**
 ```bash
 code --install-extension alefragnani.project-manager
 code --install-extension foam.foam-vscode
 ```
+
+---
+
+### 📚 Foam 整合：參考文獻管理
+
+Medical Paper Assistant 整合了 [Foam](https://foambubble.github.io/foam/) 來提供強大的參考文獻連結和預覽系統。
+
+#### 什麼是 Foam？
+
+Foam 是一個受 Roam Research 啟發的個人知識管理系統。它將你的 Markdown 文件轉換為互相連結的知識圖譜：
+- **Wikilinks** `[[連結]]` - 在筆記之間建立連結
+- **浮動預覽** - 滑鼠懸停即可看到內容，無需打開文件
+- **反向連結 (Backlinks)** - 查看哪些筆記引用了當前文件
+- **圖譜視覺化** - 視覺化你的文獻關聯
+
+#### 設定 Foam
+
+**步驟 1：安裝 Foam 擴展**
+
+在 VS Code 中：
+1. 按 `Ctrl+Shift+X` 打開擴展面板
+2. 搜尋 `foam.foam-vscode`
+3. 點擊 **安裝**
+4. 重新載入 VS Code（`Ctrl+Shift+P` → `Developer: Reload Window`）
+
+**步驟 2：儲存參考文獻**
+
+當你儲存參考文獻時，系統會自動建立 Foam 相容的檔案：
+
+```
+# 使用 MCP 工具
+save_reference(pmid="38049909")
+
+# 建立的檔案：
+references/
+├── 38049909/
+│   ├── content.md       ← 主內容，包含所有引用格式
+│   └── metadata.json    ← 結構化資料
+└── tang2023_38049909.md ← Foam 別名檔，方便連結
+```
+
+**步驟 3：在草稿中使用 Wikilinks**
+
+```markdown
+# 我的研究草稿
+
+根據 [[tang2023_38049909]] 的研究，remimazolam 在 ICU 鎮靜中
+顯示出比 propofol 更好的效果。
+
+另一篇 [[smith2024_41285088]] 的研究也支持這個發現...
+```
+
+**步驟 4：懸停預覽**
+
+將滑鼠移到任何 `[[連結]]` 上，即可立即看到：
+- 📄 論文標題和作者
+- 📋 所有引用格式（Vancouver、APA、Nature）
+- 📝 完整摘要
+- 🔗 可點擊的 DOI 連結
+
+![Foam 懸停預覽](docs/images/foam-hover.png)
+
+#### 引用鍵格式
+
+參考文獻以「人性化 + 可驗證」的格式儲存：
+
+```
+[[作者_年份_pmid]]
+   │      │     │
+   │      │     └── PMID 用於驗證
+   │      └── 出版年份
+   └── 第一作者姓氏
+
+範例：[[tang2023_38049909]]
+      → Tang et al., 2023, PMID: 38049909
+      → 驗證：https://pubmed.ncbi.nlm.nih.gov/38049909/
+```
+
+#### 預覽中的引用格式
+
+懸停參考文獻時，你會看到所有引用格式。專案選擇的格式會用 ⭐ 標記並置頂：
+
+```markdown
+## 📋 Citation Formats
+
+**⭐ APA**: Tang, Y., Gao, X., ... (2023). Remimazolam besylate versus...
+
+**Vancouver**: Tang Y, Gao X, et al. Remimazolam besylate versus...
+
+**Nature**: Tang Y, et al. Remimazolam besylate versus... *Crit Care* **27**...
+
+**In-text**: (Tang et al., 2023)
+```
+
+設定你偏好的引用格式：
+```
+set_citation_style(style="apa")  # 選項：vancouver, apa, nature, harvard, ama
+```
+
+#### Foam 研究功能
+
+| 功能 | 使用方式 | 好處 |
+|------|----------|------|
+| **懸停預覽** | 滑鼠移到 `[[連結]]` | 不用開檔案就能看摘要 |
+| **反向連結面板** | 開啟任何參考文獻檔案 | 查看哪些草稿引用了這篇論文 |
+| **圖譜視圖** | `Ctrl+Shift+P` → `Foam: Show Graph` | 視覺化論文之間的關聯 |
+| **孤立參考文獻** | `Ctrl+Shift+P` → `Foam: Show Orphans` | 找出已儲存但未被引用的論文 |
+
+---
 
 #### 手動安裝（如果腳本失敗）
 

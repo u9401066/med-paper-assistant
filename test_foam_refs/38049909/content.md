@@ -1,0 +1,35 @@
+---
+pmid: "38049909"
+type: reference
+year: 2023
+doi: "10.1186/s13054-023-04760-8"
+first_author: "Tang"
+---
+
+# Remimazolam besylate versus propofol for deep sedation in critically ill patients: a randomized pilot study.
+
+**Authors**: Tang Yun, Gao Xuehui, Xu Jiqian, Ren Lehao, Qi Hong, Li Ruiting, Shu Huaqing, Zou Xiaojing, Yuan Shiying, Yang Xiaobo, Shang You
+
+**Journal**: Critical care (London, England) (2023); 27(1): 474
+
+**PMID**: 38049909
+**DOI**: [10.1186/s13054-023-04760-8](https://doi.org/10.1186/s13054-023-04760-8)
+**PMC**: PMC10694930
+
+## 📋 Citation Formats
+
+**Vancouver**: Tang Y, Gao X, Xu J, Ren L, Qi H, Li R, et al. Remimazolam besylate versus propofol for deep sedation in critically ill patients: a randomized pilot study. Crit Care. 2023;27(1):474. doi:10.1186/s13054-023-04760-8
+
+**APA**: Tang, Y., Gao, X., Xu, J., Ren, L., Qi, H., Li, R., ... Shu, H. (2023). Remimazolam besylate versus propofol for deep sedation in critically ill patients: a randomized pilot study. *Critical care (London, England)*, *27*(1), 474. https://doi.org/10.1186/s13054-023-04760-8
+
+**Nature**: Tang Y, Gao X, Xu J, Ren L, Qi H, et al Remimazolam besylate versus propofol for deep sedation in critically ill patients: a randomized pilot study. *Crit Care* **27**, 474 (2023). https://doi.org/10.1186/s13054-023-04760-8
+
+**In-text**: (Tang et al., 2023)
+
+**Keywords**: Critical care, Propofol, Remimazolam, Sedation
+
+**MeSH Terms**: Humans, Critical Illness, Deep Sedation, Hypnotics and Sedatives, Pilot Projects, Propofol, Prospective Studies, Respiration, Artificial
+
+## Abstract
+
+To compare the efficacy and safety of remimazolam besylate and propofol for deep sedation in critically ill patients. In this single-center, prospective, randomized, controlled pilot study, patients in the intensive care unit (ICU) requiring deep sedation were randomized to receive remimazolam besylate or propofol intravenously. Deep sedation was defined as a Richmond Agitation and Sedation Scale (RASS) score of - 4 or - 5. Sedation depth was monitored using RASS and Narcotrend Index (NI). The primary outcome was the percentage of time within the target sedation range without rescue sedation. The secondary outcomes included ventilator-free hours within 7 days, successful extubation, length of ICU stay, and 28-day mortality. Adverse events during the interventional period were also recorded. Thirty patients were assigned to each group. The median (IQR) RASS score was - 5.0 (- 5.0, - 4.0), and the median (IQR) NI value was 29.0 (21.0, 37.0) during the intervention period. Target RASS was reached a median of 100% of the sedation time in the two groups. No significant differences were observed in ventilator-free hours within 7 days, successful extubation, length of ICU stay, or 28-day mortality among groups. Hypotension occurred in 16 (53.3%) patients of remimazolam group and 18 (60.0%) patients of propofol group (p > 0.05). No patient experienced bradycardia. Remimazolam besylate appears to be an effective and safe agent for short-term deep sedation in critically ill patients. Our findings warrant large sample-sized randomized clinical trials.

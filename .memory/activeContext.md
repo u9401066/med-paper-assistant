@@ -1,47 +1,48 @@
 # Active Context
 
 ## Current Focus
-Dashboard 專案切換 + 自動開啟/關閉文件功能
+Foam 整合完成 + pubmed-search-mcp 獨立 MCP server
 
 ## Recent Changes (2025-12-03)
 
-### 0. Dashboard 專案切換增強 ✅ (LATEST!)
+### 1. Foam 整合 ✅ (LATEST!)
 
-實作 **方案 A+B**：切換專案時自動開啟文件 + 可選擇關閉其他文件
+完整實作 Foam 參考文獻預覽功能：
 
 **功能:**
 ```
-Dashboard 切換專案
+save_reference(pmid="38049909")
     ↓
-彈出對話框：
-  [🔄 開啟新專案 + 關閉其他文件]  ← 使用 vscode:// command URI
-  [📂 只開啟新專案文件]           ← 只開啟
-  [取消]
+建立 references/
+├── 38049909/content.md    ← 主內容
+└── tang2023_38049909.md   ← Foam 別名
     ↓
-自動開啟 concept.md, draft.md
+在草稿中使用 [[tang2023_38049909]]
+    ↓
+滑鼠懸停即可看到：
+- 標題、作者
+- ⭐ 專案選擇的引用格式
+- 所有其他格式
+- 完整摘要
 ```
 
 **修改的檔案:**
 | 檔案 | 變更 |
 |------|------|
-| `dashboard/src/components/ProjectSelector.tsx` | 新增切換選項對話框 |
-| `dashboard/src/hooks/useProjects.ts` | 支援 openFiles, closeOthers 選項 |
-| `dashboard/src/app/api/projects/current/route.ts` | 返回 filesToOpen 路徑 |
-| `src/.../tools/project/workspace.py` | 新增 3 個 MCP 工具 |
+| `reference_manager.py` | 新增 `_generate_citation_key()`, `_create_foam_alias()` |
+| `reference_manager.py` | `_generate_content_md()` 支援 YAML frontmatter + 格式置頂 |
+| `manager.py` | `set_citation_style()` 儲存到專案設定 |
+| `project_manager.py` | 新增 `settings` dict 支援 |
+| `README.md` | 完整 Foam 使用說明（中英文） |
 
-**新增 MCP 工具 (3 個):**
-| 工具 | 說明 |
-|------|------|
-| `close_other_project_files` | 關閉其他專案文件的指引 |
-| `open_project_files` | 開啟專案核心文件 |
-| `get_project_file_paths` | 取得專案檔案路徑 |
+### 2. pubmed-search-mcp 獨立 MCP Server ✅
 
-**技術細節:**
-- 使用 `vscode://file/path` URI 開啟文件
-- 使用 `vscode://command:workbench.action.closeAllEditors` 關閉所有編輯器
-- 用戶手動開檔不受影響
+在 `.vscode/mcp.json` 新增 pubmed server：
+- 獨立的 PubMed 搜尋 MCP
+- 使用子模組 `integrations/pubmed-search-mcp`
+- 現在有 3 個 MCP servers: mdpaper, pubmed, drawio
 
-## Recent Changes (2025-12-02)
+## Recent Changes (2025-12-03) (earlier)
 
 ### 0. 推薦擴展 + Chonky 檔案瀏覽器 ✅ (LATEST!)
 
