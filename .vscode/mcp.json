@@ -1,0 +1,33 @@
+{
+  "inputs": [],
+  "servers": {
+    "mdpaper": {
+      "type": "stdio",
+      "command": "/home/eric/workspace_test1/med-paper-assistant/.venv/bin/python",
+      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
+      "env": {
+        "PYTHONPATH": "/home/eric/workspace_test1/med-paper-assistant/src"
+      }
+    },
+    "pubmed": {
+      "type": "stdio",
+      "command": "/home/eric/workspace_test1/med-paper-assistant/integrations/pubmed-search-mcp/.venv/bin/python",
+      "args": ["-m", "pubmed_search.mcp"],
+      "env": {
+        "PYTHONPATH": "/home/eric/workspace_test1/med-paper-assistant/integrations/pubmed-search-mcp/src",
+        "ENTREZ_EMAIL": "medpaper@example.com"
+      }
+    },
+    "drawio": {
+      "type": "stdio",
+      "command": "/home/eric/workspace_test1/med-paper-assistant/integrations/next-ai-draw-io/mcp-server/.venv/bin/python",
+      "args": ["-m", "drawio_mcp_server"],
+      "env": {
+        "PYTHONPATH": "/home/eric/workspace_test1/med-paper-assistant/integrations/next-ai-draw-io/mcp-server/src",
+        "DRAWIO_NEXTJS_URL": "http://localhost:6002",
+        "DRAWIO_AUTO_START_WEB": "true",
+        "DRAWIO_AUTO_OPEN_BROWSER": "true"
+      }
+    }
+  }
+}
