@@ -157,13 +157,23 @@ These extensions enhance your research workflow:
 | Extension | Purpose | Install |
 |-----------|---------|---------|
 | **[Project Manager](https://marketplace.visualstudio.com/items?itemName=alefragnani.project-manager)** | Quick project switching, sidebar, tags | `ext install alefragnani.project-manager` |
-| **[Foam](https://marketplace.visualstudio.com/items?itemName=foam.foam-vscode)** | Wikilinks, backlinks, knowledge graph | `ext install foam.foam-vscode` |
+| **[Foam](https://marketplace.visualstudio.com/items?itemName=foam.foam-vscode)** | Wikilinks, backlinks, hover preview | `ext install foam.foam-vscode` |
 
 **Why Foam?** 
-- Link your research notes with `[[wikilinks]]`
-- See which notes reference a paper via Backlinks panel
-- Visualize connections between concepts with Graph view
-- Find orphaned notes (saved but never cited)
+- 🔗 Link your research notes with `[[wikilinks]]`
+- 📖 **Hover Preview** - See reference content by hovering over `[[link]]` (no clicking needed!)
+- 🔙 See which notes reference a paper via Backlinks panel
+- 🕸️ Visualize connections between concepts with Graph view
+- 🔍 Find orphaned notes (saved but never cited)
+
+**Example Workflow with Foam:**
+```markdown
+# My Draft
+
+According to [[smith2023-remimazolam]], the drug shows...
+                    ↑
+            Hover here to see the paper abstract instantly!
+```
 
 **Quick Install:**
 ```bash
@@ -926,13 +936,23 @@ scripts\setup.bat
 | 擴展 | 用途 | 安裝 |
 |------|------|------|
 | **[Project Manager](https://marketplace.visualstudio.com/items?itemName=alefragnani.project-manager)** | 快速切換專案、側邊欄、標籤 | `ext install alefragnani.project-manager` |
-| **[Foam](https://marketplace.visualstudio.com/items?itemName=foam.foam-vscode)** | Wikilinks、反向連結、知識圖譜 | `ext install foam.foam-vscode` |
+| **[Foam](https://marketplace.visualstudio.com/items?itemName=foam.foam-vscode)** | Wikilinks、反向連結、浮動預覽 | `ext install foam.foam-vscode` |
 
 **為什麼推薦 Foam？**
-- 用 `[[wikilinks]]` 連結你的研究筆記
-- 透過 Backlinks 面板查看哪些筆記引用了某篇論文
-- 用 Graph 視覺化概念之間的關聯
-- 找出孤立的筆記（已儲存但從未被引用）
+- 🔗 用 `[[wikilinks]]` 連結你的研究筆記
+- 📖 **浮動預覽** - 滑鼠懸停在 `[[連結]]` 上即可看到內容（不用點擊！）
+- 🔙 透過 Backlinks 面板查看哪些筆記引用了某篇論文
+- 🕸️ 用 Graph 視覺化概念之間的關聯
+- 🔍 找出孤立的筆記（已儲存但從未被引用）
+
+**Foam 使用範例：**
+```markdown
+# 我的草稿
+
+根據 [[smith2023-remimazolam]] 的研究，該藥物顯示...
+              ↑
+      滑鼠懸停這裡即可立即看到論文摘要！
+```
 
 **快速安裝：**
 ```bash
