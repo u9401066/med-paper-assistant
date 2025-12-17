@@ -7,7 +7,6 @@ build/
 dist/
 
 # IDE
-.vscode/
 .idea/
 .DS_Store
 
@@ -44,3 +43,9 @@ test_foam_refs/
 /data/
 /logs/
 /output/
+
+# Legacy memory directory (migrated to memory-bank/)
+/.memory/
+
+# Memory Bank is tracked (DO NOT ignore)
+# memory-bank/

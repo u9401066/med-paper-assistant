@@ -12,7 +12,7 @@
 - [x] DDD Architecture Refactoring
 - [x] Novelty Validation System
 - [x] Draw.io MCP Integration
-- [x] Draw.io Agent-Generated XML Support (2025-11-28)
+- [x] **Draw.io Agent-Generated XML Support** (2025-11-28)
 - [x] **Draw.io Smart Save & User Events** (2025-11-28)
 - [x] **Draw.io Load File & Full Feature Test** (2025-11-28)
 - [x] **Draw.io Drawing Guidelines Tools** (2025-11-29)
@@ -30,9 +30,37 @@
 - [x] **Dashboard 專案切換增強** (2025-12-03)
 - [x] **Foam Integration** (2025-12-03)
 - [x] **pubmed-search-mcp 獨立 MCP 伺服器** (2025-12-03)
+- [x] **跨平台支援 (Windows/Linux/macOS)** (2025-12-17)
+- [x] **Memory Bank 統一化** (2025-12-17)
+- [x] **Template 整合 (Bylaws + Skills)** (2025-12-17)
 - [ ] **Medical Calculators Integration** (Planned - via medical-calc-mcp)
 - [ ] **REST API Mode** (Planned)
 - [ ] **Dashboard File Browser with Chonky** (Planned)
+
+## 跨平台支援 + Memory Bank 統一化 (2025-12-17)
+
+### 跨平台架構
+從 Linux-only 改版為 Windows/Linux/macOS 支援：
+
+| 檔案 | 變更 |
+|------|------|
+| `.vscode/mcp.json` | 使用 `platforms` 配置自動切換 Python 路徑 |
+| `scripts/setup.ps1` | Windows 安裝腳本（完整重寫） |
+| `scripts/setup.sh` | Linux/macOS 安裝腳本（更新 mcp.json 格式） |
+| `README.md` | 新增 Windows/Linux/macOS 徽章 |
+
+### Memory Bank 統一化
+- 從 `.memory/` 遷移到 `memory-bank/`
+- 更新 `.gitignore` 追蹤 `memory-bank/`
+- `.github/bylaws/memory-bank.md` 新增「第 0 條」強制寫入位置
+
+### Template 整合
+從 `template-is-all-you-need` 整合：
+- `.github/bylaws/` - 4 個子法檔案
+- `.claude/skills/` - 13 個 Skills 目錄
+- `CONSTITUTION.md` - 專案憲法
+- `AGENTS.md` - Agent 行為指引
+- `.editorconfig` - 編輯器配置
 
 ## Foam Integration (2025-12-03)
 

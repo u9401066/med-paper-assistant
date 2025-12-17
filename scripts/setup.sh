@@ -1,64 +1,95 @@
 #!/bin/bash
-# Med Paper Assistant - 自動設定腳本
-# 使用方式: ./scripts/setup.sh
+# Med Paper Assistant - Setup Script (Linux/macOS)
+# Usage: ./scripts/setup.sh
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "🚀 Med Paper Assistant 設定中..."
+echo "🚀 Med Paper Assistant Setup..."
 
-# 1. 創建虛擬環境
-echo "📦 創建 Python 虛擬環境..."
+# Detect OS
+OS="$(uname -s)"
+case "$OS" in
+    Linux*)     PLATFORM="linux";;
+    Darwin*)    PLATFORM="darwin";;
+    MINGW*|CYGWIN*|MSYS*) PLATFORM="win32";;
+    *)          PLATFORM="unknown";;
+esac
+echo "📍 Detected platform: $PLATFORM"
+
+# 1. Create virtual environment
+echo "📦 Creating Python virtual environment..."
 cd "$PROJECT_DIR"
-python3 -m venv .venv
+
+if [ -d ".venv" ]; then
+    echo "  Virtual environment already exists, skipping creation"
+else
+    python3 -m venv .venv
+    echo "  ✅ Virtual environment created"
+fi
+
 source .venv/bin/activate
 
-# 2. 安裝依賴
-echo "📥 安裝依賴套件..."
+# 2. Install dependencies
+echo "📥 Installing dependencies..."
 pip install -q --upgrade pip
 pip install -q -e .
+echo "  ✅ Dependencies installed"
 
-# 3. 創建 .vscode/mcp.json（使用相對路徑）
-echo "⚙️  配置 VS Code MCP..."
+# 3. Create .vscode/mcp.json (cross-platform)
+echo "⚙️  Configuring VS Code MCP (cross-platform)..."
 mkdir -p .vscode
 
-cat > .vscode/mcp.json << EOF
+cat > .vscode/mcp.json << 'EOF'
 {
   "inputs": [],
   "servers": {
     "mdpaper": {
-      "command": "${PROJECT_DIR}/.venv/bin/python",
-      "args": ["-m", "med_paper_assistant.interfaces.mcp.server"],
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
       "env": {
-        "PYTHONPATH": "${PROJECT_DIR}/src"
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "platforms": {
+        "win32": {
+          "command": "${workspaceFolder}/.venv/Scripts/python.exe"
+        },
+        "linux": {
+          "command": "${workspaceFolder}/.venv/bin/python"
+        },
+        "darwin": {
+          "command": "${workspaceFolder}/.venv/bin/python"
+        }
       }
     }
   }
 }
 EOF
+echo "  ✅ mcp.json created (cross-platform)"
 
-# 4. 驗證安裝
-echo "✅ 驗證安裝..."
-python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server 載入成功: {len(mcp._tool_manager._tools)} 個工具, {len(mcp._prompt_manager._prompts)} 個 prompts')"
+# 4. Verify installation
+echo "✅ Verifying installation..."
+python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server loaded: {len(mcp._tool_manager._tools)} tools')"
 
 echo ""
 echo "=========================================="
-echo "✅ 設定完成！"
+echo "✅ Setup Complete!"
 echo "=========================================="
 echo ""
-echo "📋 下一步:"
-echo "  1. 在 VS Code 中按 Ctrl+Shift+P"
-echo "  2. 輸入 'Developer: Reload Window'"
-echo "  3. 在 Copilot Chat 中輸入 / 即可看到 mdpaper 指令"
+echo "📋 Next Steps:"
+echo "  1. In VS Code, press Ctrl+Shift+P (or Cmd+Shift+P on macOS)"
+echo "  2. Type 'Developer: Reload Window'"
+echo "  3. In Copilot Chat, type / to see mdpaper commands"
 echo ""
-echo "🔧 可用指令:"
-echo "  /mdpaper.project  - 設定研究專案"
-echo "  /mdpaper.concept  - 發展研究概念"
-echo "  /mdpaper.strategy - 配置搜尋策略"
-echo "  /mdpaper.draft    - 撰寫論文草稿"
-echo "  /mdpaper.analysis - 資料分析"
-echo "  /mdpaper.clarify  - 改進內容"
-echo "  /mdpaper.format   - 導出 Word"
+echo "🔧 Available Commands:"
+echo "  /mdpaper.project  - Setup research project"
+echo "  /mdpaper.concept  - Develop research concept"
+echo "  /mdpaper.strategy - Configure search strategy"
+echo "  /mdpaper.draft    - Write paper draft"
+echo "  /mdpaper.analysis - Data analysis"
+echo "  /mdpaper.clarify  - Improve content"
+echo "  /mdpaper.format   - Export to Word"
 echo ""

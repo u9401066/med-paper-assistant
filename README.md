@@ -10,6 +10,12 @@
 </p>
 
 <p align="center">
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-0078D6?logo=windows&logoColor=white">
+  <img alt="Linux" src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white">
+</p>
+
+<p align="center">
   <b>🔬 A Guided & Exploratory Medical Paper Writing Tool</b><br>
   <i>Powered by MCP + GitHub Copilot</i>
 </p>

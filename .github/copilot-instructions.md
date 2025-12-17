@@ -1,170 +1,44 @@
-# Copilot Instructions for Medical Paper Assistant
+# Copilot 自定義指令
 
-## Project Overview
+## 開發哲學 💡
+> **「想要寫文件的時候，就更新 Memory Bank 吧！」**
+> 
+> **「想要零散測試的時候，就寫測試檔案進 tests/ 資料夾吧！」**
 
-This is a Medical Paper Assistant built with MCP (Model Context Protocol) for VS Code + GitHub Copilot integration.
+## 法規遵循
+你必須遵守以下法規層級：
+1. **憲法**：`CONSTITUTION.md` - 最高原則
+2. **子法**：`.github/bylaws/*.md` - 細則規範
+3. **技能**：`.claude/skills/*/SKILL.md` - 操作程序
 
-## MCP Server Configuration
+## 架構原則
+- 採用 DDD (Domain-Driven Design)
+- DAL (Data Access Layer) 必須獨立
+- 參見子法：`.github/bylaws/ddd-architecture.md`
 
-### Important Configuration Notes (Updated: 2025-12-01)
+## Python 環境（uv 優先）
+- 新專案必須使用 uv 管理套件
+- 必須建立虛擬環境（禁止全域安裝）
+- 參見子法：`.github/bylaws/python-environment.md`
 
-The MCP server configuration in `.vscode/mcp.json` **must include** `"type": "stdio"` for each server. This is a required property according to VS Code's MCP documentation.
+## Memory Bank 同步
+**⚠️ 強制寫入位置：`memory-bank/`**
 
-**Correct Configuration Format:**
-```json
-{
-  "inputs": [],
-  "servers": {
-    "mdpaper": {
-      "type": "stdio",
-      "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src"
-      }
-    }
-  }
-}
-```
+每次重要操作必須更新 Memory Bank：
+- 參見子法：`.github/bylaws/memory-bank.md`
+- 目錄：`memory-bank/`
 
-**Common Mistakes to Avoid:**
-1. ❌ Missing `"type": "stdio"` - VS Code won't recognize the server
-2. ❌ Using old module path `med_paper_assistant.mcp_server.server` - The correct path is `med_paper_assistant.interfaces.mcp`
+## Git 工作流
+提交前必須執行檢查清單：
+- 參見子法：`.github/bylaws/git-workflow.md`
+- 觸發 Skill：`git-precommit`
 
-### Module Structure
+## 跨平台支援
+本專案支援 Windows/Linux/macOS：
+- Windows: `scripts/setup.ps1`
+- Linux/macOS: `scripts/setup.sh`
 
-The MCP server is located at:
-- `src/med_paper_assistant/interfaces/mcp/` - MCP server implementation
-
-### Troubleshooting MCP Server
-
-If VS Code doesn't recognize the MCP server:
-1. Ensure `"type": "stdio"` is present in server configuration
-2. Reload VS Code window: `Ctrl+Shift+P` → `Developer: Reload Window`
-3. Check MCP status: `Ctrl+Shift+P` → `MCP: List Servers`
-4. View logs: `Ctrl+Shift+P` → `MCP: Show Output`
-
-## Architecture
-
-The project follows Clean Architecture / Hexagonal Architecture:
-- `domain/` - Business entities and rules
-- `application/` - Use cases and services
-- `infrastructure/` - External integrations (PubMed, file system, etc.)
-- `interfaces/` - Entry points (MCP server, CLI)
-- `shared/` - Shared utilities
-
-## Development Notes
-
-- Python 3.10+ required
-- Virtual environment at `.venv/`
-- Install with `pip install -e .` for development mode
-
-## Skills 技能系統
-
-當用戶要求執行複雜任務時，**必須先載入對應的 Skill 文件**：
-
-### Skill 索引
-
-| 用戶意圖 | Skill 文件 | 說明 |
-|----------|------------|------|
-| 文獻回顧、找論文、搜尋文獻、systematic review | `.skills/research/literature_review.md` | 完整的系統性文獻搜尋流程 |
-| 發展概念、寫 concept、研究設計 | `.skills/research/concept_development.md` | 從文獻到 concept.md |
-| 寫 Introduction、前言 | `.skills/writing/draft_introduction.md` | 撰寫前言的完整指引 |
-| 寫 Methods、方法 | `.skills/writing/draft_methods.md` | 撰寫方法的完整指引 |
-| 寫 Discussion、討論 | `.skills/writing/draft_discussion.md` | 撰寫討論的完整指引 |
-| 製作圖表、畫流程圖、PRISMA | `.skills/analysis/figure_generation.md` | 圖表製作流程 |
-| 統計分析、跑統計 | `.skills/analysis/statistical_analysis.md` | 統計分析指引 |
-| 投稿、選期刊、格式化 | `.skills/publishing/manuscript_formatting.md` | 投稿準備流程 |
-
-### 執行流程
-
-```
-1. 用戶說「幫我做文獻回顧」
-     ↓
-2. 識別意圖 → 對應 Skill
-     ↓
-3. 使用 read_file 讀取 .skills/research/literature_review.md
-     ↓
-4. 遵循 Skill 定義的：
-   - 工作流程 (Phase 1, 2, 3...)
-   - 決策點 (何時詢問用戶)
-   - 使用的工具
-     ↓
-5. 產出 Skill 定義的交付物
-```
-
-### 跨 MCP 協調
-
-Skill 可能需要呼叫多個 MCP 的工具（mdpaper + drawio），這是正常的：
-
-```
-文獻回顧 Skill:
-  → mcp_mdpaper_search_literature()     # 搜尋
-  → mcp_mdpaper_save_reference()        # 儲存
-  → mcp_drawio_create_diagram()         # PRISMA 流程圖
-  → mcp_mdpaper_save_diagram()          # 存到專案
-```
-
-**資料傳遞**：當一個 MCP 的輸出需要傳給另一個時：
-1. 取得輸出（如 `mcp_drawio_get_diagram_content()` 返回 XML）
-2. 將輸出作為參數傳給下一個工具（如 `mcp_mdpaper_save_diagram(content=xml)`）
-
-### Skill 工具
-
-使用這些工具管理 Skills：
-
-| 工具 | 說明 |
-|------|------|
-| `mcp_mdpaper_list_skills` | 列出所有可用的 Skills |
-| `mcp_mdpaper_load_skill` | 載入特定 Skill 的內容 |
-| `mcp_mdpaper_suggest_skill` | 根據任務描述建議適合的 Skill |
-
-### 並行搜尋模式 ⚡
-
-當需要全面搜尋文獻時，使用並行搜尋提高效率：
-
-```
-1. 呼叫 generate_search_queries(topic="...", strategy="comprehensive")
-   → 返回多組搜尋語法 (q1, q2, q3, q4...)
-
-2. **並行呼叫** search_literature 對每個 query：
-   <parallel>
-     search_literature(query="q1 的 query", limit=20)
-     search_literature(query="q2 的 query", limit=20)
-     search_literature(query="q3 的 query", limit=20)
-     search_literature(query="q4 的 query", limit=20)
-   </parallel>
-
-3. 收集所有結果的 PMID
-
-4. 呼叫 merge_search_results(results_json="[{query_id, pmids}, ...]")
-   → 返回去重後的完整列表
-
-5. **如果結果不夠**，使用 expand_search_queries 擴展搜尋：
-   expand_search_queries(
-     topic="原始主題",
-     existing_query_ids="q1_title,q2_tiab,q3_and,...",
-     expansion_type="synonyms"  # 或 "related", "broader", "narrower"
-   )
-   → 返回更多搜尋語法，並行執行後再次 merge
-```
-
-**搜尋擴展類型**：
-| 類型 | 說明 | 使用時機 |
-|------|------|----------|
-| `synonyms` | 同義詞擴展 (sedation → conscious sedation) | 擔心遺漏使用不同術語的文獻 |
-| `related` | 相關概念 (propofol → remimazolam) | 想找類似主題的比較研究 |
-| `broader` | 放寬限制（OR 搜尋、移除日期限制）| 結果太少 |
-| `narrower` | 更精確（RCT、Meta-analysis、最近 2 年）| 結果太多，想找高品質證據 |
-
-**搜尋策略整合**：
-- `configure_search_strategy()` 設定持久化策略（日期範圍、排除詞、文章類型）
-- `generate_search_queries()` **自動整合**已儲存策略到每個查詢
-- 無需重複設定，策略會自動套用
-
-**優點**：
-- 更快（並行執行）
-- 更全面（多角度搜尋）
-- 可追蹤（知道每篇來自哪個搜尋）
-- 策略整合（日期/排除詞自動套用）
-- **可迭代擴展**（結果不夠時繼續搜尋）
+## 回應風格
+- 使用繁體中文
+- 提供清晰的步驟說明
+- 引用相關法規條文

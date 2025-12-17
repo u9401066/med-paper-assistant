@@ -3,30 +3,63 @@
   "servers": {
     "mdpaper": {
       "type": "stdio",
-      "command": "/home/eric/workspace_test1/med-paper-assistant/.venv/bin/python",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
       "args": ["-m", "med_paper_assistant.interfaces.mcp"],
       "env": {
-        "PYTHONPATH": "/home/eric/workspace_test1/med-paper-assistant/src"
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "platforms": {
+        "win32": {
+          "command": "${workspaceFolder}/.venv/Scripts/python.exe"
+        },
+        "linux": {
+          "command": "${workspaceFolder}/.venv/bin/python"
+        },
+        "darwin": {
+          "command": "${workspaceFolder}/.venv/bin/python"
+        }
       }
     },
     "pubmed": {
       "type": "stdio",
-      "command": "/home/eric/workspace_test1/med-paper-assistant/integrations/pubmed-search-mcp/.venv/bin/python",
+      "command": "${workspaceFolder}/integrations/pubmed-search-mcp/.venv/Scripts/python.exe",
       "args": ["-m", "pubmed_search.mcp"],
       "env": {
-        "PYTHONPATH": "/home/eric/workspace_test1/med-paper-assistant/integrations/pubmed-search-mcp/src",
+        "PYTHONPATH": "${workspaceFolder}/integrations/pubmed-search-mcp/src",
         "ENTREZ_EMAIL": "medpaper@example.com"
+      },
+      "platforms": {
+        "win32": {
+          "command": "${workspaceFolder}/integrations/pubmed-search-mcp/.venv/Scripts/python.exe"
+        },
+        "linux": {
+          "command": "${workspaceFolder}/integrations/pubmed-search-mcp/.venv/bin/python"
+        },
+        "darwin": {
+          "command": "${workspaceFolder}/integrations/pubmed-search-mcp/.venv/bin/python"
+        }
       }
     },
     "drawio": {
       "type": "stdio",
-      "command": "/home/eric/workspace_test1/med-paper-assistant/integrations/next-ai-draw-io/mcp-server/.venv/bin/python",
+      "command": "${workspaceFolder}/integrations/next-ai-draw-io/mcp-server/.venv/Scripts/python.exe",
       "args": ["-m", "drawio_mcp_server"],
       "env": {
-        "PYTHONPATH": "/home/eric/workspace_test1/med-paper-assistant/integrations/next-ai-draw-io/mcp-server/src",
+        "PYTHONPATH": "${workspaceFolder}/integrations/next-ai-draw-io/mcp-server/src",
         "DRAWIO_NEXTJS_URL": "http://localhost:6002",
         "DRAWIO_AUTO_START_WEB": "true",
         "DRAWIO_AUTO_OPEN_BROWSER": "true"
+      },
+      "platforms": {
+        "win32": {
+          "command": "${workspaceFolder}/integrations/next-ai-draw-io/mcp-server/.venv/Scripts/python.exe"
+        },
+        "linux": {
+          "command": "${workspaceFolder}/integrations/next-ai-draw-io/mcp-server/.venv/bin/python"
+        },
+        "darwin": {
+          "command": "${workspaceFolder}/integrations/next-ai-draw-io/mcp-server/.venv/bin/python"
+        }
       }
     }
   }

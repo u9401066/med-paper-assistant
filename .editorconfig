@@ -1,0 +1,47 @@
+# EditorConfig - 跨編輯器格式一致性
+# https://editorconfig.org
+
+root = true
+
+# 所有檔案的預設設定
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Python
+[*.py]
+indent_size = 4
+max_line_length = 88
+
+# JavaScript / TypeScript
+[*.{js,jsx,ts,tsx}]
+indent_size = 2
+
+# JSON / YAML
+[*.{json,yml,yaml}]
+indent_size = 2
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+
+# TOML
+[*.toml]
+indent_size = 4
+
+# Makefile (必須用 tab)
+[Makefile]
+indent_style = tab
+
+# Shell scripts
+[*.sh]
+indent_size = 2
+
+# Git
+[.git*]
+indent_size = 2
