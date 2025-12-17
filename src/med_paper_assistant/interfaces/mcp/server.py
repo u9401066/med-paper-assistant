@@ -1,10 +1,11 @@
-"""
+""" 
 MedPaper Assistant MCP Server
 
 A Model Context Protocol server for medical paper writing assistance.
 This server provides tools for:
-- Literature search and reference management (via pubmed-search-mcp submodule)
+- Project and concept management
 - Draft creation and editing
+- Reference management
 - Word document export with templates
 
 Architecture:
@@ -13,17 +14,20 @@ Architecture:
     tools/ - MCP tool definitions organized by functionality
         project/     - Project management (CRUD, settings, exploration, diagrams)
         draft/       - Draft writing and templates
-        search/      - Literature search (PubMed) - uses pubmed-search-mcp submodule
         reference/   - Reference management and citation
         validation/  - Concept and idea validation
         export/      - Word document export
-        skill/       - Workflow skills management
         _shared/     - Shared utilities
     prompts/ - MCP prompt definitions
 
-Removed:
-    analysis/    - Moved to separate data-analysis-mcp project
-    diagram/     - Merged into project/ module
+External MCP Services (use via VS Code Copilot):
+    pubmed-search  - Literature search (PubMed/Entrez)
+    cgu            - Creativity generation for research ideas
+    zotero-keeper  - Bibliography management
+    drawio         - Diagram generation
+
+Note: Skill tools removed (2025-12-17) - VS Code Copilot now has built-in
+      support for .claude/skills/ via the skills attachment system.
 """
 
 from mcp.server.fastmcp import FastMCP
@@ -39,22 +43,17 @@ from med_paper_assistant.infrastructure.services import (
     Formatter,
     TemplateReader,
     WordWriter,
-    StrategyManager,
 )
-# Use LiteratureSearcher from pubmed-search-mcp submodule
-from pubmed_search.entrez import LiteratureSearcher
 
 # Server modules
-from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS, DEFAULT_EMAIL
+from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS
 from med_paper_assistant.interfaces.mcp.tools import (
     register_project_tools,
-    register_search_tools,
     register_reference_tools,
     register_draft_tools,
     register_validation_tools,
     register_export_tools,
 )
-from med_paper_assistant.interfaces.mcp.tools.skill import register_skill_tools
 from med_paper_assistant.interfaces.mcp.prompts import register_prompts
 
 
@@ -63,9 +62,12 @@ def create_server() -> FastMCP:
     Create and configure the MedPaper Assistant MCP server.
     
     This function:
-    1. Initializes all core modules (searcher, etc.)
+    1. Initializes all core modules
     2. Creates the FastMCP server instance
     3. Registers all tools and prompts
+    
+    Note: Literature search is now handled by pubmed-search MCP server.
+    Use VS Code Copilot to orchestrate cross-MCP calls.
     
     Returns:
         Configured FastMCP server instance
@@ -75,15 +77,12 @@ def create_server() -> FastMCP:
     logger.info("Initializing MedPaper Assistant MCP Server...")
 
     # Initialize core modules
-    # Use LiteratureSearcher directly from pubmed-search-mcp submodule
-    searcher = LiteratureSearcher(email=DEFAULT_EMAIL)
     project_manager = ProjectManager()  # Multi-project support
-    ref_manager = ReferenceManager(searcher, project_manager=project_manager)
+    ref_manager = ReferenceManager(project_manager=project_manager)
     drafter = Drafter(ref_manager, project_manager=project_manager)
     formatter = Formatter()
     template_reader = TemplateReader()
     word_writer = WordWriter()
-    strategy_manager = StrategyManager()
 
     # Create MCP server
     mcp = FastMCP("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)
@@ -91,9 +90,6 @@ def create_server() -> FastMCP:
     # Register all tools
     logger.info("Registering project tools (incl. diagrams)...")
     register_project_tools(mcp, project_manager)
-    
-    logger.info("Registering search tools...")
-    register_search_tools(mcp, searcher, strategy_manager)
     
     logger.info("Registering reference tools...")
     register_reference_tools(mcp, ref_manager, drafter, project_manager)
@@ -107,14 +103,15 @@ def create_server() -> FastMCP:
     logger.info("Registering export tools...")
     register_export_tools(mcp, formatter, template_reader, word_writer)
 
-    logger.info("Registering skill tools...")
-    register_skill_tools(mcp)
+    # Note: Skill tools removed - VS Code Copilot has built-in skill support
+    # via .claude/skills/ directory attachment system
 
     # Register prompts
     logger.info("Registering prompts...")
     register_prompts(mcp, template_reader)
 
     logger.info("MedPaper Assistant MCP Server initialized successfully!")
+    logger.info("Note: Use pubmed-search MCP for literature search.")
     return mcp
 
 

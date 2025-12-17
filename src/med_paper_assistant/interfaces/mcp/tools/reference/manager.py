@@ -34,30 +34,55 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
         return ""
     
     @mcp.tool()
-    def save_reference(pmid: str, download_pdf: bool = True, project: Optional[str] = None) -> str:
+    def save_reference(article: dict, project: Optional[str] = None) -> str:
         """
-        Save a reference to the local library with enhanced metadata and optional PDF.
+        Save a reference to the local library with metadata from PubMed search.
+        
+        ⚠️ IMPORTANT WORKFLOW:
+        1. First search using pubmed-search MCP: search_literature() or fetch_article_details()
+        2. Then save using this tool with the article metadata from step 1
         
         The saved reference includes:
         - Full metadata (authors, journal, volume, pages, DOI, etc.)
         - Pre-formatted citations (Vancouver, APA, Nature styles)
         - Abstract as markdown
-        - PDF fulltext if available from PubMed Central (Open Access)
+        - Foam-compatible alias files for [[wikilink]] support
         
         If no project is active, automatically creates an exploration workspace.
         
         Args:
-            pmid: The PubMed ID of the article to save.
-            download_pdf: Whether to attempt downloading PDF from PMC (default: True).
+            article: Article metadata dictionary from pubmed-search MCP.
+                    Must contain at least 'pmid' field.
+                    Typical fields: pmid, title, authors, abstract, journal, year, doi, etc.
             project: Project slug to save to. Agent should confirm with user.
+            
+        Example workflow:
+            1. pubmed-search: search_literature("deep learning radiology")
+            2. pubmed-search: fetch_article_details(pmids="12345678,87654321")
+            3. mdpaper: save_reference(article=<metadata from step 2>)
         """
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
         
+        if not isinstance(article, dict):
+            return (
+                "❌ Invalid input: article must be a dictionary.\n\n"
+                "**Correct workflow:**\n"
+                "1. Use pubmed-search MCP: `fetch_article_details(pmids='12345678')`\n"
+                "2. Use mdpaper MCP: `save_reference(article=<metadata from step 1>)`"
+            )
+        
+        if not article.get('pmid'):
+            return (
+                "❌ Article metadata must contain 'pmid' field.\n\n"
+                "Ensure you're using metadata from pubmed-search MCP's "
+                "`fetch_article_details()` or `search_literature()` tools."
+            )
+        
         project_msg = _ensure_project_exists()
-        result = ref_manager.save_reference(pmid, download_pdf=download_pdf)
+        result = ref_manager.save_reference(article)
         return result + project_msg
 
     @mcp.tool()
@@ -190,14 +215,43 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
         return f"# Fulltext: PMID {pmid}\n\n{text}"
 
     @mcp.tool()
-    def retry_pdf_download(pmid: str) -> str:
+    def check_reference_exists(pmid: str) -> str:
         """
-        Retry downloading PDF for a reference that doesn't have one.
+        Check if a reference is already saved locally.
+        
+        Args:
+            pmid: PubMed ID to check.
+            
+        Returns:
+            Status message indicating if reference exists.
+        """
+        exists = ref_manager.check_reference_exists(pmid)
+        if exists:
+            summary = ref_manager.get_reference_summary(pmid)
+            title = summary.get('title', 'Unknown')[:50]
+            return f"✅ Reference {pmid} exists locally.\nTitle: {title}..."
+        return f"❌ Reference {pmid} not found locally."
+
+    @mcp.tool()
+    def save_reference_pdf(pmid: str, pdf_content: str) -> str:
+        """
+        Save PDF content for an existing reference.
+        
+        Note: PDF content should be base64 encoded.
         
         Args:
             pmid: PubMed ID of the reference.
+            pdf_content: Base64 encoded PDF content.
+            
+        Returns:
+            Status message.
         """
-        return ref_manager.retry_pdf_download(pmid)
+        import base64
+        try:
+            decoded = base64.b64decode(pdf_content)
+            return ref_manager.save_pdf(pmid, decoded)
+        except Exception as e:
+            return f"❌ Error decoding PDF: {str(e)}"
 
     @mcp.tool()
     def set_citation_style(style: str) -> str:

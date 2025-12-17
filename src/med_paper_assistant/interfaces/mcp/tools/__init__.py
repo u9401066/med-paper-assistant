@@ -6,7 +6,6 @@ Provides all tool registration functions for the MedPaper Assistant MCP server.
 Structure:
 - project/     - Project management (CRUD, settings, exploration, diagrams)
 - draft/       - Draft writing and templates
-- search/      - Literature search (PubMed) - uses pubmed-search-mcp submodule
 - reference/   - Reference management and citation
 - validation/  - Concept and idea validation
 - export/      - Word document export
@@ -14,6 +13,7 @@ Structure:
 - _shared/     - Shared utilities
 
 Removed:
+- search/      - Moved to pubmed-search MCP server (use MCP protocol)
 - analysis/    - Moved to separate project (data-analysis-mcp)
 - diagram/     - Merged into project/ module
 """
@@ -21,7 +21,6 @@ Removed:
 # Import register functions from each module
 from .project import register_project_tools
 from .draft import register_draft_tools
-from .search import register_search_tools
 from .reference import register_reference_tools
 from .validation import register_validation_tools
 from .export import register_export_tools
@@ -40,7 +39,6 @@ from ._shared import (
 __all__ = [
     "register_project_tools",
     "register_draft_tools",
-    "register_search_tools",
     "register_reference_tools",
     "register_validation_tools",
     "register_export_tools",

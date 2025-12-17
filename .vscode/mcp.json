@@ -1,0 +1,61 @@
+{
+  "inputs": [],
+  "servers": {
+    // ============================================
+    // 主框架：論文 Idea 共構
+    // ============================================
+    "mdpaper": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+
+    // ============================================
+    // Submodule：PubMed 文獻搜尋
+    // ============================================
+    "pubmed-search": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "pubmed_search.mcp"],
+      "env": {
+        "ENTREZ_EMAIL": "medpaper@example.com"
+      }
+    },
+
+    // ============================================
+    // Submodule：CGU 創意引擎
+    // ============================================
+    "cgu": {
+      "type": "stdio",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "cgu.server"],
+      "env": {
+        "CGU_THINKING_ENGINE": "simple"
+      }
+    },
+
+    // ============================================
+    // 獨立安裝：Zotero 書目管理 (uvx)
+    // ============================================
+    "zotero-keeper": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["zotero-keeper"]
+    },
+
+    // ============================================
+    // 獨立安裝：Draw.io 架構圖 (需另外啟動 Next.js)
+    // ============================================
+    "drawio": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "drawio-mcp", "drawio-mcp-server"],
+      "env": {
+        "DRAWIO_NEXTJS_URL": "http://localhost:6002"
+      }
+    }
+  }
+}

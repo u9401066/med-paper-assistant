@@ -19,7 +19,7 @@ from .persistence import (
     ProjectManager,
     get_project_manager,
 )
-from .external import PubMedClient
+# Note: PubMedClient removed - use pubmed-search MCP instead
 from .services import (
     Analyzer,
     Drafter,
@@ -28,7 +28,6 @@ from .services import (
     Formatter,
     TemplateReader,
     WordWriter,
-    StrategyManager,
     SECTION_PROMPTS,
     WordExporter,
 )
@@ -45,8 +44,6 @@ __all__ = [
     "ReferenceManager",
     "ProjectManager",
     "get_project_manager",
-    # External
-    "PubMedClient",
     # Services
     "Analyzer",
     "Drafter",
@@ -55,7 +52,6 @@ __all__ = [
     "Formatter",
     "TemplateReader",
     "WordWriter",
-    "StrategyManager",
     "SECTION_PROMPTS",
     "WordExporter",
 ]

@@ -3,19 +3,51 @@ name = "med-paper-assistant"
 version = "0.1.0"
 description = "A medical paper writing assistant using MCP support"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Eric", email = "medpaper@example.com" }]
+keywords = ["medical", "paper", "assistant", "mcp", "pubmed"]
+
+# ============================================
+# 核心依賴 (最小化 - 純 MCP 架構)
+# ============================================
 dependencies = [
-    "mcp",
-    "pydantic",
-    "biopython",
-    "pandas",
-    "matplotlib",
-    "scipy",
-    "seaborn",
-    "tabulate",
-    "python-docx",
-    "requests",
-    "pypdf"
+    "mcp>=1.0.0",
+    "pydantic>=2.0.0",
+    "pandas>=2.0.0",
+    "tabulate>=0.9.0",
+    "python-docx>=1.0.0",
+    "requests>=2.28.0",
+]
+
+# ============================================
+# 可選依賴 (功能擴展)
+# ============================================
+[project.optional-dependencies]
+# 開發模式：直接使用 submodule
+pubmed = [
+    "biopython>=1.80",
+    "pubmed-search-mcp",
+]
+creativity = [
+    "creativity-generation-unit",
+]
+analysis = [
+    "matplotlib>=3.7.0",
+    "scipy>=1.10.0", 
+    "seaborn>=0.12.0",
+    "pypdf>=3.0.0",
+]
+# 完整安裝（開發用）
+all = [
+    "med-paper-assistant[pubmed,creativity,analysis]",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
 ]
 
 [build-system]
@@ -24,4 +56,51 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/med_paper_assistant"]
+
+# ============================================
+# 依賴群組 (uv 推薦格式)
+# ============================================
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+# ============================================
+# uv 工具配置：Submodule 可編輯安裝
+# ============================================
+[tool.uv.sources]
+pubmed-search-mcp = { path = "integrations/pubmed-search-mcp", editable = true }
+creativity-generation-unit = { path = "integrations/cgu", editable = true }
+
+# ============================================
+# Ruff 程式碼品質工具
+# ============================================
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+# ============================================
+# Pytest 配置
+# ============================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"
+
+# ============================================
+# MyPy 類型檢查
+# ============================================
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
 

@@ -1,8 +1,8 @@
 """
 External Services - Third-party API integrations.
+
+Note: PubMed search functionality is now provided by pubmed-search MCP server.
+Use MCP protocol for search operations, not direct imports.
 """
 
-from .pubmed import PubMedClient
-from .entrez import LiteratureSearcher
-
-__all__ = ["PubMedClient", "LiteratureSearcher"]
+__all__ = []

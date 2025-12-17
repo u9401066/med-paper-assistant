@@ -1,0 +1,20 @@
+{
+    "chat.mcp.serverSampling": {
+        "med-paper-assistant/.vscode/mcp.json: mdpaper": {
+            "allowedModels": [
+                "copilot/claude-opus-4.5"
+            ]
+        }
+    },
+    // Foam settings for reference management
+    "foam.edit.linkReferenceDefinitions": "withExtensions",
+    "foam.links.hover.enable": true,
+    "foam.links.sync.enable": true,
+    "foam.openDailyNote.directory": "notes",
+    "foam.files.ignore": [
+        ".venv/**",
+        "node_modules/**",
+        ".git/**",
+        "__pycache__/**"
+    ]
+}

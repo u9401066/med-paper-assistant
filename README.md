@@ -1,7 +1,7 @@
 # Medical Paper Assistant 醫學論文寫作助手
 
 <p align="center">
-  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white"></a>
+  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white"></a>
   <a href="https://modelcontextprotocol.io/"><img alt="MCP" src="https://img.shields.io/badge/MCP-Compatible-green?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMiAyMGMtNC40MSAwLTgtMy41OS04LThzMy41OS04IDgtOCA4IDMuNTkgOCA4LTMuNTkgOC04IDh6Ii8+PC9zdmc+"></a>
   <a href="https://github.com/features/copilot"><img alt="Copilot" src="https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white"></a>
   <a href="https://github.com/u9401066/med-paper-assistant"><img alt="License" src="https://img.shields.io/badge/License-MIT-yellow?logo=opensourceinitiative&logoColor=white"></a>
@@ -91,7 +91,7 @@ Before you begin, ensure you have the following installed:
 
 | Requirement | Version | How to Check | Installation Guide |
 |-------------|---------|--------------|-------------------|
-| **Python** | 3.10 or higher | \`python3 --version\` | [python.org](https://www.python.org/downloads/) |
+| **Python** | 3.11 or higher | \`python3 --version\` | [python.org](https://www.python.org/downloads/) |
 | **Git** | Any recent version | \`git --version\` | [git-scm.com](https://git-scm.com/) |
 | **VS Code** | Latest | Open VS Code → Help → About | [code.visualstudio.com](https://code.visualstudio.com/) |
 | **GitHub Copilot** | Extension | VS Code Extensions panel | Search "GitHub Copilot" in Extensions |
@@ -153,7 +153,7 @@ After setup completes:
 
 In VS Code's Copilot Chat panel:
 1. Type `/mcp` and press Enter
-2. You should see `mdpaper (50 tools)` in the list (or with `drawio (15 tools)` if you enabled Draw.io integration)
+2. You should see `mdpaper (46 tools)` in the list (or with `drawio (15 tools)` if you enabled Draw.io integration)
 3. If you see this, the installation was successful! 🎉
 
 #### Optional: Setup Draw.io Integration
@@ -809,17 +809,16 @@ generate_search_queries(topic="...", use_saved_strategy=True)
 
 ---
 
-### 🛠️ Available Tools (52 mdpaper + 15 drawio)
+### 🛠️ Available Tools (46 mdpaper + 15 drawio)
 
-#### 📚 mdpaper Tools (52 total)
+#### 📚 mdpaper Tools (46 total)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
-| **Search** (10) | `search_literature`, `find_related_articles`, `find_citing_articles`, `fetch_article_details`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries`, `search_local_references` | Literature discovery via [pubmed-search-mcp](integrations/pubmed-search-mcp) submodule |
+| **Search** (10) | `search_literature`, `find_related_articles`, `find_citing_articles`, `fetch_article_details`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries`, `search_local_references` | Literature discovery via [pubmed-search-mcp](integrations/pubmed-search-mcp) (Agent orchestration) |
 | **Reference** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style`, `insert_citation` | Reference management |
 | **Writing** (16) | `write_draft`, `read_draft`, `list_drafts`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick`, `list_templates`, `read_template`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | Manuscript preparation and export |
-| **Project** (15) | `create_project`, `list_projects`, `switch_project`, `get_current_project`, `update_project_status`, `get_project_paths`, `get_paper_types`, `update_project_settings`, `setup_project_interactive`, `start_exploration`, `get_exploration_status`, `convert_exploration_to_project`, `save_diagram`, `save_diagram_standalone`, `list_diagrams` | Project & diagram management |
-| **Skills** (3) | `list_skills`, `load_skill`, `suggest_skill` | Workflow automation via [Skills System](#-skills-system) |
+| **Project** (12) | `create_project`, `list_projects`, `switch_project`, `get_current_project`, `update_project_status`, `get_project_paths`, `get_paper_types`, `update_project_settings`, `setup_project_interactive`, `start_exploration`, `get_exploration_status`, `convert_exploration_to_project` | Project management |
 
 > **Note:** Analysis tools (`analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one`) have been moved to a separate [data-analysis-mcp](https://github.com/u9401066/data-analysis-mcp) project.
 
@@ -974,7 +973,7 @@ Medical Paper Assistant（醫學論文寫作助手）是一款專為醫學研究
 
 | 需求 | 版本 | 檢查方式 | 安裝指南 |
 |------|------|----------|----------|
-| **Python** | 3.10 或更高 | 終端機輸入 \`python3 --version\` | [python.org](https://www.python.org/downloads/) |
+| **Python** | 3.11 或更高 | 終端機輸入 \`python3 --version\` | [python.org](https://www.python.org/downloads/) |
 | **Git** | 任何近期版本 | 終端機輸入 \`git --version\` | [git-scm.com](https://git-scm.com/) |
 | **VS Code** | 最新版 | 開啟 VS Code → 說明 → 關於 | [code.visualstudio.com](https://code.visualstudio.com/) |
 | **GitHub Copilot** | 擴充功能 | VS Code 擴充功能面板 | 在擴充功能中搜尋 "GitHub Copilot" |
@@ -1045,7 +1044,7 @@ scripts\setup.bat
 
 在 VS Code 的 Copilot Chat 面板中：
 1. 輸入 `/mcp` 並按 Enter
-2. 您應該會看到列表中有 `mdpaper (50 tools)`（如果啟用 Draw.io 整合，還會有 `drawio (15 tools)`）
+2. 您應該會看到列表中有 `mdpaper (46 tools)`（如果啟用 Draw.io 整合，還會有 `drawio (15 tools)`）
 3. 如果看到這個，表示安裝成功！🎉
 
 #### 選用：設定 Draw.io 整合
@@ -1630,17 +1629,16 @@ generate_search_queries(topic="...", use_saved_strategy=True)
 
 ---
 
-### 🛠️ 可用工具（共 52 + 15 個）
+### 🛠️ 可用工具（共 46 + 15 個）
 
-#### 📚 mdpaper 工具（52 個）
+#### 📚 mdpaper 工具（46 個）
 
 | 類別 | 工具 | 說明 |
 |------|------|------|
-| **搜尋** (10) | `search_literature`, `find_related_articles`, `find_citing_articles`, `fetch_article_details`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries`, `search_local_references` | 文獻探索，透過 [pubmed-search-mcp](integrations/pubmed-search-mcp) 子模組 |
+| **搜尋** (10) | `search_literature`, `find_related_articles`, `find_citing_articles`, `fetch_article_details`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries`, `search_local_references` | 文獻探索，透過 [pubmed-search-mcp](integrations/pubmed-search-mcp)（Agent 協調）|
 | **參考文獻** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style`, `insert_citation` | 參考文獻管理 |
 | **寫作** (16) | `write_draft`, `read_draft`, `list_drafts`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick`, `list_templates`, `read_template`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | 草稿準備與匯出 |
-| **專案** (15) | `create_project`, `list_projects`, `switch_project`, `get_current_project`, `update_project_status`, `get_project_paths`, `get_paper_types`, `update_project_settings`, `setup_project_interactive`, `start_exploration`, `get_exploration_status`, `convert_exploration_to_project`, `save_diagram`, `save_diagram_standalone`, `list_diagrams` | 專案與圖表管理 |
-| **技能** (3) | `list_skills`, `load_skill`, `suggest_skill` | 透過[技能系統](#-技能系統)自動化工作流程 |
+| **專案** (12) | `create_project`, `list_projects`, `switch_project`, `get_current_project`, `update_project_status`, `get_project_paths`, `get_paper_types`, `update_project_settings`, `setup_project_interactive`, `start_exploration`, `get_exploration_status`, `convert_exploration_to_project` | 專案管理 |
 
 > **備註：** 分析工具（`analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one`）已移至獨立的 [data-analysis-mcp](https://github.com/u9401066/data-analysis-mcp) 專案。
 

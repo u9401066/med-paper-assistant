@@ -20,12 +20,27 @@ med-paper-assistant/
 └── scripts/                       # 跨平台腳本
 ```
 
-### MCP Server 架構
+### MCP Server 架構 (2025-12-17 解耦後)
 ```
 .vscode/mcp.json
-├── mdpaper     # 主要 MCP (52 tools)
-├── pubmed      # PubMed 搜尋 (9 tools)
-└── drawio      # Draw.io 圖表 (15 tools)
+├── mdpaper        # 主要 MCP (~45 tools) - 專案/草稿/參考/匯出/技能
+├── pubmed-search  # PubMed 搜尋 (submodule)
+├── cgu            # Creativity Generation (submodule)
+├── zotero-keeper  # 書目管理 (uvx)
+└── drawio         # Draw.io 圖表 (uvx)
+```
+
+**MCP 間通訊原則：**
+- MCP 對 MCP 只要 API！
+- 不直接 import 其他 MCP 的模組
+- Agent (Copilot) 負責協調 MCP 間資料傳遞
+
+**範例工作流程：**
+```
+用戶：「幫我儲存這篇 PMID:12345678」
+1. Agent → pubmed-search: fetch_article_details(pmids="12345678")
+2. Agent 取得 metadata dict
+3. Agent → mdpaper: save_reference(article=<metadata>)
 ```
 
 ### 跨平台支援

@@ -7,9 +7,18 @@ if TYPE_CHECKING:
 
 
 class ReferenceManager:
+    """
+    管理本地文獻參考資料的儲存、檢索和組織。
+    
+    重構說明 (2025/06):
+    - 移除對 searcher (LiteratureSearcher) 的直接依賴
+    - 改為接收已取得的 metadata 進行儲存
+    - 文獻搜尋由外部 MCP (pubmed-search) 負責
+    - Agent 層級協調 MCP 間的資料傳遞
+    """
+    
     def __init__(
         self, 
-        searcher,  # LiteratureSearcher or compatible interface
         base_dir: str = "references",
         project_manager: Optional["ProjectManager"] = None
     ):
@@ -17,11 +26,9 @@ class ReferenceManager:
         Initialize the ReferenceManager.
         
         Args:
-            searcher: Instance of LiteratureSearcher to fetch details.
             base_dir: Default directory to store references (used if no project active).
             project_manager: Optional ProjectManager for multi-project support.
         """
-        self.searcher = searcher
         self._default_base_dir = base_dir
         self._project_manager = project_manager
         # Note: Directory is created on-demand when saving references,
@@ -41,39 +48,38 @@ class ReferenceManager:
                 pass
         return self._default_base_dir
 
-    def save_reference(self, pmid: str, download_pdf: bool = True) -> str:
+    def save_reference(self, article: Dict[str, Any], download_pdf: bool = False) -> str:
         """
-        Save a reference by PMID with enhanced metadata and optional PDF download.
+        Save a reference with provided article metadata.
+        
+        重構說明: 
+        - 不再由此類別 fetch metadata，改為接收已有的 article data
+        - PDF 下載功能移至外部處理 (透過 pubmed-search MCP 的 fulltext_links)
         
         Args:
-            pmid: PubMed ID of the article.
-            download_pdf: Whether to attempt downloading PDF from PMC.
+            article: Article metadata dictionary (from pubmed-search MCP).
+                     Must contain at least 'pmid' field.
+            download_pdf: Deprecated - PDF download handled externally.
             
         Returns:
             Status message.
         """
+        pmid = article.get('pmid')
+        if not pmid:
+            return "Error: Article metadata must contain 'pmid' field."
+        
         # Check if already exists
         ref_dir = os.path.join(self.base_dir, pmid)
         if os.path.exists(ref_dir):
             return f"Reference {pmid} already exists."
-
-        # Fetch details
-        results = self.searcher.fetch_details([pmid])
-        if not results:
-            return f"Could not find article with PMID {pmid}."
-        
-        if "error" in results[0]:
-            return f"Error fetching article: {results[0]['error']}"
-            
-        article = results[0]
         
         # Create directory
-        os.makedirs(ref_dir)
+        os.makedirs(ref_dir, exist_ok=True)
         
         # Add pre-formatted citation strings to metadata
         article['citation'] = self._format_citation(article)
         
-        # Generate citation key for Foam (e.g., "smith2023")
+        # Generate citation key for Foam (e.g., "smith2023_41285088")
         citation_key = self._generate_citation_key(article)
         article['citation_key'] = citation_key
         
@@ -86,20 +92,30 @@ class ReferenceManager:
         with open(os.path.join(ref_dir, "content.md"), "w", encoding="utf-8") as f:
             f.write(content)
         
-        # Create Foam-friendly alias file (e.g., smith2023.md -> symlink or redirect)
+        # Create Foam-friendly alias file
         self._create_foam_alias(pmid, citation_key)
         
-        # Attempt to download PDF if available from PMC
-        pdf_status = ""
-        if download_pdf:
-            pdf_path = os.path.join(ref_dir, "fulltext.pdf")
-            if self.searcher.download_pmc_pdf(pmid, pdf_path):
-                pdf_status = " PDF downloaded from PMC."
-            else:
-                pdf_status = " (No open access PDF available)"
-        
         foam_tip = f"\n💡 Foam: Use [[{citation_key}]] to link this reference."
-        return f"Successfully saved reference {pmid} to {ref_dir}.{pdf_status}{foam_tip}"
+        return f"Successfully saved reference {pmid} to {ref_dir}.{foam_tip}"
+    
+    def save_reference_by_pmid(self, pmid: str) -> str:
+        """
+        [DEPRECATED] 舊版接口，保留向後相容。
+        
+        新的工作流程應該是:
+        1. Agent 呼叫 pubmed-search MCP 的 fetch_article_details(pmid)
+        2. Agent 呼叫 mdpaper MCP 的 save_reference(article_metadata)
+        
+        Returns:
+            提示訊息，指引使用者使用新的工作流程。
+        """
+        return (
+            f"❌ save_reference_by_pmid is deprecated.\n\n"
+            f"New workflow:\n"
+            f"1. Use pubmed-search MCP: fetch_article_details(pmid='{pmid}')\n"
+            f"2. Use mdpaper MCP: save_reference(article=<metadata from step 1>)\n\n"
+            f"This separation allows MCP-to-MCP communication through the Agent."
+        )
     
     def _generate_citation_key(self, article: Dict[str, Any]) -> str:
         """
@@ -456,18 +472,17 @@ class ReferenceManager:
 
     def get_metadata(self, pmid: str) -> Dict[str, Any]:
         """
-        Get metadata for a reference. If not saved locally, attempts to fetch and save it.
+        Get metadata for a locally saved reference.
         
         Args:
             pmid: PubMed ID.
             
         Returns:
-            Dictionary containing metadata, or empty dict if failed.
+            Dictionary containing metadata, or empty dict if not found locally.
         """
         ref_dir = os.path.join(self.base_dir, pmid)
         metadata_path = os.path.join(ref_dir, "metadata.json")
         
-        # If exists locally, read it
         if os.path.exists(metadata_path):
             try:
                 with open(metadata_path, "r", encoding="utf-8") as f:
@@ -476,15 +491,7 @@ class ReferenceManager:
                 print(f"Error reading metadata for {pmid}: {e}")
                 return {}
         
-        # If not, try to save it first
-        print(f"Reference {pmid} not found locally. Attempting to fetch...")
-        result = self.save_reference(pmid)
-        if "Successfully saved" in result:
-            # Try reading again
-            if os.path.exists(metadata_path):
-                with open(metadata_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
-        
+        # Reference not found locally
         return {}
 
     def search_local(self, query: str) -> List[Dict[str, Any]]:
@@ -510,6 +517,21 @@ class ReferenceManager:
             
             if query in title or query in abstract:
                 results.append(meta)
+                
+        return results
+    
+    def check_reference_exists(self, pmid: str) -> bool:
+        """
+        Check if a reference is already saved locally.
+        
+        Args:
+            pmid: PubMed ID.
+            
+        Returns:
+            True if reference exists locally.
+        """
+        ref_dir = os.path.join(self.base_dir, pmid)
+        return os.path.exists(ref_dir)
                 
         return results
 
@@ -597,25 +619,28 @@ class ReferenceManager:
         
         return summary
 
-    def retry_pdf_download(self, pmid: str) -> str:
+    def save_pdf(self, pmid: str, pdf_content: bytes) -> str:
         """
-        Retry downloading PDF for a reference that doesn't have one.
+        Save PDF content for a reference.
         
         Args:
             pmid: PubMed ID.
+            pdf_content: PDF file content as bytes.
             
         Returns:
             Status message.
         """
         ref_dir = os.path.join(self.base_dir, pmid)
         if not os.path.exists(ref_dir):
-            return f"Reference {pmid} not found. Save it first."
+            return f"Reference {pmid} not found. Save metadata first."
         
         pdf_path = os.path.join(ref_dir, "fulltext.pdf")
         if os.path.exists(pdf_path):
             return f"PDF already exists for {pmid}."
         
-        if self.searcher.download_pmc_pdf(pmid, pdf_path):
-            return f"Successfully downloaded PDF for {pmid}."
-        else:
-            return f"No open access PDF available for {pmid}."
+        try:
+            with open(pdf_path, 'wb') as f:
+                f.write(pdf_content)
+            return f"Successfully saved PDF for {pmid}."
+        except Exception as e:
+            return f"Error saving PDF for {pmid}: {str(e)}"

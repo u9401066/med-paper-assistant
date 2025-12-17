@@ -1,6 +1,6 @@
-[submodule "integrations/next-ai-draw-io"]
-	path = integrations/next-ai-draw-io
-	url = https://github.com/u9401066/next-ai-draw-io.git
 [submodule "integrations/pubmed-search-mcp"]
 	path = integrations/pubmed-search-mcp
 	url = https://github.com/u9401066/pubmed-search-mcp.git
+[submodule "integrations/cgu"]
+	path = integrations/cgu
+	url = https://github.com/u9401066/creativity-generation-unit.git
