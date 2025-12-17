@@ -35,8 +35,9 @@
 | Project File Mgmt | Dashboard 專案切換增強 | 2025-12-03 |
 | Wikilink Validator | 自動驗證/修復 wikilink 格式 | 2025-12-17 |
 | Project Memory | `.memory/` 專案記憶系統 | 2025-12-17 |
-| Pre-Analysis Checklist | concept→analysis 前置檢查 | 2025-12-17 |
-
+| Pre-Analysis Checklist | concept→analysis 前置檢查 | 2025-12-17 || **Dashboard Dark Mode** | 完整深色主題 + Toggle 切換 | 2025-12-17 |
+| **Dashboard Progress** | 專案進度面板 + Stats API | 2025-12-17 |
+| **Next.js 16.0.10** | 升級至最新版、0 漏洞 | 2025-12-17 |
 ---
 
 ## 🔜 進行中 (In Progress)

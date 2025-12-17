@@ -56,6 +56,29 @@ export interface ProjectProgress {
   diagrams: number;
 }
 
+export interface ProjectStats {
+  references: number;
+  drafts: number;
+  diagrams: number;
+  concept: {
+    exists: boolean;
+    validated: boolean;
+    noveltyScore: number | null;
+    lastValidated: string | null;
+  };
+  preAnalysis: {
+    ready: boolean;
+    score: number;
+    checkedAt: string | null;
+  };
+  wordCounts: {
+    intro: number;
+    methods: number;
+    results: number;
+    discussion: number;
+  };
+}
+
 export const FOCUS_OPTIONS: { value: FocusType; label: string; icon: string }[] = [
   { value: 'exploration', label: 'Literature Exploration', icon: '🔍' },
   { value: 'concept', label: 'Concept Development', icon: '💡' },

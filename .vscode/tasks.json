@@ -1,0 +1,59 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Dashboard",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "options": {
+        "cwd": "${workspaceFolder}/dashboard"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting...",
+          "endsPattern": "Ready in"
+        }
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "showReuseMessage": false
+      },
+      "group": "none",
+      "detail": "Start MedPaper Dashboard (Next.js) on http://localhost:3000"
+    },
+    {
+      "label": "Open Dashboard in VS Code",
+      "type": "shell",
+      "command": "echo",
+      "args": ["Dashboard starting..."],
+      "dependsOn": "Start Dashboard",
+      "presentation": {
+        "reveal": "silent"
+      },
+      "detail": "Start dashboard and open in Simple Browser"
+    },
+    {
+      "label": "Stop Dashboard",
+      "type": "shell",
+      "command": "taskkill",
+      "args": ["/F", "/FI", "WINDOWTITLE eq npm*"],
+      "windows": {
+        "command": "taskkill",
+        "args": ["/F", "/IM", "node.exe", "/FI", "WINDOWTITLE eq *dashboard*"]
+      },
+      "presentation": {
+        "reveal": "silent"
+      },
+      "detail": "Stop running Dashboard server"
+    }
+  ]
+}

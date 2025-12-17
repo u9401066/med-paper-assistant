@@ -64,5 +64,8 @@
             "strings": true
         },
         "editor.wordBasedSuggestions": "off"
-    }
+    },
+    
+    // MedPaper Dashboard 設定
+    "simpleBrowser.focusLockIndicator.enabled": false
 }

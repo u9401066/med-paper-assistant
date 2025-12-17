@@ -69,6 +69,20 @@
   - 建議區塊：Statistical Analysis, IRB, Target Journal
   - 更新 `concept-development/SKILL.md` 加入 Phase C: Pre-Analysis Checklist
   - ROADMAP 新增 Phase 4: Methods & Analysis Preparation
+- **Dashboard UI 增強 (2025-12-17)** ✅：
+  - **Dark Mode**: 完整深色主題支援
+    - `ThemeProvider.tsx` + `ThemeToggle.tsx` 元件
+    - localStorage 持久化、預設深色
+    - 所有元件加入 `dark:` Tailwind 類別
+  - **Progress Panel**: 專案進度面板
+    - `ProgressPanel.tsx` 新增 Progress Tab
+    - `/api/projects/[slug]/stats` API endpoint
+    - Concept 驗證狀態、Pre-Analysis 進度、Word counts
+  - **ProjectCard Stats**: 卡片顯示即時統計
+  - **Next.js 16.0.10**: 升級至最新版
+    - `npm audit fix --force` 修復安全漏洞
+    - 0 vulnerabilities
+  - **VS Code 整合**: tasks.json、open-dashboard.ps1
 
 ## Doing
 
