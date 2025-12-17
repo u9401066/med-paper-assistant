@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A medical paper writing assistant using MCP support"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "Apache-2.0"
 authors = [{ name = "Eric", email = "medpaper@example.com" }]
 keywords = ["medical", "paper", "assistant", "mcp", "pubmed"]
 

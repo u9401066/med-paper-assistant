@@ -21,10 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `from_standardized()` 類別方法
 
 ### Changed
+- **授權變更** - 從 MIT 改為 Apache License 2.0
 - **日誌位置遷移** - 從系統 temp 目錄改為專案目錄 `logs/`
 - **README.md** - 新增 MCP 協調架構說明、更新工具列表
 - **ARCHITECTURE.md** - 新增 MCP Orchestration 架構圖
 - **Prompts 更新** - `/mdpaper.concept` 和 `/mdpaper.search` 增加 MCP 協調流程說明
+- **copilot-instructions.md** - 簡化為參照 AGENTS.md，避免重複
 
 ### Fixed
 - **save_reference JSON 解析** - 處理 MCP 傳遞 JSON 字串的情況
