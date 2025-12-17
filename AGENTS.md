@@ -70,17 +70,45 @@ uv add --dev pytest ruff
 
 位於 `.claude/skills/` 目錄：
 
-- **git-precommit** - Git 提交前編排器
-- **ddd-architect** - DDD 架構輔助與檢查
-- **code-refactor** - 主動重構與模組化
-- **memory-updater** - Memory Bank 同步
-- **memory-checkpoint** - 記憶檢查點（Summarize 前外部化）
-- **readme-updater** - README 智能更新
-- **changelog-updater** - CHANGELOG 自動更新
-- **roadmap-updater** - ROADMAP 狀態追蹤
-- **code-reviewer** - 程式碼審查
-- **test-generator** - 測試生成（Unit/Integration/E2E）
-- **project-init** - 專案初始化
+### 🔬 研究技能（本專案專屬）
+
+| 技能 | 觸發語 | 說明 |
+|------|--------|------|
+| **literature-review** | 文獻回顧、找論文、systematic review | 系統性文獻搜尋、篩選、下載、整理 |
+| **concept-development** | 發展概念、concept、novelty | 從文獻提煉研究概念，建立 concept.md |
+| **parallel-search** | 並行搜尋、批量搜尋、擴展搜尋 | 多組關鍵字並行搜尋，提高覆蓋率 |
+
+### 🛠️ 通用技能
+
+| 技能 | 說明 |
+|------|------|
+| **git-precommit** | Git 提交前編排器 |
+| **ddd-architect** | DDD 架構輔助與檢查 |
+| **code-refactor** | 主動重構與模組化 |
+| **memory-updater** | Memory Bank 同步 |
+| **memory-checkpoint** | 記憶檢查點（Summarize 前外部化）|
+| **readme-updater** | README 智能更新 |
+| **changelog-updater** | CHANGELOG 自動更新 |
+| **roadmap-updater** | ROADMAP 狀態追蹤 |
+| **code-reviewer** | 程式碼審查 |
+| **test-generator** | 測試生成（Unit/Integration/E2E）|
+| **project-init** | 專案初始化 |
+
+### Skill 系統架構
+
+```
+工具 (Tool) = 單一能力（搜尋、儲存、分析...）
+技能 (Skill) = 完整知識（如何組合工具完成任務）
+```
+
+**執行流程**：
+1. 識別用戶意圖 → 對應的 Skill
+2. 讀取 `.claude/skills/{name}/SKILL.md`
+3. 按照 Skill 定義的工作流程執行
+4. 在決策點詢問用戶確認
+
+**跨 MCP 協調**：
+一個 Skill 可能需要呼叫多個 MCP 的工具（如 mdpaper + drawio），Agent 層級協調即可。
 
 ---
 
