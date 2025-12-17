@@ -52,6 +52,22 @@
 | Export then format | Direct Word export with journal styles |
 | Learn complex UI | Natural language conversation |
 
+#### 🚀 Quick Start: MCP Prompts
+
+Just type these in Copilot Chat to get started:
+
+| Prompt | What It Does |
+|--------|--------------|
+| `/mdpaper.search` | 🔍 **Start here!** Explore literature freely, save interesting papers |
+| `/mdpaper.concept` | 📝 Develop research concept with novelty validation |
+| `/mdpaper.strategy` | ⚙️ Configure search strategy (date, exclusions, article types) |
+| `/mdpaper.analysis` | 📊 Analyze CSV data, generate figures & Table 1 |
+| `/mdpaper.draft` | ✍️ Write manuscript draft with auto-citations |
+| `/mdpaper.clarify` | 🔄 Refine specific sections through conversation |
+| `/mdpaper.format` | 📄 Export to Word with journal formatting |
+
+> 💡 **Recommended Workflow**: `/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
+
 ### Overview
 
 Medical Paper Assistant is an AI-powered writing tool designed specifically for medical researchers. Built on the **Model Context Protocol (MCP)**, it integrates seamlessly with VS Code through GitHub Copilot, providing a comprehensive workflow from literature search and data analysis to manuscript drafting and formatted export.
@@ -918,6 +934,22 @@ If you find this project helpful, please consider giving it a star! It helps oth
 | 手動管理參考文獻 | 自動儲存 + PDF + 引用格式 |
 | 匯出後再排版 | 直接匯出符合期刊格式的 Word |
 | 學習複雜介面 | 自然語言對話 |
+
+#### 🚀 快速開始：MCP 指令
+
+在 Copilot Chat 中輸入這些指令即可開始：
+
+| 指令 | 功能 |
+|------|------|
+| `/mdpaper.search` | 🔍 **從這裡開始！** 自由探索文獻，儲存有興趣的論文 |
+| `/mdpaper.concept` | 📝 發展研究概念，含新穎性驗證 |
+| `/mdpaper.strategy` | ⚙️ 設定搜尋策略（日期、排除詞、文章類型）|
+| `/mdpaper.analysis` | 📊 分析 CSV 數據，生成圖表和 Table 1 |
+| `/mdpaper.draft` | ✍️ 撰寫草稿，自動插入引用 |
+| `/mdpaper.clarify` | 🔄 對話式修正特定段落 |
+| `/mdpaper.format` | 📄 匯出符合期刊格式的 Word |
+
+> 💡 **建議工作流程**：`/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
 
 ### 概述
 
