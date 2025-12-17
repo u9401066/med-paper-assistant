@@ -8,10 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **MCP-to-MCP Direct Communication Architecture** (設計階段)
-  - pubmed-search 新增 `/api/cached_article/{pmid}` HTTP endpoint
-  - mdpaper 直接呼叫 pubmed-search API，不透過 Agent 傳遞資料
-  - 分層信任：VERIFIED (PubMed) / AGENT (AI notes) / USER (人類筆記)
+- **MCP-to-MCP Direct Communication Architecture** ✅ 已實作
+  - pubmed-search 新增 HTTP API endpoints:
+    - `GET /api/cached_article/{pmid}` - 取得單一文章
+    - `GET /api/cached_articles?pmids=...` - 批量取得
+    - `GET /api/session/summary` - Session 狀態
+  - mdpaper 新增 `PubMedAPIClient` HTTP 客戶端
+  - 新工具 `save_reference_mcp(pmid, agent_notes)`:
+    - Agent 只傳 PMID，無法修改書目資料
+    - mdpaper 直接從 pubmed-search API 取得驗證資料
+    - 防止 Agent 幻覺（hallucination）書目資訊
+  - **分層信任 (Layered Trust)** 參考檔案格式:
+    - `🔒 VERIFIED`: PubMed 資料（不可修改）
+    - `🤖 AGENT`: AI 筆記（AI 可更新）
+    - `✏️ USER`: 人類筆記（AI 絕不碰觸）
+- **stdio + HTTP API 同時啟動**
+  - pubmed-search 在 stdio MCP 模式下自動啟動背景 HTTP API
+  - `start_http_api_background()` 在 daemon thread 運行
+  - 解決 VS Code MCP (stdio) 無法同時提供 HTTP API 的問題
+- **Skill 文檔完整更新**
+  - `literature-review/SKILL.md` 完整重寫，含完整工具列表和 PICO 工作流
+  - `parallel-search/SKILL.md` 新增工具表格和 Session 管理說明
+  - `concept-development/SKILL.md` 擴展工具列表和 FAQ
+  - 所有 skill 明確標示 `save_reference_mcp` 為 PRIMARY 方法
+
+### Changed
+- **Reference 內容順序優化** - Abstract 移到 Citation Formats 之前
+  - Foam hover preview 現在優先顯示 Abstract（更實用）
+- **Foam settings 更新** - `foam.files.ignore` 改為 `foam.files.exclude`
 - **sync_references Tool** - Markdown 引用管理器
   - 掃描 `[[wikilinks]]` 自動生成 References 區塊
   - 可逆格式：`[1]<!-- [[citation_key]] -->`，支援重複同步

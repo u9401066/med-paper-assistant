@@ -15,16 +15,43 @@ description: 使用多組關鍵字並行搜尋，提高文獻覆蓋率。觸發�
 3. Agent 並行呼叫搜尋工具
 4. 合併工具整合結果
 
-## 使用工具
+---
 
-| 工具 | 用途 |
-|------|------|
-| `configure_search_strategy` | 設定搜尋策略（日期、排除詞、文章類型）|
-| `get_search_strategy` | 查看目前的搜尋策略 |
-| `generate_search_queries` | 根據主題生成多組搜尋語法（**自動整合策略**）|
-| `search_literature` | 執行單一搜尋（可並行呼叫多次）|
-| `merge_search_results` | 合併多個搜尋結果並去重 |
-| `expand_search_queries` | **擴展搜尋**：結果不夠時生成更多查詢 |
+## 可用工具
+
+### 🔍 pubmed-search MCP 搜尋工具
+
+| 工具 | 用途 | 關鍵參數 |
+|------|------|----------|
+| `generate_search_queries` | 從主題生成 MeSH + 同義詞材料 | `topic`, `strategy`, `check_spelling` |
+| `search_literature` | 執行 PubMed 搜尋（可並行多次）| `query`, `limit`, `min_year`, `article_type` |
+| `merge_search_results` | 合併多組搜尋結果並去重 | `results_json` |
+| `expand_search_queries` | 結果不足時擴展搜尋 | `topic`, `expansion_type` |
+| `parse_pico` | 解析 PICO 臨床問題 | `description` 或 `p`, `i`, `c`, `o` |
+
+### 📊 結果處理工具
+
+| 工具 | 用途 | 關鍵參數 |
+|------|------|----------|
+| `fetch_article_details` | 取得完整文章資訊 | `pmids` (逗號分隔) |
+| `get_citation_metrics` | 取得 iCite 引用指標 (RCR) | `pmids`, `sort_by`, `min_rcr` |
+| `find_related_articles` | 找相似文章 | `pmid` |
+| `find_citing_articles` | 找引用此文章的研究 | `pmid` |
+
+### 💾 Session 管理工具
+
+| 工具 | 用途 | 說明 |
+|------|------|------|
+| `get_session_pmids` | 取得 session 中的 PMID | `search_index=-1` 取最近搜尋 |
+| `get_session_summary` | 查看 session 狀態 | 確認快取和搜尋歷史 |
+| `list_search_history` | 列出搜尋歷史 | 回溯過往搜尋 |
+
+### 📚 儲存文獻工具（⚠️ 注意優先級）
+
+| 工具 | 資料來源 | 使用時機 |
+|------|----------|----------|
+| `save_reference_mcp` | pubmed-search HTTP API | **永遠優先使用** ✅ |
+| `save_reference` | Agent 傳遞 | 僅當 API 不可用時 fallback ⚠️ |
 
 ## 工作流程
 
@@ -147,6 +174,47 @@ merge（含所有結果）
 3. **可追蹤**：知道每篇文獻來自哪個搜尋
 4. **可重現**：策略被記錄下來
 5. **策略整合**：日期/排除詞自動套用
+
+---
+
+## 搜尋後儲存文獻
+
+完成搜尋和篩選後，儲存選中的文獻：
+
+```
+# ✅ PRIMARY：使用 MCP-to-MCP 驗證（永遠優先）
+呼叫：save_reference_mcp(
+    pmid="12345678",
+    agent_notes="Key paper on parallel search methodology"
+)
+
+# ⚠️ FALLBACK：僅當 pubmed-search API 不可用時
+呼叫：save_reference(article={完整 metadata dict})
+```
+
+**為什麼 `save_reference_mcp` 優先？**
+- `save_reference_mcp`：mdpaper 直接從 pubmed-search API 取得驗證資料，Agent 無法篡改
+- `save_reference`：Agent 傳遞 metadata，可能被修改或幻覺
+
+---
+
+## Session 工具使用技巧
+
+搜尋結果自動暫存在 session 中，不需要記住所有 PMID：
+
+```
+# 取得最近搜尋的 PMID
+呼叫：get_session_pmids(search_index=-1)
+
+# 取得前一次搜尋的 PMID
+呼叫：get_session_pmids(search_index=-2)
+
+# 在其他工具中使用 "last" 快捷方式
+呼叫：get_citation_metrics(pmids="last", sort_by="relative_citation_ratio")
+呼叫：prepare_export(pmids="last", format="ris")
+```
+
+---
 
 ## 相關技能
 

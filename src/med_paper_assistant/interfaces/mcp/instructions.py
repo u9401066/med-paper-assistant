@@ -71,9 +71,27 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 | `get_search_strategy` | Get current search strategy |
 
 ### 📚 REFERENCE MANAGEMENT
+
+**⚠️ CRITICAL: 儲存文獻的正確方式**
+
+| 方法 | 資料完整性 | 使用時機 |
+|------|------------|----------|
+| `save_reference_mcp(pmid)` ✅ 推薦 | 🔒 驗證資料 | **永遠優先使用** |
+| `save_reference(article)` ⚠️ Fallback | ⚠️ Agent 可修改 | 僅當 API 不可用 |
+
+**工作流程：**
+```
+1. pubmed-search: search_literature(...)
+2. 用戶選擇要儲存的文獻
+3. mdpaper: save_reference_mcp(pmid="12345678", agent_notes="...")
+   → mdpaper 自動從 pubmed-search API 取得驗證資料
+   → 如果 API 不可用，會提示改用 save_reference()
+```
+
 | Tool | When to use |
 |------|-------------|
-| `save_reference` | Save PMID to library (auto-creates exploration workspace if no project) |
+| `save_reference_mcp` | **PRIMARY** - Save by PMID, fetches verified data directly |
+| `save_reference` | **FALLBACK** - Only when API unavailable, requires full metadata |
 | `list_saved_references` | List saved papers |
 | `search_local_references` | Search within saved library |
 | `get_reference_details` | Get complete citation info |
@@ -139,7 +157,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 ## QUICK DECISION TREE
 - "just want to browse/explore papers" → `start_exploration`
 - "search/find papers" → `search_literature`
-- "save this paper" → `save_reference` (auto-creates workspace if needed)
+- "save this paper" → `save_reference_mcp(pmid)` (auto-creates workspace if needed)
 - "my saved papers" → `list_saved_references`
 - "ready to write, have references" → `convert_exploration_to_project` → `create_project`
 - "write/draft" → **`validate_concept` first!** → `write_draft`

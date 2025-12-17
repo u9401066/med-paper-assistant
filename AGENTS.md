@@ -21,6 +21,28 @@
 
 詳見：`.github/bylaws/ddd-architecture.md`
 
+### MCP-to-MCP 通訊規則
+
+**⚠️ 儲存文獻時必須遵守：**
+
+```
+✅ 正確：save_reference_mcp(pmid="12345678", agent_notes="...")
+   → Agent 只傳 PMID，mdpaper 直接從 pubmed-search API 取得驗證資料
+
+❌ 錯誤：save_reference(article={從 search 拿到的完整 metadata})
+   → Agent 可能修改/幻覺書目資料
+```
+
+| 方法 | 資料來源 | Agent 可篡改？ | 使用時機 |
+|------|----------|----------------|----------|
+| `save_reference_mcp` | pubmed-search HTTP API | ❌ 不可能 | **永遠優先** |
+| `save_reference` | Agent 傳遞 | ⚠️ 可能 | API 不可用時 fallback |
+
+**分層信任格式**：
+- `🔒 VERIFIED`: PubMed 原始資料（不可修改）
+- `🤖 AGENT`: AI 筆記（`agent_notes` 參數）
+- `✏️ USER`: 人類筆記（AI 絕不碰觸）
+
 ### Python 環境規則
 
 - **優先使用 uv** 管理套件和虛擬環境

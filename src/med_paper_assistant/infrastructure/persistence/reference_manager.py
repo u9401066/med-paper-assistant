@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -9,6 +10,8 @@ from med_paper_assistant.domain.services.reference_converter import (
     ReferenceConverter,
     StandardizedReference,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ReferenceManager:
@@ -25,7 +28,8 @@ class ReferenceManager:
     def __init__(
         self, 
         base_dir: str = "references",
-        project_manager: Optional["ProjectManager"] = None
+        project_manager: Optional["ProjectManager"] = None,
+        pubmed_api_url: Optional[str] = None
     ):
         """
         Initialize the ReferenceManager.
@@ -33,10 +37,12 @@ class ReferenceManager:
         Args:
             base_dir: Default directory to store references (used if no project active).
             project_manager: Optional ProjectManager for multi-project support.
+            pubmed_api_url: URL for pubmed-search HTTP API (MCP-to-MCP communication).
         """
         self._default_base_dir = base_dir
         self._project_manager = project_manager
         self._converter = ReferenceConverter()
+        self._pubmed_api_url = pubmed_api_url
         # Note: Directory is created on-demand when saving references,
         # not at initialization to avoid polluting root directory
     
@@ -123,16 +129,105 @@ class ReferenceManager:
         1. Agent 呼叫 pubmed-search MCP 的 fetch_article_details(pmid)
         2. Agent 呼叫 mdpaper MCP 的 save_reference(article_metadata)
         
+        或者使用新的 MCP-to-MCP 方法:
+        - save_reference_mcp(pmid, agent_notes) - 自動從 pubmed-search 取得驗證資料
+        
         Returns:
             提示訊息，指引使用者使用新的工作流程。
         """
         return (
             f"❌ save_reference_by_pmid is deprecated.\n\n"
-            f"New workflow:\n"
-            f"1. Use pubmed-search MCP: fetch_article_details(pmid='{pmid}')\n"
-            f"2. Use mdpaper MCP: save_reference(article=<metadata from step 1>)\n\n"
-            f"This separation allows MCP-to-MCP communication through the Agent."
+            f"New workflows:\n\n"
+            f"Option A - Agent-mediated (current):\n"
+            f"1. pubmed-search: fetch_article_details(pmid='{pmid}')\n"
+            f"2. mdpaper: save_reference(article=<metadata>)\n\n"
+            f"Option B - MCP-to-MCP direct (recommended):\n"
+            f"1. mdpaper: save_reference_mcp(pmid='{pmid}', agent_notes='...')\n"
+            f"   → mdpaper fetches verified data directly from pubmed-search"
         )
+    
+    def save_reference_mcp(
+        self, 
+        pmid: str, 
+        agent_notes: str = "",
+        fetch_if_missing: bool = True
+    ) -> str:
+        """
+        Save reference using MCP-to-MCP direct communication.
+        
+        This is the NEW preferred method that ensures data integrity:
+        1. Agent only passes PMID and optional notes
+        2. mdpaper fetches verified metadata directly from pubmed-search HTTP API
+        3. Prevents Agent from modifying/hallucinating bibliographic data
+        
+        Reference file structure (Layered Trust):
+        ```
+        ---
+        # 🔒 VERIFIED (PubMed, immutable)
+        source: pubmed
+        pmid: "12345678"
+        title: "Original Title from PubMed"
+        ...
+        
+        # 🤖 AGENT (AI-generated)
+        agent_notes: "Notes from AI assistant"
+        
+        # ✏️ USER (Human edits)
+        user_tags: []
+        user_notes: ""
+        ---
+        ```
+        
+        Args:
+            pmid: PubMed ID (the ONLY required input from Agent)
+            agent_notes: Optional notes from Agent about this reference
+            fetch_if_missing: If True, fetch from PubMed if not in cache
+            
+        Returns:
+            Status message with Foam citation key.
+        """
+        # Import here to avoid circular dependency
+        from med_paper_assistant.infrastructure.services.pubmed_api_client import (
+            get_pubmed_api_client
+        )
+        
+        # Get the API client
+        client = get_pubmed_api_client(base_url=self._pubmed_api_url)
+        
+        # Check if pubmed-search API is available
+        if not client.check_health():
+            logger.warning(
+                "[MCP-to-MCP] pubmed-search API not available, "
+                "falling back to Agent-provided data requirement"
+            )
+            return (
+                f"⚠️ pubmed-search MCP HTTP API is not available.\n"
+                f"Please ensure pubmed-search is running with HTTP API enabled.\n\n"
+                f"Alternative: Use the traditional workflow:\n"
+                f"1. pubmed-search: fetch_article_details(pmid='{pmid}')\n"
+                f"2. mdpaper: save_reference(article=<metadata>)"
+            )
+        
+        # Fetch verified data directly from pubmed-search
+        logger.info(f"[MCP-to-MCP] Fetching PMID:{pmid} from pubmed-search")
+        article = client.get_cached_article(pmid, fetch_if_missing=fetch_if_missing)
+        
+        if not article:
+            return (
+                f"❌ Article PMID:{pmid} not found.\n\n"
+                f"Please search for it first using pubmed-search MCP, then try again.\n"
+                f"Example: search_literature(query='{pmid}[pmid]')"
+            )
+        
+        # Add layered trust metadata
+        article['_data_source'] = 'pubmed_mcp_api'
+        article['_verified'] = True
+        article['_agent_notes'] = agent_notes
+        article['_user_notes'] = ""  # Empty, for user to fill
+        article['_user_tags'] = []   # Empty, for user to fill
+        
+        # Use existing save_reference with verified data
+        return self.save_reference(article)
     
     def _generate_citation_key(self, article: Dict[str, Any]) -> str:
         """
@@ -374,6 +469,23 @@ class ReferenceManager:
         - citation formats 也放在 frontmatter
         - 人類可讀內容在 body
         
+        Layered Trust Architecture (2025-01):
+        ```
+        ---
+        # 🔒 VERIFIED (PubMed, immutable)
+        source: pubmed
+        verified: true
+        ...
+        
+        # 🤖 AGENT (AI-generated, editable by AI)
+        agent_notes: "..."
+        
+        # ✏️ USER (Human-only, never AI-touched)
+        user_tags: []
+        user_notes: ""
+        ---
+        ```
+        
         Args:
             article: Article metadata dictionary.
             
@@ -385,8 +497,21 @@ class ReferenceManager:
         title = article.get('title', 'Unknown Title')
         citation_key = article.get('citation_key', '')
         
+        # Check if this is MCP-to-MCP verified data
+        is_verified = article.get('_verified', False)
+        data_source = article.get('_data_source', 'agent')
+        agent_notes = article.get('_agent_notes', '')
+        user_notes = article.get('_user_notes', '')
+        user_tags = article.get('_user_tags', [])
+        
         # YAML frontmatter for Foam (enables better linking)
         content = "---\n"
+        
+        # ========== 🔒 VERIFIED SECTION (from PubMed, immutable) ==========
+        content += "# 🔒 VERIFIED DATA (from PubMed - do not modify)\n"
+        content += f'source: "{article.get("source", "pubmed")}"\n'
+        content += f'verified: {str(is_verified).lower()}\n'
+        content += f'data_source: "{data_source}"\n\n'
         
         # Title for Foam completion label display
         content += f'title: "{title}"\n'
@@ -398,8 +523,7 @@ class ReferenceManager:
         if pmid:
             content += f'  - "PMID:{pmid}"\n'   # e.g., PMID:27345583
             content += f'  - "{pmid}"\n'         # e.g., 27345583
-        content += "type: reference\n"
-        content += f'source: "{article.get("source", "pubmed")}"\n\n'
+        content += "type: reference\n\n"
         
         # Bibliographic info
         content += f'pmid: "{pmid}"\n'
@@ -443,6 +567,24 @@ class ReferenceManager:
                 content += f'  inline: "{citation["in_text"]}"\n'
             content += "  number: null  # Assigned during export\n"
         
+        # ========== 🤖 AGENT SECTION (AI-generated, can be updated by AI) ==========
+        content += "\n# 🤖 AGENT DATA (AI-generated, AI can update)\n"
+        content += f'agent_notes: "{agent_notes}"\n'
+        content += 'agent_summary: ""\n'  # Can be filled by AI summarization
+        content += 'agent_relevance: null\n'  # 1-5 relevance score
+        
+        # ========== ✏️ USER SECTION (Human-only, never touched by AI) ==========
+        content += "\n# ✏️ USER DATA (human-only, AI should never modify)\n"
+        content += f'user_notes: "{user_notes}"\n'
+        if user_tags:
+            content += "user_tags:\n"
+            for tag in user_tags:
+                content += f'  - "{tag}"\n'
+        else:
+            content += "user_tags: []\n"
+        content += "user_rating: null  # 1-5 personal rating\n"
+        content += "user_read_status: unread  # unread, reading, read\n"
+        
         # Metadata
         import datetime
         content += f'\nsaved_at: "{datetime.datetime.now().isoformat()}"\n'
@@ -480,8 +622,27 @@ class ReferenceManager:
             content += f"**PMC**: {article['pmc_id']}\n"
         content += "\n"
         
-        # Citation formats (visible in Foam hover preview!)
-        # Show the project's preferred style first with ⭐
+        # Abstract FIRST - most useful for Foam hover preview!
+        abstract = article.get('abstract', '')
+        if abstract:
+            content += "## Abstract\n\n"
+            content += abstract
+            content += "\n\n"
+        
+        # Keywords
+        keywords = article.get('keywords', [])
+        if keywords:
+            content += f"**Keywords**: {', '.join(keywords)}\n\n"
+        
+        # MeSH terms
+        mesh_terms = article.get('mesh_terms', [])
+        if mesh_terms:
+            content += f"**MeSH Terms**: {', '.join(mesh_terms[:10])}"
+            if len(mesh_terms) > 10:
+                content += f" (+{len(mesh_terms) - 10} more)"
+            content += "\n\n"
+        
+        # Citation formats (moved to bottom - less useful in hover)
         citation = article.get('citation', {})
         if citation:
             preferred_style = self._get_preferred_citation_style()
@@ -511,24 +672,6 @@ class ReferenceManager:
             
             if citation.get('in_text'):
                 content += f"**In-text**: ({citation['in_text']})\n\n"
-        
-        # Keywords
-        keywords = article.get('keywords', [])
-        if keywords:
-            content += f"**Keywords**: {', '.join(keywords)}\n\n"
-        
-        # MeSH terms
-        mesh_terms = article.get('mesh_terms', [])
-        if mesh_terms:
-            content += f"**MeSH Terms**: {', '.join(mesh_terms[:10])}"
-            if len(mesh_terms) > 10:
-                content += f" (+{len(mesh_terms) - 10} more)"
-            content += "\n\n"
-        
-        # Abstract
-        content += "## Abstract\n\n"
-        content += article.get('abstract', 'No abstract available.')
-        content += "\n"
         
         return content
 

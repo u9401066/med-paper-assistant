@@ -120,6 +120,45 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
         return result + project_msg
 
     @mcp.tool()
+    def save_reference_mcp(pmid: str, agent_notes: str = "", project: Optional[str] = None) -> str:
+        """
+        Save reference using MCP-to-MCP direct communication (RECOMMENDED).
+        
+        🔒 This method ensures DATA INTEGRITY:
+        - Agent only passes PMID (cannot modify bibliographic data)
+        - mdpaper fetches VERIFIED metadata directly from pubmed-search HTTP API
+        - Prevents hallucination of titles, authors, journal names
+        
+        📋 Reference file includes LAYERED TRUST sections:
+        - 🔒 VERIFIED: PubMed data (immutable)
+        - 🤖 AGENT: AI notes (AI can update)
+        - ✏️ USER: Human notes (AI never touches)
+        
+        Prerequisite: pubmed-search MCP must be running with HTTP API enabled.
+        
+        Args:
+            pmid: PubMed ID (e.g., "12345678")
+            agent_notes: Optional notes about this reference from Agent
+            project: Project slug. If not specified, uses current project.
+            
+        Example:
+            save_reference_mcp(pmid="31645286", agent_notes="Key paper on AI in anesthesiology")
+        """
+        log_tool_call("save_reference_mcp", {"pmid": pmid, "agent_notes": agent_notes, "project": project})
+        
+        if project:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                error_msg = f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+                log_agent_misuse("save_reference_mcp", "valid project slug", {"pmid": pmid, "project": project}, error_msg)
+                return error_msg
+        
+        project_msg = _ensure_project_exists()
+        result = ref_manager.save_reference_mcp(pmid, agent_notes=agent_notes)
+        log_tool_result("save_reference_mcp", result)
+        return result + project_msg
+
+    @mcp.tool()
     def list_saved_references(project: Optional[str] = None) -> str:
         """
         List all saved references in the local library with summary info.

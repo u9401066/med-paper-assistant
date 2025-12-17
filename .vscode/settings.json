@@ -10,7 +10,12 @@
     "foam.links.hover.enable": true,
     "foam.links.sync.enable": true,
     "foam.openDailyNote.directory": "notes",
-    "foam.files.ignore": [
+    
+    // Foam Hover Preview 設定
+    "foam.preview.embedNoteStyle": "full",        // full | content-only
+    "foam.preview.embedNoteMaxLength": 5000,      // 預覽最大字元數（預設 200，調大可顯示更多）
+    
+    "foam.files.exclude": [
         ".venv/**",
         "node_modules/**",
         ".git/**",
@@ -42,6 +47,11 @@
     ],
     "foam.completion.label": "title",
     "foam.graph.titleMaxLength": 50,
+    
+    // Hover preview 設定 - 調整預覽框大小
+    "editor.hover.delay": 300,
+    "editor.hover.sticky": true,
+    
     "editor.quickSuggestions": {
         "other": true,
         "comments": false,

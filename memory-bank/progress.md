@@ -21,21 +21,40 @@
   - 掃描 `[[wikilinks]]` 自動生成 References 區塊
   - 可逆設計：`[1]<!-- [[citation_key]] -->` 格式
   - 支援重複同步、重新排序
+- **MCP-to-MCP 直接通訊架構** ✅：
+  - `pubmed-search` 新增 HTTP API endpoints:
+    - `GET /api/cached_article/{pmid}` - 單一文章
+    - `GET /api/cached_articles?pmids=...` - 批量取得
+    - `GET /api/session/summary` - Session 狀態
+  - `mdpaper` 新增 `PubMedAPIClient` HTTP 客戶端
+  - 新工具 `save_reference_mcp(pmid, agent_notes)`:
+    - Agent 只傳 PMID，不傳 metadata
+    - mdpaper 直接從 pubmed-search 取得驗證資料
+    - 防止 Agent 修改/幻覺書目資料
+  - **分層信任 (Layered Trust)** 參考檔案格式:
+    - `🔒 VERIFIED`: PubMed 資料（不可修改）
+    - `🤖 AGENT`: AI 筆記（AI 可更新）
+    - `✏️ USER`: 人類筆記（AI 絕不碰觸）
+- **stdio + HTTP API 同時啟動 (2025-12-17)** ✅：
+  - `pubmed-search` 在 stdio MCP 模式下自動啟動背景 HTTP API
+  - `start_http_api_background()` 函數在 daemon thread 運行
+  - 預設 port 8765，可透過 `PUBMED_HTTP_API_PORT` 環境變數設定
+  - 解決 VS Code MCP (stdio) 無法同時提供 HTTP API 的問題
+- **Skill 文檔完整更新 (2025-12-17)** ✅：
+  - `literature-review/SKILL.md` 完整重寫，含 20+ pubmed-search 工具
+  - `parallel-search/SKILL.md` 新增工具表格和 save_reference_mcp 說明
+  - `concept-development/SKILL.md` 擴展工具列表和 FAQ
+  - 所有 skill 明確標示 `save_reference_mcp` 為 PRIMARY 方法
+- **Reference 內容順序優化 (2025-12-17)** ✅：
+  - Abstract 移到 Citation Formats 之前
+  - Foam hover preview 現在優先顯示 Abstract（更實用）
 
 ## Doing
 
-- **MCP-to-MCP 直接通訊架構設計**：
-  - pubmed-search 新增 `/api/cached_article/{pmid}` HTTP endpoint
-  - mdpaper `save_reference` 改為只接收 `pmid + agent_notes`
-  - 分層信任：VERIFIED / AGENT / USER 區塊
-- **Reference 新格式設計**：
-  - BibTeX 相容的結構化 author 欄位
-  - 更美觀的人類可讀格式
-  - Agent 短評區塊（標記來源）
+- 無
 
 ## Next
 
-- 實作 pubmed-search HTTP API endpoint
-- 實作 mdpaper MCP-to-MCP 呼叫邏輯
-- 更新 reference_manager.py 生成新格式
-- Migration script 更新現有參考文獻
+- Migration script 更新現有參考文獻到新格式
+- 批量更新舊 reference 的內容順序（Abstract 在前）
+- 加入環境變數 `PUBMED_MCP_API_URL` 配置
