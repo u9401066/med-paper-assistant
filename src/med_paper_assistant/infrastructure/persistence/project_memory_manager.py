@@ -4,42 +4,42 @@ Project Memory Manager - Manages project-specific memory files.
 Handles creation and updating of .memory/ files for AI context.
 """
 
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
 
-from ...domain.paper_types import get_paper_type, PaperTypeInfo
+from ...domain.paper_types import PaperTypeInfo, get_paper_type
 
 
 class ProjectMemoryManager:
     """
     Manages project memory files for AI context persistence.
-    
+
     Memory files:
     - activeContext.md: Current research focus, preferences, blockers
     - progress.md: Research milestones and task tracking
     """
-    
+
     def __init__(self, project_path: Path):
         """
         Initialize memory manager for a project.
-        
+
         Args:
             project_path: Root path of the project.
         """
         self.project_path = Path(project_path)
         self.memory_dir = self.project_path / ".memory"
-    
+
     def create_memory_files(
         self,
         project_name: str,
         paper_type: str = "",
         interaction_preferences: Optional[Dict[str, Any]] = None,
-        memo: str = ""
+        memo: str = "",
     ) -> None:
         """
         Create initial memory files for a new project.
-        
+
         Args:
             project_name: Name of the project.
             paper_type: Type of paper.
@@ -47,21 +47,17 @@ class ProjectMemoryManager:
             memo: Initial memo/notes.
         """
         self.memory_dir.mkdir(parents=True, exist_ok=True)
-        
+
         type_info = get_paper_type(paper_type)
         prefs = interaction_preferences or {}
-        
+
         self._write_active_context(project_name, type_info, prefs, memo)
         self._write_progress(project_name, paper_type, type_info)
-    
-    def update_preferences(
-        self,
-        interaction_preferences: Dict[str, Any],
-        memo: str = ""
-    ) -> None:
+
+    def update_preferences(self, interaction_preferences: Dict[str, Any], memo: str = "") -> None:
         """
         Update preferences and memo in activeContext.md.
-        
+
         Args:
             interaction_preferences: Updated preferences.
             memo: Updated memo.
@@ -69,50 +65,47 @@ class ProjectMemoryManager:
         active_context_path = self.memory_dir / "activeContext.md"
         if not active_context_path.exists():
             return
-        
+
         import re
-        content = active_context_path.read_text(encoding='utf-8')
-        
+
+        content = active_context_path.read_text(encoding="utf-8")
+
         # Update User Preferences section
         prefs = interaction_preferences
         new_prefs_section = f"""## User Preferences
 
 ### Interaction Style
-{prefs.get('interaction_style', '- [Not specified]')}
+{prefs.get("interaction_style", "- [Not specified]")}
 
 ### Language Preferences
-{prefs.get('language', '- [Not specified]')}
+{prefs.get("language", "- [Not specified]")}
 
 ### Writing Style Notes
-{prefs.get('writing_style', '- [Not specified]')}"""
+{prefs.get("writing_style", "- [Not specified]")}"""
 
-        pattern = r'## User Preferences.*?(?=\n## |\Z)'
+        pattern = r"## User Preferences.*?(?=\n## |\Z)"
         if re.search(pattern, content, re.DOTALL):
-            content = re.sub(pattern, new_prefs_section + '\n\n', content, flags=re.DOTALL)
-        
+            content = re.sub(pattern, new_prefs_section + "\n\n", content, flags=re.DOTALL)
+
         # Update memo section
         new_memo_section = f"""## Memo / Notes
-{memo if memo else '[No memo yet]'}"""
-        
-        memo_pattern = r'## Memo / Notes.*?(?=\n---|\Z)'
+{memo if memo else "[No memo yet]"}"""
+
+        memo_pattern = r"## Memo / Notes.*?(?=\n---|\Z)"
         if re.search(memo_pattern, content, re.DOTALL):
-            content = re.sub(memo_pattern, new_memo_section + '\n\n', content, flags=re.DOTALL)
-        
+            content = re.sub(memo_pattern, new_memo_section + "\n\n", content, flags=re.DOTALL)
+
         # Update timestamp
         content = re.sub(
-            r'\*Last Updated:.*?\*',
+            r"\*Last Updated:.*?\*",
             f"*Last Updated: {datetime.now().strftime('%Y-%m-%d')}*",
-            content
+            content,
         )
-        
-        active_context_path.write_text(content, encoding='utf-8')
-    
+
+        active_context_path.write_text(content, encoding="utf-8")
+
     def _write_active_context(
-        self,
-        project_name: str,
-        type_info: PaperTypeInfo,
-        prefs: Dict[str, Any],
-        memo: str
+        self, project_name: str, type_info: PaperTypeInfo, prefs: Dict[str, Any], memo: str
     ) -> None:
         """Write activeContext.md file."""
         content = f"""# Active Context: {project_name}
@@ -123,19 +116,19 @@ class ProjectMemoryManager:
 |---------|-------|
 | **Paper Type** | {type_info.name} |
 | **Typical Words** | {type_info.typical_words} |
-| **Sections** | {', '.join(type_info.sections)} |
+| **Sections** | {", ".join(type_info.sections)} |
 | **Target Journal** | [To be determined] |
 
 ## User Preferences
 
 ### Interaction Style
-{prefs.get('interaction_style', '- [Not specified - ask user how they prefer to interact]')}
+{prefs.get("interaction_style", "- [Not specified - ask user how they prefer to interact]")}
 
 ### Language Preferences
-{prefs.get('language', '- [Not specified]')}
+{prefs.get("language", "- [Not specified]")}
 
 ### Writing Style Notes
-{prefs.get('writing_style', '- [Not specified]')}
+{prefs.get("writing_style", "- [Not specified]")}
 
 ## Current Focus
 - [What you're currently working on]
@@ -150,19 +143,14 @@ class ProjectMemoryManager:
 - [Issues to resolve]
 
 ## Memo / Notes
-{memo if memo else '[No memo yet]'}
+{memo if memo else "[No memo yet]"}
 
 ---
-*Last Updated: {datetime.now().strftime('%Y-%m-%d')}*
+*Last Updated: {datetime.now().strftime("%Y-%m-%d")}*
 """
-        (self.memory_dir / "activeContext.md").write_text(content, encoding='utf-8')
-    
-    def _write_progress(
-        self,
-        project_name: str,
-        paper_type: str,
-        type_info: PaperTypeInfo
-    ) -> None:
+        (self.memory_dir / "activeContext.md").write_text(content, encoding="utf-8")
+
+    def _write_progress(self, project_name: str, paper_type: str, type_info: PaperTypeInfo) -> None:
         """Write progress.md file based on paper type."""
         if paper_type == "meta-analysis":
             content = self._get_meta_analysis_progress(project_name)
@@ -170,9 +158,9 @@ class ProjectMemoryManager:
             content = self._get_case_report_progress(project_name)
         else:
             content = self._get_default_progress(project_name, type_info)
-        
-        (self.memory_dir / "progress.md").write_text(content, encoding='utf-8')
-    
+
+        (self.memory_dir / "progress.md").write_text(content, encoding="utf-8")
+
     def _get_meta_analysis_progress(self, project_name: str) -> str:
         """Get progress template for meta-analysis."""
         return f"""# Research Progress: {project_name}
@@ -226,9 +214,9 @@ class ProjectMemoryManager:
   - [ ] Submit manuscript
 
 ---
-*Created: {datetime.now().strftime('%Y-%m-%d')}*
+*Created: {datetime.now().strftime("%Y-%m-%d")}*
 """
-    
+
     def _get_case_report_progress(self, project_name: str) -> str:
         """Get progress template for case report."""
         return f"""# Research Progress: {project_name}
@@ -262,9 +250,9 @@ class ProjectMemoryManager:
   - [ ] Submit manuscript
 
 ---
-*Created: {datetime.now().strftime('%Y-%m-%d')}*
+*Created: {datetime.now().strftime("%Y-%m-%d")}*
 """
-    
+
     def _get_default_progress(self, project_name: str, type_info: PaperTypeInfo) -> str:
         """Get default progress template."""
         return f"""# Research Progress: {project_name}
@@ -302,5 +290,5 @@ class ProjectMemoryManager:
   - [ ] Submit manuscript
 
 ---
-*Created: {datetime.now().strftime('%Y-%m-%d')}*
+*Created: {datetime.now().strftime("%Y-%m-%d")}*
 """

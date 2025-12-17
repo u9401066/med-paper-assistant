@@ -8,18 +8,16 @@ DESIGN PRINCIPLE:
 - Use tools to gather info, then respond conversationally
 """
 
-import os
-from pathlib import Path
 from mcp.server.fastmcp import FastMCP
-from mcp.types import PromptReference, Completion
+from mcp.types import Completion, PromptReference
 
-from med_paper_assistant.infrastructure.services import TemplateReader
 from med_paper_assistant.infrastructure.persistence import get_project_manager
+from med_paper_assistant.infrastructure.services import TemplateReader
 
 
 def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
     """Register all prompts with the MCP server."""
-    
+
     # ========================================
     # Completion Handler for prompt arguments
     # ========================================
@@ -27,18 +25,18 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
     async def handle_completion(ref, argument, context):
         """
         Provide autocomplete suggestions for prompt arguments.
-        
+
         This enables IDE-like completion when users type prompt arguments.
         For example, when using /mdpaper.project, suggest existing project names.
         """
         pm = get_project_manager()
-        
+
         # Handle prompt completions
         if isinstance(ref, PromptReference):
             prompt_name = ref.name
             arg_name = argument.name
             partial_value = argument.value or ""
-            
+
             # /mdpaper.project - suggest existing projects
             if prompt_name == "project" and arg_name == "project_name":
                 projects = pm.list_projects().get("projects", [])
@@ -47,50 +45,63 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
                     slug = p.get("slug", "")
                     name = p.get("name", "")
                     # Filter by partial match
-                    if partial_value.lower() in slug.lower() or partial_value.lower() in name.lower():
+                    if (
+                        partial_value.lower() in slug.lower()
+                        or partial_value.lower() in name.lower()
+                    ):
                         suggestions.append(slug)
                 return Completion(
                     values=suggestions[:10],  # Max 10 suggestions
                     total=len(suggestions),
-                    hasMore=len(suggestions) > 10
+                    hasMore=len(suggestions) > 10,
                 )
-            
+
             # /mdpaper.draft - suggest sections
             if prompt_name == "draft" and arg_name == "section":
-                sections = ["Introduction", "Methods", "Results", "Discussion", "Abstract", "Conclusion", "all"]
+                sections = [
+                    "Introduction",
+                    "Methods",
+                    "Results",
+                    "Discussion",
+                    "Abstract",
+                    "Conclusion",
+                    "all",
+                ]
                 suggestions = [s for s in sections if partial_value.lower() in s.lower()]
                 return Completion(values=suggestions)
-            
+
             # /mdpaper.concept - no completion needed for topic (free text)
             # /mdpaper.strategy - no completion needed for keywords (free text)
-        
+
         return None
-    
+
     # ========================================
     # /mdpaper.project - Configure project
     # ========================================
     @mcp.prompt(name="project", description="Setup and configure a research project")
     def mdpaper_project(project_name: str = "") -> str:
         pm = get_project_manager()
-        
+
         if project_name:
             # Check if project exists (completion would suggest existing ones)
             projects = pm.list_projects().get("projects", [])
             existing_slugs = [p.get("slug", "") for p in projects]
-            
+
             if project_name in existing_slugs:
                 # Existing project selected via completion
-                return f"switch_project(slug=\"{project_name}\") then setup_project_interactive()"
+                return f'switch_project(slug="{project_name}") then setup_project_interactive()'
             else:
                 # New project name
-                return f"create_project(name=\"{project_name}\") then setup_project_interactive()"
-        
+                return f'create_project(name="{project_name}") then setup_project_interactive()'
+
         return "setup_project_interactive()"
 
     # ========================================
     # /mdpaper.concept - Develop research concept
     # ========================================
-    @mcp.prompt(name="concept", description="Develop research concept with literature-based gap analysis")
+    @mcp.prompt(
+        name="concept", description="Develop research concept with literature-based gap analysis"
+    )
     def mdpaper_concept(topic: str) -> str:
         return f"""Topic: {topic}
 
@@ -178,7 +189,7 @@ Flow:
 
 🔒 Protected Content Rules:
 - Introduction 必須體現 🔒 NOVELTY STATEMENT
-- Discussion 必須強調 🔒 KEY SELLING POINTS  
+- Discussion 必須強調 🔒 KEY SELLING POINTS
 - 修改 🔒 區塊前必須詢問用戶"""
 
     # ========================================

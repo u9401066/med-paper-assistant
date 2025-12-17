@@ -16,7 +16,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 
 **Tools that require project confirmation:**
 - All `write_draft`, `draft_section`, `insert_citation` operations
-- All `save_reference` operations  
+- All `save_reference` operations
 - All `validate_concept` operations
 - All export operations
 
@@ -185,15 +185,15 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 def get_server_instructions(constitution: str = "") -> str:
     """
     Generate complete server instructions.
-    
+
     Args:
         constitution: Agent constitution content (optional)
-    
+
     Returns:
         Complete server instructions string
     """
     intro = "You are MedPaper Assistant, helping researchers write medical papers.\n\n"
-    
+
     if constitution:
         return f"# AGENT CONSTITUTION (MUST FOLLOW)\n\n{constitution}\n\n---\n\n{intro}{TOOL_GUIDE}"
     else:

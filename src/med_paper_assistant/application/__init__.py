@@ -7,8 +7,8 @@ to perform specific tasks (use cases).
 
 from .use_cases import (
     CreateProjectUseCase,
-    SearchLiteratureUseCase,
     SaveReferenceUseCase,
+    SearchLiteratureUseCase,
 )
 
 __all__ = [

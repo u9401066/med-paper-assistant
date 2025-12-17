@@ -12,24 +12,25 @@ This layer contains:
 from .config import AppConfig, get_project_root
 from .logging import setup_logger
 from .persistence import (
-    ProjectRepository,
-    ReferenceRepository,
     FileStorage,
-    ReferenceManager,
     ProjectManager,
+    ProjectRepository,
+    ReferenceManager,
+    ReferenceRepository,
     get_project_manager,
 )
+
 # Note: PubMedClient removed - use pubmed-search MCP instead
 from .services import (
-    Analyzer,
-    Drafter,
-    CitationStyle,
     JOURNAL_CITATION_CONFIGS,
+    SECTION_PROMPTS,
+    Analyzer,
+    CitationStyle,
+    Drafter,
     Formatter,
     TemplateReader,
-    WordWriter,
-    SECTION_PROMPTS,
     WordExporter,
+    WordWriter,
 )
 
 __all__ = [

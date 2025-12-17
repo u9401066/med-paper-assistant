@@ -15,9 +15,9 @@ from mcp.server.fastmcp import FastMCP
 
 def register_debate_tools(mcp: FastMCP):
     """Register debate tools (placeholder for future development)."""
-    
+
     # TODO: Implement academic debate tools
-    # 
+    #
     # @mcp.tool()
     # def debate_topic(
     #     topic: str,
@@ -27,7 +27,7 @@ def register_debate_tools(mcp: FastMCP):
     # ) -> str:
     #     """
     #     Simulate an academic debate on a research topic.
-    #     
+    #
     #     Returns arguments from both sides with evidence.
     #     """
     #     pass
@@ -39,7 +39,7 @@ def register_debate_tools(mcp: FastMCP):
     # ) -> str:
     #     """
     #     Challenge a research claim by finding counter-arguments.
-    #     
+    #
     #     Useful for strengthening Discussion section.
     #     """
     #     pass
@@ -53,5 +53,5 @@ def register_debate_tools(mcp: FastMCP):
     #     Compare different theoretical perspectives on a topic.
     #     """
     #     pass
-    
+
     pass

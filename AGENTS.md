@@ -4,6 +4,46 @@
 
 ---
 
+## 🎛️ 運行模式
+
+**⚠️ 重要：在開始任何操作前，先檢查 `.copilot-mode.json` 確認當前模式！**
+
+### 模式說明
+
+| 模式 | 啟用技能 | Memory Bank | 靜態分析 | 適用場景 |
+|------|----------|-------------|----------|----------|
+| **development** | 全部 | 完整同步 | ✅ | 開發/維護代碼 |
+| **normal** | 研究技能 | 最小化 | ❌ | 一般使用 |
+| **research** | 研究技能 | 僅專案 | ❌ | 專注論文寫作 |
+
+### 切換模式
+
+用戶說法 → Agent 行動：
+
+| 用戶說 | 切換到 |
+|--------|--------|
+| "開發模式"、"dev mode"、"我要改代碼" | `development` |
+| "一般模式"、"normal"、"正常使用" | `normal` |
+| "研究模式"、"寫論文"、"專心寫作" | `research` |
+
+切換時修改 `.copilot-mode.json` 的 `"mode"` 值即可。
+
+### 模式行為差異
+
+#### Development 模式
+- ✅ 使用所有技能（包括 git-precommit, code-refactor, test-generator...）
+- ✅ 完整 Memory Bank 同步（memory-bank/ 和 projects/.memory/）
+- ✅ 主動執行靜態分析（ruff, mypy）
+- ✅ 詳細日誌輸出
+
+#### Normal / Research 模式
+- ✅ 只使用研究技能（literature-review, concept-development, parallel-search）
+- ⏸️ 簡化 Memory Bank 同步
+- ❌ 不主動執行靜態分析（除非用戶明確要求）
+- ❌ 不主動建議代碼重構
+
+---
+
 ## 專案規則
 
 ### 法規遵循
@@ -148,25 +188,25 @@ projects/{slug}/
 
 | 技能 | 觸發語 | 說明 |
 |------|--------|------|
-| **literature-review** | 文獻回顧、找論文、systematic review | 系統性文獻搜尋、篩選、下載、整理 |
-| **concept-development** | 發展概念、concept、novelty | 從文獻提煉研究概念，建立 concept.md |
-| **parallel-search** | 並行搜尋、批量搜尋、擴展搜尋 | 多組關鍵字並行搜尋，提高覆蓋率 |
+| **literature-review** | 文獻回顧、找論文、PubMed、搜paper、reference | 系統性文獻搜尋、篩選、下載、整理 |
+| **concept-development** | concept、novelty、驗證失敗、怎麼改、補充概念 | 發展研究概念，通過 novelty 驗證 |
+| **parallel-search** | 並行搜尋、多組搜尋、找更多、廣泛搜尋 | 多組關鍵字並行搜尋，提高覆蓋率 |
 
 ### 🛠️ 通用技能
 
-| 技能 | 說明 |
-|------|------|
-| **git-precommit** | Git 提交前編排器 |
-| **ddd-architect** | DDD 架構輔助與檢查 |
-| **code-refactor** | 主動重構與模組化 |
-| **memory-updater** | Memory Bank 同步 |
-| **memory-checkpoint** | 記憶檢查點（Summarize 前外部化）|
-| **readme-updater** | README 智能更新 |
-| **changelog-updater** | CHANGELOG 自動更新 |
-| **roadmap-updater** | ROADMAP 狀態追蹤 |
-| **code-reviewer** | 程式碼審查 |
-| **test-generator** | 測試生成（Unit/Integration/E2E）|
-| **project-init** | 專案初始化 |
+| 技能 | 觸發語 | 說明 |
+|------|--------|------|
+| **git-precommit** | commit、推送、做完了、收工 | Git 提交前編排器 |
+| **ddd-architect** | 架構、新功能、設計、structure | DDD 架構輔助與檢查 |
+| **code-refactor** | 重構、太長、整理、優化、難讀 | 主動重構與模組化 |
+| **memory-updater** | 記憶、進度、做到哪、紀錄 | Memory Bank 同步 |
+| **memory-checkpoint** | 存檔、等一下、要離開、怕忘記 | 記憶檢查點（Summarize 前外部化）|
+| **readme-updater** | readme、怎麼用、安裝說明 | README 智能更新 |
+| **changelog-updater** | changelog、發布、改了什麼 | CHANGELOG 自動更新 |
+| **roadmap-updater** | roadmap、規劃、里程碑 | ROADMAP 狀態追蹤 |
+| **code-reviewer** | review、檢查、有沒有問題、安全 | 程式碼審查 |
+| **test-generator** | test、測試、coverage、pytest | 測試生成（Unit/Integration/E2E）|
+| **project-init** | init、新專案、初始化 | 專案初始化 |
 
 ### Skill 系統架構
 

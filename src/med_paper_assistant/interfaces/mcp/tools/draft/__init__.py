@@ -8,10 +8,11 @@ Split into submodules for maintainability:
 """
 
 from mcp.server.fastmcp import FastMCP
+
 from med_paper_assistant.infrastructure.services import Drafter
 
-from .writing import register_writing_tools
 from .templates import register_template_tools
+from .writing import register_writing_tools
 
 
 def register_draft_tools(mcp: FastMCP, drafter: Drafter):

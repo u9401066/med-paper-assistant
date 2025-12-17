@@ -48,3 +48,63 @@
 2. 不同來源有不同格式，需要統一轉換
 3. 遵循 DDD 架構：Domain Service 處理格式轉換
 4. Agent 協調 MCP 通訊，不需要 mdpaper 直接呼叫其他 MCP |
+
+---
+
+## [2025-01-XX] 分層驗證系統 (Tiered Validation)
+
+### 背景
+用戶想寫 Introduction，但 concept 驗證要求完整 Methods 區塊。
+> "concept 雖然要求寫 method 但是其實有可能 draft 只想寫 introduction"
+> "meta 跟 systematic review 或 research letter 要的又不一樣"
+
+### 問題
+1. **流程阻塞**：Methods 未填會阻擋所有 section 撰寫
+2. **類型差異**：不同 paper type 需要不同區塊（case report 不需要 Methods）
+3. **驗證粒度**：全有或全無，不支援漸進式撰寫
+
+### 決定
+實施 **分層驗證系統**：
+1. 按 paper type 定義不同需求 (`ConceptRequirements`)
+2. 按 target section 動態調整驗證範圍
+3. 區分 `required`（blocking）vs `recommended`（warning only）
+
+### 架構變更
+
+**paper_types.py** 新增：
+```python
+@dataclass
+class ConceptRequirements:
+    core_required: List[str]      # 永遠必須
+    intro_required: List[str]     # Introduction 需要
+    methods_required: List[str]   # Methods 建議（不阻塞）
+    special_sections: List[str]   # 類型特定
+
+# 每種 paper type 有對應的 requirements
+get_concept_requirements(paper_type) -> ConceptRequirements
+get_section_requirements(paper_type, section) -> Dict
+```
+
+**concept_validator.py** 新增：
+- `validate(target_section="Introduction")` - 針對特定 section
+- `validate_for_section()` - 便捷方法
+- `_can_write_section()` - 判斷是否可寫
+- `missing_required` / `missing_recommended` 區分
+
+**MCP tools** 新增：
+- `validate_for_section(section, project)` - 推薦的驗證入口
+
+### 驗證矩陣
+
+| Paper Type | Core | Intro | Methods | Special |
+|------------|------|-------|---------|---------|
+| original-research | NOVELTY, SELLING_POINTS | background, gap, question | study_design, participants | pre_analysis |
+| systematic-review | same | same | search_strategy | prisma_checklist |
+| case-report | same | same | - | case_timeline |
+| letter | NOVELTY only | minimal | - | - |
+
+### 影響
+- ✅ 用戶可以先寫 Introduction，Methods 稍後補
+- ✅ 不同 paper type 有適當的驗證要求
+- ✅ 漸進式撰寫流程
+- ⚠️ SKILL.md 和文檔需更新

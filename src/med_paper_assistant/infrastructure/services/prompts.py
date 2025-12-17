@@ -13,7 +13,6 @@ Guidelines:
 - Avoid first person (use "this study" instead of "we")
 - Target length: 400-600 words
 """,
-    
     "methods": """
 Write a Methods section following CONSORT/STROBE guidelines:
 1. Study design
@@ -29,7 +28,6 @@ Guidelines:
 - Be specific and reproducible
 - Include ethical approval statement
 """,
-    
     "results": """
 Write a Results section based on the provided statistical outputs:
 1. Participant flow and baseline characteristics
@@ -43,7 +41,6 @@ Guidelines:
 - Reference tables and figures
 - Do not interpret results (save for Discussion)
 """,
-    
     "discussion": """
 Write a Discussion section with the following structure:
 1. Summary of main findings
@@ -59,7 +56,6 @@ Guidelines:
 - Acknowledge limitations honestly
 - Avoid overstatement of findings
 """,
-    
     "abstract": """
 Write a structured abstract (250-300 words) with:
 - Background: 2-3 sentences
@@ -71,5 +67,5 @@ Guidelines:
 - No citations in abstract
 - Include specific numbers
 - State clinical significance
-"""
+""",
 }

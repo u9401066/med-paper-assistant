@@ -1,4 +1,4 @@
-""" 
+"""
 MedPaper Assistant MCP Server
 
 A Model Context Protocol server for medical paper writing assistance.
@@ -35,8 +35,8 @@ from mcp.server.fastmcp import FastMCP
 # Infrastructure modules (DDD architecture)
 from med_paper_assistant.infrastructure.logging import setup_logger
 from med_paper_assistant.infrastructure.persistence import (
-    ReferenceManager,
     ProjectManager,
+    ReferenceManager,
 )
 from med_paper_assistant.infrastructure.services import (
     Drafter,
@@ -47,28 +47,28 @@ from med_paper_assistant.infrastructure.services import (
 
 # Server modules
 from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS
+from med_paper_assistant.interfaces.mcp.prompts import register_prompts
 from med_paper_assistant.interfaces.mcp.tools import (
+    register_draft_tools,
+    register_export_tools,
     register_project_tools,
     register_reference_tools,
-    register_draft_tools,
     register_validation_tools,
-    register_export_tools,
 )
-from med_paper_assistant.interfaces.mcp.prompts import register_prompts
 
 
 def create_server() -> FastMCP:
     """
     Create and configure the MedPaper Assistant MCP server.
-    
+
     This function:
     1. Initializes all core modules
     2. Creates the FastMCP server instance
     3. Registers all tools and prompts
-    
+
     Note: Literature search is now handled by pubmed-search MCP server.
     Use VS Code Copilot to orchestrate cross-MCP calls.
-    
+
     Returns:
         Configured FastMCP server instance
     """
@@ -90,16 +90,16 @@ def create_server() -> FastMCP:
     # Register all tools
     logger.info("Registering project tools (incl. diagrams)...")
     register_project_tools(mcp, project_manager)
-    
+
     logger.info("Registering reference tools...")
     register_reference_tools(mcp, ref_manager, drafter, project_manager)
-    
+
     logger.info("Registering draft tools...")
     register_draft_tools(mcp, drafter)
-    
+
     logger.info("Registering validation tools...")
     register_validation_tools(mcp)
-    
+
     logger.info("Registering export tools...")
     register_export_tools(mcp, formatter, template_reader, word_writer)
 

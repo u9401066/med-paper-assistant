@@ -1,6 +1,6 @@
 ---
 name: code-refactor
-description: Proactively detect and execute code refactoring to maintain DDD architecture and code quality. Triggers: RF, refactor, 重構, 拆分, split, 模組化, modularize, 太長, cleanup.
+description: Proactively detect and execute code refactoring to maintain DDD architecture and code quality. Triggers: RF, refactor, 重構, 拆分, split, 模組化, modularize, 太長, cleanup, 整理, 優化, optimize, 抽出, extract, 簡化, simplify, 太亂, 難讀.
 ---
 
 # 程式碼重構技能

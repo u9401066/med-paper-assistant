@@ -1,6 +1,6 @@
 ---
 name: ddd-architect
-description: Ensure code follows DDD architecture and DAL separation principles. Triggers: DDD, arch, 架構, 新功能, 新模組, new feature, scaffold, 骨架, domain.
+description: Ensure code follows DDD architecture and DAL separation principles. Triggers: DDD, arch, 架構, 新功能, 新模組, new feature, scaffold, 骨架, domain, layer, 分層, 設計, design, 結構, structure, repository, service.
 ---
 
 # DDD 架構輔助技能

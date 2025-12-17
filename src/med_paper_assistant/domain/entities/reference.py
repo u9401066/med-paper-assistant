@@ -6,8 +6,7 @@ Updated 2025-12: 支援多來源識別符 (PubMed, Zotero, DOI)
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, List, Dict, Any, TYPE_CHECKING
-from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from med_paper_assistant.domain.services.reference_converter import StandardizedReference
@@ -17,32 +16,33 @@ if TYPE_CHECKING:
 class Reference:
     """
     Literature reference entity.
-    
+
     Represents a saved reference with metadata, citations, and optional fulltext.
-    
+
     識別符說明:
     - unique_id: 儲存用 ID (e.g., "38049909", "zot_ABC123", "doi_10-1234")
     - citation_key: Foam [[wikilink]] 用 (e.g., "tang2023_38049909")
     - source: 來源類型 ("pubmed", "zotero", "doi", "manual")
     """
+
     # 必要識別符
     unique_id: str  # 儲存用唯一識別符
     title: str
-    
+
     # 來源資訊
     source: str = "pubmed"  # pubmed, zotero, doi, manual
     pmid: Optional[str] = None
     doi: Optional[str] = None
     zotero_key: Optional[str] = None
     pmc_id: Optional[str] = None
-    
+
     # Citation key for Foam
     citation_key: str = ""
-    
+
     # 作者資訊
     authors: List[str] = field(default_factory=list)
     authors_full: List[Dict[str, str]] = field(default_factory=list)
-    
+
     # 出版資訊
     journal: str = ""
     journal_abbrev: str = ""
@@ -50,21 +50,21 @@ class Reference:
     volume: str = ""
     issue: str = ""
     pages: str = ""
-    
+
     # Content
     abstract: str = ""
     keywords: List[str] = field(default_factory=list)
     mesh_terms: List[str] = field(default_factory=list)
-    
+
     # Pre-formatted citations
     citations: Dict[str, str] = field(default_factory=dict)
-    
+
     # File paths (relative to reference directory)
     has_pdf: bool = False
-    
+
     # Metadata
     saved_at: datetime = field(default_factory=datetime.now)
-    
+
     @property
     def first_author(self) -> str:
         """Get first author's last name."""
@@ -72,32 +72,33 @@ class Reference:
         if self.authors_full:
             first = self.authors_full[0]
             if isinstance(first, dict):
-                return first.get('last_name', '')
+                return first.get("last_name", "")
         # Fallback to authors list
         if self.authors:
             return self.authors[0].split()[0]
         return ""
-    
+
     def get_citation_key(self) -> str:
         """
         Get citation key for Foam [[wikilink]].
-        
+
         If citation_key is set, return it.
         Otherwise, generate from author + year + unique_id.
         """
         if self.citation_key:
             return self.citation_key
-        
+
         import re
-        author_clean = re.sub(r'[^a-z0-9]', '', self.first_author.lower())
+
+        author_clean = re.sub(r"[^a-z0-9]", "", self.first_author.lower())
         if not author_clean:
-            author_clean = 'unknown'
+            author_clean = "unknown"
         return f"{author_clean}{self.year}_{self.unique_id}"
-    
+
     def get_citation(self, style: str = "vancouver") -> str:
         """Get formatted citation in specified style."""
         return self.citations.get(style, self.citations.get("vancouver", ""))
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -124,13 +125,13 @@ class Reference:
             "has_pdf": self.has_pdf,
             "saved_at": self.saved_at.isoformat(),
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Reference":
         """Create from dictionary."""
         # Support both old (pmid-only) and new (unique_id) formats
         unique_id = data.get("unique_id") or data.get("pmid", "")
-        
+
         return cls(
             unique_id=unique_id,
             title=data.get("title", ""),
@@ -153,9 +154,11 @@ class Reference:
             mesh_terms=data.get("mesh_terms", []),
             citations=data.get("citations", data.get("citation", {})),
             has_pdf=data.get("has_pdf", False),
-            saved_at=datetime.fromisoformat(data["saved_at"]) if "saved_at" in data else datetime.now(),
+            saved_at=datetime.fromisoformat(data["saved_at"])
+            if "saved_at" in data
+            else datetime.now(),
         )
-    
+
     @classmethod
     def from_pubmed(cls, article: Dict[str, Any]) -> "Reference":
         """Create from PubMed article data."""
@@ -179,12 +182,12 @@ class Reference:
             keywords=article.get("keywords", []),
             mesh_terms=article.get("mesh_terms", []),
         )
-    
+
     @classmethod
     def from_standardized(cls, ref: "StandardizedReference") -> "Reference":
         """
         Create from StandardizedReference (from ReferenceConverter).
-        
+
         Args:
             ref: StandardizedReference from domain service.
         """

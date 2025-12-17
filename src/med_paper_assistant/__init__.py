@@ -20,9 +20,11 @@ __version__ = "0.1.0"
 # Interface exports (main entry point)
 from med_paper_assistant.interfaces.mcp import create_server, main
 
+
 def run_server():
     """Run the MCP server."""
     main()
+
 
 __all__ = [
     "__version__",

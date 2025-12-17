@@ -7,38 +7,38 @@ PAPER_TYPES = {
     "original-research": {
         "name": "Original Research",
         "sections": ["Introduction", "Methods", "Results", "Discussion", "Conclusion"],
-        "description": "Clinical trial, cohort study, cross-sectional study"
+        "description": "Clinical trial, cohort study, cross-sectional study",
     },
     "systematic-review": {
         "name": "Systematic Review",
         "sections": ["Introduction", "Methods", "Results", "Discussion", "Conclusion"],
-        "description": "Systematic literature review without meta-analysis"
+        "description": "Systematic literature review without meta-analysis",
     },
     "meta-analysis": {
         "name": "Meta-Analysis",
         "sections": ["Introduction", "Methods", "Results", "Discussion", "Conclusion"],
-        "description": "Systematic review with quantitative synthesis"
+        "description": "Systematic review with quantitative synthesis",
     },
     "case-report": {
         "name": "Case Report",
         "sections": ["Introduction", "Case Presentation", "Discussion", "Conclusion"],
-        "description": "Single case or case series"
+        "description": "Single case or case series",
     },
     "review-article": {
         "name": "Review Article",
         "sections": ["Introduction", "Main Body", "Conclusion"],
-        "description": "Narrative or invited review"
+        "description": "Narrative or invited review",
     },
     "letter": {
         "name": "Letter to the Editor",
         "sections": ["Main Text"],
-        "description": "Brief communication or correspondence"
+        "description": "Brief communication or correspondence",
     },
     "other": {
         "name": "Other",
         "sections": ["Introduction", "Main Body", "Conclusion"],
-        "description": "Editorial, perspective, commentary, etc."
-    }
+        "description": "Editorial, perspective, commentary, etc.",
+    },
 }
 
 # Default word limits for journal sections
@@ -53,13 +53,7 @@ DEFAULT_WORD_LIMITS = {
 }
 
 # Project directory structure
-PROJECT_DIRECTORIES = [
-    "drafts",
-    "references",
-    "data",
-    "results",
-    ".memory"
-]
+PROJECT_DIRECTORIES = ["drafts", "references", "data", "results", ".memory"]
 
 # Citation styles
 CITATION_STYLES = ["vancouver", "apa", "harvard", "nature", "ama", "nlm", "mdpi"]

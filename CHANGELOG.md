@@ -8,6 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **完整靜態分析工具鏈**
+  - Ruff linter/formatter: 修復 1839 個錯誤
+  - Mypy 類型檢查: 修復 49 個類型錯誤
+  - Bandit 安全掃描: 7 個 Low severity 已加 `# nosec` 註解
+  - Vulture 死代碼檢測: 0 個問題
+- **開發模式切換功能** (`.copilot-mode.json`)
+  - `development`: 完整功能（所有 skills、Memory Bank 同步、靜態分析）
+  - `normal`: 一般使用（僅研究技能）
+  - `research`: 專注寫作（只同步專案 .memory/）
+- **test-generator SKILL 擴展**
+  - 新增 Bandit/Vulture 工具文檔
+  - 新增 `# nosec` 註解使用指南
+  - 完整執行流程說明
+
+### Changed
+- **代碼品質改進**
+  - 所有 `import *` 改為明確導入
+  - 所有 `except:` 改為 `except Exception:`
+  - 統一使用 ruff format 風格
+  - 修復所有 Optional type hints
+- **pyproject.toml** - 新增 dev 依賴: `bandit>=1.9.2`, `vulture>=2.14`
+
+### Fixed
+- **類型錯誤修復**
+  - `concept_validator.py`: 修正 `result` 變數衝突
+  - `project_context.py`: 使用 `get_project_info()` 替代 `get_current_project()`
+  - `writing.py`: 修正 `Optional[str]` 回傳類型
+  - 多處 `dict/list` 變數加入明確類型註解
+
+---
+
+## [0.2.1] - 2025-12-18 (靜態分析大掃除)
+
+### Added
 - **MCP-to-MCP Direct Communication Architecture** ✅ 已實作
   - pubmed-search 新增 HTTP API endpoints:
     - `GET /api/cached_article/{pmid}` - 取得單一文章

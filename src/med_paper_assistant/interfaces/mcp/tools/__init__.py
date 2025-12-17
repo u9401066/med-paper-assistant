@@ -19,18 +19,17 @@ Removed:
 """
 
 # Import register functions from each module
-from .project import register_project_tools
-from .draft import register_draft_tools
-from .reference import register_reference_tools
-from .validation import register_validation_tools
-from .export import register_export_tools
-
 # Shared utilities
 from ._shared import (
     ensure_project_context,
-    validate_project_slug,
     get_project_list_for_prompt,
+    validate_project_slug,
 )
+from .draft import register_draft_tools
+from .export import register_export_tools
+from .project import register_project_tools
+from .reference import register_reference_tools
+from .validation import register_validation_tools
 
 # Future modules (placeholder - not registered yet)
 # from .discussion import register_discussion_tools

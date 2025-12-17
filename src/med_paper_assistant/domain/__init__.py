@@ -8,13 +8,30 @@ This layer contains:
 - paper_types.py: Paper type definitions and utilities
 """
 
-from .entities import Project, Reference, Draft
-from .value_objects import CitationStyle, SearchCriteria
+from .entities import Draft, Project, Reference
 from .paper_types import (
     PAPER_TYPES,
     PaperTypeInfo,
     get_paper_type,
     get_paper_type_dict,
     is_valid_paper_type,
-    list_paper_types
+    list_paper_types,
 )
+from .value_objects import CitationStyle, SearchCriteria
+
+__all__ = [
+    # Entities
+    "Draft",
+    "Project",
+    "Reference",
+    # Paper types
+    "PAPER_TYPES",
+    "PaperTypeInfo",
+    "get_paper_type",
+    "get_paper_type_dict",
+    "is_valid_paper_type",
+    "list_paper_types",
+    # Value objects
+    "CitationStyle",
+    "SearchCriteria",
+]

@@ -1,4 +1,4 @@
-# Progress (Updated: 2025-12-17)
+# Progress (Updated: 2025-01-XX)
 
 ## Done
 
@@ -83,6 +83,40 @@
     - `npm audit fix --force` 修復安全漏洞
     - 0 vulnerabilities
   - **VS Code 整合**: tasks.json、open-dashboard.ps1
+- **分層驗證系統 (Tiered Validation) (2025-01-XX)** ✅：
+  - 不同 paper type 有不同驗證需求
+  - 按 target section 動態調整驗證範圍
+  - `required`（blocking）vs `recommended`（warning only）
+  - 新工具：`validate_for_section(section, project)`
+  - 修復 selling_points 和 section content 偵測邏輯
+  - SKILL.md 文檔更新
+- **Skill 檔案精簡與觸發詞優化 (2025-01-XX)** ✅：
+  - concept-development: 480→120 行
+  - test-generator: 518→129 行
+  - literature-review: 364→117 行
+  - 所有 skill 增加更多觸發詞（中英文、常見用語）
+  - 新增「驗證失敗處理流程」在 concept-development
+  - AGENTS.md skill 表格同步更新
+- **完整靜態分析修復 (2025-01-XX)** ✅：
+  - Ruff: 1839 個錯誤 → 0
+  - Mypy: 49 個錯誤 → 0
+  - Bandit: 7 個 Low 級別 → 0（加入 nosec 註解）
+  - Vulture: 0 死代碼
+  - 新增 dev dependencies: bandit, vulture
+  - 修復範圍：
+    - Bare except → `except Exception`
+    - `import *` → 明確 import
+    - Implicit Optional → 明確 `Optional[T]`
+    - Variable type conflicts → 重新命名
+    - API confusion (`get_current_project` vs `get_project_info`)
+    - Enum value extraction
+    - Security nosec 註解（有意的 try_except_pass, subprocess）
+  - test-generator SKILL.md 更新：完整靜態分析工具說明
+- **開發模式 Toggle 系統 (2025-01-XX)** ✅：
+  - `.copilot-mode.json` 配置檔
+  - 三種模式：development / normal / research
+  - AGENTS.md 模式說明章節
+  - copilot-instructions.md 更新
 
 ## Doing
 

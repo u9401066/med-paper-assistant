@@ -8,7 +8,6 @@ from pathlib import Path
 
 from .instructions import get_server_instructions
 
-
 # ====================
 # Paths
 # ====================
@@ -39,7 +38,7 @@ def load_constitution() -> str:
     """Load agent constitution from .memory/.agent_constitution.md"""
     try:
         if CONSTITUTION_PATH.exists():
-            return CONSTITUTION_PATH.read_text(encoding='utf-8')
+            return CONSTITUTION_PATH.read_text(encoding="utf-8")
     except Exception as e:
         print(f"Warning: Failed to load constitution: {e}")
     return ""

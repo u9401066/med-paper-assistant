@@ -2,13 +2,14 @@
 Citation Value Objects - Immutable citation-related types.
 """
 
-from enum import Enum
 from dataclasses import dataclass
-from typing import Dict, Any
+from enum import Enum
+from typing import Dict
 
 
 class CitationStyle(Enum):
     """Supported citation styles."""
+
     VANCOUVER = "vancouver"
     APA = "apa"
     HARVARD = "harvard"
@@ -16,7 +17,7 @@ class CitationStyle(Enum):
     AMA = "ama"
     NLM = "nlm"
     MDPI = "mdpi"
-    
+
     @classmethod
     def from_string(cls, value: str) -> "CitationStyle":
         """Create from string value."""
@@ -30,19 +31,20 @@ class CitationStyle(Enum):
 class CitationFormat:
     """
     Citation format configuration for a journal.
-    
+
     Immutable value object defining how citations should be formatted.
     """
+
     style: CitationStyle
     in_text_format: str = "[{n}]"  # e.g., "[1]", "(Author, Year)"
     superscript: bool = False
     author_format: str = "last_first"  # last_first, first_last
     max_authors: int = 6
     et_al_threshold: int = 3
-    
+
     # Journal-specific overrides
     journal_name: str = ""
-    
+
     def format_in_text(self, number: int) -> str:
         """Format an in-text citation."""
         return self.in_text_format.format(n=number)

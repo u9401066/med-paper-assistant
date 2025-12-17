@@ -11,22 +11,24 @@ The scoring system:
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
 from enum import Enum
+from typing import Any, Dict, List
 
 
 class NoveltyDimension(Enum):
     """Dimensions for evaluating novelty."""
-    UNIQUENESS = "uniqueness"           # Is the approach/method unique?
-    SIGNIFICANCE = "significance"       # Is the contribution significant?
-    GAP_ALIGNMENT = "gap_alignment"     # Does it address an identified gap?
-    SPECIFICITY = "specificity"         # Is the novelty claim specific?
-    VERIFIABILITY = "verifiability"     # Can the claim be verified?
+
+    UNIQUENESS = "uniqueness"  # Is the approach/method unique?
+    SIGNIFICANCE = "significance"  # Is the contribution significant?
+    GAP_ALIGNMENT = "gap_alignment"  # Does it address an identified gap?
+    SPECIFICITY = "specificity"  # Is the novelty claim specific?
+    VERIFIABILITY = "verifiability"  # Can the claim be verified?
 
 
 @dataclass
 class NoveltyScore:
     """Score for a single novelty evaluation."""
+
     dimension: NoveltyDimension
     score: int  # 0-100
     reasoning: str
@@ -36,39 +38,37 @@ class NoveltyScore:
 @dataclass
 class NoveltyEvaluation:
     """Complete evaluation result for one round."""
+
     round_number: int
     total_score: int  # 0-100 (average of dimensions)
     dimension_scores: Dict[str, NoveltyScore] = field(default_factory=dict)
     overall_assessment: str = ""
     is_novel: bool = False
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "round": self.round_number,
             "total_score": self.total_score,
             "is_novel": self.is_novel,
             "dimensions": {
-                k: {
-                    "score": v.score,
-                    "reasoning": v.reasoning,
-                    "suggestions": v.suggestions
-                }
+                k: {"score": v.score, "reasoning": v.reasoning, "suggestions": v.suggestions}
                 for k, v in self.dimension_scores.items()
             },
-            "assessment": self.overall_assessment
+            "assessment": self.overall_assessment,
         }
 
 
 @dataclass
 class NoveltyVerdict:
     """Final verdict after multiple evaluation rounds."""
+
     passed: bool
     average_score: float
     rounds: List[NoveltyEvaluation]
     confidence: str  # "high", "medium", "low"
     summary: str
     improvement_suggestions: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "passed": self.passed,
@@ -76,7 +76,7 @@ class NoveltyVerdict:
             "confidence": self.confidence,
             "summary": self.summary,
             "rounds": [r.to_dict() for r in self.rounds],
-            "suggestions": self.improvement_suggestions
+            "suggestions": self.improvement_suggestions,
         }
 
 
@@ -91,7 +91,7 @@ DEFAULT_SCORING_CONFIG = {
         NoveltyDimension.GAP_ALIGNMENT: 0.20,
         NoveltyDimension.SPECIFICITY: 0.15,
         NoveltyDimension.VERIFIABILITY: 0.15,
-    }
+    },
 }
 
 

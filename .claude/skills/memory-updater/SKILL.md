@@ -1,6 +1,6 @@
 ---
 name: memory-updater
-description: Update and maintain Memory Bank files (activeContext, progress, decisionLog). Triggers: MB, memory, 記憶, 進度, 更新記憶, update memory, 記錄進度, 更新上下文.
+description: Update and maintain Memory Bank files (activeContext, progress, decisionLog). Triggers: MB, memory, 記憶, 進度, 更新記憶, update memory, 記錄進度, 更新上下文, 記一下, 存檔, 同步, sync, 做到哪, 紀錄, log.
 ---
 
 # Memory Bank 更新技能

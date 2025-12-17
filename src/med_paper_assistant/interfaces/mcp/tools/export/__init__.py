@@ -12,10 +12,7 @@ from .word import register_word_export_tools
 
 
 def register_export_tools(
-    mcp: FastMCP, 
-    formatter: Formatter,
-    template_reader: TemplateReader,
-    word_writer: WordWriter
+    mcp: FastMCP, formatter: Formatter, template_reader: TemplateReader, word_writer: WordWriter
 ):
     """Register all export-related tools with the MCP server."""
     register_word_export_tools(mcp, formatter, template_reader, word_writer)

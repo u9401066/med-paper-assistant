@@ -4,19 +4,20 @@ Project Management Tools Module
 Provides tools for managing research paper projects.
 Split into submodules for maintainability:
 - crud: Create, list, switch, delete, get_current
-- settings: update_settings, get_paper_types, update_status  
+- settings: update_settings, get_paper_types, update_status
 - exploration: start_exploration, convert_to_project
 - diagrams: save_diagram, list_diagrams (Draw.io integration)
 - workspace: VS Code integration for file opening/closing
 """
 
 from mcp.server.fastmcp import FastMCP
+
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 
 from .crud import register_crud_tools
-from .settings import register_settings_tools
-from .exploration import register_exploration_tools
 from .diagrams import register_diagram_tools
+from .exploration import register_exploration_tools
+from .settings import register_settings_tools
 from .workspace import register_workspace_tools
 
 

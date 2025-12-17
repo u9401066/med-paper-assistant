@@ -15,7 +15,7 @@ from mcp.server.fastmcp import FastMCP
 
 def register_formatting_tools(mcp: FastMCP):
     """Register formatting tools (placeholder for future development)."""
-    
+
     # TODO: Implement formatting check tools
     #
     # @mcp.tool()
@@ -25,11 +25,11 @@ def register_formatting_tools(mcp: FastMCP):
     # ) -> str:
     #     """
     #     Check manuscript formatting against journal requirements.
-    #     
+    #
     #     Args:
     #         draft_file: Path to the manuscript file.
     #         journal: Journal name or abbreviation.
-    #     
+    #
     #     Returns:
     #         Formatting compliance report with fix suggestions.
     #     """
@@ -43,7 +43,7 @@ def register_formatting_tools(mcp: FastMCP):
     # ) -> str:
     #     """
     #     Generate a cover letter for journal submission.
-    #     
+    #
     #     Uses concept.md and project info to create personalized letter.
     #     """
     #     pass
@@ -57,5 +57,5 @@ def register_formatting_tools(mcp: FastMCP):
     #     Standardize all references to a specific citation style.
     #     """
     #     pass
-    
+
     pass

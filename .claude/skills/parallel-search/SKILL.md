@@ -1,6 +1,6 @@
 ---
 name: parallel-search
-description: 使用多組關鍵字並行搜尋，提高文獻覆蓋率。觸發：並行搜尋、parallel search、批量搜尋、擴展搜尋。
+description: 使用多組關鍵字並行搜尋，提高文獻覆蓋率。觸發：並行搜尋、parallel search、批量搜尋、擴展搜尋、多組搜尋、同時搜、找更多、廣泛搜尋、comprehensive search。
 ---
 
 # 並行文獻搜尋技能

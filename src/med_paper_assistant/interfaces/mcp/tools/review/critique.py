@@ -15,7 +15,7 @@ from mcp.server.fastmcp import FastMCP
 
 def register_critique_tools(mcp: FastMCP):
     """Register critique tools (placeholder for future development)."""
-    
+
     # TODO: Implement peer review simulation tools
     #
     # @mcp.tool()
@@ -26,12 +26,12 @@ def register_critique_tools(mcp: FastMCP):
     # ) -> str:
     #     """
     #     Simulate peer review feedback on a manuscript draft.
-    #     
+    #
     #     Args:
     #         draft_content: The manuscript text to review.
     #         journal_type: Type of journal (general, specialty, high-impact).
     #         review_focus: Focus area (comprehensive, methods, statistics, writing).
-    #     
+    #
     #     Returns:
     #         Structured reviewer feedback with Major and Minor comments.
     #     """
@@ -44,14 +44,14 @@ def register_critique_tools(mcp: FastMCP):
     # ) -> str:
     #     """
     #     Check manuscript against reporting guidelines.
-    #     
+    #
     #     Args:
     #         draft_content: The manuscript text.
     #         guideline: CONSORT, PRISMA, STROBE, CARE, or "auto" to detect.
-    #     
+    #
     #     Returns:
     #         Checklist compliance report.
     #     """
     #     pass
-    
+
     pass
