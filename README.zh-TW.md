@@ -36,6 +36,41 @@
 | 匯出後再排版 | 直接匯出符合期刊格式的 Word |
 | 學習複雜介面 | 自然語言對話 |
 
+### 🌐 我們的生態系統
+
+```mermaid
+flowchart LR
+    subgraph IDE["VS Code"]
+        Agent[Copilot Agent]
+        Foam[Foam Plugin]
+    end
+    
+    subgraph MCP["MCP 伺服器"]
+        mdpaper[mdpaper<br/>草稿・匯出・驗證]
+        pubmed[pubmed-search<br/>搜尋・指標]
+        cgu[CGU<br/>深度思考]
+    end
+    
+    subgraph Data["專案資料"]
+        proj[("projects/{slug}/<br/>• .memory/<br/>• references/<br/>• drafts/")]
+    end
+    
+    Agent <-->|MCP| mdpaper
+    Agent <-->|MCP| pubmed
+    Agent <-->|MCP| cgu
+    mdpaper -->|HTTP API| pubmed
+    Foam <-->|Wikilinks| proj
+    mdpaper <--> proj
+```
+
+| 元件 | 角色 | 關鍵特色 |
+|------|------|----------|
+| **mdpaper** | 論文寫作、匯出 | MCP-to-MCP 驗證資料 |
+| **pubmed-search** | 文獻搜尋 | 跨 MCP HTTP API |
+| **Foam** | 知識圖譜 | `[[citation_key]]` 連結 |
+| **CGU** | 創意思考 | 概念深度分析 |
+| **Project Memory** | 跨 session 記憶 | `.memory/` 持久化 |
+
 ---
 
 ## 🚀 快速開始：MCP 指令
@@ -65,6 +100,8 @@
 | **數據分析** | 讀取 CSV 數據，執行統計檢定（t-test、相關性等），生成出版品質圖表 |
 | **智慧草稿生成** | 根據研究構想和分析結果生成論文草稿 |
 | **自動引用** | 插入 `[[citation_key]]` wikilink，匯出時自動轉換為數字引用 |
+| **Wikilink 驗證** | 自動偵測修復 `[[12345678]]` → `[[author2024_12345678]]` 格式 |
+| **Pre-Analysis Checklist** | 進入分析前驗證概念完整度（研究設計、樣本數、結果指標）|
 | **互動式修正** | 透過對話方式微調特定段落 |
 | **Word 匯出** | 將 Markdown 草稿匯出為符合期刊格式的 `.docx` |
 
@@ -318,7 +355,7 @@ med-paper-assistant/
 | 類別 | 工具 | 說明 |
 |------|------|------|
 | **參考文獻** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `rebuild_foam_aliases` | 參考文獻儲存與 Foam 整合 |
-| **寫作** (16) | `write_draft`, `draft_section`, `validate_concept`, `count_words`, `export_word` | 草稿準備 |
+| **寫作** (16) | `write_draft`, `draft_section`, `validate_concept`, `validate_wikilinks`, `count_words`, `export_word` | 草稿準備 |
 | **專案** (12) | `create_project`, `switch_project`, `start_exploration`, `convert_exploration_to_project` | 多專案管理 |
 | **搜尋** (10) | Facade 工具，委派給 pubmed-search MCP | 文獻搜尋 |
 
@@ -355,6 +392,9 @@ med-paper-assistant/
 | ✅ | **並行搜尋** | 多查詢並行執行 |
 | ✅ | **Table 1 生成器** | 自動生成基線特徵表 |
 | ✅ | **參考文獻重構** | 單一 .md + YAML frontmatter + aliases |
+| ✅ | **Project Memory** | `.memory/` 資料夾跨 session 保存 Agent 記憶 |
+| ✅ | **Wikilink 驗證器** | 自動修復草稿中的引用格式 |
+| ✅ | **Pre-Analysis Checklist** | 概念 → 分析前完整度驗證 |
 | 🔜 | **引用工具** | `insert_citation`、`auto_cite_draft`、`verify_citations` |
 | 📋 | **多語言支援** | 完整 UI 本地化 |
 | 📋 | **期刊樣式庫** | 預設期刊格式 |

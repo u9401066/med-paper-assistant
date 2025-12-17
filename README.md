@@ -42,6 +42,41 @@
 | Export then format | Direct Word export with journal styles |
 | Learn complex UI | Natural language conversation |
 
+### 🌐 Our Ecosystem
+
+```mermaid
+flowchart LR
+    subgraph IDE["VS Code"]
+        Agent[Copilot Agent]
+        Foam[Foam Plugin]
+    end
+    
+    subgraph MCP["MCP Servers"]
+        mdpaper[mdpaper<br/>Draft・Export・Validate]
+        pubmed[pubmed-search<br/>Search・Metrics]
+        cgu[CGU<br/>Deep Think]
+    end
+    
+    subgraph Data["Project Data"]
+        proj[("projects/{slug}/<br/>• .memory/<br/>• references/<br/>• drafts/")]
+    end
+    
+    Agent <-->|MCP| mdpaper
+    Agent <-->|MCP| pubmed
+    Agent <-->|MCP| cgu
+    mdpaper -->|HTTP API| pubmed
+    Foam <-->|Wikilinks| proj
+    mdpaper <--> proj
+```
+
+| Component | Role | Key Feature |
+|-----------|------|-------------|
+| **mdpaper** | Paper writing, export | MCP-to-MCP verified data |
+| **pubmed-search** | Literature search | HTTP API for cross-MCP |
+| **Foam** | Knowledge graph | `[[citation_key]]` linking |
+| **CGU** | Creative thinking | Deep analysis for concepts |
+| **Project Memory** | Cross-session context | `.memory/` persistence |
+
 ---
 
 ## 🚀 Quick Start: MCP Prompts
@@ -159,6 +194,8 @@ projects/{slug}/
 | **Data Analysis** | Read CSV data, perform statistical tests (t-test, correlation, etc.), generate publication-ready figures |
 | **Intelligent Draft Generation** | Generate manuscript drafts based on concept and analysis results |
 | **Automatic Citations** | Insert `[[citation_key]]` wikilinks, auto-convert to numbered references on export |
+| **Wikilink Validation** | Auto-detect and fix `[[12345678]]` → `[[author2024_12345678]]` format |
+| **Pre-Analysis Checklist** | Validate concept readiness before data analysis (Study Design, Sample Size, Outcomes) |
 | **Interactive Refinement** | Fine-tune specific sections through conversational dialogue |
 | **Word Export** | Export Markdown drafts to `.docx` files conforming to journal templates |
 
@@ -468,7 +505,7 @@ med-paper-assistant/
 | Category | Tools | Description |
 |----------|-------|-------------|
 | **Reference** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `rebuild_foam_aliases` | Reference storage & Foam integration |
-| **Writing** (16) | `write_draft`, `draft_section`, `validate_concept`, `count_words`, `export_word` | Manuscript preparation |
+| **Writing** (16) | `write_draft`, `draft_section`, `validate_concept`, `validate_wikilinks`, `count_words`, `export_word` | Manuscript preparation |
 | **Project** (12) | `create_project`, `switch_project`, `start_exploration`, `convert_exploration_to_project` | Multi-project management |
 | **Search** (10) | Facade tools delegating to pubmed-search MCP | Literature search |
 
@@ -505,6 +542,9 @@ Before writing drafts, concepts must pass novelty validation:
 | ✅ | **Parallel Search** | Multi-query parallel execution |
 | ✅ | **Table 1 Generator** | Auto-generate baseline characteristics |
 | ✅ | **Reference Refactor** | Single .md with YAML frontmatter & aliases |
+| ✅ | **Project Memory** | `.memory/` folder for cross-session agent context |
+| ✅ | **Wikilink Validator** | Auto-fix citation format in drafts |
+| ✅ | **Pre-Analysis Checklist** | Concept → Analysis readiness validation |
 | 🔜 | **Citation Tools** | `insert_citation`, `auto_cite_draft`, `verify_citations` |
 | 📋 | **Multi-language Support** | Full UI localization |
 | 📋 | **Journal Style Library** | Pre-configured journal formats |
