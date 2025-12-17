@@ -308,3 +308,168 @@ class Drafter:
             bibliography += entry
             
         return formatted_content + bibliography
+
+    def sync_references_from_wikilinks(self, filename: str) -> Dict[str, Any]:
+        """
+        Scan markdown for [[citation_key]] wikilinks and generate/update References section.
+        
+        This implements a citation manager workflow:
+        1. User writes [[pachecolopez2014_24891204]] in text
+        2. This method scans for all wikilinks
+        3. Maps them to saved references
+        4. Generates numbered or author-date citations in text
+        5. Appends formatted References section
+        
+        Args:
+            filename: Name of the markdown file to process.
+            
+        Returns:
+            Dict with processing results including citations found and generated.
+        """
+        if not filename.endswith(".md"):
+            filename += ".md"
+        
+        # Determine project root directory
+        project_root = None
+        if self._project_manager:
+            try:
+                paths = self._project_manager.get_project_paths()
+                project_root = paths.get("root")
+            except (ValueError, KeyError):
+                pass
+        
+        # Search order: drafts dir, project root, current dir
+        search_paths = [self.drafts_dir]
+        if project_root:
+            search_paths.insert(0, project_root)
+        
+        filepath = None
+        for search_dir in search_paths:
+            candidate = os.path.join(search_dir, filename)
+            if os.path.exists(candidate):
+                filepath = candidate
+                break
+            
+        if not filepath:
+            raise FileNotFoundError(f"File {filename} not found. Searched: {search_paths}")
+            
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # 1. Extract body (everything before ## References)
+        if "## References" in content:
+            body_content = content.split("## References")[0].rstrip()
+        else:
+            body_content = content.rstrip()
+        
+        # 2. First, restore any previously synced citations back to wikilinks
+        #    Pattern: [1]<!-- [[citation_key]] --> or (Author, Year)<!-- [[citation_key]] -->
+        restore_pattern = r'(?:\[\d+\]|\([^)]+,\s*\d{4}\))<!-- \[\[([^\]]+)\]\] -->'
+        body_content = re.sub(restore_pattern, r'[[\1]]', body_content)
+        
+        # 3. Find all wikilinks: [[citation_key]] or [[PMID:12345]]
+        wikilink_pattern = r"\[\[([^\]]+)\]\]"
+        wikilinks = re.findall(wikilink_pattern, body_content)
+        
+        if not wikilinks:
+            return {
+                "success": True,
+                "message": "No wikilinks found in document.",
+                "citations_found": 0,
+                "filepath": filepath
+            }
+        
+        # 3. Map wikilinks to PMIDs
+        citations = []  # List of (wikilink, pmid, metadata) in order of appearance
+        seen_pmids = set()
+        not_found = []
+        
+        for wikilink in wikilinks:
+            # Skip non-citation wikilinks (e.g., internal links)
+            # Citation wikilinks typically match: author_year_pmid or PMID:xxx or just pmid
+            
+            pmid = None
+            
+            # Try PMID:xxx format
+            if wikilink.upper().startswith("PMID:"):
+                pmid = wikilink.split(":")[1].strip()
+            # Try pure numeric (PMID)
+            elif wikilink.isdigit():
+                pmid = wikilink
+            # Try citation_key format (e.g., pachecolopez2014_24891204)
+            elif "_" in wikilink:
+                # Extract PMID from citation_key (last part after _)
+                parts = wikilink.split("_")
+                potential_pmid = parts[-1]
+                if potential_pmid.isdigit():
+                    pmid = potential_pmid
+            
+            if not pmid:
+                continue  # Not a citation wikilink
+                
+            if pmid in seen_pmids:
+                continue  # Already processed
+                
+            # Get metadata from reference manager
+            metadata = self.ref_manager.get_metadata(pmid)
+            if metadata:
+                citations.append((wikilink, pmid, metadata))
+                seen_pmids.add(pmid)
+            else:
+                not_found.append(wikilink)
+        
+        if not citations:
+            return {
+                "success": True,
+                "message": "No valid citation wikilinks found.",
+                "citations_found": 0,
+                "not_found": not_found,
+                "filepath": filepath
+            }
+        
+        # 4. Replace wikilinks with formatted in-text citations (REVERSIBLE)
+        #    Format: [1]<!-- [[citation_key]] --> so it can be restored later
+        new_body = body_content
+        citation_map = {pmid: i+1 for i, (_, pmid, _) in enumerate(citations)}
+        
+        for wikilink, pmid, metadata in citations:
+            number = citation_map[pmid]
+            in_text = self._format_citation_in_text(number, metadata)
+            # REVERSIBLE format: [1]<!-- [[wikilink]] -->
+            reversible_citation = f"{in_text}<!-- [[{wikilink}]] -->"
+            new_body = new_body.replace(f"[[{wikilink}]]", reversible_citation)
+        
+        # 5. Generate References section
+        references_section = "\n\n---\n\n## References\n\n"
+        
+        for wikilink, pmid, metadata in citations:
+            number = citation_map[pmid]
+            entry = self._format_bibliography_entry(number, metadata, pmid)
+            # Add wikilink back as invisible anchor for bidirectional linking
+            # Format: entry text <!-- [[citation_key]] -->
+            references_section += f"{entry.rstrip()} <!-- [[{wikilink}]] -->\n"
+        
+        # 6. Assemble final content
+        final_content = new_body + references_section
+        
+        # 7. Write back
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(final_content)
+        
+        return {
+            "success": True,
+            "message": f"Synchronized {len(citations)} references.",
+            "citations_found": len(citations),
+            "citations": [
+                {
+                    "number": citation_map[pmid],
+                    "wikilink": wikilink,
+                    "pmid": pmid,
+                    "title": metadata.get("title", "Unknown")[:60] + "..."
+                }
+                for wikilink, pmid, metadata in citations
+            ],
+            "not_found": not_found,
+            "filepath": filepath,
+            "style": self.citation_style
+        }

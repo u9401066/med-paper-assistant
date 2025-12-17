@@ -83,17 +83,62 @@ flowchart TB
 
 ### Key Design Principle
 
-**MCP-to-MCP via Agent Only!**
+**MCP-to-MCP Communication: Layered Trust Architecture**
 
 ```
-❌ Wrong: mdpaper imports pubmed_search
-✅ Right: Agent coordinates data flow
+┌────────────────────────────────────────────────────────────────────────┐
+│                           Agent Layer                                   │
+│  "save reference PMID:24891204, 這篇討論 airway 併發症很重要"           │
+└────────────────────────────┬───────────────────────────────────────────┘
+                             │ Only passes: pmid + agent_notes
+                             ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                         mdpaper MCP                                     │
+│  save_reference(pmid="24891204", agent_notes="...", relevance="high")  │
+│                             │                                           │
+│                             ▼                                           │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │        Direct HTTP API Call (MCP-to-MCP)                         │  │
+│  │        GET /api/cached_article/24891204                          │  │
+│  │        → Retrieves verified data directly from cache             │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────┬───────────────────────────────────────────┘
+                             │ Returns verified PubMed data
+                             ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                      pubmed-search MCP                                  │
+│  Session Cache: {24891204: {title, authors, journal, year, ...}}       │
+│  Returns: {source: "pubmed", verified: true, data: {...}}              │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
-Workflow Example:
-1. Agent calls pubmed-search.fetch_article_details(pmid)
-2. pubmed-search returns article metadata dict
-3. Agent calls mdpaper.save_reference(article=metadata)
-4. mdpaper stores reference locally
+**Why This Design?**
+
+| Approach | Data Integrity | Efficiency | Risk |
+|----------|----------------|------------|------|
+| Agent passes full JSON | ⚠️ Agent can modify | ❌ Large payload | Agent hallucination |
+| **Direct MCP-to-MCP API** | ✅ Verified data | ✅ Only PMID passed | ✅ Zero risk |
+| Fallback: re-fetch | ✅ Verified | ❌ Extra API call | Rate limiting |
+
+**Layered Trust in Reference Files:**
+
+```yaml
+# === VERIFIED (from pubmed-search, immutable) ===
+title: "Complications of airway management"
+author: [{family: Pacheco-Lopez, given: Paulette C}, ...]
+year: 2014
+_source: {mcp: pubmed-search, verified: true}
+
+# === AGENT (AI-generated, clearly marked) ===
+_agent:
+  notes: "這篇 review 討論呼吸道管理併發症..."
+  relevance: high
+  added_by: copilot
+
+# === USER (human notes, editable) ===
+_user:
+  notes: ""
+  highlights: []
 ```
 
 ### Multi-Source Reference Support

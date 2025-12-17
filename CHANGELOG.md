@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **MCP-to-MCP Direct Communication Architecture** (設計階段)
+  - pubmed-search 新增 `/api/cached_article/{pmid}` HTTP endpoint
+  - mdpaper 直接呼叫 pubmed-search API，不透過 Agent 傳遞資料
+  - 分層信任：VERIFIED (PubMed) / AGENT (AI notes) / USER (人類筆記)
+- **sync_references Tool** - Markdown 引用管理器
+  - 掃描 `[[wikilinks]]` 自動生成 References 區塊
+  - 可逆格式：`[1]<!-- [[citation_key]] -->`，支援重複同步
+  - 按出現順序編號，支援 Vancouver/APA 等格式
+- **Foam Project Isolation** - 專案隔離功能
+  - `FoamSettingsManager` 服務：動態更新 `foam.files.ignore`
+  - `switch_project()` 整合：切換專案時自動排除其他專案
+  - Whitelist 邏輯：只顯示當前專案的 `references/`
+- **Reference Title Display** - Foam 自動完成顯示文章標題
+  - frontmatter 加入 `title` 欄位
+  - `foam.completion.label: "title"` 設定
 - **MCP Tool Logging System** - 統一的工具日誌記錄
   - `tool_logging.py`: log_tool_call, log_tool_result, log_agent_misuse, log_tool_error
   - 日誌存放在專案目錄 `logs/YYYYMMDD.log`（跨平台支援）

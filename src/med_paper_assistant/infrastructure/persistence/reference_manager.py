@@ -388,6 +388,9 @@ class ReferenceManager:
         # YAML frontmatter for Foam (enables better linking)
         content = "---\n"
         
+        # Title for Foam completion label display
+        content += f'title: "{title}"\n'
+        
         # Aliases for Foam wikilinks - critical for [[citation_key]] to work
         content += "aliases:\n"
         if citation_key:

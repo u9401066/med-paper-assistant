@@ -92,6 +92,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 | `list_drafts` | List available drafts |
 | `draft_section` | Draft a specific section (⚠️ blocked if concept invalid) |
 | `insert_citation` | Add citation to text |
+| `sync_references` | **Citation manager** - Scan [[wikilinks]], generate References section |
 | `count_words` | Count words in draft |
 | `get_section_template` | Get section guidelines |
 

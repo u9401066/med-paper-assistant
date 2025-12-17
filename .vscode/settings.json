@@ -6,27 +6,10 @@
             ]
         }
     },
-    
-    // ============================================
-    // Foam 設定 - 參考文獻管理
-    // ============================================
-    // ⚠️ 重要：foam.files.ignore 需要根據當前專案動態調整
-    // 切換專案時，更新此設定以排除其他專案的 references
-    // 
-    // 範例：如果當前專案是 "my-research"，應該排除其他專案：
-    // "foam.files.ignore": [
-    //     "projects/other-project-1/**",
-    //     "projects/other-project-2/**",
-    //     ...
-    // ]
-    
     "foam.edit.linkReferenceDefinitions": "withExtensions",
     "foam.links.hover.enable": true,
     "foam.links.sync.enable": true,
     "foam.openDailyNote.directory": "notes",
-    
-    // 🔒 Foam 掃描範圍限制
-    // 預設排除系統目錄，專案隔離由 mdpaper 工具動態管理
     "foam.files.ignore": [
         ".venv/**",
         "node_modules/**",
@@ -39,16 +22,26 @@
         "templates/**",
         "scripts/**",
         ".claude/**",
-        ".github/**"
+        ".github/**",
+        "src/**",
+        "docs/**",
+        "*.md",
+        "*.json",
+        "*.toml",
+        "*.yaml",
+        "*.yml",
+        "*.txt",
+        "*.lock",
+        "projects/airway-device-oral-lip-injury-comparison/concept.md",
+        "projects/airway-device-oral-lip-injury-comparison/project.json",
+        "projects/airway-device-oral-lip-injury-comparison/.memory/**",
+        "projects/airway-device-oral-lip-injury-comparison/drafts/**",
+        "projects/airway-device-oral-lip-injury-comparison/data/**",
+        "projects/airway-device-oral-lip-injury-comparison/results/**",
+        "projects/test-isolation-project/**"
     ],
-    
-    // Enhanced wikilink completion for citations
-    "foam.completion.label": "identifier",
+    "foam.completion.label": "title",
     "foam.graph.titleMaxLength": 50,
-    
-    // ============================================
-    // Markdown 編輯器設定
-    // ============================================
     "editor.quickSuggestions": {
         "other": true,
         "comments": false,

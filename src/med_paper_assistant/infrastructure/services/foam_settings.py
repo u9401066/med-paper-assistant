@@ -23,7 +23,9 @@ class FoamSettingsManager:
     """
     
     # Directories that should always be ignored by Foam
+    # Use whitelist approach: exclude everything except current project's references
     ALWAYS_IGNORE = [
+        # Root level - exclude everything
         ".venv/**",
         "node_modules/**",
         ".git/**",
@@ -36,6 +38,25 @@ class FoamSettingsManager:
         "scripts/**",
         ".claude/**",
         ".github/**",
+        "src/**",
+        "docs/**",
+        "*.md",
+        "*.json",
+        "*.toml",
+        "*.yaml",
+        "*.yml",
+        "*.txt",
+        "*.lock",
+    ]
+    
+    # Within current project, exclude everything except references
+    PROJECT_INTERNAL_IGNORE = [
+        "concept.md",
+        "project.json",
+        ".memory/**",
+        "drafts/**",
+        "data/**",
+        "results/**",
     ]
     
     def __init__(self, workspace_root: Path):
@@ -97,25 +118,32 @@ class FoamSettingsManager:
     
     def _build_ignore_list(self, current_slug: str) -> List[str]:
         """
-        Build the foam.files.ignore list.
+        Build the foam.files.ignore list using WHITELIST approach.
         
-        Includes:
-        - Always-ignored directories
-        - All projects EXCEPT the current one
+        ONLY projects/{current_slug}/references/** is visible to Foam.
+        Everything else is ignored.
+        
+        Strategy:
+        1. ALWAYS_IGNORE: Root-level exclusions (src, docs, *.md, etc.)
+        2. PROJECT_INTERNAL_IGNORE: Within current project, exclude non-reference files
+        3. Other projects: Entirely excluded
         
         Args:
-            current_slug: Current project to NOT ignore.
+            current_slug: Current project (only its references/ will be visible).
             
         Returns:
             List of glob patterns to ignore.
         """
         ignore_list = list(self.ALWAYS_IGNORE)
         
-        # Get all project directories
+        # Add current project's internal exclusions (everything except references/)
+        for pattern in self.PROJECT_INTERNAL_IGNORE:
+            ignore_list.append(f"projects/{current_slug}/{pattern}")
+        
+        # Exclude all other projects entirely
         if self.projects_dir.exists():
             for project_dir in self.projects_dir.iterdir():
                 if project_dir.is_dir() and project_dir.name != current_slug:
-                    # Ignore other projects entirely
                     ignore_list.append(f"projects/{project_dir.name}/**")
         
         return ignore_list

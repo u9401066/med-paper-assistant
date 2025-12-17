@@ -1,7 +1,7 @@
 """
 Draft Template and Utility Tools
 
-get_section_template, count_words, insert_citation
+get_section_template, count_words, insert_citation, sync_references
 """
 
 import os
@@ -63,6 +63,68 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
             return f"Citation inserted successfully in: {path}"
         except Exception as e:
             return f"Error inserting citation: {str(e)}"
+
+    @mcp.tool()
+    def sync_references(
+        filename: str,
+        project: Optional[str] = None
+    ) -> str:
+        """
+        Synchronize references from [[wikilinks]] in a markdown file.
+        
+        This is like a citation manager (EndNote/Zotero) for markdown:
+        1. Scans the document for [[citation_key]] wikilinks (e.g., [[pachecolopez2014_24891204]])
+        2. Replaces them with formatted in-text citations (e.g., [1] or (Author, Year))
+        3. Generates/updates the References section at the end
+        4. Numbers are assigned by order of appearance
+        
+        Supported wikilink formats:
+        - [[citation_key]] e.g., [[pachecolopez2014_24891204]]
+        - [[PMID:12345678]]
+        - [[12345678]]
+        
+        Args:
+            filename: The markdown file name (e.g., "concept.md" or "draft.md").
+                     Will search in project root first, then drafts folder.
+            project: Project slug. Agent should confirm with user before calling.
+        
+        Returns:
+            Summary of synchronized references with their assigned numbers.
+        """
+        is_valid, error_msg = _validate_project_context(project)
+        if not is_valid:
+            return error_msg
+        
+        try:
+            result = drafter.sync_references_from_wikilinks(filename)
+            
+            if not result.get("success"):
+                return f"❌ Error: {result.get('error', 'Unknown error')}"
+            
+            if result.get("citations_found", 0) == 0:
+                return f"ℹ️ {result.get('message')}\n\nFile: {result.get('filepath')}"
+            
+            output = f"✅ **References Synchronized**\n\n"
+            output += f"📄 File: `{result.get('filepath')}`\n"
+            output += f"🎨 Style: {result.get('style', 'vancouver')}\n"
+            output += f"📚 Citations found: {result.get('citations_found')}\n\n"
+            
+            output += "| # | Citation Key | Title |\n"
+            output += "|---|--------------|-------|\n"
+            
+            for cite in result.get("citations", []):
+                output += f"| {cite['number']} | `{cite['wikilink']}` | {cite['title']} |\n"
+            
+            if result.get("not_found"):
+                output += f"\n⚠️ **Not found in library**: {', '.join(result['not_found'])}\n"
+                output += "Use `save_reference` to add these to your library first.\n"
+            
+            return output
+            
+        except FileNotFoundError as e:
+            return f"❌ File not found: {str(e)}"
+        except Exception as e:
+            return f"❌ Error syncing references: {str(e)}"
 
     @mcp.tool()
     def count_words(filename: str, section: str = None) -> str:

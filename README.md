@@ -133,51 +133,107 @@ This project uses a **modular MCP architecture** with Domain-Driven Design (DDD)
 | **zotero-keeper** | External (uvx) | Import references from Zotero library |
 | **Foam** | VS Code Extension | Wikilinks, hover preview, backlinks, graph view |
 
-**Key Principle: MCP-to-MCP via Agent Only**
-- MCP servers do NOT import each other directly
-- Agent coordinates data flow between MCPs
-- Example: `pubmed-search` returns metadata → Agent passes to `mdpaper.save_reference()`
+**Key Principle: MCP-to-MCP Direct Communication**
+
+```
+Agent says: "save PMID:24891204, 這篇很重要"
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────┐
+│  mdpaper.save_reference(pmid, agent_notes)         │
+│      │                                              │
+│      ▼  Direct HTTP call (not through Agent)       │
+│  pubmed-search: GET /api/cached_article/24891204   │
+│      │                                              │
+│      ▼  Returns verified PubMed data               │
+│  Save with layered trust:                          │
+│    • VERIFIED: from PubMed (immutable)             │
+│    • AGENT: AI notes (marked source)               │
+│    • USER: your notes (editable)                   │
+└─────────────────────────────────────────────────────┘
+```
+
+Benefits:
+- ✅ **Data Integrity** - PubMed data cannot be modified by Agent
+- ✅ **Efficiency** - Agent only passes PMID, not entire JSON
+- ✅ **Transparency** - Clear separation of data sources
 
 ---
 
 ## 📚 Reference File Structure
 
-References are stored with a Foam-optimized structure:
+References are stored with a **Foam-optimized, BibTeX-compatible** structure:
 
 ```
 references/
 └── {pmid}/
-    ├── {citation_key}.md   ← Main file with YAML frontmatter
+    ├── {citation_key}.md   ← Main file with YAML frontmatter (human-readable)
     └── metadata.json       ← Full metadata for programmatic access
 ```
 
-**Example**: `references/27345583/greer2017_27345583.md`
+### Layered Trust Design
 
 ```yaml
 ---
-aliases:
-  - greer2017_27345583      # Primary wikilink
-  - "PMID:27345583"         # PMID format
-  - "27345583"              # Numeric only
-type: reference
-source: "pubmed"
-pmid: "27345583"
-year: 2017
+# === VERIFIED DATA (from PubMed, immutable) ===
+title: "Complications of airway management"
+author:
+  - {family: Pacheco-Lopez, given: Paulette C}
+  - {family: Berkow, given: Lauren C}
+year: 2014
+journal: Respiratory Care
+doi: "10.4187/respcare.02884"
+pmid: "24891204"
+_source:
+  mcp: pubmed-search
+  verified: true
+  fetched_at: "2025-12-17T18:56:33"
 
-# Pre-formatted citations
-cite:
-  vancouver: "Greer D, Marshall KE. Review of..."
-  apa: "Greer, D. & Marshall, K. E. (2017)..."
-  inline: "Greer & Marshall, 2017"
+# === AGENT DATA (AI-generated, clearly marked) ===
+_agent:
+  notes: "這篇 review 討論呼吸道管理併發症，與我們研究直接相關"
+  relevance: high
+  keywords: [airway, complications]
+  added_by: copilot
+  added_at: "2025-12-17T19:00:00"
+
+# === Foam Metadata ===
+aliases: [pachecolopez2014, "PMID:24891204"]
+tags: [reference, airway, review]
 ---
 
-# Title
+# Complications of airway management
 
-**Authors**: Greer Devon, Marshall Kathryn E
+> **Pacheco-Lopez PC**, Berkow LC, Hillel AT, Akst LM  
+> *Respiratory Care* 2014; **59**(6): 1006-19  
+> [PubMed](https://pubmed.ncbi.nlm.nih.gov/24891204) • [DOI](https://doi.org/10.4187/respcare.02884)
+
+---
 
 ## Abstract
-...
+
+Although endotracheal intubation is commonly performed...
+
+---
+
+## 🤖 Agent Notes
+
+> 這篇 review 討論呼吸道管理併發症，與我們研究直接相關
+
+**Relevance**: 🔴 High
+
+---
+
+## 📝 My Notes
+
+> _Your notes here..._
 ```
+
+| Section | Source | Editable | Purpose |
+|---------|--------|----------|---------|
+| **VERIFIED** | PubMed API | ❌ No | Guaranteed accurate bibliographic data |
+| **AGENT** | AI Assistant | ⚠️ Marked | Summary, relevance assessment |
+| **USER** | You | ✅ Yes | Your reading notes, highlights |
 
 ---
 
