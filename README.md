@@ -809,18 +809,76 @@ generate_search_queries(topic="...", use_saved_strategy=True)
 
 ---
 
-### 🛠️ Available Tools (46 mdpaper + 15 drawio)
+### 🏗️ Architecture: MCP Orchestration
 
-#### 📚 mdpaper Tools (46 total)
+This project uses a **modular MCP architecture** where the VS Code Copilot Agent orchestrates multiple MCP servers:
+
+```mermaid
+flowchart TB
+    subgraph Agent["🤖 VS Code Copilot Agent"]
+        direction TB
+        Prompt["User Prompt"]
+    end
+    
+    subgraph MCPs["MCP Servers"]
+        direction LR
+        subgraph mdpaper["📝 mdpaper"]
+            Project["Project Mgmt"]
+            Reference["Reference Storage"]
+            Writing["Draft Writing"]
+            Export["Word Export"]
+        end
+        
+        subgraph pubmed["🔍 pubmed-search"]
+            Search["PubMed Search"]
+            Fetch["Article Details"]
+            Related["Related/Citing"]
+        end
+        
+        subgraph optional["🎨 Optional"]
+            Drawio["drawio"]
+            Zotero["zotero-keeper"]
+        end
+    end
+    
+    Prompt --> |"Coordinates"| mdpaper
+    Prompt --> |"Coordinates"| pubmed
+    Prompt --> |"Coordinates"| optional
+    
+    pubmed --> |"Article metadata"| Agent
+    Agent --> |"save_reference(article)"| Reference
+```
+
+**Key Principle: MCP-to-MCP via Agent Only**
+- MCP servers do NOT import each other directly
+- Agent coordinates data flow between MCPs
+- Example: `pubmed-search` returns metadata → Agent passes to `mdpaper.save_reference()`
+
+---
+
+### 🛠️ Available Tools
+
+#### 📝 mdpaper Tools (46 total)
 
 | Category | Tools | Description |
 |----------|-------|-------------|
-| **Search** (10) | `search_literature`, `find_related_articles`, `find_citing_articles`, `fetch_article_details`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries`, `search_local_references` | Literature discovery via [pubmed-search-mcp](integrations/pubmed-search-mcp) (Agent orchestration) |
-| **Reference** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style`, `insert_citation` | Reference management |
+| **Reference** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style`, `insert_citation` | Reference storage & management |
 | **Writing** (16) | `write_draft`, `read_draft`, `list_drafts`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick`, `list_templates`, `read_template`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | Manuscript preparation and export |
 | **Project** (12) | `create_project`, `list_projects`, `switch_project`, `get_current_project`, `update_project_status`, `get_project_paths`, `get_paper_types`, `update_project_settings`, `setup_project_interactive`, `start_exploration`, `get_exploration_status`, `convert_exploration_to_project` | Project management |
+| **Search** (10) | `search_literature`, `find_related_articles`, `find_citing_articles`, `fetch_article_details`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries`, `search_local_references` | Facade tools → delegate to pubmed-search MCP |
 
-> **Note:** Analysis tools (`analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one`) have been moved to a separate [data-analysis-mcp](https://github.com/u9401066/data-analysis-mcp) project.
+#### 🔍 pubmed-search MCP Tools (20+)
+
+See [pubmed-search-mcp](integrations/pubmed-search-mcp/) for full documentation.
+
+| Category | Key Tools |
+|----------|----------|
+| **Search** | `search_literature`, `generate_search_queries`, `parse_pico`, `merge_search_results` |
+| **Article Info** | `fetch_article_details`, `find_related_articles`, `find_citing_articles`, `get_article_references` |
+| **Export** | `prepare_export`, `get_article_fulltext_links`, `analyze_fulltext_access` |
+| **Session** | `get_session_pmids`, `list_search_history`, `get_session_summary` |
+
+> **Note:** Analysis tools have been moved to [data-analysis-mcp](https://github.com/u9401066/data-analysis-mcp).
 
 #### 🎨 drawio Tools (15 total) - [Optional Integration](integrations/)
 
@@ -1629,18 +1687,76 @@ generate_search_queries(topic="...", use_saved_strategy=True)
 
 ---
 
-### 🛠️ 可用工具（共 46 + 15 個）
+### 🏗️ 架構：MCP 協調模式
 
-#### 📚 mdpaper 工具（46 個）
+本專案採用**模組化 MCP 架構**，由 VS Code Copilot Agent 協調多個 MCP 伺服器：
+
+```mermaid
+flowchart TB
+    subgraph Agent["🤖 VS Code Copilot Agent"]
+        direction TB
+        Prompt["使用者指令"]
+    end
+    
+    subgraph MCPs["MCP 伺服器群"]
+        direction LR
+        subgraph mdpaper["📝 mdpaper"]
+            Project["專案管理"]
+            Reference["參考文獻儲存"]
+            Writing["草稿撰寫"]
+            Export["Word 匯出"]
+        end
+        
+        subgraph pubmed["🔍 pubmed-search"]
+            Search["PubMed 搜尋"]
+            Fetch["文章詳情"]
+            Related["相關/引用"]
+        end
+        
+        subgraph optional["🎨 選用"]
+            Drawio["drawio"]
+            Zotero["zotero-keeper"]
+        end
+    end
+    
+    Prompt --> |"協調"| mdpaper
+    Prompt --> |"協調"| pubmed
+    Prompt --> |"協調"| optional
+    
+    pubmed --> |"文章 metadata"| Agent
+    Agent --> |"save_reference(article)"| Reference
+```
+
+**核心原則：MCP 對 MCP 只透過 Agent**
+- MCP 伺服器之間不直接 import
+- Agent 協調資料流轉
+- 範例：`pubmed-search` 回傳 metadata → Agent 傳給 `mdpaper.save_reference()`
+
+---
+
+### 🛠️ 可用工具
+
+#### 📝 mdpaper 工具（46 個）
 
 | 類別 | 工具 | 說明 |
 |------|------|------|
-| **搜尋** (10) | `search_literature`, `find_related_articles`, `find_citing_articles`, `fetch_article_details`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries`, `search_local_references` | 文獻探索，透過 [pubmed-search-mcp](integrations/pubmed-search-mcp)（Agent 協調）|
-| **參考文獻** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style`, `insert_citation` | 參考文獻管理 |
+| **參考文獻** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `read_reference_fulltext`, `retry_pdf_download`, `format_references`, `set_citation_style`, `insert_citation` | 參考文獻儲存與管理 |
 | **寫作** (16) | `write_draft`, `read_draft`, `list_drafts`, `draft_section`, `get_section_template`, `count_words`, `validate_concept`, `validate_concept_quick`, `list_templates`, `read_template`, `start_document_session`, `insert_section`, `verify_document`, `check_word_limits`, `save_document`, `export_word` | 草稿準備與匯出 |
 | **專案** (12) | `create_project`, `list_projects`, `switch_project`, `get_current_project`, `update_project_status`, `get_project_paths`, `get_paper_types`, `update_project_settings`, `setup_project_interactive`, `start_exploration`, `get_exploration_status`, `convert_exploration_to_project` | 專案管理 |
+| **搜尋** (10) | `search_literature`, `find_related_articles`, `find_citing_articles`, `fetch_article_details`, `configure_search_strategy`, `get_search_strategy`, `generate_search_queries`, `merge_search_results`, `expand_search_queries`, `search_local_references` | Facade 工具 → 委派給 pubmed-search MCP |
 
-> **備註：** 分析工具（`analyze_dataset`, `run_statistical_test`, `create_plot`, `generate_table_one`）已移至獨立的 [data-analysis-mcp](https://github.com/u9401066/data-analysis-mcp) 專案。
+#### 🔍 pubmed-search MCP 工具（20+）
+
+詳見 [pubmed-search-mcp](integrations/pubmed-search-mcp/) 完整文件。
+
+| 類別 | 主要工具 |
+|------|----------|
+| **搜尋** | `search_literature`, `generate_search_queries`, `parse_pico`, `merge_search_results` |
+| **文章資訊** | `fetch_article_details`, `find_related_articles`, `find_citing_articles`, `get_article_references` |
+| **匯出** | `prepare_export`, `get_article_fulltext_links`, `analyze_fulltext_access` |
+| **Session** | `get_session_pmids`, `list_search_history`, `get_session_summary` |
+
+> **備註：** 分析工具已移至 [data-analysis-mcp](https://github.com/u9401066/data-analysis-mcp)。
 
 #### 🎨 drawio 工具（15 個）- [選用整合](integrations/)
 

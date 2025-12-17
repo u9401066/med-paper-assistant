@@ -9,7 +9,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
-from .._shared import ensure_project_context, get_project_list_for_prompt
+from .._shared import ensure_project_context, get_project_list_for_prompt, log_tool_call, log_tool_result, log_agent_misuse, log_tool_error
 
 
 # Global validator instance
@@ -53,8 +53,11 @@ def register_concept_validation_tools(mcp: FastMCP):
         Returns:
             Validation report with checklist status, novelty scores, and suggestions.
         """
+        log_tool_call("validate_concept", {"filename": filename, "project": project, "run_novelty_check": run_novelty_check})
+        
         is_valid, error_msg = _validate_project_context(project)
         if not is_valid:
+            log_agent_misuse("validate_concept", "valid project context required", {"project": project}, error_msg)
             return error_msg
         
         # Resolve path
@@ -73,8 +76,10 @@ def register_concept_validation_tools(mcp: FastMCP):
                 filename = os.path.join("drafts", filename)
         
         if not os.path.exists(filename):
-            return f"❌ Error: Concept file not found: {filename}\n\n" \
-                   f"Use `/mdpaper.concept` to create a concept file first."
+            result = f"❌ Error: Concept file not found: {filename}\n\n" \
+                     f"Use `/mdpaper.concept` to create a concept file first."
+            log_tool_result("validate_concept", "concept file not found", success=False)
+            return result
         
         try:
             result = _concept_validator.validate(
@@ -85,9 +90,12 @@ def register_concept_validation_tools(mcp: FastMCP):
                 force_refresh=True
             )
             
-            return _concept_validator.generate_report(result)
+            report = _concept_validator.generate_report(result)
+            log_tool_result("validate_concept", f"overall_passed={result.overall_passed}, novelty_avg={result.novelty_average}", success=result.overall_passed)
+            return report
             
         except Exception as e:
+            log_tool_error("validate_concept", e, {"filename": filename})
             return f"❌ Error validating concept: {str(e)}"
 
     @mcp.tool()
@@ -105,9 +113,12 @@ def register_concept_validation_tools(mcp: FastMCP):
         Returns:
             Quick validation report (structure only).
         """
+        log_tool_call("validate_concept_quick", {"filename": filename, "project": project})
+        
         if project:
             is_valid, error_msg = _validate_project_context(project)
             if not is_valid:
+                log_agent_misuse("validate_concept_quick", "valid project context required", {"project": project}, error_msg)
                 return error_msg
         
         if not os.path.isabs(filename):
@@ -125,10 +136,15 @@ def register_concept_validation_tools(mcp: FastMCP):
                 filename = os.path.join("drafts", filename)
         
         if not os.path.exists(filename):
-            return f"❌ Error: Concept file not found: {filename}"
+            result = f"❌ Error: Concept file not found: {filename}"
+            log_tool_result("validate_concept_quick", "concept file not found", success=False)
+            return result
         
         try:
             result = _concept_validator.validate_structure_only(filename)
-            return _concept_validator.generate_report(result)
+            report = _concept_validator.generate_report(result)
+            log_tool_result("validate_concept_quick", f"passed={result.overall_passed}", success=result.overall_passed)
+            return report
         except Exception as e:
+            log_tool_error("validate_concept_quick", e, {"filename": filename})
             return f"❌ Error: {str(e)}"

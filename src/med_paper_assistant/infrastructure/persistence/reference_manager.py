@@ -5,16 +5,21 @@ from typing import List, Dict, Any, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 
+from med_paper_assistant.domain.services.reference_converter import (
+    ReferenceConverter,
+    StandardizedReference,
+)
+
 
 class ReferenceManager:
     """
     管理本地文獻參考資料的儲存、檢索和組織。
     
-    重構說明 (2025/06):
-    - 移除對 searcher (LiteratureSearcher) 的直接依賴
-    - 改為接收已取得的 metadata 進行儲存
-    - 文獻搜尋由外部 MCP (pubmed-search) 負責
-    - Agent 層級協調 MCP 間的資料傳遞
+    重構說明 (2025-12):
+    - 使用 ReferenceConverter Domain Service 處理格式轉換
+    - 支援多來源：PubMed, Zotero, DOI
+    - 唯一識別符：unique_id + citation_key (for Foam)
+    - 文獻搜尋由外部 MCP 負責，Agent 協調資料傳遞
     """
     
     def __init__(
@@ -31,6 +36,7 @@ class ReferenceManager:
         """
         self._default_base_dir = base_dir
         self._project_manager = project_manager
+        self._converter = ReferenceConverter()
         # Note: Directory is created on-demand when saving references,
         # not at initialization to avoid polluting root directory
     
@@ -52,51 +58,52 @@ class ReferenceManager:
         """
         Save a reference with provided article metadata.
         
-        重構說明: 
-        - 不再由此類別 fetch metadata，改為接收已有的 article data
-        - PDF 下載功能移至外部處理 (透過 pubmed-search MCP 的 fulltext_links)
+        支援來源：
+        - PubMed (需要 pmid 欄位)
+        - Zotero (需要 key 或 zotero_key 欄位)
+        - DOI (需要 doi 或 DOI 欄位)
         
         Args:
-            article: Article metadata dictionary (from pubmed-search MCP).
-                     Must contain at least 'pmid' field.
+            article: Article metadata dictionary from any source.
+                     Must contain at least one identifier: pmid, zotero_key/key, or doi/DOI.
             download_pdf: Deprecated - PDF download handled externally.
             
         Returns:
-            Status message.
+            Status message with Foam citation key.
         """
-        pmid = article.get('pmid')
-        if not pmid:
-            return "Error: Article metadata must contain 'pmid' field."
+        # Use domain converter to standardize format
+        try:
+            ref = self._converter.convert(article)
+        except ValueError as e:
+            return f"Error: {str(e)}"
         
         # Check if already exists
-        ref_dir = os.path.join(self.base_dir, pmid)
+        ref_dir = os.path.join(self.base_dir, ref.unique_id)
         if os.path.exists(ref_dir):
-            return f"Reference {pmid} already exists."
+            return f"Reference {ref.unique_id} already exists."
         
         # Create directory
         os.makedirs(ref_dir, exist_ok=True)
         
         # Add pre-formatted citation strings to metadata
-        article['citation'] = self._format_citation(article)
-        
-        # Generate citation key for Foam (e.g., "smith2023_41285088")
-        citation_key = self._generate_citation_key(article)
-        article['citation_key'] = citation_key
+        ref_dict = ref.to_dict()
+        ref_dict['citation'] = self._format_citation(ref_dict)
         
         # Save metadata
         with open(os.path.join(ref_dir, "metadata.json"), "w", encoding="utf-8") as f:
-            json.dump(article, f, indent=2, ensure_ascii=False)
+            json.dump(ref_dict, f, indent=2, ensure_ascii=False)
             
         # Save content (Markdown) - main file for Foam preview
-        content = self._generate_content_md(article)
+        content = self._generate_content_md(ref_dict)
         with open(os.path.join(ref_dir, "content.md"), "w", encoding="utf-8") as f:
             f.write(content)
         
         # Create Foam-friendly alias file
-        self._create_foam_alias(pmid, citation_key)
+        self._create_foam_alias(ref.unique_id, ref.citation_key)
         
-        foam_tip = f"\n💡 Foam: Use [[{citation_key}]] to link this reference."
-        return f"Successfully saved reference {pmid} to {ref_dir}.{foam_tip}"
+        foam_tip = f"\n💡 Foam: Use [[{ref.citation_key}]] to link this reference."
+        source_info = f" (source: {ref.source})"
+        return f"Successfully saved reference {ref.unique_id} to {ref_dir}.{source_info}{foam_tip}"
     
     def save_reference_by_pmid(self, pmid: str) -> str:
         """

@@ -44,3 +44,7 @@
 | 2025-12-17 | 將 .agent_constitution.md 整合進正式 CONSTITUTION.md，版本升級至 v1.1.0 | Agent 行為規範和研究操作規則應納入專案憲法正式管理，避免分散在多個檔案造成維護困難。新增第四至六章涵蓋：Agent 行為規範、研究操作規則（含 Concept/Draft 流程）、互動指南。 |
 | 2025-12-17 | 重構 integrations 為選擇性 submodule 架構 | 採用選擇性 submodule 策略：pubmed-search-mcp 和 CGU 作為 submodule（常改代碼），drawio 和 zotero-keeper 改用獨立 uvx 安裝（較少改動）。Python 版本升級至 >=3.11 以支援 CGU。 |
 | 2025-12-17 | mdpaper MCP 完全解耦 pubmed_search 依賴 | **MCP 對 MCP 只要 API！** 移除 mdpaper 對 pubmed_search 的所有 import，改為透過 Agent 協調 MCP 間通訊。刪除：infrastructure/external/{entrez,pubmed}、services/strategy_manager.py、tools/search/、use_cases/search_literature.py。重構 ReferenceManager 接受 metadata dict 而非 PMID。 |
+| 2025-12-17 | DDD 重構：建立 ReferenceConverter Domain Service 支援多來源 (PubMed, Zotero, DOI) | 1. Foam 需要唯一識別符支援 [[wikilink]] 功能
+2. 不同來源有不同格式，需要統一轉換
+3. 遵循 DDD 架構：Domain Service 處理格式轉換
+4. Agent 協調 MCP 通訊，不需要 mdpaper 直接呼叫其他 MCP |

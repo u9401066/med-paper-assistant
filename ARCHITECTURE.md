@@ -2,7 +2,90 @@
 
 ## Overview
 
-MedPaper Assistant is an MCP (Model Context Protocol) server that helps researchers write medical papers. It provides tools for literature search, reference management, draft creation, data analysis, and Word document export.
+MedPaper Assistant is an MCP (Model Context Protocol) server that helps researchers write medical papers. It provides tools for project management, reference storage, draft creation, and Word document export.
+
+## 🏗️ MCP Orchestration Architecture
+
+```mermaid
+flowchart TB
+    subgraph Agent["🤖 VS Code Copilot Agent"]
+        Prompt["User Prompt<br/>/mdpaper.search, /mdpaper.concept"]
+    end
+    
+    subgraph MCPs["MCP Servers (stdio)"]
+        subgraph mdpaper["📝 mdpaper (this project)"]
+            PM["Project Manager"]
+            RM["Reference Manager"]
+            DM["Draft Manager"]
+            WE["Word Export"]
+        end
+        
+        subgraph pubmed["🔍 pubmed-search-mcp"]
+            Search["search_literature"]
+            Fetch["fetch_article_details"]
+            Related["find_related/citing"]
+        end
+        
+        subgraph external["🔌 External MCPs"]
+            Drawio["drawio (uvx)"]
+            Zotero["zotero-keeper (uvx)"]
+            CGU["cgu (submodule)"]
+        end
+    end
+    
+    Prompt --> |"1. search"| pubmed
+    pubmed --> |"2. article metadata"| Agent
+    Agent --> |"3. save_reference(article)"| RM
+    
+    Prompt --> |"create diagram"| Drawio
+    Prompt --> |"import from Zotero"| Zotero
+    Zotero --> |"article data"| Agent
+    Agent --> |"save_reference(article)"| RM
+```
+
+### Key Design Principle
+
+**MCP-to-MCP via Agent Only!**
+
+```
+❌ Wrong: mdpaper imports pubmed_search
+✅ Right: Agent coordinates data flow
+
+Workflow Example:
+1. Agent calls pubmed-search.fetch_article_details(pmid)
+2. pubmed-search returns article metadata dict
+3. Agent calls mdpaper.save_reference(article=metadata)
+4. mdpaper stores reference locally
+```
+
+### Multi-Source Reference Support
+
+```mermaid
+flowchart LR
+    subgraph Sources["Reference Sources"]
+        PubMed["🔬 PubMed<br/>PMID"]
+        Zotero["📚 Zotero<br/>Item Key"]
+        DOI["🔗 DOI Only"]
+    end
+    
+    subgraph Converter["Domain Service"]
+        RC["ReferenceConverter"]
+    end
+    
+    subgraph Storage["Storage"]
+        RM2["ReferenceManager"]
+        Files["references/{unique_id}/"]
+    end
+    
+    PubMed --> |"article dict"| RC
+    Zotero --> |"item dict"| RC
+    DOI --> |"doi string"| RC
+    
+    RC --> |"StandardizedReference"| RM2
+    RM2 --> Files
+```
+
+**ReferenceId Priority**: PMID > Zotero Key > DOI
 
 ## Project Structure
 

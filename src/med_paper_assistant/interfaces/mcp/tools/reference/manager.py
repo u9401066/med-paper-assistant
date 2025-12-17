@@ -5,12 +5,21 @@ save_reference, list, search, format, citation management
 """
 
 import os
-from typing import Optional
+import json
+from typing import Optional, Union
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
 from med_paper_assistant.infrastructure.services import Drafter
-from .._shared import ensure_project_context, get_project_list_for_prompt
+from .._shared import (
+    ensure_project_context, 
+    get_project_list_for_prompt,
+    with_tool_logging,
+    log_tool_call,
+    log_tool_result,
+    log_agent_misuse,
+    log_tool_error,
+)
 
 
 def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter, project_manager):
@@ -34,7 +43,7 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
         return ""
     
     @mcp.tool()
-    def save_reference(article: dict, project: Optional[str] = None) -> str:
+    def save_reference(article: Union[dict, str], project: Optional[str] = None) -> str:
         """
         Save a reference to the local library with metadata from PubMed search.
         
@@ -54,6 +63,7 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
             article: Article metadata dictionary from pubmed-search MCP.
                     Must contain at least 'pmid' field.
                     Typical fields: pmid, title, authors, abstract, journal, year, doi, etc.
+                    Can be a dict or a JSON string.
             project: Project slug to save to. Agent should confirm with user.
             
         Example workflow:
@@ -61,28 +71,52 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
             2. pubmed-search: fetch_article_details(pmids="12345678,87654321")
             3. mdpaper: save_reference(article=<metadata from step 2>)
         """
+        # Log tool call
+        log_tool_call("save_reference", {"article": article, "project": project})
+        
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
-                return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+                error_msg = f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+                log_agent_misuse("save_reference", "valid project slug", {"article": article, "project": project}, error_msg)
+                return error_msg
+        
+        # Handle JSON string input (MCP sometimes passes dict as JSON string)
+        if isinstance(article, str):
+            try:
+                article = json.loads(article)
+            except json.JSONDecodeError as e:
+                error_msg = (
+                    f"❌ Invalid JSON string for article parameter: {e}\n\n"
+                    "**Correct workflow:**\n"
+                    "1. Use pubmed-search MCP: `fetch_article_details(pmids='12345678')`\n"
+                    "2. Use mdpaper MCP: `save_reference(article=<metadata from step 1>)`"
+                )
+                log_agent_misuse("save_reference", "valid JSON or dict", {"article_type": type(article).__name__}, error_msg)
+                return error_msg
         
         if not isinstance(article, dict):
-            return (
-                "❌ Invalid input: article must be a dictionary.\n\n"
+            error_msg = (
+                f"❌ Invalid input: article must be a dictionary, got {type(article).__name__}.\n\n"
                 "**Correct workflow:**\n"
                 "1. Use pubmed-search MCP: `fetch_article_details(pmids='12345678')`\n"
                 "2. Use mdpaper MCP: `save_reference(article=<metadata from step 1>)`"
             )
+            log_agent_misuse("save_reference", "dict type", {"article_type": type(article).__name__}, error_msg)
+            return error_msg
         
         if not article.get('pmid'):
-            return (
+            error_msg = (
                 "❌ Article metadata must contain 'pmid' field.\n\n"
                 "Ensure you're using metadata from pubmed-search MCP's "
                 "`fetch_article_details()` or `search_literature()` tools."
             )
+            log_agent_misuse("save_reference", "article with pmid field", {"article_keys": list(article.keys())}, error_msg)
+            return error_msg
         
         project_msg = _ensure_project_exists()
         result = ref_manager.save_reference(article)
+        log_tool_result("save_reference", result)
         return result + project_msg
 
     @mcp.tool()

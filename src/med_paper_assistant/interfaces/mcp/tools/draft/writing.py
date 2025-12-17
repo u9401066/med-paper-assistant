@@ -11,7 +11,7 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
-from .._shared import ensure_project_context, get_project_list_for_prompt
+from .._shared import ensure_project_context, get_project_list_for_prompt, log_tool_call, log_tool_result, log_agent_misuse, log_tool_error
 
 
 # Global validator instance
@@ -120,13 +120,22 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             project: Project slug. Agent should confirm with user before calling.
             skip_validation: For internal use only. Do not set to True.
         """
+        log_tool_call("draft_section", {
+            "topic": topic, 
+            "notes_len": len(notes), 
+            "project": project, 
+            "skip_validation": skip_validation
+        })
+        
         is_valid, error_msg = _validate_project_context(project)
         if not is_valid:
+            log_agent_misuse("draft_section", "valid project context required", {"project": project}, error_msg)
             return error_msg
         
         if not skip_validation:
             can_proceed, message, protected = _enforce_concept_validation()
             if not can_proceed:
+                log_tool_result("draft_section", "concept validation failed", success=False)
                 return message
         
         reminder = ""
@@ -135,7 +144,9 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         elif topic.lower() == "discussion":
             reminder = "\n\n⚠️ **REMINDER**: Discussion must emphasize 🔒 KEY SELLING POINTS."
         
-        return f"Drafting section '{topic}' based on notes...{reminder}"
+        result = f"Drafting section '{topic}' based on notes...{reminder}"
+        log_tool_result("draft_section", result, success=True)
+        return result
 
     @mcp.tool()
     def write_draft(
@@ -158,8 +169,16 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             project: Project slug. Agent should confirm with user before calling.
             skip_validation: For internal use only. Do not set to True.
         """
+        log_tool_call("write_draft", {
+            "filename": filename,
+            "content_len": len(content),
+            "project": project,
+            "skip_validation": skip_validation
+        })
+        
         is_valid, error_msg = _validate_project_context(project)
         if not is_valid:
+            log_agent_misuse("write_draft", "valid project context required", {"project": project}, error_msg)
             return error_msg
         
         is_concept_file = "concept" in filename.lower()
@@ -167,6 +186,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         if not skip_validation and not is_concept_file:
             can_proceed, message, protected = _enforce_concept_validation()
             if not can_proceed:
+                log_tool_result("write_draft", "concept validation failed", success=False)
                 return message
         
         try:
@@ -181,8 +201,11 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                     "- Ask user before modifying any protected content"
                 )
             
-            return f"Draft created successfully at: {path}{reminder}"
+            result = f"Draft created successfully at: {path}{reminder}"
+            log_tool_result("write_draft", result, success=True)
+            return result
         except Exception as e:
+            log_tool_error("write_draft", e, {"filename": filename, "content_len": len(content)})
             return f"Error creating draft: {str(e)}"
 
     @mcp.tool()
@@ -196,19 +219,26 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         Returns:
             List of draft files with their word counts.
         """
+        log_tool_call("list_drafts", {"project": project})
+        
         if project:
             is_valid, error_msg = _validate_project_context(project)
             if not is_valid:
+                log_agent_misuse("list_drafts", "valid project context required", {"project": project}, error_msg)
                 return error_msg
         
         drafts_dir = "drafts"
         if not os.path.exists(drafts_dir):
-            return "📁 No drafts/ directory found. Create drafts using write_draft tool first."
+            result = "📁 No drafts/ directory found. Create drafts using write_draft tool first."
+            log_tool_result("list_drafts", result, success=True)
+            return result
         
         drafts = [f for f in os.listdir(drafts_dir) if f.endswith('.md')]
         
         if not drafts:
-            return "📁 No draft files found in drafts/ directory."
+            result = "📁 No draft files found in drafts/ directory."
+            log_tool_result("list_drafts", result, success=True)
+            return result
         
         output = "📄 **Available Drafts**\n\n"
         output += "| # | Filename | Sections | Total Words |\n"
@@ -227,6 +257,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             except Exception:
                 output += f"| {i} | {draft_file} | Error | - |\n"
         
+        log_tool_result("list_drafts", f"found {len(drafts)} drafts", success=True)
         return output
 
     @mcp.tool()
@@ -241,16 +272,21 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         Returns:
             Draft content organized by sections with word counts.
         """
+        log_tool_call("read_draft", {"filename": filename, "project": project})
+        
         if project:
             is_valid, error_msg = _validate_project_context(project)
             if not is_valid:
+                log_agent_misuse("read_draft", "valid project context required", {"project": project}, error_msg)
                 return error_msg
         
         if not os.path.isabs(filename):
             filename = os.path.join("drafts", filename)
         
         if not os.path.exists(filename):
-            return f"Error: Draft file not found: {filename}"
+            result = f"Error: Draft file not found: {filename}"
+            log_tool_result("read_draft", result, success=False)
+            return result
         
         try:
             with open(filename, 'r', encoding='utf-8') as f:
@@ -292,6 +328,8 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                     output += f"\n\n*... ({len(sec_content)} characters total)*"
                 output += "\n\n"
             
+            log_tool_result("read_draft", f"read {len(sections)} sections from {filename}", success=True)
             return output
         except Exception as e:
+            log_tool_error("read_draft", e, {"filename": filename})
             return f"Error reading draft: {str(e)}"

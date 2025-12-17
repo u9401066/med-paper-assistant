@@ -93,7 +93,26 @@ def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
     @mcp.prompt(name="concept", description="Develop research concept with literature-based gap analysis")
     def mdpaper_concept(topic: str) -> str:
         return f"""Topic: {topic}
-Flow: search_literature() → save_reference() → 確認 research gap → write_draft(concept.md) with 🔒NOVELTY + 🔒KEY SELLING POINTS"""
+
+🔍 文獻搜尋（使用 pubmed-search MCP）：
+1. mcp_pubmed-search_search_literature(query=topic) → 搜尋相關文獻
+2. mcp_pubmed-search_fetch_article_details(pmids) → 取得文章詳細資料
+3. 分析 research gap，向用戶說明發現
+
+📁 專案建立（使用 mdpaper MCP）：
+4. mcp_mdpaper_create_project(name="...", paper_type="original") → 建立專案
+5. mcp_mdpaper_save_reference(article=metadata) → 儲存關鍵參考文獻
+
+📝 概念撰寫：
+6. 使用 concept.md template 撰寫：
+   - Research Question（明確的研究問題）
+   - 🔒 NOVELTY STATEMENT（本研究的創新點 - 不可弱化）
+   - 🔒 KEY SELLING POINTS（賣點清單 - 必須全部保留）
+   - Gap Analysis（現有研究的不足）
+   - Proposed Approach（預計方法）
+7. mcp_mdpaper_write_draft(filename="concept.md", content=...) → 儲存
+
+⚠️ 重要：🔒 標記的內容在後續撰寫中不可刪除或弱化！"""
 
     # ========================================
     # /mdpaper.strategy - Configure search strategy
@@ -104,21 +123,41 @@ Flow: search_literature() → save_reference() → 確認 research gap → write
 詢問: exclusions, year range, article types, sample size → configure_search_strategy()"""
 
     # ========================================
-    # /mdpaper.search - Literature Exploration (NEW!)
+    # /mdpaper.search - Literature Exploration
     # ========================================
-    @mcp.prompt(name="search", description="Explore literature without formal project")
+    @mcp.prompt(name="search", description="Smart literature search with context awareness")
     def mdpaper_search(topic: str = "") -> str:
-        return f"""Topic: {topic or "（詢問用戶感興趣的主題）"}
+        return f"""Topic: {topic or "（從 context 推斷或詢問用戶）"}
 
-文獻探索工作流程：
-1. 如果沒有 active project → start_exploration() 建立探索工作區
-2. search_literature(query=topic) → 搜尋相關文獻
-3. 詢問用戶有興趣的論文 → save_reference(pmid) 保存
-4. find_related_articles() / find_citing_articles() → 擴展搜尋
-5. 詢問用戶：要繼續探索還是開始正式研究？
-6. 準備好時 → convert_exploration_to_project(name="...", paper_type="...")
+🔍 搜尋策略決策：
 
-💡 這個模式讓用戶「先找靈感，再定方向」"""
+【情境 A】有 active project + concept.md：
+1. mcp_mdpaper_get_current_project() → 確認專案
+2. mcp_mdpaper_read_draft(filename="concept.md") → 提取關鍵字
+3. 從 concept 提取：research question, PICO elements, key terms
+4. 向用戶確認搜尋策略
+
+【情境 B】無專案 / 純探索：
+1. mcp_mdpaper_start_exploration() → 建立探索工作區
+2. 詢問用戶搜尋條件
+
+📚 執行搜尋（使用 pubmed-search MCP）：
+- 快速搜尋：mcp_pubmed-search_search_literature(query=...)
+- PICO 搜尋：mcp_pubmed-search_parse_pico() → 並行 generate_search_queries() → 組合 Boolean
+- 精確搜尋：mcp_pubmed-search_generate_search_queries() → 取得 MeSH → 優化查詢
+- 擴展搜尋：mcp_pubmed-search_find_related_articles() / find_citing_articles()
+
+💾 儲存文獻（使用 mdpaper MCP）：
+- mcp_pubmed-search_fetch_article_details(pmids) → 取得 metadata
+- mcp_mdpaper_save_reference(article=metadata) → 儲存到專案
+
+🎯 快捷選項（詢問用戶）：
+- "快速找" → 直接 search_literature
+- "精確找" → generate_search_queries + MeSH
+- "PICO" → parse_pico workflow
+- "相關論文" → 從已存的 reference 延伸
+
+💡 Agent 協調 pubmed-search + mdpaper 是正確設計！"""
 
     # ========================================
     # /mdpaper.draft - Write paper section

@@ -8,12 +8,18 @@
 - Deprecated API 移除：save_reference_by_pmid_legacy
 - copilot-instructions.md 更新：新增 MCP 架構原則
 - README 更新：Python 3.11+、工具數量 46、新架構說明
+- save_reference JSON 解析修復：處理 MCP 傳遞 JSON 字串的情況
+- **MCP Tool Logging 系統建立**：
+  - `tool_logging.py`：log_tool_call, log_tool_result, log_agent_misuse
+  - 日誌存放在專案目錄 `{project}/logs/YYYYMMDD.log`（跨平台）
+  - 已為 draft/writing.py, project/crud.py, validation/concept.py, reference/manager.py 添加日誌
 
 ## Doing
 
-- Git 提交所有變更
+- 為其餘 MCP tools 添加日誌記錄
 
 ## Next
 
 - 測試新 reference 工作流程
-- 更新使用文件反映新 API
+- 重啟 MCP Server 測試日誌功能
+- 分析 Agent 錯誤使用工具的日誌模式

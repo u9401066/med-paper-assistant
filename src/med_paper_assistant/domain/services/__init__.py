@@ -17,6 +17,11 @@ from .novelty_scorer import (
     CONSISTENCY_CHECK_PROMPT,
     CITATION_SUPPORT_PROMPT,
 )
+from .reference_converter import (
+    ReferenceConverter,
+    StandardizedReference,
+    reference_converter,
+)
 
 __all__ = [
     "CitationFormatter",
@@ -29,4 +34,8 @@ __all__ = [
     "SELLING_POINTS_SCORING_PROMPT",
     "CONSISTENCY_CHECK_PROMPT",
     "CITATION_SUPPORT_PROMPT",
+    # Reference conversion
+    "ReferenceConverter",
+    "StandardizedReference",
+    "reference_converter",
 ]

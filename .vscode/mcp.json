@@ -21,6 +21,7 @@
       "command": "${workspaceFolder}/.venv/Scripts/python.exe",
       "args": ["-m", "pubmed_search.mcp"],
       "env": {
+        "PYTHONPATH": "${workspaceFolder}/integrations/pubmed-search-mcp/src",
         "ENTREZ_EMAIL": "medpaper@example.com"
       }
     },

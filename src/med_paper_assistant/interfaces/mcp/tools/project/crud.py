@@ -7,6 +7,7 @@ Create, List, Switch, Get Current project operations.
 from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.domain.paper_types import get_paper_type_dict
+from .._shared import log_tool_call, log_tool_result, log_agent_misuse, log_tool_error
 
 
 def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
@@ -57,19 +58,23 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
         Returns:
             Project creation result with paths.
         """
-        result = project_manager.create_project(
-            name=name,
-            description=description,
-            target_journal=target_journal,
-            paper_type=paper_type,
-            memo=memo
-        )
+        log_tool_call("create_project", {"name": name, "description": description, "paper_type": paper_type})
         
-        if result.get("success"):
-            type_info = get_paper_type_dict(paper_type) if paper_type else {}
-            type_name = type_info.get("name", "Not specified")
+        try:
+            result = project_manager.create_project(
+                name=name,
+                description=description,
+                target_journal=target_journal,
+                paper_type=paper_type,
+                memo=memo
+            )
             
-            return f"""✅ Project Created Successfully!
+            if result.get("success"):
+                type_info = get_paper_type_dict(paper_type) if paper_type else {}
+                type_name = type_info.get("name", "Not specified")
+                
+                log_tool_result("create_project", f"created project slug={result['slug']}", success=True)
+                return f"""✅ Project Created Successfully!
 
 📁 **Project:** {name}
 🔖 **Slug:** {result['slug']}
@@ -95,8 +100,12 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
 2. Edit `concept.md` to define your research
 3. Use `/mdpaper.concept` to develop with literature support
 """
-        else:
-            return f"❌ Error: {result.get('error', 'Unknown error')}"
+            else:
+                log_tool_result("create_project", result.get('error', 'Unknown error'), success=False)
+                return f"❌ Error: {result.get('error', 'Unknown error')}"
+        except Exception as e:
+            log_tool_error("create_project", e, {"name": name, "paper_type": paper_type})
+            return f"❌ Error creating project: {str(e)}"
 
     @mcp.tool()
     def list_projects() -> str:
@@ -108,11 +117,14 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
         Returns:
             Formatted list of all projects.
         """
+        log_tool_call("list_projects", {})
+        
         result = project_manager.list_projects()
         projects = result.get("projects", [])
         current = result.get("current")
         
         if not projects:
+            log_tool_result("list_projects", "no projects found", success=True)
             return """📭 No projects found.
 
 Use `create_project` to start a new research paper project:
@@ -139,6 +151,7 @@ create_project(name="My Research Topic", description="Brief description")
         if current:
             lines.append(f"**Current:** {current}")
         
+        log_tool_result("list_projects", f"found {len(projects)} projects", success=True)
         return "\n".join(lines)
 
     @mcp.tool()
@@ -155,10 +168,13 @@ create_project(name="My Research Topic", description="Brief description")
         Returns:
             Project info after switching.
         """
+        log_tool_call("switch_project", {"slug": slug})
+        
         result = project_manager.switch_project(slug)
         
         if result.get("success"):
             stats = result.get("stats", {})
+            log_tool_result("switch_project", f"switched to {slug}", success=True)
             return f"""✅ Switched to: **{result.get('name', slug)}**
 
 **Status:** {result.get('status', 'unknown')}
@@ -176,6 +192,7 @@ create_project(name="My Research Topic", description="Brief description")
 """
         else:
             available = result.get("available_projects", [])
+            log_agent_misuse("switch_project", "valid project slug required", {"slug": slug}, f"available: {available}")
             return f"""❌ Project '{slug}' not found.
 
 **Available projects:** {', '.join(available) if available else 'None'}
@@ -191,12 +208,15 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
         Returns:
             Current project details including paths and statistics.
         """
+        log_tool_call("get_current_project", {})
+        
         result = project_manager.get_project_info()
         
         if result.get("success"):
             stats = result.get("stats", {})
             paths = result.get("paths", {})
             
+            log_tool_result("get_current_project", f"current: {result.get('slug')}", success=True)
             return f"""# 📁 Current Project: {result.get('name', 'Unknown')}
 
 **Slug:** {result.get('slug')}
@@ -222,6 +242,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 {result.get('target_journal', 'Not specified')}
 """
         else:
+            log_tool_result("get_current_project", result.get('error', 'No project selected'), success=False)
             return f"""⚠️ {result.get('error', 'No project selected')}
 
 **Quick Start:**
@@ -241,10 +262,13 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
         Returns:
             Dictionary of path names to absolute paths.
         """
+        log_tool_call("get_project_paths", {})
+        
         try:
             paths = project_manager.get_project_paths()
             current = project_manager.get_current_project()
             
+            log_tool_result("get_project_paths", f"paths for {current}", success=True)
             return f"""# 📂 Project Paths: {current}
 
 | Purpose | Path |
@@ -264,4 +288,5 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 - Export results to: `{paths['results']}/paper.docx`
 """
         except ValueError as e:
+            log_tool_error("get_project_paths", e, {})
             return f"⚠️ {str(e)}\n\nUse `create_project` or `switch_project` first."
