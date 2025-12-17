@@ -58,6 +58,14 @@ class ReferenceManager:
         """
         Save a reference with provided article metadata.
         
+        檔案結構 (2025-12 重構):
+        ```
+        references/
+        └── {unique_id}/
+            ├── {citation_key}.md   ← 主檔案，包含 YAML frontmatter + 內容
+            └── metadata.json       ← 程式用完整 metadata
+        ```
+        
         支援來源：
         - PubMed (需要 pmid 欄位)
         - Zotero (需要 key 或 zotero_key 欄位)
@@ -89,17 +97,19 @@ class ReferenceManager:
         ref_dict = ref.to_dict()
         ref_dict['citation'] = self._format_citation(ref_dict)
         
-        # Save metadata
+        # Save metadata.json (for programmatic access)
         with open(os.path.join(ref_dir, "metadata.json"), "w", encoding="utf-8") as f:
             json.dump(ref_dict, f, indent=2, ensure_ascii=False)
             
-        # Save content (Markdown) - main file for Foam preview
+        # Save main .md file with citation_key as filename (for Foam)
+        # This allows [[citation_key]] to work directly as a wikilink
         content = self._generate_content_md(ref_dict)
-        with open(os.path.join(ref_dir, "content.md"), "w", encoding="utf-8") as f:
+        md_filename = f"{ref.citation_key}.md"
+        with open(os.path.join(ref_dir, md_filename), "w", encoding="utf-8") as f:
             f.write(content)
         
-        # Create Foam-friendly alias file
-        self._create_foam_alias(ref.unique_id, ref.citation_key)
+        # No need for separate alias file - aliases are in frontmatter
+        # Foam will recognize [[citation_key]] via the filename and aliases
         
         foam_tip = f"\n💡 Foam: Use [[{ref.citation_key}]] to link this reference."
         source_info = f" (source: {ref.source})"
@@ -359,6 +369,11 @@ class ReferenceManager:
         Generate markdown content for the reference.
         Optimized for Foam hover preview - shows citation formats at the top.
         
+        檔案結構重構 (2025-12):
+        - aliases 放在 frontmatter 中，供 Foam 識別
+        - citation formats 也放在 frontmatter
+        - 人類可讀內容在 body
+        
         Args:
             article: Article metadata dictionary.
             
@@ -366,20 +381,68 @@ class ReferenceManager:
             Markdown formatted content string.
         """
         pmid = article.get('pmid', '')
+        unique_id = article.get('unique_id', pmid)
         title = article.get('title', 'Unknown Title')
+        citation_key = article.get('citation_key', '')
         
         # YAML frontmatter for Foam (enables better linking)
         content = "---\n"
-        content += f"pmid: \"{pmid}\"\n"
-        content += f"type: reference\n"
+        
+        # Aliases for Foam wikilinks - critical for [[citation_key]] to work
+        content += "aliases:\n"
+        if citation_key:
+            content += f"  - {citation_key}\n"  # e.g., greer2017_27345583
+        if pmid:
+            content += f'  - "PMID:{pmid}"\n'   # e.g., PMID:27345583
+            content += f'  - "{pmid}"\n'         # e.g., 27345583
+        content += "type: reference\n"
+        content += f'source: "{article.get("source", "pubmed")}"\n\n'
+        
+        # Bibliographic info
+        content += f'pmid: "{pmid}"\n'
         content += f"year: {article.get('year', '')}\n"
         if article.get('doi'):
-            content += f"doi: \"{article['doi']}\"\n"
+            content += f'doi: "{article["doi"]}"\n'
+        if article.get('pmc_id'):
+            content += f'pmc: "{article["pmc_id"]}"\n'
+        
         # First author last name for easy referencing
         authors_full = article.get('authors_full', [])
         if authors_full and isinstance(authors_full[0], dict):
             first_author = authors_full[0].get('last_name', '')
-            content += f"first_author: \"{first_author}\"\n"
+            content += f'first_author: "{first_author}"\n'
+        
+        # Journal info
+        content += f'\njournal: "{article.get("journal", "")}"\n'
+        if article.get('volume'):
+            content += f'volume: "{article.get("volume")}"\n'
+        if article.get('issue'):
+            content += f'issue: "{article.get("issue")}"\n'
+        if article.get('pages'):
+            content += f'pages: "{article.get("pages")}"\n'
+        
+        # Pre-formatted citations in frontmatter (easy to copy)
+        citation = article.get('citation', {})
+        if citation:
+            content += "\n# Pre-formatted citations\n"
+            content += "cite:\n"
+            if citation.get('vancouver'):
+                # Escape quotes in citation
+                vancouver = citation['vancouver'].replace('"', '\\"')
+                content += f'  vancouver: "{vancouver}"\n'
+            if citation.get('apa'):
+                apa = citation['apa'].replace('"', '\\"')
+                content += f'  apa: "{apa}"\n'
+            if citation.get('nature'):
+                nature = citation['nature'].replace('"', '\\"')
+                content += f'  nature: "{nature}"\n'
+            if citation.get('in_text'):
+                content += f'  inline: "{citation["in_text"]}"\n'
+            content += "  number: null  # Assigned during export\n"
+        
+        # Metadata
+        import datetime
+        content += f'\nsaved_at: "{datetime.datetime.now().isoformat()}"\n'
         content += "---\n\n"
         
         content += f"# {title}\n\n"

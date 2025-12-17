@@ -367,16 +367,16 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
     @mcp.tool()
     def rebuild_foam_aliases(project: Optional[str] = None) -> str:
         """
-        Rebuild Foam alias files for all references in a project.
+        Rebuild Foam-compatible files for all references in a project.
         
-        Use this to create Foam-compatible wikilink files for existing references
-        that were saved before the Foam integration was added.
+        新結構 (2025-12 重構):
+        將舊的 content.md 轉換為 {citation_key}.md，並加入 aliases frontmatter。
         
         Args:
             project: Project slug. If not specified, uses current project.
             
         Returns:
-            Summary of created alias files.
+            Summary of migrated files.
         """
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
@@ -387,8 +387,9 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
         if not os.path.exists(refs_dir):
             return f"❌ References directory not found: {refs_dir}"
         
-        created = []
+        migrated = []
         skipped = []
+        errors = []
         
         for pmid_dir in os.listdir(refs_dir):
             pmid_path = os.path.join(refs_dir, pmid_dir)
@@ -399,27 +400,61 @@ def register_reference_manager_tools(mcp: FastMCP, ref_manager: ReferenceManager
             if not metadata:
                 continue
             
-            citation_key = ref_manager._generate_citation_key(metadata)
-            alias_path = os.path.join(refs_dir, f"{citation_key}.md")
+            citation_key = metadata.get('citation_key') or ref_manager._generate_citation_key(metadata)
+            new_md_path = os.path.join(pmid_path, f"{citation_key}.md")
+            old_content_path = os.path.join(pmid_path, "content.md")
             
-            if os.path.exists(alias_path):
+            # Check if new format already exists
+            if os.path.exists(new_md_path):
                 skipped.append(citation_key)
                 continue
             
-            # Create alias
-            ref_manager._create_foam_alias(pmid_dir, citation_key)
-            created.append(citation_key)
+            try:
+                # Regenerate content with new format (includes aliases)
+                metadata['citation'] = ref_manager._format_citation(metadata)
+                metadata['citation_key'] = citation_key
+                content = ref_manager._generate_content_md(metadata)
+                
+                # Write new file
+                with open(new_md_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+                # Remove old content.md if exists
+                if os.path.exists(old_content_path):
+                    os.remove(old_content_path)
+                
+                migrated.append(citation_key)
+                
+            except Exception as e:
+                errors.append(f"{pmid_dir}: {str(e)}")
         
-        output = f"📚 **Foam Alias Rebuild Complete**\n\n"
-        output += f"✅ Created: {len(created)} new aliases\n"
-        output += f"⏭️ Skipped: {len(skipped)} (already exist)\n\n"
+        # Clean up old root-level alias files
+        root_aliases_removed = 0
+        for filename in os.listdir(refs_dir):
+            if filename.endswith('.md') and not os.path.isdir(os.path.join(refs_dir, filename)):
+                try:
+                    os.remove(os.path.join(refs_dir, filename))
+                    root_aliases_removed += 1
+                except Exception:
+                    pass
         
-        if created:
-            output += "**New aliases:**\n"
-            for key in created[:10]:
+        output = f"📚 **Foam Migration Complete**\n\n"
+        output += f"✅ Migrated: {len(migrated)} references\n"
+        output += f"⏭️ Skipped: {len(skipped)} (already new format)\n"
+        if root_aliases_removed:
+            output += f"🧹 Cleaned: {root_aliases_removed} old root aliases\n"
+        
+        if errors:
+            output += f"\n⚠️ Errors: {len(errors)}\n"
+            for err in errors[:5]:
+                output += f"  - {err}\n"
+        
+        if migrated:
+            output += "\n**Migrated references:**\n"
+            for key in migrated[:10]:
                 output += f"- `[[{key}]]`\n"
-            if len(created) > 10:
-                output += f"- ... and {len(created) - 10} more\n"
+            if len(migrated) > 10:
+                output += f"- ... and {len(migrated) - 10} more\n"
         
-        output += "\n💡 Now you can use `[[author_year_pmid]]` in your drafts for hover preview!"
+        output += "\n💡 New structure: `references/{pmid}/{citation_key}.md` with aliases in frontmatter"
         return output
