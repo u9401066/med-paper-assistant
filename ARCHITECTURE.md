@@ -8,40 +8,78 @@ MedPaper Assistant is an MCP (Model Context Protocol) server that helps research
 
 ```mermaid
 flowchart TB
+    subgraph User["👤 User Layer"]
+        VSCode["VS Code"]
+        Foam["Foam Extension<br/>[[wikilinks]], hover, backlinks"]
+    end
+    
     subgraph Agent["🤖 VS Code Copilot Agent"]
-        Prompt["User Prompt<br/>/mdpaper.search, /mdpaper.concept"]
+        Prompt["User Prompt<br/>/mdpaper.search<br/>/mdpaper.concept<br/>/mdpaper.draft"]
+        Orchestrator["Orchestrator<br/>Coordinates MCP calls"]
     end
     
     subgraph MCPs["MCP Servers (stdio)"]
         subgraph mdpaper["📝 mdpaper (this project)"]
-            PM["Project Manager"]
-            RM["Reference Manager"]
-            DM["Draft Manager"]
-            WE["Word Export"]
+            direction TB
+            PM["🗂️ Project Manager<br/>create, switch, list"]
+            RM["📚 Reference Manager<br/>save, search, format"]
+            DM["✍️ Draft Manager<br/>write, cite, validate"]
+            AN["📊 Analyzer<br/>stats, Table 1, plots"]
+            WE["📄 Word Export<br/>template, insert, save"]
         end
         
-        subgraph pubmed["🔍 pubmed-search-mcp"]
+        subgraph pubmed["🔍 pubmed-search-mcp<br/>(submodule)"]
             Search["search_literature"]
             Fetch["fetch_article_details"]
+            PICO["parse_pico"]
             Related["find_related/citing"]
+            Session["session management"]
         end
         
-        subgraph external["🔌 External MCPs"]
-            Drawio["drawio (uvx)"]
-            Zotero["zotero-keeper (uvx)"]
-            CGU["cgu (submodule)"]
+        subgraph cgu["💡 cgu<br/>(submodule)"]
+            Ideas["generate_ideas"]
+            Think["deep_think"]
+            Methods["apply_method"]
+        end
+        
+        subgraph external["🔌 External MCPs (uvx)"]
+            Drawio["🎨 drawio<br/>CONSORT/PRISMA diagrams"]
+            Zotero["📖 zotero-keeper<br/>import from Zotero"]
         end
     end
     
-    Prompt --> |"1. search"| pubmed
-    pubmed --> |"2. article metadata"| Agent
-    Agent --> |"3. save_reference(article)"| RM
+    subgraph Storage["💾 Local Storage"]
+        Projects["projects/{slug}/<br/>concept.md<br/>drafts/<br/>references/<br/>data/<br/>results/"]
+    end
     
-    Prompt --> |"create diagram"| Drawio
-    Prompt --> |"import from Zotero"| Zotero
-    Zotero --> |"article data"| Agent
-    Agent --> |"save_reference(article)"| RM
+    VSCode --> Foam
+    Foam --> |"[[citation_key]]"| Projects
+    VSCode --> Agent
+    
+    Prompt --> Orchestrator
+    Orchestrator --> |"search"| pubmed
+    Orchestrator --> |"save/cite"| mdpaper
+    Orchestrator --> |"brainstorm"| cgu
+    Orchestrator --> |"diagram"| Drawio
+    Orchestrator --> |"import"| Zotero
+    
+    pubmed --> |"article metadata"| Orchestrator
+    Zotero --> |"item data"| Orchestrator
+    Orchestrator --> |"save_reference()"| RM
+    
+    mdpaper --> Projects
 ```
+
+### Complete Integration Stack
+
+| Component | Type | Purpose | Tools/Features |
+|-----------|------|---------|----------------|
+| **mdpaper** | Core MCP | Paper writing orchestration | 46 tools: projects, references, drafts, analysis, export |
+| **pubmed-search** | Submodule | Literature search | 20+ tools: search, PICO, citations, session |
+| **cgu** | Submodule | Creative thinking | Ideas generation, deep think, methods |
+| **drawio** | External (uvx) | Diagram generation | CONSORT, PRISMA flowcharts |
+| **zotero-keeper** | External (uvx) | Reference import | Import from Zotero library |
+| **Foam** | VS Code Extension | Reference linking | Wikilinks, hover preview, backlinks, graph |
 
 ### Key Design Principle
 

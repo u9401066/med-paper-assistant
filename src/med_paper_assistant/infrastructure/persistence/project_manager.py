@@ -171,6 +171,9 @@ class ProjectManager:
         """
         Switch to an existing project.
         
+        Also updates Foam settings to isolate this project's references
+        from other projects.
+        
         Args:
             slug: Project slug (directory name).
             
@@ -188,7 +191,43 @@ class ProjectManager:
             }
         
         self._save_current_project(slug)
-        return self.get_project_info(slug)
+        
+        # Update Foam settings for project isolation
+        foam_result = self._update_foam_settings(slug)
+        
+        project_info = self.get_project_info(slug)
+        
+        # Add Foam update info
+        if foam_result.get("success"):
+            project_info["foam_isolation"] = {
+                "enabled": True,
+                "ignored_projects": foam_result.get("ignored_projects", [])
+            }
+        
+        return project_info
+    
+    def _update_foam_settings(self, slug: str) -> Dict[str, Any]:
+        """
+        Update Foam VS Code settings for project isolation.
+        
+        Args:
+            slug: Current project slug.
+            
+        Returns:
+            Result of Foam settings update.
+        """
+        try:
+            from ..services.foam_settings import FoamSettingsManager
+            
+            # workspace_root is parent of projects_dir
+            workspace_root = self.projects_dir.parent
+            foam_manager = FoamSettingsManager(workspace_root)
+            return foam_manager.update_for_project(slug)
+        except Exception as e:
+            # Non-fatal: log but don't fail the switch
+            import logging
+            logging.getLogger(__name__).warning(f"Foam settings update failed: {e}")
+            return {"success": False, "error": str(e)}
     
     def delete_project(self, slug: str, confirm: bool = False) -> Dict[str, Any]:
         """
