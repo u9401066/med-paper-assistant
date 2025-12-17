@@ -22,6 +22,22 @@ from .reference_converter import (
     StandardizedReference,
     reference_converter,
 )
+from .wikilink_validator import (
+    WikilinkIssue,
+    WikilinkValidationResult,
+    validate_wikilink,
+    validate_wikilinks_in_content,
+    validate_wikilinks_in_file,
+    find_citation_key_for_pmid,
+)
+from .pre_analysis_checklist import (
+    CheckStatus,
+    CheckItem,
+    ChecklistResult,
+    PreAnalysisChecker,
+    check_pre_analysis_readiness,
+    check_pre_analysis_file,
+)
 
 __all__ = [
     "CitationFormatter",
@@ -38,4 +54,18 @@ __all__ = [
     "ReferenceConverter",
     "StandardizedReference",
     "reference_converter",
+    # Wikilink validation
+    "WikilinkIssue",
+    "WikilinkValidationResult",
+    "validate_wikilink",
+    "validate_wikilinks_in_content",
+    "validate_wikilinks_in_file",
+    "find_citation_key_for_pmid",
+    # Pre-analysis checklist
+    "CheckStatus",
+    "CheckItem",
+    "ChecklistResult",
+    "PreAnalysisChecker",
+    "check_pre_analysis_readiness",
+    "check_pre_analysis_file",
 ]

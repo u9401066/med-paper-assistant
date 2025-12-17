@@ -48,6 +48,27 @@
 - **Reference 內容順序優化 (2025-12-17)** ✅：
   - Abstract 移到 Citation Formats 之前
   - Foam hover preview 現在優先顯示 Abstract（更實用）
+- **Project Memory 系統 (2025-12-17)** ✅：
+  - `projects/{slug}/.memory/` 目錄結構
+  - `activeContext.md` Agent 工作記憶
+  - `progress.md` 研究進度追蹤
+  - CONSTITUTION v1.2.0 第八章規範強制更新
+- **Wikilink 自動驗證/修復系統 (2025-12-17)** ✅：
+  - 新增 `wikilink_validator.py` 核心模組
+  - 正確格式：`[[author2024_12345678]]`
+  - 自動修復錯誤格式：`[[12345678]]` → 查找並補上 author_year
+  - **整合點 A**: `validate_concept()` - 驗證時自動修復
+  - **整合點 B**: `write_draft()` - 寫入時 pre-check
+  - **整合點 C**: `insert_section()` - Export 時 pre-check
+  - **整合點 D**: Skill 文檔更新格式規範
+  - 新工具：`validate_wikilinks()` - 手動檢查指定檔案
+- **Pre-Analysis Checklist 系統 (2025-12-17)** ✅：
+  - 新增 `pre_analysis_checklist.py` domain service
+  - 檢查 concept.md 在進入分析前的完整度
+  - 必要區塊：Study Design, Participants, Sample Size, Outcomes
+  - 建議區塊：Statistical Analysis, IRB, Target Journal
+  - 更新 `concept-development/SKILL.md` 加入 Phase C: Pre-Analysis Checklist
+  - ROADMAP 新增 Phase 4: Methods & Analysis Preparation
 
 ## Doing
 
@@ -58,3 +79,6 @@
 - Migration script 更新現有參考文獻到新格式
 - 批量更新舊 reference 的內容順序（Abstract 在前）
 - 加入環境變數 `PUBMED_MCP_API_URL` 配置
+- **Outcome Definition Templates** - 操作型定義模板庫
+- **Sample Size Calculator** - 內建 power calculation 工具
+- **CRF Generator** - 自動生成資料收集表單

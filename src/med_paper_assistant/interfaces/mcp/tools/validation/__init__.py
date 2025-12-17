@@ -1,9 +1,9 @@
 """
 Validation Tools Module
 
-Provides tools for validating concepts and ideas.
+Provides tools for validating concepts, ideas, and wikilink formats.
 Split into submodules:
-- concept: validate_concept, validate_concept_quick
+- concept: validate_concept, validate_concept_quick, validate_wikilinks
 - idea: (future) validate_hypothesis, check_feasibility
 """
 

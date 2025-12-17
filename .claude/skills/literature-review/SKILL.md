@@ -108,6 +108,10 @@ description: 系統性文獻搜尋、篩選、下載、整理的完整工作流�
 # 確認當前專案
 呼叫：get_current_project()
 
+# ⭐ 讀取專案記憶（了解之前做了什麼）
+讀取：projects/{slug}/.memory/activeContext.md
+讀取：projects/{slug}/.memory/progress.md
+
 # 如果沒有專案，可以先開始探索
 呼叫：start_exploration()
 
@@ -245,6 +249,30 @@ description: 系統性文獻搜尋、篩選、下載、整理的完整工作流�
 
 # 檢查全文可用性
 呼叫：analyze_fulltext_access(pmids="last")
+```
+
+---
+
+### Phase 6: ⭐ 更新專案記憶
+
+**關鍵：每次文獻回顧後必須更新！**
+
+```
+# 更新 activeContext.md - 記錄搜尋策略和發現
+寫入：projects/{slug}/.memory/activeContext.md
+
+內容更新：
+- Current Focus: 文獻回顧進度
+- Recent Decisions: 選擇哪些搜尋策略、篩選標準
+- Key References: 找到的關鍵文獻及其重要性
+- Memo / Notes: Agent 對文獻整體的觀察
+
+# 更新 progress.md - 勾選完成項目
+寫入：projects/{slug}/.memory/progress.md
+
+勾選：
+- [x] Literature review
+- [x] Identify research gap
 ```
 
 ---

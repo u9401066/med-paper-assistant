@@ -11,6 +11,7 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
+from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 from .._shared import ensure_project_context, get_project_list_for_prompt, log_tool_call, log_tool_result, log_agent_misuse, log_tool_error
 
 
@@ -84,6 +85,28 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
         f"✅ Concept validation passed (Novelty score: {result.novelty_average:.1f}/100)",
         protected_content
     )
+
+
+def _validate_wikilinks_in_content(content: str, references_dir: Optional[str] = None) -> tuple:
+    """
+    驗證內容中的 wikilinks 並自動修復。
+    
+    Returns:
+        Tuple of (fixed_content: str, report: str or None)
+    """
+    result, fixed_content = validate_wikilinks_in_content(
+        content,
+        references_dir=references_dir,
+        auto_fix=True
+    )
+    
+    report = None
+    if result.auto_fixed > 0:
+        report = f"🔧 自動修復 {result.auto_fixed} 個 wikilink 格式錯誤"
+    elif result.issues:
+        report = result.to_report()
+    
+    return fixed_content, report
 
 
 def _validate_project_context(project: Optional[str]) -> tuple:
@@ -189,8 +212,18 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 log_tool_result("write_draft", "concept validation failed", success=False)
                 return message
         
+        # 🔧 Pre-check: 驗證並修復 wikilink 格式
+        references_dir = None
+        from med_paper_assistant.infrastructure.persistence import get_project_manager
+        pm = get_project_manager()
+        current = pm.get_current_project()
+        if current.get("project_path"):
+            references_dir = os.path.join(current["project_path"], "references")
+        
+        fixed_content, wikilink_report = _validate_wikilinks_in_content(content, references_dir)
+        
         try:
-            path = drafter.create_draft(filename, content)
+            path = drafter.create_draft(filename, fixed_content)
             
             reminder = ""
             if not is_concept_file:
@@ -200,6 +233,10 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                     "- 🔒 KEY SELLING POINTS must be emphasized in Discussion\n"
                     "- Ask user before modifying any protected content"
                 )
+            
+            # 附加 wikilink 修復報告
+            if wikilink_report:
+                reminder += f"\n\n{wikilink_report}"
             
             result = f"Draft created successfully at: {path}{reminder}"
             log_tool_result("write_draft", result, success=True)

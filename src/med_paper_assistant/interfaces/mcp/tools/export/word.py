@@ -9,6 +9,7 @@ import json
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import Formatter, TemplateReader, WordWriter
+from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 
 
 # Global state for document editing sessions
@@ -147,7 +148,15 @@ def register_word_export_tools(
             session = _active_documents[session_id]
             doc = session["doc"]
             
-            paragraphs = [p for p in content.split('\n') if p.strip()]
+            # 🔧 Pre-check: 驗證並修復 wikilink 格式
+            result, fixed_content = validate_wikilinks_in_content(content, auto_fix=True)
+            wikilink_note = ""
+            if result.auto_fixed > 0:
+                wikilink_note = f"\n🔧 自動修復 {result.auto_fixed} 個 wikilink 格式錯誤"
+            elif result.issues:
+                wikilink_note = f"\n⚠️ 發現 {len(result.issues)} 個 wikilink 格式問題，請檢查"
+            
+            paragraphs = [p for p in fixed_content.split('\n') if p.strip()]
             clear_existing = (mode == "replace")
             
             count = word_writer.insert_content_in_section(
@@ -162,7 +171,7 @@ def register_word_export_tools(
             
             word_count = word_writer.count_words_in_section(doc, section_name)
             
-            return f"✅ Inserted {count} paragraphs into '{section_name}' ({word_count} words)"
+            return f"✅ Inserted {count} paragraphs into '{section_name}' ({word_count} words){wikilink_note}"
         except Exception as e:
             return f"Error inserting section: {str(e)}"
 

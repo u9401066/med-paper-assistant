@@ -62,6 +62,94 @@ Just type these in Copilot Chat to get started:
 
 ---
 
+## 🧠 Skill System + Project Memory
+
+**This is our core differentiator:** We don't just provide tools—we provide **guided workflows** that know how to combine tools effectively, AND **project memory** that remembers your research journey.
+
+### What is a Skill?
+
+```
+Tool (工具) = Single capability (search, save, analyze...)
+Skill (技能) = Complete knowledge (how to combine tools to accomplish tasks)
+```
+
+| Skill | Triggers | What It Does |
+|-------|----------|--------------|
+| **literature-review** | "文獻回顧", "找論文", "systematic review" | Full literature search workflow |
+| **concept-development** | "發展概念", "concept", "幫我補充" | Develop & strengthen research concepts |
+| **parallel-search** | "並行搜尋", "擴展搜尋" | Multi-query parallel search |
+
+### ⭐ Concept Assist Workflow (New!)
+
+When you say "幫我補充 concept", the agent will:
+
+1. **Read Project Memory** - Understand previous thoughts and progress
+2. **Analyze with CGU** - Use `deep_think` to find gaps
+3. **Search Literature** - Find supporting evidence
+4. **Insert Citations** - Using Foam wikilinks `[[citation_key]]`
+5. **Update Memory** - Record decisions and thoughts
+
+```
+User: "幫我補充這個研究概念"
+         │
+         ▼
+┌─────────────────────────────────────────────────────────┐
+│  1. Read .memory/activeContext.md                       │
+│     → Understand: What was the previous focus?          │
+│     → Check: What decisions were made?                  │
+│                                                         │
+│  2. Read concept.md                                     │
+│     → Analyze current state                             │
+│                                                         │
+│  3. CGU Deep Think                                      │
+│     → Identify gaps and weak points                     │
+│     → Suggest strengthening directions                  │
+│                                                         │
+│  4. Search & Save References                            │
+│     → save_reference_mcp(pmid, agent_notes)             │
+│                                                         │
+│  5. Insert Citations with Foam Wikilinks                │
+│     → [[ruetzler2024_38497992]]                         │
+│                                                         │
+│  6. Update .memory/                                     │
+│     → Record: What was done, what decisions made        │
+│     → Note: Agent's thoughts on this research           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 📁 Project Memory Structure
+
+Each project has its own `.memory/` folder:
+
+```
+projects/{slug}/
+├── .memory/
+│   ├── activeContext.md   ← Agent's working memory
+│   └── progress.md        ← Research milestones
+├── concept.md
+├── references/
+└── drafts/
+```
+
+**activeContext.md** tracks:
+
+| Section | Purpose |
+|---------|---------|
+| **Current Focus** | What are we working on now? |
+| **Recent Decisions** | Why did we choose this direction? |
+| **Key References** | Important papers and why they matter |
+| **Blockers / Questions** | Issues to resolve |
+| **Memo / Notes** | Agent's thoughts and suggestions |
+
+**Why This Matters:**
+
+- 🔄 **Cross-session continuity** - New conversations continue previous work
+- 📝 **Research evolution** - Track why you chose this direction
+- 🤖 **Agent perspective** - AI's thoughts on your research
+- 👥 **Collaboration** - Shared context across sessions
+
+---
+
 ## ✨ Key Features
 
 | Feature | Description |

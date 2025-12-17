@@ -26,7 +26,7 @@
 
 ---
 
-## 第二章：Memory Bank 原則
+## 第二章：Memory Bank 原則（專案層級）
 
 ### 第 4 條：操作綁定
 1. 每次重要操作必須同步更新 Memory Bank
@@ -44,6 +44,48 @@
 | 開始任務 | progress.md (Doing), activeContext.md |
 | 重大決策 | decisionLog.md |
 | 架構變更 | architect.md, systemPatterns.md |
+
+---
+
+## 第二點五章：Project Memory 原則（研究專案層級）
+
+### 第 5.1 條：Project Memory 強制更新 ⚠️
+
+**每個研究專案有獨立的 `.memory/` 資料夾：**
+
+```
+projects/{slug}/.memory/
+├── activeContext.md   ← Agent 的工作記憶
+└── progress.md         ← 研究進度追蹤
+```
+
+**強制規則：**
+1. **每次對話結束時必須主動更新** `.memory/activeContext.md`
+2. 開始工作前必須先讀取 `.memory/` 了解上下文
+3. Agent 的想法和建議必須記錄在 Memo / Notes 區塊
+
+### 第 5.2 條：activeContext.md 區塊定義
+
+| 區塊 | 內容 | 更新頻率 |
+|------|------|----------|
+| **Project Settings** | Paper type, sections | 專案建立時 |
+| **User Preferences** | 互動風格、語言 | 用戶表達偏好時 |
+| **Current Focus** | 目前在做什麼 | **每次對話** |
+| **Recent Decisions** | 重要決定 | 做出決策時 |
+| **Key References** | 關鍵文獻 | 發現重要文獻時 |
+| **Blockers / Questions** | 待解決問題 | 遇到問題時 |
+| **Memo / Notes** | Agent 想法 | 有想法時 |
+
+### 第 5.3 條：Project Memory 目的
+
+1. **跨 session 連續性** - 新對話能繼續之前的思路
+2. **研究演變記錄** - 為什麼選這個方向、排除了什麼
+3. **Agent 觀點保存** - AI 對研究的看法和建議
+4. **協作記錄** - 多人或多次對話的共享上下文
+
+> 💡 **名言：「對話結束前，先更新 .memory/！」**
+>
+> 這樣下次對話就能繼續之前的思路，不會忘記對這個研究的看法。
 
 ---
 
@@ -213,4 +255,14 @@
 ### 第 19 條：修憲程序
 1. 修改憲法須在 decisionLog.md 記錄原因
 2. 重大修改須更新版本號
-3. 本憲法版本：v1.1.0
+3. 本憲法版本：v1.2.0
+
+---
+
+## 修憲記錄
+
+| 版本 | 日期 | 變更 |
+|------|------|------|
+| v1.2.0 | 2025-12-17 | 新增第二點五章 Project Memory 原則 |
+| v1.1.0 | - | 新增第三點五章開發哲學 |
+| v1.0.0 | - | 初始版本 |

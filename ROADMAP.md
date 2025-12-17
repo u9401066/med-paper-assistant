@@ -33,6 +33,9 @@
 | Foam Integration | Wikilinks、Hover Preview、Backlinks | 2025-12-03 |
 | Citation Keys | `author_year_pmid` 格式 | 2025-12-03 |
 | Project File Mgmt | Dashboard 專案切換增強 | 2025-12-03 |
+| Wikilink Validator | 自動驗證/修復 wikilink 格式 | 2025-12-17 |
+| Project Memory | `.memory/` 專案記憶系統 | 2025-12-17 |
+| Pre-Analysis Checklist | concept→analysis 前置檢查 | 2025-12-17 |
 
 ---
 
@@ -47,7 +50,17 @@
 
 ## 📋 規劃中 (Planned)
 
-### Phase 4: API & Deployment
+### Phase 4: Methods & Analysis Preparation
+**強化 concept → analysis 的流程**
+
+| Feature | Description | Use Case |
+|---------|-------------|----------|
+| **Outcome Definition Templates** | 操作型定義模板庫 | 標準化測量方法 |
+| **Sample Size Calculator** | 內建 power calculation | 根據文獻自動建議 |
+| **CRF Generator** | 資料收集表單生成 | 根據 concept 自動產出 |
+| **IRB Template** | IRB 申請文件模板 | 快速準備倫理審查 |
+
+### Phase 6: API & Deployment
 **參考 medical-calc-mcp 的部署架構**
 
 | Feature | Description | Use Case |
@@ -67,7 +80,7 @@
 └─────────────────┴─────────────────┴─────────────────────────┘
 ```
 
-### Phase 5: Collaboration & Review
+### Phase 7: Collaboration & Review
 
 | Feature | Description |
 |---------|-------------|

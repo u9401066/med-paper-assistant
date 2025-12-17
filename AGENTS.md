@@ -61,20 +61,72 @@ uv add --dev pytest ruff
 
 詳見：`.github/bylaws/python-environment.md`
 
-### Memory Bank 同步
+### Memory Bank 同步（專案層級）
 
 **⚠️ 強制寫入位置：`memory-bank/`**
 
 每次重要操作必須更新 Memory Bank：
 
 | 操作 | 更新文件 |
-|------|----------|
+|------|---------|
 | 完成任務 | `memory-bank/progress.md` (Done) |
 | 開始任務 | `memory-bank/progress.md` (Doing), `memory-bank/activeContext.md` |
 | 重大決策 | `memory-bank/decisionLog.md` |
 | 架構變更 | `memory-bank/architect.md` |
 
 詳見：`.github/bylaws/memory-bank.md`
+
+---
+
+### ⭐ Project Memory 同步（研究專案層級）
+
+**⚠️ 強制更新位置：`projects/{slug}/.memory/`**
+
+每個研究專案有獨立的記憶，記錄 Agent 對這個研究的想法和進度：
+
+```
+projects/{slug}/
+├── .memory/
+│   ├── activeContext.md   ← Agent 的工作記憶
+│   └── progress.md         ← 研究進度追蹤
+├── concept.md
+├── references/
+└── drafts/
+```
+
+#### 何時讀取？
+
+| 時機 | 問用戶確認 | 說明 |
+|------|------------|------|
+| 開始工作前 | 不需要 | 了解之前做了什麼、Agent 的想法 |
+| 被問「之前...」 | 不需要 | 回顧歷史 |
+| 要做重大決定 | 不需要 | 檢查之前的決定 |
+
+#### 何時更新？（強制）
+
+| 時機 | 更新內容 |
+|------|----------|
+| **每次對話結束時** ✅ | Current Focus, 本次工作摘要 |
+| 做出重要決定後 | Recent Decisions |
+| 發現關鍵文獻後 | Key References |
+| 有想法/建議時 | Memo / Notes |
+| 遇到問題時 | Blockers / Questions |
+
+#### activeContext.md 區塊說明
+
+| 區塊 | 內容 |
+|------|------|
+| **Project Settings** | Paper type, sections（專案建立時設定）|
+| **User Preferences** | 用戶的互動風格、語言偏好 |
+| **Current Focus** | 目前在做什麼（每次更新）|
+| **Recent Decisions** | 重要決定和原因 |
+| **Key References** | 關鍵文獻及其重要性 |
+| **Blockers / Questions** | 待解決問題 |
+| **Memo / Notes** | Agent 對研究的想法和建議 |
+
+> 💡 **名言：「對話結束前，先更新 .memory/！」**
+>
+> 這樣下次對話就能繼續之前的思路，不會忘記 Agent 對研究的看法。
 
 ### Git 工作流
 
