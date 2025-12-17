@@ -24,7 +24,10 @@ def get_current_project_info() -> Dict[str, Any]:
         Dict with project info or empty dict if no project active.
     """
     pm = get_project_manager()
-    return pm.get_current_project()
+    current_slug = pm.get_current_project()
+    if current_slug:
+        return pm.get_project_info(current_slug)
+    return {}
 
 
 def validate_project_slug(project_slug: str) -> Tuple[bool, str, Optional[Dict]]:
@@ -74,20 +77,21 @@ def ensure_project_context(project_slug: Optional[str] = None) -> Tuple[bool, st
             return False, msg, None
         
         # Switch to the project if not already active
-        current = pm.get_current_project()
-        if current.get("slug") != project_slug:
+        current_slug = pm.get_current_project()  # Returns str, not dict
+        if current_slug != project_slug:
             switch_result = pm.switch_project(project_slug)
             if not switch_result.get("success"):
                 return False, f"Failed to switch to project: {switch_result.get('error')}", None
         
         # Return updated project info
-        return True, f"Working on project: {project_info.get('name')}", pm.get_current_project()
+        return True, f"Working on project: {project_info.get('name')}", pm.get_project_info(project_slug)
     
     else:
         # No project specified - check if we have an active project
-        current = pm.get_current_project()
-        if current.get("slug"):
-            return True, f"Current project: {current.get('name')}", current
+        current_slug = pm.get_current_project()  # Returns str, not dict
+        if current_slug:
+            project_info = pm.get_project_info(current_slug)
+            return True, f"Current project: {project_info.get('name', current_slug)}", project_info
         else:
             # Check if any projects exist
             projects = pm.list_projects().get("projects", [])
