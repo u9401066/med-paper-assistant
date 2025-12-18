@@ -41,10 +41,12 @@ def _get_concept_path() -> Optional[str]:
 
 def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
     """
-    Enforce concept validation before draft operations.
+    Check concept validation status (advisory, not blocking).
 
     Returns:
         Tuple of (can_proceed: bool, message: str, protected_content: dict)
+        
+    Note: Novelty score is advisory. Low score returns warning, not block.
     """
     concept_path = _get_concept_path()
 
@@ -58,7 +60,7 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
             "2. Fill in 🔒 NOVELTY STATEMENT\n"
             "3. Fill in 🔒 KEY SELLING POINTS (at least 3)\n"
             "4. Run `validate_concept` to verify\n\n"
-            "Draft writing is blocked until concept validation passes.",
+            "Draft writing is blocked until concept.md exists.",
             {},
         )
 
@@ -69,17 +71,7 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
         force_refresh=False,
     )
 
-    if not result.overall_passed:
-        report = _concept_validator.generate_report(result)
-        return (
-            False,
-            f"❌ **CONCEPT VALIDATION FAILED**\n\n"
-            f"You must fix the following issues before writing drafts:\n\n"
-            f"{report}\n\n"
-            f"**Draft writing is blocked until validation passes.**",
-            {},
-        )
-
+    # Extract protected content regardless of score
     novelty_section = result.sections.get("novelty_statement")
     selling_section = result.sections.get("selling_points")
 
@@ -88,6 +80,34 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
         "selling_points": selling_section.content if selling_section else "",
         "novelty_score": result.novelty_average,
     }
+
+    # Check structural requirements (these ARE blocking)
+    if not novelty_section or not novelty_section.has_content:
+        return (
+            False,
+            "❌ **MISSING REQUIRED SECTION**\n\n"
+            "🔒 NOVELTY STATEMENT is empty.\n"
+            "Please fill in your research novelty before writing drafts.",
+            {},
+        )
+    
+    if not selling_section or not selling_section.has_content:
+        return (
+            False,
+            "❌ **MISSING REQUIRED SECTION**\n\n"
+            "🔒 KEY SELLING POINTS is empty.\n"
+            "Please add at least 3 key selling points before writing drafts.",
+            {},
+        )
+
+    # Novelty score is ADVISORY, not blocking
+    if result.novelty_average < 75:
+        return (
+            True,  # Allow proceeding!
+            f"💡 Novelty score: {result.novelty_average:.1f}/100 (reference: 75)\n"
+            f"這是參考指標，您可以選擇直接寫或補充後再寫。",
+            protected_content,
+        )
 
     return (
         True,

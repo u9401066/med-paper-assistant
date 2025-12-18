@@ -605,37 +605,143 @@ class ConceptValidator:
         # Clamp score
         return max(0, min(100, score))
 
-    def _generate_novelty_suggestions(self, content: str, scores: List[int]) -> List[str]:
-        """Generate improvement suggestions based on novelty analysis."""
-        suggestions = []
-
+    def _generate_novelty_feedback(self, content: str, scores: List[int]) -> Dict[str, Any]:
+        """
+        Generate sharp, reviewer-style feedback that challenges weak claims.
+        
+        Like a top-journal reviewer: direct, evidence-based, impossible to dismiss.
+        
+        Returns a dict with:
+        - verdict: One-line assessment (no sugar-coating)
+        - critical_issues: Problems that MUST be addressed (with evidence)
+        - questions: Questions the author cannot currently answer
+        - actionable_fixes: Specific, concrete fixes (not vague suggestions)
+        - cgu_recommendation: Whether CGU tools could help
+        """
+        feedback = {
+            "verdict": "",
+            "critical_issues": [],
+            "questions": [],
+            "actionable_fixes": [],
+            "cgu_recommendation": None,
+        }
+        
+        content_lower = content.lower()
         avg_score = sum(scores) / len(scores)
-
-        if avg_score < 50:
-            suggestions.append(
-                "NOVELTY STATEMENT needs significant improvement. "
-                "Clearly state what is NEW and UNIQUE about this research."
-            )
-        elif avg_score < 75:
-            suggestions.append(
-                "NOVELTY STATEMENT is weak. Consider adding: "
-                "1) Specific comparisons to existing work, "
-                "2) Quantifiable claims, "
-                "3) Clear 'first' or 'only' statements if applicable."
-            )
-
-        # Check for missing elements
-        if "first" not in content.lower() and "novel" not in content.lower():
-            suggestions.append(
-                "Consider explicitly stating if this is the 'first' study to do X, "
-                "or what makes it 'novel' compared to prior work."
-            )
-
-        if not re.search(r"\d+", content):
-            suggestions.append(
-                "Add specific numbers or quantification to make novelty claims more concrete."
-            )
-
+        
+        # === VERDICT (One sharp sentence) ===
+        if avg_score >= 75:
+            feedback["verdict"] = "✅ Novelty claim is defensible. Proceed to writing."
+        elif avg_score >= 60:
+            feedback["verdict"] = "⚠️ Novelty claim has gaps. A skeptical reviewer would challenge you."
+        else:
+            feedback["verdict"] = "❌ Novelty claim is weak. Current statement would not survive peer review."
+        
+        # === CRITICAL ISSUES (Evidence-based challenges) ===
+        issues = []
+        
+        # Issue 1: Claiming "first" without search evidence
+        if ("first" in content_lower or "首次" in content) and "pubmed" not in content_lower and "搜尋" not in content:
+            issues.append({
+                "problem": "您聲稱『首次』，但沒有提供文獻搜尋證據",
+                "challenge": "Reviewer 會問：『你怎麼知道沒人做過？搜尋策略是什麼？』",
+                "fix": "加入：『PubMed 搜尋 \"X AND Y\" (2024-12-17) 結果為 0 篇』",
+            })
+        
+        # Issue 2: No "first/novel" claim at all
+        if "first" not in content_lower and "首次" not in content and "novel" not in content_lower and "創新" not in content:
+            issues.append({
+                "problem": "沒有明確的創新性聲明",
+                "challenge": "Reviewer 會問：『這跟現有研究有什麼不同？為什麼要發表？』",
+                "fix": "明確寫出：『這是首次...』或『與 [Author 2024] 不同的是...』",
+            })
+        
+        # Issue 3: Vague quantification
+        vague_words = ["improved", "better", "enhanced", "更好", "改善", "提升", "優於"]
+        found_vague = [w for w in vague_words if w.lower() in content_lower]
+        if found_vague and not re.search(r"\d+%|\d+\s*倍|OR\s*[\d.]|RR\s*[\d.]", content):
+            issues.append({
+                "problem": f"使用模糊用語『{', '.join(found_vague)}』但沒有量化",
+                "challenge": "Reviewer 會問：『好多少？有統計學意義嗎？』",
+                "fix": "改為具體數字：『減少 50%』『OR 0.3 (95% CI 0.1-0.5)』",
+            })
+        
+        # Issue 4: Claiming comparison without specifying what's different
+        if re.search(r"\[\[.+?\]\]", content):  # Has citations
+            if "但" not in content and "however" not in content_lower and "未" not in content and "沒有" not in content:
+                issues.append({
+                    "problem": "引用了文獻，但沒有說明它們的限制",
+                    "challenge": "Reviewer 會問：『既然有人做過，你的貢獻在哪？』",
+                    "fix": "加入：『[Author 2024] 比較了 A vs B，但【未納入 C / 未評估 X】』",
+                })
+        
+        # Issue 5: No citations at all
+        if not re.search(r"\[\[.+?\]\]", content) and "PMID" not in content:
+            issues.append({
+                "problem": "創新性聲明沒有任何文獻引用",
+                "challenge": "Reviewer 會問：『你的說法有什麼依據？』",
+                "fix": "為每個聲明加上支持文獻：[[author2024_12345678]]",
+            })
+        
+        # Issue 6: Expected outcomes without mechanism
+        if re.search(r"預期|expected|hypothesi", content_lower):
+            if not re.search(r"因為|because|由於|機制|mechanism", content_lower):
+                issues.append({
+                    "problem": "有預期結果，但沒有解釋機制",
+                    "challenge": "Reviewer 會問：『為什麼你預期會這樣？機制是什麼？』",
+                    "fix": "加入：『因為 [機制]，我們預期...』",
+                })
+        
+        feedback["critical_issues"] = issues
+        
+        # === QUESTIONS (What a reviewer would ask) ===
+        questions = []
+        
+        if "three" in content_lower or "三" in content or "3" in content:
+            if "為什麼" not in content and "why" not in content_lower:
+                questions.append("為什麼要比較這三組？現有研究比較了幾組？")
+        
+        if re.search(r"<\s*\d+%|>\s*\d+%", content):
+            questions.append("這些預期數字是基於什麼？有 pilot data 嗎？")
+        
+        if "首次" in content or "first" in content_lower:
+            questions.append("如果真的是首次，為什麼之前沒人做？是技術限制還是沒人關心？")
+        
+        feedback["questions"] = questions[:3]  # Top 3
+        
+        # === ACTIONABLE FIXES (Specific, not vague) ===
+        fixes = []
+        for issue in issues[:2]:  # Top 2 priorities
+            fixes.append(f"🔧 **{issue['problem']}**\n   → {issue['fix']}")
+        
+        feedback["actionable_fixes"] = fixes
+        
+        # === CGU RECOMMENDATION ===
+        if avg_score < 60:
+            feedback["cgu_recommendation"] = {
+                "recommend": True,
+                "reason": "目前的創新點不夠清晰。CGU 可以幫你從對手的角度思考弱點。",
+                "tool": "mcp_cgu_deep_think",
+                "prompt": "從 reviewer 的角度，這個研究最容易被攻擊的點是什麼？",
+            }
+        elif avg_score < 75 and len(issues) >= 2:
+            feedback["cgu_recommendation"] = {
+                "recommend": True,
+                "reason": "有具體問題需要解決。CGU 可以幫你找到更好的論述角度。",
+                "tool": "mcp_cgu_spark_collision",
+                "prompt": "將『現有研究的限制』與『你的方法優勢』碰撞，找出最強的論點。",
+            }
+        else:
+            feedback["cgu_recommendation"] = {"recommend": False}
+            
+        return feedback
+    
+    def _generate_novelty_suggestions(self, content: str, scores: List[int]) -> List[str]:
+        """Generate improvement suggestions (legacy interface, calls new method)."""
+        feedback = self._generate_novelty_feedback(content, scores)
+        suggestions = []
+        for fix in feedback.get("actionable_fixes", []):
+            suggestions.append(fix)
         return suggestions
 
     def _check_consistency(self, content: str, result: ValidationResult) -> ValidationResult:
@@ -928,16 +1034,55 @@ class ConceptValidator:
             output.append("## 🎯 Novelty Evaluation")
             output.append("")
 
-            status = "✅ PASSED" if result.novelty_passed else "❌ FAILED"
-            output.append(f"**Status:** {status}")
-            output.append(f"**Average Score:** {result.novelty_average:.1f}/100")
-            output.append(f"**Threshold:** {self.NOVELTY_CONFIG['threshold']}")
+            # Get detailed feedback first
+            novelty_content = result.sections.get(
+                "novelty_statement", SectionCheck(name="", found=False, has_content=False)
+            ).content
+            
+            feedback = {}
+            if novelty_content:
+                feedback = self._generate_novelty_feedback(novelty_content, result.novelty_scores)
+            
+            # Show verdict (one sharp line)
+            avg_score = result.novelty_average
+            output.append(f"**Score:** {avg_score:.1f}/100")
+            if feedback.get("verdict"):
+                output.append(f"**Verdict:** {feedback['verdict']}")
             output.append("")
-            output.append("| Round | Score | Status |")
-            output.append("|-------|-------|--------|")
-            for i, score in enumerate(result.novelty_scores, 1):
-                round_status = "✅" if score >= self.NOVELTY_CONFIG["threshold"] else "❌"
-                output.append(f"| {i} | {score} | {round_status} |")
+            
+            # Show critical issues (sharp, evidence-based)
+            if feedback.get("critical_issues"):
+                output.append("### ⚠️ Critical Issues (Reviewer 會質疑)")
+                output.append("")
+                for issue in feedback["critical_issues"]:
+                    output.append(f"**❌ {issue['problem']}**")
+                    output.append(f"- 🎯 {issue['challenge']}")
+                    output.append(f"- 🔧 {issue['fix']}")
+                    output.append("")
+            
+            # Show questions (what reviewer would ask)
+            if feedback.get("questions") and avg_score < 75:
+                output.append("### ❓ Reviewer 會問的問題")
+                output.append("")
+                for q in feedback["questions"]:
+                    output.append(f"- {q}")
+                output.append("")
+            
+            # CGU recommendation (if needed)
+            cgu = feedback.get("cgu_recommendation", {})
+            if cgu.get("recommend") and avg_score < 75:
+                output.append("### 🤖 需要 CGU 幫忙嗎？")
+                output.append("")
+                output.append(f"> **工具：** `{cgu.get('tool', 'mcp_cgu_deep_think')}`")
+                output.append(f"> **原因：** {cgu.get('reason', '')}")
+                if cgu.get("prompt"):
+                    output.append(f"> **Prompt：** {cgu['prompt']}")
+                output.append("")
+            
+            # Note: This is advisory, not blocking
+            output.append("> 📌 **這是 reviewer 視角的建議，不是硬性門檻。**")
+            output.append("> 您可以選擇：(1) 直接寫 (2) 補強後再寫 (3) 用 CGU 發想")
+            output.append("")
 
         # Consistency check
         if result.consistency_checked:
@@ -988,7 +1133,7 @@ class ConceptValidator:
                         "💡 **Tip:** Consider filling in the recommended sections for a stronger paper."
                     )
             else:
-                output.append(f"## ❌ CANNOT WRITE {result.target_section.upper()}")
+                output.append(f"## ⚠️ MISSING SECTIONS FOR {result.target_section.upper()}")
                 output.append("")
                 output.append(f"Missing required sections for **{result.target_section}**.")
                 output.append("Please fill in the missing sections first.")
@@ -1002,10 +1147,27 @@ class ConceptValidator:
             output.append("- 🔒 Protected content must be preserved in the final paper")
             output.append("- Ask user before modifying any 🔒 sections")
         else:
-            output.append("## ❌ VALIDATION FAILED")
+            # Sharp summary with clear options
+            output.append("## 📋 Assessment Summary")
             output.append("")
-            output.append("Please address the errors above before proceeding.")
-            output.append("Use `write_draft` to update the concept file.")
+            
+            output.append(f"**Novelty Score:** {result.novelty_average:.1f}/100")
+            output.append("")
+            
+            if result.novelty_average >= 60:
+                output.append("您的 concept 可以過關，但有可改進之處。")
+            else:
+                output.append("⚠️ 目前的 novelty statement 可能無法通過 peer review。")
+            output.append("")
+            output.append("**您的選擇：**")
+            output.append("")
+            output.append("| 選項 | 行動 |")
+            output.append("|------|------|")
+            output.append("| ✅ 直接寫 | 『直接寫』- 我立即開始 |")
+            output.append("| 🔧 修正問題 | 『幫我改 [問題]』- 我一次只改一點 |")
+            output.append("| 🤖 CGU 發想 | 『用 CGU 想想』- 從 reviewer 角度找弱點 |")
+            output.append("")
+            output.append("> 💬 您決定，我執行。我不會自動修改 concept。")
 
         return "\n".join(output)
 

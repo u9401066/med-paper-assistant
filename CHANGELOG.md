@@ -8,6 +8,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **犀利回饋模式 (Sharp Reviewer Feedback)**
+  - `concept_validator.py`: 新增 `_generate_novelty_feedback()` 方法
+  - 回饋格式：verdict / critical_issues / questions / actionable_fixes
+  - CGU 創意工具整合建議
+  - 像頂尖期刊 Reviewer 一樣審查：直指問題、用證據說話
+- **檔案保護模式 (File Protection)**
+  - `.copilot-mode.json`: 新增 `protected_paths` 設定
+  - Normal/Research 模式下禁止修改開發檔案
+  - 受保護路徑：`.claude/`, `.github/`, `src/`, `tests/`, `integrations/`
+- **Session 檢視工具**
+  - `scripts/view_session.py`: 顯示 pubmed-search 搜尋紀錄
+  - 可供人工驗證 Agent 確實執行了搜尋
+- **已知問題追蹤 (Known Issues)**
+  - ROADMAP.md 新增 4 個 Critical Issues
+  - 新增 Phase 3.5: 學術品質保證系統
+
+### Changed
+- **Novelty Check 改為 Advisory（不阻擋）**
+  - `writing.py`: `_enforce_concept_validation()` 改為建議性質
+  - 用戶可選擇：直接寫 / 修正問題 / 用 CGU 發想
+  - 仍然檢查結構完整性（NOVELTY STATEMENT, KEY SELLING POINTS）
+- **concept-development SKILL 大幅更新**
+  - 新增犀利回饋原則和模板
+  - 新增 CGU 工具使用指南
+  - 新增危險信號處理流程
+
+### Documentation
+- **AGENTS.md**: 新增 Novelty Check 規則和 CGU 整合
+- **copilot-instructions.md**: 新增犀利回饋做法
+- **pubmed-search-mcp ROADMAP.md**: 新增 Phase 5.5 搜尋紀錄驗證機制
+
+---
+
+## [0.2.2] - 2025-12-18 (Previous)
+
+### Added
 - **完整靜態分析工具鏈**
   - Ruff linter/formatter: 修復 1839 個錯誤
   - Mypy 類型檢查: 修復 49 個類型錯誤

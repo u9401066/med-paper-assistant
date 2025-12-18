@@ -35,12 +35,41 @@
 - ✅ 完整 Memory Bank 同步（memory-bank/ 和 projects/.memory/）
 - ✅ 主動執行靜態分析（ruff, mypy）
 - ✅ 詳細日誌輸出
+- ✅ **可以修改所有檔案**
 
 #### Normal / Research 模式
 - ✅ 只使用研究技能（literature-review, concept-development, parallel-search）
 - ⏸️ 簡化 Memory Bank 同步
 - ❌ 不主動執行靜態分析（除非用戶明確要求）
 - ❌ 不主動建議代碼重構
+- 🔒 **禁止修改開發檔案**（見下方保護清單）
+
+### 🔒 檔案保護規則（Normal/Research 模式）
+
+**在 normal 和 research 模式下，以下路徑為唯讀：**
+
+| 受保護路徑 | 內容 |
+|------------|------|
+| `.claude/` | Skills 定義檔 |
+| `.github/` | Copilot 指令、bylaws |
+| `src/` | 原始碼 |
+| `tests/` | 測試檔案 |
+| `integrations/` | MCP 整合模組 |
+| `AGENTS.md` | Agent 指引 |
+| `CONSTITUTION.md` | 憲法 |
+| `ARCHITECTURE.md` | 架構文件 |
+| `pyproject.toml` | 專案設定 |
+
+**可以修改的路徑：**
+- `projects/` - 研究專案內容
+- `memory-bank/` - Memory Bank（依模式限制）
+- `docs/` - 一般文件
+
+**如果用戶要求修改受保護檔案：**
+```
+⚠️ 目前是 [normal/research] 模式，這個檔案受保護。
+如果您需要修改，請說「開發模式」切換。
+```
 
 ---
 
@@ -82,6 +111,41 @@
 - `🔒 VERIFIED`: PubMed 原始資料（不可修改）
 - `🤖 AGENT`: AI 筆記（`agent_notes` 參數）
 - `✏️ USER`: 人類筆記（AI 絕不碰觸）
+
+### ⚠️ Novelty Check 規則（犀利回饋模式）
+
+**核心原則：像頂尖 Reviewer 一樣犀利，但給選項！**
+
+```
+📌 正確行為：
+1. 給犀利回饋（直指問題、用證據說話）
+2. 提出 Reviewer 會問的問題
+3. 給具體修復方案（不是「可以考慮」，而是「加入這句話」）
+4. 主動問用戶：「直接寫？修正問題？用 CGU？」
+5. 用戶決定後立即執行
+
+❌ 錯誤行為：
+1. 討好式回饋「您的 concept 很好喔～」
+2. 自動開始修改 NOVELTY STATEMENT
+3. 反覆修改追分數
+4. 不問用戶就繼續改
+```
+
+**犀利回饋模板**：
+
+| 問題類型 | 回饋格式 |
+|----------|----------|
+| 聲稱「首次」但沒證據 | 「您聲稱『首次』，但沒有 PubMed 搜尋證據。Reviewer 會問：『搜尋策略是什麼？』」 |
+| 模糊量化 | 「使用『更好』但沒數字。Reviewer 會問：『好多少？臨床意義？』」 |
+| 引用但沒說限制 | 「引用了文獻但沒說它的限制。Reviewer 會問：『你的貢獻在哪？』」 |
+
+**CGU 創意工具整合**：
+
+| 情境 | 建議工具 | Prompt |
+|------|----------|--------|
+| 找弱點 | `deep_think` | 「從 reviewer 角度，這個研究最容易被攻擊的點是什麼？」 |
+| 找論點 | `spark_collision` | 「將『現有研究的限制』與『我的方法優勢』碰撞」 |
+| 廣泛發想 | `generate_ideas` | 「如何讓這個研究的 novelty 無可辯駁」 |
 
 ### Python 環境規則
 
