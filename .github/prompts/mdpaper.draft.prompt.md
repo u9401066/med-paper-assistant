@@ -4,6 +4,10 @@ description: "✍️ mdpaper.draft - 撰寫論文草稿"
 
 # 撰寫論文草稿
 
+📖 **技能參考**: 
+- `.claude/skills/draft-writing/SKILL.md`
+- `.claude/skills/concept-validation/SKILL.md`
+
 ## ⚠️ 前置條件
 
 **必須先通過 concept 驗證才能撰寫 draft！**

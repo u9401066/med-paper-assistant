@@ -4,6 +4,8 @@ description: "📄 mdpaper.format - 匯出為 Word 文件"
 
 # 匯出為 Word 文件
 
+📖 **技能參考**: `.claude/skills/word-export/SKILL.md`
+
 ## Step 1: 選擇模板
 
 ```

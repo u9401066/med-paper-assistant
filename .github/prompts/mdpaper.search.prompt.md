@@ -3,7 +3,9 @@ description: "🔍 mdpaper.search - 智能文獻搜尋與探索"
 ---
 
 # 智能文獻搜尋
-
+📖 **技能參考**: 
+- `.claude/skills/literature-review/SKILL.md`
+- `.claude/skills/reference-management/SKILL.md`
 請根據用戶情境選擇適合的搜尋模式：
 
 ## 情境判斷

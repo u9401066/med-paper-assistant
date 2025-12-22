@@ -3,7 +3,7 @@ description: "📁 mdpaper.project - 設置和配置研究專案"
 ---
 
 # 設置研究專案
-
+📖 **技能參考**: `.claude/skills/project-management/SKILL.md`
 請依序執行以下步驟：
 
 ## Step 1: 確認專案狀態

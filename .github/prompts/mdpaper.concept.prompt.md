@@ -3,7 +3,9 @@ description: "📝 mdpaper.concept - 發展研究概念與文獻缺口分析"
 ---
 
 # 發展研究概念
-
+📖 **技能參考**: 
+- `.claude/skills/concept-development/SKILL.md`
+- `.claude/skills/concept-validation/SKILL.md`
 請依序執行以下步驟，完成後打勾 ✅：
 
 ## Step 1: 確認專案 `project-context`

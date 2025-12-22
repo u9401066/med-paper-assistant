@@ -4,6 +4,8 @@ description: "🎯 mdpaper.strategy - 配置搜尋策略"
 
 # 配置搜尋策略
 
+📖 **技能參考**: `.claude/skills/literature-review/SKILL.md`
+
 ## Step 1: 收集搜尋參數
 
 詢問用戶以下資訊：

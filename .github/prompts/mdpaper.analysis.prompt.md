@@ -4,6 +4,8 @@ description: "📊 mdpaper.analysis - 資料分析"
 
 # 資料分析
 
+📖 **技能參考**: `.claude/skills/data-analysis/SKILL.md`（待建立）
+
 ## Step 1: 確認資料來源
 
 詢問用戶要分析哪個 CSV 檔案：

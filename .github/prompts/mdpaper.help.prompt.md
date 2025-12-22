@@ -4,6 +4,8 @@ description: "❓ mdpaper.help - 顯示所有可用指令"
 
 # MedPaper Assistant 指令說明
 
+📖 **所有 Skills 位於**: `.claude/skills/`
+
 ## 🚀 可用指令
 
 | 指令 | 說明 | 使用時機 |

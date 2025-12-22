@@ -4,6 +4,8 @@ description: "✨ mdpaper.clarify - 改進與潤飾內容"
 
 # 改進與潤飾內容
 
+📖 **技能參考**: `.claude/skills/draft-writing/SKILL.md`
+
 ## Step 1: 列出可用草稿
 
 ```
