@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Prompt Files 機制**
+  - 新增 `.github/prompts/` 目錄，包含 9 個 prompt files
+  - `/mdpaper.project` - 專案設置與切換
+  - `/mdpaper.concept` - 研究概念發展（含 novelty 驗證）
+  - `/mdpaper.search` - 智能文獻搜尋（情境 A/B 判斷）
+  - `/mdpaper.draft` - 草稿撰寫（需先通過 concept 驗證）
+  - `/mdpaper.strategy` - 搜尋策略配置
+  - `/mdpaper.analysis` - 資料分析與 Table 1
+  - `/mdpaper.clarify` - 內容改進與潤飾
+  - `/mdpaper.format` - Word 匯出
+  - `/mdpaper.help` - 指令說明
+  - 參考 copilot-capability-manager 架構設計
 - **犀利回饋模式 (Sharp Reviewer Feedback)**
   - `concept_validator.py`: 新增 `_generate_novelty_feedback()` 方法
   - 回饋格式：verdict / critical_issues / questions / actionable_fixes

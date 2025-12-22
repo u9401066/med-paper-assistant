@@ -6,8 +6,8 @@
     // ============================================
     "mdpaper": {
       "type": "stdio",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
-      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
+      "command": "uv",
+      "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "med_paper_assistant.interfaces.mcp"],
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src"
       }
@@ -18,8 +18,8 @@
     // ============================================
     "pubmed-search": {
       "type": "stdio",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
-      "args": ["-m", "pubmed_search.mcp"],
+      "command": "uv",
+      "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "pubmed_search.mcp"],
       "env": {
         "PYTHONPATH": "${workspaceFolder}/integrations/pubmed-search-mcp/src",
         "ENTREZ_EMAIL": "medpaper@example.com"
@@ -31,8 +31,8 @@
     // ============================================
     "cgu": {
       "type": "stdio",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
-      "args": ["-m", "cgu.server"],
+      "command": "uv",
+      "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "cgu.server"],
       "env": {
         "CGU_THINKING_ENGINE": "simple"
       }

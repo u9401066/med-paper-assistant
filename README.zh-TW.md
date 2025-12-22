@@ -73,21 +73,48 @@ flowchart LR
 
 ---
 
-## 🚀 快速開始：MCP 指令
+## 🚀 快速開始：Prompt Files 指令
 
 在 Copilot Chat 中輸入這些指令即可開始：
 
-| 指令 | 功能 |
-|------|------|
-| `/mdpaper.search` | 🔍 **從這裡開始！** 自由探索文獻，儲存有興趣的論文 |
-| `/mdpaper.concept` | 📝 發展研究概念，含新穎性驗證 |
-| `/mdpaper.strategy` | ⚙️ 設定搜尋策略（日期、排除詞、文章類型）|
-| `/mdpaper.analysis` | 📊 分析 CSV 數據，生成圖表和 Table 1 |
-| `/mdpaper.draft` | ✍️ 撰寫草稿，自動插入引用 |
-| `/mdpaper.clarify` | 🔄 對話式修正特定段落 |
-| `/mdpaper.format` | 📄 匯出符合期刊格式的 Word |
+| 指令 | 功能 | Prompt File |
+|------|------|-------------|
+| `/mdpaper.help` | ❓ 顯示所有可用指令 | [mdpaper.help.prompt.md](.github/prompts/mdpaper.help.prompt.md) |
+| `/mdpaper.project` | 📁 設置或切換研究專案 | [mdpaper.project.prompt.md](.github/prompts/mdpaper.project.prompt.md) |
+| `/mdpaper.search` | 🔍 **從這裡開始！** 自由探索文獻 | [mdpaper.search.prompt.md](.github/prompts/mdpaper.search.prompt.md) |
+| `/mdpaper.concept` | 📝 發展研究概念，含新穎性驗證 | [mdpaper.concept.prompt.md](.github/prompts/mdpaper.concept.prompt.md) |
+| `/mdpaper.strategy` | ⚙️ 設定搜尋策略 | [mdpaper.strategy.prompt.md](.github/prompts/mdpaper.strategy.prompt.md) |
+| `/mdpaper.draft` | ✍️ 撰寫草稿，自動插入引用 | [mdpaper.draft.prompt.md](.github/prompts/mdpaper.draft.prompt.md) |
+| `/mdpaper.analysis` | 📊 分析 CSV 數據，生成圖表和 Table 1 | [mdpaper.analysis.prompt.md](.github/prompts/mdpaper.analysis.prompt.md) |
+| `/mdpaper.clarify` | 🔄 對話式修正特定段落 | [mdpaper.clarify.prompt.md](.github/prompts/mdpaper.clarify.prompt.md) |
+| `/mdpaper.format` | 📄 匯出符合期刊格式的 Word | [mdpaper.format.prompt.md](.github/prompts/mdpaper.format.prompt.md) |
 
-> 💡 **建議工作流程**：`/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
+> 💡 **建議工作流程**：`/mdpaper.project` → `/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
+
+### 🔧 Prompt Files + MCP Tools 架構
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Prompt Files (本機)                                    │
+│  .github/prompts/mdpaper.*.prompt.md                    │
+│  → 定義「做什麼」（工作流程）                            │
+│  → VS Code Copilot 直接讀取                             │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          │ Agent 執行時呼叫
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  MCP Tools (Server)                                     │
+│  mcp_mdpaper_*, mcp_pubmed-search_*                     │
+│  → 定義「怎麼做」（具體邏輯 + 驗證）                     │
+│  → Hard-coded 規則確保資料完整性                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+**好處**：
+- ✅ 工作流程在 `.md` 檔案 → 易編輯、版本控制
+- ✅ 驗證邏輯在 MCP → 安全、一致、不會被繞過
+- ✅ 兩者互補 → Prompt 說「做什麼」，Tool 管「怎麼做」
 
 ---
 
