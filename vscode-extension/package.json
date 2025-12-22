@@ -1,0 +1,143 @@
+{
+  "name": "medpaper-assistant",
+  "displayName": "MedPaper Assistant",
+  "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
+  "version": "0.1.0",
+  "publisher": "medpaper",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/u9401066/med-paper-assistant"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "AI",
+    "Data Science",
+    "Education"
+  ],
+  "keywords": [
+    "medical",
+    "paper",
+    "writing",
+    "pubmed",
+    "research",
+    "mcp",
+    "copilot"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "mdpaper",
+        "label": "MedPaper Assistant MCP Server"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "medpaper.assistant",
+        "name": "mdpaper",
+        "fullName": "MedPaper Assistant",
+        "description": "幫助撰寫醫學論文、搜尋文獻、發展研究概念",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "search",
+            "description": "搜尋 PubMed 文獻"
+          },
+          {
+            "name": "draft",
+            "description": "撰寫論文章節"
+          },
+          {
+            "name": "concept",
+            "description": "發展並驗證研究概念"
+          },
+          {
+            "name": "project",
+            "description": "管理研究專案"
+          },
+          {
+            "name": "format",
+            "description": "匯出為 Word 文件"
+          }
+        ],
+        "disambiguation": [
+          {
+            "category": "medical-paper-writing",
+            "description": "User wants help with medical paper writing, literature review, or research concept development",
+            "examples": [
+              "幫我找 remimazolam 相關論文",
+              "寫一篇關於 ECMO 的 introduction",
+              "驗證我的研究 novelty",
+              "搜尋 PubMed",
+              "Write a discussion section",
+              "Help me respond to reviewer comments"
+            ]
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "mdpaper.startServer",
+        "title": "Start MedPaper MCP Server",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.stopServer",
+        "title": "Stop MedPaper MCP Server",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.showStatus",
+        "title": "Show MedPaper Status",
+        "category": "MedPaper"
+      }
+    ],
+    "configuration": {
+      "title": "MedPaper Assistant",
+      "properties": {
+        "mdpaper.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Python executable. Leave empty to use bundled Python or system default."
+        },
+        "mdpaper.projectsDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Default directory for research projects. Leave empty to use workspace."
+        },
+        "mdpaper.defaultCitationStyle": {
+          "type": "string",
+          "enum": ["vancouver", "apa", "harvard", "chicago"],
+          "default": "vancouver",
+          "description": "Default citation style for references."
+        }
+      }
+    }
+  },
+  "extensionDependencies": [],
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.0",
+    "@vscode/vsce": "^2.24.0"
+  },
+  "dependencies": {}
+}

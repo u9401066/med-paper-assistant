@@ -1,0 +1,7 @@
+node_modules/
+out/
+*.vsix
+bundled/tool/*.whl
+bundled/libs/
+bundled/python/
+.vscode-test/
