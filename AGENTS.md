@@ -244,6 +244,57 @@ projects/{slug}/
 
 ---
 
+## 🚀 Capabilities（高層編排）
+
+> **Capabilities 位於**：`.github/prompts/*.prompt.md`
+> **索引檔案**：`.github/prompts/_capability-index.md`
+
+### 什麼是 Capability？
+
+```
+Capability = 編排多個 Skills 完成完整任務
+Skill = 知道如何使用多個 Tools
+Tool = 單一 MCP 操作
+```
+
+### 自動觸發規則
+
+Agent 應該主動識別用戶意圖並觸發對應 Capability：
+
+| 觸發類型 | 說明 | 範例 |
+|----------|------|------|
+| **精確觸發** | 用戶說 `/mdpaper.xxx` | `/mdpaper.draft` → 直接執行 |
+| **意圖觸發** | 用戶意圖匹配 | 「寫論文」→ write-paper |
+| **情境觸發** | 檢測到特定情境 | reviewer comment → manuscript-revision |
+
+### 可用 Capabilities
+
+#### 📚 研究相關
+
+| Capability | Prompt File | 觸發語 |
+|------------|-------------|--------|
+| **write-paper** | `mdpaper.write-paper.prompt.md` | 寫論文、完整流程、從頭開始 |
+| **literature-survey** | `mdpaper.literature-survey.prompt.md` | 系統性搜尋、找所有相關、全面調查 |
+| **manuscript-revision** | `mdpaper.manuscript-revision.prompt.md` | revision、reviewer comment、被退稿 |
+| **quick-search** | `mdpaper.search.prompt.md` | 找論文、search、PubMed |
+
+#### 🛠️ 開發相關
+
+| Capability | Prompt File | 觸發語 |
+|------------|-------------|--------|
+| **code-quality** | `code-quality.prompt.md` | 程式碼檢查、code review、品質 |
+| **release-prep** | `release-prep.prompt.md` | 準備發布、release、版本發布 |
+
+### Agent 行為
+
+1. **讀取索引**：開始對話時掃描 `_capability-index.md`
+2. **匹配意圖**：用戶說話 → 匹配觸發語或情境
+3. **載入 Capability**：讀取對應的 `.prompt.md` 檔案
+4. **執行步驟**：按照 Prompt File 的 Phase 順序進行
+5. **銜接 Skills**：每個 Phase 參考對應的 Skill
+
+---
+
 ## 可用 Skills
 
 位於 `.claude/skills/` 目錄：
