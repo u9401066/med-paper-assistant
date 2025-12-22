@@ -1,58 +1,97 @@
 ---
 name: project-init
-description: Initialize new projects using this template. Triggers: init, new, 新專案, 初始化, create project, 建立專案, bootstrap, scaffold project.
+description: 初始化新專案。觸發：init、新專案、初始化、create project。
 ---
 
 # 專案初始化技能
 
-## 描述
-將此專案作為模板，快速初始化新專案。
-
 ## 觸發條件
-- 「初始化新專案」
-- 「從模板建立專案」
-- 「create new project」
 
-## 功能
+| 用戶說法 | 觸發 |
+|----------|------|
+| 初始化新專案、create project | ✅ |
+| 從模板建立專案 | ✅ |
+| bootstrap、scaffold | ✅ |
 
-### 1. 模板複製
-複製此專案的架構到新目錄：
+---
+
+## 可用工具
+
+| 操作 | 工具 |
+|------|------|
+| 建立目錄 | `create_directory()` |
+| 建立檔案 | `create_file()` |
+| 終端指令 | `run_in_terminal()` |
+| VS Code | `create_new_workspace()` |
+
+---
+
+## 專案結構模板
 
 ```
-「用這個模板建立 my-new-project」
-
-執行：
-1. 複製目錄結構
-2. 重置 Git 歷史
-3. 更新專案名稱
-4. 清空 Memory Bank
-5. 重置 CHANGELOG
+new-project/
+├── .github/
+│   ├── bylaws/           # 子法
+│   └── prompts/          # Prompt Files
+├── .claude/
+│   └── skills/           # Skills
+├── memory-bank/          # Memory Bank
+│   ├── activeContext.md
+│   ├── progress.md
+│   └── decisionLog.md
+├── src/                  # 原始碼
+├── tests/                # 測試
+├── CONSTITUTION.md       # 憲法
+├── README.md
+├── CHANGELOG.md
+└── pyproject.toml
 ```
 
-### 2. 複製內容
+---
 
-| 檔案/目錄 | 動作 |
-|-----------|------|
-| CONSTITUTION.md | 複製 |
-| .github/bylaws/ | 複製 |
-| .claude/skills/ | 複製 |
-| .github/workflows/ | 複製 |
-| .github/ISSUE_TEMPLATE/ | 複製 |
-| memory-bank/ | 複製結構，清空內容 |
-| README.md | 重置為模板 |
-| CHANGELOG.md | 重置為初始版本 |
-| .git/ | 重新初始化 |
+## 標準工作流程
 
-### 3. 互動式設定
+```python
+# 1. 取得專案資訊
+project_name = "my-new-project"
+project_path = f"/home/user/projects/{project_name}"
+
+# 2. 建立目錄結構
+create_directory(f"{project_path}/src")
+create_directory(f"{project_path}/tests")
+create_directory(f"{project_path}/memory-bank")
+create_directory(f"{project_path}/.github/bylaws")
+create_directory(f"{project_path}/.claude/skills")
+
+# 3. 建立基礎檔案
+create_file(f"{project_path}/README.md", "# {project_name}\n...")
+create_file(f"{project_path}/CHANGELOG.md", "# Changelog\n\n## [Unreleased]\n")
+create_file(f"{project_path}/pyproject.toml", "[project]\nname = '...'")
+
+# 4. 初始化 Git
+run_in_terminal(f"cd {project_path} && git init")
+
+# 5. 初始化 Python 環境
+run_in_terminal(f"cd {project_path} && uv venv && uv sync")
+```
+
+---
+
+## 互動式設定
 
 詢問用戶：
-- 專案名稱
-- 專案描述
-- 授權類型 (MIT/Apache/GPL)
-- 主要程式語言
-- 是否需要 Docker 支援
 
-## 輸出格式
+| 項目 | 選項 |
+|------|------|
+| 專案名稱 | 自訂 |
+| 程式語言 | Python / TypeScript / Other |
+| 授權 | MIT / Apache-2.0 / GPL-3.0 |
+| Docker | 是 / 否 |
+| CI/CD | GitHub Actions / None |
+
+---
+
+## 輸出範例
 
 ```
 🚀 專案初始化
@@ -61,12 +100,18 @@ description: Initialize new projects using this template. Triggers: init, new, �
 位置: ~/projects/my-new-project
 
 ✅ 目錄結構已建立
-✅ 憲法與子法已複製
-✅ Skills 已複製
-✅ CI/CD 已設定
+✅ 基礎檔案已建立
 ✅ Git 已初始化
+✅ Python 環境已設定
 
 下一步：
   cd ~/projects/my-new-project
   code .
 ```
+
+---
+
+## 相關技能
+
+- `ddd-architect` - 設計專案架構
+- `memory-updater` - 初始化 Memory Bank

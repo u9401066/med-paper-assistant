@@ -1,46 +1,73 @@
 ---
 name: readme-updater
-description: Intelligently update README.md to sync with code changes. Triggers: readme, 說明, 更新說明, update readme, 文檔同步, documentation, docs, 怎麼用, 使用方法, 安裝說明, 更新文檔.
+description: 更新 README.md。觸發：readme、說明、文檔、怎麼用、安裝說明。
 ---
 
 # README 更新技能
 
-## 描述
-智能更新 README.md，保持與程式碼同步。
-
 ## 觸發條件
-- 「更新 README」
-- 被 git-precommit 編排器調用
-- 新增重要功能後
 
-## 法規依據
-- 憲法：CONSTITUTION.md 第 6 條
+| 用戶說法 | 觸發 |
+|----------|------|
+| 更新 README、文檔 | ✅ |
+| 怎麼用、安裝說明 | ✅ |
+| 被 git-precommit 調用 | ✅ 自動觸發 |
 
-## 更新策略
+---
 
-### 1. 偵測變更類型
-- 新功能 → 更新功能列表
-- 新依賴 → 更新安裝說明
-- API 變更 → 更新使用範例
-- 結構變更 → 更新專案結構
+## 可用工具
 
-### 2. 更新區塊
+此技能使用標準檔案操作：
 
-| 區塊 | 條件 |
+| 操作 | 工具 |
 |------|------|
-| 功能列表 | 新增/移除功能 |
-| 安裝說明 | 依賴變更 |
-| 使用範例 | API 變更 |
-| 專案結構 | 目錄結構變更 |
-| 配置說明 | 新增設定選項 |
+| 讀取 | `read_file("README.md")` |
+| 更新 | `replace_string_in_file()` |
+| 目錄列表 | `list_dir()` |
+| Git diff | `get_changed_files()` |
 
-### 3. 保持區塊
-以下區塊不自動修改：
+---
+
+## 更新區塊對應
+
+| 變更類型 | 更新區塊 |
+|----------|----------|
+| 新功能 | 功能列表 |
+| 新依賴 | 安裝說明 |
+| API 變更 | 使用範例 |
+| 目錄變更 | 專案結構 |
+| 新設定 | 配置說明 |
+
+---
+
+## 保護區塊（不自動修改）
+
 - 授權資訊
 - 貢獻指南
 - 致謝
 
-## 輸出格式
+---
+
+## 標準工作流程
+
+```python
+# 1. 讀取 README
+read_file("README.md")
+
+# 2. 分析變更
+get_changed_files()
+
+# 3. 更新對應區塊
+replace_string_in_file(
+    filePath="README.md",
+    oldString="## Features\n\n- Feature A",
+    newString="## Features\n\n- Feature A\n- Feature B (新增)"
+)
+```
+
+---
+
+## 輸出範例
 
 ```
 📝 README 更新分析
@@ -52,10 +79,11 @@ description: Intelligently update README.md to sync with code changes. Triggers:
 建議更新：
   [功能列表] 新增「🔐 用戶認證」
   [安裝說明] 新增 bcrypt 安裝指令
-
-預覽：
-  ## 功能
-  - 🤖 Claude Skills
-  - 📝 Memory Bank
-+ - 🔐 用戶認證（新增）
 ```
+
+---
+
+## 相關技能
+
+- `readme-i18n` - 多語言 README 同步
+- `git-precommit` - 提交前自動調用
