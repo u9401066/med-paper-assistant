@@ -40,13 +40,14 @@ if [ -d "$PROMPTS_SRC" ]; then
     done
 fi
 
-# 3. Build Python wheel
-echo "🐍 Building Python wheel..."
-cd "$ROOT_DIR"
-if command -v uv &> /dev/null; then
-    uv build --wheel --out-dir "$EXT_DIR/bundled/tool"
-else
-    pip wheel . --wheel-dir "$EXT_DIR/bundled/tool" --no-deps
+# 3. Copy Python MCP source (for development)
+echo "🐍 Copying Python MCP source..."
+PYTHON_SRC="$ROOT_DIR/src/med_paper_assistant"
+PYTHON_DST="$EXT_DIR/bundled/tool/med_paper_assistant"
+
+if [ -d "$PYTHON_SRC" ]; then
+    rm -rf "$PYTHON_DST"
+    cp -r "$PYTHON_SRC" "$PYTHON_DST"
 fi
 
 # 4. Compile TypeScript

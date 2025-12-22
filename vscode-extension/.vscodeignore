@@ -1,0 +1,27 @@
+# VS Code Extension Ignore File
+.vscode/**
+.vscode-test/**
+src/**
+out/**/*.map
+node_modules/**
+*.vsix
+.gitignore
+tsconfig.json
+vsc-extension-quickstart.md
+**/*.ts
+**/.DS_Store
+**/Thumbs.db
+
+# Python cache
+**/__pycache__/**
+**/*.pyc
+**/*.pyo
+
+# Test files
+tests/**
+test_*/**
+**/test_*.py
+
+# Development files
+scripts/dev.sh
+*.log

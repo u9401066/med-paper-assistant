@@ -2,17 +2,6 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// MCP Server Definition
-interface McpServerDefinition {
-    name: string;
-    transport: {
-        type: 'stdio';
-        command: string;
-        args: string[];
-        env?: Record<string, string>;
-    };
-}
-
 let outputChannel: vscode.OutputChannel;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -55,29 +44,28 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
     const skillsPath = path.join(context.extensionPath, 'skills');
     const instructions = loadSkillsAsInstructions(skillsPath);
 
-    const provider = {
+    const provider: vscode.McpServerDefinitionProvider = {
         onDidChangeMcpServerDefinitions: new vscode.EventEmitter<void>().event,
         
-        provideMcpServerDefinitions(): McpServerDefinition[] {
-            return [{
-                name: 'mdpaper',
-                transport: {
-                    type: 'stdio' as const,
-                    command: pythonPath,
-                    args: ['-m', 'mdpaper_mcp'],
-                    env: {
-                        PYTHONPATH: bundledToolPath,
-                        MDPAPER_INSTRUCTIONS: instructions,
-                        MDPAPER_EXTENSION_PATH: context.extensionPath
-                    }
+        provideMcpServerDefinitions(token: vscode.CancellationToken): vscode.ProviderResult<vscode.McpServerDefinition[]> {
+            const definition = new vscode.McpStdioServerDefinition(
+                'MedPaper Assistant',  // label
+                pythonPath,            // command
+                ['-m', 'mdpaper_mcp'], // args
+                {                      // env
+                    PYTHONPATH: bundledToolPath,
+                    MDPAPER_INSTRUCTIONS: instructions,
+                    MDPAPER_EXTENSION_PATH: context.extensionPath
                 }
-            }];
+            );
+            return [definition];
         },
 
         resolveMcpServerDefinition(
-            definition: McpServerDefinition
-        ): McpServerDefinition | undefined {
-            outputChannel.appendLine(`Resolving MCP server: ${definition.name}`);
+            definition: vscode.McpServerDefinition,
+            token: vscode.CancellationToken
+        ): vscode.ProviderResult<vscode.McpServerDefinition> {
+            outputChannel.appendLine(`Resolving MCP server: ${definition.label}`);
             return definition;
         }
     };
