@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "current_project": "test-project",
+  "last_activity": "2026-01-06T12:58:24.340239",
+  "last_updated": "2026-01-06T12:58:24.340242",
+  "workspace_state": {
+    "open_drafts": [],
+    "pending_validations": [],
+    "last_search_pmids": [],
+    "last_tool_called": "draft_section"
+  },
+  "recovery_hints": {
+    "agent_was_doing": "Writing introduction for remimazolam study",
+    "next_suggested_action": "validate_concept",
+    "important_context": [
+      "Found 5 key papers",
+      "Novelty score 82",
+      "Focus on elderly patients"
+    ]
+  },
+  "cross_mcp_state": {
+    "pubmed_session_active": false,
+    "cgu_session_active": false
+  }
+}

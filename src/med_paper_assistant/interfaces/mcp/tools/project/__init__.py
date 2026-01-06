@@ -8,6 +8,7 @@ Split into submodules for maintainability:
 - exploration: start_exploration, convert_to_project
 - diagrams: save_diagram, list_diagrams (Draw.io integration)
 - workspace: VS Code integration for file opening/closing
+- workspace_state: Cross-session state persistence
 """
 
 from mcp.server.fastmcp import FastMCP
@@ -19,6 +20,7 @@ from .diagrams import register_diagram_tools
 from .exploration import register_exploration_tools
 from .settings import register_settings_tools
 from .workspace import register_workspace_tools
+from .workspace_state import register_workspace_state_tools
 
 
 def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
@@ -28,6 +30,7 @@ def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
     register_exploration_tools(mcp, project_manager)
     register_diagram_tools(mcp, project_manager)
     register_workspace_tools(mcp, project_manager)
+    register_workspace_state_tools(mcp)  # Workspace state tools
 
 
 __all__ = ["register_project_tools"]

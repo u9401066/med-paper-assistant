@@ -47,7 +47,22 @@
 - **DDD 架構**：Domain-Driven Design
 - **MCP-to-MCP 通訊**：儲存文獻用 `save_reference_mcp(pmid)`，不是傳 metadata
 - **Memory Bank**：`memory-bank/` 強制同步
+- **Workspace State**：新對話開始呼叫 `get_workspace_state()` 恢復 context
 - **Python 環境**：uv 優先、禁止全域安裝
+
+### ⭐ Workspace State 規則（新！）
+
+```
+📌 解決 Agent 被 Summarize 後遺失 Context 的問題
+
+🔵 新對話開始：
+   → 呼叫 get_workspace_state() 恢復 context
+
+🔵 重要操作前/後：
+   → 呼叫 sync_workspace_state(doing="...", next_action="...")
+
+🔵 狀態檔案：.mdpaper-state.json（唯一真相來源）
+```
 
 ### ⚠️ 儲存文獻規則
 

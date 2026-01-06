@@ -165,6 +165,50 @@ uv add --dev pytest ruff
 
 詳見：`.github/bylaws/python-environment.md`
 
+### ⭐ Workspace State（跨 Session 狀態恢復）
+
+**⚠️ 重要：解決 Agent 被 Summarize 後遺失 Context 的問題！**
+
+狀態檔案：`.mdpaper-state.json`
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     新對話開始時                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  1. 呼叫 get_workspace_state()                                  │
+│     → 恢復：當前專案、上次在做什麼、建議的下一步                    │
+│                                                                 │
+│  2. 繼續之前的工作，無需用戶重複說明                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 必須呼叫 `get_workspace_state()` 的時機
+
+| 時機 | 說明 |
+|------|------|
+| **新對話開始** | 恢復上次的工作 context |
+| **用戶說「繼續」、「接續」** | 需要知道之前在做什麼 |
+| **不確定當前專案** | 確認正確的專案 context |
+
+#### 必須呼叫 `sync_workspace_state()` 的時機
+
+| 時機 | 範例 |
+|------|------|
+| **開始重要任務前** | `doing="Writing Methods section"` |
+| **完成階段性工作後** | `next_action="validate_concept"` |
+| **發現重要資訊時** | `context="Found 5 key papers, PMID: ..."` |
+| **對話即將結束時** | 保存 context 供下次使用 |
+
+#### Workspace State 工具
+
+| 工具 | 用途 |
+|------|------|
+| `get_workspace_state` | 獲取恢復摘要（新對話必呼叫） |
+| `sync_workspace_state` | 同步當前狀態（重要操作時呼叫） |
+| `clear_recovery_state` | 清除恢復提示（成功恢復後） |
+
+---
+
 ### Memory Bank 同步（專案層級）
 
 **⚠️ 強制寫入位置：`memory-bank/`**

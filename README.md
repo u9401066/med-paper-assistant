@@ -500,9 +500,9 @@ med-paper-assistant/
 
 ## 🛠️ Available Tools
 
-### 📝 mdpaper MCP Tools (69 total)
+### 📝 mdpaper MCP Tools (72 total)
 
-#### 📁 Project Management (20 tools)
+#### 📁 Project Management (23 tools)
 
 | Tool | Description |
 |------|-------------|
@@ -526,6 +526,9 @@ med-paper-assistant/
 | `save_diagram` | Save Draw.io diagram to project |
 | `save_diagram_standalone` | Save diagram without project context |
 | `list_diagrams` | List diagrams in current project |
+| `get_workspace_state` | **[NEW]** Get workspace state for session recovery |
+| `sync_workspace_state` | **[NEW]** Sync state for cross-session persistence |
+| `clear_recovery_state` | **[NEW]** Clear recovery hints after resuming |
 
 #### 📚 Reference Management (17 tools)
 
