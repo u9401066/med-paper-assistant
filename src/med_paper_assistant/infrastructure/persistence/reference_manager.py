@@ -870,3 +870,73 @@ class ReferenceManager:
             return f"Successfully saved PDF for {pmid}."
         except Exception as e:
             return f"Error saving PDF for {pmid}: {str(e)}"
+
+    def delete_reference(self, pmid: str, confirm: bool = False) -> Dict[str, Any]:
+        """
+        Delete a saved reference and all associated files.
+
+        Args:
+            pmid: PubMed ID of the reference to delete.
+            confirm: Must be True to actually delete.
+
+        Returns:
+            Dict with success status and deleted files info.
+        """
+        import shutil
+
+        ref_dir = os.path.join(self.base_dir, pmid)
+
+        if not os.path.exists(ref_dir):
+            return {
+                "success": False,
+                "error": f"Reference {pmid} not found in local library.",
+            }
+
+        # Get reference info before deletion for confirmation
+        summary = self.get_reference_summary(pmid)
+        title = summary.get("title", "Unknown title")
+        citation_key = summary.get("citation_key", f"pmid_{pmid}")
+
+        if not confirm:
+            # Return preview without deleting
+            files_to_delete = []
+            for root, dirs, files in os.walk(ref_dir):
+                for f in files:
+                    rel_path = os.path.relpath(os.path.join(root, f), ref_dir)
+                    files_to_delete.append(rel_path)
+
+            return {
+                "success": False,
+                "requires_confirmation": True,
+                "pmid": pmid,
+                "title": title,
+                "citation_key": citation_key,
+                "files_to_delete": files_to_delete,
+                "message": f"⚠️ 即將刪除 PMID {pmid}。請確認後使用 confirm=True 執行刪除。",
+            }
+
+        # Actually delete
+        try:
+            deleted_files = []
+            for root, dirs, files in os.walk(ref_dir):
+                for f in files:
+                    rel_path = os.path.relpath(os.path.join(root, f), ref_dir)
+                    deleted_files.append(rel_path)
+
+            shutil.rmtree(ref_dir)
+
+            return {
+                "success": True,
+                "pmid": pmid,
+                "title": title,
+                "citation_key": citation_key,
+                "deleted_files": deleted_files,
+                "message": f"✅ 已刪除 PMID {pmid}: {title}",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"刪除失敗: {str(e)}",
+                "pmid": pmid,
+            }
+

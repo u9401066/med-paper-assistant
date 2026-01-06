@@ -529,3 +529,76 @@ def register_reference_manager_tools(
             "\n💡 New structure: `references/{pmid}/{citation_key}.md` with aliases in frontmatter"
         )
         return output
+
+    @mcp.tool()
+    def delete_reference(pmid: str, confirm: bool = False, project: Optional[str] = None) -> str:
+        """
+        Delete a saved reference and all associated files.
+
+        ⚠️ DESTRUCTIVE OPERATION: This permanently removes the reference.
+        First call without confirm=True to preview what will be deleted.
+
+        Args:
+            pmid: PubMed ID of the reference to delete.
+            confirm: Set to True to actually perform deletion. Default False shows preview.
+            project: Project slug. If not specified, uses current project.
+
+        Returns:
+            Preview of deletion (confirm=False) or deletion result (confirm=True).
+
+        Example:
+            # Step 1: Preview deletion
+            delete_reference(pmid="12345678")
+            # → Shows files that will be deleted
+
+            # Step 2: Confirm deletion
+            delete_reference(pmid="12345678", confirm=True)
+            # → Actually deletes the reference
+        """
+        log_tool_call("delete_reference", {"pmid": pmid, "confirm": confirm, "project": project})
+
+        if project:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                error_msg = f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+                log_agent_misuse(
+                    "delete_reference",
+                    "valid project slug",
+                    {"pmid": pmid, "project": project},
+                    error_msg,
+                )
+                return error_msg
+
+        result = ref_manager.delete_reference(pmid, confirm=confirm)
+        log_tool_result("delete_reference", result)
+
+        if result.get("requires_confirmation"):
+            # Preview mode
+            output = f"⚠️ **即將刪除文獻 (Preview)**\n\n"
+            output += f"**PMID**: {result['pmid']}\n"
+            output += f"**標題**: {result['title']}\n"
+            output += f"**Citation Key**: `[[{result['citation_key']}]]`\n\n"
+            output += "**將刪除的檔案**:\n"
+            for f in result.get("files_to_delete", []):
+                output += f"  - {f}\n"
+            output += "\n⚠️ 此操作無法復原！\n"
+            output += "請使用 `delete_reference(pmid=\"{}\", confirm=True)` 確認刪除。".format(pmid)
+            return output
+
+        elif result.get("success"):
+            # Deletion successful
+            output = f"✅ **已刪除文獻**\n\n"
+            output += f"**PMID**: {result['pmid']}\n"
+            output += f"**標題**: {result['title']}\n"
+            output += f"**Citation Key**: `[[{result['citation_key']}]]`\n\n"
+            output += "**已刪除的檔案**:\n"
+            for f in result.get("deleted_files", []):
+                output += f"  - {f}\n"
+            output += "\n💡 提示：如果其他草稿中有引用此文獻 (`[[{}]]`)，請記得更新。".format(
+                result['citation_key']
+            )
+            return output
+
+        else:
+            # Error
+            return f"❌ {result.get('error', '未知錯誤')}"

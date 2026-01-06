@@ -158,13 +158,16 @@
   - 識別關鍵缺口：所有 6 個 Entity 皆無 Delete 操作
   - ROADMAP 更新 Phase 4.5 加入 Delete 操作補齊計畫
   - 優先級排序：Reference Delete > Draft Delete > Project Archive
+- **CRUD Delete 操作實作 (2026-01-06)** ✅：
+  - `delete_reference(pmid, confirm)` - 刪除文獻（兩階段確認）
+  - `delete_draft(filename, confirm)` - 刪除草稿（兩階段確認）
+  - `archive_project(slug, confirm)` - 軟刪除/封存專案
+  - `delete_project(slug, confirm)` - 永久刪除專案
+  - 工具數量：52 → 56 個
 
 ## Doing
 
-- **CRUD Delete 操作實作 (2026-01-06)**
-  - [ ] `delete_reference(pmid)` - 刪除文獻（最高優先）
-  - [ ] `delete_draft(filename)` - 刪除草稿
-  - [ ] `archive_project(slug)` - 封存專案
+- 無
 
 ## Next
 

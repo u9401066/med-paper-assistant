@@ -457,3 +457,95 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         except Exception as e:
             log_tool_error("read_draft", e, {"filename": filename})
             return f"Error reading draft: {str(e)}"
+
+    @mcp.tool()
+    def delete_draft(
+        filename: str, confirm: bool = False, project: Optional[str] = None
+    ) -> str:
+        """
+        Delete a draft file.
+
+        ⚠️ DESTRUCTIVE OPERATION: This permanently removes the draft.
+        First call without confirm=True to preview what will be deleted.
+
+        Args:
+            filename: Name of the draft file to delete (e.g., "draft.md").
+            confirm: Set to True to actually perform deletion. Default False shows preview.
+            project: Project slug. If not specified, uses current project.
+
+        Returns:
+            Preview of deletion (confirm=False) or deletion result (confirm=True).
+
+        Example:
+            # Step 1: Preview deletion
+            delete_draft(filename="old_draft.md")
+            # → Shows file info that will be deleted
+
+            # Step 2: Confirm deletion
+            delete_draft(filename="old_draft.md", confirm=True)
+            # → Actually deletes the draft
+        """
+        log_tool_call(
+            "delete_draft", {"filename": filename, "confirm": confirm, "project": project}
+        )
+
+        if project:
+            is_valid, error_msg = _validate_project_context(project)
+            if not is_valid:
+                log_agent_misuse(
+                    "delete_draft",
+                    "valid project context required",
+                    {"project": project},
+                    error_msg,
+                )
+                return error_msg
+
+        # Resolve the full path
+        if not os.path.isabs(filename):
+            filename = os.path.join("drafts", filename)
+
+        if not os.path.exists(filename):
+            error_msg = f"❌ Draft file not found: {filename}"
+            log_tool_result("delete_draft", error_msg, success=False)
+            return error_msg
+
+        # Get file info
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                content = f.read()
+            word_count = len([w for w in content.split() if w.strip()])
+            sections = len(re.findall(r"^#+\s+", content, re.MULTILINE))
+            file_size = os.path.getsize(filename)
+        except Exception as e:
+            error_msg = f"❌ Error reading draft: {str(e)}"
+            log_tool_error("delete_draft", e, {"filename": filename})
+            return error_msg
+
+        basename = os.path.basename(filename)
+
+        if not confirm:
+            # Preview mode
+            output = f"⚠️ **即將刪除草稿 (Preview)**\n\n"
+            output += f"**檔案名稱**: {basename}\n"
+            output += f"**路徑**: {filename}\n"
+            output += f"**字數**: {word_count} words\n"
+            output += f"**章節數**: {sections} sections\n"
+            output += f"**檔案大小**: {file_size:,} bytes\n"
+            output += "\n⚠️ 此操作無法復原！\n"
+            output += f'請使用 `delete_draft(filename="{basename}", confirm=True)` 確認刪除。'
+            log_tool_result("delete_draft", "preview shown", success=True)
+            return output
+
+        # Actually delete
+        try:
+            os.remove(filename)
+            result = f"✅ **已刪除草稿**\n\n"
+            result += f"**檔案名稱**: {basename}\n"
+            result += f"**已刪除字數**: {word_count} words\n"
+            result += f"**已刪除章節數**: {sections} sections\n"
+            log_tool_result("delete_draft", f"deleted {basename}", success=True)
+            return result
+        except Exception as e:
+            error_msg = f"❌ 刪除失敗: {str(e)}"
+            log_tool_error("delete_draft", e, {"filename": filename})
+            return error_msg

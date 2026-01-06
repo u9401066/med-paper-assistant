@@ -187,16 +187,16 @@
 | `generate_highlights` | 生成 3-5 bullet points highlights | 📋 |
 | `generate_graphical_abstract` | Draw.io 視覺摘要模板 | 📋 |
 
-### 4.5 CRUD Delete 操作補齊 ⭐⭐⭐⭐⭐
+### 4.5 CRUD Delete 操作補齊 ✅ 已完成
 
-> **根據 2026-01-06 CRUD 盤點結果：52 個工具中 0 個 Delete 操作**
+> **根據 2026-01-06 CRUD 盤點結果：52 個工具中 0 個 Delete 操作 → 已補齊**
 
 | 工具 | 功能 | 優先級 | 狀態 |
 |------|------|--------|------|
-| `delete_reference` | 刪除儲存錯誤的文獻 | ⭐⭐⭐⭐⭐ | 📋 |
-| `delete_draft` | 刪除草稿檔案 | ⭐⭐⭐ | 📋 |
-| `archive_project` | 封存專案（不完全刪除） | ⭐⭐⭐ | 📋 |
-| `delete_diagram` | 刪除圖表 | ⭐⭐ | 📋 |
+| `delete_reference` | 刪除儲存錯誤的文獻 | ⭐⭐⭐⭐⭐ | ✅ |
+| `delete_draft` | 刪除草稿檔案 | ⭐⭐⭐ | ✅ |
+| `archive_project` | 封存專案（不完全刪除） | ⭐⭐⭐ | ✅ |
+| `delete_project` | 永久刪除專案 | ⭐⭐ | ✅ |
 
 **CRUD 盤點摘要**：
 
