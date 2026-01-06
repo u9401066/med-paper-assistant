@@ -6,7 +6,7 @@ Tools for preparing manuscript submission materials.
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -19,9 +19,11 @@ from .._shared import (
     log_tool_result,
 )
 
+# Type alias for journal requirements
+JournalReqs = dict[str, Any]
 
 # Common journal requirements database
-JOURNAL_REQUIREMENTS = {
+JOURNAL_REQUIREMENTS: dict[str, JournalReqs] = {
     "bja": {
         "name": "British Journal of Anaesthesia",
         "word_limit": {"original": 3500, "review": 5000, "case": 1500},
@@ -446,13 +448,13 @@ Sincerely,
         # Get journal requirements
         journal_key = journal.lower().replace(" ", "_").replace("-", "_")
         reqs = JOURNAL_REQUIREMENTS.get(journal_key, JOURNAL_REQUIREMENTS["generic"])
-        journal_name = reqs["name"]
+        journal_name = str(reqs["name"])
 
         checklist = SubmissionChecklist()
 
         # Word count checks
         if word_count is not None:
-            limit = reqs["word_limit"].get("original", 4000)
+            limit: int = int(reqs["word_limit"].get("original", 4000))
             if word_count <= limit:
                 checklist.add(
                     "Word Counts",
@@ -477,7 +479,7 @@ Sincerely,
 
         # Abstract count
         if abstract_count is not None:
-            limit = reqs.get("abstract_limit", 300)
+            limit = int(reqs.get("abstract_limit", 300))
             if abstract_count <= limit:
                 checklist.add(
                     "Word Counts",
@@ -502,7 +504,7 @@ Sincerely,
 
         # Reference count
         if reference_count is not None:
-            limit = reqs.get("references_limit", 50)
+            limit = int(reqs.get("references_limit", 50))
             if reference_count <= limit:
                 checklist.add(
                     "References",
@@ -527,7 +529,7 @@ Sincerely,
 
         # Figures
         if figure_count is not None:
-            limit = reqs.get("figures_limit", 6)
+            limit = int(reqs.get("figures_limit", 6))
             if figure_count <= limit:
                 checklist.add(
                     "Figures & Tables",
@@ -545,7 +547,7 @@ Sincerely,
 
         # Tables
         if table_count is not None:
-            limit = reqs.get("tables_limit", 5)
+            limit = int(reqs.get("tables_limit", 5))
             if table_count <= limit:
                 checklist.add(
                     "Figures & Tables",
@@ -693,7 +695,7 @@ Sincerely,
             word_limit = info["word_limit"].get("original", "-")
             output += f"| `{code}` | {info['name']} | {word_limit} | {info.get('abstract_limit', '-')} | {info.get('references_limit', '-')} | {info.get('figures_limit', '-')} | {info.get('tables_limit', '-')} |\n"
 
-        output += f"| `generic` | Generic (fallback) | 4000 | 300 | 50 | 6 | 5 |\n"
+        output += "| `generic` | Generic (fallback) | 4000 | 300 | 50 | 6 | 5 |\n"
 
         output += "\n---\n"
         output += "💡 Use the journal code in `generate_cover_letter` and `check_submission_checklist`.\n"

@@ -574,7 +574,7 @@ def register_reference_manager_tools(
 
         if result.get("requires_confirmation"):
             # Preview mode
-            output = f"⚠️ **即將刪除文獻 (Preview)**\n\n"
+            output = "⚠️ **即將刪除文獻 (Preview)**\n\n"
             output += f"**PMID**: {result['pmid']}\n"
             output += f"**標題**: {result['title']}\n"
             output += f"**Citation Key**: `[[{result['citation_key']}]]`\n\n"
@@ -587,7 +587,7 @@ def register_reference_manager_tools(
 
         elif result.get("success"):
             # Deletion successful
-            output = f"✅ **已刪除文獻**\n\n"
+            output = "✅ **已刪除文獻**\n\n"
             output += f"**PMID**: {result['pmid']}\n"
             output += f"**標題**: {result['title']}\n"
             output += f"**Citation Key**: `[[{result['citation_key']}]]`\n\n"

@@ -8,8 +8,8 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services.analyzer import Analyzer
 
-from .table_one import register_table_one_tools
 from .stats import register_stats_tools
+from .table_one import register_table_one_tools
 
 
 def register_analysis_tools(mcp: FastMCP, analyzer: Analyzer):

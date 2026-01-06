@@ -21,9 +21,9 @@ Architecture:
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager

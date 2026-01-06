@@ -166,7 +166,6 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         continuous = []
         categorical = []
         potential_groups = []
-        date_cols = []
         id_cols = []
 
         for col in df.columns:
@@ -232,13 +231,13 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         # Generate suggested command
         output += "---\n"
         output += "### 💡 Suggested Command\n\n"
-        
+
         group_var = potential_groups[0][0] if potential_groups else "GROUP_COLUMN"
         cont_vars = ",".join(c[0] for c in continuous[:5]) if continuous else "age,weight"
         cat_vars = ",".join(c[0] for c in categorical[:5]) if categorical else "sex,diabetes"
-        
+
         output += "```\n"
-        output += f'generate_table_one(\n'
+        output += 'generate_table_one(\n'
         output += f'    filename="{filename}",\n'
         output += f'    group_col="{group_var}",\n'
         output += f'    continuous_cols="{cont_vars}",\n'
@@ -271,7 +270,7 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
 
         data_dir = analyzer.data_dir
         if not os.path.exists(data_dir):
-            return f"📁 No data/ directory found.\n\nCreate one and add your CSV files."
+            return "📁 No data/ directory found.\n\nCreate one and add your CSV files."
 
         files = [f for f in os.listdir(data_dir) if f.endswith((".csv", ".xlsx", ".xls"))]
 

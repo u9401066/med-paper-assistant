@@ -608,7 +608,7 @@ class ConceptValidator:
     def _generate_novelty_feedback(self, content: str, scores: List[int]) -> Dict[str, Any]:
         """
         Generate sharp, reviewer-style feedback using the Three Reviewers Model.
-        
+
         1. Reviewer 1: The Skeptic (Evidence & Search)
         2. Reviewer 2: The Methodologist (Rigor & Comparison)
         3. Reviewer 3: The Clinical Impact Expert (Significance & MCID)
@@ -624,10 +624,10 @@ class ConceptValidator:
             "actionable_fixes": [],
             "cgu_recommendation": None,
         }
-        
+
         content_lower = content.lower()
         avg_score = sum(scores) / len(scores)
-        
+
         # === VERDICT ===
         if avg_score >= 85:
             feedback["verdict"] = "💎 High-impact potential. The novelty is clear and well-supported."
@@ -676,7 +676,7 @@ class ConceptValidator:
 
         # === CRITICAL ISSUES (Evidence-based challenges) ===
         issues = []
-        
+
         # Issue 1: Claiming "first" without search evidence
         if skeptic["score"] <= 50:
             issues.append({
@@ -684,7 +684,7 @@ class ConceptValidator:
                 "challenge": "Reviewer 1 (Skeptic) 會問：『你怎麼知道沒人做過？搜尋策略是什麼？』",
                 "fix": "加入：『PubMed 搜尋 \"X AND Y\" (2024-12-17) 結果為 0 篇』",
             })
-        
+
         # Issue 2: Vague quantification
         if clinical["score"] <= 60:
             issues.append({
@@ -692,7 +692,7 @@ class ConceptValidator:
                 "challenge": "Reviewer 3 (Clinical Expert) 會問：『好多少？臨床意義 (MCID) 是什麼？』",
                 "fix": "改為具體數字：『預期減少 30% 的併發症』或『優於現有技術 15%』",
             })
-        
+
         # Issue 3: Comparison gap
         if methodologist["score"] <= 60:
             issues.append({
@@ -700,15 +700,15 @@ class ConceptValidator:
                 "challenge": "Reviewer 2 (Methodologist) 會問：『既然 [Author 2024] 做過類似的，你的獨特性在哪？』",
                 "fix": "明確寫出：『與 [Author 2024] 不同的是，我們採用了 [新方法/新族群]』",
             })
-        
+
         feedback["critical_issues"] = issues
-        
+
         # === ACTIONABLE FIXES ===
         fixes = []
         for issue in issues:
             fixes.append(f"🔧 **{issue['problem']}**\n   → {issue['fix']}")
         feedback["actionable_fixes"] = fixes
-        
+
         # === CGU RECOMMENDATION ===
         if avg_score < 75:
             feedback["cgu_recommendation"] = {
@@ -717,9 +717,9 @@ class ConceptValidator:
                 "tool": "mcp_cgu_deep_think",
                 "prompt": f"扮演一位頂尖醫學期刊審稿人，針對以下創新聲明提出 3 個最刁鑽的質疑：\n\n{content}",
             }
-            
+
         return feedback
-    
+
     def _generate_novelty_suggestions(self, content: str, scores: List[int]) -> List[str]:
         """Generate improvement suggestions (legacy interface, calls new method)."""
         feedback = self._generate_novelty_feedback(content, scores)
@@ -1022,11 +1022,11 @@ class ConceptValidator:
             novelty_content = result.sections.get(
                 "novelty_statement", SectionCheck(name="", found=False, has_content=False)
             ).content
-            
+
             feedback = {}
             if novelty_content:
                 feedback = self._generate_novelty_feedback(novelty_content, result.novelty_scores)
-            
+
             # Show verdict (one sharp line)
             avg_score = result.novelty_average
             output.append(f"**Overall Score:** {avg_score:.1f}/100")
@@ -1040,13 +1040,13 @@ class ConceptValidator:
                 output.append("")
                 output.append("| Reviewer | Score | Feedback |")
                 output.append("|----------|-------|----------|")
-                
+
                 revs = feedback["reviewers"]
                 output.append(f"| 🕵️ **The Skeptic** | {revs['skeptic']['score']} | {revs['skeptic']['comment']} |")
                 output.append(f"| 📐 **The Methodologist** | {revs['methodologist']['score']} | {revs['methodologist']['comment']} |")
                 output.append(f"| 🏥 **The Clinical Expert** | {revs['clinical_expert']['score']} | {revs['clinical_expert']['comment']} |")
                 output.append("")
-            
+
             # Show critical issues (sharp, evidence-based)
             if feedback.get("critical_issues"):
                 output.append("### ⚠️ Critical Issues (Reviewer 會質疑)")
@@ -1056,20 +1056,20 @@ class ConceptValidator:
                     output.append(f"- 🎯 {issue['challenge']}")
                     output.append(f"- 🔧 {issue['fix']}")
                     output.append("")
-            
+
             # Show questions (what reviewer would ask)
             reviewer_questions = []
             if "reviewers" in feedback:
                 for r in feedback["reviewers"].values():
                     reviewer_questions.extend(r.get("questions", []))
-            
+
             if reviewer_questions:
                 output.append("### ❓ Reviewer 會問的問題")
                 output.append("")
                 for q in reviewer_questions:
                     output.append(f"- {q}")
                 output.append("")
-            
+
             # CGU recommendation (if needed)
             cgu = feedback.get("cgu_recommendation", {})
             if cgu.get("recommend") and avg_score < 75:
@@ -1080,7 +1080,7 @@ class ConceptValidator:
                 if cgu.get("prompt"):
                     output.append(f"> **Prompt：** {cgu['prompt']}")
                 output.append("")
-            
+
             # Note: This is advisory, not blocking
             output.append("> 📌 **這是 reviewer 視角的建議，不是硬性門檻。**")
             output.append("> 您可以選擇：(1) 直接寫 (2) 補強後再寫 (3) 用 CGU 發想")
@@ -1152,10 +1152,10 @@ class ConceptValidator:
             # Sharp summary with clear options
             output.append("## 📋 Assessment Summary")
             output.append("")
-            
+
             output.append(f"**Novelty Score:** {result.novelty_average:.1f}/100")
             output.append("")
-            
+
             if result.novelty_average >= 60:
                 output.append("您的 concept 可以過關，但有可改進之處。")
             else:

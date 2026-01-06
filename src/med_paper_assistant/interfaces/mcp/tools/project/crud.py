@@ -334,7 +334,6 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
             archive_project(slug="old-project", confirm=True)
             # → Actually archives the project
         """
-        import os
         import shutil
         from datetime import datetime
 
@@ -355,7 +354,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 
         if not confirm:
             # Preview mode
-            output = f"⚠️ **即將封存專案 (Preview)**\n\n"
+            output = "⚠️ **即將封存專案 (Preview)**\n\n"
             output += f"**專案名稱**: {name}\n"
             output += f"**Slug**: {slug}\n"
             output += f"**狀態**: {result.get('status', 'unknown')}\n\n"
@@ -385,11 +384,11 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
                 if project_manager.state_file.exists():
                     project_manager.state_file.unlink()
 
-            result_msg = f"✅ **已封存專案**\n\n"
+            result_msg = "✅ **已封存專案**\n\n"
             result_msg += f"**原專案**: {name} (`{slug}`)\n"
             result_msg += f"**封存名稱**: `{archived_slug}`\n"
             result_msg += f"**封存位置**: `{archived_path}`\n\n"
-            result_msg += f"**已封存內容**:\n"
+            result_msg += "**已封存內容**:\n"
             result_msg += f"  - 📝 草稿: {stats.get('drafts', 0)} files\n"
             result_msg += f"  - 📚 文獻: {stats.get('references', 0)} saved\n"
             result_msg += f"  - 📊 資料: {stats.get('data_files', 0)} files\n\n"
@@ -445,7 +444,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 
         if not confirm:
             # Preview mode
-            output = f"⚠️ **即將永久刪除專案 (Preview)**\n\n"
+            output = "⚠️ **即將永久刪除專案 (Preview)**\n\n"
             output += f"**專案名稱**: {name}\n"
             output += f"**Slug**: {slug}\n"
             output += f"**狀態**: {result.get('status', 'unknown')}\n\n"
@@ -464,10 +463,10 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
         delete_result = project_manager.delete_project(slug, confirm=True)
 
         if delete_result.get("success"):
-            result_msg = f"🗑️ **已永久刪除專案**\n\n"
+            result_msg = "🗑️ **已永久刪除專案**\n\n"
             result_msg += f"**專案名稱**: {name}\n"
             result_msg += f"**Slug**: {slug}\n\n"
-            result_msg += f"**已刪除的內容**:\n"
+            result_msg += "**已刪除的內容**:\n"
             result_msg += f"  - 📝 草稿: {stats.get('drafts', 0)} files\n"
             result_msg += f"  - 📚 文獻: {stats.get('references', 0)} saved\n"
             result_msg += f"  - 📊 資料: {stats.get('data_files', 0)} files\n"

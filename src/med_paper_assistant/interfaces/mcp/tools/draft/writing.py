@@ -46,7 +46,7 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
 
     Returns:
         Tuple of (can_proceed: bool, message: str, protected_content: dict)
-        
+
     Note: Novelty score is advisory. Low score returns warning, not block.
     """
     concept_path = _get_concept_path()
@@ -91,7 +91,7 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
             "Please fill in your research novelty before writing drafts.",
             {},
         )
-    
+
     if not selling_section or not selling_section.has_content:
         return (
             False,
@@ -198,7 +198,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         if concept_path and os.path.exists(concept_path):
             with open(concept_path, "r", encoding="utf-8") as f:
                 concept_content = f.read()
-            
+
             # Find all wikilinks in concept
             wikilinks = re.findall(r"\[\[([^\]]+)\]\]", concept_content)
             pmids = []
@@ -209,7 +209,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                         pmids.append(pmid)
                 elif wl.isdigit():
                     pmids.append(wl)
-            
+
             if pmids:
                 ref_context = "\n### 📚 Key Evidence from References\n\n"
                 for pmid in list(set(pmids))[:5]:  # Limit to top 5 for context window
@@ -220,7 +220,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                         # Extract key numbers/findings if possible (simple heuristic)
                         findings = re.findall(r"\d+\.?\d*\s*%", abstract)
                         findings_str = f" (Key figures: {', '.join(findings)})" if findings else ""
-                        
+
                         ref_context += f"#### [[{meta.get('citation_key', pmid)}]]\n"
                         ref_context += f"**Title**: {title}\n"
                         ref_context += f"**Abstract Summary**: {abstract[:500]}...\n"
@@ -228,20 +228,20 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
 
         # 3. Get Writing Strategy
         strategy = SECTION_PROMPTS.get(topic.lower(), "Write a professional medical section.")
-        
+
         # 4. Construct Final Instructions for the Agent
         output = f"## 📝 Drafting Instructions for {topic}\n\n"
         output += f"### 🎯 Writing Strategy\n{strategy}\n\n"
-        
+
         if protected.get("novelty_statement"):
             output += f"### 🔒 NOVELTY STATEMENT (MUST PRESERVE)\n> {protected['novelty_statement']}\n\n"
-        
+
         if protected.get("selling_points"):
             output += f"### 🔒 KEY SELLING POINTS (MUST EMPHASIZE)\n{protected['selling_points']}\n\n"
-            
+
         output += f"### 📝 User Notes/Outline\n{notes}\n\n"
         output += ref_context
-        
+
         output += "\n---\n"
         output += "💡 **Agent Action**: Use the evidence above to write a solid, data-driven section. "
         output += "Avoid generic AI filler. Focus on the logical flow from existing evidence to your novelty."
@@ -525,7 +525,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
 
         if not confirm:
             # Preview mode
-            output = f"⚠️ **即將刪除草稿 (Preview)**\n\n"
+            output = "⚠️ **即將刪除草稿 (Preview)**\n\n"
             output += f"**檔案名稱**: {basename}\n"
             output += f"**路徑**: {filename}\n"
             output += f"**字數**: {word_count} words\n"
@@ -539,7 +539,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         # Actually delete
         try:
             os.remove(filename)
-            result = f"✅ **已刪除草稿**\n\n"
+            result = "✅ **已刪除草稿**\n\n"
             result += f"**檔案名稱**: {basename}\n"
             result += f"**已刪除字數**: {word_count} words\n"
             result += f"**已刪除章節數**: {sections} sections\n"

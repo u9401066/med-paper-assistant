@@ -1,6 +1,6 @@
 SECTION_PROMPTS = {
     "introduction": """
-Write a high-impact Introduction for a medical research paper. 
+Write a high-impact Introduction for a medical research paper.
 
 ### 🚫 ANTI-AI WRITING RULES (CRITICAL)
 - **NO generic openings**: Avoid "In recent years...", "With the advancement of...", "X is a major public health concern...".
