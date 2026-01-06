@@ -164,6 +164,26 @@
   - `archive_project(slug, confirm)` - 軟刪除/封存專案
   - `delete_project(slug, confirm)` - 永久刪除專案
   - 工具數量：52 → 56 個
+- **Phase 4 MVP 核心工具實作 (2026-01-06)** ✅：
+  - **Analysis Tools** (`tools/analysis/`):
+    - `generate_table_one` - Table 1 自動生成 (mean±SD, p-values)
+    - `detect_variable_types` - 自動偵測連續/類別變數
+    - `list_data_files` - 列出可用資料檔案
+    - `analyze_dataset` - 描述性統計
+    - `run_statistical_test` - t-test, ANOVA, chi2, correlation 等
+    - `create_plot` - 統計圖表 (boxplot, scatter, histogram 等)
+  - **Review Tools** (`tools/review/`):
+    - `check_manuscript_consistency` - 稿件一致性檢查
+      - 引用一致性（PMID 存在檢查、未引用文獻）
+      - 數字一致性（N 值檢查）
+      - 縮寫定義檢查
+      - Table/Figure 連續性
+      - p 值格式一致性
+    - `create_reviewer_response` - Reviewer 回覆模板生成
+      - structured/table/letter 三種格式
+      - 自動解析審稿意見
+    - `format_revision_changes` - 修改差異格式化
+  - 工具數量：56 → 65 個
 
 ## Doing
 
@@ -171,13 +191,13 @@
 
 ## Next
 
-### 🔥 Phase 4: MVP for Original Research (2026 Q1) - 最高優先級
+### 🔥 Phase 4: MVP for Original Research (2026 Q1) - 剩餘項目
 
 | 工具 | 說明 | 預估工作量 |
 |------|------|-----------|
-| `generate_table_one` | 自動生成 Table 1 + 描述段落 | 3-5 天 |
-| `check_manuscript_consistency` | 跨章節一致性檢查 (數字、術語、引用) | 2-3 天 |
-| `create_reviewer_response` | Reviewer Response Letter 生成 | 2-3 天 |
+| ~~`generate_table_one`~~ | ~~自動生成 Table 1~~ | ✅ 已完成 |
+| ~~`check_manuscript_consistency`~~ | ~~跨章節一致性檢查~~ | ✅ 已完成 |
+| ~~`create_reviewer_response`~~ | ~~Reviewer Response 生成~~ | ✅ 已完成 |
 | `generate_cover_letter` | Cover Letter 自動生成 | 1 天 |
 | `check_submission_checklist` | 期刊投稿清單檢查 | 1 天 |
 

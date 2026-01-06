@@ -6,6 +6,7 @@ This server provides tools for:
 - Project and concept management
 - Draft creation and editing
 - Reference management
+- Data analysis and Table 1 generation
 - Word document export with templates
 
 Architecture:
@@ -16,6 +17,7 @@ Architecture:
         draft/       - Draft writing and templates
         reference/   - Reference management and citation
         validation/  - Concept and idea validation
+        analysis/    - Data analysis and Table 1 generation
         export/      - Word document export
         _shared/     - Shared utilities
     prompts/ - MCP prompt definitions
@@ -39,6 +41,7 @@ from med_paper_assistant.infrastructure.persistence import (
     ReferenceManager,
 )
 from med_paper_assistant.infrastructure.services import (
+    Analyzer,
     Drafter,
     Formatter,
     TemplateReader,
@@ -49,10 +52,12 @@ from med_paper_assistant.infrastructure.services import (
 from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS
 from med_paper_assistant.interfaces.mcp.prompts import register_prompts
 from med_paper_assistant.interfaces.mcp.tools import (
+    register_analysis_tools,
     register_draft_tools,
     register_export_tools,
     register_project_tools,
     register_reference_tools,
+    register_review_tools,
     register_validation_tools,
 )
 
@@ -83,6 +88,7 @@ def create_server() -> FastMCP:
     formatter = Formatter()
     template_reader = TemplateReader()
     word_writer = WordWriter()
+    analyzer = Analyzer()
 
     # Create MCP server
     mcp = FastMCP("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)
@@ -99,6 +105,12 @@ def create_server() -> FastMCP:
 
     logger.info("Registering validation tools...")
     register_validation_tools(mcp)
+
+    logger.info("Registering analysis tools...")
+    register_analysis_tools(mcp, analyzer)
+
+    logger.info("Registering review tools...")
+    register_review_tools(mcp, drafter, ref_manager)
 
     logger.info("Registering export tools...")
     register_export_tools(mcp, formatter, template_reader, word_writer)
