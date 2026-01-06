@@ -188,13 +188,14 @@
 - `create_reviewer_response` - 回覆模板生成
 - `format_revision_changes` - 修改差異格式化
 
-### 4.4 投稿準備清單
+### 4.4 投稿準備清單 ✅ 已完成
 
 | 工具 | 功能 | 狀態 |
 |------|------|------|
-| `generate_cover_letter` | 根據 concept + target journal 生成 Cover Letter | 📋 |
-| `check_submission_checklist` | 期刊投稿清單檢查 (word count, figure format...) | 📋 |
-| `generate_highlights` | 生成 3-5 bullet points highlights | 📋 |
+| `generate_cover_letter` | 根據 concept + target journal 生成 Cover Letter | ✅ |
+| `check_submission_checklist` | 期刊投稿清單檢查 (word count, figure format...) | ✅ |
+| `list_supported_journals` | 列出支援的期刊及其要求 | ✅ |
+| `generate_highlights` | 生成 3-5 bullet points highlights | ✅ |
 | `generate_graphical_abstract` | Draw.io 視覺摘要模板 | 📋 |
 
 ### 4.5 CRUD Delete 操作補齊 ✅ 已完成
