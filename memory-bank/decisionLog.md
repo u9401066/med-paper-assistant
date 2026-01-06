@@ -1,5 +1,48 @@
 # Decision Log
 
+## [2025-01-22] Artifact-Centric Architecture 設計
+
+### 背景
+發現現有「專案優先」架構無法支援非線性工作流程。研究者可能從搜尋、PDF、資料等多種入口開始，不一定先建立專案。
+
+### 選項
+1. 維持專案優先，提供快速建立專案
+2. 新增 Exploration 暫存區，讓成品可以先存再連結
+
+### 決定
+選擇方案 2：Artifact-Centric Architecture
+
+### 設計決策
+
+| 問題 | 選項 | 決策 | 理由 |
+|------|------|------|------|
+| 成品歸屬 | A.Copy / B.Symlink / C.Reference | **C. Reference** | 多對多關係最彈性 |
+| 強制專案時機 | A.Never / B.Export / C.Validate | **B. Export** | 探索階段零阻力 |
+| 向後相容 | A.Keep Both / B.Migrate / C.Gradual | **A. Keep Both** | 最小影響 |
+
+### 影響
+- 新增 `_workspace/` 成品暫存區
+- 三階段狀態機：EMPTY → EXPLORATION → PROJECT
+- 新增 6 個 Exploration 工具
+- 設計文件：[docs/design/artifact-centric-architecture.md](../docs/design/artifact-centric-architecture.md)
+
+---
+
+## [2025-01-22] Workspace State 跨 Session 持久化
+
+### 背景
+Agent 被 summarize 後遺失專案 context，每次新對話都要重新問用戶「你在做哪個專案？」
+
+### 決定
+實作 `WorkspaceStateManager` singleton，狀態存於 `.mdpaper-state.json`
+
+### 影響
+- 三個新工具：`get_workspace_state`, `sync_workspace_state`, `clear_recovery_state`
+- 新對話開始時自動恢復上次工作 context
+- 工具總數：69 → 72
+
+---
+
 ## [2025-12-17] 跨平台架構重構
 
 ### 背景

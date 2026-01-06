@@ -222,7 +222,66 @@
 
 ---
 
-## 📊 Phase 5: Project Portfolio Management (2026 Q2)
+## 🎨 Phase 5a: Artifact-Centric Architecture (2026 Q1-Q2) 🆕
+
+> **非線性工作流程支援 - 重大架構升級**
+> 📋 設計文件：[docs/design/artifact-centric-architecture.md](docs/design/artifact-centric-architecture.md)
+
+### 問題背景
+
+目前架構假設「專案優先」：使用者必須先建立專案才能儲存文獻。但實際研究者的工作流程是**非線性**的：
+
+| 入口模式 | 說明 |
+|----------|------|
+| 🔍 搜尋先行 | 先找論文，找到好題目才決定研究方向 |
+| 📊 資料先行 | 已有實驗數據，需要找文獻支持 |
+| 📝 草稿先行 | 從舊稿件改寫，需要更新引用 |
+| 📚 PDF 匯入 | 有一堆下載好的 PDF，需要整理 |
+
+### 解決方案
+
+**三階段狀態機**：
+```
+EMPTY → EXPLORATION → PROJECT
+          ↓
+    _workspace/ 暫存區
+```
+
+**核心變更**：
+- 新增 `_workspace/` 成品暫存區
+- 無專案時成品自動進入 staging
+- 使用者決定時機再建立專案
+
+### 新增工具 (+6)
+
+| 工具 | 功能 |
+|------|------|
+| `start_exploration` | 啟動探索模式 |
+| `get_exploration_status` | 查看 staging 狀態 |
+| `list_staged_artifacts` | 列出暫存成品 |
+| `tag_artifact` | 標記成品 |
+| `link_artifact_to_project` | 連結成品到專案 |
+| `convert_exploration_to_project` | 探索轉專案 |
+
+### 設計決策
+
+| 決策 | 選擇 | 理由 |
+|------|------|------|
+| 成品歸屬 | Reference（多對多） | 彈性最高 |
+| 強制專案時機 | Export 時 | 探索階段零阻力 |
+| 向後相容 | Keep Both | 現有專案不受影響 |
+
+### 實作計畫
+
+- [ ] 建立 `_workspace/` 基礎架構
+- [ ] 實作 `ArtifactRegistry` 類別
+- [ ] 升級 `WorkspaceStateManager` 支援 3 狀態
+- [ ] 新增 6 個 Exploration 工具
+- [ ] 修改現有工具支援無專案模式
+
+---
+
+## 📊 Phase 5b: Project Portfolio Management (2026 Q2)
 
 > **多論文專案管理：讓研究者能同時管理多個進行中的論文**
 

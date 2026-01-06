@@ -209,6 +209,39 @@ uv add --dev pytest ruff
 
 ---
 
+### 🆕 Artifact-Centric Architecture（即將推出）
+
+> 📋 設計文件：[docs/design/artifact-centric-architecture.md](docs/design/artifact-centric-architecture.md)
+
+**三階段狀態機**（取代現有 Binary 模式）：
+
+```
+EMPTY → EXPLORATION → PROJECT
+          ↓
+    _workspace/ 暫存區
+```
+
+**Agent 行為變化**（實作後生效）：
+
+| 情境 | 現在 | 實作後 |
+|------|------|--------|
+| 用戶說「儲存這篇」但無專案 | 提示建立專案 | 自動存入 `_workspace/` |
+| 用戶搜尋後說「有興趣」 | 詢問專案名稱 | 直接 staging，稍後連結 |
+| 用戶要匯出 Word | 需要專案 | 仍需要專案（強制專案時機） |
+
+**新工具預告**（6 個）：
+
+| 工具 | 功能 |
+|------|------|
+| `start_exploration` | 啟動探索模式 |
+| `get_exploration_status` | 查看 staging 狀態 |
+| `list_staged_artifacts` | 列出暫存成品 |
+| `tag_artifact` | 標記成品 |
+| `link_artifact_to_project` | 連結成品到專案 |
+| `convert_exploration_to_project` | 探索轉專案 |
+
+---
+
 ### Memory Bank 同步（專案層級）
 
 **⚠️ 強制寫入位置：`memory-bank/`**

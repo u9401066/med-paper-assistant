@@ -1,7 +1,18 @@
-# Progress (Updated: 2026-01-06)
+# Progress (Updated: 2025-01-22)
+
+## Doing
+
+- **Artifact-Centric Architecture 設計完成**
+  - 設計文件：`docs/design/artifact-centric-architecture.md`
+  - 待實作：`_workspace/` 暫存區、6 個新工具
 
 ## Done
 
+- **Workspace State 跨 Session 持久化 (2025-01-22)** ✅：
+  - `WorkspaceStateManager` singleton 類別
+  - `.mdpaper-state.json` 狀態檔案
+  - 三個新工具：`get_workspace_state`, `sync_workspace_state`, `clear_recovery_state`
+  - 工具總數：69 → 72
 - MCP 解耦：完全移除 mdpaper 對 pubmed_search 的依賴
 - ReferenceManager 重構：新 API save_reference(article)
 - Skill tools 移除：已內建於 VS Code Copilot

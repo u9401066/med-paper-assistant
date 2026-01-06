@@ -42,6 +42,24 @@
 | Export then format | Direct Word export with journal styles |
 | Learn complex UI | Natural language conversation |
 
+### 🆕 Coming Soon: Artifact-Centric Architecture
+
+> 📋 [Design Document](docs/design/artifact-centric-architecture.md)
+
+We're redesigning to support **truly non-linear workflows**:
+
+```
+Today: Must create project first → then save references
+Soon:  Save anything first → decide project later
+```
+
+| Feature | Description |
+|---------|-------------|
+| **`_workspace/` Staging** | Save references, PDFs, notes without a project |
+| **Three-Phase State** | EMPTY → EXPLORATION → PROJECT |
+| **Link Artifacts** | Connect saved items to projects when ready |
+| **Zero Friction Start** | Just start searching, the rest follows |
+
 ### 🌐 Our Ecosystem
 
 ```mermaid
