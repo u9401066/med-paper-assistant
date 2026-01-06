@@ -13,6 +13,7 @@ from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
+from med_paper_assistant.infrastructure.services.prompts import SECTION_PROMPTS
 
 from .._shared import (
     ensure_project_context,
@@ -152,14 +153,12 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         topic: str, notes: str, project: Optional[str] = None, skip_validation: bool = False
     ) -> str:
         """
-        Draft a section of a medical paper based on notes.
+        Draft a section of a medical paper based on notes and saved references.
 
         ⚠️ REQUIRES: Valid concept.md with novelty check passed.
 
-        This tool enforces concept validation before drafting. The draft must:
-        - Preserve 🔒 NOVELTY STATEMENT in Introduction
-        - Preserve 🔒 KEY SELLING POINTS in Discussion
-        - Not weaken or remove protected content
+        This tool gathers context from concept.md and saved references to provide
+        a solid foundation for drafting, avoiding generic AI-flavored text.
 
         Args:
             topic: The topic of the section (e.g., "Introduction").
@@ -184,21 +183,71 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             )
             return error_msg
 
+        # 1. Enforce Concept Validation
         if not skip_validation:
             can_proceed, message, protected = _enforce_concept_validation()
             if not can_proceed:
                 log_tool_result("draft_section", "concept validation failed", success=False)
                 return message
+        else:
+            protected = {}
 
-        reminder = ""
-        if topic.lower() == "introduction":
-            reminder = "\n\n⚠️ **REMINDER**: Introduction must reflect the 🔒 NOVELTY STATEMENT."
-        elif topic.lower() == "discussion":
-            reminder = "\n\n⚠️ **REMINDER**: Discussion must emphasize 🔒 KEY SELLING POINTS."
+        # 2. Gather Reference Context
+        ref_context = ""
+        concept_path = _get_concept_path()
+        if concept_path and os.path.exists(concept_path):
+            with open(concept_path, "r", encoding="utf-8") as f:
+                concept_content = f.read()
+            
+            # Find all wikilinks in concept
+            wikilinks = re.findall(r"\[\[([^\]]+)\]\]", concept_content)
+            pmids = []
+            for wl in wikilinks:
+                if "_" in wl:
+                    pmid = wl.split("_")[-1]
+                    if pmid.isdigit():
+                        pmids.append(pmid)
+                elif wl.isdigit():
+                    pmids.append(wl)
+            
+            if pmids:
+                ref_context = "\n### 📚 Key Evidence from References\n\n"
+                for pmid in list(set(pmids))[:5]:  # Limit to top 5 for context window
+                    meta = drafter.ref_manager.get_metadata(pmid)
+                    if meta:
+                        title = meta.get("title", "Unknown Title")
+                        abstract = meta.get("abstract", "No abstract available.")
+                        # Extract key numbers/findings if possible (simple heuristic)
+                        findings = re.findall(r"\d+\.?\d*\s*%", abstract)
+                        findings_str = f" (Key figures: {', '.join(findings)})" if findings else ""
+                        
+                        ref_context += f"#### [[{meta.get('citation_key', pmid)}]]\n"
+                        ref_context += f"**Title**: {title}\n"
+                        ref_context += f"**Abstract Summary**: {abstract[:500]}...\n"
+                        ref_context += f"**Evidence**: {findings_str}\n\n"
 
-        result = f"Drafting section '{topic}' based on notes...{reminder}"
-        log_tool_result("draft_section", result, success=True)
-        return result
+        # 3. Get Writing Strategy
+        strategy = SECTION_PROMPTS.get(topic.lower(), "Write a professional medical section.")
+        
+        # 4. Construct Final Instructions for the Agent
+        output = f"## 📝 Drafting Instructions for {topic}\n\n"
+        output += f"### 🎯 Writing Strategy\n{strategy}\n\n"
+        
+        if protected.get("novelty_statement"):
+            output += f"### 🔒 NOVELTY STATEMENT (MUST PRESERVE)\n> {protected['novelty_statement']}\n\n"
+        
+        if protected.get("selling_points"):
+            output += f"### 🔒 KEY SELLING POINTS (MUST EMPHASIZE)\n{protected['selling_points']}\n\n"
+            
+        output += f"### 📝 User Notes/Outline\n{notes}\n\n"
+        output += ref_context
+        
+        output += "\n---\n"
+        output += "💡 **Agent Action**: Use the evidence above to write a solid, data-driven section. "
+        output += "Avoid generic AI filler. Focus on the logical flow from existing evidence to your novelty."
+
+        log_tool_result("draft_section", f"prepared context for {topic}", success=True)
+        return output
 
     @mcp.tool()
     def write_draft(

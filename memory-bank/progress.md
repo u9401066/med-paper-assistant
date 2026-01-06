@@ -1,4 +1,4 @@
-# Progress (Updated: 2025-01-XX)
+# Progress (Updated: 2026-01-06)
 
 ## Done
 
@@ -117,16 +117,93 @@
   - 三種模式：development / normal / research
   - AGENTS.md 模式說明章節
   - copilot-instructions.md 更新
+- **VS Code Extension MCP 啟動修復 (2026-01-05)** ✅：
+  - 修復 `uvx` 誤用 `-m` 參數導致的啟動失敗
+  - 增強 `getPythonPath` 自動偵測 `.venv` 邏輯
+  - 支援 `uv` 和 `uvx` 作為 `pythonPath` 設定
+  - 開發模式下自動將 `src/` 加入 `PYTHONPATH`
+- **全專案 uv 標準化 (2026-01-05)** ✅：
+  - `scripts/setup.sh` & `setup.ps1` 遷移至 `uv sync`
+  - `CONTRIBUTING.md` 更新為 `uv` 導向流程
+  - `integrations/` 所有文檔更新為 `uv` / `uvx`
+  - `.github/bylaws/python-environment.md` 強化 `uv` 規範並棄用 `pip`
+  - `reference_manager.py` 錯誤訊息更新為 `uv add`
+  - 確保所有套件管理與環境建立均使用 `uv` 工具鏈
+- **Novelty Check 強化：三位審稿人模型 (2026-01-05)** ✅：
+  - 實作 `Three Reviewers Model` (Skeptic, Methodologist, Clinical Impact Expert)
+  - 每個審稿人有獨立的評分邏輯與質疑點
+  - 報告新增 `Reviewer Panel` 表格，顯示各別分數與評論
+  - 整合 CGU `deep_think` 進行壓力測試建議
+  - 強化「犀利回饋」模式，直指證據缺失與量化不足問題
+- **寫作邏輯優化：去 AI 味與證據導向 (2026-01-05)** ✅：
+  - 更新 `SECTION_PROMPTS` 引入 `Anti-AI Writing Rules` 與 `Evidence Funnel` 結構
+  - 強化 `draft_section` 工具：自動從已存文獻提取摘要與數據作為寫作背景
+  - 禁止模糊開場（如 "In recent years..."）與機械式轉折語
+  - `SKILL.md` 更新：明確規範「證據導向」的撰寫流程
+- **智慧引用助手 (Citation Assistant) (2026-01-06)** ✅：
+  - 新增 `CitationAssistant` 核心服務類
+    - `analyze_text()` - 分析文字中需要引用的聲稱
+    - `suggest_for_selection()` - 為選取文字提供引用建議
+    - `scan_draft_for_citations()` - 掃描整篇草稿
+  - 聲稱類型識別：Statistical / Comparison / Guideline / Mechanism / Definition
+  - 本地文獻庫搜尋 + 相關性評分
+  - 自動生成 PubMed 搜尋建議
+  - 新增 MCP 工具：
+    - `suggest_citations(text)` - 分析文字並建議引用
+    - `scan_draft_citations(filename)` - 掃描整篇草稿
+    - `find_citation_for_claim(claim, claim_type)` - 針對特定聲稱類型搜尋
+  - 輸出 Foam 相容的 `[[citation_key]]` 格式
+- **CRUD 盤點完成 (2026-01-06)** ✅：
+  - 完成 52 個 MCP 工具的 CRUD 分類盤點
+  - 識別關鍵缺口：所有 6 個 Entity 皆無 Delete 操作
+  - ROADMAP 更新 Phase 4.5 加入 Delete 操作補齊計畫
+  - 優先級排序：Reference Delete > Draft Delete > Project Archive
 
 ## Doing
 
-- 無
+- **CRUD Delete 操作實作 (2026-01-06)**
+  - [ ] `delete_reference(pmid)` - 刪除文獻（最高優先）
+  - [ ] `delete_draft(filename)` - 刪除草稿
+  - [ ] `archive_project(slug)` - 封存專案
 
 ## Next
+
+### 🔥 Phase 4: MVP for Original Research (2026 Q1) - 最高優先級
+
+| 工具 | 說明 | 預估工作量 |
+|------|------|-----------|
+| `generate_table_one` | 自動生成 Table 1 + 描述段落 | 3-5 天 |
+| `check_manuscript_consistency` | 跨章節一致性檢查 (數字、術語、引用) | 2-3 天 |
+| `create_reviewer_response` | Reviewer Response Letter 生成 | 2-3 天 |
+| `generate_cover_letter` | Cover Letter 自動生成 | 1 天 |
+| `check_submission_checklist` | 期刊投稿清單檢查 | 1 天 |
+
+### Phase 5: Project Portfolio Management (2026 Q2)
+
+| 功能 | 說明 |
+|------|------|
+| Dashboard 2.0 | Kanban + Timeline + Milestone 追蹤 |
+| 跨專案文獻庫 | 全域 references/ + 專案引用清單 |
+| 專案模板庫 | Original Research / SR / Meta / Case Report |
+
+### Phase 6: Systematic Review Pipeline (2026 Q3)
+
+| 功能 | 說明 |
+|------|------|
+| PRISMA 流程工具 | 篩選介面 + 自動生成流程圖 |
+| Risk of Bias | RoB 2.0, ROBINS-I, NOS 評估 |
+| Meta-analysis | Forest plot, Heterogeneity, Subgroup |
+
+### Phase 7: AI Automation Enhancement (2026 Q4)
+
+| 功能 | 說明 |
+|------|------|
+| Concept → Full Draft | 自動從 concept.md 生成完整初稿 |
+| Smart Citation | 類似 Grammarly 的引用建議 |
+| Cross-section Auto-fix | 自動同步數字、術語、格式 |
+
+### 其他待處理
 
 - Migration script 更新現有參考文獻到新格式
 - 批量更新舊 reference 的內容順序（Abstract 在前）
 - 加入環境變數 `PUBMED_MCP_API_URL` 配置
-- **Outcome Definition Templates** - 操作型定義模板庫
-- **Sample Size Calculator** - 內建 power calculation 工具
-- **CRF Generator** - 自動生成資料收集表單

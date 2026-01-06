@@ -1,45 +1,36 @@
 # Active Context
 
+## User Preferences
+- **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
+
 ## 當前焦點
-Dashboard UI 增強完成，準備 commit
+實作 CRUD Delete 操作補齊，從最高優先的 `delete_reference` 開始
 
-## 最近變更 (2025-12-17)
+## 最近變更 (2026-01-06)
 
-### 1. Dashboard Dark Mode ✅
-- **ThemeProvider.tsx**: Context 管理主題狀態
-  - 預設深色主題
-  - localStorage 持久化
-  - `mounted` 狀態避免 hydration mismatch
-- **ThemeToggle.tsx**: 日/月切換按鈕
-- **所有元件**: 加入 `dark:` Tailwind variants
+### 1. 智慧引用助手 (Citation Assistant) ✅
+- 新增 `CitationAssistant` 核心服務
+- MCP 工具：`suggest_citations`, `scan_draft_citations`, `find_citation_for_claim`
+- 聲稱類型識別 + 本地文獻庫搜尋 + PubMed 查詢建議
 
-### 2. Dashboard Progress Panel ✅
-- **ProgressPanel.tsx**: 新增 Progress tab
-  - Concept 驗證狀態
-  - Pre-Analysis Checklist 進度
-  - Word counts 統計
-- **Stats API**: `/api/projects/[slug]/stats`
-  - references, drafts, diagrams 計數
-  - concept 驗證狀態
-  - preAnalysis 完成度
+### 2. CRUD 盤點完成 ✅
+- 52 個 MCP 工具分類盤點
+- **關鍵發現**: 所有 6 個 Entity 皆無 Delete 操作
+- ROADMAP 更新 Phase 4.5 加入 Delete 操作補齊
 
-### 3. Next.js 升級 ✅
-- 16.0.6 → 16.0.10
-- npm audit: 0 vulnerabilities
-
-### 4. VS Code 整合 ✅
-- `.vscode/tasks.json`: Dashboard 啟動任務
-- `scripts/open-dashboard.ps1`: 啟動腳本
+### 3. CRUD Delete 操作實作 ⏳ (進行中)
+優先順序：
+1. `delete_reference(pmid)` ⭐⭐⭐⭐⭐ - 刪除儲存錯誤的文獻
+2. `delete_draft(filename)` ⭐⭐⭐ - 刪除草稿
+3. `archive_project(slug)` ⭐⭐⭐ - 封存專案
 
 ## 相關檔案
-- `dashboard/src/components/ThemeProvider.tsx` - 主題 Context
-- `dashboard/src/components/ThemeToggle.tsx` - 切換按鈕
-- `dashboard/src/components/ProgressPanel.tsx` - 進度面板
-- `dashboard/src/app/api/projects/[slug]/stats/route.ts` - Stats API
-- `dashboard/package.json` - Next.js 16.0.10
+- `src/med_paper_assistant/interfaces/mcp/tools/reference/` - Reference 工具
+- `src/med_paper_assistant/interfaces/mcp/tools/draft/` - Draft 工具
+- `src/med_paper_assistant/interfaces/mcp/tools/project/` - Project 工具
 
 ## 待解決問題
 - [ ] Dashboard → Copilot 主動通訊（VS Code Chat API 限制）
 
 ## 更新時間
-2025-12-17 22:30
+2026-01-06 10:00

@@ -8,76 +8,33 @@ $ProjectDir = Split-Path -Parent $ScriptDir
 
 Write-Host "Med Paper Assistant Setup..." -ForegroundColor Cyan
 
-# 1. Check Python
-Write-Host "Checking Python..." -ForegroundColor Yellow
+# 1. Check uv
+Write-Host "Checking uv..." -ForegroundColor Yellow
 try {
-    $pythonVersion = python --version 2>&1
-    Write-Host "  Found $pythonVersion" -ForegroundColor Green
+    $uvVersion = uv --version 2>&1
+    Write-Host "  Found $uvVersion" -ForegroundColor Green
 } catch {
-    Write-Host "ERROR: Python not found. Please install Python 3.10+" -ForegroundColor Red
-    Write-Host "  Download: https://www.python.org/downloads/" -ForegroundColor Yellow
+    Write-Host "ERROR: uv not found. Please install uv" -ForegroundColor Red
+    Write-Host "  Install: powershell -c ""irm https://astral.sh/uv/install.ps1 | iex""" -ForegroundColor Yellow
     exit 1
 }
 
-# 2. Create virtual environment
-Write-Host "Creating Python virtual environment..." -ForegroundColor Yellow
+# 2. Update submodules
+Write-Host "Updating Git submodules..." -ForegroundColor Yellow
+git submodule update --init --recursive --remote
+Write-Host "  Submodules updated" -ForegroundColor Green
+
+# 3. Create virtual environment and install dependencies
+Write-Host "Setting up environment with uv..." -ForegroundColor Yellow
 Set-Location $ProjectDir
+uv sync --all-extras
+Write-Host "  Environment ready" -ForegroundColor Green
 
-if (Test-Path ".venv") {
-    Write-Host "  Virtual environment already exists, skipping creation" -ForegroundColor Gray
-} else {
-    python -m venv .venv
-    Write-Host "  Virtual environment created" -ForegroundColor Green
-}
-
-# 3. Activate virtual environment
+# 4. Activate virtual environment
 Write-Host "Activating virtual environment..." -ForegroundColor Yellow
 & "$ProjectDir\.venv\Scripts\Activate.ps1"
 
-# 4. Install dependencies
-Write-Host "Installing dependencies..." -ForegroundColor Yellow
-pip install --upgrade pip --quiet
-pip install -e . --quiet
-Write-Host "  Dependencies installed" -ForegroundColor Green
-
-# 5. Update .vscode/mcp.json (cross-platform)
-Write-Host "Configuring VS Code MCP (cross-platform)..." -ForegroundColor Yellow
-
-if (-not (Test-Path ".vscode")) {
-    New-Item -ItemType Directory -Path ".vscode" | Out-Null
-}
-
-$mcpConfig = @'
-{
-  "inputs": [],
-  "servers": {
-    "mdpaper": {
-      "type": "stdio",
-      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
-      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src"
-      },
-      "platforms": {
-        "win32": {
-          "command": "${workspaceFolder}/.venv/Scripts/python.exe"
-        },
-        "linux": {
-          "command": "${workspaceFolder}/.venv/bin/python"
-        },
-        "darwin": {
-          "command": "${workspaceFolder}/.venv/bin/python"
-        }
-      }
-    }
-  }
-}
-'@
-
-$mcpConfig | Out-File -FilePath ".vscode\mcp.json" -Encoding UTF8
-Write-Host "  mcp.json created (cross-platform)" -ForegroundColor Green
-
-# 6. Verify installation
+# 5. Verify installation
 Write-Host "Verifying installation..." -ForegroundColor Yellow
 $verifyResult = python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server loaded: {len(mcp._tool_manager._tools)} tools')"
 Write-Host $verifyResult -ForegroundColor Green

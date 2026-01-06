@@ -36,10 +36,17 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Disposable {
-    // Determine Python path
-    const pythonPath = getPythonPath(context);
-    const bundledToolPath = path.join(context.extensionPath, 'bundled', 'tool');
-    
+    // Check if user has their own mcp.json - if so, skip auto-registration
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders) {
+        const mcpJsonPath = path.join(workspaceFolders[0].uri.fsPath, '.vscode', 'mcp.json');
+        if (fs.existsSync(mcpJsonPath)) {
+            outputChannel.appendLine('[MCP] Found .vscode/mcp.json - skipping auto-registration (use local config instead)');
+            // Return a no-op disposable
+            return { dispose: () => {} };
+        }
+    }
+
     // Load skills for server instructions
     const skillsPath = path.join(context.extensionPath, 'skills');
     const instructions = loadSkillsAsInstructions(skillsPath);
@@ -48,17 +55,68 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
         onDidChangeMcpServerDefinitions: new vscode.EventEmitter<void>().event,
         
         provideMcpServerDefinitions(token: vscode.CancellationToken): vscode.ProviderResult<vscode.McpServerDefinition[]> {
-            const definition = new vscode.McpStdioServerDefinition(
-                'MedPaper Assistant',  // label
-                pythonPath,            // command
-                ['-m', 'mdpaper_mcp'], // args
-                {                      // env
-                    PYTHONPATH: bundledToolPath,
+            const pythonPath = getPythonPath(context);
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            
+            outputChannel.appendLine(`[MCP] Using Python Path: ${pythonPath}`);
+            
+            // Determine PYTHONPATH
+            // Include bundled tools and workspace src (for development)
+            let pythonPathEnv = path.join(context.extensionPath, 'bundled', 'tool');
+            if (workspaceFolders) {
+                const srcPath = path.join(workspaceFolders[0].uri.fsPath, 'src');
+                const integrationsPath = path.join(workspaceFolders[0].uri.fsPath, 'integrations');
+                
+                if (fs.existsSync(srcPath)) {
+                    pythonPathEnv = `${srcPath}${path.delimiter}${pythonPathEnv}`;
+                }
+                
+                // Add integration src paths for development
+                const cguSrc = path.join(integrationsPath, 'cgu', 'src');
+                if (fs.existsSync(cguSrc)) {
+                    pythonPathEnv = `${cguSrc}${path.delimiter}${pythonPathEnv}`;
+                }
+            }
+
+            const definitions: vscode.McpServerDefinition[] = [];
+
+            // 1. MedPaper Assistant
+            const mdpaperArgs = getPythonArgs(pythonPath, 'med_paper_assistant.interfaces.mcp');
+            outputChannel.appendLine(`[MCP] MedPaper Args: ${mdpaperArgs.join(' ')}`);
+            definitions.push(new vscode.McpStdioServerDefinition(
+                'MedPaper Assistant',
+                pythonPath,
+                mdpaperArgs,
+                {
+                    PYTHONPATH: pythonPathEnv,
                     MDPAPER_INSTRUCTIONS: instructions,
                     MDPAPER_EXTENSION_PATH: context.extensionPath
                 }
-            );
-            return [definition];
+            ));
+
+            // 2. CGU (if bundled or in workspace)
+            const cguArgs = getPythonArgs(pythonPath, 'cgu.server');
+            outputChannel.appendLine(`[MCP] CGU Args: ${cguArgs.join(' ')}`);
+            definitions.push(new vscode.McpStdioServerDefinition(
+                'CGU Creativity',
+                pythonPath,
+                cguArgs,
+                {
+                    PYTHONPATH: pythonPathEnv
+                }
+            ));
+
+            // 3. Draw.io (External uvx)
+            definitions.push(new vscode.McpStdioServerDefinition(
+                'Draw.io Diagrams',
+                'uvx',
+                ['--from', 'drawio-mcp', 'drawio-mcp-server'],
+                {
+                    DRAWIO_NEXTJS_URL: 'http://localhost:3000'
+                }
+            ));
+
+            return definitions;
         },
 
         resolveMcpServerDefinition(
@@ -71,8 +129,46 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
     };
 
     // Use VS Code API to register the provider
-    // Note: This API might need adjustment based on actual VS Code version
     return vscode.lm.registerMcpServerDefinitionProvider('mdpaper', provider);
+}
+
+function getPythonArgs(command: string, module: string): string[] {
+    const baseCommand = path.basename(command).toLowerCase();
+    const commandName = baseCommand.replace(/\.exe$/, '');
+
+    // Case 1: uv run python -m ...
+    if (commandName === 'uv') {
+        return ['run', 'python', '-m', module];
+    } 
+    
+    // Case 2: uvx package (NO -m)
+    if (commandName === 'uvx') {
+        const packageMap: Record<string, string> = {
+            'med_paper_assistant.interfaces.mcp': 'med-paper-assistant',
+            'pubmed_search.mcp': 'pubmed-search-mcp',
+            'cgu.server': 'creativity-generation-unit'
+        };
+        const pkg = packageMap[module];
+        if (pkg) {
+            return [pkg];
+        }
+        // If not in map, just return the module name but NO -m
+        return [module];
+    }
+
+    // Case 3: Standard python -m ...
+    // Be very specific: only add -m if it's actually a python executable
+    if (commandName === 'python' || commandName === 'python3' || commandName === 'py' || commandName === 'python.exe') {
+        return ['-m', module];
+    }
+
+    // Default: If it's a path to something else, don't assume -m
+    // But if it's a venv python, it might be named 'python'
+    if (command.includes('.venv') || command.includes('venv')) {
+        return ['-m', module];
+    }
+
+    return [module];
 }
 
 function registerChatParticipant(context: vscode.ExtensionContext): vscode.Disposable | null {
@@ -151,18 +247,52 @@ function getPythonPath(context: vscode.ExtensionContext): string {
     // 1. Check user configuration
     const config = vscode.workspace.getConfiguration('mdpaper');
     const configuredPath = config.get<string>('pythonPath');
-    if (configuredPath && fs.existsSync(configuredPath)) {
-        return configuredPath;
+    if (configuredPath) {
+        // If it's just "uv" or "uvx", return it as is
+        if (configuredPath === 'uv' || configuredPath === 'uvx') {
+            return configuredPath;
+        }
+        if (fs.existsSync(configuredPath)) {
+            return configuredPath;
+        }
     }
 
-    // 2. Check bundled Python (for standalone distribution)
+    // 2. Prefer 'uv' if workspace has pyproject.toml (uv-managed project)
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders) {
+        const pyprojectPath = path.join(workspaceFolders[0].uri.fsPath, 'pyproject.toml');
+        if (fs.existsSync(pyprojectPath)) {
+            // This is likely a uv-managed project, use 'uv' to ensure proper environment
+            return 'uv';
+        }
+    }
+
+    // 3. Check for virtual environment in workspace (fallback for non-uv projects)
+    if (workspaceFolders) {
+        for (const folder of workspaceFolders) {
+            const venvPaths = [
+                path.join(folder.uri.fsPath, '.venv', 'bin', 'python'),
+                path.join(folder.uri.fsPath, '.venv', 'bin', 'python3'),
+                path.join(folder.uri.fsPath, '.venv', 'Scripts', 'python.exe'),
+                path.join(folder.uri.fsPath, 'venv', 'bin', 'python'),
+                path.join(folder.uri.fsPath, 'venv', 'Scripts', 'python.exe'),
+            ];
+            for (const venvPath of venvPaths) {
+                if (fs.existsSync(venvPath)) {
+                    return venvPath;
+                }
+            }
+        }
+    }
+
+    // 4. Check bundled Python (for standalone distribution)
     const bundledPython = path.join(context.extensionPath, 'bundled', 'python', 'bin', 'python3');
     if (fs.existsSync(bundledPython)) {
         return bundledPython;
     }
 
-    // 3. Try uvx (recommended)
-    return 'uvx';
+    // 5. Try system Python
+    return 'python3';
 }
 
 function loadSkillsAsInstructions(skillsPath: string): string {

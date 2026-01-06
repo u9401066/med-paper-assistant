@@ -813,7 +813,7 @@ class ReferenceManager:
 
             return "\n\n".join(text_parts)
         except ImportError:
-            return "Error: pypdf library not installed. Install with: pip install pypdf"
+            return "Error: pypdf library not installed. Install with: uv add pypdf"
         except Exception as e:
             return f"Error reading PDF: {str(e)}"
 

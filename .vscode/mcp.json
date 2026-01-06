@@ -14,14 +14,13 @@
     },
 
     // ============================================
-    // Submodule：PubMed 文獻搜尋
+    // Submodule：PubMed 文獻搜尋 (使用 uvx)
     // ============================================
     "pubmed-search": {
       "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "pubmed_search.mcp"],
+      "command": "uvx",
+      "args": ["pubmed-search-mcp"],
       "env": {
-        "PYTHONPATH": "${workspaceFolder}/integrations/pubmed-search-mcp/src",
         "ENTREZ_EMAIL": "medpaper@example.com"
       }
     },
@@ -32,7 +31,7 @@
     "cgu": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "cgu.server"],
+      "args": ["run", "--directory", "${workspaceFolder}/integrations/cgu", "python", "-m", "cgu.server"],
       "env": {
         "CGU_THINKING_ENGINE": "simple"
       }

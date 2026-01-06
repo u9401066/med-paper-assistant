@@ -607,21 +607,20 @@ class ConceptValidator:
 
     def _generate_novelty_feedback(self, content: str, scores: List[int]) -> Dict[str, Any]:
         """
-        Generate sharp, reviewer-style feedback that challenges weak claims.
+        Generate sharp, reviewer-style feedback using the Three Reviewers Model.
         
-        Like a top-journal reviewer: direct, evidence-based, impossible to dismiss.
-        
-        Returns a dict with:
-        - verdict: One-line assessment (no sugar-coating)
-        - critical_issues: Problems that MUST be addressed (with evidence)
-        - questions: Questions the author cannot currently answer
-        - actionable_fixes: Specific, concrete fixes (not vague suggestions)
-        - cgu_recommendation: Whether CGU tools could help
+        1. Reviewer 1: The Skeptic (Evidence & Search)
+        2. Reviewer 2: The Methodologist (Rigor & Comparison)
+        3. Reviewer 3: The Clinical Impact Expert (Significance & MCID)
         """
         feedback = {
             "verdict": "",
+            "reviewers": {
+                "skeptic": {"comment": "", "score": 0, "questions": []},
+                "methodologist": {"comment": "", "score": 0, "questions": []},
+                "clinical_expert": {"comment": "", "score": 0, "questions": []},
+            },
             "critical_issues": [],
-            "questions": [],
             "actionable_fixes": [],
             "cgu_recommendation": None,
         }
@@ -629,110 +628,95 @@ class ConceptValidator:
         content_lower = content.lower()
         avg_score = sum(scores) / len(scores)
         
-        # === VERDICT (One sharp sentence) ===
-        if avg_score >= 75:
+        # === VERDICT ===
+        if avg_score >= 85:
+            feedback["verdict"] = "💎 High-impact potential. The novelty is clear and well-supported."
+        elif avg_score >= 75:
             feedback["verdict"] = "✅ Novelty claim is defensible. Proceed to writing."
         elif avg_score >= 60:
             feedback["verdict"] = "⚠️ Novelty claim has gaps. A skeptical reviewer would challenge you."
         else:
             feedback["verdict"] = "❌ Novelty claim is weak. Current statement would not survive peer review."
-        
+
+        # --- Reviewer 1: The Skeptic (Focus: Is it REALLY new?) ---
+        skeptic = feedback["reviewers"]["skeptic"]
+        if ("first" in content_lower or "首次" in content) and "pubmed" not in content_lower:
+            skeptic["comment"] = "You claim this is 'first', but provide no search evidence. I am skeptical."
+            skeptic["score"] = 50
+            skeptic["questions"].append("What was your exact PubMed search strategy and date?")
+        else:
+            skeptic["comment"] = "The novelty claim seems grounded in existing literature."
+            skeptic["score"] = 80
+
+        # --- Reviewer 2: The Methodologist (Focus: How does it compare?) ---
+        methodologist = feedback["reviewers"]["methodologist"]
+        if not re.search(r"\[\[.+?\]\]", content) and "PMID" not in content:
+            methodologist["comment"] = "You haven't cited the studies you are supposedly improving upon."
+            methodologist["score"] = 40
+            methodologist["questions"].append("Which specific studies are you comparing your method against?")
+        elif "but" not in content_lower and "however" not in content_lower and "但" not in content:
+            methodologist["comment"] = "You cited literature but didn't explain their limitations clearly."
+            methodologist["score"] = 60
+            methodologist["questions"].append("What exactly was the failure or limitation of the cited studies?")
+        else:
+            methodologist["comment"] = "Methodological differentiation is well-articulated."
+            methodologist["score"] = 85
+
+        # --- Reviewer 3: The Clinical Impact Expert (Focus: So what?) ---
+        clinical = feedback["reviewers"]["clinical_expert"]
+        vague_words = ["improved", "better", "enhanced", "更好", "改善", "提升", "優於"]
+        found_vague = [w for w in vague_words if w.lower() in content_lower]
+        if found_vague and not re.search(r"\d+%|\d+\s*倍|OR\s*[\d.]|RR\s*[\d.]", content):
+            clinical["comment"] = f"You use vague terms like '{found_vague[0]}' without quantification."
+            clinical["score"] = 55
+            clinical["questions"].append("What is the expected effect size or MCID (Minimal Clinically Important Difference)?")
+        else:
+            clinical["comment"] = "The clinical significance and expected impact are clear."
+            clinical["score"] = 80
+
         # === CRITICAL ISSUES (Evidence-based challenges) ===
         issues = []
         
         # Issue 1: Claiming "first" without search evidence
-        if ("first" in content_lower or "首次" in content) and "pubmed" not in content_lower and "搜尋" not in content:
+        if skeptic["score"] <= 50:
             issues.append({
                 "problem": "您聲稱『首次』，但沒有提供文獻搜尋證據",
-                "challenge": "Reviewer 會問：『你怎麼知道沒人做過？搜尋策略是什麼？』",
+                "challenge": "Reviewer 1 (Skeptic) 會問：『你怎麼知道沒人做過？搜尋策略是什麼？』",
                 "fix": "加入：『PubMed 搜尋 \"X AND Y\" (2024-12-17) 結果為 0 篇』",
             })
         
-        # Issue 2: No "first/novel" claim at all
-        if "first" not in content_lower and "首次" not in content and "novel" not in content_lower and "創新" not in content:
+        # Issue 2: Vague quantification
+        if clinical["score"] <= 60:
             issues.append({
-                "problem": "沒有明確的創新性聲明",
-                "challenge": "Reviewer 會問：『這跟現有研究有什麼不同？為什麼要發表？』",
-                "fix": "明確寫出：『這是首次...』或『與 [Author 2024] 不同的是...』",
+                "problem": "使用模糊用語但沒有量化",
+                "challenge": "Reviewer 3 (Clinical Expert) 會問：『好多少？臨床意義 (MCID) 是什麼？』",
+                "fix": "改為具體數字：『預期減少 30% 的併發症』或『優於現有技術 15%』",
             })
         
-        # Issue 3: Vague quantification
-        vague_words = ["improved", "better", "enhanced", "更好", "改善", "提升", "優於"]
-        found_vague = [w for w in vague_words if w.lower() in content_lower]
-        if found_vague and not re.search(r"\d+%|\d+\s*倍|OR\s*[\d.]|RR\s*[\d.]", content):
+        # Issue 3: Comparison gap
+        if methodologist["score"] <= 60:
             issues.append({
-                "problem": f"使用模糊用語『{', '.join(found_vague)}』但沒有量化",
-                "challenge": "Reviewer 會問：『好多少？有統計學意義嗎？』",
-                "fix": "改為具體數字：『減少 50%』『OR 0.3 (95% CI 0.1-0.5)』",
+                "problem": "未明確說明與現有研究的差異",
+                "challenge": "Reviewer 2 (Methodologist) 會問：『既然 [Author 2024] 做過類似的，你的獨特性在哪？』",
+                "fix": "明確寫出：『與 [Author 2024] 不同的是，我們採用了 [新方法/新族群]』",
             })
-        
-        # Issue 4: Claiming comparison without specifying what's different
-        if re.search(r"\[\[.+?\]\]", content):  # Has citations
-            if "但" not in content and "however" not in content_lower and "未" not in content and "沒有" not in content:
-                issues.append({
-                    "problem": "引用了文獻，但沒有說明它們的限制",
-                    "challenge": "Reviewer 會問：『既然有人做過，你的貢獻在哪？』",
-                    "fix": "加入：『[Author 2024] 比較了 A vs B，但【未納入 C / 未評估 X】』",
-                })
-        
-        # Issue 5: No citations at all
-        if not re.search(r"\[\[.+?\]\]", content) and "PMID" not in content:
-            issues.append({
-                "problem": "創新性聲明沒有任何文獻引用",
-                "challenge": "Reviewer 會問：『你的說法有什麼依據？』",
-                "fix": "為每個聲明加上支持文獻：[[author2024_12345678]]",
-            })
-        
-        # Issue 6: Expected outcomes without mechanism
-        if re.search(r"預期|expected|hypothesi", content_lower):
-            if not re.search(r"因為|because|由於|機制|mechanism", content_lower):
-                issues.append({
-                    "problem": "有預期結果，但沒有解釋機制",
-                    "challenge": "Reviewer 會問：『為什麼你預期會這樣？機制是什麼？』",
-                    "fix": "加入：『因為 [機制]，我們預期...』",
-                })
         
         feedback["critical_issues"] = issues
         
-        # === QUESTIONS (What a reviewer would ask) ===
-        questions = []
-        
-        if "three" in content_lower or "三" in content or "3" in content:
-            if "為什麼" not in content and "why" not in content_lower:
-                questions.append("為什麼要比較這三組？現有研究比較了幾組？")
-        
-        if re.search(r"<\s*\d+%|>\s*\d+%", content):
-            questions.append("這些預期數字是基於什麼？有 pilot data 嗎？")
-        
-        if "首次" in content or "first" in content_lower:
-            questions.append("如果真的是首次，為什麼之前沒人做？是技術限制還是沒人關心？")
-        
-        feedback["questions"] = questions[:3]  # Top 3
-        
-        # === ACTIONABLE FIXES (Specific, not vague) ===
+        # === ACTIONABLE FIXES ===
         fixes = []
-        for issue in issues[:2]:  # Top 2 priorities
+        for issue in issues:
             fixes.append(f"🔧 **{issue['problem']}**\n   → {issue['fix']}")
-        
         feedback["actionable_fixes"] = fixes
         
         # === CGU RECOMMENDATION ===
-        if avg_score < 60:
+        if avg_score < 75:
             feedback["cgu_recommendation"] = {
                 "recommend": True,
-                "reason": "目前的創新點不夠清晰。CGU 可以幫你從對手的角度思考弱點。",
+                "reason": "目前的創新點在審稿人眼中仍有漏洞。建議使用 CGU 進行壓力測試。",
                 "tool": "mcp_cgu_deep_think",
-                "prompt": "從 reviewer 的角度，這個研究最容易被攻擊的點是什麼？",
+                "prompt": f"扮演一位頂尖醫學期刊審稿人，針對以下創新聲明提出 3 個最刁鑽的質疑：\n\n{content}",
             }
-        elif avg_score < 75 and len(issues) >= 2:
-            feedback["cgu_recommendation"] = {
-                "recommend": True,
-                "reason": "有具體問題需要解決。CGU 可以幫你找到更好的論述角度。",
-                "tool": "mcp_cgu_spark_collision",
-                "prompt": "將『現有研究的限制』與『你的方法優勢』碰撞，找出最強的論點。",
-            }
-        else:
-            feedback["cgu_recommendation"] = {"recommend": False}
             
         return feedback
     
@@ -1031,7 +1015,7 @@ class ConceptValidator:
         # Novelty evaluation
         if result.novelty_checked:
             output.append("")
-            output.append("## 🎯 Novelty Evaluation")
+            output.append("## 🎯 Novelty Evaluation (Three Reviewers Model)")
             output.append("")
 
             # Get detailed feedback first
@@ -1045,10 +1029,23 @@ class ConceptValidator:
             
             # Show verdict (one sharp line)
             avg_score = result.novelty_average
-            output.append(f"**Score:** {avg_score:.1f}/100")
+            output.append(f"**Overall Score:** {avg_score:.1f}/100")
             if feedback.get("verdict"):
                 output.append(f"**Verdict:** {feedback['verdict']}")
             output.append("")
+
+            # Show Three Reviewers' Scores
+            if "reviewers" in feedback:
+                output.append("### 👥 Reviewer Panel")
+                output.append("")
+                output.append("| Reviewer | Score | Feedback |")
+                output.append("|----------|-------|----------|")
+                
+                revs = feedback["reviewers"]
+                output.append(f"| 🕵️ **The Skeptic** | {revs['skeptic']['score']} | {revs['skeptic']['comment']} |")
+                output.append(f"| 📐 **The Methodologist** | {revs['methodologist']['score']} | {revs['methodologist']['comment']} |")
+                output.append(f"| 🏥 **The Clinical Expert** | {revs['clinical_expert']['score']} | {revs['clinical_expert']['comment']} |")
+                output.append("")
             
             # Show critical issues (sharp, evidence-based)
             if feedback.get("critical_issues"):
@@ -1061,10 +1058,15 @@ class ConceptValidator:
                     output.append("")
             
             # Show questions (what reviewer would ask)
-            if feedback.get("questions") and avg_score < 75:
+            reviewer_questions = []
+            if "reviewers" in feedback:
+                for r in feedback["reviewers"].values():
+                    reviewer_questions.extend(r.get("questions", []))
+            
+            if reviewer_questions:
                 output.append("### ❓ Reviewer 會問的問題")
                 output.append("")
-                for q in feedback["questions"]:
+                for q in reviewer_questions:
                     output.append(f"- {q}")
                 output.append("")
             

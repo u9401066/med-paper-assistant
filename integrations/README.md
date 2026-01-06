@@ -25,10 +25,11 @@ This folder contains integrated external tools that extend Medical Paper Assista
 ### Standalone Usage
 
 ```bash
-# Install
-pip install pubmed-search[mcp]
+# Run as standalone MCP server using uvx (recommended)
+uvx --with pubmed-search[mcp] python -m pubmed_search.mcp your@email.com
 
-# Run as standalone MCP server
+# Or install via uv
+uv pip install pubmed-search[mcp]
 python -m pubmed_search.mcp your@email.com
 ```
 
@@ -100,8 +101,6 @@ cp env.example .env.local
 cd mcp-server
 # Using uv (recommended)
 uv sync
-# Or using pip
-pip install -e .
 ```
 
 ### VS Code MCP Configuration

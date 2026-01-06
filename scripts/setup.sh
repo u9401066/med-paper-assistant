@@ -20,22 +20,22 @@ esac
 echo "📍 Detected platform: $PLATFORM"
 
 # 1. Create virtual environment
-echo "📦 Creating Python virtual environment..."
+echo "📦 Creating Python virtual environment with uv..."
 cd "$PROJECT_DIR"
 
 if [ -d ".venv" ]; then
     echo "  Virtual environment already exists, skipping creation"
 else
-    python3 -m venv .venv
+    uv venv
     echo "  ✅ Virtual environment created"
 fi
 
 source .venv/bin/activate
 
-# 2. Install dependencies
-echo "📥 Installing dependencies..."
-pip install -q --upgrade pip
-pip install -q -e .
+# 2. Install dependenciesecho "🔄 Updating Git submodules..."
+git submodule update --init --recursive --remote
+echo "📥 Installing dependencies with uv..."
+uv sync --all-extras
 echo "  ✅ Dependencies installed"
 
 # 3. Create .vscode/mcp.json (cross-platform)

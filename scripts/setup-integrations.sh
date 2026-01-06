@@ -68,14 +68,13 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 cd "$DRAWIO_DIR/mcp-server"
 
-# Check for uv or pip
+# Check for uv
 if command -v uv &> /dev/null; then
     echo "✅ Using uv for Python package management"
-    uv venv
     uv sync
     DRAWIO_PYTHON="$DRAWIO_DIR/mcp-server/.venv/bin/python"
 else
-    echo "📦 Using pip for Python package management"
+    echo "⚠️  uv not found. Falling back to venv + pip..."
     python3 -m venv .venv
     source .venv/bin/activate
     pip install -e .

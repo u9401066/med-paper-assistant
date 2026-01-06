@@ -8,6 +8,7 @@ Note: Search functionality moved to pubmed-search MCP server.
 """
 
 from .analyzer import Analyzer
+from .citation_assistant import CitationAssistant
 from .concept_template_reader import ConceptTemplateReader
 from .concept_validator import ConceptValidator
 from .drafter import JOURNAL_CITATION_CONFIGS, CitationStyle, Drafter
@@ -19,6 +20,7 @@ from .word_writer import WordWriter
 
 __all__ = [
     "Analyzer",
+    "CitationAssistant",
     "Drafter",
     "CitationStyle",
     "JOURNAL_CITATION_CONFIGS",

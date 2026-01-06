@@ -121,7 +121,9 @@
       }
     }
   },
-  "extensionDependencies": [],
+  "extensionDependencies": [
+    "u9401066.vscode-zotero-mcp"
+  ],
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",

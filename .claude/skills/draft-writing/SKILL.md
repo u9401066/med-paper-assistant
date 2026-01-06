@@ -157,11 +157,17 @@ Step 3: 確認未找到的引用
 ## Section 寫作指南
 
 ### Introduction (400-600 words)
-```
-1. Background - 研究領域背景（2-3 段）
-2. Gap - 現有研究的不足
-3. Objective - 本研究目的（含 🔒 NOVELTY）
-```
+**結構：Evidence Funnel (證據漏斗)**
+1. **Clinical Reality** - 具體數據開場（避免 "In recent years..."）
+2. **Evidence Base** - 綜合現有文獻（使用 [[wikilinks]]）
+3. **Knowledge Gap** - 明確指出不足（對應 🔒 NOVELTY）
+4. **Objective** - 本研究目的
+
+**🚫 Anti-AI 寫作規則：**
+- 禁止使用模糊開場（如 "With the advancement of..."）
+- 禁止每段開頭都用 "Furthermore", "Additionally"
+- 必須包含具體數字、百分比、機制描述
+- 轉折語必須具備邏輯性（如 "Despite these benefits...", "In contrast to..."）
 
 ### Methods (800-1200 words)
 ```

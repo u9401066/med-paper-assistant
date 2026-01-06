@@ -9,6 +9,12 @@ ROOT_DIR="$(dirname "$EXT_DIR")"
 
 echo "🔨 Building MedPaper Assistant VS Code Extension..."
 
+# 0. Update Submodules to ensure latest code
+echo "🔄 Updating Git submodules..."
+cd "$ROOT_DIR"
+git submodule update --init --recursive --remote
+cd "$EXT_DIR"
+
 # 1. Copy Skills from .claude/skills/
 echo "📖 Copying Skills..."
 SKILLS_SRC="$ROOT_DIR/.claude/skills"
@@ -42,12 +48,24 @@ fi
 
 # 3. Copy Python MCP source (for development)
 echo "🐍 Copying Python MCP source..."
-PYTHON_SRC="$ROOT_DIR/src/med_paper_assistant"
-PYTHON_DST="$EXT_DIR/bundled/tool/med_paper_assistant"
+PYTHON_DST_ROOT="$EXT_DIR/bundled/tool"
 
-if [ -d "$PYTHON_SRC" ]; then
-    rm -rf "$PYTHON_DST"
-    cp -r "$PYTHON_SRC" "$PYTHON_DST"
+# MedPaper Assistant
+echo "   - med_paper_assistant"
+PYTHON_SRC_MDPAPER="$ROOT_DIR/src/med_paper_assistant"
+PYTHON_DST_MDPAPER="$PYTHON_DST_ROOT/med_paper_assistant"
+if [ -d "$PYTHON_SRC_MDPAPER" ]; then
+    rm -rf "$PYTHON_DST_MDPAPER"
+    cp -r "$PYTHON_SRC_MDPAPER" "$PYTHON_DST_MDPAPER"
+fi
+
+# CGU
+echo "   - cgu"
+PYTHON_SRC_CGU="$ROOT_DIR/integrations/cgu/src/cgu"
+PYTHON_DST_CGU="$PYTHON_DST_ROOT/cgu"
+if [ -d "$PYTHON_SRC_CGU" ]; then
+    rm -rf "$PYTHON_DST_CGU"
+    cp -r "$PYTHON_SRC_CGU" "$PYTHON_DST_CGU"
 fi
 
 # 4. Compile TypeScript

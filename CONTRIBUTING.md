@@ -49,16 +49,10 @@ git remote add upstream https://github.com/u9401066/med-paper-assistant.git
 #### 2. Set Up Development Environment
 
 ```bash
-# Create virtual environment
-python3 -m venv .venv
+# Create virtual environment and install all dependencies
+uv sync --all-extras
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate   # Windows
-
-# Install in development mode
-pip install -e .
-
-# Install development dependencies (if any)
-pip install pytest
 ```
 
 #### 3. Create a Branch
@@ -131,13 +125,13 @@ def save_reference(pmid: str, download_pdf: bool = True) -> str:
 
 ```bash
 # Run all tests
-pytest tests/
+uv run pytest tests/
 
 # Run specific test
-pytest tests/test_search.py
+uv run pytest tests/test_search.py
 
 # Run with coverage
-pytest tests/ --cov=src/med_paper_assistant
+uv run pytest tests/ --cov=src/med_paper_assistant
 ```
 
 Please ensure:
@@ -248,16 +242,10 @@ git remote add upstream https://github.com/u9401066/med-paper-assistant.git
 #### 2. 設置開發環境
 
 ```bash
-# 建立虛擬環境
-python3 -m venv .venv
+# 建立虛擬環境並安裝所有相依套件
+uv sync --all-extras
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate   # Windows
-
-# 以開發模式安裝
-pip install -e .
-
-# 安裝開發相依套件
-pip install pytest
 ```
 
 #### 3. 建立分支
@@ -330,13 +318,13 @@ def save_reference(pmid: str, download_pdf: bool = True) -> str:
 
 ```bash
 # 執行所有測試
-pytest tests/
+uv run pytest tests/
 
 # 執行特定測試
-pytest tests/test_search.py
+uv run pytest tests/test_search.py
 
 # 執行並顯示覆蓋率
-pytest tests/ --cov=src/med_paper_assistant
+uv run pytest tests/ --cov=src/med_paper_assistant
 ```
 
 請確保：

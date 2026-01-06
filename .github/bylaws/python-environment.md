@@ -99,8 +99,8 @@ cd my-project
 uv venv
 
 # 安裝依賴
-uv pip install -e ".[dev]"
-uv sync  # 根據 uv.lock 同步
+uv sync --all-extras  # 根據 uv.lock 同步並安裝所有選用依賴
+uv sync               # 僅安裝基本依賴
 
 # 新增依賴
 uv add fastapi
@@ -239,12 +239,12 @@ extra-index-url = ["https://your-private-pypi.com/simple"]
 
 ## 附錄：快速參考卡
 
-| 操作 | uv 指令 | pip 對應 |
+| 操作 | uv 指令 (推薦) | pip 對應 (已棄用) |
 |------|---------|----------|
 | 建立 venv | `uv venv` | `python -m venv .venv` |
 | 安裝套件 | `uv add package` | `pip install package` |
 | 安裝開發依賴 | `uv add --dev package` | `pip install package` |
-| 安裝全部 | `uv sync` | `pip install -r requirements.txt` |
+| 安裝全部 | `uv sync --all-extras` | `pip install -e .` |
 | 更新 lock | `uv lock` | `pip-compile` |
 | 執行命令 | `uv run pytest` | `pytest` |
 | 查看依賴 | `uv pip list` | `pip list` |

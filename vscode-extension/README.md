@@ -67,6 +67,17 @@ In Agent Mode, use these prompts:
 | `mdpaper.projectsDirectory` | Default projects directory | Workspace |
 | `mdpaper.defaultCitationStyle` | Citation style | vancouver |
 
+### 開發者模式 (Development Mode)
+
+如果您是開發者並想要修改 MCP 伺服器代碼：
+
+1. **Git Clone**: `git clone https://github.com/u9401066/med-paper-assistant`
+2. **環境設定**: 在該目錄執行 `scripts/setup.sh` 建立 `.venv`。
+3. **擴充功能設定**: 
+   - 在 VS Code 中開啟該目錄。
+   - 擴充功能會自動偵測 `.venv` 並將 `src/` 加入 `PYTHONPATH`。
+   - 您對 `src/` 下代碼的修改會立即反映在 MCP 工具中（需 Reload Window）。
+
 ## Related Extensions
 
 For full functionality, consider installing:
