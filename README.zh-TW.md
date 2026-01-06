@@ -377,14 +377,116 @@ med-paper-assistant/
 
 ## 🛠️ 可用工具
 
-### 📝 mdpaper 工具（46 個）
+### 📝 mdpaper MCP 工具（69 個）
 
-| 類別 | 工具 | 說明 |
-|------|------|------|
-| **參考文獻** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `rebuild_foam_aliases` | 參考文獻儲存與 Foam 整合 |
-| **寫作** (16) | `write_draft`, `draft_section`, `validate_concept`, `validate_wikilinks`, `count_words`, `export_word` | 草稿準備 |
-| **專案** (12) | `create_project`, `switch_project`, `start_exploration`, `convert_exploration_to_project` | 多專案管理 |
-| **搜尋** (10) | Facade 工具，委派給 pubmed-search MCP | 文獻搜尋 |
+#### 📁 專案管理 (20 工具)
+
+| 工具 | 說明 |
+|------|------|
+| `create_project` | 建立新研究專案，包含獨立工作區 |
+| `list_projects` | 列出所有研究論文專案 |
+| `switch_project` | 切換到不同專案 |
+| `get_current_project` | 取得目前啟用的專案資訊 |
+| `delete_project` | 刪除專案（需確認） |
+| `archive_project` | 封存專案以便稍後取回 |
+| `update_project_status` | 更新專案狀態（concept/drafting/review/submitted/published） |
+| `update_project_settings` | 變更論文類型或偏好設定 |
+| `get_project_paths` | 取得專案目錄路徑 |
+| `get_project_file_paths` | 取得特定專案檔案路徑 |
+| `open_project_files` | 在 VS Code 開啟專案檔案 |
+| `close_other_project_files` | 關閉其他專案的檔案 |
+| `get_paper_types` | 列出可用的論文類型 |
+| `setup_project_interactive` | 互動式設定專案 |
+| `start_exploration` | 開始探索工作區（無需正式專案） |
+| `get_exploration_status` | 檢查探索工作區狀態 |
+| `convert_exploration_to_project` | 將探索轉換為正式專案 |
+| `save_diagram` | 儲存 Draw.io 圖表到專案 |
+| `save_diagram_standalone` | 無專案情境下儲存圖表 |
+| `list_diagrams` | 列出目前專案的圖表 |
+
+#### 📚 參考文獻管理 (17 工具)
+
+| 工具 | 說明 |
+|------|------|
+| `save_reference` | 使用 PubMed 搜尋的 metadata 儲存參考文獻 |
+| `save_reference_mcp` | **【推薦】** 透過 PMID 使用 MCP-to-MCP 儲存（驗證資料） |
+| `save_reference_pdf` | 儲存參考文獻並下載 PDF |
+| `list_saved_references` | 列出資料庫中所有已儲存的參考文獻 |
+| `get_reference_details` | 取得參考文獻的完整引用資訊 |
+| `search_local_references` | 在已儲存的參考文獻中搜尋 |
+| `delete_reference` | 從資料庫刪除參考文獻 |
+| `check_reference_exists` | 檢查參考文獻是否存在於資料庫 |
+| `read_reference_fulltext` | 讀取已儲存參考文獻的 PDF 內容 |
+| `format_references` | 以各種格式輸出參考文獻列表 |
+| `set_citation_style` | 設定預設引用格式（Vancouver/APA/Nature） |
+| `rebuild_foam_aliases` | 重建 Foam 相容的別名檔案 |
+| `find_citation_for_claim` | 為特定主張尋找引用 |
+| `suggest_citations` | 分析文字並建議適當的引用 |
+| `insert_citation` | 插入引用到草稿文字 |
+| `scan_draft_citations` | 掃描草稿中的引用 wikilinks |
+| `sync_references` | 同步 [[wikilinks]] 為編號引用 |
+
+#### ✍️ 草稿撰寫 (9 工具)
+
+| 工具 | 說明 |
+|------|------|
+| `write_draft` | 建立或更新草稿檔案 |
+| `draft_section` | 使用 AI 輔助撰寫特定章節 |
+| `read_draft` | 讀取草稿內容 |
+| `list_drafts` | 列出可用的草稿檔案 |
+| `delete_draft` | 刪除草稿檔案 |
+| `count_words` | 計算草稿字數 |
+| `get_section_template` | 取得章節撰寫指引 |
+| `insert_section` | 插入內容到文件章節 |
+| `validate_for_section` | 章節撰寫前驗證概念 |
+
+#### ✅ 驗證 (3 工具)
+
+| 工具 | 說明 |
+|------|------|
+| `validate_concept` | 完整驗證（含新穎性評分，3 輪） |
+| `validate_concept_quick` | 僅結構性快速檢查 |
+| `validate_wikilinks` | 自動偵測並修復引用格式問題 |
+
+#### 📊 資料分析 (6 工具)
+
+| 工具 | 說明 |
+|------|------|
+| `analyze_dataset` | 取得 CSV 資料集的描述性統計 |
+| `run_statistical_test` | 執行統計檢定（t-test、ANOVA、chi2、correlation 等） |
+| `create_plot` | 建立出版品質的圖表 |
+| `generate_table_one` | 產生基線特徵表 |
+| `detect_variable_types` | 自動偵測資料集中的變數類型 |
+| `list_data_files` | 列出專案中可用的資料檔案 |
+
+#### 🔍 審稿 (3 工具)
+
+| 工具 | 說明 |
+|------|------|
+| `check_manuscript_consistency` | 投稿前檢查一致性問題 |
+| `create_reviewer_response` | 產生對審稿意見的結構化回覆 |
+| `format_revision_changes` | 格式化修訂時所做的變更 |
+
+#### 📮 投稿準備 (3 工具)
+
+| 工具 | 說明 |
+|------|------|
+| `generate_cover_letter` | 產生專業的 Cover Letter |
+| `check_submission_checklist` | 檢查稿件是否符合期刊要求 |
+| `list_supported_journals` | 列出支援的期刊及其要求 |
+| `generate_highlights` | 產生投稿用的重點摘要 |
+
+#### 📄 Word 匯出 (7 工具)
+
+| 工具 | 說明 |
+|------|------|
+| `export_word` | 將 markdown 草稿匯出為 Word 文件 |
+| `list_templates` | 列出可用的 Word 範本 |
+| `read_template` | 讀取範本結構和章節 |
+| `start_document_session` | 開始文件編輯 session |
+| `verify_document` | 驗證文件狀態和字數 |
+| `check_word_limits` | 檢查字數限制是否符合範本 |
+| `save_document` | 儲存文件 session 為檔案 |
 
 ### 🔍 pubmed-search MCP 工具
 

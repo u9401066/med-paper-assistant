@@ -500,14 +500,116 @@ med-paper-assistant/
 
 ## 🛠️ Available Tools
 
-### 📝 mdpaper Tools (46 total)
+### 📝 mdpaper MCP Tools (69 total)
 
-| Category | Tools | Description |
-|----------|-------|-------------|
-| **Reference** (8) | `save_reference`, `list_saved_references`, `get_reference_details`, `rebuild_foam_aliases` | Reference storage & Foam integration |
-| **Writing** (16) | `write_draft`, `draft_section`, `validate_concept`, `validate_wikilinks`, `count_words`, `export_word` | Manuscript preparation |
-| **Project** (12) | `create_project`, `switch_project`, `start_exploration`, `convert_exploration_to_project` | Multi-project management |
-| **Search** (10) | Facade tools delegating to pubmed-search MCP | Literature search |
+#### 📁 Project Management (20 tools)
+
+| Tool | Description |
+|------|-------------|
+| `create_project` | Create new research project with isolated workspace |
+| `list_projects` | List all research paper projects |
+| `switch_project` | Switch to a different project |
+| `get_current_project` | Get current active project info |
+| `delete_project` | Delete a project (with confirmation) |
+| `archive_project` | Archive a project for later retrieval |
+| `update_project_status` | Update project status (concept/drafting/review/submitted/published) |
+| `update_project_settings` | Change paper type or preferences |
+| `get_project_paths` | Get project directory paths |
+| `get_project_file_paths` | Get paths to specific project files |
+| `open_project_files` | Open project files in VS Code |
+| `close_other_project_files` | Close files from other projects |
+| `get_paper_types` | List available paper types |
+| `setup_project_interactive` | Configure project interactively |
+| `start_exploration` | Start exploration workspace without formal project |
+| `get_exploration_status` | Check exploration workspace status |
+| `convert_exploration_to_project` | Convert exploration to formal project |
+| `save_diagram` | Save Draw.io diagram to project |
+| `save_diagram_standalone` | Save diagram without project context |
+| `list_diagrams` | List diagrams in current project |
+
+#### 📚 Reference Management (17 tools)
+
+| Tool | Description |
+|------|-------------|
+| `save_reference` | Save reference with metadata from PubMed search |
+| `save_reference_mcp` | **[RECOMMENDED]** Save by PMID via MCP-to-MCP (verified data) |
+| `save_reference_pdf` | Save reference with PDF download |
+| `list_saved_references` | List all saved references in library |
+| `get_reference_details` | Get complete citation info for a reference |
+| `search_local_references` | Search within saved reference library |
+| `delete_reference` | Delete a reference from library |
+| `check_reference_exists` | Check if a reference exists in library |
+| `read_reference_fulltext` | Read PDF content of a saved reference |
+| `format_references` | Format reference list in various styles |
+| `set_citation_style` | Set default citation format (Vancouver/APA/Nature) |
+| `rebuild_foam_aliases` | Rebuild Foam-compatible alias files |
+| `find_citation_for_claim` | Find citations for specific claims |
+| `suggest_citations` | Analyze text and suggest appropriate citations |
+| `insert_citation` | Insert citation into draft text |
+| `scan_draft_citations` | Scan draft for citation wikilinks |
+| `sync_references` | Sync [[wikilinks]] to numbered references |
+
+#### ✍️ Draft Writing (9 tools)
+
+| Tool | Description |
+|------|-------------|
+| `write_draft` | Create or update draft file |
+| `draft_section` | Draft a specific section with AI assistance |
+| `read_draft` | Read draft content |
+| `list_drafts` | List available draft files |
+| `delete_draft` | Delete a draft file |
+| `count_words` | Count words in draft |
+| `get_section_template` | Get writing guidelines for a section |
+| `insert_section` | Insert content into document section |
+| `validate_for_section` | Validate concept before section writing |
+
+#### ✅ Validation (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `validate_concept` | Full validation with novelty scoring (3 rounds) |
+| `validate_concept_quick` | Quick structural check only |
+| `validate_wikilinks` | Auto-detect and fix citation format issues |
+
+#### 📊 Data Analysis (6 tools)
+
+| Tool | Description |
+|------|-------------|
+| `analyze_dataset` | Get descriptive statistics for a CSV dataset |
+| `run_statistical_test` | Run statistical tests (t-test, ANOVA, chi2, correlation, etc.) |
+| `create_plot` | Create publication-ready figures |
+| `generate_table_one` | Generate baseline characteristics table |
+| `detect_variable_types` | Auto-detect variable types in dataset |
+| `list_data_files` | List available data files in project |
+
+#### 🔍 Review (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `check_manuscript_consistency` | Check for consistency issues before submission |
+| `create_reviewer_response` | Generate structured response to reviewer comments |
+| `format_revision_changes` | Format changes made during revision |
+
+#### 📮 Submission (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `generate_cover_letter` | Generate professional cover letter |
+| `check_submission_checklist` | Check manuscript against journal requirements |
+| `list_supported_journals` | List supported journals and their requirements |
+| `generate_highlights` | Generate bullet-point highlights for submission |
+
+#### 📄 Word Export (7 tools)
+
+| Tool | Description |
+|------|-------------|
+| `export_word` | Export markdown draft to Word document |
+| `list_templates` | List available Word templates |
+| `read_template` | Read template structure and sections |
+| `start_document_session` | Start document editing session |
+| `verify_document` | Verify document state and word counts |
+| `check_word_limits` | Check word limits against template |
+| `save_document` | Save document session to file |
 
 ### 🔍 pubmed-search MCP Tools
 
