@@ -16,16 +16,10 @@ def register_workspace_tools(mcp: Any, project_manager: Any) -> None:
     @mcp.tool()
     async def close_other_project_files(keep_project_slug: str) -> str:
         """
-        Close editor tabs that don't belong to the specified project.
-
-        This tool sends VS Code commands to close files from other projects,
-        keeping only files from the specified project open.
+        Close VS Code tabs not belonging to specified project.
 
         Args:
-            keep_project_slug: The project slug whose files should remain open.
-
-        Returns:
-            Result message indicating what actions were taken.
+            keep_project_slug: Project slug whose files to keep open
         """
         try:
             # 取得專案路徑
@@ -72,15 +66,10 @@ def register_workspace_tools(mcp: Any, project_manager: Any) -> None:
     @mcp.tool()
     async def open_project_files(project_slug: Optional[str] = None) -> str:
         """
-        Open the core files of a project in VS Code.
-
-        Opens concept.md and draft.md if they exist.
+        Open project's core files (concept.md, draft.md) in VS Code.
 
         Args:
-            project_slug: Project slug. If not provided, uses current project.
-
-        Returns:
-            List of files that were requested to open.
+            project_slug: Project slug (default: current project)
         """
         try:
             # 取得專案
@@ -140,16 +129,10 @@ def register_workspace_tools(mcp: Any, project_manager: Any) -> None:
     @mcp.tool()
     async def get_project_file_paths(project_slug: Optional[str] = None) -> str:
         """
-        Get the file paths for a project's core files.
-
-        Returns paths to concept.md, drafts/, references/, figures/ etc.
-        Useful for navigation and file management.
+        Get project file paths (concept, drafts, references, figures, data).
 
         Args:
-            project_slug: Project slug. If not provided, uses current project.
-
-        Returns:
-            JSON with file paths and their existence status.
+            project_slug: Project slug (default: current project)
         """
         try:
             # 取得專案

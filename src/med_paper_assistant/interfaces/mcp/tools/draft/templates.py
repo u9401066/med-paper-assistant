@@ -45,13 +45,13 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
         filename: str, target_text: str, pmid: str, project: Optional[str] = None
     ) -> str:
         """
-        Insert a citation into an existing draft.
+        Insert a citation after specific text in a draft file.
 
         Args:
-            filename: The draft file name.
-            target_text: The text segment after which the citation should be inserted.
-            pmid: The PubMed ID to cite.
-            project: Project slug. Agent should confirm with user before calling.
+            filename: Draft filename
+            target_text: Text segment after which to insert citation
+            pmid: PubMed ID to cite
+            project: Project slug (uses current if omitted)
         """
         is_valid, error_msg = _validate_project_context(project)
         if not is_valid:
@@ -66,26 +66,11 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
     @mcp.tool()
     def sync_references(filename: str, project: Optional[str] = None) -> str:
         """
-        Synchronize references from [[wikilinks]] in a markdown file.
-
-        This is like a citation manager (EndNote/Zotero) for markdown:
-        1. Scans the document for [[citation_key]] wikilinks (e.g., [[pachecolopez2014_24891204]])
-        2. Replaces them with formatted in-text citations (e.g., [1] or (Author, Year))
-        3. Generates/updates the References section at the end
-        4. Numbers are assigned by order of appearance
-
-        Supported wikilink formats:
-        - [[citation_key]] e.g., [[pachecolopez2014_24891204]]
-        - [[PMID:12345678]]
-        - [[12345678]]
+        Scan [[wikilinks]] and generate References section (like EndNote/Zotero).
 
         Args:
-            filename: The markdown file name (e.g., "concept.md" or "draft.md").
-                     Will search in project root first, then drafts folder.
-            project: Project slug. Agent should confirm with user before calling.
-
-        Returns:
-            Summary of synchronized references with their assigned numbers.
+            filename: Markdown file (e.g., "concept.md")
+            project: Project slug (uses current if omitted)
         """
         is_valid, error_msg = _validate_project_context(project)
         if not is_valid:
@@ -125,15 +110,11 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
     @mcp.tool()
     def count_words(filename: str, section: Optional[str] = None) -> str:
         """
-        Count words in a draft file. Essential for meeting journal word limits.
+        Count words by section. Essential for journal word limits.
 
         Args:
-            filename: Path to the markdown draft file (e.g., "drafts/draft.md").
-            section: Optional specific section to count (e.g., "Introduction", "Abstract").
-                    If not specified, counts all sections.
-
-        Returns:
-            Word count statistics including total words, words per section, and character count.
+            filename: Draft filename (e.g., "draft.md")
+            section: Specific section to count (optional, counts all if omitted)
         """
         if not os.path.isabs(filename):
             filename = os.path.join("drafts", filename)

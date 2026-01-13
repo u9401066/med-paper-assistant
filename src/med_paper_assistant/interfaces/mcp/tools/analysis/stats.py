@@ -25,19 +25,11 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
     @mcp.tool()
     def analyze_dataset(filename: str, project: Optional[str] = None) -> str:
         """
-        Get descriptive statistics for a dataset.
-
-        Provides summary statistics including:
-        - Count, mean, std, min, max for numeric columns
-        - Value counts for categorical columns
-        - Missing value analysis
+        Get descriptive statistics for a CSV dataset (count, mean, std, missing values).
 
         Args:
-            filename: Name of the CSV file in data/ directory.
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Descriptive statistics in markdown format.
+            filename: CSV filename in data/ directory
+            project: Project slug (uses current if omitted)
         """
         log_tool_call("analyze_dataset", {"filename": filename, "project": project})
 
@@ -68,35 +60,14 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
         project: Optional[str] = None,
     ) -> str:
         """
-        Run a statistical test on the data.
-
-        Supported tests:
-        - "ttest": Independent samples t-test (requires group_var)
-        - "paired_ttest": Paired samples t-test (two variables)
-        - "anova": One-way ANOVA (requires group_var)
-        - "chi2": Chi-square test of independence (two categorical variables)
-        - "correlation": Pearson correlation (two numeric variables)
-        - "mann_whitney": Mann-Whitney U test (non-parametric, requires group_var)
-        - "kruskal": Kruskal-Wallis test (non-parametric ANOVA, requires group_var)
+        Run a statistical test on CSV data.
 
         Args:
-            filename: Name of the CSV file in data/ directory.
-            test_type: Type of statistical test to run.
-            variables: Comma-separated variable names to analyze.
-            group_var: Grouping variable (required for ttest, anova, mann_whitney, kruskal).
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Test results with statistics and p-value.
-
-        Example:
-            # Compare age between treatment groups
-            run_statistical_test(
-                filename="patients.csv",
-                test_type="ttest",
-                variables="age",
-                group_var="treatment"
-            )
+            filename: CSV filename in data/ directory
+            test_type: "ttest", "paired_ttest", "anova", "chi2", "correlation", "mann_whitney", "kruskal"
+            variables: Comma-separated variable names
+            group_var: Grouping variable (required for ttest, anova, etc.)
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "run_statistical_test",
@@ -158,37 +129,17 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
         project: Optional[str] = None,
     ) -> str:
         """
-        Create a statistical plot for the paper.
-
-        Supported plot types:
-        - "histogram": Distribution of a single variable
-        - "boxplot": Compare distributions across groups
-        - "scatter": Relationship between two variables
-        - "bar": Bar chart for categorical data
-        - "violin": Violin plot (boxplot + density)
-        - "kaplan_meier": Survival curve (requires time and event columns)
+        Create a statistical plot, saved to results/figures/.
 
         Args:
-            filename: Name of the CSV file in data/ directory.
-            plot_type: Type of plot to create.
-            x_var: Variable for x-axis.
-            y_var: Variable for y-axis (optional for histogram).
-            hue_var: Variable for color grouping (optional).
-            title: Plot title (optional).
-            output_name: Output filename (saved to results/figures/).
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Path to the saved plot file.
-
-        Example:
-            create_plot(
-                filename="patients.csv",
-                plot_type="boxplot",
-                x_var="treatment",
-                y_var="pain_score",
-                title="Pain Score by Treatment Group"
-            )
+            filename: CSV filename in data/ directory
+            plot_type: "histogram", "boxplot", "scatter", "bar", "violin", "kaplan_meier"
+            x_var: X-axis variable
+            y_var: Y-axis variable (optional for histogram)
+            hue_var: Color grouping variable (optional)
+            title: Plot title (optional)
+            output_name: Output filename (optional)
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "create_plot",

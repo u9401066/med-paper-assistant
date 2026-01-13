@@ -15,18 +15,8 @@ def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
     @mcp.tool()
     def start_exploration() -> str:
         """
-        Start a literature exploration workspace without creating a formal project.
-
-        Use this when you want to:
-        - Search and save papers to find research inspiration
-        - Explore a topic before committing to a research direction
-        - Collect references before deciding on paper type
-
-        All saved references and notes are preserved and can be converted
-        to a formal project later using `convert_exploration_to_project`.
-
-        Returns:
-            Exploration workspace info.
+        Start literature exploration workspace without formal project.
+        Save papers freely, convert to project later with convert_exploration_to_project.
         """
         result = project_manager.get_or_create_temp_project()
 
@@ -79,23 +69,14 @@ def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
         keep_exploration: bool = False,
     ) -> str:
         """
-        Convert the exploration workspace to a formal research project.
-
-        All saved references, drafts, and data files are transferred to the new project.
-        This is useful after you've explored literature and found a research direction.
-
-        IMPORTANT: The 'name' parameter MUST be in English for proper slug generation.
-        If user provides a non-English name, translate it to English before calling.
+        Convert exploration workspace to formal project. Transfers all saved content.
 
         Args:
-            name: Project name in ENGLISH (e.g., "Diabetes Prevention Study").
-            description: Brief research description.
-            paper_type: Type of paper (original-research, meta-analysis, etc.).
-            target_journal: Target journal for submission.
-            keep_exploration: If True, copy instead of move (keep exploration workspace).
-
-        Returns:
-            New project info with transferred content statistics.
+            name: English project name (translate if needed)
+            description: Brief description
+            paper_type: original-research|meta-analysis|systematic-review|...
+            target_journal: Target journal
+            keep_exploration: True=copy, False=move
         """
         result = project_manager.convert_temp_to_project(
             name=name,
@@ -140,14 +121,7 @@ def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
 
     @mcp.tool()
     def get_exploration_status() -> str:
-        """
-        Check the status of the exploration workspace.
-
-        Shows saved references and provides guidance on next steps.
-
-        Returns:
-            Exploration workspace status and contents.
-        """
+        """Check exploration workspace status (saved references, next steps)."""
         # Check if temp project exists
         temp_path = project_manager.projects_dir / project_manager.TEMP_PROJECT_SLUG
 

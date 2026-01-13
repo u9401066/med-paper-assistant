@@ -3,7 +3,7 @@ name = "med-paper-assistant"
 version = "0.1.0"
 description = "A medical paper writing assistant using MCP support"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "Apache-2.0"
 authors = [{ name = "Eric", email = "medpaper@example.com" }]
 keywords = ["medical", "paper", "assistant", "mcp", "pubmed"]
@@ -83,7 +83,7 @@ creativity-generation-unit = { path = "integrations/cgu", editable = true }
 # ============================================
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
@@ -101,7 +101,7 @@ asyncio_mode = "auto"
 # MyPy 類型檢查
 # ============================================
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_return_any = false  # Too many false positives with JSON responses
 warn_unused_configs = true
 ignore_missing_imports = true

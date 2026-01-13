@@ -1,18 +1,29 @@
-# Progress (Updated: 2025-01-22)
+# Progress (Updated: 2026-01-13)
 
-## Doing
+## Done (Recent)
 
-- **Artifact-Centric Architecture 設計完成**
-  - 設計文件：`docs/design/artifact-centric-architecture.md`
-  - 待實作：`_workspace/` 暫存區、6 個新工具
+- **AI Writing Intelligence 設計文件 (2026-01-13)** ✅：
+  - 新增 `docs/design/ai-writing-intelligence.md` (500 行)
+  - 定義三大問題：連貫性、引用、思考脈絡
+  - Citation Intelligence MVP 設計：4 個工具
+  - 技術選型：sentence-transformers, spaCy, Rule-based
+  - 4 週實作計畫
+  - ROADMAP 更新：新增 Phase 8
 
-## Done
+- **Tool Description 精簡 (2026-01-12)** ✅：
+  - 71 個 MCP 工具 docstring 精簡
+  - Token 節省：350→80 tokens (-77%)
+  - 總節省：~19,170 tokens
 
-- **Workspace State 跨 Session 持久化 (2025-01-22)** ✅：
-  - `WorkspaceStateManager` singleton 類別
-  - `.mdpaper-state.json` 狀態檔案
-  - 三個新工具：`get_workspace_state`, `sync_workspace_state`, `clear_recovery_state`
-  - 工具總數：69 → 72
+- **Python 3.12 遷移 (2026-01-12)** ✅：
+  - pyproject.toml 更新 requires-python
+  - UV 管理重建環境
+  - 統一 Python 3.12.12
+
+- **Tool Consolidation Planning (2026-01-12)** ✅：
+  - 新增 `docs/design/tool-consolidation-plan.md`
+  - 確認 MCP 限制：Action 參數不適合、無法分段載入
+  - 決定策略：描述精簡為主
 - MCP 解耦：完全移除 mdpaper 對 pubmed_search 的依賴
 - ReferenceManager 重構：新 API save_reference(article)
 - Skill tools 移除：已內建於 VS Code Copilot

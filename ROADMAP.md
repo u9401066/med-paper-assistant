@@ -68,6 +68,8 @@
 | **uv Toolchain** | 全專案標準化 uv 套件管理 |
 | **Citation Assistant** ✨ | 智慧引用助手 - 選段落找引用 |
 | **CRUD 盤點完成** ✅ | 52 工具盤點，識別 Delete 操作缺口 |
+| **Tool Description 精簡** ✅ | 71 工具 docstring 精簡，-77% token |
+| **Python 3.12 遷移** ✅ | UV 管理、pyproject.toml 更新 |
 ---
 
 ## 🚨 已知問題 (Known Issues) - 已大幅改善
@@ -496,7 +498,60 @@ EMPTY → EXPLORATION → PROJECT
 
 ---
 
-## 🛠️ Phase 8: API & Deployment (2026 Q4+)
+## 🧠 Phase 8: AI Writing Intelligence (2026 Q1-Q2) 🆕
+
+> **代碼層面解決 AI 寫作三大問題**
+> 📋 設計文件：[docs/design/ai-writing-intelligence.md](docs/design/ai-writing-intelligence.md)
+
+### 問題陳述
+
+| 問題 | 症狀 | 目前解法 | 為什麼不夠 |
+|------|------|---------|------------|
+| **連貫性** | 段落跳躍、邏輯斷裂 | Prompt 說「要連貫」 | 沒有強制機制 |
+| **引用** | 不知哪裡該引用 | `suggest_citations` 事後建議 | 補引用很彆扭 |
+| **思考脈絡** | 缺乏全局架構 | `validate_concept` 檢查 | 只檢查不引導 |
+
+### 8.1 Citation Intelligence（MVP）🎯
+
+| 工具 | 功能 | 狀態 |
+|------|------|------|
+| `analyze_citation_needs` | 分析句子引用需求（Rule-based） | 📋 設計中 |
+| `find_supporting_references` | 為 claim 找引用（Semantic search） | 📋 設計中 |
+| `verify_citation_support` | 驗證引用是否支持 claim | 📋 設計中 |
+| `write_paragraph_with_citations` | 寫作時即時插入引用 | 📋 設計中 |
+
+**技術選型**：
+- `sentence-transformers` - 語義搜尋
+- `spaCy` - NLP 句子分析
+- Rule-based patterns - 引用需求偵測
+
+**4 週實作計畫**：
+| Week | 內容 |
+|------|------|
+| Week 1 | Foundation - patterns + analyzer |
+| Week 2 | Search - embedding + local/PubMed |
+| Week 3 | Verification - claim-citation 匹配 |
+| Week 4 | Integration - MCP tools + 測試 |
+
+### 8.2 Coherence Engine（Phase 2）
+
+| 工具 | 功能 |
+|------|------|
+| `generate_section_outline` | 段落級大綱 |
+| `write_paragraph_with_context` | 帶上下文寫作 |
+| `check_coherence` | 連貫性檢查 |
+
+### 8.3 Argument Tracker（Phase 3）
+
+| 工具 | 功能 |
+|------|------|
+| `create_argument_map` | 論點地圖（整合 CGU deep_think） |
+| `generate_structured_draft` | 結構化生成 |
+| `track_logic_chain` | 邏輯鏈追蹤 |
+
+---
+
+## 🛠️ Phase 9: API & Deployment (2026 Q4+)
 
 **參考 medical-calc-mcp 的部署架構**
 

@@ -24,41 +24,14 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
         memo: str = "",
     ) -> str:
         """
-        Create a new research paper project with isolated workspace.
-
-        Each project gets its own:
-        - concept.md (research concept with type-specific template)
-        - .memory/ (project-specific AI memory)
-        - drafts/ (paper drafts)
-        - references/ (saved literature by PMID)
-        - data/ (analysis data files)
-        - results/ (exported Word documents)
-
-        IMPORTANT: The 'name' parameter MUST be in English for proper slug generation.
-        If user provides a non-English name (e.g., Chinese, Japanese, Korean),
-        YOU (the Agent) must translate it to English before calling this tool.
-
-        Examples:
-        - "死亡率預測" → "Mortality Prediction"
-        - "鼻腔氣管插管比較" → "Nasotracheal Intubation Comparison"
+        Create new research project. Name MUST be English (translate if needed).
 
         Args:
-            name: Project name in ENGLISH (e.g., "Mortality Prediction Study").
-                  Agent must translate non-English names before calling.
-            description: Brief description of the research.
-            target_journal: Target journal for submission (optional).
-            paper_type: Type of paper. One of:
-                       - "original-research": Clinical trial, cohort, cross-sectional
-                       - "systematic-review": Systematic literature review
-                       - "meta-analysis": Systematic review with quantitative synthesis
-                       - "case-report": Single case or case series
-                       - "review-article": Narrative/invited review
-                       - "letter": Brief communication
-                       - "other": Editorial, perspective, etc.
-            memo: Initial notes/reminders for the project.
-
-        Returns:
-            Project creation result with paths.
+            name: English project name (e.g., "Mortality Prediction Study")
+            description: Brief research description
+            target_journal: Target journal (optional)
+            paper_type: original-research|systematic-review|meta-analysis|case-report|review-article|letter|other
+            memo: Initial notes
         """
         log_tool_call(
             "create_project", {"name": name, "description": description, "paper_type": paper_type}
@@ -117,14 +90,7 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
 
     @mcp.tool()
     def list_projects() -> str:
-        """
-        List all research paper projects.
-
-        Shows project name, status, and which one is currently active.
-
-        Returns:
-            Formatted list of all projects.
-        """
+        """List all research paper projects with status."""
         log_tool_call("list_projects", {})
 
         result = project_manager.list_projects()
@@ -167,16 +133,10 @@ create_project(name="My Research Topic", description="Brief description")
     @mcp.tool()
     def switch_project(slug: str) -> str:
         """
-        Switch to a different research paper project.
-
-        All subsequent operations (save_reference, write_draft, etc.)
-        will use this project's directories.
+        Switch to a different project. All subsequent operations use this project.
 
         Args:
-            slug: Project identifier (use list_projects to see available).
-
-        Returns:
-            Project info after switching.
+            slug: Project identifier (from list_projects)
         """
         log_tool_call("switch_project", {"slug": slug})
 
@@ -217,12 +177,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 
     @mcp.tool()
     def get_current_project() -> str:
-        """
-        Get information about the currently active project.
-
-        Returns:
-            Current project details including paths and statistics.
-        """
+        """Get current project info including paths and statistics."""
         log_tool_call("get_current_project", {})
 
         result = project_manager.get_project_info()
@@ -270,15 +225,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 
     @mcp.tool()
     def get_project_paths() -> str:
-        """
-        Get all file paths for the current project.
-
-        Use this to know where to save drafts, references, data, and results.
-        All other tools automatically use these paths.
-
-        Returns:
-            Dictionary of path names to absolute paths.
-        """
+        """Get all file paths (root, drafts, references, data, results) for current project."""
         log_tool_call("get_project_paths", {})
 
         try:
@@ -311,28 +258,11 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
     @mcp.tool()
     def archive_project(slug: str, confirm: bool = False) -> str:
         """
-        Archive a project by moving it to an archived state.
-
-        This is a SOFT DELETE: the project is renamed with a timestamp prefix
-        and marked as archived. Data is preserved and can be restored.
-
-        ⚠️ First call without confirm=True to preview what will be archived.
+        Archive project (soft delete). Data preserved, can restore manually.
 
         Args:
-            slug: Project slug to archive.
-            confirm: Set to True to actually perform archiving. Default False shows preview.
-
-        Returns:
-            Preview of archiving (confirm=False) or archiving result (confirm=True).
-
-        Example:
-            # Step 1: Preview archiving
-            archive_project(slug="old-project")
-            # → Shows project info that will be archived
-
-            # Step 2: Confirm archiving
-            archive_project(slug="old-project", confirm=True)
-            # → Actually archives the project
+            slug: Project slug to archive
+            confirm: False=preview, True=execute
         """
         import shutil
         from datetime import datetime
@@ -405,28 +335,11 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
     @mcp.tool()
     def delete_project(slug: str, confirm: bool = False) -> str:
         """
-        Permanently delete a project and ALL its data.
-
-        ⚠️ DESTRUCTIVE OPERATION: This cannot be undone!
-        Consider using `archive_project` instead for a soft delete.
-
-        First call without confirm=True to preview what will be deleted.
+        ⚠️ PERMANENTLY delete project. Cannot undo! Use archive_project for soft delete.
 
         Args:
-            slug: Project slug to delete.
-            confirm: Set to True to actually perform deletion. Default False shows preview.
-
-        Returns:
-            Preview of deletion (confirm=False) or deletion result (confirm=True).
-
-        Example:
-            # Step 1: Preview deletion
-            delete_project(slug="old-project")
-            # → Shows project info that will be deleted
-
-            # Step 2: Confirm deletion
-            delete_project(slug="old-project", confirm=True)
-            # → Actually deletes the project PERMANENTLY
+            slug: Project slug to delete
+            confirm: False=preview, True=execute
         """
         log_tool_call("delete_project", {"slug": slug, "confirm": confirm})
 

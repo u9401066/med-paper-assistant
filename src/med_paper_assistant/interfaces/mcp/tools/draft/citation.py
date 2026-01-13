@@ -31,35 +31,13 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
         project: Optional[str] = None,
     ) -> str:
         """
-        🔍 Analyze text and suggest appropriate citations.
-
-        This is the CORE citation intelligence tool. Given a passage of text:
-        1. Identifies statements that need citations (statistics, comparisons, etc.)
-        2. Searches local reference library for relevant papers
-        3. Generates PubMed search queries for gaps
-
-        Perfect for:
-        - User selects a paragraph → "幫我找這段話的引用"
-        - Checking if a statement has adequate support
-        - Finding evidence from already-saved references
+        Analyze text and suggest citations from local library + PubMed queries.
 
         Args:
-            text: The text passage to analyze (can be selected text from editor)
-            section: Optional section context (Introduction/Methods/Results/Discussion)
-            search_pubmed: If True, generates PubMed search suggestions for gaps
-            project: Project slug. Uses current project if not specified.
-
-        Returns:
-            Markdown report with:
-            - Statements needing citations
-            - Matching references from local library ([[citation_key]] format)
-            - Suggested PubMed searches
-
-        Example:
-            suggest_citations(
-                text="Remimazolam has faster onset than midazolam, with recovery time under 10 minutes.",
-                section="Introduction"
-            )
+            text: Text passage to analyze
+            section: Optional context (Introduction/Methods/Results/Discussion)
+            search_pubmed: Generate PubMed search suggestions for gaps
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "suggest_citations",
@@ -97,28 +75,11 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
         project: Optional[str] = None,
     ) -> str:
         """
-        📄 Scan an entire draft file and identify all statements needing citations.
-
-        This tool provides a comprehensive citation audit:
-        1. Reads the draft file
-        2. Identifies ALL statements that may need citations
-        3. Matches with local reference library
-        4. Generates targeted PubMed search queries
-
-        Use this before submission to ensure citation completeness.
+        Scan entire draft for uncited statements and suggest citations.
 
         Args:
-            filename: Draft filename (e.g., "introduction.md") or full path
-            project: Project slug. Uses current project if not specified.
-
-        Returns:
-            Comprehensive citation audit report with:
-            - List of uncited statements by paragraph
-            - Top 10 relevant references from local library
-            - Suggested searches for missing evidence
-
-        Example:
-            scan_draft_citations(filename="introduction.md")
+            filename: Draft filename (e.g., "introduction.md")
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "scan_draft_citations",
@@ -170,33 +131,13 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
         project: Optional[str] = None,
     ) -> str:
         """
-        🎯 Find citations for a specific type of claim.
-
-        More focused than suggest_citations - use when you know exactly
-        what type of evidence you need.
-
-        Claim types:
-        - statistical: Numbers, percentages, rates
-        - comparison: A vs B studies
-        - guideline: Clinical guidelines, recommendations
-        - mechanism: Pathophysiology, pharmacology
-        - definition: Standard definitions
-        - general: Other claims
+        Find citations for a specific claim type.
 
         Args:
-            claim: The specific claim that needs support
-            claim_type: Type of claim (affects search strategy)
-            max_results: Maximum number of suggestions
-            project: Project slug. Uses current project if not specified.
-
-        Returns:
-            Targeted citation suggestions
-
-        Example:
-            find_citation_for_claim(
-                claim="Remimazolam causes less hypotension than propofol",
-                claim_type="comparison"
-            )
+            claim: The claim that needs support
+            claim_type: "statistical", "comparison", "guideline", "mechanism", "definition", "general"
+            max_results: Max suggestions (default 5)
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "find_citation_for_claim",

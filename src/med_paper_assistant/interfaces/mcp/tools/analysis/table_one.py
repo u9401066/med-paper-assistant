@@ -33,43 +33,15 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         project: Optional[str] = None,
     ) -> str:
         """
-        Generate Table 1 (baseline characteristics) for medical papers.
-
-        This is a STANDARD table in medical research showing patient demographics
-        and baseline characteristics, stratified by treatment/exposure groups.
-
-        The tool automatically:
-        - Calculates mean ± SD for continuous variables
-        - Calculates n (%) for categorical variables
-        - Performs statistical tests (t-test/ANOVA for continuous, chi-square for categorical)
-        - Formats p-values according to medical conventions
+        Generate Table 1 (baseline characteristics) with mean±SD, n(%), and p-values.
 
         Args:
-            filename: Name of the CSV file in data/ directory (e.g., "patients.csv").
-            group_col: Column name for grouping (e.g., "treatment", "group", "arm").
-            continuous_cols: Comma-separated continuous variable names
-                            (e.g., "age,weight,height,bmi").
-            categorical_cols: Comma-separated categorical variable names
-                             (e.g., "sex,diabetes,hypertension,asa_class").
-            output_name: Output filename for the table (optional, saves to tables/).
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Markdown formatted Table 1 ready for insertion into draft.
-
-        Example:
-            generate_table_one(
-                filename="study_data.csv",
-                group_col="treatment",
-                continuous_cols="age,weight,height",
-                categorical_cols="sex,diabetes,hypertension"
-            )
-
-        Output format:
-            | Variable | Overall (N=100) | Treatment (N=50) | Control (N=50) | P-value |
-            |----------|-----------------|------------------|----------------|---------|
-            | Age      | 65.2 ± 12.3     | 64.8 ± 11.9      | 65.6 ± 12.7    | 0.742   |
-            | Sex: Male| 60 (60.0%)      | 32 (64.0%)       | 28 (56.0%)     | 0.413   |
+            filename: CSV filename in data/ directory
+            group_col: Grouping column name (e.g., "treatment")
+            continuous_cols: Comma-separated continuous variables
+            categorical_cols: Comma-separated categorical variables
+            output_name: Output filename (optional, saves to tables/)
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "generate_table_one",
@@ -129,21 +101,11 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
     @mcp.tool()
     def detect_variable_types(filename: str, project: Optional[str] = None) -> str:
         """
-        Analyze a CSV file and suggest variable types for Table 1.
-
-        Automatically detects:
-        - Continuous variables (numerical with many unique values)
-        - Categorical variables (few unique values or non-numeric)
-        - Potential grouping variables (binary or small number of categories)
-
-        Use this BEFORE generate_table_one to understand your data structure.
+        Analyze CSV and suggest variable types for Table 1 (continuous vs categorical).
 
         Args:
-            filename: Name of the CSV file in data/ directory.
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Suggested variable classifications for Table 1 generation.
+            filename: CSV filename in data/ directory
+            project: Project slug (uses current if omitted)
         """
         import pandas as pd
 
@@ -251,13 +213,10 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
     @mcp.tool()
     def list_data_files(project: Optional[str] = None) -> str:
         """
-        List all data files available for analysis.
+        List all CSV/Excel files in data/ directory with row/column counts.
 
         Args:
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            List of CSV files in the data/ directory with basic info.
+            project: Project slug (uses current if omitted)
         """
         import pandas as pd
 

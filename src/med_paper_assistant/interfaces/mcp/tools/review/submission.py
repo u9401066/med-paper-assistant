@@ -259,26 +259,13 @@ def register_submission_tools(mcp: FastMCP, project_manager: ProjectManager):
         Generate a professional cover letter for journal submission.
 
         Args:
-            title: Manuscript title.
-            authors: Comma-separated author names (corresponding author first).
-            journal: Target journal code (bja, anesthesiology, anesth_analg,
-                    jama, nejm, lancet, ccm, or generic).
-            novelty_points: Key novelty points (comma-separated or newline-separated).
-                           Will be highlighted in the cover letter.
-            suggested_reviewers: Optional suggested reviewers (name, affiliation, email).
-            excluded_reviewers: Optional reviewers to exclude (with reasons).
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Formatted cover letter ready for submission.
-
-        Example:
-            generate_cover_letter(
-                title="Remimazolam vs Propofol in Elderly Patients",
-                authors="John Smith, Jane Doe, Bob Wilson",
-                journal="bja",
-                novelty_points="First RCT in elderly population; Novel safety profile"
-            )
+            title: Manuscript title
+            authors: Comma-separated author names (corresponding author first)
+            journal: Target journal code (bja, anesthesiology, jama, nejm, lancet, ccm, generic)
+            novelty_points: Key novelty points (comma/newline separated)
+            suggested_reviewers: Optional suggested reviewers (name; affiliation; email)
+            excluded_reviewers: Optional reviewers to exclude
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "generate_cover_letter",
@@ -399,41 +386,22 @@ Sincerely,
         """
         Check manuscript against journal submission requirements.
 
-        Verifies word counts, required sections, and formatting requirements
-        for the target journal.
-
         Args:
-            journal: Target journal code (bja, anesthesiology, anesth_analg,
-                    jama, nejm, lancet, ccm, or generic).
-            word_count: Main text word count (excluding abstract, references).
-            abstract_count: Abstract word count.
-            reference_count: Number of references.
-            figure_count: Number of figures.
-            table_count: Number of tables.
+            journal: Target journal code (bja, anesthesiology, jama, nejm, lancet, ccm, generic)
+            word_count: Main text word count
+            abstract_count: Abstract word count
+            reference_count: Number of references
+            figure_count: Number of figures
+            table_count: Number of tables
             has_cover_letter: Cover letter prepared?
-            has_ethics: Ethics approval statement included?
-            has_consent: Informed consent statement included?
-            has_coi: Conflict of interest statement included?
-            has_author_contributions: Author contributions statement included?
-            has_data_availability: Data availability statement included?
+            has_ethics: Ethics approval included?
+            has_consent: Informed consent included?
+            has_coi: Conflict of interest included?
+            has_author_contributions: Author contributions included?
+            has_data_availability: Data availability included?
             has_keywords: Keywords included?
-            has_highlights: Highlights/key points included?
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Detailed submission checklist with pass/fail status.
-
-        Example:
-            check_submission_checklist(
-                journal="bja",
-                word_count=3200,
-                abstract_count=280,
-                reference_count=45,
-                figure_count=4,
-                table_count=3,
-                has_cover_letter=True,
-                has_ethics=True
-            )
+            has_highlights: Highlights included?
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "check_submission_checklist",
@@ -678,10 +646,7 @@ Sincerely,
     @mcp.tool()
     def list_supported_journals() -> str:
         """
-        List all supported journals and their submission requirements.
-
-        Returns:
-            Table of supported journals with key requirements.
+        List all supported journals with submission requirements.
         """
         log_tool_call("list_supported_journals", {})
 
@@ -712,26 +677,13 @@ Sincerely,
         project: Optional[str] = None,
     ) -> str:
         """
-        Generate bullet-point highlights for journal submission.
-
-        Many journals require 3-5 bullet points highlighting the key findings.
-        This tool helps format them properly.
+        Generate 3-5 bullet-point highlights for journal submission.
 
         Args:
-            novelty_statement: Main novelty/innovation of the study.
-            key_findings: Key findings (comma or newline separated).
-            clinical_impact: Clinical implications (optional).
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Formatted highlights ready for submission.
-
-        Example:
-            generate_highlights(
-                novelty_statement="First RCT comparing remimazolam to propofol in elderly",
-                key_findings="Lower hypotension rate; Faster recovery; Similar efficacy",
-                clinical_impact="May reduce perioperative complications in elderly patients"
-            )
+            novelty_statement: Main novelty/innovation
+            key_findings: Key findings (comma/newline/semicolon separated)
+            clinical_impact: Clinical implications (optional)
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "generate_highlights",

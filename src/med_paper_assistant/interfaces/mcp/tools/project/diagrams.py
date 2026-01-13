@@ -30,24 +30,14 @@ def register_diagram_tools(mcp: FastMCP, project_manager: ProjectManager):
         description: str = "",
     ) -> str:
         """
-        Save a diagram file to the project's results/figures directory.
-
-        Use this after getting diagram content from Draw.io MCP's get_diagram_content tool.
-
-        Workflow:
-        1. User creates/edits diagram in Draw.io
-        2. Agent calls drawio.get_diagram_content() to get XML
-        3. Agent calls this tool to save to project
+        Save Draw.io diagram to project's results/figures directory.
 
         Args:
-            filename: Diagram filename (e.g., "consort-flowchart.drawio").
-            content: Diagram content (XML or base64 encoded XML).
-            project: Project slug. Agent should confirm with user.
-            content_format: "xml" or "base64".
-            description: Optional description.
-
-        Returns:
-            Success message with saved path, or error message.
+            filename: Diagram filename (e.g., "consort-flowchart.drawio")
+            content: Diagram XML content
+            project: Project slug (default: current)
+            content_format: xml|base64
+            description: Optional description
         """
         is_valid, msg, project_info = ensure_project_context(project)
 
@@ -109,16 +99,13 @@ The diagram is now part of your research project and can be:
         filename: str, content: str, output_dir: str = ".", content_format: str = "xml"
     ) -> str:
         """
-        Save a diagram to a standalone location (not in any project).
+        Save diagram to standalone location (not in project).
 
         Args:
-            filename: Diagram filename (e.g., "quick-diagram.drawio").
-            content: Diagram content (XML or base64 encoded XML).
-            output_dir: Directory to save to. Defaults to current directory.
-            content_format: "xml" or "base64".
-
-        Returns:
-            Success message with saved path.
+            filename: Diagram filename
+            content: Diagram XML content
+            output_dir: Output directory (default: current)
+            content_format: xml|base64
         """
         if not filename.endswith(".drawio"):
             filename = f"{filename}.drawio"
@@ -150,13 +137,10 @@ To associate with a project, use `save_diagram` with a project parameter."""
     @mcp.tool()
     def list_diagrams(project: Optional[str] = None) -> str:
         """
-        List all diagrams in a project's results/figures directory.
+        List diagrams in project's results/figures directory.
 
         Args:
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            List of diagram files with metadata.
+            project: Project slug (default: current)
         """
         is_valid, msg, project_info = ensure_project_context(project)
 

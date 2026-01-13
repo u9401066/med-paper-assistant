@@ -153,18 +153,13 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         topic: str, notes: str, project: Optional[str] = None, skip_validation: bool = False
     ) -> str:
         """
-        Draft a section of a medical paper based on notes and saved references.
-
-        ⚠️ REQUIRES: Valid concept.md with novelty check passed.
-
-        This tool gathers context from concept.md and saved references to provide
-        a solid foundation for drafting, avoiding generic AI-flavored text.
+        Draft a paper section using concept.md and saved references as context.
 
         Args:
-            topic: The topic of the section (e.g., "Introduction").
-            notes: Raw notes or bullet points to convert into text.
-            project: Project slug. Agent should confirm with user before calling.
-            skip_validation: For internal use only. Do not set to True.
+            topic: Section name (e.g., "Introduction")
+            notes: Raw notes/bullet points to convert
+            project: Project slug (uses current if omitted)
+            skip_validation: Internal use only
         """
         log_tool_call(
             "draft_section",
@@ -254,18 +249,14 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         filename: str, content: str, project: Optional[str] = None, skip_validation: bool = False
     ) -> str:
         """
-        Create a draft file with automatic citation formatting.
-        Use (PMID:123456) or [PMID:123456] in content to insert citations.
-
-        ⚠️ REQUIRES: Valid concept.md with novelty check passed.
-
-        Exception: Writing to concept.md itself does not require validation.
+        Create/update a draft file with auto citation formatting.
+        Use (PMID:123456) or [PMID:123456] for citations.
 
         Args:
-            filename: Name of the file (e.g., "draft.md").
-            content: The text content with citation placeholders.
-            project: Project slug. Agent should confirm with user before calling.
-            skip_validation: For internal use only. Do not set to True.
+            filename: Draft filename (e.g., "draft.md")
+            content: Text content with citation placeholders
+            project: Project slug (uses current if omitted)
+            skip_validation: Internal use only
         """
         log_tool_call(
             "write_draft",
@@ -329,13 +320,10 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
     @mcp.tool()
     def list_drafts(project: Optional[str] = None) -> str:
         """
-        List all available draft files in the drafts/ directory.
+        List all draft files in drafts/ with section and word counts.
 
         Args:
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            List of draft files with their word counts.
+            project: Project slug (uses current if omitted)
         """
         log_tool_call("list_drafts", {"project": project})
 
@@ -383,14 +371,11 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
     @mcp.tool()
     def read_draft(filename: str, project: Optional[str] = None) -> str:
         """
-        Read a draft file and return its structure and content.
+        Read a draft file's structure and content by sections.
 
         Args:
-            filename: Path to the markdown draft file.
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Draft content organized by sections with word counts.
+            filename: Draft filename (in drafts/ directory)
+            project: Project slug (uses current if omitted)
         """
         log_tool_call("read_draft", {"filename": filename, "project": project})
 
@@ -463,27 +448,12 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         filename: str, confirm: bool = False, project: Optional[str] = None
     ) -> str:
         """
-        Delete a draft file.
-
-        ⚠️ DESTRUCTIVE OPERATION: This permanently removes the draft.
-        First call without confirm=True to preview what will be deleted.
+        ⚠️ DESTRUCTIVE: Delete a draft file permanently.
 
         Args:
-            filename: Name of the draft file to delete (e.g., "draft.md").
-            confirm: Set to True to actually perform deletion. Default False shows preview.
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Preview of deletion (confirm=False) or deletion result (confirm=True).
-
-        Example:
-            # Step 1: Preview deletion
-            delete_draft(filename="old_draft.md")
-            # → Shows file info that will be deleted
-
-            # Step 2: Confirm deletion
-            delete_draft(filename="old_draft.md", confirm=True)
-            # → Actually deletes the draft
+            filename: Draft filename (e.g., "draft.md")
+            confirm: False=preview, True=actually delete
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "delete_draft", {"filename": filename, "confirm": confirm, "project": project}

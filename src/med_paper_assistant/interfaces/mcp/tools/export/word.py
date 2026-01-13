@@ -34,14 +34,12 @@ def register_word_export_tools(
     @mcp.tool()
     def export_word(draft_filename: str, template_name: str, output_filename: str) -> str:
         """
-        [LEGACY] Simple export - use the new workflow for better control.
-
-        Export a markdown draft to a Word document using a template.
+        [Legacy] Simple export. Use new workflow (start_document_session) for more control.
 
         Args:
-            draft_filename: Path to the markdown draft file.
-            template_name: Name of the template file in templates/ or full path.
-            output_filename: Path to save the output file.
+            draft_filename: Markdown draft path
+            template_name: Template file in templates/
+            output_filename: Output path
         """
         try:
             path = formatter.apply_template(draft_filename, template_name, output_filename)
@@ -56,10 +54,7 @@ def register_word_export_tools(
     @mcp.tool()
     def list_templates() -> str:
         """
-        List all available Word templates.
-
-        Returns:
-            List of template files in the templates/ directory.
+        List all available Word templates in templates/ directory.
         """
         try:
             templates = template_reader.list_templates()
@@ -76,14 +71,10 @@ def register_word_export_tools(
     @mcp.tool()
     def read_template(template_name: str) -> str:
         """
-        Read a Word template and get its structure.
-        Use this FIRST to understand what sections the template has.
+        Read a Word template's structure (sections, styles, word limits).
 
         Args:
-            template_name: Name of the template file (e.g., "Type of the Paper.docx").
-
-        Returns:
-            Template structure including sections, styles, and word limits.
+            template_name: Template filename (e.g., "Type of the Paper.docx")
         """
         try:
             return template_reader.get_template_summary(template_name)
@@ -93,14 +84,11 @@ def register_word_export_tools(
     @mcp.tool()
     def start_document_session(template_name: str, session_id: str = "default") -> str:
         """
-        Start a new document editing session by loading a template.
+        Start a document editing session from a Word template.
 
         Args:
-            template_name: Name of the template file.
-            session_id: Unique identifier for this editing session.
-
-        Returns:
-            Confirmation and template structure.
+            template_name: Template filename
+            session_id: Unique session identifier (default: "default")
         """
         try:
             template_path = os.path.join(template_reader.templates_dir, template_name)
@@ -125,16 +113,13 @@ def register_word_export_tools(
         session_id: str, section_name: str, content: str, mode: str = "replace"
     ) -> str:
         """
-        Insert content into a specific section of the active document.
+        Insert content into a document section.
 
         Args:
-            session_id: The document session ID.
-            section_name: Target section name (e.g., "Introduction", "Methods").
-            content: The text content to insert.
-            mode: "replace" (clear existing) or "append" (add to existing).
-
-        Returns:
-            Confirmation with word count for the section.
+            session_id: Session ID from start_document_session
+            section_name: Target section (e.g., "Introduction")
+            content: Text content to insert
+            mode: "replace" or "append"
         """
         if session_id not in _active_documents:
             return f"Error: No active session '{session_id}'. Use start_document_session first."
@@ -171,13 +156,10 @@ def register_word_export_tools(
     @mcp.tool()
     def verify_document(session_id: str) -> str:
         """
-        Get a summary of the current document state for verification.
+        Get document summary with all sections and word counts.
 
         Args:
-            session_id: The document session ID.
-
-        Returns:
-            Document summary with all sections and word counts.
+            session_id: Session ID from start_document_session
         """
         if session_id not in _active_documents:
             return f"Error: No active session '{session_id}'."
@@ -210,14 +192,11 @@ def register_word_export_tools(
     @mcp.tool()
     def check_word_limits(session_id: str, limits_json: Optional[str] = None) -> str:
         """
-        Check if all sections meet their word limits.
+        Check if sections meet word limits.
 
         Args:
-            session_id: The document session ID.
-            limits_json: Optional JSON with custom limits.
-
-        Returns:
-            Word limit compliance report.
+            session_id: Session ID from start_document_session
+            limits_json: Optional JSON with custom limits (e.g., '{"Abstract": 300}')
         """
         if session_id not in _active_documents:
             return f"Error: No active session '{session_id}'."
@@ -276,14 +255,11 @@ def register_word_export_tools(
     @mcp.tool()
     def save_document(session_id: str, output_filename: str) -> str:
         """
-        Save the document to a Word file.
+        Save the document to Word file and close session.
 
         Args:
-            session_id: The document session ID.
-            output_filename: Path to save the output file.
-
-        Returns:
-            Confirmation with file path.
+            session_id: Session ID from start_document_session
+            output_filename: Output file path
         """
         if session_id not in _active_documents:
             return f"Error: No active session '{session_id}'."

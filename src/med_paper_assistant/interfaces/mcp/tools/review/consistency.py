@@ -110,27 +110,11 @@ def register_consistency_tools(
         project: Optional[str] = None,
     ) -> str:
         """
-        Check manuscript for consistency issues before submission.
-
-        Checks include:
-        1. **Citation consistency**: All citations exist in references
-        2. **Number consistency**: Sample sizes match across sections
-        3. **Abbreviation consistency**: First use defined, then consistent
-        4. **Table/Figure references**: All referenced tables/figures exist
-        5. **P-value formatting**: Consistent format (p < 0.05 vs P = 0.049)
-        6. **Statistical reporting**: Proper format (mean ± SD, 95% CI)
+        Check manuscript for pre-submission issues (citations, numbers, abbreviations, formatting).
 
         Args:
-            drafts: Comma-separated draft filenames to check (optional).
-                   If not specified, checks all drafts in the project.
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Consistency report with issues and suggestions.
-
-        Example:
-            check_manuscript_consistency()
-            check_manuscript_consistency(drafts="introduction.md,methods.md")
+            drafts: Comma-separated draft filenames (optional, checks all if omitted)
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "check_manuscript_consistency",

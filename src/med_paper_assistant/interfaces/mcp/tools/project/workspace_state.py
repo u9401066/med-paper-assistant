@@ -26,23 +26,8 @@ def register_workspace_state_tools(mcp: FastMCP):
     @mcp.tool()
     def get_workspace_state() -> str:
         """
-        Get workspace state for context recovery.
-
-        ⚠️ IMPORTANT: Agent should call this at the START of each conversation
-        to recover context from previous sessions.
-
-        Returns:
-            - Current project
-            - Last activity timestamp
-            - What agent was doing before
-            - Suggested next action
-            - Important context to remember
-
-        Example usage by Agent:
-            1. New conversation starts
-            2. Call get_workspace_state()
-            3. Understand what was happening
-            4. Continue seamlessly
+        Get workspace state for context recovery. Call at conversation START.
+        Returns: current project, last activity, suggested next action.
         """
         state_manager = get_workspace_state_manager()
         return state_manager.get_recovery_summary()
@@ -54,31 +39,12 @@ def register_workspace_state_tools(mcp: FastMCP):
         context: Optional[str] = None,
     ) -> str:
         """
-        Sync workspace state for recovery in future sessions.
-
-        ⚠️ IMPORTANT: Agent should call this BEFORE important operations
-        or when conversation is about to end.
-
-        This ensures that if the Agent gets summarized or a new session starts,
-        the context can be recovered.
+        Sync workspace state for future session recovery. Call before important ops or session end.
 
         Args:
-            doing: What the agent is currently doing.
-                   Example: "Writing introduction section for remimazolam study"
-            next_action: Suggested next action after current task.
-                        Example: "validate_concept" or "draft_section methods"
-            context: Important context to preserve (comma-separated).
-                    Example: "Found 5 key papers, novelty score 82"
-
-        Returns:
-            Confirmation message.
-
-        Example:
-            sync_workspace_state(
-                doing="Drafting Methods section",
-                next_action="validate_concept",
-                context="Using RCT design, n=120, primary outcome is recovery time"
-            )
+            doing: Current activity description
+            next_action: Suggested next action
+            context: Important context (comma-separated)
         """
         state_manager = get_workspace_state_manager()
 
@@ -108,15 +74,7 @@ def register_workspace_state_tools(mcp: FastMCP):
 
     @mcp.tool()
     def clear_recovery_state() -> str:
-        """
-        Clear recovery hints after successful context recovery.
-
-        Call this after successfully resuming work to prevent stale hints
-        from appearing in future sessions.
-
-        Returns:
-            Confirmation message.
-        """
+        """Clear recovery hints after successful context recovery."""
         state_manager = get_workspace_state_manager()
         success = state_manager.clear_recovery_hints()
 

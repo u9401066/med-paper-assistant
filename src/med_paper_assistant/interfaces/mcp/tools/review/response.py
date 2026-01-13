@@ -28,45 +28,12 @@ def register_response_tools(mcp: FastMCP, drafter: Drafter):
         project: Optional[str] = None,
     ) -> str:
         """
-        Generate a structured response template for reviewer comments.
-
-        This tool helps organize responses to peer reviewer comments during
-        manuscript revision. It creates a professional point-by-point response
-        document.
+        Generate a point-by-point response template for peer reviewer comments.
 
         Args:
-            reviewer_comments: The reviewer's comments (copy-paste from decision letter).
-            output_format: Format for responses:
-                - "structured": Numbered point-by-point format (default)
-                - "table": Table format with columns for comment/response/changes
-                - "letter": Formal response letter format
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Formatted response template with placeholders for your responses.
-
-        Example:
-            create_reviewer_response(
-                reviewer_comments=\"\"\"
-                Reviewer 1:
-                1. The sample size calculation needs clarification.
-                2. Please provide more details about the randomization process.
-                \"\"\"
-            )
-
-        Output:
-            ## Response to Reviewer 1
-
-            ### Comment 1
-            > The sample size calculation needs clarification.
-
-            **Response:**
-            [Your response here]
-
-            **Changes made:**
-            [Describe changes to manuscript, with page/line numbers]
-
-            ---
+            reviewer_comments: Reviewer comments (copy-paste from decision letter)
+            output_format: "structured", "table", or "letter"
+            project: Project slug (uses current if omitted)
         """
         log_tool_call(
             "create_reviewer_response",
@@ -113,26 +80,12 @@ def register_response_tools(mcp: FastMCP, drafter: Drafter):
         location: str = "",
     ) -> str:
         """
-        Format manuscript changes for reviewer response.
-
-        Creates a clear diff-style presentation of changes made,
-        suitable for inclusion in a point-by-point response.
+        Format manuscript changes as diff-style for reviewer response.
 
         Args:
-            original_text: The original text before revision.
-            revised_text: The revised text after changes.
-            location: Location in manuscript (e.g., "Page 5, Lines 120-125").
-
-        Returns:
-            Formatted change description for response document.
-
-        Example:
-            format_revision_changes(
-                original_text="We enrolled 100 patients.",
-                revised_text="We enrolled 100 patients based on a power analysis
-                             targeting 80% power to detect a 20% difference.",
-                location="Methods, Page 5, Line 120"
-            )
+            original_text: Original text before revision
+            revised_text: Revised text after changes
+            location: Location in manuscript (e.g., "Page 5, Lines 120-125")
         """
         log_tool_call(
             "format_revision_changes",

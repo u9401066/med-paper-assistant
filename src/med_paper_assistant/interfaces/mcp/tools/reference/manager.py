@@ -47,31 +47,11 @@ def register_reference_manager_tools(
     @mcp.tool()
     def save_reference(article: Union[dict, str], project: Optional[str] = None) -> str:
         """
-        Save a reference to the local library with metadata from PubMed search.
-
-        ⚠️ IMPORTANT WORKFLOW:
-        1. First search using pubmed-search MCP: search_literature() or fetch_article_details()
-        2. Then save using this tool with the article metadata from step 1
-
-        The saved reference includes:
-        - Full metadata (authors, journal, volume, pages, DOI, etc.)
-        - Pre-formatted citations (Vancouver, APA, Nature styles)
-        - Abstract as markdown
-        - Foam-compatible alias files for [[wikilink]] support
-
-        If no project is active, automatically creates an exploration workspace.
+        Save reference with metadata from pubmed-search. Use save_reference_mcp instead for verified data.
 
         Args:
-            article: Article metadata dictionary from pubmed-search MCP.
-                    Must contain at least 'pmid' field.
-                    Typical fields: pmid, title, authors, abstract, journal, year, doi, etc.
-                    Can be a dict or a JSON string.
-            project: Project slug to save to. Agent should confirm with user.
-
-        Example workflow:
-            1. pubmed-search: search_literature("deep learning radiology")
-            2. pubmed-search: fetch_article_details(pmids="12345678,87654321")
-            3. mdpaper: save_reference(article=<metadata from step 2>)
+            article: Article metadata dict with 'pmid' field (from pubmed-search)
+            project: Project slug (default: current)
         """
         # Log tool call
         log_tool_call("save_reference", {"article": article, "project": project})
@@ -141,27 +121,12 @@ def register_reference_manager_tools(
     @mcp.tool()
     def save_reference_mcp(pmid: str, agent_notes: str = "", project: Optional[str] = None) -> str:
         """
-        Save reference using MCP-to-MCP direct communication (RECOMMENDED).
-
-        🔒 This method ensures DATA INTEGRITY:
-        - Agent only passes PMID (cannot modify bibliographic data)
-        - mdpaper fetches VERIFIED metadata directly from pubmed-search HTTP API
-        - Prevents hallucination of titles, authors, journal names
-
-        📋 Reference file includes LAYERED TRUST sections:
-        - 🔒 VERIFIED: PubMed data (immutable)
-        - 🤖 AGENT: AI notes (AI can update)
-        - ✏️ USER: Human notes (AI never touches)
-
-        Prerequisite: pubmed-search MCP must be running with HTTP API enabled.
+        🔒 Save reference by PMID with verified metadata from pubmed-search API (RECOMMENDED).
 
         Args:
             pmid: PubMed ID (e.g., "12345678")
-            agent_notes: Optional notes about this reference from Agent
-            project: Project slug. If not specified, uses current project.
-
-        Example:
-            save_reference_mcp(pmid="31645286", agent_notes="Key paper on AI in anesthesiology")
+            agent_notes: Optional AI notes about this reference
+            project: Project slug (default: current)
         """
         log_tool_call(
             "save_reference_mcp", {"pmid": pmid, "agent_notes": agent_notes, "project": project}
@@ -187,13 +152,10 @@ def register_reference_manager_tools(
     @mcp.tool()
     def list_saved_references(project: Optional[str] = None) -> str:
         """
-        List all saved references in the local library with summary info.
+        List saved references with title, year, and PDF availability.
 
         Args:
-            project: Project slug to list from. If not specified, uses current project.
-
-        Returns:
-            List of PMIDs with title, year, and PDF availability.
+            project: Project slug (default: current)
         """
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
@@ -222,10 +184,10 @@ def register_reference_manager_tools(
     @mcp.tool()
     def search_local_references(query: str) -> str:
         """
-        Search within saved local references by keyword.
+        Search within saved references by keyword in titles and abstracts.
 
         Args:
-            query: Keyword to search in titles and abstracts.
+            query: Search keyword
         """
         results = ref_manager.search_local(query)
 
@@ -250,13 +212,10 @@ def register_reference_manager_tools(
     @mcp.tool()
     def get_reference_details(pmid: str) -> str:
         """
-        Get detailed information about a saved reference including citation formats.
+        Get detailed info and pre-formatted citations for a saved reference.
 
         Args:
-            pmid: PubMed ID of the reference.
-
-        Returns:
-            Comprehensive reference details with pre-formatted citations.
+            pmid: PubMed ID
         """
         summary = ref_manager.get_reference_summary(pmid)
 
@@ -289,16 +248,11 @@ def register_reference_manager_tools(
     @mcp.tool()
     def read_reference_fulltext(pmid: str, max_chars: int = 10000) -> str:
         """
-        Read the fulltext PDF content of a saved reference.
-
-        Only works if the PDF was downloaded from PubMed Central.
+        Read PDF fulltext of a saved reference (PMC Open Access only).
 
         Args:
-            pmid: PubMed ID of the reference.
-            max_chars: Maximum characters to return (default 10000).
-
-        Returns:
-            Extracted text from the PDF, or error message if not available.
+            pmid: PubMed ID
+            max_chars: Max characters to return (default 10000)
         """
         if not ref_manager.has_fulltext(pmid):
             return f"No fulltext PDF available for PMID {pmid}. Only Open Access articles from PMC have downloadable PDFs."
@@ -321,10 +275,7 @@ def register_reference_manager_tools(
         Check if a reference is already saved locally.
 
         Args:
-            pmid: PubMed ID to check.
-
-        Returns:
-            Status message indicating if reference exists.
+            pmid: PubMed ID to check
         """
         exists = ref_manager.check_reference_exists(pmid)
         if exists:
@@ -336,16 +287,11 @@ def register_reference_manager_tools(
     @mcp.tool()
     def save_reference_pdf(pmid: str, pdf_content: str) -> str:
         """
-        Save PDF content for an existing reference.
-
-        Note: PDF content should be base64 encoded.
+        Save base64-encoded PDF content for an existing reference.
 
         Args:
-            pmid: PubMed ID of the reference.
-            pdf_content: Base64 encoded PDF content.
-
-        Returns:
-            Status message.
+            pmid: PubMed ID
+            pdf_content: Base64 encoded PDF
         """
         import base64
 
@@ -358,11 +304,10 @@ def register_reference_manager_tools(
     @mcp.tool()
     def set_citation_style(style: str) -> str:
         """
-        Set the citation style for the current project and session.
-        This affects how references are displayed and formatted.
+        Set citation style for current project/session.
 
         Args:
-            style: Citation style ("vancouver", "apa", "harvard", "nature", "ama").
+            style: "vancouver", "apa", "harvard", "nature", or "ama"
         """
         try:
             drafter.set_citation_style(style)
@@ -382,15 +327,12 @@ def register_reference_manager_tools(
     @mcp.tool()
     def format_references(pmids: str, style: str = "vancouver", journal: Optional[str] = None) -> str:
         """
-        Format a list of references according to a specific citation style.
+        Format references for insertion into manuscript.
 
         Args:
-            pmids: Comma-separated list of PMIDs (e.g., "31645286,28924371,33160604").
-            style: Citation style ("vancouver", "apa", "harvard", "nature", "ama", "mdpi", "nlm").
-            journal: Optional journal name for journal-specific formatting.
-
-        Returns:
-            Formatted reference list ready for insertion.
+            pmids: Comma-separated PMIDs (e.g., "31645286,28924371")
+            style: "vancouver", "apa", "harvard", "nature", "ama", "mdpi", "nlm"
+            journal: Optional journal name for specific formatting
         """
         pmid_list = [p.strip() for p in pmids.split(",") if p.strip()]
 
@@ -434,16 +376,10 @@ def register_reference_manager_tools(
     @mcp.tool()
     def rebuild_foam_aliases(project: Optional[str] = None) -> str:
         """
-        Rebuild Foam-compatible files for all references in a project.
-
-        新結構 (2025-12 重構):
-        將舊的 content.md 轉換為 {citation_key}.md，並加入 aliases frontmatter。
+        Rebuild Foam-compatible markdown files for all references (2025-12 format).
 
         Args:
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Summary of migrated files.
+            project: Project slug (uses current project if omitted)
         """
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
@@ -533,27 +469,12 @@ def register_reference_manager_tools(
     @mcp.tool()
     def delete_reference(pmid: str, confirm: bool = False, project: Optional[str] = None) -> str:
         """
-        Delete a saved reference and all associated files.
-
-        ⚠️ DESTRUCTIVE OPERATION: This permanently removes the reference.
-        First call without confirm=True to preview what will be deleted.
+        ⚠️ DESTRUCTIVE: Delete a reference and all associated files.
 
         Args:
-            pmid: PubMed ID of the reference to delete.
-            confirm: Set to True to actually perform deletion. Default False shows preview.
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Preview of deletion (confirm=False) or deletion result (confirm=True).
-
-        Example:
-            # Step 1: Preview deletion
-            delete_reference(pmid="12345678")
-            # → Shows files that will be deleted
-
-            # Step 2: Confirm deletion
-            delete_reference(pmid="12345678", confirm=True)
-            # → Actually deletes the reference
+            pmid: PubMed ID to delete
+            confirm: False=preview, True=actually delete
+            project: Project slug (uses current if omitted)
         """
         log_tool_call("delete_reference", {"pmid": pmid, "confirm": confirm, "project": project})
 

@@ -46,34 +46,13 @@ def register_concept_validation_tools(mcp: FastMCP):
         target_section: Optional[str] = None,
     ) -> str:
         """
-        Validate a concept file before proceeding to draft writing.
-
-        This tool performs comprehensive validation including:
-        1. Structural validation - Required sections present
-        2. Novelty evaluation - LLM-based scoring (3 rounds, 75+ threshold)
-        3. Consistency check - Alignment between sections
-
-        **Section-Specific Validation:**
-        If `target_section` is specified, validation checks only the sections
-        required for writing that specific section. For example:
-        - Introduction: Needs NOVELTY + Background + Research Gap
-        - Methods: Recommended to have Study Design but won't block
-
-        Different paper types have different requirements:
-        - original-research: Full IMRAD structure
-        - systematic-review/meta-analysis: + PRISMA checklist
-        - case-report: + Case timeline
-        - letter: Minimal structure
+        Comprehensive validation: structure, novelty scoring (3 rounds, 75+ threshold), and consistency.
 
         Args:
-            filename: Path to the concept file (e.g., "concept.md").
-            project: Project slug. Agent should confirm with user before calling.
-            run_novelty_check: Whether to run LLM-based novelty scoring (default: True).
-            target_section: Optional target section to validate for (e.g., "Introduction", "Methods").
-                           If specified, uses section-specific validation rules.
-
-        Returns:
-            Validation report with checklist status, novelty scores, and suggestions.
+            filename: Concept file path (e.g., "concept.md")
+            project: Project slug (uses current if omitted)
+            run_novelty_check: Run LLM-based novelty scoring (default: True)
+            target_section: Optional section to validate for (e.g., "Introduction")
         """
         log_tool_call(
             "validate_concept",
@@ -170,17 +149,11 @@ def register_concept_validation_tools(mcp: FastMCP):
     @mcp.tool()
     def validate_concept_quick(filename: str, project: Optional[str] = None) -> str:
         """
-        Quick structural validation without LLM calls.
-
-        Use this for fast checks when you just need to verify sections exist.
-        For full validation with novelty scoring, use validate_concept.
+        Quick structural validation without LLM calls. Use for fast section checks.
 
         Args:
-            filename: Path to the concept file.
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Quick validation report (structure only).
+            filename: Concept file path
+            project: Project slug (uses current if omitted)
         """
         log_tool_call("validate_concept_quick", {"filename": filename, "project": project})
 
@@ -233,32 +206,9 @@ def register_concept_validation_tools(mcp: FastMCP):
         """
         Check if a specific section can be written based on concept.md.
 
-        This is the RECOMMENDED way to validate before writing a draft section.
-        It only checks requirements for the specific section, not the full concept.
-
-        Section-specific requirements:
-        - **Introduction**: NOVELTY + Background + Research Gap (Methods NOT required)
-        - **Methods**: Study Design recommended but not blocking
-        - **Results**: Basic structure only
-        - **Discussion**: KEY SELLING POINTS required
-
-        Different paper types have different rules:
-        - original-research: Standard IMRAD
-        - systematic-review: + PRISMA requirements
-        - case-report: + Case timeline
-        - letter: Minimal requirements
-
         Args:
-            section: Target section to write (e.g., "Introduction", "Methods", "Discussion").
-            project: Project slug. Agent should confirm with user before calling.
-
-        Returns:
-            - ✅ CAN WRITE: Proceed with draft writing
-            - ❌ CANNOT WRITE: Missing required sections (with list of what's missing)
-            - 💡 RECOMMENDATIONS: Optional sections to consider filling
-
-        Example:
-            validate_for_section(section="Introduction", project="my-project")
+            section: Target section (e.g., "Introduction", "Methods", "Discussion")
+            project: Project slug (uses current if omitted)
         """
         log_tool_call("validate_for_section", {"section": section, "project": project})
 
@@ -322,22 +272,12 @@ def register_concept_validation_tools(mcp: FastMCP):
         filename: str, project: Optional[str] = None, auto_fix: bool = True
     ) -> str:
         """
-        Validate and optionally fix wikilink formats in a markdown file.
-
-        Correct format: [[author2024_12345678]]
-
-        Common issues detected and fixed:
-        - [[12345678]] → Missing author_year prefix
-        - Author 2024 [[12345678]] → Messy format
-        - [[PMID:12345678]] → Old format
+        Validate and auto-fix wikilink formats (correct: [[author2024_12345678]]).
 
         Args:
-            filename: The markdown file to check (e.g., "concept.md", "drafts/intro.md").
-            project: Project slug. If not specified, uses current project.
-            auto_fix: Whether to automatically fix issues (default: True).
-
-        Returns:
-            Validation report with issues found and fixes applied.
+            filename: Markdown file to check
+            project: Project slug (uses current if omitted)
+            auto_fix: Auto-fix issues (default: True)
         """
         log_tool_call(
             "validate_wikilinks", {"filename": filename, "project": project, "auto_fix": auto_fix}
