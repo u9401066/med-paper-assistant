@@ -30,9 +30,8 @@
 
 - MCP Tools: **54+** (新增 pandoc_export)
 - Skills: **26**
-- Hooks: **38 checks** (A1-4 + B1-6 + C1-6 + D1-6 + P1-8 + G1-8)
+- Hooks: **39 checks** (A1-4 + B1-6 + C1-7 + D1-6 + P1-8 + G1-8)
 - 新測試: **171** across 6 test files
-- Git HEAD: `12e0c64` (v0.3.8, origin/master)
 
 ### 已知問題
 

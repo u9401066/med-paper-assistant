@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hook C7 (Temporal Consistency Pass)**: 新增 post-manuscript hook，逆向掃描所有 section 修正因寫作順序造成的過時引用（如 B2 "Deferred" 在 Introduction 寫完後未更新）
+  - Hook 計數: 38 → 39 checks
+  - Phase 6 流程更新：C1-C6 後執行 C7，修正後重跑 C1 確認一致性
+
+### Fixed
+
+- **project_path resolution bug**: `get_project_info()` 返回值缺少 `project_path` key，導致 11 個 call sites 無法取得專案路徑
+
 ## [0.3.8] - 2026-02-20
 
 ### Fixed

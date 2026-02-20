@@ -315,6 +315,7 @@ class ProjectManager:
             "success": True,
             "slug": slug,
             "is_current": slug == self.get_current_project(),
+            "project_path": str(project_path),
             **config,
             "project_path": str(project_path),
             "paths": self.get_project_paths(slug),

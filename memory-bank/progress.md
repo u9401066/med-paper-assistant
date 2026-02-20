@@ -7,7 +7,7 @@
 - Foam alias lifecycle investigation
 - G6 consistency audit: fixed 20+ number inconsistencies across README/ARCHITECTURE/setup scripts
 - Auto-Paper 11-Phase Pipeline + 閉環自我改進 (SKILL.md rewrite)
-- Dual-Hook Architecture (Copilot A-D + Pre-Commit P1-8 + General G1-8 = 38 checks)
+- Dual-Hook Architecture (Copilot A-D + Pre-Commit P1-8 + General G1-8 = 39 checks)
 - VSX Extension v0.2.0 (388KB, 14 skills, 12 prompts)
 - CONSTITUTION v1.3.0 Ch.8 (§20-§23)
 - CSL formatter + Pandoc exporter (31/31 tests) — csl_formatter.py, pandoc_exporter.py, templates/csl/
@@ -18,6 +18,8 @@
 - GitAutoCommitter integrated into drafter.py + editing.py
 - Windows cp950 encoding bug fixed in git_auto_committer.py
 - docs/design/missing-mcp-tools.md — full MCP tool inventory
+- Self-referential paper: full 9-phase pipeline autonomous execution (16 self-evolution events)
+- Hook C7 (Temporal Consistency Pass) + Hook Propagation Procedure (D3)
 
 ## Doing
 
@@ -25,7 +27,6 @@
   - ✅ Phase 0-2: Pre-Planning, Project Setup, Literature Search (17 refs)
   - ⚠️ Phase 3: Concept Development — concept.md 已寫入, 需要 validate_concept
   - ⬜ Phase 4-10: Pending
-- **Bug fixes**: BUG-001 (project_path 鍵名不匹配), BUG-002 (workspace_state 過期)
 
 ## Next
 
