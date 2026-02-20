@@ -1,6 +1,6 @@
 [project]
 name = "med-paper-assistant"
-version = "0.3.6"
+version = "0.3.7"
 description = "A medical paper writing assistant using MCP support"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -49,6 +49,9 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0.0",
 ]
+
+[project.scripts]
+med-paper-assistant = "med_paper_assistant:run_server"
 
 [build-system]
 requires = ["hatchling"]

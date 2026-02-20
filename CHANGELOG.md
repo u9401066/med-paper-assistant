@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-02-20
+
+### Fixed
+
+- **PyPI Entry Point**: 加入 `[project.scripts]` 讓 `uvx med-paper-assistant` 正確啟動 MCP server（v0.3.6 缺少 CLI entry point 導致 `Package does not provide any executables` 錯誤）
+
 ## [0.3.6] - 2026-02-20
 
 ### Added
