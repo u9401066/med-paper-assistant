@@ -46,6 +46,8 @@ description: |
 │  │ G3: changelog-update[條件] CHANGELOG 更新         │  │
 │  │ G4: roadmap-update  [條件] ROADMAP 更新           │  │
 │  │ G5: arch-check      [條件] 架構文檔檢查           │  │
+│  │ G6: project-integrity[條件] 專案自我一致性審計    │  │
+│  │ G7: vsx-integrity   [條件] VSX Extension 同步     │  │
 │  └───────────────────────────────────────────────────┘  │
 │                                                         │
 │  ┌─── Paper Hooks（偵測到論文變更時）────────────────┐   │
@@ -56,6 +58,7 @@ description: |
 │  │ P5: protected-content    🔒 保護內容完整          │   │
 │  │ P6: memory-sync          專案 .memory/ 已更新     │   │
 │  │ P7: reference-integrity  文獻引用完整             │   │
+│  │ P8: methodology-validation  方法學可再現性 [NEW]  │   │
 │  └──────────────────────────────────────────────────┘   │
 │                                                         │
 │  Step Final: commit-prepare  [最終] 準備提交             │
@@ -137,6 +140,143 @@ mcp_mdpaper_sync_workspace_state(
 
 **觸發條件**：結構性程式碼變更
 **工具**：`grep_search`, `list_dir`
+
+---
+
+### G6: project-integrity [條件] — 專案閉環進化
+
+> **CONSTITUTION §22 延伸**：專案本身也應該可審計、可拆解、可重組。
+> Hook D 改進論文 + Hook 自身，G6 則確保專案文檔的自我一致性。
+
+**觸發條件**：`SKILL.md`、`AGENTS.md`、`_capability-index.md`、`ARCHITECTURE.md`、`README.md`、`src/` 工具定義有變更
+
+**檢查項目**：
+
+| # | 檢查項 | 方法 | 失敗行為 |
+|---|--------|------|----------|
+| G6.1 | Tool 數量一致 | `grep -c "mcp.tool"` vs README/ARCHITECTURE 宣稱的數字 | ⚠️ 報告差異，建議更新 |
+| G6.2 | Skill 數量一致 | `ls -d .claude/skills/*/` vs AGENTS.md 表格行數 | ⚠️ 報告缺漏的 Skill |
+| G6.3 | Prompt 數量一致 | `ls .github/prompts/*.prompt.md` vs 文檔宣稱的數字 | ⚠️ 報告差異 |
+| G6.4 | Hook 引用工具存在 | 掃描 SKILL.md 中的 `mcp_mdpaper_*` → 確認 tool 已註冊 | ❌ FAIL：引用了已廢棄工具 |
+| G6.5 | 跨文件數字一致 | README vs ARCHITECTURE vs AGENTS vs _capability-index | ⚠️ 報告不一致 |
+
+**執行邏輯**：
+
+```bash
+# G6.1: 計算實際 tool 數量
+actual_tools=$(grep -r "mcp.tool" src/med_paper_assistant/interfaces/mcp/tools/ --include="*.py" -l | \
+  xargs grep -c "@mcp.tool" | grep -v ":0" | awk -F: '{s+=$2} END {print s}')
+
+# G6.2: 計算實際 skill 數量
+actual_skills=$(ls -d .claude/skills/*/ | wc -l)
+
+# G6.3: 計算實際 prompt 數量
+actual_prompts=$(ls .github/prompts/*.prompt.md | wc -l)
+
+# G6.4: 檢查 Hook 中引用的 tool 是否存在
+grep -oP 'mcp_mdpaper_\w+' .claude/skills/auto-paper/SKILL.md | sort -u | while read tool; do
+  tool_name=$(echo "$tool" | sed 's/mcp_mdpaper_//')
+  if ! grep -rq "@mcp.tool.*$tool_name\|def $tool_name" src/; then
+    echo "❌ Hook 引用了不存在的工具: $tool"
+  fi
+done
+
+# G6.5: 比對各文件數字
+readme_tools=$(grep -oP '\d+ tools' README.md | head -1)
+arch_tools=$(grep -oP '\d+ 個 tools' ARCHITECTURE.md | head -1)
+# 比對並報告差異
+```
+
+**報告格式**：
+
+```
+[G6] 專案一致性審計
+  G6.1 Tool 數量: 實際 53 | README 53 | ARCHITECTURE 53 ✅
+  G6.2 Skill 數量: 實際 26 | AGENTS 26 ✅
+  G6.3 Prompt 數量: 實際 15 | README 15 ✅
+  G6.4 Hook 工具引用: 全部存在 ✅
+  G6.5 跨文件一致性: 全部一致 ✅
+
+  → 專案健康度: ✅ 一致
+```
+
+**失敗時行為**：
+- G6.1-G6.3, G6.5: ⚠️ WARN — 報告差異，列出需更新的文件和正確數字，不阻止提交
+- G6.4: ❌ FAIL — Hook 引用了不存在的工具會導致 Pipeline 執行時崩潰，阻止提交
+
+**自我改進閉環**：
+```
+G6 發現不一致 → 報告問題 → Agent 或用戶修正 → 下次 G6 驗證修正
+                    ↑                               │
+                    └───────────────────────────────┘
+                          專案本身的閉環進化
+```
+
+### G7: vsx-integrity [條件] — VSX Extension 同步檢查
+
+> 確保 VSX Extension 的 bundled skills/prompts 與 source 一致。
+> 防止修改了 SKILL.md 卻忘記同步到 VSX bundled 副本。
+
+**觸發條件**：`.claude/skills/*/SKILL.md`、`.github/prompts/*.prompt.md`、`vscode-extension/` 有變更
+
+**檢查項目**：
+
+| # | 檢查項 | 方法 | 失敗行為 |
+|---|--------|------|----------|
+| G7.1 | Skills 同步 | `diff` source vs bundled SKILL.md | ⚠️ 報告 outdated skills |
+| G7.2 | Prompts 同步 | `diff` source vs bundled prompts | ⚠️ 報告 outdated prompts |
+| G7.3 | Chat commands 完整 | 檢查 package.json chatParticipants | ❌ FAIL：缺少必要 command |
+| G7.4 | Version 格式有效 | semver 驗證 | ❌ FAIL：無效版本號 |
+| G7.5 | TypeScript 編譯 | `tsc --noEmit` 或檢查 out/ | ⚠️ 報告編譯問題 |
+
+**執行邏輯**：
+
+```bash
+# G7.1: 檢查 bundled skills 是否與 source 一致
+for skill in $(ls .claude/skills/); do
+  src=".claude/skills/$skill/SKILL.md"
+  dst="vscode-extension/skills/$skill/SKILL.md"
+  if [ -f "$dst" ] && ! diff -q "$src" "$dst" > /dev/null 2>&1; then
+    echo "⚠️ Outdated: $skill"
+  fi
+done
+
+# G7.2: 檢查 bundled prompts
+for prompt in $(ls .github/prompts/*.prompt.md); do
+  name=$(basename "$prompt")
+  dst="vscode-extension/prompts/$name"
+  if [ -f "$dst" ] && ! diff -q "$prompt" "$dst" > /dev/null 2>&1; then
+    echo "⚠️ Outdated: $name"
+  fi
+done
+
+# G7.3: 驗證 chat commands（使用 vitest）
+cd vscode-extension && npx vitest run --reporter=dot 2>&1 | tail -3
+```
+
+**報告格式**：
+
+```
+[G7] VSX Extension 同步
+  G7.1 Skills 同步: 14/14 ✅
+  G7.2 Prompts 同步: 12/12 ✅
+  G7.3 Chat commands: 9/9 ✅
+  G7.4 Version: 0.2.0 ✅
+  G7.5 TypeScript: compiled ✅
+
+  → VSX 狀態: ✅ 已同步
+```
+
+**失敗時行為**：
+- G7.1-G7.2: ⚠️ WARN — 報告 outdated 檔案，建議執行 `build.sh` 重新同步
+- G7.3-G7.4: ❌ FAIL — 關鍵斷裂（chat commands 缺失或版本無效），阻止提交
+- G7.5: ⚠️ WARN — TypeScript 編譯問題，不阻止提交但建議修復
+
+**自動修復**：
+```bash
+# 快速修復：重新同步所有 bundled 檔案
+cd vscode-extension && ./scripts/build.sh
+```
 
 ---
 
@@ -352,6 +492,97 @@ for ref in refs.referenced_in_drafts:
 
 ---
 
+### P8: methodology-validation（方法學驗證）
+
+> **CONSTITUTION §21**：Methods 必須可被第三方重現。
+
+**目的**：確保 Methods section 的方法學描述具備可再現性
+
+**觸發條件**：Methods 或 Discussion 草稿有變更
+
+**MCP Tools**：
+```python
+# 讀取 concept → 確認 paper_type
+concept = mcp_mdpaper_read_draft(filename="concept.md")
+paper_type = extract_paper_type(concept)  # original-research, case-report, etc.
+
+# 讀取 Methods 草稿
+methods = mcp_mdpaper_read_draft(filename="drafts/methods.md")
+
+# 讀取 Discussion（檢查限制段落）
+discussion = mcp_mdpaper_read_draft(filename="drafts/discussion.md")
+
+# Agent 依 paper_type 執行方法學 checklist
+checklist = {
+    "original-research": [
+        ("研究設計明確描述", methods),
+        ("主要結局定義", methods),
+        ("統計方法匹配設計", methods),
+        ("倫理審查聲明", methods),
+        ("Discussion 有限制段落", discussion),
+    ],
+    "case-report": [
+        ("病例描述完整", methods),
+        ("倫理/知情同意", methods),
+        ("Discussion 有限制段落", discussion),
+    ],
+    "systematic-review": [
+        ("搜尋策略描述", methods),
+        ("納入排除標準", methods),
+        ("PRISMA 流程", methods),
+        ("Discussion 有限制段落", discussion),
+    ],
+}
+
+# 逐項評估
+for item, source in checklist.get(paper_type, []):
+    score = agent_evaluate(item, source)  # 0-10
+    report(f"  {item}: {score}/10")
+```
+
+**判定**：
+- ✅ PASS: 所有項目 ≥ 5 分
+- ⚠️ WARN: 有項目 3-5 分（報告但不阻止）
+- ❌ FAIL: 有項目 < 3 分（建議修正後再提交）
+
+**與 Copilot Hook B5 的關係**：
+- B5 在寫作時即時檢查並自動修正
+- P8 在提交時做最終確認（safety net）
+- P8 只報告不修改，由用戶決定是否要回去修正
+
+---
+
+## 📊 Hook 效能追蹤（Self-Improving Hooks）
+
+> **CONSTITUTION §23**：Hook 必須追蹤自身效能並自我改進。
+
+每次 Pre-Commit 執行後，在 `projects/{slug}/.audit/precommit-stats.md` 記錄：
+
+```markdown
+# Pre-Commit Hook Statistics
+
+## 歷史統計（最近 N 次提交）
+| Hook | 執行次數 | 通過率 | 警告率 | 阻止率 | 趨勢 |
+|------|---------|--------|--------|--------|------|
+| P1 citation | 5 | 80% | 20% | 0% | → |
+| P2 anti_ai | 5 | 60% | 40% | 0% | ↓ 需注意 |
+| P3 concept | 5 | 100% | 0% | 0% | → |
+| P8 methodology | 2 | 50% | 50% | 0% | 新 Hook |
+
+## 自動調整紀錄
+| 日期 | Hook | 調整 | 原因 |
+|------|------|------|------|
+| 2026-02-20 | P2 | 移除 'comprehensive' | 連續 3 次誤報 |
+| 2026-02-21 | P4 | Discussion 限制 1500→1650 | 觀察性研究需更長 |
+```
+
+**效能判斷規則**：
+- Hook 通過率 >95%（5 次以上）→ 考慮是否太鬆
+- Hook 阻止率 >50%（5 次以上）→ 考慮是否太嚴
+- 記錄到 `.audit/` 供 auto-paper Hook D 分析
+
+---
+
 ## 🚀 執行模式
 
 ### 標準模式（完整檢查）
@@ -361,8 +592,8 @@ for ref in refs.referenced_in_drafts:
 
 Agent：
   Step 0 → 偵測變更範圍
-  G1-G5 → 通用 Hooks
-  P1-P7 → Paper Hooks（如適用）
+  G1-G7 → 通用 Hooks
+  P1-P8 → Paper Hooks（如適用）
   Final → 準備提交
 ```
 
@@ -384,7 +615,7 @@ Agent：
 用戶：「commit code changes」
 
 Agent：
-  G1-G5 → 通用 Hooks
+  G1-G7 → 通用 Hooks
   跳過 Paper Hooks
   Final → 準備提交
 ```
@@ -404,6 +635,10 @@ Agent：
   └─ 添加條目
 [G4] ROADMAP 更新 ⏭️
 [G5] 架構文檔 ⏭️
+[G6] 專案一致性 ✅
+  └─ Tools: 53 | Skills: 26 | Prompts: 15 | 全部一致
+[G7] VSX Extension 同步 ✅
+  └─ Skills: 14/14 | Prompts: 12/12 | Version: 0.2.0
 
 ═══ Paper Hooks ═══ (偵測到 3 個草稿變更)
 [P1] 引用完整性 ✅ (12 citations, 0 unresolved)
@@ -415,9 +650,11 @@ Agent：
 [P5] 🔒 保護內容 ✅
 [P6] .memory/ 同步 ✅ (auto-synced)
 [P7] 文獻完整 ✅ (15 refs, all VERIFIED)
+[P8] 方法學驗證 ✅
+  └─ 研究設計: 8/10 | 統計方法: 7/10 | 限制段落: 9/10
 
 ═══ 結果 ═══
-✅ 12/12 checks passed (1 warning)
+✅ 14/14 checks passed (1 warning)
 
 📋 Staged files: 8 files
 
@@ -459,7 +696,7 @@ Scope: paper, concept, refs, export, core
 | ddd-architect | `grep_search`, `list_dir` | G5 |
 | draft-writing | `read_draft`, `count_words`, `validate_wikilinks` | P1-P4 |
 | reference-management | `list_saved_references`, `get_reference_details` | P7 |
-| concept-development | `read_draft("concept.md")` | P3, P5 |
+| concept-development | `read_draft("concept.md")` | P3, P5, P8 |
 
 ---
 

@@ -136,7 +136,12 @@
         },
         "mdpaper.defaultCitationStyle": {
           "type": "string",
-          "enum": ["vancouver", "apa", "harvard", "chicago"],
+          "enum": [
+            "vancouver",
+            "apa",
+            "harvard",
+            "chicago"
+          ],
           "default": "vancouver",
           "description": "Default citation style for references."
         }
@@ -151,7 +156,10 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint src --ext ts",
+    "validate": "./scripts/validate-build.sh",
     "package": "vsce package"
   },
   "devDependencies": {
@@ -159,9 +167,9 @@
     "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/vsce": "^2.24.0",
     "eslint": "^8.57.0",
     "typescript": "^5.4.0",
-    "@vscode/vsce": "^2.24.0"
-  },
-  "dependencies": {}
+    "vitest": "^4.0.18"
+  }
 }

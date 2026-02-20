@@ -111,7 +111,8 @@ Skill (git-precommit) ──→ Orchestrates: memory-updater, draft-writing, ref
   ├── Pre-Commit P7 ──→ Uses MCP: mdpaper.list_saved_references, get_reference_details
   ├── Pre-Commit P8 ──→ Uses MCP: mdpaper.read_draft + Agent methodology check
   ├── General G1-G5 ──→ Uses: memory_bank tools, read_file, replace_string_in_file
-  └── General G6 ──→ Uses: grep_search, list_dir (project self-consistency audit)
+  ├── General G6 ──→ Uses: grep_search, list_dir (project self-consistency audit)
+  └── General G7 ──→ Uses: diff, npm test (VSX Extension sync verification)
 ```
 
 ---

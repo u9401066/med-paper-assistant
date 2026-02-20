@@ -189,7 +189,7 @@ Hook D 不只改進 SKILL — 它改進 Hook 自身：
 | **Copilot C** (post-manuscript) | 全稿一致性、投稿清單 | `check_formatting`, `scan_draft_citations`, `count_words` |
 | **Copilot D** (meta-learning) | SKILL 自我改進 + **Hook 自我改進** | `read_file`, `replace_string_in_file` |
 | **Pre-Commit P1-P8** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻、**方法學** | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
-| **General G1-G6** | Memory、README、CHANGELOG、ROADMAP、架構、**專案一致性** | `read_file`, `grep_search`, `list_dir` |
+| **General G1-G7** | Memory、README、CHANGELOG、ROADMAP、架構、**專案一致性**、**VSX同步** | `read_file`, `grep_search`, `list_dir` |
 
 **互補關係**：Copilot Hooks 在寫作時即時修正，Pre-Commit Hooks 是最終 safety net。
 

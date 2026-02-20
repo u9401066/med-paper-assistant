@@ -3,40 +3,43 @@
 ## User Preferences
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
+## Current Goals
+- Phase 5c: Full VSX Extension 升級（TreeView, CodeLens, Diagnostics）
+- Pandoc 整合（取代 python-docx）
+- Citation Intelligence MVP 實作
+
 ## 當前焦點
-Tool Consolidation 三階段全部完成 ✅（Phase 8→9→10: 74→83→76→53 tools）
-架構方向已確定：**Direction C: Full VSX + Foam + Pandoc**
+本 Session 完成 6 大功能，專案已達生產級別 ✅
 
-## 最近變更 (2026-02-21)
+### Session 成果 (2026-02-22)
 
-### Tool Consolidation (Phase 8+9+10) 🆕
+| # | 功能 | Commit |
+|---|------|--------|
+| 1 | Auto-Paper 9-Phase Pipeline + 閉環自我改進 | af887f0 |
+| 2 | Dual-Hook Architecture (Copilot + Pre-Commit + General) | e754489 |
+| 3 | VSX Extension v0.2.0 (388KB, 14 skills, 12 prompts) | 81427d0 |
+| 4 | Production-Grade Audit: CONSTITUTION v1.3.0 Ch.8 (§20-§23) | 56e79b1 |
+| 5 | Cross-Reference Integrity + G6 Project Health Hook | 96e3770 |
+| 6 | Code Review Infrastructure Audit（結構已完整，無需新增） | — |
 
-| Phase | 內容 | 工具數變化 |
-|-------|------|-----------|
-| Phase 8 | 9 個佔位工具升級為完整實作 | 74→83 |
-| Phase 9 | 7 個模板型工具轉為 3 Skill 檔案 | 83→76 |
-| Phase 10 | 6 大策略精簡（merge/absorb/skill） | 76→53 |
+### 關鍵數字（已跨文件統一）
+- MCP Tools: **53**
+- Skills: **26**
+- Prompts: **15**
+- Total tools (含 external MCP): **~116**
+- Hooks: **36 checks** (Copilot A1-4 + B1-5 + C1-6 + D1-6 + P1-8 + G1-7)
+- Constitution: **v1.3.0** (Chapter 8: §20-§23)
+- Tests: 35 pass / 21 pre-existing / 0 regressions
 
-**Phase 10 六大策略**：
-- A: 移除無用工具（-2）
-- B: 簡單合併（-3）
-- C: 參數合併（-11）— validate_concept, get_current_project, update_project_settings, save_diagram, sync_workspace_state, suggest_citations, verify_document
-- D: 功能吸收（-2）— consistency + submission checklist → check_formatting
-- E+F: Skill 轉換（-7）— section template, cover letter, highlights, journal list, submission checklist, reviewer response, revision changes
+### Code Review Infrastructure（完整）
 
-**新增 Skill 檔案**：
-- `academic-debate/SKILL.md` (Phase 9)
-- `idea-validation/SKILL.md` (Phase 9)
-- `manuscript-review/SKILL.md` (Phase 9)
-- `submission-preparation/SKILL.md` (Phase 10)
-
-### 架構方向決策 (2026-02-20)
-
-| 方向 | 結果 |
-|------|------|
-| A. Lightweight (純 MCP + Shell Prompts) | ❌ |
-| B. Slim MCP | ❌ |
-| **C. Full VSX + Foam + Pandoc** | **✅ 選定** |
+| 層級 | 工具 | 觸發 | 自動修正 |
+|------|------|------|----------|
+| Git Hook | pre-commit (ruff+mypy+bandit+pytest) | 自動 | ✅ ruff |
+| Agent Hook | G6 project-integrity | commit 時 | ❌ report |
+| Skill | code-reviewer | 手動 | ❌ report |
+| Skill | code-refactor | 手動 | ✅ auto-fix |
+| Capability | code-quality.prompt.md | 手動 | 混合 |
 
 ## 工具統計
 - 目前工具數：**53 個**（MCP tools across 7 modules）
@@ -50,4 +53,4 @@ Tool Consolidation 三階段全部完成 ✅（Phase 8→9→10: 74→83→76→
 - [ ] Citation Intelligence MVP 實作
 
 ## 更新時間
-2026-02-21
+2026-02-22

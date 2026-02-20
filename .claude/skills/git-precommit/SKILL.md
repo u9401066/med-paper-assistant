@@ -47,6 +47,7 @@ description: |
 │  │ G4: roadmap-update  [條件] ROADMAP 更新           │  │
 │  │ G5: arch-check      [條件] 架構文檔檢查           │  │
 │  │ G6: project-integrity[條件] 專案自我一致性審計    │  │
+│  │ G7: vsx-integrity   [條件] VSX Extension 同步     │  │
 │  └───────────────────────────────────────────────────┘  │
 │                                                         │
 │  ┌─── Paper Hooks（偵測到論文變更時）────────────────┐   │
@@ -209,6 +210,72 @@ G6 發現不一致 → 報告問題 → Agent 或用戶修正 → 下次 G6 驗�
                     ↑                               │
                     └───────────────────────────────┘
                           專案本身的閉環進化
+```
+
+### G7: vsx-integrity [條件] — VSX Extension 同步檢查
+
+> 確保 VSX Extension 的 bundled skills/prompts 與 source 一致。
+> 防止修改了 SKILL.md 卻忘記同步到 VSX bundled 副本。
+
+**觸發條件**：`.claude/skills/*/SKILL.md`、`.github/prompts/*.prompt.md`、`vscode-extension/` 有變更
+
+**檢查項目**：
+
+| # | 檢查項 | 方法 | 失敗行為 |
+|---|--------|------|----------|
+| G7.1 | Skills 同步 | `diff` source vs bundled SKILL.md | ⚠️ 報告 outdated skills |
+| G7.2 | Prompts 同步 | `diff` source vs bundled prompts | ⚠️ 報告 outdated prompts |
+| G7.3 | Chat commands 完整 | 檢查 package.json chatParticipants | ❌ FAIL：缺少必要 command |
+| G7.4 | Version 格式有效 | semver 驗證 | ❌ FAIL：無效版本號 |
+| G7.5 | TypeScript 編譯 | `tsc --noEmit` 或檢查 out/ | ⚠️ 報告編譯問題 |
+
+**執行邏輯**：
+
+```bash
+# G7.1: 檢查 bundled skills 是否與 source 一致
+for skill in $(ls .claude/skills/); do
+  src=".claude/skills/$skill/SKILL.md"
+  dst="vscode-extension/skills/$skill/SKILL.md"
+  if [ -f "$dst" ] && ! diff -q "$src" "$dst" > /dev/null 2>&1; then
+    echo "⚠️ Outdated: $skill"
+  fi
+done
+
+# G7.2: 檢查 bundled prompts
+for prompt in $(ls .github/prompts/*.prompt.md); do
+  name=$(basename "$prompt")
+  dst="vscode-extension/prompts/$name"
+  if [ -f "$dst" ] && ! diff -q "$prompt" "$dst" > /dev/null 2>&1; then
+    echo "⚠️ Outdated: $name"
+  fi
+done
+
+# G7.3: 驗證 chat commands（使用 vitest）
+cd vscode-extension && npx vitest run --reporter=dot 2>&1 | tail -3
+```
+
+**報告格式**：
+
+```
+[G7] VSX Extension 同步
+  G7.1 Skills 同步: 14/14 ✅
+  G7.2 Prompts 同步: 12/12 ✅
+  G7.3 Chat commands: 9/9 ✅
+  G7.4 Version: 0.2.0 ✅
+  G7.5 TypeScript: compiled ✅
+
+  → VSX 狀態: ✅ 已同步
+```
+
+**失敗時行為**：
+- G7.1-G7.2: ⚠️ WARN — 報告 outdated 檔案，建議執行 `build.sh` 重新同步
+- G7.3-G7.4: ❌ FAIL — 關鍵斷裂（chat commands 缺失或版本無效），阻止提交
+- G7.5: ⚠️ WARN — TypeScript 編譯問題，不阻止提交但建議修復
+
+**自動修復**：
+```bash
+# 快速修復：重新同步所有 bundled 檔案
+cd vscode-extension && ./scripts/build.sh
 ```
 
 ---
@@ -525,7 +592,7 @@ for item, source in checklist.get(paper_type, []):
 
 Agent：
   Step 0 → 偵測變更範圍
-  G1-G6 → 通用 Hooks
+  G1-G7 → 通用 Hooks
   P1-P8 → Paper Hooks（如適用）
   Final → 準備提交
 ```
@@ -548,7 +615,7 @@ Agent：
 用戶：「commit code changes」
 
 Agent：
-  G1-G6 → 通用 Hooks
+  G1-G7 → 通用 Hooks
   跳過 Paper Hooks
   Final → 準備提交
 ```
@@ -570,6 +637,8 @@ Agent：
 [G5] 架構文檔 ⏭️
 [G6] 專案一致性 ✅
   └─ Tools: 53 | Skills: 26 | Prompts: 15 | 全部一致
+[G7] VSX Extension 同步 ✅
+  └─ Skills: 14/14 | Prompts: 12/12 | Version: 0.2.0
 
 ═══ Paper Hooks ═══ (偵測到 3 個草稿變更)
 [P1] 引用完整性 ✅ (12 citations, 0 unresolved)
@@ -585,7 +654,7 @@ Agent：
   └─ 研究設計: 8/10 | 統計方法: 7/10 | 限制段落: 9/10
 
 ═══ 結果 ═══
-✅ 13/13 checks passed (1 warning)
+✅ 14/14 checks passed (1 warning)
 
 📋 Staged files: 8 files
 
