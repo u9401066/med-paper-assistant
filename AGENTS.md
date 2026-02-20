@@ -393,6 +393,7 @@ Agent 應該主動識別用戶意圖並觸發對應 Capability：
 
 | 技能 | 觸發語 | 說明 |
 |------|--------|------|
+| **auto-paper** | 全自動寫論文、auto write、autopilot、一鍵寫論文 | 9-Phase 全自動撰寫 + 3 層 Audit Hooks + 閉環自我改進 |
 | **literature-review** | 文獻回顧、找論文、PubMed、搜paper、reference | 系統性文獻搜尋、篩選、下載、整理 |
 | **concept-development** | concept、novelty、驗證失敗、怎麼改、補充概念 | 發展研究概念，通過 novelty 驗證 |
 | **concept-validation** | 驗證、validate、check concept、可以開始寫了嗎 | 驗證概念新穎性和結構完整性 |

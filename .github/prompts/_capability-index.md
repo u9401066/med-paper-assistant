@@ -18,14 +18,16 @@
 
 ## 📚 mdpaper Capabilities（研究論文）
 
-### write-paper（完整論文流程）
+### write-paper / auto-paper（全自動論文 + 閉環審計）
 
 | 項目 | 內容 |
 |------|------|
 | **Prompt File** | `mdpaper.write-paper.prompt.md` |
-| **觸發語** | 寫論文、寫 paper、完整流程、從頭開始寫、help me write |
+| **核心 Skill** | `.claude/skills/auto-paper/SKILL.md` |
+| **觸發語** | 寫論文、寫 paper、完整流程、從頭開始寫、help me write、全自動、auto write、一鍵寫論文、autopilot |
 | **情境觸發** | 用戶提到研究主題但沒有專案存在 |
-| **編排 Skills** | project-management → literature-review → concept-development → draft-writing → word-export |
+| **編排 Skills** | auto-paper（編排器）→ project-management → literature-review → concept-development → draft-writing → word-export |
+| **特色** | 9-Phase Pipeline + 3 層 Audit Hooks + Meta-Learning 閉環自我改進 |
 
 ### literature-survey（系統性文獻調查）
 
