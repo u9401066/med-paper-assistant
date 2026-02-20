@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "publisher": "u9401066",
   "license": "Apache-2.0",
   "repository": {
@@ -118,6 +118,11 @@
       {
         "command": "mdpaper.autoPaper",
         "title": "Auto Paper - 全自動寫論文",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.setupWorkspace",
+        "title": "Setup Workspace - 設定 Skills/Prompts/Instructions",
         "category": "MedPaper"
       }
     ],

@@ -109,6 +109,19 @@ else
     fail "_capability-index.md missing"
 fi
 
+# Check copilot-instructions.md
+COPILOT_INSTR_SRC="$ROOT_DIR/.github/copilot-instructions.md"
+COPILOT_INSTR_DST="$EXT_DIR/copilot-instructions.md"
+if [ -f "$COPILOT_INSTR_DST" ]; then
+    if diff -q "$COPILOT_INSTR_SRC" "$COPILOT_INSTR_DST" > /dev/null 2>&1; then
+        pass "copilot-instructions.md synced"
+    else
+        warn "copilot-instructions.md outdated"
+    fi
+else
+    fail "copilot-instructions.md missing"
+fi
+
 echo ""
 
 # ─── V4: Package.json Consistency ───

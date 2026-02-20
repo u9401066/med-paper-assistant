@@ -1,100 +1,35 @@
 ---
-description: "📊 mdpaper.analysis - 資料分析"
+description: "📊 mdpaper.analysis - 資料分析與視覺化"
 ---
 
 # 資料分析
 
-📖 **核心模組**: `src/med_paper_assistant/infrastructure/services/analyzer.py`
+技能：（無專屬 skill，直接使用 MCP tools）
 
-## Step 1: 確認資料來源
+## Step 1: 確認專案 + 資料
 
-詢問用戶要分析哪個 CSV 檔案：
+`get_current_project()` → `list_data_files()` → 確認 CSV 欄位
 
-```
-請提供要分析的資料檔案路徑，或將 CSV 檔案放入專案的 data/ 目錄。
-```
+## Step 2: 描述統計
 
----
+`analyze_dataset(file, columns?)` → 摘要統計量、缺失值、分佈
 
-## Step 2: 探索性分析
+## Step 3: Table 1
 
-```
-mcp_mdpaper_analyze_dataset(
-    data_file="data/study_data.csv",
-    target_column="outcome"
-)
-```
-
-**輸出：**
-
-- 描述性統計
-- 缺失值分析
-- 變數分佈
-
----
-
-## Step 3: Table 1 (Baseline Characteristics)
-
-```
-mcp_mdpaper_generate_table_one(
-    data_file="data/study_data.csv",
-    group_column="treatment_group",
-    variables=["age", "gender", "bmi"],
-    categorical=["gender"],
-    continuous=["age", "bmi"]
-)
-```
-
----
+`generate_table_one(file, group_column, variables:[{name,type}])` — type: continuous/categorical
 
 ## Step 4: 統計檢定
 
-```
-mcp_mdpaper_run_statistical_test(
-    data_file="data/study_data.csv",
-    test_type="t-test",  # 或 "chi-square", "correlation", "anova"
-    group_column="treatment_group",
-    value_column="outcome"
-)
-```
+| 檢定         | 適用       |
+| ------------ | ---------- |
+| t-test       | 兩組連續   |
+| chi-square   | 兩組類別   |
+| mann-whitney | 兩組非常態 |
+| anova        | 多組連續   |
+| correlation  | 兩連續關聯 |
 
-**可用檢定：**
-| 檢定類型 | 適用情境 |
-|----------|----------|
-| t-test | 兩組連續變數比較 |
-| chi-square | 類別變數關聯 |
-| correlation | 兩連續變數相關 |
-| anova | 多組比較 |
-| mann-whitney | 非常態兩組比較 |
-
----
+`run_statistical_test(file, test, params)`
 
 ## Step 5: 視覺化
 
-```
-mcp_mdpaper_create_plot(
-    data_file="data/study_data.csv",
-    plot_type="boxplot",
-    x_column="treatment_group",
-    y_column="outcome",
-    output_file="results/figures/outcome_comparison.png"
-)
-```
-
-**可用圖表：**
-
-- `boxplot` - 箱形圖
-- `histogram` - 直方圖
-- `scatter` - 散佈圖
-- `bar` - 長條圖
-- `line` - 折線圖
-
----
-
-## 📋 完成檢查
-
-- [ ] 資料已載入
-- [ ] 描述性統計完成
-- [ ] Table 1 已生成
-- [ ] 統計檢定完成
-- [ ] 圖表已儲存
+`create_plot(file, plot_type, x, y?, group?)` — 類型：boxplot/histogram/scatter/bar/line

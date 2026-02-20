@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-02-20
+
+### Added
+
+- **`MedPaper: Setup Workspace` 命令** ✅
+  - 一鍵將 bundled skills (14)、prompts (12)、copilot-instructions.md 複製到 workspace
+  - 只複製不存在的檔案（不覆寫已客製化的內容）
+  - 完成後提示「重新載入」以啟用全部功能
+  - Marketplace 安裝後執行一次即可獲得完整 Agent Mode 體驗
+
+### Fixed
+
+- **CI Pipeline**: test-vsx / publish-vsx 加入 skills/prompts/copilot-instructions.md 同步步驟
+- **PyPI 重複發佈**: publish-pypi 加入 `skip-existing: true`（v0.3.5 已上 PyPI）
+
+### Removed
+
+- **Dead Code 清理**: 移除 `MDPAPER_INSTRUCTIONS`、`MDPAPER_EXTENSION_PATH` 環境變數（Python MCP server 從未讀取）
+- **Dead Code 清理**: 移除 `registerMcpServerProvider` 中的 `loadSkillsAsInstructions()` 呼叫
+
 ## [0.3.5] - 2026-02-20
 
 ### Added

@@ -107,6 +107,35 @@ jobs:
         working-directory: vscode-extension
         run: npm ci
 
+      - name: Sync bundled skills & prompts
+        run: |
+          cd vscode-extension
+          for skill in literature-review concept-development concept-validation \
+                       parallel-search project-management draft-writing \
+                       reference-management word-export auto-paper \
+                       academic-debate idea-validation manuscript-review \
+                       submission-preparation git-precommit; do
+            if [ -d "../.claude/skills/$skill" ]; then
+              mkdir -p "skills/$skill"
+              cp "../.claude/skills/$skill/SKILL.md" "skills/$skill/"
+            fi
+          done
+          for prompt in mdpaper.write-paper mdpaper.literature-survey \
+                        mdpaper.manuscript-revision mdpaper.search \
+                        mdpaper.concept mdpaper.draft mdpaper.project \
+                        mdpaper.format mdpaper.strategy mdpaper.analysis \
+                        mdpaper.clarify mdpaper.help; do
+            if [ -f "../.github/prompts/$prompt.prompt.md" ]; then
+              cp "../.github/prompts/$prompt.prompt.md" "prompts/"
+            fi
+          done
+          if [ -f "../.github/prompts/_capability-index.md" ]; then
+            cp "../.github/prompts/_capability-index.md" "prompts/"
+          fi
+          if [ -f "../.github/copilot-instructions.md" ]; then
+            cp "../.github/copilot-instructions.md" "copilot-instructions.md"
+          fi
+
       - name: Compile TypeScript
         working-directory: vscode-extension
         run: npm run compile

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent } from './utils';
+import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS } from './utils';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -36,6 +36,9 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.executeCommand('workbench.action.chat.open', {
                 query: '@mdpaper /autopaper 全自動寫論文'
             });
+        }),
+        vscode.commands.registerCommand('mdpaper.setupWorkspace', () => {
+            setupWorkspace(context);
         })
     );
 
@@ -54,9 +57,8 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
         }
     }
 
-    // Load skills for server instructions
-    const skillsPath = path.join(context.extensionPath, 'skills');
-    const instructions = loadSkillsAsInstructions(skillsPath);
+    // Skills are loaded from the extension's bundled directory
+    // and used by the chat participant for /autopaper command
 
     const provider: vscode.McpServerDefinitionProvider = {
         onDidChangeMcpServerDefinitions: new vscode.EventEmitter<void>().event,
@@ -95,9 +97,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 pythonPath,
                 mdpaperArgs,
                 {
-                    PYTHONPATH: pythonPathEnv,
-                    MDPAPER_INSTRUCTIONS: instructions,
-                    MDPAPER_EXTENSION_PATH: context.extensionPath
+                    PYTHONPATH: pythonPathEnv
                 }
             ));
 
@@ -379,6 +379,73 @@ function getPythonPath(context: vscode.ExtensionContext): string {
 }
 
 
+
+async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        vscode.window.showErrorMessage('請先開啟一個 workspace 資料夾。');
+        return;
+    }
+
+    const wsRoot = workspaceFolders[0].uri.fsPath;
+    const extPath = context.extensionPath;
+    let copied = 0;
+
+    // 1. Copy skills → .claude/skills/
+    for (const skill of BUNDLED_SKILLS) {
+        const src = path.join(extPath, 'skills', skill, 'SKILL.md');
+        const dst = path.join(wsRoot, '.claude', 'skills', skill, 'SKILL.md');
+        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            fs.mkdirSync(path.dirname(dst), { recursive: true });
+            fs.copyFileSync(src, dst);
+            copied++;
+        }
+    }
+
+    // 2. Copy prompts → .github/prompts/
+    for (const prompt of BUNDLED_PROMPTS) {
+        const src = path.join(extPath, 'prompts', `${prompt}.prompt.md`);
+        const dst = path.join(wsRoot, '.github', 'prompts', `${prompt}.prompt.md`);
+        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            fs.mkdirSync(path.dirname(dst), { recursive: true });
+            fs.copyFileSync(src, dst);
+            copied++;
+        }
+    }
+
+    // 3. Copy _capability-index.md
+    const idxSrc = path.join(extPath, 'prompts', '_capability-index.md');
+    const idxDst = path.join(wsRoot, '.github', 'prompts', '_capability-index.md');
+    if (fs.existsSync(idxSrc) && !fs.existsSync(idxDst)) {
+        fs.mkdirSync(path.dirname(idxDst), { recursive: true });
+        fs.copyFileSync(idxSrc, idxDst);
+        copied++;
+    }
+
+    // 4. Copy copilot-instructions.md (only if not exists)
+    const instrSrc = path.join(extPath, 'copilot-instructions.md');
+    const instrDst = path.join(wsRoot, '.github', 'copilot-instructions.md');
+    if (fs.existsSync(instrSrc) && !fs.existsSync(instrDst)) {
+        fs.mkdirSync(path.dirname(instrDst), { recursive: true });
+        fs.copyFileSync(instrSrc, instrDst);
+        copied++;
+    }
+
+    if (copied > 0) {
+        vscode.window.showInformationMessage(
+            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、instructions）到 workspace。重新載入視窗以啟用全部功能。`,
+            '重新載入'
+        ).then(selection => {
+            if (selection === '重新載入') {
+                vscode.commands.executeCommand('workbench.action.reloadWindow');
+            }
+        });
+    } else {
+        vscode.window.showInformationMessage('MedPaper: Workspace 已是最新，無需更新。');
+    }
+
+    outputChannel.appendLine(`[Setup] Copied ${copied} files to workspace`);
+}
 
 export function deactivate() {
     outputChannel?.appendLine('MedPaper Assistant deactivated.');

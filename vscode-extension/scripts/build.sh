@@ -78,6 +78,18 @@ fi
 echo "  → Copied $PROMPTS_COPIED / ${#BUNDLED_PROMPTS[@]} prompts"
 
 # ──────────────────────────────────────────────────────
+# 2b. Copy copilot-instructions.md
+# ──────────────────────────────────────────────────────
+echo "📋 Copying copilot-instructions.md..."
+COPILOT_INSTR_SRC="$ROOT_DIR/.github/copilot-instructions.md"
+if [ -f "$COPILOT_INSTR_SRC" ]; then
+    cp "$COPILOT_INSTR_SRC" "$EXT_DIR/copilot-instructions.md"
+    echo "  → Copied copilot-instructions.md"
+else
+    echo "  ⚠️ copilot-instructions.md not found"
+fi
+
+# ──────────────────────────────────────────────────────
 # 3. Copy Python MCP source (for development)
 # ──────────────────────────────────────────────────────
 echo "🐍 Copying Python MCP source..."
