@@ -44,6 +44,38 @@ description: |
 
 ---
 
+## 🔔 雙重 Hook 系統
+
+本系統使用**兩種 Hook**，分別在不同時機觸發，共同確保品質：
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      DUAL HOOK SYSTEM                            │
+│                                                                  │
+│  ┌─── Copilot Hooks (寫作時) ───┐  ┌─── Pre-Commit Hooks ────┐  │
+│  │ A: post-write    → 即時修正  │  │ P1: citation-integrity  │  │
+│  │ B: post-section  → 概念一致  │  │ P2: anti-ai-scan        │  │
+│  │ C: post-manuscript→ 全稿審計 │  │ P3: concept-alignment   │  │
+│  │ D: meta-learning → 自我改進  │  │ P4: word-count          │  │
+│  │                              │  │ P5: protected-content   │  │
+│  │ 定義：本 SKILL (auto-paper)  │  │ P6: memory-sync         │  │
+│  │ 時機：Phase 5-9 自動觸發     │  │ P7: reference-integrity │  │
+│  │ 對象：每次寫作操作           │  │                         │  │
+│  └──────────────────────────────┘  │ 定義：git-precommit     │  │
+│                                    │ 時機：git commit 前      │  │
+│                                    │ 對象：已變更的論文檔案   │  │
+│                                    └─────────────────────────┘  │
+│                                                                  │
+│  💡 Copilot Hooks = 即時品質控制（邊寫邊查）                      │
+│  💡 Pre-Commit Hooks = 最終品質把關（提交前總檢查）               │
+│  💡 兩者互補：Copilot 處理細節，Pre-Commit 處理全局               │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**👉 Pre-Commit Hooks 的完整定義見**：`.claude/skills/git-precommit/SKILL.md`
+
+---
+
 ## 🚀 9-Phase Pipeline
 
 ### Phase 1: PROJECT SETUP ⚙️
@@ -220,18 +252,32 @@ FOR section IN writing_order:
 
 ---
 
-## 🔔 Audit Hooks 定義
+## 🔔 Copilot Hooks 定義（寫作時觸發）
+
+> **這些是 Copilot Hooks**，在 auto-paper Pipeline 的 Phase 5-9 期間由 Agent 自動執行。
+> Pre-Commit Hooks 見 `.claude/skills/git-precommit/SKILL.md`。
 
 ### Hook A: post-write（每次寫完立即觸發）
 
-| # | 檢查項 | 工具 | 失敗行為 |
-|---|--------|------|----------|
-| A1 | 字數在 target ±20% | `count_words()` | `patch_draft` 精簡/擴充 |
-| A2 | 引用密度達標 | `get_available_citations()` | `suggest_citations` + `patch_draft` 補引用 |
-| A3 | 無 Anti-AI 模式 | 掃描禁止詞清單 | `patch_draft` 改寫 |
-| A4 | Wikilink 格式正確 | `validate_wikilinks()` | 自動修復 |
+| # | 檢查項 | MCP Tool | 失敗行為 |
+|---|--------|----------|----------|
+| A1 | 字數在 target ±20% | `mcp_mdpaper_count_words(filename=...)` | `mcp_mdpaper_patch_draft()` 精簡/擴充 |
+| A2 | 引用密度達標 | `mcp_mdpaper_get_available_citations()` | `mcp_mdpaper_suggest_citations()` + `mcp_mdpaper_patch_draft()` |
+| A3 | 無 Anti-AI 模式 | `mcp_mdpaper_read_draft()` + Agent 掃描 | `mcp_mdpaper_patch_draft()` 改寫 |
+| A4 | Wikilink 格式正確 | `mcp_mdpaper_validate_wikilinks()` | 自動修復 |
 
-**引用密度標準**：
+**A1 執行範例**：
+```python
+result = mcp_mdpaper_count_words(filename="drafts/introduction.md")
+target = outline["Introduction"]["target_words"]  # e.g., 500
+if abs(result.words - target) / target > 0.20:
+    mcp_mdpaper_patch_draft(
+        filename="introduction.md",
+        old_text=..., new_text=...  # 精簡或擴充
+    )
+```
+
+**A2 引用密度標準**：
 
 | Section | 最低密度 |
 |---------|----------|
@@ -240,45 +286,49 @@ FOR section IN writing_order:
 | Results | ≥0（通常不引用） |
 | Discussion | ≥1 citation / 150 words |
 
-**Anti-AI 禁止詞**（掃描並替換）：
+**A3 Anti-AI 禁止詞**（`read_draft` 後 Agent 掃描）：
 ```
 ❌ "In recent years" → ✅ 具體年份或事件
 ❌ "It is worth noting" → ✅ 直述
 ❌ "Furthermore" (段首) → ✅ 邏輯連接詞
 ❌ "plays a crucial role" → ✅ 具體描述
 ❌ "has garnered significant attention" → ✅ 數據說話
+❌ "a comprehensive understanding" → ✅ 具體內容
+❌ "This groundbreaking" → ✅ 客觀描述
 ```
 
 ---
 
 ### Hook B: post-section（一個 section 完成後）
 
-| # | 檢查項 | 方法 | 失敗行為 |
-|---|--------|------|----------|
-| B1 | 與 concept.md 一致 | `read_draft("concept.md")` 比對 | 重寫不一致段落 |
-| B2 | 🔒 NOVELTY 在 Intro 體現 | 檢查關鍵詞出現 | `patch_draft` 加入 |
-| B3 | 🔒 SELLING POINTS 在 Discussion | 逐條比對 | `patch_draft` 補充 |
-| B4 | 與已寫 sections 不矛盾 | 交叉比對數字、結論 | 修正矛盾處 |
+| # | 檢查項 | MCP Tool | 失敗行為 |
+|---|--------|----------|----------|
+| B1 | 與 concept.md 一致 | `mcp_mdpaper_read_draft(filename="concept.md")` + Agent 比對 | 重寫不一致段落 |
+| B2 | 🔒 NOVELTY 在 Intro 體現 | `mcp_mdpaper_read_draft()` 檢查關鍵詞 | `mcp_mdpaper_patch_draft()` 加入 |
+| B3 | 🔒 SELLING POINTS 在 Discussion | 逐條比對 | `mcp_mdpaper_patch_draft()` 補充 |
+| B4 | 與已寫 sections 不矛盾 | `mcp_mdpaper_read_draft()` 交叉比對 | 修正矛盾處 |
 
-**B1 comparison 方法**：
-```
-1. 提取 concept.md 的 Research Question、NOVELTY、SELLING POINTS
-2. 在 section 內搜尋對應的關鍵詞和概念
-3. 若 section 偏離 concept → 標記具體偏離段落
+**B1 執行範例**：
+```python
+concept = mcp_mdpaper_read_draft(filename="concept.md")
+section = mcp_mdpaper_read_draft(filename="drafts/introduction.md")
+# Agent 提取 concept 的 Research Question、NOVELTY、SELLING POINTS
+# Agent 在 section 中搜尋對應概念
+# 若偏離 → patch_draft 修正
 ```
 
 ---
 
 ### Hook C: post-manuscript（全稿完成後）
 
-| # | 檢查項 | 工具 | 失敗行為 |
-|---|--------|------|----------|
-| C1 | 稿件一致性 | `check_formatting()` | 定點修正 |
-| C2 | 投稿清單 | `check_formatting(check_submission=True)` | 定點修正 |
-| C3 | N 值跨 section 一致 | 數字比對 | `patch_draft` 統一 |
-| C4 | 縮寫首次定義 | 全文掃描 | `patch_draft` 補定義 |
-| C5 | 所有 wikilinks 可解析 | `sync_references` 前檢查 | `save_reference_mcp` 補存 |
-| C6 | 總字數合規 | `count_words()` | 精簡超長 section |
+| # | 檢查項 | MCP Tool | 失敗行為 |
+|---|--------|----------|----------|
+| C1 | 稿件一致性 | `mcp_mdpaper_check_manuscript_consistency()` | 定點 `mcp_mdpaper_patch_draft()` |
+| C2 | 投稿清單 | `mcp_mdpaper_check_submission_checklist()` | 定點修正 |
+| C3 | N 值跨 section 一致 | `mcp_mdpaper_read_draft()` × N + Agent 數字比對 | `mcp_mdpaper_patch_draft()` 統一 |
+| C4 | 縮寫首次定義 | `mcp_mdpaper_read_draft()` + Agent 全文掃描 | `mcp_mdpaper_patch_draft()` 補定義 |
+| C5 | 所有 wikilinks 可解析 | `mcp_mdpaper_scan_draft_citations()` | `mcp_mdpaper_save_reference_mcp()` 補存 |
+| C6 | 總字數合規 | `mcp_mdpaper_count_words()` | 精簡超長 section |
 
 ---
 

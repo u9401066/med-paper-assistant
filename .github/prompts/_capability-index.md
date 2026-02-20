@@ -80,6 +80,39 @@
 
 ---
 
+---
+
+## 🔔 Hook 系統
+
+### 雙重 Hook 架構
+
+| Hook 類型 | 定義位置 | 觸發時機 | 使用 MCP Tools |
+|-----------|----------|----------|----------------|
+| **Copilot Hooks** (A-D) | `.claude/skills/auto-paper/SKILL.md` | 寫作過程中 | mdpaper: `patch_draft`, `count_words`, `validate_wikilinks`, `read_draft` |
+| **Pre-Commit Hooks** (P1-P7) | `.claude/skills/git-precommit/SKILL.md` | `git commit` 前 | mdpaper: `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
+
+### Hook ↔ Skill ↔ MCP 關係
+
+```
+Capability (write-paper)
+  └── Skill (auto-paper) ──→ Uses MCP: mdpaper, pubmed-search, cgu
+        ├── Copilot Hook A ──→ Uses MCP: mdpaper.count_words, patch_draft
+        ├── Copilot Hook B ──→ Uses MCP: mdpaper.read_draft, patch_draft
+        ├── Copilot Hook C ──→ Uses MCP: mdpaper.check_manuscript_consistency
+        └── Copilot Hook D ──→ Uses: read_file, replace_string_in_file (on SKILL.md)
+
+Skill (git-precommit) ──→ Orchestrates: memory-updater, draft-writing, reference-management
+  ├── Pre-Commit P1 ──→ Uses MCP: mdpaper.scan_draft_citations
+  ├── Pre-Commit P2 ──→ Uses MCP: mdpaper.read_draft + Agent scan
+  ├── Pre-Commit P3 ──→ Uses MCP: mdpaper.read_draft (concept + drafts)
+  ├── Pre-Commit P4 ──→ Uses MCP: mdpaper.count_words
+  ├── Pre-Commit P5 ──→ Uses MCP: mdpaper.read_draft (concept.md)
+  ├── Pre-Commit P6 ──→ Uses MCP: mdpaper.sync_workspace_state
+  └── Pre-Commit P7 ──→ Uses MCP: mdpaper.list_saved_references, get_reference_details
+```
+
+---
+
 ## 🎯 Agent 行為指引
 
 ### 當用戶意圖明確時

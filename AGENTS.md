@@ -147,6 +147,36 @@
 | 找論點 | `spark_collision` | 「將『現有研究的限制』與『我的方法優勢』碰撞」 |
 | 廣泛發想 | `generate_ideas` | 「如何讓這個研究的 novelty 無可辯駁」 |
 
+### 🔔 雙重 Hook 架構
+
+本系統使用**兩種 Hook** 確保論文品質，分別在不同時機觸發：
+
+```
+┌─── Copilot Hooks ───┐  ┌─── Pre-Commit Hooks ───┐
+│ 寫作時即時觸發       │  │ git commit 前觸發       │
+│ auto-paper/SKILL.md  │  │ git-precommit/SKILL.md  │
+│ 邊寫邊查（細節）     │  │ 全局總檢查（一致性）   │
+│ 自動修正             │  │ 只報告，用戶決定       │
+└──────────────────────┘  └─────────────────────────┘
+```
+
+| Hook 類型 | Hooks | 使用的 MCP Tools |
+|-----------|-------|------------------|
+| **Copilot A** (post-write) | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `get_available_citations`, `validate_wikilinks`, `patch_draft` |
+| **Copilot B** (post-section) | 概念一致、🔒 保護內容 | `read_draft`, `patch_draft` |
+| **Copilot C** (post-manuscript) | 全稿一致性、投稿清單 | `check_manuscript_consistency`, `scan_draft_citations`, `count_words` |
+| **Copilot D** (meta-learning) | SKILL 自我改進 | `read_file`, `replace_string_in_file` |
+| **Pre-Commit P1-P7** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻 | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
+
+**互補關係**：Copilot Hooks 在寫作時即時修正，Pre-Commit Hooks 是最終 safety net。
+
+**Skill 與 Hook 的層級**：
+```
+Capability (高層編排) → Skill (技能知識) → Hook (品質審計) → MCP Tool (底層操作)
+```
+
+---
+
 ### Python 環境規則
 
 - **優先使用 uv** 管理套件和虛擬環境
@@ -410,7 +440,7 @@ Agent 應該主動識別用戶意圖並觸發對應 Capability：
 
 | 技能 | 觸發語 | 說明 |
 |------|--------|------|
-| **git-precommit** | commit、推送、做完了、收工 | Git 提交前編排器 |
+| **git-precommit** | commit、推送、做完了、收工 | Git 提交前編排器 + Paper-Aware Pre-Commit Hooks |
 | **git-doc-updater** | docs、文檔、sync docs、發布 | Git 提交前文檔同步 |
 | **ddd-architect** | 架構、新功能、設計、structure | DDD 架構輔助與檢查 |
 | **code-refactor** | 重構、太長、整理、優化、難讀 | 主動重構與模組化 |
