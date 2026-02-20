@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
-  "version": "0.3.0",
+  "version": "0.3.5",
   "publisher": "u9401066",
   "license": "Apache-2.0",
   "repository": {
@@ -148,9 +148,7 @@
       }
     }
   },
-  "extensionDependencies": [
-    "u9401066.vscode-zotero-mcp"
-  ],
+  "extensionDependencies": [],
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",

@@ -101,19 +101,27 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 }
             ));
 
-            // 2. CGU (if bundled or in workspace)
-            const cguArgs = getPythonArgs(pythonPath, 'cgu.server');
-            outputChannel.appendLine(`[MCP] CGU Args: ${cguArgs.join(' ')}`);
-            definitions.push(new vscode.McpStdioServerDefinition(
-                'CGU Creativity',
-                pythonPath,
-                cguArgs,
-                {
-                    PYTHONPATH: pythonPathEnv
-                }
-            ));
+            // 2. CGU (only if available in workspace or bundled)
+            const cguBundled = path.join(context.extensionPath, 'bundled', 'tool', 'cgu');
+            const cguInWorkspace = workspaceFolders
+                ? fs.existsSync(path.join(workspaceFolders[0].uri.fsPath, 'integrations', 'cgu', 'src', 'cgu'))
+                : false;
+            if (cguBundled && fs.existsSync(cguBundled) || cguInWorkspace || pythonPath === 'uvx') {
+                const cguArgs = getPythonArgs(pythonPath, 'cgu.server');
+                outputChannel.appendLine(`[MCP] CGU Args: ${cguArgs.join(' ')}`);
+                definitions.push(new vscode.McpStdioServerDefinition(
+                    'CGU Creativity',
+                    pythonPath,
+                    cguArgs,
+                    {
+                        PYTHONPATH: pythonPathEnv
+                    }
+                ));
+            } else {
+                outputChannel.appendLine('[MCP] CGU not found — skipping registration');
+            }
 
-            // 3. Draw.io (External uvx)
+            // 3. Draw.io (only register, will fail gracefully if uvx/drawio-mcp not installed)
             definitions.push(new vscode.McpStdioServerDefinition(
                 'Draw.io Diagrams',
                 'uvx',
@@ -366,8 +374,8 @@ function getPythonPath(context: vscode.ExtensionContext): string {
         return bundledPython;
     }
 
-    // 5. Try system Python
-    return 'python3';
+    // 5. Prefer uvx for auto-install from PyPI (one-click experience)
+    return 'uvx';
 }
 
 

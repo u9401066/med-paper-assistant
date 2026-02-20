@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-02-20
+
+### Added
+
+- **Figure/Table Archive + Insert Tools** ✅
+  - Hook: `_check_figure_table_archive` 一致性驗證
+  - 3 個新工具: `insert_figure`, `insert_table`, `list_assets`（54 → 57 tools）
+- **GitHub Repo Metadata + Doc-Update Hook (G8)** ✅
+  - Repo description, 15 topics, 9 custom labels
+  - `scripts/check-doc-updates.py`: 13 條規則映射檔案變更至文檔依賴
+  - Pre-commit hook #15: doc-update-reminder (warn-only)
+  - Hook 計數: 37 → 38 checks (G1-G8)
+- **Prettier Markdown Formatter** ✅
+  - Pre-commit hook #14: `mirrors-prettier v3.1.0`
+  - 格式化所有 121 個 .md 檔案
+- **CI/CD Pipeline Upgrade** ✅
+  - CI: 2 → 5 jobs (python-lint, python-test, vsx, dashboard, markdown)
+  - Release: 5-stage pipeline (validate → test → publish-pypi + publish-vsx → github-release)
+  - Branch protection: 5 required CI checks, strict mode
+  - 移除 Dependabot 配置
+
+### Fixed
+
+- **README Submodule Links**: 子模組相對路徑 404 → 改用 GitHub 絕對連結
+- **VSX One-Click Install** ✅
+  - 移除 `extensionDependencies` 硬依賴（`vscode-zotero-mcp` 未上架會阻擋安裝）
+  - Python fallback 改為 `uvx`（PyPI 已發布即可自動下載執行）
+  - CGU MCP server 改為條件註冊（偵測到才啟用，避免錯誤訊息）
+
+### Documentation
+
+- README/README.zh-TW: 更新所有工具/Hook 計數（20 處：57 tools, ~107 total, 15 hooks）
+
 ### Added
 
 - **Placeholder Tools Implementation (Phase 8)** ✅
@@ -249,5 +282,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 參考文獻管理
 - 草稿撰寫流程
 
+[0.3.5]: https://github.com/u9401066/med-paper-assistant/compare/v0.3.1...v0.3.5
+[0.2.2]: https://github.com/u9401066/med-paper-assistant/compare/v0.2.0...v0.2.2
 [0.2.0]: https://github.com/u9401066/med-paper-assistant/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/u9401066/med-paper-assistant/releases/tag/v0.1.0
