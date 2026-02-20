@@ -2,8 +2,8 @@
 name: draft-writing
 description: |
   論文草稿的撰寫、讀取、引用管理。
-  LOAD THIS SKILL WHEN: 寫草稿、draft、撰寫、Introduction、Methods、Results、Discussion、引用、citation、字數
-  CAPABILITIES: write_draft, draft_section, read_draft, list_drafts, insert_citation, sync_references, count_words, get_section_template
+  LOAD THIS SKILL WHEN: 寫草稿、draft、撰寫、Introduction、Methods、Results、Discussion、引用、citation、字數、patch、編輯草稿
+  CAPABILITIES: write_draft, draft_section, read_draft, list_drafts, insert_citation, sync_references, count_words, get_section_template, get_available_citations, patch_draft
 ---
 
 # 草稿撰寫技能
@@ -19,6 +19,8 @@ description: |
 | 整理引用、生成 References | `sync_references()` |
 | 字數、word count | `count_words()` |
 | 怎麼寫這個 section | `get_section_template()` |
+| 可用引用、列出 citations | `get_available_citations()` |
+| 部分編輯、修改草稿段落 | `patch_draft()` |
 
 ---
 
@@ -52,6 +54,18 @@ description: |
 | `sync_references` | `filename`, `project` | 掃描 [[wikilinks]] 生成 References |
 | `count_words` | `filename`, `section` | 計算字數 |
 | `get_section_template` | `section` | 取得 section 寫作指南 |
+
+### ⭐ Citation-Aware 編輯工具 (mdpaper)
+
+| 工具 | 參數 | 說明 |
+|------|------|------|
+| `get_available_citations` | `project` | ⚠️ 編輯前必呼叫！列出所有可用的 `[[citation_key]]` |
+| `patch_draft` | `filename`, `old_text`, `new_text`, `project` | 部分編輯草稿，自動驗證 wikilinks |
+
+**⚠️ 重要規則：**
+- 修改草稿中的引用時，**必須用 `patch_draft`**，不要用 `replace_string_in_file`
+- 插入新引用前，**必須先呼叫 `get_available_citations`** 確認可用的 citation keys
+- `patch_draft` 會自動拒絕不存在的引用，防止幻覺引用
 
 ---
 
@@ -134,6 +148,37 @@ Step 3: 確認未找到的引用
   → ⚠️ Not found: chen2019_87654321
   → 需要先 save_reference_mcp(pmid="87654321")
 ```
+
+---
+
+### Flow D: Citation-Aware 部分編輯（推薦！）
+
+**⚠️ 修改草稿段落時，必須用 `patch_draft` 而非 `replace_string_in_file`！**
+
+```
+Step 1: 取得可用引用清單
+  get_available_citations()
+  → 返回所有 [[citation_key]] 和對應的 PMID、作者、標題
+
+Step 2: 部分修改草稿
+  patch_draft(
+    filename="introduction.md",
+    old_text="先前研究指出相關藥物有其限制。",
+    new_text="先前研究指出 [[greer2017_27345583]] remimazolam 相較於 propofol 有更好的安全性。"
+  )
+  → 自動驗證 [[greer2017_27345583]] 是否存在
+  → 自動修復格式 (如 [[27345583]] → [[greer2017_27345583]])
+  → 不存在的引用會被拒絕
+
+Step 3: 同步引用
+  sync_references(filename="introduction.md")
+```
+
+**為什麼不用 `replace_string_in_file`？**
+- ❌ 繞過 wikilink 驗證管線
+- ❌ 可能產生幻覺引用 (不存在的 PMID)
+- ❌ 格式可能混亂 (混用 [1] 和 [[wikilink]])
+- ✅ `patch_draft` 驗證所有引用、自動修復格式、拒絕不存在的引用
 
 ---
 
