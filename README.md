@@ -1,7 +1,7 @@
 # Medical Paper Assistant
 
 <p align="center">
-  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/Python-3.11+-blue?logo=python&logoColor=white"></a>
+  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white"></a>
   <a href="https://modelcontextprotocol.io/"><img alt="MCP" src="https://img.shields.io/badge/MCP-Compatible-green"></a>
   <a href="https://github.com/features/copilot"><img alt="Copilot" src="https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white"></a>
   <a href="https://github.com/u9401066/med-paper-assistant"><img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue"></a>
@@ -14,69 +14,52 @@
 </p>
 
 <p align="center">
-  <b>🔬 A Guided & Exploratory Medical Paper Writing Tool</b><br>
-  <i>Powered by MCP + GitHub Copilot</i>
+  <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
+  <i>3 MCP Servers · 128 Tools · 22 Skills · 17 Prompt Workflows — All in VS Code</i>
 </p>
 
 > 📖 [繁體中文版](README.zh-TW.md)
 
 ---
 
-## 🎯 Why This Tool?
+## 📦 What's in the Box
 
-**Traditional paper writing tools** require you to know exactly what you want before you start. But research is rarely that linear.
+This is a **monorepo toolkit** that bundles everything a medical researcher needs — from literature search to Word/LaTeX export — into one integrated VS Code environment.
 
-**Medical Paper Assistant** is different:
-- 🔍 **Explore First, Decide Later** - Browse literature freely, save interesting papers, then decide your research direction
-- 💬 **Conversational Workflow** - Chat naturally with AI to refine your ideas, not fight with forms
-- 🧭 **Guided Process** - Step-by-step prompts guide you from concept to publication-ready manuscript
-- 🔗 **Native MCP + Copilot Integration** - Works directly inside VS Code, no context switching
+| Component | Type | Tools | Description |
+|-----------|------|-------|-------------|
+| **[mdpaper](#-mdpaper-mcp-tools)** | Core MCP Server | 78 | Paper writing: projects, references, drafts, analysis, validation, export |
+| **[pubmed-search](integrations/pubmed-search-mcp/)** | MCP Server (submodule) | 37 | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt |
+| **[CGU](integrations/cgu/)** | MCP Server (submodule) | 13 | Creative generation: brainstorm, deep think, spark collision |
+| **[VS Code Extension](vscode-extension/)** | Extension | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant |
+| **[Dashboard](dashboard/)** | Next.js Web App | — | Project management UI, diagram editor |
+| **[Foam](https://foambubble.github.io/foam/)** | VS Code Extension | — | `[[wikilink]]` citation linking, hover preview, graph view |
+| **[Skills](.claude/skills/)** | Agent Workflows | 22 | Guided multi-tool workflows (literature review, draft writing...) |
+| **[Prompts](.github/prompts/)** | Prompt Files | 17 | `/mdpaper.search`, `/mdpaper.draft`, etc. |
 
-### 💡 What Makes Us Unique
+**External MCP Servers** (optional, installed via uvx):
+- **drawio** — CONSORT/PRISMA flowchart generation
+- **zotero-keeper** — Import references from Zotero library
 
-| Traditional Tools | Medical Paper Assistant |
-|-------------------|------------------------|
-| Fixed templates, rigid workflow | Flexible, exploratory approach |
-| Separate apps for search/write/cite | All-in-one integrated experience |
-| Manual reference management | Auto-save with rich metadata & citation formats |
-| Export then format | Direct Word export with journal styles |
-| Learn complex UI | Natural language conversation |
-
-### 🆕 Coming Soon: Artifact-Centric Architecture
-
-> 📋 [Design Document](docs/design/artifact-centric-architecture.md)
-
-We're redesigning to support **truly non-linear workflows**:
-
-```
-Today: Must create project first → then save references
-Soon:  Save anything first → decide project later
-```
-
-| Feature | Description |
-|---------|-------------|
-| **`_workspace/` Staging** | Save references, PDFs, notes without a project |
-| **Three-Phase State** | EMPTY → EXPLORATION → PROJECT |
-| **Link Artifacts** | Connect saved items to projects when ready |
-| **Zero Friction Start** | Just start searching, the rest follows |
-
-### 🌐 Our Ecosystem
+### How the Pieces Fit Together
 
 ```mermaid
 flowchart LR
     subgraph IDE["VS Code"]
-        Agent[Copilot Agent]
+        Agent["Copilot Agent<br/>22 Skills · 17 Prompts"]
         Foam[Foam Plugin]
+        Ext[MedPaper Extension]
+        Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers"]
-        mdpaper[mdpaper<br/>Draft・Export・Validate]
-        pubmed[pubmed-search<br/>Search・Metrics]
-        cgu[CGU<br/>Deep Think]
+    subgraph MCP["MCP Servers (128 tools)"]
+        mdpaper["mdpaper<br/>78 tools<br/>Draft · Export · Validate"]
+        pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
+        cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
 
     subgraph Data["Project Data"]
-        proj[("projects/{slug}/<br/>• .memory/<br/>• references/<br/>• drafts/")]
+        proj[("projects/{slug}/<br/>· .memory/<br/>· references/<br/>· drafts/")]
     end
 
     Agent <-->|MCP| mdpaper
@@ -85,31 +68,90 @@ flowchart LR
     mdpaper -->|HTTP API| pubmed
     Foam <-->|Wikilinks| proj
     mdpaper <--> proj
+    Ext --> mdpaper
+    Dash --> proj
 ```
-
-| Component | Role | Key Feature |
-|-----------|------|-------------|
-| **mdpaper** | Paper writing, export | MCP-to-MCP verified data |
-| **pubmed-search** | Literature search | HTTP API for cross-MCP |
-| **Foam** | Knowledge graph | `[[citation_key]]` linking |
-| **CGU** | Creative thinking | Deep analysis for concepts |
-| **Project Memory** | Cross-session context | `.memory/` persistence |
 
 ---
 
-## 🚀 Quick Start: MCP Prompts
+## 🎯 Why This Tool?
 
-Just type these in Copilot Chat to get started:
+**Traditional paper writing tools** require you to know exactly what you want before you start. But research is rarely that linear.
 
-| Prompt | What It Does |
-|--------|--------------|
-| `/mdpaper.search` | 🔍 **Start here!** Explore literature freely, save interesting papers |
+**Medical Paper Assistant** is different:
+- 🔍 **Explore First, Decide Later** — Browse literature freely, save interesting papers, then decide your research direction
+- 💬 **Conversational Workflow** — Chat naturally with AI to refine your ideas, not fight with forms
+- 🧭 **Guided Process** — Step-by-step prompts guide you from concept to publication-ready manuscript
+- 🔗 **All-in-One** — Search, write, cite, analyze, export — all integrated inside VS Code
+
+| Traditional Tools | Medical Paper Assistant |
+|-------------------|------------------------|
+| Fixed templates, rigid workflow | Flexible, exploratory approach |
+| Separate apps for search/write/cite | All-in-one: 128 tools in VS Code |
+| Manual reference management | Auto-save with verified PubMed data |
+| Export then format | Direct Word export with journal styles |
+| Learn complex UI | Natural language conversation |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+| Requirement | Version | Check |
+|-------------|---------|-------|
+| **Python** | 3.12+ | `python3 --version` |
+| **Git** | Any recent | `git --version` |
+| **VS Code** | Latest | Help → About |
+| **GitHub Copilot** | Extension | Extensions panel |
+
+### Install
+
+```bash
+# Clone with submodules
+git clone --recursive https://github.com/u9401066/med-paper-assistant.git
+cd med-paper-assistant
+
+# Run setup script
+./scripts/setup.sh          # Linux/macOS
+.\scripts\setup.ps1         # Windows PowerShell
+```
+
+The script will:
+1. ✅ Create Python virtual environment (`.venv/`)
+2. ✅ Install all dependencies (via `uv`)
+3. ✅ Create `.vscode/mcp.json` configuration
+4. ✅ Verify installation
+
+**Verify**: In Copilot Chat, type `/mcp` — you should see `mdpaper` listed 🎉
+
+### Optional Integrations
+
+```bash
+# Foam for reference linking (highly recommended)
+code --install-extension foam.foam-vscode
+
+# Draw.io for diagram generation
+./scripts/setup-integrations.sh && ./scripts/start-drawio.sh
+```
+
+---
+
+## 💬 MCP Prompts — Just Type and Go
+
+In Copilot Chat, type these prompts to trigger guided workflows:
+
+| Prompt | Description |
+|--------|-------------|
+| `/mdpaper.search` | 🔍 **Start here!** Explore literature, save papers |
 | `/mdpaper.concept` | 📝 Develop research concept with novelty validation |
-| `/mdpaper.strategy` | ⚙️ Configure search strategy (date, exclusions, article types) |
+| `/mdpaper.draft` | ✍️ Write manuscript with auto-citations |
 | `/mdpaper.analysis` | 📊 Analyze CSV data, generate figures & Table 1 |
-| `/mdpaper.draft` | ✍️ Write manuscript draft with auto-citations |
-| `/mdpaper.clarify` | 🔄 Refine specific sections through conversation |
 | `/mdpaper.format` | 📄 Export to Word with journal formatting |
+| `/mdpaper.clarify` | 🔄 Refine specific sections through conversation |
+| `/mdpaper.project` | 📁 Create or switch research projects |
+| `/mdpaper.strategy` | ⚙️ Configure search strategy (dates, filters) |
+| `/mdpaper.help` | ❓ Show all available commands |
 
 > 💡 **Recommended Workflow**: `/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
 
@@ -117,140 +159,109 @@ Just type these in Copilot Chat to get started:
 
 ## 🧠 Skill System + Project Memory
 
-**This is our core differentiator:** We don't just provide tools—we provide **guided workflows** that know how to combine tools effectively, AND **project memory** that remembers your research journey.
+**Our core differentiator:** We don't just provide tools — we provide **guided workflows** that know how to combine tools effectively, AND **project memory** that remembers your research journey across sessions.
 
 ### What is a Skill?
 
 ```
-Tool (工具) = Single capability (search, save, analyze...)
-Skill (技能) = Complete knowledge (how to combine tools to accomplish tasks)
+Tool  = Single capability (search, save, analyze...)
+Skill = Complete knowledge (how to combine tools to accomplish tasks)
 ```
 
-| Skill | Triggers | What It Does |
-|-------|----------|--------------|
-| **literature-review** | "文獻回顧", "找論文", "systematic review" | Full literature search workflow |
-| **concept-development** | "發展概念", "concept", "幫我補充" | Develop & strengthen research concepts |
-| **parallel-search** | "並行搜尋", "擴展搜尋" | Multi-query parallel search |
+**22 Skills** covering the full research lifecycle:
 
-### ⭐ Concept Assist Workflow (New!)
+| Category | Skills | Triggers |
+|----------|--------|----------|
+| 🔬 Research | `literature-review`, `concept-development`, `concept-validation`, `parallel-search` | "找論文", "search", "concept", "validate" |
+| ✍️ Writing | `draft-writing`, `reference-management`, `word-export` | "寫草稿", "draft", "citation", "export" |
+| 📁 Management | `project-management`, `memory-updater`, `memory-checkpoint` | "新專案", "切換", "存檔" |
+| 🛠️ Development | `git-precommit`, `code-refactor`, `test-generator`, `code-reviewer` | "commit", "refactor", "test" |
 
-When you say "幫我補充 concept", the agent will:
+### Project Memory
 
-1. **Read Project Memory** - Understand previous thoughts and progress
-2. **Analyze with CGU** - Use `deep_think` to find gaps
-3. **Search Literature** - Find supporting evidence
-4. **Insert Citations** - Using Foam wikilinks `[[citation_key]]`
-5. **Update Memory** - Record decisions and thoughts
-
-```
-User: "幫我補充這個研究概念"
-         │
-         ▼
-┌─────────────────────────────────────────────────────────┐
-│  1. Read .memory/activeContext.md                       │
-│     → Understand: What was the previous focus?          │
-│     → Check: What decisions were made?                  │
-│                                                         │
-│  2. Read concept.md                                     │
-│     → Analyze current state                             │
-│                                                         │
-│  3. CGU Deep Think                                      │
-│     → Identify gaps and weak points                     │
-│     → Suggest strengthening directions                  │
-│                                                         │
-│  4. Search & Save References                            │
-│     → save_reference_mcp(pmid, agent_notes)             │
-│                                                         │
-│  5. Insert Citations with Foam Wikilinks                │
-│     → [[ruetzler2024_38497992]]                         │
-│                                                         │
-│  6. Update .memory/                                     │
-│     → Record: What was done, what decisions made        │
-│     → Note: Agent's thoughts on this research           │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 📁 Project Memory Structure
-
-Each project has its own `.memory/` folder:
+Each project maintains its own `.memory/` folder, so the AI continues previous research coherently:
 
 ```
 projects/{slug}/
 ├── .memory/
 │   ├── activeContext.md   ← Agent's working memory
 │   └── progress.md        ← Research milestones
-├── concept.md
-├── references/
-└── drafts/
+├── concept.md             ← Research concept (with 🔒 protected sections)
+├── references/            ← Foam-compatible literature library
+├── drafts/                ← Markdown drafts with [[citations]]
+├── data/                  ← CSV data files
+└── results/               ← Figures, .docx exports
 ```
-
-**activeContext.md** tracks:
-
-| Section | Purpose |
-|---------|---------|
-| **Current Focus** | What are we working on now? |
-| **Recent Decisions** | Why did we choose this direction? |
-| **Key References** | Important papers and why they matter |
-| **Blockers / Questions** | Issues to resolve |
-| **Memo / Notes** | Agent's thoughts and suggestions |
-
-**Why This Matters:**
-
-- 🔄 **Cross-session continuity** - New conversations continue previous work
-- 📝 **Research evolution** - Track why you chose this direction
-- 🤖 **Agent perspective** - AI's thoughts on your research
-- 👥 **Collaboration** - Shared context across sessions
 
 ---
 
 ## ✨ Key Features
 
-| Feature | Description |
-|---------|-------------|
-| **Literature Search & Management** | Connect to PubMed API, search articles, download PDFs from PMC Open Access, build local reference library with Foam integration |
-| **Smart Reference Storage** | Save references with YAML frontmatter, pre-formatted citations (Vancouver/APA/Nature), and Foam wikilink support |
-| **Data Analysis** | Read CSV data, perform statistical tests (t-test, correlation, etc.), generate publication-ready figures |
-| **Intelligent Draft Generation** | Generate manuscript drafts based on concept and analysis results |
-| **Automatic Citations** | Insert `[[citation_key]]` wikilinks, auto-convert to numbered references on export |
-| **Wikilink Validation** | Auto-detect and fix `[[12345678]]` → `[[author2024_12345678]]` format |
-| **Pre-Analysis Checklist** | Validate concept readiness before data analysis (Study Design, Sample Size, Outcomes) |
-| **Interactive Refinement** | Fine-tune specific sections through conversational dialogue |
-| **Word Export** | Export Markdown drafts to `.docx` files conforming to journal templates |
+### Literature & References
+- **PubMed + Europe PMC + CORE** search (37 search tools)
+- **PICO parsing** for clinical questions
+- **MCP-to-MCP verified data** — PMID sent directly, no agent hallucination
+- Layered trust: 🔒 VERIFIED (PubMed) · 🤖 AGENT (AI notes) · ✏️ USER (your notes)
+- Foam wikilinks: `[[author2024_12345678]]` with hover preview & backlinks
+
+### Writing & Editing
+- **AI draft generation** per section (Introduction, Methods, Results, Discussion)
+- **Citation-Aware Editing** — `patch_draft` validates all `[[wikilinks]]` before saving
+- **Auto-fix citation format** — `[[12345678]]` → `[[author2024_12345678]]`
+- **Novelty validation** — 3-round independent scoring (threshold: 75/100)
+- **Anti-AI writing rules** — Evidence funnel structure, no clichés
+
+### Data Analysis
+- CSV dataset analysis with descriptive statistics
+- Statistical tests (t-test, ANOVA, chi², correlation, Mann-Whitney, Fisher's)
+- **Table 1 generator** — Baseline characteristics with automatic variable detection
+- Publication-ready figures (matplotlib/seaborn)
+
+### Export & Submission
+- **Word export** with journal template support
+- Cover letter + highlights generation
+- Manuscript consistency checker
+- Reviewer response generator (point-by-point format)
+- Submission checklist (word count, figure format, etc.)
+
+### Infrastructure
+- **DDD Architecture** (Domain-Driven Design) with clean layer separation
+- **13 pre-commit hooks** (ruff, mypy, bandit, pytest, whitespace, yaml...)
+- **Workspace State** recovery for cross-session continuity
+- **uv** for all Python package management
 
 ---
 
-## 🏗️ Architecture: MCP Orchestration
-
-This project uses a **modular MCP architecture** with Domain-Driven Design (DDD):
+## 🏗️ Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          👤 User Layer                                    │
-│  ┌─────────────────┐    ┌──────────────────────────────────────────────┐ │
-│  │   VS Code       │    │  Foam Extension                              │ │
-│  │   Editor        │    │  • [[wikilinks]] autocomplete                │ │
-│  │                 │    │  • Hover preview (see abstract)              │ │
-│  │                 │    │  • Backlinks panel                           │ │
-│  └─────────────────┘    └──────────────────────────────────────────────┘ │
+│  ┌─────────────────┐    ┌──────────────────────────────┐  ┌──────────┐  │
+│  │   VS Code        │    │  Foam Extension               │  │Dashboard │  │
+│  │   Editor         │    │  [[wikilinks]] autocomplete    │  │(Next.js) │  │
+│  │                  │    │  hover preview · backlinks     │  │          │  │
+│  └─────────────────┘    └──────────────────────────────┘  └──────────┘  │
 └──────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                    🤖 VS Code Copilot Agent (Orchestrator)                │
-│                                                                          │
-│    /mdpaper.search  →  /mdpaper.concept  →  /mdpaper.draft  →  export   │
+│               🤖 Copilot Agent (Orchestrator)                             │
+│      22 Skills + 17 Prompt Workflows + Agent Customization               │
+│   /mdpaper.search → /mdpaper.concept → /mdpaper.draft → export          │
 └───────┬──────────────────┬──────────────────┬──────────────────┬─────────┘
         │                  │                  │                  │
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  (46 tools)   │  │  search       │  │  (submodule)  │  │   MCPs (uvx)  │
-│               │  │  (submodule)  │  │               │  │               │
-│ • projects    │  │ • search      │  │ • brainstorm  │  │ 🎨 drawio     │
-│ • references  │  │ • PICO        │  │ • deep_think  │  │ • diagrams    │
-│ • drafts      │  │ • citations   │  │ • methods     │  │               │
-│ • analysis    │  │ • session     │  │               │  │ 📖 zotero     │
-│ • export      │  │               │  │               │  │ • import refs │
+│  78 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│               │  │  37 tools     │  │               │  │               │
+│ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
+│ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
+│ • drafts      │  │ • CORE        │  │ • spark       │  │               │
+│ • validation  │  │ • PICO        │  │ • methods     │  │ 📖 zotero     │
+│ • analysis    │  │ • Gene/Chem   │  │               │  │ • import refs │
+│ • export      │  │ • Session     │  │               │  │               │
 └───────┬───────┘  └───────────────┘  └───────────────┘  └───────────────┘
         │
         ▼
@@ -265,124 +276,110 @@ This project uses a **modular MCP architecture** with Domain-Driven Design (DDD)
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Complete Integration Stack
+### MCP-to-MCP Direct Communication
 
-| Component | Type | Purpose |
-|-----------|------|---------|
-| **mdpaper** | Core MCP | Paper writing: projects, references, drafts, analysis, export |
-| **pubmed-search** | Submodule | Literature search: PubMed API, PICO, session management |
-| **cgu** | Submodule | Creative thinking: brainstorm, deep think, methods |
-| **drawio** | External (uvx) | Diagrams: CONSORT, PRISMA flowcharts |
-| **zotero-keeper** | External (uvx) | Import references from Zotero library |
-| **Foam** | VS Code Extension | Wikilinks, hover preview, backlinks, graph view |
-
-**Key Principle: MCP-to-MCP Direct Communication**
+When saving references, data flows directly between MCP servers — the Agent only passes a PMID, never full metadata:
 
 ```
-Agent says: "save PMID:24891204, 這篇很重要"
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────┐
-│  mdpaper.save_reference(pmid, agent_notes)         │
-│      │                                              │
-│      ▼  Direct HTTP call (not through Agent)       │
-│  pubmed-search: GET /api/cached_article/24891204   │
-│      │                                              │
-│      ▼  Returns verified PubMed data               │
-│  Save with layered trust:                          │
-│    • VERIFIED: from PubMed (immutable)             │
-│    • AGENT: AI notes (marked source)               │
-│    • USER: your notes (editable)                   │
-└─────────────────────────────────────────────────────┘
+Agent: "save PMID:24891204"
+     │
+     ▼
+mdpaper.save_reference_mcp(pmid="24891204")
+     │  Direct HTTP call (not through Agent)
+     ▼
+pubmed-search: GET /api/cached_article/24891204
+     │  Returns verified PubMed data
+     ▼
+Saved with layered trust:
+  🔒 VERIFIED: PubMed data (immutable)
+  🤖 AGENT:    AI notes (marked source)
+  ✏️ USER:     Your notes (editable)
 ```
 
-Benefits:
-- ✅ **Data Integrity** - PubMed data cannot be modified by Agent
-- ✅ **Efficiency** - Agent only passes PMID, not entire JSON
-- ✅ **Transparency** - Clear separation of data sources
-
 ---
 
-## 📚 Reference File Structure
+## 🛠️ mdpaper MCP Tools
 
-References are stored with a **Foam-optimized, BibTeX-compatible** structure:
+**78 active tools** organized into 6 groups:
 
-```
-references/
-└── {pmid}/
-    ├── {citation_key}.md   ← Main file with YAML frontmatter (human-readable)
-    └── metadata.json       ← Full metadata for programmatic access
-```
+### 📁 Project Management (23 tools)
+Projects, exploration mode, workspace state recovery, diagram management.
 
-### Layered Trust Design
+| Key Tools | Description |
+|-----------|-------------|
+| `create_project` / `switch_project` / `delete_project` | Project lifecycle |
+| `start_exploration` / `convert_exploration_to_project` | Explore-first workflow |
+| `get_workspace_state` / `sync_workspace_state` | Cross-session recovery |
+| `save_diagram` / `list_diagrams` | Draw.io integration |
+| `setup_project_interactive` | Interactive paper type configuration |
 
-```yaml
----
-# === VERIFIED DATA (from PubMed, immutable) ===
-title: "Complications of airway management"
-author:
-  - {family: Pacheco-Lopez, given: Paulette C}
-  - {family: Berkow, given: Lauren C}
-year: 2014
-journal: Respiratory Care
-doi: "10.4187/respcare.02884"
-pmid: "24891204"
-_source:
-  mcp: pubmed-search
-  verified: true
-  fetched_at: "2025-12-17T18:56:33"
+### 📚 Reference Management (12 tools)
+Save, search, format, and manage references with Foam integration.
 
-# === AGENT DATA (AI-generated, clearly marked) ===
-_agent:
-  notes: "這篇 review 討論呼吸道管理併發症，與我們研究直接相關"
-  relevance: high
-  keywords: [airway, complications]
-  added_by: copilot
-  added_at: "2025-12-17T19:00:00"
+| Key Tools | Description |
+|-----------|-------------|
+| `save_reference_mcp` | **Recommended** — Save by PMID via MCP-to-MCP (verified data) |
+| `list_saved_references` / `search_local_references` | Browse & search library |
+| `format_references` / `set_citation_style` | Vancouver / APA / Nature |
+| `sync_references` | Sync `[[wikilinks]]` to numbered references |
 
-# === Foam Metadata ===
-aliases: [pachecolopez2014, "PMID:24891204"]
-tags: [reference, airway, review]
----
+### ✍️ Draft & Editing (14 tools)
+Write, edit, cite — with built-in validation.
 
-# Complications of airway management
+| Key Tools | Description |
+|-----------|-------------|
+| `write_draft` / `draft_section` | Create and write sections |
+| `get_available_citations` | List all valid `[[citation_key]]` before editing |
+| `patch_draft` | **Citation-aware** partial edit with wikilink validation |
+| `insert_citation` / `suggest_citations` | Smart citation insertion |
+| `scan_draft_citations` / `sync_references` | Citation management |
+| `get_section_template` | Section-specific writing guidelines |
 
-> **Pacheco-Lopez PC**, Berkow LC, Hillel AT, Akst LM  
-> *Respiratory Care* 2014; **59**(6): 1006-19  
-> [PubMed](https://pubmed.ncbi.nlm.nih.gov/24891204) • [DOI](https://doi.org/10.4187/respcare.02884)
+### ✅ Validation (4 tools)
+| Tool | Description |
+|------|-------------|
+| `validate_concept` | Full novelty scoring (3 rounds, threshold 75/100) |
+| `validate_concept_quick` | Quick structural check |
+| `validate_wikilinks` | Auto-fix `[[12345678]]` → `[[author2024_12345678]]` |
+| `validate_for_section` | Check concept before writing specific section |
 
----
+### 📊 Data Analysis (6 tools)
+| Tool | Description |
+|------|-------------|
+| `analyze_dataset` | Descriptive statistics for CSV |
+| `run_statistical_test` | t-test, ANOVA, chi², correlation, etc. |
+| `generate_table_one` | Baseline characteristics with auto variable detection |
+| `create_plot` | Publication-ready figures |
 
-## Abstract
+### 📄 Export & Submission (8 + 11 tools)
+| Category | Key Tools |
+|----------|-----------|
+| **Word Export** | `export_word`, `list_templates`, `start_document_session`, `verify_document` |
+| **Submission** | `generate_cover_letter`, `check_submission_checklist`, `generate_highlights` |
+| **Review** | `check_manuscript_consistency`, `create_reviewer_response`, `format_revision_changes` |
 
-Although endotracheal intubation is commonly performed...
+### 🔍 pubmed-search MCP Tools (37 tools)
 
----
+| Category | Key Tools |
+|----------|-----------|
+| **Search** | `search_literature`, `generate_search_queries`, `parse_pico` |
+| **Databases** | PubMed, Europe PMC (fulltext + text mining), CORE (200M+ open access) |
+| **Gene/Chem** | `search_gene`, `get_gene_details`, `search_compound`, `search_clinvar` |
+| **Exploration** | `find_related_articles`, `find_citing_articles`, `get_article_references` |
+| **Export** | `prepare_export` (RIS/BibTeX/CSV), `get_citation_metrics` (iCite RCR) |
+| **Session** | `get_session_pmids`, `list_search_history` (survives AI memory limits) |
 
-## 🤖 Agent Notes
+### 💡 CGU Creative Tools (13 tools)
 
-> 這篇 review 討論呼吸道管理併發症，與我們研究直接相關
-
-**Relevance**: 🔴 High
-
----
-
-## 📝 My Notes
-
-> _Your notes here..._
-```
-
-| Section | Source | Editable | Purpose |
-|---------|--------|----------|---------|
-| **VERIFIED** | PubMed API | ❌ No | Guaranteed accurate bibliographic data |
-| **AGENT** | AI Assistant | ⚠️ Marked | Summary, relevance assessment |
-| **USER** | You | ✅ Yes | Your reading notes, highlights |
+| Category | Key Tools |
+|----------|-----------|
+| **Ideation** | `generate_ideas`, `spark_collision`, `spark_collision_deep` |
+| **Analysis** | `deep_think`, `multi_agent_brainstorm` |
+| **Methods** | `list_methods`, `select_method`, `apply_method` |
 
 ---
 
 ## 🔗 Foam Integration
-
-This project integrates with [Foam](https://foambubble.github.io/foam/) for powerful reference management:
 
 | Feature | How to Use | Benefit |
 |---------|------------|---------|
@@ -390,10 +387,11 @@ This project integrates with [Foam](https://foambubble.github.io/foam/) for powe
 | **Hover Preview** | Mouse over any `[[link]]` | See abstract without opening file |
 | **Backlinks Panel** | Open reference file | See which drafts cite this paper |
 | **Graph View** | `Ctrl+Shift+P` → `Foam: Show Graph` | Visualize paper connections |
+| **Project Isolation** | Auto-switches on `switch_project` | Only see current project's references |
 
-### 📝 Citation Autocomplete (How to Use)
+### Citation Autocomplete
 
-When writing drafts, type `[[` to trigger the citation autocomplete menu:
+Type `[[` in any draft to trigger the autocomplete menu:
 
 ```markdown
 According to previous studies [[    ← Type [[ here
@@ -404,85 +402,42 @@ According to previous studies [[    ← Type [[ here
                               └─────────────────────────────┘
 ```
 
-**Search Options:**
-| Type | Example | Matches |
-|------|---------|---------|
-| Author | `[[greer` | Papers by Greer |
-| Year | `[[2017` | Papers from 2017 |
-| PMID | `[[27345583` | Specific paper by PMID |
-| Keyword | `[[sedation` | Papers with "sedation" in title |
-
-**Keyboard Shortcuts:**
-- `[[` - Open autocomplete menu
-- `Ctrl+Space` - Force trigger autocomplete
-- `↑↓` - Navigate options
-- `Enter` - Insert selected citation
-
-### ⚠️ Project Isolation
-
-When switching projects, the system automatically updates Foam settings to ensure you **only see references from the current project**:
-
-```
-switch_project("my-research")
-→ Foam only shows projects/my-research/references/
-→ Other projects' references are automatically excluded
-```
-
-This prevents accidentally citing papers from the wrong project!
+Search by author (`[[greer`), year (`[[2017`), PMID (`[[27345583`), or keyword (`[[sedation`).
 
 ---
 
-## 🚀 Installation
+## 📚 Reference File Structure
 
-### Prerequisites
+References are stored with **Foam-optimized, layered-trust** structure:
 
-| Requirement | Version | How to Check |
-|-------------|---------|--------------|
-| **Python** | 3.11+ | `python3 --version` |
-| **Git** | Any recent | `git --version` |
-| **VS Code** | Latest | Help → About |
-| **GitHub Copilot** | Extension | Extensions panel |
-
-### Quick Install
-
-```bash
-# Clone repository
-git clone https://github.com/u9401066/med-paper-assistant.git
-cd med-paper-assistant
-
-# Run setup script
-# Linux/macOS:
-./scripts/setup.sh
-
-# Windows (PowerShell):
-.\scripts\setup.ps1
+```
+references/{pmid}/
+├── {citation_key}.md   ← YAML frontmatter + abstract (human-readable)
+└── metadata.json       ← Full metadata (programmatic access)
 ```
 
-The script will:
-1. ✅ Create Python virtual environment (`.venv/`)
-2. ✅ Install all dependencies
-3. ✅ Create `.vscode/mcp.json` configuration
-4. ✅ Verify installation
+```yaml
+---
+# 🔒 VERIFIED (from PubMed, immutable)
+title: "Complications of airway management"
+author:
+  - {family: Pacheco-Lopez, given: Paulette C}
+year: 2014
+journal: Respiratory Care
+pmid: "24891204"
+_source:
+  mcp: pubmed-search
+  verified: true
 
-**Verify**: In Copilot Chat, type `/mcp` - you should see `mdpaper (46 tools)` 🎉
+# 🤖 AGENT (AI-generated, marked)
+_agent:
+  notes: "Key review on airway complications"
+  relevance: high
 
-### Optional: Recommended Extensions
-
-```bash
-# Foam for reference linking
-code --install-extension foam.foam-vscode
-
-# Project Manager for multi-project workflow
-code --install-extension alefragnani.project-manager
-```
-
-### Optional: Draw.io Integration
-
-For diagram generation (CONSORT/PRISMA flowcharts):
-
-```bash
-./scripts/setup-integrations.sh
-./scripts/start-drawio.sh
+# Foam
+aliases: [pachecolopez2014, "PMID:24891204"]
+tags: [reference, airway, review]
+---
 ```
 
 ---
@@ -491,167 +446,38 @@ For diagram generation (CONSORT/PRISMA flowcharts):
 
 ```
 med-paper-assistant/
-├── src/med_paper_assistant/
-│   ├── domain/           # Core business logic (DDD)
-│   ├── application/      # Use cases, services
-│   ├── infrastructure/   # DAL, external services
-│   └── interfaces/       # MCP server, API
+├── src/med_paper_assistant/       # Core MCP server (DDD architecture)
+│   ├── domain/                    #   Business logic, entities, value objects
+│   ├── application/               #   Use cases, services
+│   ├── infrastructure/            #   DAL, external services
+│   └── interfaces/mcp/            #   MCP server, 78 tools in 6 groups
 │
-├── projects/             # Research projects (isolated workspaces)
-│   └── {project-slug}/
-│       ├── concept.md    # Research concept with 🔒 protected sections
-│       ├── drafts/       # Markdown drafts
-│       ├── references/   # Local reference library
-│       ├── data/         # CSV data files
-│       └── results/      # Generated outputs (figures, .docx)
+├── integrations/                  # Bundled MCP servers
+│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
+│   └── cgu/                       #   Creative generation (13 tools)
 │
-├── integrations/         # External MCP servers
-│   ├── pubmed-search-mcp/
-│   └── cgu/              # Creative generation utilities
+├── vscode-extension/              # VS Code Extension
+│   ├── src/                       #   Extension source
+│   ├── skills/                    #   Agent skill definitions
+│   └── prompts/                   #   Quick-action prompts
 │
-├── memory-bank/          # Project memory (cross-session context)
-├── .claude/skills/       # Agent skill definitions
-└── templates/            # Journal Word templates
+├── dashboard/                     # Next.js project management UI
+│   └── src/
+│
+├── projects/                      # Research projects (isolated workspaces)
+│   └── {slug}/
+│       ├── .memory/               #   Cross-session AI memory
+│       ├── concept.md             #   Research concept
+│       ├── references/            #   Local reference library
+│       ├── drafts/                #   Markdown drafts
+│       └── results/               #   Figures, exports
+│
+├── .claude/skills/                # 22 Agent skill definitions
+├── .github/prompts/               # 17 Prompt workflow files
+├── templates/                     # Journal Word templates
+├── memory-bank/                   # Global project memory
+└── tests/                         # pytest test suite
 ```
-
----
-
-## 🛠️ Available Tools
-
-### 📝 mdpaper MCP Tools (72 total)
-
-#### 📁 Project Management (23 tools)
-
-| Tool | Description |
-|------|-------------|
-| `create_project` | Create new research project with isolated workspace |
-| `list_projects` | List all research paper projects |
-| `switch_project` | Switch to a different project |
-| `get_current_project` | Get current active project info |
-| `delete_project` | Delete a project (with confirmation) |
-| `archive_project` | Archive a project for later retrieval |
-| `update_project_status` | Update project status (concept/drafting/review/submitted/published) |
-| `update_project_settings` | Change paper type or preferences |
-| `get_project_paths` | Get project directory paths |
-| `get_project_file_paths` | Get paths to specific project files |
-| `open_project_files` | Open project files in VS Code |
-| `close_other_project_files` | Close files from other projects |
-| `get_paper_types` | List available paper types |
-| `setup_project_interactive` | Configure project interactively |
-| `start_exploration` | Start exploration workspace without formal project |
-| `get_exploration_status` | Check exploration workspace status |
-| `convert_exploration_to_project` | Convert exploration to formal project |
-| `save_diagram` | Save Draw.io diagram to project |
-| `save_diagram_standalone` | Save diagram without project context |
-| `list_diagrams` | List diagrams in current project |
-| `get_workspace_state` | **[NEW]** Get workspace state for session recovery |
-| `sync_workspace_state` | **[NEW]** Sync state for cross-session persistence |
-| `clear_recovery_state` | **[NEW]** Clear recovery hints after resuming |
-
-#### 📚 Reference Management (17 tools)
-
-| Tool | Description |
-|------|-------------|
-| `save_reference` | Save reference with metadata from PubMed search |
-| `save_reference_mcp` | **[RECOMMENDED]** Save by PMID via MCP-to-MCP (verified data) |
-| `save_reference_pdf` | Save reference with PDF download |
-| `list_saved_references` | List all saved references in library |
-| `get_reference_details` | Get complete citation info for a reference |
-| `search_local_references` | Search within saved reference library |
-| `delete_reference` | Delete a reference from library |
-| `check_reference_exists` | Check if a reference exists in library |
-| `read_reference_fulltext` | Read PDF content of a saved reference |
-| `format_references` | Format reference list in various styles |
-| `set_citation_style` | Set default citation format (Vancouver/APA/Nature) |
-| `rebuild_foam_aliases` | Rebuild Foam-compatible alias files |
-| `find_citation_for_claim` | Find citations for specific claims |
-| `suggest_citations` | Analyze text and suggest appropriate citations |
-| `insert_citation` | Insert citation into draft text |
-| `scan_draft_citations` | Scan draft for citation wikilinks |
-| `sync_references` | Sync [[wikilinks]] to numbered references |
-
-#### ✍️ Draft Writing (9 tools)
-
-| Tool | Description |
-|------|-------------|
-| `write_draft` | Create or update draft file |
-| `draft_section` | Draft a specific section with AI assistance |
-| `read_draft` | Read draft content |
-| `list_drafts` | List available draft files |
-| `delete_draft` | Delete a draft file |
-| `count_words` | Count words in draft |
-| `get_section_template` | Get writing guidelines for a section |
-| `insert_section` | Insert content into document section |
-| `validate_for_section` | Validate concept before section writing |
-
-#### ✅ Validation (3 tools)
-
-| Tool | Description |
-|------|-------------|
-| `validate_concept` | Full validation with novelty scoring (3 rounds) |
-| `validate_concept_quick` | Quick structural check only |
-| `validate_wikilinks` | Auto-detect and fix citation format issues |
-
-#### 📊 Data Analysis (6 tools)
-
-| Tool | Description |
-|------|-------------|
-| `analyze_dataset` | Get descriptive statistics for a CSV dataset |
-| `run_statistical_test` | Run statistical tests (t-test, ANOVA, chi2, correlation, etc.) |
-| `create_plot` | Create publication-ready figures |
-| `generate_table_one` | Generate baseline characteristics table |
-| `detect_variable_types` | Auto-detect variable types in dataset |
-| `list_data_files` | List available data files in project |
-
-#### 🔍 Review (3 tools)
-
-| Tool | Description |
-|------|-------------|
-| `check_manuscript_consistency` | Check for consistency issues before submission |
-| `create_reviewer_response` | Generate structured response to reviewer comments |
-| `format_revision_changes` | Format changes made during revision |
-
-#### 📮 Submission (3 tools)
-
-| Tool | Description |
-|------|-------------|
-| `generate_cover_letter` | Generate professional cover letter |
-| `check_submission_checklist` | Check manuscript against journal requirements |
-| `list_supported_journals` | List supported journals and their requirements |
-| `generate_highlights` | Generate bullet-point highlights for submission |
-
-#### 📄 Word Export (7 tools)
-
-| Tool | Description |
-|------|-------------|
-| `export_word` | Export markdown draft to Word document |
-| `list_templates` | List available Word templates |
-| `read_template` | Read template structure and sections |
-| `start_document_session` | Start document editing session |
-| `verify_document` | Verify document state and word counts |
-| `check_word_limits` | Check word limits against template |
-| `save_document` | Save document session to file |
-
-### 🔍 pubmed-search MCP Tools
-
-| Category | Key Tools |
-|----------|----------|
-| **Search** | `search_literature`, `generate_search_queries`, `parse_pico`, `merge_search_results` |
-| **Article Info** | `fetch_article_details`, `find_related_articles`, `find_citing_articles` |
-| **Export** | `prepare_export`, `get_article_fulltext_links`, `analyze_fulltext_access` |
-| **Session** | `get_session_pmids`, `list_search_history`, `get_session_summary` |
-
----
-
-## 🎯 Novelty Validation System
-
-Before writing drafts, concepts must pass novelty validation:
-
-| Setting | Value | Description |
-|---------|-------|-------------|
-| **Rounds** | 3 | Independent evaluations |
-| **Threshold** | 75/100 | Minimum score per round |
-| **Pass Criteria** | All 3 ≥ 75 | Must pass all rounds |
 
 ---
 
@@ -659,19 +485,21 @@ Before writing drafts, concepts must pass novelty validation:
 
 | Status | Feature | Description |
 |--------|---------|-------------|
-| ✅ | **Foam Integration** | Wikilinks, hover preview, backlinks |
-| ✅ | **Project Isolation** | Auto-update Foam settings on project switch |
-| ✅ | **PubMed MCP** | Independent literature search server |
-| ✅ | **Parallel Search** | Multi-query parallel execution |
+| ✅ | **3 MCP Servers** | mdpaper (78) + pubmed-search (37) + CGU (13) |
+| ✅ | **Foam Integration** | Wikilinks, hover preview, backlinks, project isolation |
+| ✅ | **Project Memory** | `.memory/` for cross-session AI context |
 | ✅ | **Table 1 Generator** | Auto-generate baseline characteristics |
-| ✅ | **Reference Refactor** | Single .md with YAML frontmatter & aliases |
-| ✅ | **Project Memory** | `.memory/` folder for cross-session agent context |
-| ✅ | **Wikilink Validator** | Auto-fix citation format in drafts |
-| ✅ | **Pre-Analysis Checklist** | Concept → Analysis readiness validation |
-| 🔜 | **Citation Tools** | `insert_citation`, `auto_cite_draft`, `verify_citations` |
-| 📋 | **Multi-language Support** | Full UI localization |
-| 📋 | **Journal Style Library** | Pre-configured journal formats |
+| ✅ | **Novelty Validation** | 3-round scoring with 75/100 threshold |
+| ✅ | **Citation-Aware Editing** | `patch_draft` with wikilink validation |
+| ✅ | **MCP-to-MCP Trust** | Verified PubMed data via direct HTTP |
+| ✅ | **Pre-commit Hooks** | 13 hooks (ruff, mypy, bandit, pytest...) |
+| 🔜 | **Full VSX Extension** | TreeView, CodeLens, Diagnostics (Direction C) |
+| 🔜 | **Pandoc Export** | Word + LaTeX dual export with CSL citations |
+| 📋 | **Systematic Review** | PRISMA flow, Risk of Bias, meta-analysis |
+| 📋 | **AI Writing Intelligence** | Citation intelligence, coherence engine |
 | 📋 | **REST API Mode** | Expose tools as REST API |
+
+**Architecture Direction**: [Direction C — Full VSX + Foam + Pandoc](ROADMAP.md)
 
 **Legend:** ✅ Complete | 🔜 In Progress | 📋 Planned
 
@@ -681,12 +509,12 @@ Before writing drafts, concepts must pass novelty validation:
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-- 🐛 **Report bugs** - Open an issue
-- 💡 **Suggest features** - Share your ideas
-- 🔧 **Submit code** - Fork → Branch → PR
+- 🐛 **Report bugs** — Open an issue
+- 💡 **Suggest features** — Share your ideas
+- 🔧 **Submit code** — Fork → Branch → PR
 
 ---
 
 ## 📄 License
 
-Apache License 2.0 - See [LICENSE](LICENSE)
+Apache License 2.0 — See [LICENSE](LICENSE)
