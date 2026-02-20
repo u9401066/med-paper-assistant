@@ -227,7 +227,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download VSIX artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
 
