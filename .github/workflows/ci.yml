@@ -6,8 +6,17 @@ on:
   pull_request:
     branches: [master]
 
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test-python:
+  # ──────────────────────────────────────────────────────
+  # Python: lint, type check, security, tests
+  # ──────────────────────────────────────────────────────
+  python-lint:
+    name: "Python Lint & Security"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +31,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
@@ -30,16 +39,61 @@ jobs:
           uv pip install -e integrations/pubmed-search-mcp
           uv pip install -e integrations/cgu
 
-      - name: Lint (ruff)
+      - name: Lint (ruff check)
         run: uv run ruff check src/ tests/
+
+      - name: Format check (ruff format)
+        run: uv run ruff format --check src/ tests/
 
       - name: Type check (mypy)
         run: uv run mypy src/ --ignore-missing-imports
 
+      - name: Security scan (bandit)
+        run: uv run bandit -c pyproject.toml -r src/
+
+  python-test:
+    name: "Python Tests"
+    runs-on: ubuntu-latest
+    needs: python-lint
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+          uv pip install -e integrations/pubmed-search-mcp
+          uv pip install -e integrations/cgu
+
       - name: Run tests
         run: uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
 
-  test-vsx:
+      - name: Verify MCP server boots
+        run: |
+          uv run python -c "
+          from med_paper_assistant.interfaces.mcp.server import create_server
+          mcp = create_server()
+          tools = [t.name for t in mcp._tool_manager.list_tools()]
+          print(f'✅ MCP server OK: {len(tools)} tools registered')
+          assert len(tools) >= 50, f'Expected ≥50 tools, got {len(tools)}'
+          "
+
+  # ──────────────────────────────────────────────────────
+  # VS Code Extension: compile, test
+  # ──────────────────────────────────────────────────────
+  vsx:
+    name: "VS Code Extension"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,16 +101,59 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         working-directory: vscode-extension
         run: npm ci
 
+      - name: Compile TypeScript
+        working-directory: vscode-extension
+        run: npm run compile
+
       - name: Run tests
         working-directory: vscode-extension
         run: npm test
 
-      - name: Compile TypeScript
-        working-directory: vscode-extension
-        run: npm run compile
+  # ──────────────────────────────────────────────────────
+  # Dashboard: build check
+  # ──────────────────────────────────────────────────────
+  dashboard:
+    name: "Dashboard Build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Lint
+        working-directory: dashboard
+        run: npm run lint
+
+      - name: Build
+        working-directory: dashboard
+        run: npm run build
+
+  # ──────────────────────────────────────────────────────
+  # Markdown: prettier format check
+  # ──────────────────────────────────────────────────────
+  markdown:
+    name: "Markdown Format"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check markdown formatting
+        run: npx prettier@3.1.0 --check --prose-wrap preserve "**/*.md" "!integrations/**" "!node_modules/**" "!.venv/**" "!projects/**"
