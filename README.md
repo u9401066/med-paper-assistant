@@ -15,7 +15,7 @@
 
 <p align="center">
   <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
-  <i>3 MCP Servers · ~104 Tools · 26 Skills · 14 Prompt Workflows — All in VS Code</i>
+  <i>3 MCP Servers · ~107 Tools · 26 Skills · 14 Prompt Workflows — All in VS Code</i>
 </p>
 
 > 📖 [繁體中文版](README.zh-TW.md)
@@ -28,7 +28,7 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 | Component                                                          | Type                   | Tools  | Description                                                               |
 | ------------------------------------------------------------------ | ---------------------- | ------ | ------------------------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 54     | Paper writing: projects, references, drafts, analysis, validation, export |
+| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 57     | Paper writing: projects, references, drafts, analysis, validation, export |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37     | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt       |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13     | Creative generation: brainstorm, deep think, spark collision              |
 | **[VS Code Extension](vscode-extension/)**                         | Extension              | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant                         |
@@ -53,8 +53,8 @@ flowchart LR
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers (~104 tools)"]
-        mdpaper["mdpaper<br/>54 tools<br/>Draft · Export · Validate"]
+    subgraph MCP["MCP Servers (~107 tools)"]
+        mdpaper["mdpaper<br/>57 tools<br/>Draft · Export · Validate"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -89,7 +89,7 @@ flowchart LR
 | Traditional Tools                   | Medical Paper Assistant                |
 | ----------------------------------- | -------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach         |
-| Separate apps for search/write/cite | All-in-one: ~104 tools in VS Code      |
+| Separate apps for search/write/cite | All-in-one: ~107 tools in VS Code      |
 | Manual reference management         | Auto-save with verified PubMed data    |
 | Export then format                  | Direct Word export with journal styles |
 | Learn complex UI                    | Natural language conversation          |
@@ -234,7 +234,7 @@ projects/{slug}/
 ### Infrastructure
 
 - **DDD Architecture** (Domain-Driven Design) with clean layer separation
-- **13 pre-commit hooks** (ruff, mypy, bandit, pytest, whitespace, yaml...)
+- **15 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
 - **Workspace State** recovery for cross-session continuity
 - **uv** for all Python package management
 
@@ -262,7 +262,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  54 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│  57 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
@@ -308,7 +308,7 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-**54 active tools** organized into 7 groups:
+**57 active tools** organized into 7 groups:
 
 ### 📁 Project Management (15 tools)
 
@@ -355,7 +355,7 @@ Write, edit, cite — with built-in validation.
 | `validate_wikilinks`     | Auto-fix `[[12345678]]` → `[[author2024_12345678]]` |
 | `validate_for_section`   | Check concept before writing specific section       |
 
-### 📊 Data Analysis (6 tools)
+### 📊 Data Analysis (9 tools)
 
 | Tool                   | Description                                           |
 | ---------------------- | ----------------------------------------------------- |
@@ -363,6 +363,9 @@ Write, edit, cite — with built-in validation.
 | `run_statistical_test` | t-test, ANOVA, chi², correlation, etc.                |
 | `generate_table_one`   | Baseline characteristics with auto variable detection |
 | `create_plot`          | Publication-ready figures                             |
+| `insert_figure`        | Insert figure into draft with archive validation      |
+| `insert_table`         | Insert table into draft with archive validation       |
+| `list_assets`          | List figures and tables in project results            |
 
 ### 📄 Export & Submission (6 + 1 tools)
 
@@ -465,7 +468,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 54 tools in 7 groups
+│   └── interfaces/mcp/            #   MCP server, 57 tools in 7 groups
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
@@ -500,14 +503,14 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                            |
 | ------ | --------------------------- | ------------------------------------------------------ |
-| ✅     | **3 MCP Servers**           | mdpaper (54) + pubmed-search (37) + CGU (13)           |
+| ✅     | **3 MCP Servers**           | mdpaper (57) + pubmed-search (37) + CGU (13)           |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, project isolation |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                 |
 | ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                  |
 | ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                 |
 | ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                   |
-| ✅     | **Pre-commit Hooks**        | 13 hooks (ruff, mypy, bandit, pytest...)               |
+| ✅     | **Pre-commit Hooks**        | 15 hooks (ruff, mypy, bandit, pytest, prettier...)     |
 | 🔜     | **Full VSX Extension**      | TreeView, CodeLens, Diagnostics (Direction C)          |
 | 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations            |
 | 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis               |
