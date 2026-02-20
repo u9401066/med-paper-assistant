@@ -75,27 +75,24 @@ git checkout -b feature/your-feature-name
 
 ### Making Changes
 
-#### Project Structure
+#### Project Structure (DDD Architecture)
 
 ```
 src/med_paper_assistant/
-├── core/                    # Core business logic
-│   ├── search.py           # PubMed search functionality
-│   ├── reference_manager.py # Reference storage & retrieval
-│   ├── drafter.py          # Draft generation
-│   ├── analyzer.py         # Data analysis
-│   └── exporter.py         # Word export
-├── mcp_server/             # MCP server implementation
-│   ├── server.py           # Main entry point
-│   ├── config.py           # Configuration
-│   ├── tools/              # MCP tool definitions
-│   │   ├── search_tools.py
-│   │   ├── reference_tools.py
-│   │   ├── draft_tools.py
-│   │   ├── analysis_tools.py
-│   │   └── export_tools.py
-│   └── prompts/            # MCP prompt definitions
-└── templates/              # Built-in templates
+├── domain/                  # Domain layer (business logic)
+│   ├── models/             # Domain models & entities
+│   ├── services/           # Domain services
+│   └── value_objects/      # Value objects
+├── application/            # Application layer (use cases)
+│   └── services/           # Application services
+├── infrastructure/         # Infrastructure layer (external)
+│   ├── persistence/        # Data access (references, drafts)
+│   ├── external/           # External APIs (PubMed, PMC)
+│   └── mcp/               # MCP server + tool definitions
+├── interfaces/             # Interface layer (entry points)
+│   └── mcp_tools/          # MCP tool handlers
+├── shared/                 # Shared utilities
+└── __init__.py
 ```
 
 #### Code Style
@@ -268,27 +265,24 @@ git checkout -b feature/您的功能名稱
 
 ### 進行修改
 
-#### 專案結構
+#### 專案結構（DDD 架構）
 
 ```
 src/med_paper_assistant/
-├── core/                    # 核心業務邏輯
-│   ├── search.py           # PubMed 搜尋功能
-│   ├── reference_manager.py # 參考文獻儲存與檢索
-│   ├── drafter.py          # 草稿生成
-│   ├── analyzer.py         # 數據分析
-│   └── exporter.py         # Word 匯出
-├── mcp_server/             # MCP 伺服器實作
-│   ├── server.py           # 主要進入點
-│   ├── config.py           # 設定檔
-│   ├── tools/              # MCP 工具定義
-│   │   ├── search_tools.py
-│   │   ├── reference_tools.py
-│   │   ├── draft_tools.py
-│   │   ├── analysis_tools.py
-│   │   └── export_tools.py
-│   └── prompts/            # MCP 提示詞定義
-└── templates/              # 內建範本
+├── domain/                  # 領域層（業務邏輯）
+│   ├── models/             # 領域模型與實體
+│   ├── services/           # 領域服務
+│   └── value_objects/      # 值物件
+├── application/            # 應用層（用例）
+│   └── services/           # 應用服務
+├── infrastructure/         # 基礎設施層（外部整合）
+│   ├── persistence/        # 資料存取（文獻、草稿）
+│   ├── external/           # 外部 API（PubMed、PMC）
+│   └── mcp/               # MCP 伺服器 + 工具定義
+├── interfaces/             # 介面層（進入點）
+│   └── mcp_tools/          # MCP 工具處理器
+├── shared/                 # 共用工具
+└── __init__.py
 ```
 
 #### 程式碼風格
@@ -392,6 +386,6 @@ git push origin feature/您的功能名稱
 
 ## 📜 License 授權
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the Apache-2.0 License.
 
-貢獻即表示您同意您的貢獻將以 MIT 授權發布。
+貢獻即表示您同意您的貢獻將以 Apache-2.0 授權發布。

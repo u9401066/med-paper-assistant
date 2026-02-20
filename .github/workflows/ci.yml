@@ -37,7 +37,7 @@ jobs:
         run: uv run mypy src/ --ignore-missing-imports
 
       - name: Run tests
-        run: uv run pytest tests/ -x -q --timeout=60
+        run: uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
 
   test-vsx:
     runs-on: ubuntu-latest
