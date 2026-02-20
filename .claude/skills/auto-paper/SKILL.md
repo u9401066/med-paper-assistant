@@ -425,6 +425,7 @@ if abs(result.words - target) / target > 0.20:
 | B3 | 🔒 SELLING POINTS 在 Discussion | 逐條比對 | `mcp_mdpaper_patch_draft()` 補充 |
 | B4 | 與已寫 sections 不矛盾 | `mcp_mdpaper_read_draft()` 交叉比對 | 修正矛盾處 |
 | B5 | 方法學可再現性 | Agent 依 paper_type 評估（見下方） | `mcp_mdpaper_patch_draft()` 補細節 |
+| B6 | 寫作順序驗證 | `mcp_mdpaper_check_writing_order()` | ⚠️ Advisory 警告（不阻擋）|
 
 **B1 執行範例**：
 ```python
@@ -472,6 +473,46 @@ IF 任何必選項 < 5 分：
 IF EQUATOR checklist 未覆蓋：
   → 產出建議的 checklist 項目供用戶參考
 ```
+
+#### Hook B6: 寫作順序驗證（Writing Order Validation）
+
+> **CONSTITUTION §22**：Phase 順序可調整，但 Agent 應主動提醒。
+
+**觸發時機**：每個 section 開始撰寫前。
+
+**B6 執行邏輯**：
+```
+1. mcp_mdpaper_check_writing_order() → 取得當前進度
+2. 檢查 target section 的前置條件是否已完成
+3. IF 前置 section 未完成：
+   → 顯示 ⚠️ Advisory 警告（不阻擋）
+   → 告知用戶缺少哪些 section
+   → 提供選項：(a) 先完成前置 (b) 忽略繼續
+4. 記錄到 .audit/ 審計軌跡
+```
+
+**寫作順序規則**（per paper_type）：
+
+| Paper Type | 建議順序 |
+|------------|----------|
+| original-research | Methods → Results → Introduction → Discussion → Conclusion → Abstract |
+| systematic-review | Methods → Results → Discussion → Introduction → Conclusion → Abstract |
+| case-report | Case Presentation → Discussion → Introduction → Conclusion → Abstract |
+| review-article | Introduction → Body → Conclusion → Abstract |
+
+**前置條件表**：
+
+| Target Section | 前置條件 | 原因 |
+|----------------|----------|------|
+| Results | Methods | Results 描述 Methods 定義的結局指標 |
+| Discussion | Results, Introduction | Discussion 討論 Results 並回應 Introduction 的研究問題 |
+| Conclusion | Discussion | Conclusion 是 Discussion 的總結 |
+| Abstract | 所有主體 section | Abstract 摘錄所有 section 的精華 |
+
+**⚠️ Advisory, Not Blocking**：
+- 此 Hook 產生 warning，不阻止寫作（遵循 §22 可重組原則）
+- 但審計軌跡會記錄是否跳過了建議順序
+- Hook D 可根據跳過率決定是否調整閾值
 
 ---
 

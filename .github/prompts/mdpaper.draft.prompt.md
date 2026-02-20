@@ -20,6 +20,23 @@ mcp_mdpaper_validate_concept(filename="concept.md")
 
 ---
 
+## Step 0: 檢查寫作順序 `check-order`
+
+📖 技能參考: `.claude/skills/draft-writing/SKILL.md` → 寫作順序規則
+
+**任務：**
+```
+mcp_mdpaper_check_writing_order()
+```
+
+**結果判讀：**
+- ✅ 前置條件已完成 → 繼續 Step 1
+- ⚠️ 缺少前置 section → 詢問用戶：
+  - 「建議先完成 **Methods**，要先寫 Methods 嗎？」
+  - 或「忽略建議，直接寫（CONSTITUTION §22 允許）」
+
+---
+
 ## Step 1: 確認專案與驗證狀態 `validate`
 
 📖 技能參考: `.claude/skills/concept-development/SKILL.md`
@@ -117,6 +134,7 @@ mcp_mdpaper_sync_references(filename="drafts/introduction.md")
 
 ## 📋 完成檢查
 
+- [ ] Step 0: 寫作順序已確認（或用戶選擇忽略）
 - [ ] Step 1: Concept 驗證通過
 - [ ] Step 2: 🔒 受保護內容已提取
 - [ ] Step 3: 寫作指南已取得

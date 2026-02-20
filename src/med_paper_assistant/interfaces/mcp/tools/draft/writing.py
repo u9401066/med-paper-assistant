@@ -10,6 +10,7 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
+from med_paper_assistant.domain.paper_types import check_writing_prerequisites
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
@@ -156,8 +157,118 @@ def _validate_project_context(project: Optional[str]) -> tuple:
     return True, None
 
 
+def _check_section_prerequisites(section_name: str) -> str:
+    """
+    Check writing order prerequisites for a section (advisory).
+
+    Returns warning message if prerequisites are missing, empty string otherwise.
+    """
+    from med_paper_assistant.infrastructure.persistence import get_project_manager
+
+    pm = get_project_manager()
+    current_info = pm.get_project_info()
+    if not current_info or not current_info.get("project_path"):
+        return ""
+
+    project_path = str(current_info["project_path"])
+    paper_type = current_info.get("paper_type", "other")
+    drafts_dir = os.path.join(project_path, "drafts")
+
+    result = check_writing_prerequisites(paper_type, section_name, drafts_dir)
+    return result.get("warning", "")
+
+
 def register_writing_tools(mcp: FastMCP, drafter: Drafter):
     """Register draft writing tools."""
+
+    @mcp.tool()
+    def check_writing_order(project: Optional[str] = None) -> str:
+        """
+        Check the recommended writing order and current progress for the active project.
+
+        Shows which sections have been written and which prerequisites remain.
+        Advisory only — CONSTITUTION §22 allows reordering phases.
+
+        Args:
+            project: Project slug (uses current if omitted)
+        """
+        log_tool_call("check_writing_order", {"project": project})
+
+        is_valid, error_msg = _validate_project_context(project)
+        if not is_valid:
+            return error_msg
+
+        from med_paper_assistant.domain.paper_types import WRITING_ORDER, _format_writing_order
+        from med_paper_assistant.infrastructure.persistence import get_project_manager
+
+        pm = get_project_manager()
+        current_info = pm.get_project_info()
+        if not current_info or not current_info.get("project_path"):
+            return "❌ 無法取得專案資訊"
+
+        project_path = str(current_info["project_path"])
+        paper_type = current_info.get("paper_type", "other")
+        drafts_dir = os.path.join(project_path, "drafts")
+
+        order_map = WRITING_ORDER.get(paper_type, {})
+        if not order_map:
+            result = f"📋 Paper type `{paper_type}` 無定義寫作順序。"
+            log_tool_result("check_writing_order", result, success=True)
+            return result
+
+        # Check existing drafts
+        existing_drafts = []
+        if os.path.isdir(drafts_dir):
+            existing_drafts = [
+                f.replace(".md", "").replace("_", " ").replace("-", " ").title()
+                for f in os.listdir(drafts_dir)
+                if f.endswith(".md") and f != "concept.md"
+            ]
+        existing_lower = [s.lower() for s in existing_drafts]
+
+        output = f"## 📋 寫作進度 — {current_info.get('name', paper_type)}\n\n"
+        output += f"**Paper Type**: {paper_type}\n"
+        output += f"**建議順序**: {_format_writing_order(paper_type)}\n\n"
+        output += "| # | Section | 狀態 | 前置條件 |\n"
+        output += "|---|---------|------|----------|\n"
+
+        sorted_sections = sorted(order_map.items(), key=lambda x: x[1]["order"])
+        for section_name, info in sorted_sections:
+            order = info["order"]
+            prereqs = info.get("prerequisites", [])
+
+            # Check if this section exists
+            section_exists = any(
+                section_name.lower() in ex or ex in section_name.lower() for ex in existing_lower
+            )
+            status = "✅ 已完成" if section_exists else "⬜ 未開始"
+
+            # Check prerequisites
+            prereq_status = []
+            for p in prereqs:
+                p_exists = any(p.lower() in ex or ex in p.lower() for ex in existing_lower)
+                prereq_status.append(f"{'✅' if p_exists else '❌'} {p}")
+
+            prereq_str = ", ".join(prereq_status) if prereq_status else "（無）"
+            output += f"| {order} | {section_name} | {status} | {prereq_str} |\n"
+
+        # Suggest next section
+        for section_name, info in sorted_sections:
+            section_exists = any(
+                section_name.lower() in ex or ex in section_name.lower() for ex in existing_lower
+            )
+            if not section_exists:
+                prereqs = info.get("prerequisites", [])
+                all_met = all(
+                    any(p.lower() in ex or ex in p.lower() for ex in existing_lower)
+                    for p in prereqs
+                )
+                if all_met:
+                    output += f"\n💡 **建議下一步**: 撰寫 **{section_name}**"
+                    break
+
+        log_tool_result("check_writing_order", f"showed progress for {paper_type}", success=True)
+        return output
 
     @mcp.tool()
     def draft_section(
@@ -198,6 +309,9 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         else:
             protected = {}
 
+        # 1.5 Check Writing Order Prerequisites (advisory)
+        prereq_warning = _check_section_prerequisites(topic)
+
         # 2. Gather Reference Context
         ref_context = ""
         concept_path = _get_concept_path()
@@ -237,6 +351,10 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
 
         # 4. Construct Final Instructions for the Agent
         output = f"## 📝 Drafting Instructions for {topic}\n\n"
+
+        if prereq_warning:
+            output += f"{prereq_warning}\n\n---\n\n"
+
         output += f"### 🎯 Writing Strategy\n{strategy}\n\n"
 
         if protected.get("novelty_statement"):
@@ -300,6 +418,17 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 log_tool_result("write_draft", "concept validation failed", success=False)
                 return message
 
+        # Check writing order prerequisites (advisory, non-blocking)
+        prereq_warning = ""
+        if not is_concept_file:
+            section_name = (
+                os.path.splitext(os.path.basename(filename))[0]
+                .replace("_", " ")
+                .replace("-", " ")
+                .title()
+            )
+            prereq_warning = _check_section_prerequisites(section_name)
+
         # 🔧 Pre-check: 驗證並修復 wikilink 格式
         references_dir = None
         from med_paper_assistant.infrastructure.persistence import get_project_manager
@@ -326,6 +455,10 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             # 附加 wikilink 修復報告
             if wikilink_report:
                 reminder += f"\n\n{wikilink_report}"
+
+            # 附加寫作順序建議
+            if prereq_warning:
+                reminder += f"\n\n{prereq_warning}"
 
             result = f"Draft created successfully at: {path}{reminder}"
             log_tool_result("write_draft", result, success=True)

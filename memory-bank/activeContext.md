@@ -27,7 +27,7 @@
 - Skills: **26**
 - Prompts: **15**
 - Total tools (含 external MCP): **~116**
-- Hooks: **36 checks** (Copilot A1-4 + B1-5 + C1-6 + D1-6 + P1-8 + G1-7)
+- Hooks: **37 checks** (Copilot A1-4 + B1-6 + C1-6 + D1-6 + P1-8 + G1-7)
 - Constitution: **v1.3.0** (Chapter 8: §20-§23)
 - Tests: 35 pass / 21 pre-existing / 0 regressions
 

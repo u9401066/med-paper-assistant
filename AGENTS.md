@@ -185,7 +185,7 @@ Hook D 不只改進 SKILL — 它改進 Hook 自身：
 | Hook 類型 | Hooks | 使用的 MCP Tools |
 |-----------|-------|------------------|
 | **Copilot A** (post-write) | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `get_available_citations`, `validate_wikilinks`, `patch_draft` |
-| **Copilot B** (post-section) | 概念一致、🔒 保護內容、**方法學驗證(B5)** | `read_draft`, `patch_draft` |
+| **Copilot B** (post-section) | 概念一致、🔒 保護內容、**方法學驗證(B5)**、**寫作順序(B6)** | `read_draft`, `patch_draft`, `check_writing_order` |
 | **Copilot C** (post-manuscript) | 全稿一致性、投稿清單 | `check_formatting`, `scan_draft_citations`, `count_words` |
 | **Copilot D** (meta-learning) | SKILL 自我改進 + **Hook 自我改進** | `read_file`, `replace_string_in_file` |
 | **Pre-Commit P1-P8** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻、**方法學** | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
@@ -452,7 +452,7 @@ Agent 應該主動識別用戶意圖並觸發對應 Capability：
 | **concept-validation** | 驗證、validate、check concept、可以開始寫了嗎 | 驗證概念新穎性和結構完整性 |
 | **parallel-search** | 並行搜尋、多組搜尋、找更多、廣泛搜尋 | 多組關鍵字並行搜尋，提高覆蓋率 |
 | **project-management** | 新專案、切換專案、專案設定、paper type | 研究專案的建立、切換、設定管理 |
-| **draft-writing** | 寫草稿、draft、撰寫、Introduction、Methods | 論文草稿撰寫、讀取、引用管理 |
+| **draft-writing** | 寫草稿、draft、撰寫、Introduction、Methods、寫作順序 | 論文草稿撰寫、讀取、引用管理、寫作順序檢查 |
 | **reference-management** | 存這篇、save、儲存文獻、列出 references | 文獻的儲存、搜尋、格式化、PDF 管理 |
 | **word-export** | 匯出 Word、export、template、轉成 docx | 草稿匯出為符合期刊格式的 Word 文件 |
 | **academic-debate** | 辯論、debate、觀點比較、devil's advocate | 學術辯論框架、觀點比較、證據層級分析 |

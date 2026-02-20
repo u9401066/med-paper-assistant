@@ -21,6 +21,7 @@ description: |
 | 怎麼寫這個 section | 參考下方「Section 寫作指南」 |
 | 可用引用、列出 citations | `get_available_citations()` |
 | 部分編輯、修改草稿段落 | `patch_draft()` |
+| 寫作順序、進度、先寫哪個 | `check_writing_order()` |
 
 ---
 
@@ -45,6 +46,7 @@ description: |
 | `draft_section` | `topic`, `notes`, `project` | 根據筆記產出特定 section |
 | `read_draft` | `filename`, `project` | 讀取草稿結構與內容 |
 | `list_drafts` | `project` | 列出所有草稿 |
+| `check_writing_order` | `project` | ⭐ 檢查寫作順序與進度（advisory）|
 
 ### 引用工具 (mdpaper)
 
@@ -68,11 +70,45 @@ description: |
 
 ---
 
+## ⭐ 寫作順序規則（Advisory, CONSTITUTION §22）
+
+**每個 section 有前置條件。開始撰寫前應先呼叫 `check_writing_order()` 確認進度。**
+
+### 建議寫作順序（per paper_type）
+
+| Paper Type | 順序 |
+|------------|------|
+| original-research | Methods → Results → Introduction → Discussion → Conclusion → Abstract |
+| systematic-review | Methods → Results → Discussion → Introduction → Conclusion → Abstract |
+| case-report | Case Presentation → Discussion → Introduction → Conclusion → Abstract |
+| review-article | Introduction → Body → Conclusion → Abstract |
+
+### 前置條件表
+
+| Target Section | 前置條件 | 原因 |
+|----------------|----------|------|
+| Results | Methods | Results 描述 Methods 定義的結局指標 |
+| Discussion | Results, Introduction | Discussion 討論 Results 並回應 Introduction 的研究問題 |
+| Conclusion | Discussion | Conclusion 是 Discussion 的總結 |
+| Abstract | 所有主體 section | Abstract 需摘錄所有 section 的精華 |
+
+**⚠️ Advisory, Not Blocking**：
+- `check_writing_order()` 產生警告，不阻止寫作
+- `write_draft()` 和 `draft_section()` 會自動顯示前置條件警告
+- Agent 應在警告出現時詢問用戶是否繼續
+
+---
+
 ## 工作流程
 
 ### Flow A: 撰寫新 Section
 
 ```
+Step 0: 檢查寫作順序
+  check_writing_order()
+  → 確認前置 section 是否已完成
+  → ⚠️ 若缺少前置 → 詢問用戶要先寫哪個
+
 Step 1: 確認專案和驗證狀態
   get_current_project()
   validate_for_section(section="Introduction")
