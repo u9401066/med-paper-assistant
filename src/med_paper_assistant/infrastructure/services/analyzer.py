@@ -105,7 +105,9 @@ class Analyzer:
             if not group_var:
                 return "Error: ANOVA requires a grouping variable (group_var)."
             var = variables[0]
-            groups_data = [df[df[group_var] == g][var].dropna() for g in df[group_var].dropna().unique()]
+            groups_data = [
+                df[df[group_var] == g][var].dropna() for g in df[group_var].dropna().unique()
+            ]
             f_stat, p_val = stats.f_oneway(*groups_data)
             return f"### ANOVA Results\n\nComparing {var} across groups in {group_var}\n- F-statistic: {f_stat:.4f}\n- P-value: {p_val:.4f}\n- Significant: {'Yes' if p_val < 0.05 else 'No'}"
 
@@ -140,7 +142,9 @@ class Analyzer:
             if not group_var:
                 return "Error: Kruskal-Wallis test requires a grouping variable."
             var = variables[0]
-            groups_data = [df[df[group_var] == g][var].dropna() for g in df[group_var].dropna().unique()]
+            groups_data = [
+                df[df[group_var] == g][var].dropna() for g in df[group_var].dropna().unique()
+            ]
             h_stat, p_val = stats.kruskal(*groups_data)
             return f"### Kruskal-Wallis Test Results\n\nComparing {var} across groups in {group_var}\n- H-statistic: {h_stat:.4f}\n- P-value: {p_val:.4f}\n- Significant: {'Yes' if p_val < 0.05 else 'No'}"
 
@@ -194,11 +198,16 @@ class Analyzer:
             # Basic survival curve - requires lifelines package
             try:
                 from lifelines import KaplanMeierFitter
+
                 kmf = KaplanMeierFitter()
                 if hue_col:
                     for group in df[hue_col].dropna().unique():
                         mask = df[hue_col] == group
-                        kmf.fit(df.loc[mask, x_col], event_observed=df.loc[mask, y_col] if y_col else None, label=str(group))
+                        kmf.fit(
+                            df.loc[mask, x_col],
+                            event_observed=df.loc[mask, y_col] if y_col else None,
+                            label=str(group),
+                        )
                         kmf.plot_survival_function()
                 else:
                     kmf.fit(df[x_col], event_observed=df[y_col] if y_col else None)
@@ -361,6 +370,7 @@ class Analyzer:
             if not output_name.endswith(".md"):
                 output_name += ".md"
             output_path = os.path.join(self.tables_dir, output_name)
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(table_output)
             return f"Table 1 saved to: {output_path}\n\n{table_output}"

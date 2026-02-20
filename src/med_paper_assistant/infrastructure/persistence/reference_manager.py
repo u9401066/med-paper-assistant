@@ -939,4 +939,3 @@ class ReferenceManager:
                 "error": f"刪除失敗: {str(e)}",
                 "pmid": pmid,
             }
-

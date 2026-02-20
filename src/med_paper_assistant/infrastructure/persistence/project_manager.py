@@ -71,6 +71,7 @@ class ProjectManager:
 
         # Initialize workspace state manager
         from .workspace_state_manager import get_workspace_state_manager
+
         self._workspace_state = get_workspace_state_manager(str(self.base_path))
 
         # Ensure projects directory exists

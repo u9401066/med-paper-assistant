@@ -4,13 +4,13 @@
 > [Clearly define what this review covers]
 
 ### What Will Be Covered | 涵蓋內容
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ### What Will NOT Be Covered | 不涵蓋內容
-1. 
-2. 
+1.
+2.
 
 ### Target Audience | 目標讀者
 > [Who is this review written for?]
@@ -26,19 +26,19 @@
    - Purpose of review
    - Scope statement
 
-2. **[Main Section 1]**: 
+2. **[Main Section 1]**:
    - Subsection A
    - Subsection B
 
-3. **[Main Section 2]**: 
+3. **[Main Section 2]**:
    - Subsection A
    - Subsection B
 
-4. **[Main Section 3]**: 
+4. **[Main Section 3]**:
    - Subsection A
    - Subsection B
 
-5. **[Main Section 4]**: 
+5. **[Main Section 4]**:
    - Subsection A
    - Subsection B
 
@@ -60,14 +60,14 @@
 ### Databases Searched | 搜尋資料庫
 - [ ] PubMed
 - [ ] Google Scholar
-- [ ] Specialty databases: 
+- [ ] Specialty databases:
 
 ### Key References | 關鍵文獻
 > [List seminal papers that form the foundation of this review]
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ### Time Frame | 時間範圍
 > [Literature from what period is included?]
@@ -78,11 +78,11 @@
 
 > These are the main takeaways readers should remember
 
-1. **Key Message 1**: 
-2. **Key Message 2**: 
-3. **Key Message 3**: 
-4. **Key Message 4**: 
-5. **Key Message 5**: 
+1. **Key Message 1**:
+2. **Key Message 2**:
+3. **Key Message 3**:
+4. **Key Message 4**:
+5. **Key Message 5**:
 
 ---
 
@@ -115,9 +115,9 @@
 ## 📝 Future Directions | 未來方向
 
 ### Knowledge Gaps | 知識缺口
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ### Emerging Research | 新興研究
 > [What studies are ongoing or planned?]

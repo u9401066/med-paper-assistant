@@ -80,10 +80,10 @@ drawio MCP → 產生 .drawio 檔案
 @mcp.tool()
 async def create_study_flowchart(concept_file: str):
     """Generate study flowchart from concept.md and display in browser"""
-    
+
     # 1. 讀取 concept.md
     concept = read_concept(concept_file)
-    
+
     # 2. 調用 drawio API (HTTP)
     response = await httpx.post(
         "http://localhost:6002/api/create-diagram",
@@ -92,7 +92,7 @@ async def create_study_flowchart(concept_file: str):
             "output_path": f"{project_dir}/results/flowchart.drawio"
         }
     )
-    
+
     # 3. 返回結果，讓 Copilot 開啟瀏覽器
     return {
         "status": "success",
@@ -104,7 +104,7 @@ async def create_study_flowchart(concept_file: str):
 ## 推薦方案
 
 ### 短期 (現在可做): Option B + D
-1. **修改 next-ai-draw-io**: 
+1. **修改 next-ai-draw-io**:
    - 確保 `/api/mcp` 可以接收圖表並即時顯示
    - 加入 WebSocket 即時更新
 
@@ -295,7 +295,7 @@ _web_process = None
 def start_web_server():
     """啟動 Next.js Web 服務"""
     global _web_process
-    
+
     # 檢查是否已經在運行
     try:
         response = httpx.get(f"{NEXTJS_URL}/api/health", timeout=2)
@@ -303,7 +303,7 @@ def start_web_server():
             return  # 已經在運行
     except:
         pass
-    
+
     # 啟動 Next.js
     web_dir = Path(__file__).parent.parent.parent.parent.parent  # 到 next-ai-draw-io 根目錄
     _web_process = subprocess.Popen(
@@ -312,7 +312,7 @@ def start_web_server():
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL
     )
-    
+
     # 等待啟動
     for _ in range(30):  # 最多等 30 秒
         try:
@@ -322,7 +322,7 @@ def start_web_server():
                 return
         except:
             time.sleep(1)
-    
+
     print("⚠️ Draw.io Web 啟動超時")
 
 def stop_web_server():
@@ -345,7 +345,7 @@ export function TabBar({ tabs, activeTabId, onSwitch, onClose, onCreate }) {
   return (
     <div className="flex border-b bg-gray-50">
       {tabs.map(tab => (
-        <div 
+        <div
           key={tab.id}
           className={`px-4 py-2 cursor-pointer flex items-center gap-2 ${
             tab.id === activeTabId ? 'bg-white border-b-2 border-blue-500' : ''

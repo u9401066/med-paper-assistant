@@ -26,7 +26,7 @@ export function useDiagrams(projectSlug: string | null) {
     try {
       const res = await fetch(`/api/diagrams?project=${projectSlug}`);
       if (!res.ok) throw new Error('Failed to fetch diagrams');
-      
+
       const data = await res.json();
       setDiagrams(data.diagrams || []);
     } catch (err) {
@@ -46,7 +46,7 @@ export function useDiagrams(projectSlug: string | null) {
     try {
       const res = await fetch(`/api/diagrams/${diagramId}?project=${projectSlug}`);
       if (!res.ok) throw new Error('Failed to load diagram');
-      
+
       const data = await res.json();
       setCurrentDiagram({
         id: data.id,
@@ -82,12 +82,12 @@ export function useDiagrams(projectSlug: string | null) {
       });
 
       if (!res.ok) throw new Error('Failed to save diagram');
-      
+
       const data = await res.json();
-      
+
       // Refresh list
       await fetchDiagrams();
-      
+
       // Update current diagram
       setCurrentDiagram({
         id: data.id,
@@ -117,15 +117,15 @@ export function useDiagrams(projectSlug: string | null) {
       });
 
       if (!res.ok) throw new Error('Failed to delete diagram');
-      
+
       // Clear current if it was deleted
       if (currentDiagram?.id === diagramId) {
         setCurrentDiagram(null);
       }
-      
+
       // Refresh list
       await fetchDiagrams();
-      
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');

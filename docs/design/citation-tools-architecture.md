@@ -101,14 +101,14 @@ def insert_citation(
 ) -> str:
     """
     在指定文字後插入引用標記。
-    
+
     Example:
         insert_citation(
             filename="introduction.md",
             target_text="Video laryngoscopy has higher injury rates",
             pmid="27345583"
         )
-        
+
     Result:
         "Video laryngoscopy has higher injury rates [PMID:27345583]."
         或
@@ -126,10 +126,10 @@ def update_citation_numbers(
 ) -> str:
     """
     重新編號草稿中的所有引用。
-    
+
     [PMID:27345583] → [1]
     [PMID:26391674] → [2]
-    
+
     同時更新 references 的 cite.number 欄位。
     """
 ```
@@ -141,7 +141,7 @@ def update_citation_numbers(
 def list_citations_in_draft(filename: str) -> str:
     """
     列出草稿中所有引用及其位置。
-    
+
     Returns:
         | # | Citation Key | Position | Context |
         |---|--------------|----------|---------|
@@ -163,25 +163,25 @@ def find_citation_for_claim(
 ) -> str:
     """
     為給定的聲明找到支持的文獻。
-    
+
     Example:
         find_citation_for_claim(
             claim="Video laryngoscopy causes more pharyngeal injuries than direct laryngoscopy"
         )
-        
+
     Process:
         1. 從 claim 提取關鍵概念
         2. 搜尋本地 references (語意匹配 abstract/title)
         3. 如果本地不夠，搜尋 PubMed
         4. 排序並返回最相關的
-        
+
     Returns:
         📖 Found 3 supporting references:
-        
+
         1. [[greer2017_27345583]] (Relevance: 95%)
-           "Our data suggests video-assisted laryngoscopy puts patients 
+           "Our data suggests video-assisted laryngoscopy puts patients
             at significantly greater risk for injury..."
-           
+
         2. [[mourao2015_26391674]] (Relevance: 72%)
            "Soft tissue trauma was observed in 52.1% of patients..."
     """
@@ -198,29 +198,29 @@ def auto_cite_draft(
 ) -> str:
     """
     自動為整篇草稿建議引用位置。
-    
+
     Process:
         1. 解析草稿，識別 claims/statements
         2. 對每個 claim 執行 find_citation_for_claim
         3. 產生建議報告
         4. (可選) 自動插入或等待確認
-        
+
     Returns:
         📝 Auto-Citation Report for introduction.md
-        
+
         Found 8 statements that may need citations:
-        
+
         ✅ Already cited (3):
         - L12: "Dental injuries occur in 0.02-0.07%..." [mourao2015]
-        
+
         ⚠️ Needs citation (5):
         - L23: "Video laryngoscopy has become increasingly popular"
           → Suggested: [[greer2017_27345583]] (95% match)
           → Alternative: [[pacheco2014_24891204]] (78% match)
-          
+
         - L34: "The GlideScope is the most commonly used device"
           → No local match. Search PubMed? [Y/n]
-          
+
         Apply all suggestions? [Y/n/selective]
     """
 ```
@@ -232,17 +232,17 @@ def auto_cite_draft(
 def verify_citations(filename: str) -> str:
     """
     驗證草稿中的引用是否真的支持相關聲明。
-    
+
     Returns:
         🔍 Citation Verification Report
-        
+
         ✅ Verified (4):
         - L23: "higher injury rates" ← [[greer2017]] supports this
-        
+
         ⚠️ Weak support (1):
-        - L45: "50% of patients experience trauma" 
+        - L45: "50% of patients experience trauma"
           ← [[mourao2015]] says 52.1%, consider updating text
-          
+
         ❌ Potentially unsupported (1):
         - L67: "LMA causes fewer injuries than ETT"
           ← [[greer2017]] doesn't discuss LMA, find better citation?
@@ -262,15 +262,15 @@ def format_reference_list(
 ) -> str:
     """
     根據草稿中的引用，產生格式化的參考文獻列表。
-    
+
     Returns:
         ## References
-        
-        1. Greer D, Marshall KE, Bevans S, et al. Review of videolaryngoscopy 
-           pharyngeal wall injuries. Laryngoscope. 2017;127(2):349-353. 
+
+        1. Greer D, Marshall KE, Bevans S, et al. Review of videolaryngoscopy
+           pharyngeal wall injuries. Laryngoscope. 2017;127(2):349-353.
            doi:10.1002/lary.26134
-           
-        2. Mourão J, Moreira J, Barbosa J, et al. Soft tissue injuries after 
+
+        2. Mourão J, Moreira J, Barbosa J, et al. Soft tissue injuries after
            direct laryngoscopy. J Clin Anesth. 2015;27(8):668-71.
            doi:10.1016/j.jclinane.2015.07.009
     """
@@ -320,7 +320,7 @@ def format_reference_list(
 ```
 Writing Phase:
   [[greer2017_27345583]] ← Foam hover preview
-  
+
 Export Phase:
   → [1] (Vancouver)
   → (Greer et al., 2017) (APA)
@@ -370,10 +370,10 @@ Export Phase:
 # Introduction
 
 Video laryngoscopy has become increasingly popular in clinical practice.
-However, recent studies suggest that it may cause more pharyngeal injuries 
+However, recent studies suggest that it may cause more pharyngeal injuries
 than traditional direct laryngoscopy [[greer2017_27345583]].
 
-In a prospective study of 534 patients, soft tissue trauma was observed 
+In a prospective study of 534 patients, soft tissue trauma was observed
 in over half of cases using direct laryngoscopy [[mourao2015_26391674]].
 ```
 
@@ -383,19 +383,19 @@ in over half of cases using direct laryngoscopy [[mourao2015_26391674]].
 # Introduction
 
 Video laryngoscopy has become increasingly popular in clinical practice.
-However, recent studies suggest that it may cause more pharyngeal injuries 
+However, recent studies suggest that it may cause more pharyngeal injuries
 than traditional direct laryngoscopy [1].
 
-In a prospective study of 534 patients, soft tissue trauma was observed 
+In a prospective study of 534 patients, soft tissue trauma was observed
 in over half of cases using direct laryngoscopy [2].
 
 ---
 
 ## References
 
-1. Greer D, Marshall KE, Bevans S, et al. Review of videolaryngoscopy 
+1. Greer D, Marshall KE, Bevans S, et al. Review of videolaryngoscopy
    pharyngeal wall injuries. Laryngoscope. 2017;127(2):349-353.
-   
-2. Mourão J, Moreira J, Barbosa J, et al. Soft tissue injuries after 
+
+2. Mourão J, Moreira J, Barbosa J, et al. Soft tissue injuries after
    direct laryngoscopy. J Clin Anesth. 2015;27(8):668-71.
 ```

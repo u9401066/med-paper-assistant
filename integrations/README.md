@@ -172,7 +172,7 @@ Both MCP servers are automatically available in Copilot Chat.
 
 3. **Study Flow Diagram**
    ```
-   Create a study flow diagram from my concept.md showing the 
+   Create a study flow diagram from my concept.md showing the
    methodology: data collection → preprocessing → model training → validation
    ```
 

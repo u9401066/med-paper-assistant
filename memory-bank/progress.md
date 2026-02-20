@@ -1,6 +1,17 @@
-# Progress (Updated: 2026-01-13)
+# Progress (Updated: 2026-02-20)
 
 ## Done (Recent)
+
+- **Infrastructure & Quality Cleanup 大整理 (2026-02-20)** ✅：
+  - Pre-commit hooks：13 hooks (ruff, mypy, bandit, pytest, whitespace…) 全部通過
+  - DDD Import 遷移：19 個測試檔從 `core.*` 遷移至 DDD 路徑
+  - Test Isolation：所有測試改用 `tmp_path` fixture
+  - ARCHITECTURE.md 重寫：448 行過時 → ~240 行精確 DDD 架構文檔
+  - Legacy Cleanup：刪除空的 `core/` 目錄、多餘腳本、散落檔案
+  - Copilot Hook 修復：AGENTS.md 補齊 7 skills + 8 prompts，修正 capability index
+  - Coverage Baseline：17 passed / 1 skipped / 26 integration-deselected (27%)
+  - ROADMAP 更新：新增 Phase 3.5 + Phase 5c (Full VSX + Pandoc)
+  - 架構方向決策：選定 **Direction C: Full VSX + Foam + Pandoc**
 
 - **AI Writing Intelligence 設計文件 (2026-01-13)** ✅：
   - 新增 `docs/design/ai-writing-intelligence.md` (500 行)
@@ -213,15 +224,23 @@
 
 ## Next
 
-### 🔥 Phase 4: MVP for Original Research (2026 Q1) - 剩餘項目
+### 🔥 Phase 5c: Full VSX + Pandoc Export (優先)
 
-| 工具 | 說明 | 預估工作量 |
-|------|------|-----------|
-| ~~`generate_table_one`~~ | ~~自動生成 Table 1~~ | ✅ 已完成 |
-| ~~`check_manuscript_consistency`~~ | ~~跨章節一致性檢查~~ | ✅ 已完成 |
-| ~~`create_reviewer_response`~~ | ~~Reviewer Response 生成~~ | ✅ 已完成 |
-| `generate_cover_letter` | Cover Letter 自動生成 | 1 天 |
-| `check_submission_checklist` | 期刊投稿清單檢查 | 1 天 |
+| 功能 | 說明 |
+|------|------|
+| TreeView: Projects | 側邊欄專案清單 + 狀態 |
+| CodeLens: Citations | [[wikilink]] 上方顯示引用資訊 |
+| Diagnostics | 引用缺失、wikilink 斷鏈警告 |
+| Pandoc Word Export | 取代 python-docx 匯出 |
+| Pandoc LaTeX Export | 新增 LaTeX 雙輸出 |
+| CSL Citation Styles | 取代手動格式化 |
+
+### Phase 4 剩餘
+
+| 工具 | 說明 |
+|------|------|
+| `generate_cover_letter` | Cover Letter 自動生成 |
+| `check_submission_checklist` | 期刊投稿清單檢查 |
 
 ### Phase 5: Project Portfolio Management (2026 Q2)
 

@@ -13,7 +13,7 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const focusInfo = FOCUS_OPTIONS.find(f => f.value === project.focus?.type);
-  
+
   // Fetch stats when card becomes visible or active
   useEffect(() => {
     const fetchStats = async () => {
@@ -30,20 +30,20 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
         setIsLoadingStats(false);
       }
     };
-    
+
     fetchStats();
   }, [project.slug]);
-  
-  const totalWords = stats ? 
-    stats.wordCounts.intro + stats.wordCounts.methods + 
+
+  const totalWords = stats ?
+    stats.wordCounts.intro + stats.wordCounts.methods +
     stats.wordCounts.results + stats.wordCounts.discussion : 0;
-  
+
   return (
     <div
       onClick={onClick}
       className={`p-4 rounded-lg border cursor-pointer transition-all duration-150
-                 ${isActive 
-                   ? 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 shadow-sm' 
+                 ${isActive
+                   ? 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 shadow-sm'
                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
                  }`}
     >
@@ -58,7 +58,7 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
           <span className="flex-shrink-0 w-2 h-2 mt-2 ml-2 bg-blue-500 rounded-full"></span>
         )}
       </div>
-      
+
       {/* Stats Row */}
       {stats && (
         <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
@@ -66,25 +66,25 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
           <span className="flex items-center gap-1" title="References">
             📚 {stats.references}
           </span>
-          
+
           {/* Concept Status */}
           {stats.concept.exists && (
-            <span 
+            <span
               className={`flex items-center gap-1 ${
                 stats.concept.validated ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
               }`}
-              title={stats.concept.validated 
-                ? `Novelty: ${stats.concept.noveltyScore || '?'}/100` 
+              title={stats.concept.validated
+                ? `Novelty: ${stats.concept.noveltyScore || '?'}/100`
                 : 'Concept not validated'}
             >
               {stats.concept.validated ? '✅' : '⚠️'}
               {stats.concept.noveltyScore ? `${stats.concept.noveltyScore}` : 'concept'}
             </span>
           )}
-          
+
           {/* Pre-Analysis Checklist */}
           {stats.concept.exists && (
-            <span 
+            <span
               className={`flex items-center gap-1 ${
                 stats.preAnalysis.ready ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'
               }`}
@@ -93,14 +93,14 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
               📋 {stats.preAnalysis.score}%
             </span>
           )}
-          
+
           {/* Word Count */}
           {totalWords > 0 && (
             <span className="flex items-center gap-1" title="Total words">
               📝 {totalWords.toLocaleString()}
             </span>
           )}
-          
+
           {/* Diagrams */}
           {stats.diagrams > 0 && (
             <span className="flex items-center gap-1" title="Diagrams">
@@ -109,11 +109,11 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
           )}
         </div>
       )}
-      
+
       {isLoadingStats && (
         <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">Loading stats...</div>
       )}
-      
+
       <div className="mt-3 flex items-center gap-2 text-xs">
         {project.focus && focusInfo && (
           <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
@@ -127,7 +127,7 @@ export function ProjectCard({ project, isActive, onClick }: ProjectCardProps) {
           </span>
         )}
       </div>
-      
+
       {project.targetJournal && (
         <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
           Target: {project.targetJournal}

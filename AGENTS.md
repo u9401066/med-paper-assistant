@@ -209,7 +209,7 @@ uv add --dev pytest ruff
 
 ---
 
-### 🆕 Artifact-Centric Architecture（即將推出）
+### 🆕 Artifact-Centric Architecture（部分已上線）
 
 > 📋 設計文件：[docs/design/artifact-centric-architecture.md](docs/design/artifact-centric-architecture.md)
 
@@ -229,16 +229,16 @@ EMPTY → EXPLORATION → PROJECT
 | 用戶搜尋後說「有興趣」 | 詢問專案名稱 | 直接 staging，稍後連結 |
 | 用戶要匯出 Word | 需要專案 | 仍需要專案（強制專案時機） |
 
-**新工具預告**（6 個）：
+**工具狀態**：
 
-| 工具 | 功能 |
-|------|------|
-| `start_exploration` | 啟動探索模式 |
-| `get_exploration_status` | 查看 staging 狀態 |
-| `list_staged_artifacts` | 列出暫存成品 |
-| `tag_artifact` | 標記成品 |
-| `link_artifact_to_project` | 連結成品到專案 |
-| `convert_exploration_to_project` | 探索轉專案 |
+| 工具 | 功能 | 狀態 |
+|------|------|------|
+| `start_exploration` | 啟動探索模式 | ✅ 已上線 |
+| `get_exploration_status` | 查看 staging 狀態 | ✅ 已上線 |
+| `convert_exploration_to_project` | 探索轉專案 | ✅ 已上線 |
+| `list_staged_artifacts` | 列出暫存成品 | ⏳ 未實作 |
+| `tag_artifact` | 標記成品 | ⏳ 未實作 |
+| `link_artifact_to_project` | 連結成品到專案 | ⏳ 未實作 |
 
 ---
 
@@ -355,7 +355,20 @@ Agent 應該主動識別用戶意圖並觸發對應 Capability：
 | **manuscript-revision** | `mdpaper.manuscript-revision.prompt.md` | revision、reviewer comment、被退稿 |
 | **quick-search** | `mdpaper.search.prompt.md` | 找論文、search、PubMed |
 
-#### 🛠️ 開發相關
+#### � 研究單步 Prompts
+
+| Prompt | Prompt File | 觸發語 |
+|--------|-------------|--------|
+| **concept** | `mdpaper.concept.prompt.md` | 發展概念、文獻缺口分析 |
+| **draft** | `mdpaper.draft.prompt.md` | 撰寫草稿、寫 Introduction |
+| **project** | `mdpaper.project.prompt.md` | 設置專案、配置 paper type |
+| **format** | `mdpaper.format.prompt.md` | 匯出 Word、export docx |
+| **strategy** | `mdpaper.strategy.prompt.md` | 搜尋策略、配置關鍵字 |
+| **analysis** | `mdpaper.analysis.prompt.md` | 資料分析、統計、Table 1 |
+| **clarify** | `mdpaper.clarify.prompt.md` | 改進內容、潤飾、refine |
+| **help** | `mdpaper.help.prompt.md` | 顯示所有可用指令 |
+
+#### �🛠️ 開發相關
 
 | Capability | Prompt File | 觸發語 |
 |------------|-------------|--------|
@@ -382,18 +395,25 @@ Agent 應該主動識別用戶意圖並觸發對應 Capability：
 |------|--------|------|
 | **literature-review** | 文獻回顧、找論文、PubMed、搜paper、reference | 系統性文獻搜尋、篩選、下載、整理 |
 | **concept-development** | concept、novelty、驗證失敗、怎麼改、補充概念 | 發展研究概念，通過 novelty 驗證 |
+| **concept-validation** | 驗證、validate、check concept、可以開始寫了嗎 | 驗證概念新穎性和結構完整性 |
 | **parallel-search** | 並行搜尋、多組搜尋、找更多、廣泛搜尋 | 多組關鍵字並行搜尋，提高覆蓋率 |
+| **project-management** | 新專案、切換專案、專案設定、paper type | 研究專案的建立、切換、設定管理 |
+| **draft-writing** | 寫草稿、draft、撰寫、Introduction、Methods | 論文草稿撰寫、讀取、引用管理 |
+| **reference-management** | 存這篇、save、儲存文獻、列出 references | 文獻的儲存、搜尋、格式化、PDF 管理 |
+| **word-export** | 匯出 Word、export、template、轉成 docx | 草稿匯出為符合期刊格式的 Word 文件 |
 
 ### 🛠️ 通用技能
 
 | 技能 | 觸發語 | 說明 |
 |------|--------|------|
 | **git-precommit** | commit、推送、做完了、收工 | Git 提交前編排器 |
+| **git-doc-updater** | docs、文檔、sync docs、發布 | Git 提交前文檔同步 |
 | **ddd-architect** | 架構、新功能、設計、structure | DDD 架構輔助與檢查 |
 | **code-refactor** | 重構、太長、整理、優化、難讀 | 主動重構與模組化 |
 | **memory-updater** | 記憶、進度、做到哪、紀錄 | Memory Bank 同步 |
 | **memory-checkpoint** | 存檔、等一下、要離開、怕忘記 | 記憶檢查點（Summarize 前外部化）|
 | **readme-updater** | readme、怎麼用、安裝說明 | README 智能更新 |
+| **readme-i18n** | i18n、翻譯、多語言、sync readme | README 多語言同步 |
 | **changelog-updater** | changelog、發布、改了什麼 | CHANGELOG 自動更新 |
 | **roadmap-updater** | roadmap、規劃、里程碑 | ROADMAP 狀態追蹤 |
 | **code-reviewer** | review、檢查、有沒有問題、安全 | 程式碼審查 |

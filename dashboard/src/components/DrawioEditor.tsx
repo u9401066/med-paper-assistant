@@ -84,7 +84,7 @@ export function DrawioEditor({
             </span>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Save Status */}
           {lastSaved && (
@@ -92,7 +92,7 @@ export function DrawioEditor({
               Saved {lastSaved.toLocaleTimeString()}
             </span>
           )}
-          
+
           {/* Save Button */}
           <button
             onClick={handleSaveClick}
@@ -157,7 +157,7 @@ export function DrawioEditor({
             </div>
           </div>
         )}
-        
+
         <DrawIoEmbed
           ref={drawioRef}
           xml={initialXml}

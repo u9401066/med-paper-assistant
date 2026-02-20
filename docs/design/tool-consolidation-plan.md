@@ -106,7 +106,7 @@ def create_project(name: str, description: str = "", ...) -> str:
 def create_project(name: str, description: str = "", paper_type: str = "") -> str:
     """
     Create new research project. Name must be English.
-    
+
     Args:
         name: English project name (translate if needed)
         description: Brief description

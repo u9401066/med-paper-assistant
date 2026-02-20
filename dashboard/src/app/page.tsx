@@ -46,18 +46,18 @@ export default function Home() {
               <button
                 onClick={refresh}
                 disabled={isLoading}
-                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg 
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg
                           hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
                 title="Refresh"
               >
                 <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
             </div>
           </div>
-          
+
           {/* Current Project Selector */}
           <div className="mt-3">
             <ProjectSelector
@@ -138,7 +138,7 @@ export default function Home() {
                   currentFocus={currentProject.focus}
                   onFocusChange={handleFocusChange}
                 />
-                
+
                 {/* Copilot Hint */}
                 <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg">
                   <p className="text-sm text-blue-700 dark:text-blue-300">

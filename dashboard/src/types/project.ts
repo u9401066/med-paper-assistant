@@ -2,20 +2,20 @@
  * Project and Focus types for MedPaper Dashboard
  */
 
-export type FocusType = 
+export type FocusType =
   | 'exploration'
   | 'concept'
   | 'drafting'
   | 'revision'
   | 'formatting';
 
-export type DraftingSection = 
+export type DraftingSection =
   | 'intro'
   | 'methods'
   | 'results'
   | 'discussion';
 
-export type ProjectStatus = 
+export type ProjectStatus =
   | 'concept'
   | 'drafting'
   | 'review'

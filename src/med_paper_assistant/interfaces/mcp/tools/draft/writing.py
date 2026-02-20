@@ -229,16 +229,22 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         output += f"### 🎯 Writing Strategy\n{strategy}\n\n"
 
         if protected.get("novelty_statement"):
-            output += f"### 🔒 NOVELTY STATEMENT (MUST PRESERVE)\n> {protected['novelty_statement']}\n\n"
+            output += (
+                f"### 🔒 NOVELTY STATEMENT (MUST PRESERVE)\n> {protected['novelty_statement']}\n\n"
+            )
 
         if protected.get("selling_points"):
-            output += f"### 🔒 KEY SELLING POINTS (MUST EMPHASIZE)\n{protected['selling_points']}\n\n"
+            output += (
+                f"### 🔒 KEY SELLING POINTS (MUST EMPHASIZE)\n{protected['selling_points']}\n\n"
+            )
 
         output += f"### 📝 User Notes/Outline\n{notes}\n\n"
         output += ref_context
 
         output += "\n---\n"
-        output += "💡 **Agent Action**: Use the evidence above to write a solid, data-driven section. "
+        output += (
+            "💡 **Agent Action**: Use the evidence above to write a solid, data-driven section. "
+        )
         output += "Avoid generic AI filler. Focus on the logical flow from existing evidence to your novelty."
 
         log_tool_result("draft_section", f"prepared context for {topic}", success=True)
@@ -444,9 +450,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             return f"Error reading draft: {str(e)}"
 
     @mcp.tool()
-    def delete_draft(
-        filename: str, confirm: bool = False, project: Optional[str] = None
-    ) -> str:
+    def delete_draft(filename: str, confirm: bool = False, project: Optional[str] = None) -> str:
         """
         ⚠️ DESTRUCTIVE: Delete a draft file permanently.
 

@@ -66,7 +66,9 @@ class ConsistencyReport:
 
     def to_markdown(self) -> str:
         if not self.issues:
-            return "✅ **No consistency issues found!**\n\nYour manuscript looks ready for submission."
+            return (
+                "✅ **No consistency issues found!**\n\nYour manuscript looks ready for submission."
+            )
 
         output = "## 📋 Manuscript Consistency Report\n\n"
 
@@ -86,9 +88,7 @@ class ConsistencyReport:
         for category, issues in categories.items():
             output += f"### {category}\n\n"
             for issue in issues:
-                icon = {"error": "🔴", "warning": "🟡", "info": "ℹ️"}.get(
-                    issue.severity, "❓"
-                )
+                icon = {"error": "🔴", "warning": "🟡", "info": "ℹ️"}.get(issue.severity, "❓")
                 output += f"{icon} **{issue.description}**\n"
                 if issue.location:
                     output += f"   - Location: {issue.location}\n"
@@ -99,9 +99,7 @@ class ConsistencyReport:
         return output
 
 
-def register_consistency_tools(
-    mcp: FastMCP, drafter: Drafter, ref_manager: ReferenceManager
-):
+def register_consistency_tools(mcp: FastMCP, drafter: Drafter, ref_manager: ReferenceManager):
     """Register manuscript consistency checking tools."""
 
     @mcp.tool()
@@ -134,9 +132,7 @@ def register_consistency_tools(
         else:
             # Get all drafts from project
             all_drafts = drafter.list_drafts()
-            draft_list = [
-                d["filename"] for d in all_drafts if d["filename"].endswith(".md")
-            ]
+            draft_list = [d["filename"] for d in all_drafts if d["filename"].endswith(".md")]
 
         if not draft_list:
             return "❌ No draft files found to check."
@@ -173,9 +169,7 @@ def register_consistency_tools(
         return result
 
 
-def _check_citations(
-    content: str, ref_manager: ReferenceManager, report: ConsistencyReport
-):
+def _check_citations(content: str, ref_manager: ReferenceManager, report: ConsistencyReport):
     """Check citation consistency."""
     # Find all [[wikilink]] citations
     _citations = re.findall(r"\[\[([^\]]+)\]\]", content)
@@ -254,9 +248,7 @@ def _check_abbreviations(content: str, report: ConsistencyReport):
             # Check if it's defined on first use
             if not re.search(
                 rf"{full_form}\s*\({abbrev}\)", content, re.IGNORECASE
-            ) and not re.search(
-                rf"\({full_form};\s*{abbrev}\)", content, re.IGNORECASE
-            ):
+            ) and not re.search(rf"\({full_form};\s*{abbrev}\)", content, re.IGNORECASE):
                 # Only warn if used multiple times
                 count = len(re.findall(rf"\b{abbrev}\b", content))
                 if count > 1:

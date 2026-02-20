@@ -71,11 +71,11 @@ def generate_study_flow(concept_file: str) -> str:
     """Generate study flow diagram from concept.md"""
     # Parse concept → Extract study design
     # Call drawio API or generate XML
-    
+
 @mcp.tool()
 def generate_consort_diagram(enrollment: int, randomized: int, ...) -> str:
     """Generate CONSORT flowchart for RCT"""
-    
+
 @mcp.tool()  
 def generate_prisma_diagram(identified: int, screened: int, ...) -> str:
     """Generate PRISMA flowchart for systematic review"""

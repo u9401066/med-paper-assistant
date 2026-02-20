@@ -5,6 +5,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+.mypy_cache/
 
 # IDE
 .idea/
@@ -36,6 +37,12 @@ tests/test_results/
 # Foam test directory
 test_foam_refs/
 
+# Prevent root-level test pollution (tests use tmp_path)
+/test_data/
+/test_results/
+/test_export/
+/test_formatter/
+
 # Legacy root directories (should not exist)
 /drafts/
 /references/
@@ -49,3 +56,4 @@ test_foam_refs/
 
 # Memory Bank is tracked (DO NOT ignore)
 # memory-bank/
+.coverage

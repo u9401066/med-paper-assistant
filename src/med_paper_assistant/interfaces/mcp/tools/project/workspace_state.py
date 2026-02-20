@@ -64,8 +64,8 @@ def register_workspace_state_tools(mcp: FastMCP):
             return f"""✅ Workspace state synced!
 
 **Current State:**
-- Doing: {doing or '(not specified)'}
-- Next Action: {next_action or '(not specified)'}
+- Doing: {doing or "(not specified)"}
+- Next Action: {next_action or "(not specified)"}
 - Context: {len(context_list) if context_list else 0} items saved
 
 💡 This state will be available in future sessions via `get_workspace_state`."""

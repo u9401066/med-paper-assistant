@@ -1,448 +1,342 @@
-# MedPaper Assistant - Architecture Documentation
+# MedPaper Assistant — Architecture
 
 ## Overview
 
-MedPaper Assistant is an MCP (Model Context Protocol) server that helps researchers write medical papers. It provides tools for project management, reference storage, draft creation, and Word document export.
+MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫作環境**。
 
-## 🏗️ MCP Orchestration Architecture
-
-```mermaid
-flowchart TB
-    subgraph User["👤 User Layer"]
-        VSCode["VS Code"]
-        Foam["Foam Extension<br/>[[wikilinks]], hover, backlinks"]
-    end
-    
-    subgraph Agent["🤖 VS Code Copilot Agent"]
-        Prompt["User Prompt<br/>/mdpaper.search<br/>/mdpaper.concept<br/>/mdpaper.draft"]
-        Orchestrator["Orchestrator<br/>Coordinates MCP calls"]
-    end
-    
-    subgraph MCPs["MCP Servers (stdio)"]
-        subgraph mdpaper["📝 mdpaper (this project)"]
-            direction TB
-            PM["🗂️ Project Manager<br/>create, switch, list"]
-            RM["📚 Reference Manager<br/>save, search, format"]
-            DM["✍️ Draft Manager<br/>write, cite, validate"]
-            AN["📊 Analyzer<br/>stats, Table 1, plots"]
-            WE["📄 Word Export<br/>template, insert, save"]
-        end
-        
-        subgraph pubmed["🔍 pubmed-search-mcp<br/>(submodule)"]
-            Search["search_literature"]
-            Fetch["fetch_article_details"]
-            PICO["parse_pico"]
-            Related["find_related/citing"]
-            Session["session management"]
-        end
-        
-        subgraph cgu["💡 cgu<br/>(submodule)"]
-            Ideas["generate_ideas"]
-            Think["deep_think"]
-            Methods["apply_method"]
-        end
-        
-        subgraph external["🔌 External MCPs (uvx)"]
-            Drawio["🎨 drawio<br/>CONSORT/PRISMA diagrams"]
-            Zotero["📖 zotero-keeper<br/>import from Zotero"]
-        end
-    end
-    
-    subgraph Storage["💾 Local Storage"]
-        Projects["projects/{slug}/<br/>concept.md<br/>drafts/<br/>references/<br/>data/<br/>results/"]
-    end
-    
-    VSCode --> Foam
-    Foam --> |"[[citation_key]]"| Projects
-    VSCode --> Agent
-    
-    Prompt --> Orchestrator
-    Orchestrator --> |"search"| pubmed
-    Orchestrator --> |"save/cite"| mdpaper
-    Orchestrator --> |"brainstorm"| cgu
-    Orchestrator --> |"diagram"| Drawio
-    Orchestrator --> |"import"| Zotero
-    
-    pubmed --> |"article metadata"| Orchestrator
-    Zotero --> |"item data"| Orchestrator
-    Orchestrator --> |"save_reference()"| RM
-    
-    mdpaper --> Projects
-```
-
-### Complete Integration Stack
-
-| Component | Type | Purpose | Tools/Features |
-|-----------|------|---------|----------------|
-| **mdpaper** | Core MCP | Paper writing orchestration | 46 tools: projects, references, drafts, analysis, export |
-| **pubmed-search** | Submodule | Literature search | 20+ tools: search, PICO, citations, session |
-| **cgu** | Submodule | Creative thinking | Ideas generation, deep think, methods |
-| **drawio** | External (uvx) | Diagram generation | CONSORT, PRISMA flowcharts |
-| **zotero-keeper** | External (uvx) | Reference import | Import from Zotero library |
-| **Foam** | VS Code Extension | Reference linking | Wikilinks, hover preview, backlinks, graph |
-
-### Key Design Principle
-
-**MCP-to-MCP Communication: Layered Trust Architecture**
+它不是一個獨立的應用程式，而是一組 MCP Server + VS Code Extension + Copilot Skills，讓研究者在 VS Code 中完成從文獻搜尋到 Word/LaTeX 匯出的完整論文流程。
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                           Agent Layer                                   │
-│  "save reference PMID:24891204, 這篇討論 airway 併發症很重要"           │
-└────────────────────────────┬───────────────────────────────────────────┘
-                             │ Only passes: pmid + agent_notes
-                             ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                         mdpaper MCP                                     │
-│  save_reference(pmid="24891204", agent_notes="...", relevance="high")  │
-│                             │                                           │
-│                             ▼                                           │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │        Direct HTTP API Call (MCP-to-MCP)                         │  │
-│  │        GET /api/cached_article/24891204                          │  │
-│  │        → Retrieves verified data directly from cache             │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────┬───────────────────────────────────────────┘
-                             │ Returns verified PubMed data
-                             ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                      pubmed-search MCP                                  │
-│  Session Cache: {24891204: {title, authors, journal, year, ...}}       │
-│  Returns: {source: "pubmed", verified: true, data: {...}}              │
-└────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  VS Code                                                        │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Copilot Agent Mode（大腦 / 編排層）                       │  │
+│  │  Skills + Prompts 定義 SOP                                │  │
+│  └────────┬──────────┬──────────┬──────────┬─────────────────┘  │
+│           │          │          │          │                     │
+│      ┌────▼───┐ ┌────▼───┐ ┌───▼────┐ ┌──▼──────┐             │
+│      │mdpaper │ │pubmed- │ │  cgu   │ │ drawio  │  MCP        │
+│      │  MCP   │ │search  │ │  MCP   │ │  MCP    │  Servers    │
+│      └────┬───┘ └────────┘ └────────┘ └─────────┘             │
+│           │                                                     │
+│      ┌────▼──────────────────────────────────────┐             │
+│      │  projects/{slug}/                          │  Shared     │
+│      │    concept.md · drafts/ · references/      │  Filesystem │
+│      └───────────────────────────────────────────┘             │
+│           │              │                                      │
+│      ┌────▼───┐     ┌───▼──────┐                               │
+│      │  Foam  │     │Dashboard │  VS Code Extensions            │
+│      │ (refs) │     │(Next.js) │                                │
+│      └────────┘     └──────────┘                               │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**Why This Design?**
+**核心設計原則**：檔案系統是共享狀態。所有元件（MCP Server、Dashboard、Foam）讀寫同一個 `projects/` 目錄。
 
-| Approach | Data Integrity | Efficiency | Risk |
-|----------|----------------|------------|------|
-| Agent passes full JSON | ⚠️ Agent can modify | ❌ Large payload | Agent hallucination |
-| **Direct MCP-to-MCP API** | ✅ Verified data | ✅ Only PMID passed | ✅ Zero risk |
-| Fallback: re-fetch | ✅ Verified | ❌ Extra API call | Rate limiting |
+---
 
-**Layered Trust in Reference Files:**
+## MCP Server（DDD Architecture）
 
-```yaml
-# === VERIFIED (from pubmed-search, immutable) ===
-title: "Complications of airway management"
-author: [{family: Pacheco-Lopez, given: Paulette C}, ...]
-year: 2014
-_source: {mcp: pubmed-search, verified: true}
+主要的 Python MCP Server，提供 ~46 個 tools。
 
-# === AGENT (AI-generated, clearly marked) ===
-_agent:
-  notes: "這篇 review 討論呼吸道管理併發症..."
-  relevance: high
-  added_by: copilot
-
-# === USER (human notes, editable) ===
-_user:
-  notes: ""
-  highlights: []
-```
-
-### Multi-Source Reference Support
-
-```mermaid
-flowchart LR
-    subgraph Sources["Reference Sources"]
-        PubMed["🔬 PubMed<br/>PMID"]
-        Zotero["📚 Zotero<br/>Item Key"]
-        DOI["🔗 DOI Only"]
-    end
-    
-    subgraph Converter["Domain Service"]
-        RC["ReferenceConverter"]
-    end
-    
-    subgraph Storage["Storage"]
-        RM2["ReferenceManager"]
-        Files["references/{unique_id}/"]
-    end
-    
-    PubMed --> |"article dict"| RC
-    Zotero --> |"item dict"| RC
-    DOI --> |"doi string"| RC
-    
-    RC --> |"StandardizedReference"| RM2
-    RM2 --> Files
-```
-
-**ReferenceId Priority**: PMID > Zotero Key > DOI
-
-## Project Structure
+### 層級結構
 
 ```
-med-paper-assistant/
-├── src/
-│   └── med_paper_assistant/
-│       ├── core/                    # Core business logic
-│       │   ├── entrez/              # 🆕 Modular Entrez package
-│       │   │   ├── __init__.py      # Package exports
-│       │   │   ├── base.py          # EntrezBase class
-│       │   │   ├── search.py        # SearchMixin (esearch, efetch)
-│       │   │   ├── pdf.py           # PDFMixin (PMC fulltext)
-│       │   │   ├── citation.py      # CitationMixin (elink)
-│       │   │   ├── batch.py         # BatchMixin (history server)
-│       │   │   └── utils.py         # UtilsMixin (esummary, espell, etc.)
-│       │   ├── analyzer.py          # Data analysis and statistics
-│       │   ├── drafter.py           # Draft creation and citation formatting
-│       │   ├── exporter.py          # Legacy Word export
-│       │   ├── formatter.py         # Document formatting
-│       │   ├── logger.py            # Logging configuration
-│       │   ├── prompts.py           # Section writing guidelines
-│       │   ├── reference_manager.py # Reference storage and retrieval
-│       │   ├── search.py            # Backward-compatible facade → entrez/
-│       │   ├── strategy_manager.py  # Search strategy persistence
-│       │   ├── template_reader.py   # Word template analysis
-│       │   └── word_writer.py       # Precise Word document manipulation
-│       │
-│       ├── mcp_server/              # MCP Server layer
-│       │   ├── server.py            # Main entry point
-│       │   ├── config.py            # Server configuration
-│       │   ├── tools/               # MCP tool definitions
-│       │   │   ├── __init__.py
-│       │   │   ├── search_tools.py      # Literature search tools
-│       │   │   ├── reference_tools.py   # Reference management tools
-│       │   │   ├── draft_tools.py       # Draft creation tools
-│       │   │   ├── analysis_tools.py    # Data analysis tools
-│       │   │   └── export_tools.py      # Word export tools
-│       │   │
-│       │   ├── prompts/             # MCP prompt definitions
-│       │   │   ├── __init__.py
-│       │   │   └── prompts.py       # Guided workflow prompts
-│       │   │
-│       │   └── templates/           # Internal templates (concept)
-│       │       ├── concept_template.md
-│       │       └── README.md
-│       │
-│       └── templates/               # Document templates
-│           └── general_medical_journal.md
+src/med_paper_assistant/
+├── domain/                          # 領域層：純業務邏輯，無外部依賴
+│   ├── entities/                    # 實體
+│   │   ├── project.py              #   Project（專案）
+│   │   ├── reference.py            #   Reference（文獻）
+│   │   └── draft.py                #   Draft（草稿）
+│   ├── value_objects/               # 值物件
+│   │   ├── reference_id.py         #   ReferenceId（PMID > Zotero > DOI）
+│   │   ├── citation.py             #   Citation
+│   │   └── search_criteria.py      #   SearchCriteria（Pydantic）
+│   ├── services/                    # 領域服務
+│   │   ├── reference_converter.py  #   多來源文獻轉換
+│   │   ├── novelty_scorer.py       #   新穎性評分
+│   │   ├── citation_formatter.py   #   引用格式化
+│   │   ├── wikilink_validator.py   #   [[wikilink]] 驗證
+│   │   └── pre_analysis_checklist.py
+│   └── paper_types.py              # 論文類型定義
 │
-├── tests/                           # Test files
-├── drafts/                          # Generated drafts (gitignored)
-├── data/                            # Analysis data files
-├── templates/                       # Word templates (.docx)
-├── references/                      # Saved references (gitignored)
-└── results/                         # Exported documents (gitignored)
+├── application/                     # 應用層：Use Case 編排
+│   └── use_cases/
+│       ├── save_reference.py       #   儲存文獻（MCP-to-MCP 驗證流程）
+│       └── create_project.py       #   建立專案
+│
+├── infrastructure/                  # 基礎設施層：外部世界的實作
+│   ├── persistence/                 # 持久化
+│   │   ├── project_manager.py      #   專案 CRUD + Exploration
+│   │   ├── reference_manager.py    #   文獻存儲
+│   │   ├── project_repository.py   #   專案 Repository
+│   │   ├── reference_repository.py #   文獻 Repository
+│   │   ├── file_storage.py         #   檔案儲存抽象
+│   │   ├── workspace_state_manager.py  # 跨 Session 狀態
+│   │   └── project_memory_manager.py   # AI 記憶管理
+│   ├── services/                    # 外部服務
+│   │   ├── drafter.py              #   草稿撰寫 + wikilink 引用
+│   │   ├── formatter.py            #   引用格式化（Vancouver/APA/...）
+│   │   ├── analyzer.py             #   統計分析 + Table 1
+│   │   ├── concept_validator.py    #   概念驗證（Three Reviewers Model）
+│   │   ├── word_writer.py          #   Word 文件操作
+│   │   ├── template_reader.py      #   Word 模板解析
+│   │   ├── exporter.py             #   Legacy Word 匯出
+│   │   ├── foam_settings.py        #   Foam 設定動態更新
+│   │   ├── pubmed_api_client.py    #   MCP-to-MCP HTTP client
+│   │   ├── citation_assistant.py   #   引用助手
+│   │   ├── concept_template_reader.py
+│   │   └── prompts.py              #   Section 寫作指引
+│   ├── external/                    # 外部 MCP 整合
+│   ├── config.py                    # 配置
+│   └── logging.py                   # 日誌
+│
+├── interfaces/                      # 介面層：MCP Protocol 對接
+│   └── mcp/
+│       ├── server.py               #   create_server() → FastMCP
+│       ├── __main__.py             #   Entry point（python -m）
+│       ├── config.py               #   SERVER_INSTRUCTIONS
+│       ├── instructions.py         #   動態指令生成
+│       ├── prompts/                #   MCP Prompts
+│       └── tools/                  #   MCP Tools（7 groups）
+│           ├── project/            #     CRUD, settings, exploration, diagrams
+│           ├── reference/          #     save, search, format, citations
+│           ├── draft/              #     write, read, cite, templates
+│           ├── validation/         #     concept validation, novelty
+│           ├── analysis/           #     stats, Table 1, plots
+│           ├── review/             #     reviewer response, consistency
+│           ├── export/             #     Word document pipeline
+│           ├── discussion/         #     debate/discussion tools
+│           └── _shared/            #     共用 helpers
+│
+└── shared/                          # 共用
+    ├── constants.py
+    └── exceptions.py
 ```
 
-## Architecture Layers
-
-### 1. Core Layer (`core/`)
-
-The core layer contains all business logic, independent of the MCP protocol:
-
-| Module | Responsibility |
-|--------|----------------|
-| `entrez/` | 🆕 Modular Entrez package with all 9 Entrez utilities |
-| `search.py` | Backward-compatible facade → entrez/ package |
-| `reference_manager.py` | Local reference storage, metadata management |
-| `drafter.py` | Draft file creation, citation formatting |
-| `analyzer.py` | CSV data analysis, statistics, Table 1 generation |
-| `template_reader.py` | Word template structure analysis |
-| `word_writer.py` | Precise Word document manipulation |
-| `formatter.py` | Document formatting utilities |
-| `strategy_manager.py` | Search strategy persistence |
-
-### Entrez Submodules (`core/entrez/`)
-
-The Entrez package encapsulates all PubMed API operations:
-
-| Module | Mixin Class | Entrez Utils | Methods |
-|--------|-------------|--------------|---------|
-| `base.py` | `EntrezBase` | - | Configuration (email, api_key) |
-| `search.py` | `SearchMixin` | esearch, efetch | search, fetch_details, filter_results |
-| `pdf.py` | `PDFMixin` | - | get_pmc_fulltext_url, download_pmc_pdf |
-| `citation.py` | `CitationMixin` | elink | get_related_articles, get_citing_articles, get_article_references |
-| `batch.py` | `BatchMixin` | history | search_with_history, fetch_batch_from_history |
-| `utils.py` | `UtilsMixin` | esummary, espell, egquery, einfo, ecitmatch | quick_fetch_summary, spell_check_query, validate_mesh_terms, find_by_citation, export_citations, get_database_info, get_database_counts |
-
-The `LiteratureSearcher` class uses multiple inheritance to combine all mixins:
-
-```python
-class LiteratureSearcher(SearchMixin, PDFMixin, CitationMixin, BatchMixin, UtilsMixin, EntrezBase):
-    """Unified interface for all Entrez operations."""
-    pass
-```
-
-### 2. MCP Server Layer (`mcp_server/`)
-
-The MCP server layer exposes core functionality through the MCP protocol:
+### 依賴方向
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        server.py                             │
-│  - Creates FastMCP instance                                  │
-│  - Initializes core modules                                  │
-│  - Registers tools and prompts                               │
-└─────────────────────────────────────────────────────────────┘
-                              │
-          ┌───────────────────┼───────────────────┐
-          │                   │                   │
-          ▼                   ▼                   ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│    tools/       │  │   prompts/      │  │    config.py    │
-│                 │  │                 │  │                 │
-│ search_tools    │  │ concept         │  │ SERVER_         │
-│ reference_tools │  │ strategy        │  │ INSTRUCTIONS    │
-│ draft_tools     │  │ draft           │  │                 │
-│ analysis_tools  │  │ analysis        │  │ DEFAULT_        │
-│ export_tools    │  │ clarify         │  │ WORD_LIMITS     │
-│                 │  │ format          │  │                 │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
+interfaces → application → domain ← infrastructure
+     │              │          ↑           │
+     │              │          │           │
+     └── MCP ───────┘    純邏輯/無依賴  ───┘
 ```
 
-## Tool Categories
+- **Domain** 不依賴任何外部套件（除 Pydantic）
+- **Application** 只依賴 Domain
+- **Infrastructure** 實作 Domain 定義的介面
+- **Interfaces** 將 MCP Protocol 對接到 Application/Infrastructure
 
-### Search Tools (`search_tools.py`)
-- `configure_search_strategy` - Save structured search criteria
-- `get_search_strategy` - Retrieve saved strategy
-- `search_literature` - Search PubMed with various strategies
+---
 
-### Reference Tools (`reference_tools.py`)
-- `save_reference` - Save a reference to local library
-- `list_saved_references` - List all saved references
-- `search_local_references` - Search within saved references
-- `set_citation_style` - Set citation format (Vancouver, APA, etc.)
-- `format_references` - Format references for bibliography
+## External MCP Servers
 
-### Draft Tools (`draft_tools.py`)
-- `draft_section` - Draft a paper section from notes
-- `get_section_template` - Get writing guidelines
-- `write_draft` - Create draft with citations
-- `insert_citation` - Add citation to existing draft
-- `list_drafts` - List available drafts
-- `read_draft` - Read draft structure and content
-- `count_words` - Count words per section
+Copilot Agent Mode 同時連接多個 MCP Server：
 
-### Analysis Tools (`analysis_tools.py`)
-- `analyze_dataset` - Get descriptive statistics
-- `generate_table_one` - Create baseline characteristics table
-- `run_statistical_test` - Run t-test, correlation, etc.
-- `create_plot` - Generate visualizations
+| Server | 來源 | 用途 | Tools 數量 |
+|--------|------|------|-----------|
+| **mdpaper** | 本專案 | 專案管理、草稿、引用、匯出 | ~46 |
+| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule) | PubMed 文獻搜尋 | ~30 |
+| **cgu** | `integrations/cgu/` (submodule) | 創意發想（快思慢想） | ~6 |
+| **drawio** | `uvx drawio-mcp-server` | CONSORT/PRISMA 圖表 | ~5 |
+| **zotero-keeper** | `uvx zotero-keeper` | Zotero 書目管理 | ~15 |
 
-### Export Tools (`export_tools.py`)
-- `export_word` - Legacy simple export
-- `list_templates` - List available Word templates
-- `read_template` - Analyze template structure
-- `start_document_session` - Begin editing session
-- `insert_section` - Insert content into section
-- `verify_document` - Check document state
-- `check_word_limits` - Verify word limits
-- `save_document` - Save final document
+### MCP-to-MCP 通訊
+
+文獻儲存採用**分層信任架構**，避免 Agent 幻覺污染書目資料：
+
+```
+Agent: "存這篇 PMID:24891204"
+    │
+    │  只傳 PMID + agent_notes
+    ▼
+mdpaper MCP: save_reference_mcp(pmid="24891204")
+    │
+    │  Direct HTTP API（不經過 Agent）
+    ▼
+pubmed-search MCP: /api/cached_article/24891204
+    │
+    │  回傳驗證過的 PubMed 資料
+    ▼
+Reference file:
+  🔒 VERIFIED: title, authors, journal（PubMed 原始資料，不可修改）
+  🤖 AGENT:    notes, relevance（AI 產生，清楚標記）
+  ✏️ USER:     highlights（人類筆記，AI 不碰觸）
+```
+
+---
+
+## VS Code Extension
+
+[vscode-extension/](vscode-extension/) — TypeScript，提供三個功能：
+
+1. **MCP Server 註冊**：自動啟動 mdpaper、cgu、drawio MCP servers
+2. **Chat Participant**：`@mdpaper` with `/search`, `/draft`, `/concept`, `/project`, `/format`
+3. **Commands**：`mdpaper.startServer`, `mdpaper.stopServer`, `mdpaper.showStatus`
+
+---
+
+## Foam Integration
+
+Foam (VS Code extension) 提供論文引用的知識圖譜功能：
+
+- 每篇文獻存為 Markdown note（含 YAML frontmatter）在 `projects/{slug}/references/{pmid}/`
+- 草稿中用 `[[citation_key]]` wikilink 引用
+- `Drafter.sync_references_from_wikilinks()` 掃描 wikilinks 產生 References section
+- `foam_settings.py` 動態切換專案範圍（只顯示當前專案的引用圖譜）
+- Hover preview 顯示論文摘要，autocomplete 補全論文標題
+
+---
+
+## Dashboard
+
+[dashboard/](dashboard/) — Next.js + React + Tailwind，嵌入 VS Code Simple Browser：
+
+- 專案切換 UI
+- 寫作進度追蹤
+- 內嵌 Draw.io 編輯器
+- 與 MCP Server 共享同一個 `projects/` 目錄（直接讀檔案系統）
+
+---
+
+## Copilot Skills & Prompts
+
+行為指引層（不是代碼，是 Copilot 的 SOP）：
+
+| 類型 | 位置 | 數量 | 作用 |
+|------|------|------|------|
+| **Skills** | `.claude/skills/*/SKILL.md` | 21 | 單一任務的知識（如何組合 tools） |
+| **Prompts** | `.github/prompts/*.prompt.md` | 14 | 高層編排（多 skill 組合的工作流程） |
+| **Bylaws** | `.github/bylaws/*.md` | 4 | 規範（架構、git、memory、python 環境） |
+| **Instructions** | `.github/copilot-instructions.md` | 1 | 全域指引入口 |
+
+層級關係：
+```
+Capability (Prompt) = 編排多個 Skills 完成完整任務
+Skill               = 知道如何使用多個 Tools
+Tool                = 單一 MCP 操作
+```
+
+---
+
+## Project Structure（每個研究專案）
+
+```
+projects/{slug}/
+├── project.json          # 專案元資料（paper_type, sections, status）
+├── concept.md            # 研究概念（NOVELTY STATEMENT, KEY SELLING POINTS）
+├── .memory/              # AI 記憶
+│   ├── activeContext.md  #   當前工作焦點
+│   └── progress.md       #   研究進度
+├── drafts/               # 論文草稿（Markdown）
+├── references/           # 文獻（每個 PMID 一個子目錄）
+│   └── {pmid}/
+│       └── metadata.json
+├── data/                 # 分析用 CSV
+└── results/              # 匯出結果（.docx, figures）
+```
+
+---
 
 ## Key Workflows
 
-### Word Export Workflow (8 Steps)
+### 1. 文獻搜尋 → 儲存
 
 ```
-1. read_template     → Get template structure
-2. read_draft        → Get draft content
-3. Agent Decision    → Map draft sections to template sections
-4. insert_section    → Insert content (repeat for each section)
-5. verify_document   → Check content placement
-6. Agent Review      → Verify logic and flow
-7. check_word_limits → Verify word limits
-8. save_document     → Save final output
+pubmed-search: search_literature(query)
+    → Agent 選擇文獻
+    → mdpaper: save_reference_mcp(pmid) → Direct API → 驗證資料存入 references/
 ```
 
-### Citation Styles Supported
+### 2. 草稿撰寫
 
-| Style | Format Example |
-|-------|----------------|
+```
+mdpaper: get_section_template(section)
+    → Agent 撰寫內容
+    → mdpaper: write_draft(filename, content)
+    → 草稿中用 [[wikilink]] 引用文獻
+    → mdpaper: sync_references() → 掃描 wikilinks → 產生 References section
+```
+
+### 3. Word 匯出
+
+```
+mdpaper: list_templates() → read_template()
+    → mdpaper: start_document_session()
+    → mdpaper: insert_section() × N
+    → mdpaper: check_word_limits()
+    → mdpaper: save_document()
+```
+
+### 4. 概念驗證
+
+```
+mdpaper: validate_concept(concept.md)
+    → Three Reviewers Model（Methodology, Evidence, Clinical Impact）
+    → Novelty Score ≥ 75 → 允許開始撰寫草稿
+```
+
+---
+
+## Citation Styles
+
+| Style | 範例 |
+|-------|------|
 | Vancouver | `[1] Kim SH, Lee JW. Title. Journal 2024; 1: 1-10.` |
 | APA | `Kim, S.H., Lee, J.W. (2024). Title. *Journal*, 1, 1-10.` |
 | Harvard | `Kim, S.H. (2024) 'Title', *Journal*, vol. 1, pp. 1-10.` |
 | Nature | `1. Kim SH, Lee JW. Title. Journal 1, 1-10 (2024).` |
 | AMA | `1. Kim SH, Lee JW. Title. Journal 1, 1-10 (2024).` |
-| MDPI | `1. Kim, S.H.; Lee, J.W. Title. *Journal* **2024**, *1*, 1-10.` |
 
-## Design Principles
-
-### 1. Separation of Concerns
-- Core logic is independent of MCP protocol
-- Each tool module handles one category of functionality
-- Prompts are separate from tool implementations
-
-### 2. Agent-Centric Design
-- The MCP server provides tools, not automation
-- The AI Agent decides how to use tools
-- Complex workflows rely on Agent decision-making
-
-### 3. Extensibility
-- New tools can be added by creating new tool modules
-- New citation styles can be added to `reference_tools.py`
-- New prompts can be added to `prompts.py`
-
-### 4. State Management
-- Document sessions use in-memory state (`_active_documents`)
-- References are stored locally in `references/` directory
-- Drafts are stored in `drafts/` directory
-
-## Adding New Features
-
-### Adding a New Tool
-
-1. Choose the appropriate tool module (or create a new one)
-2. Add the tool function with `@mcp.tool()` decorator
-3. Update `__init__.py` if creating a new module
-4. Register in `server.py` if new module
-
-Example:
-```python
-# In tools/new_tools.py
-def register_new_tools(mcp: FastMCP, dependency: SomeClass):
-    @mcp.tool()
-    def my_new_tool(param: str) -> str:
-        """Tool description."""
-        return dependency.do_something(param)
-```
-
-### Adding a New Prompt
-
-1. Add to `prompts/prompts.py`
-2. Use `@mcp.prompt()` decorator
-
-Example:
-```python
-@mcp.prompt(name="my_prompt", description="Description")
-def my_prompt(param: str) -> str:
-    return f"Help me with: {param}"
-```
-
-### Adding a New Citation Style
-
-1. Add style configuration to `STYLE_CONFIGS` in `reference_tools.py`
-2. Add format logic in `build_reference_string()` function
+---
 
 ## Dependencies
 
-- `mcp` - Model Context Protocol SDK
-- `python-docx` - Word document manipulation
-- `pandas` - Data analysis
-- `scipy` - Statistical tests
-- `matplotlib` - Plotting
-- `Bio.Entrez` - PubMed API access
+### Python (managed by uv)
 
-## Configuration
+| 套件 | 用途 |
+|------|------|
+| `mcp[cli]` | Model Context Protocol SDK |
+| `python-docx` | Word 文件操作 |
+| `pandas` | 資料分析 |
+| `scipy` | 統計檢定 |
+| `matplotlib` / `seaborn` | 繪圖 |
+| `pydantic` | 資料驗證 |
+| `tabulate` | 表格格式化 |
+| `httpx` | MCP-to-MCP HTTP 通訊 |
 
-### Environment Variables
-- None required (uses defaults)
+### Dev Tools
 
-### Configuration Files
-- `search_strategy.json` - Saved search strategy
-- `templates/*.docx` - Word templates
-- `references/*/metadata.json` - Reference metadata
+| 工具 | 用途 |
+|------|------|
+| `uv` | 套件管理（唯一，禁止 pip） |
+| `ruff` | Lint + Format |
+| `mypy` | Type checking |
+| `bandit` | Security scanning |
+| `pytest` | Testing |
+| `pre-commit` | Git hooks |
 
-## Testing
+---
 
-Run tests with:
-```bash
-pytest tests/
+## Workspace Layout
+
 ```
-
-Key test files:
-- `test_mcp_integration.py` - MCP server integration tests
-- `test_workflow.py` - End-to-end workflow tests
-- `test_export.py` - Word export tests
+med-paper-assistant/
+├── src/med_paper_assistant/    # MCP Server（DDD）
+├── integrations/               # 外部 MCP Servers（git submodules）
+│   ├── pubmed-search-mcp/      #   PubMed 搜尋
+│   └── cgu/                    #   創意發想
+├── vscode-extension/           # VS Code Extension
+├── dashboard/                  # Next.js Dashboard
+├── templates/                  # Word 模板（.docx）
+├── projects/                   # 研究專案（每個 slug 一個目錄）
+├── tests/                      # 測試
+├── scripts/                    # 工具腳本
+├── docs/                       # 設計文件
+├── memory-bank/                # 全域 AI 記憶
+├── .claude/skills/             # Copilot Skills（21 個）
+├── .github/prompts/            # Copilot Prompts（14 個）
+├── .github/bylaws/             # 規範（4 個）
+└── .pre-commit-config.yaml     # Git hooks
+```

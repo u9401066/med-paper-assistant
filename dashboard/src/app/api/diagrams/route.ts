@@ -17,13 +17,13 @@ interface Diagram {
 // GET /api/diagrams?project=slug - List diagrams for a project
 export async function GET(request: NextRequest) {
   const projectSlug = request.nextUrl.searchParams.get('project');
-  
+
   if (!projectSlug) {
     return NextResponse.json({ error: 'Project slug required' }, { status: 400 });
   }
 
   const figuresDir = join(PROJECTS_DIR, projectSlug, 'results', 'figures');
-  
+
   if (!existsSync(figuresDir)) {
     return NextResponse.json({ diagrams: [], projectSlug });
   }
@@ -31,13 +31,13 @@ export async function GET(request: NextRequest) {
   try {
     const files = await readdir(figuresDir);
     const drawioFiles = files.filter(f => f.endsWith('.drawio') || f.endsWith('.drawio.xml'));
-    
+
     const diagrams: Diagram[] = await Promise.all(
       drawioFiles.map(async (fileName) => {
         const filePath = join(figuresDir, fileName);
         const stats = await stat(filePath);
         const name = fileName.replace(/\.drawio(\.xml)?$/, '');
-        
+
         return {
           id: Buffer.from(fileName).toString('base64url'),
           name,

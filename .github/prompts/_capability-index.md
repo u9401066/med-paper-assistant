@@ -1,7 +1,7 @@
 # Capability Index
 
 > ⚠️ **Agent 必讀**：此檔案定義所有可用 Capabilities 及其自動觸發條件。
-> 
+>
 > 當用戶意圖匹配任一 Capability 時，Agent 應主動載入對應的 Prompt File。
 
 ---
@@ -74,7 +74,7 @@
 | **Prompt File** | `release-prep.prompt.md` |
 | **觸發語** | 準備發布、release、版本發布、上線前 |
 | **情境觸發** | 用戶說「做完了」「可以上線」|
-| **編排 Skills** | git-precommit → changelog-updater → readme-updater → roadmap-updater |
+| **編排 Skills** | code-reviewer → changelog-updater → readme-updater → roadmap-updater → git-precommit |
 
 ---
 
@@ -111,7 +111,7 @@ Agent：
    1. 先讀取 reviewer comments
    2. 分析需要修改的部分
    3. 逐項回應並修改
-   
+
    要開始嗎？」
 ```
 

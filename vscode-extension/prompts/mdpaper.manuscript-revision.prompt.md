@@ -184,24 +184,24 @@ Response letter 包含：
 ### 同意並修改
 
 ```
-Thank you for this valuable suggestion. We have revised 
+Thank you for this valuable suggestion. We have revised
 the manuscript accordingly. [具體說明修改內容]
 ```
 
 ### 部分同意
 
 ```
-We appreciate this comment. While we agree that [X], 
-we believe [Y] because [原因]. However, we have added 
+We appreciate this comment. While we agree that [X],
+we believe [Y] because [原因]. However, we have added
 [補充說明] to address this concern.
 ```
 
 ### 不同意但尊重
 
 ```
-We thank the reviewer for raising this point. We 
-respectfully disagree because [有力證據]. However, 
-we have added a discussion of this limitation in 
+We thank the reviewer for raising this point. We
+respectfully disagree because [有力證據]. However,
+we have added a discussion of this limitation in
 the Discussion section (Page X, Lines Y-Z).
 ```
 

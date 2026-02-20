@@ -82,26 +82,26 @@ def analyze_citation_needs(
 ) -> str:
     """
     分析文本中每個句子的引用需求。
-    
+
     分類標準（Rule-based + NLP）：
-    
+
     🔴 MUST_CITE (必須引用):
        - 統計數據: "15% of patients...", "mortality rate is..."
        - 比較結論: "A is better than B", "showed superior outcomes"
        - 他人研究結果: "Previous studies demonstrated..."
        - 指南/共識: "Guidelines recommend..."
-       
+
     🟡 SHOULD_CITE (建議引用):
        - 背景事實: "Diabetes affects millions..."
        - 定義: "Sepsis is defined as..."
        - 一般性陳述: "It is well established that..."
-       
+
     🟢 NO_CITE (不需引用):
        - 自己的研究方法: "We enrolled 100 patients"
        - 自己的結果: "Our results showed..."
        - 邏輯推論: "Therefore, we hypothesized..."
        - 研究目的: "The aim of this study was..."
-    
+
     Args:
         text: 要分析的文本（可以是段落或整個 section）
         section: 文章章節，影響分析策略
@@ -109,7 +109,7 @@ def analyze_citation_needs(
                  - Methods: 只有參考方法需要引用
                  - Results: 只有比較他人結果需要引用
                  - Discussion: 與他人研究比較需要引用
-    
+
     Returns:
         JSON report:
         {
@@ -175,15 +175,15 @@ def find_supporting_references(
 ) -> str:
     """
     為特定 claim 尋找支持的引用。
-    
+
     搜尋策略：
     1. 先搜尋本地 references/（使用 semantic search）
     2. 如果本地沒有，生成 PubMed 搜尋建議
     3. 根據 claim_type 調整搜尋策略
-    
+
     Args:
         claim: 需要支持的陳述
-        claim_type: 
+        claim_type:
             - "statistical": 找原始數據來源
             - "comparison": 找比較性研究（RCT、meta-analysis）
             - "background": 找 review 或權威來源
@@ -192,7 +192,7 @@ def find_supporting_references(
         search_local: 是否搜尋本地 references/
         search_pubmed: 是否生成 PubMed 搜尋（需要 pubmed-search MCP）
         max_results: 最大結果數
-    
+
     Returns:
         {
             "claim": "Remimazolam has faster onset than midazolam",
@@ -227,7 +227,7 @@ class ReferenceSearcher:
     def __init__(self, references_dir: str):
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self.index = self._build_index(references_dir)
-    
+
     def _build_index(self, references_dir):
         """建立 reference abstracts 的 embedding index"""
         embeddings = []
@@ -239,7 +239,7 @@ class ReferenceSearcher:
             embeddings.append(emb)
             metadata.append(ref)
         return {'embeddings': np.array(embeddings), 'metadata': metadata}
-    
+
     def search(self, query: str, top_k: int = 5):
         """Semantic search for relevant references"""
         query_emb = self.model.encode(query)
@@ -259,14 +259,14 @@ def verify_citation_support(
 ) -> str:
     """
     驗證引用是否真的支持所述 claim。
-    
+
     這是解決「引用存在但不支持 claim」問題的關鍵工具。
-    
+
     驗證邏輯：
     1. 讀取 citation 的 abstract/fulltext
     2. 檢查 claim 的核心論點是否在 citation 中有對應
     3. 分析支持程度
-    
+
     Args:
         claim: 文中的陳述
         citation_key: 引用的 citation key（如 "smith2020_12345678"）
@@ -274,7 +274,7 @@ def verify_citation_support(
             - "strict": 需要直接、明確的支持
             - "moderate": 允許合理推論的支持
             - "lenient": 主題相關即可
-    
+
     Returns:
         {
             "claim": "Remimazolam causes less hypotension",
@@ -292,7 +292,7 @@ def verify_citation_support(
             "warnings": [],
             "recommendation": "✅ Citation supports claim"
         }
-        
+
         # 如果不支持：
         {
             "verification": {
@@ -320,21 +320,21 @@ def write_paragraph_with_citations(
 ) -> str:
     """
     根據要點撰寫段落，同時即時插入引用。
-    
+
     這是解決「事後補引用」問題的關鍵工具。
-    
+
     流程：
     1. 分析每個 key_point 的引用需求
     2. 從 available_references 找匹配
     3. 生成時直接帶 [[citation_key]]
     4. 標記找不到引用的 claims
-    
+
     Args:
         topic: 段落主題
         key_points: 要表達的要點列表
         available_references: 可用的引用 keys
         style: 寫作風格
-    
+
     Returns:
         {
             "paragraph": "Remimazolam, a novel benzodiazepine...",

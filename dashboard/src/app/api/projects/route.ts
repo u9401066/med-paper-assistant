@@ -54,14 +54,14 @@ export async function GET() {
     // 讀取所有專案
     const entries = await fs.readdir(PROJECTS_DIR, { withFileTypes: true });
     const projectDirs = entries.filter(e => e.isDirectory() && !e.name.startsWith('.'));
-    
+
     const projects = await Promise.all(
       projectDirs.map(async (dir) => {
         const projectPath = path.join(PROJECTS_DIR, dir.name);
         const data = await readProjectJson(projectPath);
-        
+
         if (!data) return null;
-        
+
         return {
           name: data.name,
           slug: data.slug || dir.name,
@@ -78,10 +78,10 @@ export async function GET() {
     );
 
     const validProjects = projects.filter(p => p !== null);
-    
+
     // 獲取當前專案
     const currentSlug = await getCurrentProjectSlug();
-    const currentProject = currentSlug 
+    const currentProject = currentSlug
       ? validProjects.find(p => p.slug === currentSlug) || null
       : null;
 

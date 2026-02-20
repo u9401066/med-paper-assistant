@@ -45,7 +45,7 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
 
     Returns:
         Tuple of (can_proceed: bool, message: str, protected_content: dict)
-        
+
     Note: Novelty score is advisory. Low score returns warning, not block.
     """
     concept_path = _get_concept_path()
@@ -90,7 +90,7 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
             "Please fill in your research novelty before writing drafts.",
             {},
         )
-    
+
     if not selling_section or not selling_section.has_content:
         return (
             False,

@@ -1,5 +1,51 @@
 # Decision Log
 
+## [2026-02-20] 架構方向選定：Direction C — Full VSX + Foam + Pandoc
+
+### 背景
+專案大整理時討論核心架構方向：這個專案本質上是什麼？
+
+### 選項
+| 方向 | 說明 |
+|------|------|
+| A. Lightweight | 純 MCP + Shell Prompts（像 Speckit） |
+| B. Slim MCP | 精簡 MCP + 少數 VSX 功能 |
+| **C. Full VSX** | **完整 Extension + Foam + Pandoc** |
+
+### 決定
+選擇方案 C：Full VSX + Foam + Pandoc
+
+### 理由
+- 論文寫作需要比 shell prompts 更豐富的 UI 互動
+- TreeView 顯示專案/文獻、CodeLens 顯示引用資訊、Diagnostics 即時檢查
+- Foam 已深度整合 [[wikilink]]，替換成本高且功能良好
+- Pandoc 能統一 Word/LaTeX 雙格式匯出，取代手工 python-docx
+
+### 影響
+- ROADMAP 新增 Phase 5c
+- VS Code Extension 將大幅擴展（TreeView, CodeLens, Diagnostics, Webview）
+- 新增 Pandoc export pipeline（取代現有 python-docx 基礎的匯出）
+- Foam 保留並強化
+
+---
+
+## [2026-02-20] Infrastructure & Quality Cleanup
+
+### 背景
+專案歷經多次快速疊代，累積了大量技術債：過時的 `core.*` import 路徑、空的 legacy 目錄、測試污染根目錄、缺乏 pre-commit hooks、Copilot hook 文檔不一致。
+
+### 決定
+一次性大整理：5 個項目全部完成。
+
+### 成果
+1. Pre-commit 13 hooks（ruff, mypy, bandit, pytest, whitespace…）
+2. 19 個測試檔 DDD import 遷移 + tmp_path isolation
+3. ARCHITECTURE.md 從 448 行完全重寫
+4. AGENTS.md 補齊 7 skills + 8 prompts
+5. Legacy `core/` 目錄刪除、scripts 精簡
+
+---
+
 ## [2025-01-22] Artifact-Centric Architecture 設計
 
 ### 背景

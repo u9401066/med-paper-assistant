@@ -87,11 +87,11 @@ export function DiagramsPanel({ projectSlug, isVSCodeBrowser }: DiagramsPanelPro
   const handleSave = useCallback(
     async (xml: string) => {
       if (!currentDiagram) return;
-      
-      const fileName = currentDiagram.id === 'new' 
-        ? (newDiagramName || `diagram-${Date.now()}`) 
+
+      const fileName = currentDiagram.id === 'new'
+        ? (newDiagramName || `diagram-${Date.now()}`)
         : undefined;
-      
+
       await saveDiagram(xml, currentDiagram.id, fileName);
     },
     [currentDiagram, newDiagramName, saveDiagram]

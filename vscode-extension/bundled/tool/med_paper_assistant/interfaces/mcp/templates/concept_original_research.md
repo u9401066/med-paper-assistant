@@ -23,19 +23,19 @@
 ## 📝 Participants | 研究對象
 
 ### Inclusion Criteria | 納入條件
-- 
-- 
-- 
+-
+-
+-
 
 ### Exclusion Criteria | 排除條件
-- 
-- 
-- 
+-
+-
+-
 
 ### Sample Size | 樣本數
-- **Target N**: 
-- **Power calculation**: 
-- **Expected dropout**: 
+- **Target N**:
+- **Power calculation**:
+- **Expected dropout**:
 
 ---
 
@@ -52,14 +52,14 @@
 ## 📝 Outcomes | 結果指標
 
 ### Primary Outcome | 主要結果
-- **Variable**: 
-- **Measurement method**: 
-- **Timing**: 
+- **Variable**:
+- **Measurement method**:
+- **Timing**:
 
 ### Secondary Outcomes | 次要結果
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ---
 

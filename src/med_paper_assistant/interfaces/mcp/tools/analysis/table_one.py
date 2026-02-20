@@ -199,7 +199,7 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         cat_vars = ",".join(c[0] for c in categorical[:5]) if categorical else "sex,diabetes"
 
         output += "```\n"
-        output += 'generate_table_one(\n'
+        output += "generate_table_one(\n"
         output += f'    filename="{filename}",\n'
         output += f'    group_col="{group_var}",\n'
         output += f'    continuous_cols="{cont_vars}",\n'
@@ -234,7 +234,9 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         files = [f for f in os.listdir(data_dir) if f.endswith((".csv", ".xlsx", ".xls"))]
 
         if not files:
-            return "📁 No data files found in data/ directory.\n\nSupported formats: .csv, .xlsx, .xls"
+            return (
+                "📁 No data files found in data/ directory.\n\nSupported formats: .csv, .xlsx, .xls"
+            )
 
         output = "## 📁 Available Data Files\n\n"
         output += "| File | Rows | Columns | Size |\n"
@@ -243,7 +245,9 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         for f in sorted(files):
             filepath = os.path.join(data_dir, f)
             size = os.path.getsize(filepath)
-            size_str = f"{size / 1024:.1f} KB" if size < 1024 * 1024 else f"{size / 1024 / 1024:.1f} MB"
+            size_str = (
+                f"{size / 1024:.1f} KB" if size < 1024 * 1024 else f"{size / 1024 / 1024:.1f} MB"
+            )
 
             try:
                 if f.endswith(".csv"):

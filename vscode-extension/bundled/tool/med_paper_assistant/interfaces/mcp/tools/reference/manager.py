@@ -380,7 +380,9 @@ def register_reference_manager_tools(
             return str(e)
 
     @mcp.tool()
-    def format_references(pmids: str, style: str = "vancouver", journal: Optional[str] = None) -> str:
+    def format_references(
+        pmids: str, style: str = "vancouver", journal: Optional[str] = None
+    ) -> str:
         """
         Format a list of references according to a specific citation style.
 

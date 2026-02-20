@@ -49,7 +49,7 @@ fi
 if [ "$SKIP_NEXTJS" = false ]; then
     echo "📦 Installing npm dependencies..."
     npm install
-    
+
     # Setup environment file
     if [ ! -f ".env.local" ]; then
         if [ -f "env.example" ]; then

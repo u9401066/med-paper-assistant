@@ -110,11 +110,11 @@ Example:
 def save_reference(pmid: str, download_pdf: bool = True) -> str:
     """
     Save a reference to the local library.
-    
+
     Args:
         pmid: PubMed ID of the article.
         download_pdf: Whether to attempt PDF download from PMC.
-        
+
     Returns:
         Success message with reference details.
     """
@@ -303,11 +303,11 @@ src/med_paper_assistant/
 def save_reference(pmid: str, download_pdf: bool = True) -> str:
     """
     儲存參考文獻到本地文獻庫。
-    
+
     Args:
         pmid: 文章的 PubMed ID。
         download_pdf: 是否嘗試從 PMC 下載 PDF。
-        
+
     Returns:
         包含參考文獻詳情的成功訊息。
     """

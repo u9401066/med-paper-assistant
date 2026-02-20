@@ -85,7 +85,12 @@ class Analyzer:
             return f"Test type '{test_type}' not supported yet."
 
     def create_plot(
-        self, filename: str, plot_type: str, x_col: str, y_col: str, output_name: Optional[str] = None
+        self,
+        filename: str,
+        plot_type: str,
+        x_col: str,
+        y_col: str,
+        output_name: Optional[str] = None,
     ) -> str:
         """
         Create and save a plot.

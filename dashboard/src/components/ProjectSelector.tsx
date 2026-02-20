@@ -10,18 +10,18 @@ interface ProjectSelectorProps {
   isLoading?: boolean;
 }
 
-export function ProjectSelector({ 
-  projects, 
-  currentProject, 
+export function ProjectSelector({
+  projects,
+  currentProject,
   onSelect,
-  isLoading 
+  isLoading
 }: ProjectSelectorProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [pendingSlug, setPendingSlug] = useState<string | null>(null);
 
   const handleChange = (slug: string) => {
     if (!slug || slug === currentProject?.slug) return;
-    
+
     // 顯示選項對話框
     setPendingSlug(slug);
     setShowOptions(true);
@@ -47,7 +47,7 @@ export function ProjectSelector({
         value={currentProject?.slug || ''}
         onChange={(e) => handleChange(e.target.value)}
         disabled={isLoading}
-        className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg 
+        className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg
                    text-sm font-medium text-gray-900 dark:text-gray-100
                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                    disabled:opacity-50 disabled:cursor-not-allowed

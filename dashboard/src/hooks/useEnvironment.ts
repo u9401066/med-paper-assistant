@@ -20,9 +20,9 @@ export function useEnvironment(): Environment {
 
   useEffect(() => {
     const isIframe = window.self !== window.top;
-    
+
     // VS Code Simple Browser detection
-    const isVSCodeBrowser = 
+    const isVSCodeBrowser =
       navigator.userAgent.includes('VSCode') ||
       navigator.userAgent.includes('Electron') ||
       // Check if in iframe and parent might be VS Code

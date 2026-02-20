@@ -12,10 +12,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
     const focus = await request.json();
-    
+
     const projectPath = path.join(PROJECTS_DIR, slug);
     const projectJsonPath = path.join(projectPath, 'project.json');
-    
+
     // 讀取現有專案資訊
     let data;
     try {

@@ -105,7 +105,9 @@ class CitationAnalysisResult:
         if self.local_suggestions:
             output += "### 📚 Suggested from Local Library\n\n"
             for sug in sorted(self.local_suggestions, key=lambda x: -x.relevance_score)[:5]:
-                score_bar = "█" * int(sug.relevance_score * 5) + "░" * (5 - int(sug.relevance_score * 5))
+                score_bar = "█" * int(sug.relevance_score * 5) + "░" * (
+                    5 - int(sug.relevance_score * 5)
+                )
                 output += f"**[[{sug.citation_key}]]** [{score_bar}]\n"
                 output += f"  - {sug.title[:60]}...\n"
                 output += f"  - 相關性: {sug.relevance_reason}\n"
@@ -119,7 +121,7 @@ class CitationAnalysisResult:
             output += "### 🔎 Suggested PubMed Searches\n\n"
             output += "Use `pubmed-search` MCP to find new references:\n\n"
             for i, query in enumerate(self.pubmed_search_queries[:3], 1):
-                output += f"{i}. `search_literature(\"{query}\")`\n"
+                output += f'{i}. `search_literature("{query}")`\n'
             output += "\n"
 
         # 5. 總結
@@ -305,7 +307,10 @@ class CitationAssistant:
             return None
 
         # 統計數據模式
-        if re.search(r"\d+\.?\d*\s*%|\d+/\d+|發生率|死亡率|盛行率|prevalence|incidence|mortality", sentence_lower):
+        if re.search(
+            r"\d+\.?\d*\s*%|\d+/\d+|發生率|死亡率|盛行率|prevalence|incidence|mortality",
+            sentence_lower,
+        ):
             return TextClaim(
                 text=sentence,
                 claim_type=ClaimType.STATISTICAL,
@@ -316,7 +321,10 @@ class CitationAssistant:
             )
 
         # 比較聲稱
-        if re.search(r"比.*更|優於|劣於|better|worse|superior|inferior|compared to|versus|vs\.?", sentence_lower):
+        if re.search(
+            r"比.*更|優於|劣於|better|worse|superior|inferior|compared to|versus|vs\.?",
+            sentence_lower,
+        ):
             return TextClaim(
                 text=sentence,
                 claim_type=ClaimType.COMPARISON,
@@ -349,7 +357,10 @@ class CitationAssistant:
             )
 
         # 研究顯示類
-        if re.search(r"studies?|research|研究|報告|report|evidence|suggests?|shows?|demonstrates?", sentence_lower):
+        if re.search(
+            r"studies?|research|研究|報告|report|evidence|suggests?|shows?|demonstrates?",
+            sentence_lower,
+        ):
             return TextClaim(
                 text=sentence,
                 claim_type=ClaimType.GENERAL,
@@ -379,14 +390,76 @@ class CitationAssistant:
 
         # 移除常見停用詞
         stopwords = {
-            "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-            "have", "has", "had", "do", "does", "did", "will", "would", "could",
-            "should", "may", "might", "must", "shall", "can", "need", "dare",
-            "to", "of", "in", "for", "on", "with", "at", "by", "from", "as",
-            "into", "through", "during", "before", "after", "above", "below",
-            "between", "under", "and", "but", "or", "nor", "so", "yet", "both",
-            "either", "neither", "not", "only", "than", "that", "this", "these",
-            "those", "such", "no", "very", "just", "also", "more", "most", "other",
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "must",
+            "shall",
+            "can",
+            "need",
+            "dare",
+            "to",
+            "of",
+            "in",
+            "for",
+            "on",
+            "with",
+            "at",
+            "by",
+            "from",
+            "as",
+            "into",
+            "through",
+            "during",
+            "before",
+            "after",
+            "above",
+            "below",
+            "between",
+            "under",
+            "and",
+            "but",
+            "or",
+            "nor",
+            "so",
+            "yet",
+            "both",
+            "either",
+            "neither",
+            "not",
+            "only",
+            "than",
+            "that",
+            "this",
+            "these",
+            "those",
+            "such",
+            "no",
+            "very",
+            "just",
+            "also",
+            "more",
+            "most",
+            "other",
         }
 
         # 提取詞彙
@@ -506,7 +579,9 @@ class CitationAssistant:
 
         if local_suggestions:
             high_relevance = sum(1 for s in local_suggestions if s.relevance_score > 0.5)
-            parts.append(f"📚 **{len(local_suggestions)}** potential matches in local library ({high_relevance} highly relevant).")
+            parts.append(
+                f"📚 **{len(local_suggestions)}** potential matches in local library ({high_relevance} highly relevant)."
+            )
         else:
             parts.append("📚 No matches in local library.")
 

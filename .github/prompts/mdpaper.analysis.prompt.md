@@ -4,7 +4,7 @@ description: "📊 mdpaper.analysis - 資料分析"
 
 # 資料分析
 
-📖 **技能參考**: `.claude/skills/data-analysis/SKILL.md`（待建立）
+📖 **核心模組**: `src/med_paper_assistant/infrastructure/services/analyzer.py`
 
 ## Step 1: 確認資料來源
 

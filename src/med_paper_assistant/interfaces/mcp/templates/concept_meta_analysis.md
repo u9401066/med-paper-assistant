@@ -1,9 +1,9 @@
 ## 📝 Research Question (PICO) | 研究問題
 
-- **P**opulation (族群): 
-- **I**ntervention (介入): 
-- **C**omparison (比較): 
-- **O**utcome (結果): 
+- **P**opulation (族群):
+- **I**ntervention (介入):
+- **C**omparison (比較):
+- **O**utcome (結果):
 
 ---
 
@@ -11,16 +11,16 @@
 
 ### Inclusion Criteria | 納入條件
 - Study design: [RCT only / RCT + observational / etc.]
-- Population: 
-- Intervention: 
-- Outcome reported: 
+- Population:
+- Intervention:
+- Outcome reported:
 - Language: [English only / No restriction]
-- Publication period: 
+- Publication period:
 
 ### Exclusion Criteria | 排除條件
-- 
-- 
-- 
+-
+-
+-
 
 ---
 
@@ -31,7 +31,7 @@
 - [ ] Embase
 - [ ] Cochrane Library
 - [ ] Web of Science
-- [ ] Other: 
+- [ ] Other:
 
 ### Search Terms | 搜尋詞
 ```
@@ -70,7 +70,7 @@
 | Quality | Risk of bias items |
 
 ### Extraction Process | 擷取流程
-- **Extractor(s)**: 
+- **Extractor(s)**:
 - **Verification**: [Dual extraction / Single + verification]
 
 ---
@@ -81,12 +81,12 @@
 - [ ] RoB 2 (for RCTs)
 - [ ] ROBINS-I (for non-randomized studies)
 - [ ] Newcastle-Ottawa Scale
-- [ ] Other: 
+- [ ] Other:
 
 ### Domains to Assess | 評估面向
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ---
 
@@ -111,17 +111,17 @@
 ### Meta-analysis Model | 統合分析模型
 - [ ] Fixed-effect (Mantel-Haenszel / Inverse variance)
 - [ ] Random-effects (DerSimonian-Laird / REML)
-- Justification: 
+- Justification:
 
 ### Subgroup Analyses | 次群組分析
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ### Sensitivity Analyses | 敏感度分析
 1. Excluding high risk of bias studies
-2. 
-3. 
+2.
+3.
 
 ### Publication Bias | 發表偏差
 - [ ] Funnel plot
@@ -148,7 +148,7 @@
 
 - **Registration Status**: [Submitted / Registered / Not applicable]
 - **Registration Number**: CRD
-- **Registration Date**: 
+- **Registration Date**:
 
 ---
 

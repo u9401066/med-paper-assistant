@@ -241,7 +241,7 @@ def _generate_letter_format(parsed: dict[str, list[str]]) -> str:
         output += f"**{reviewer}:**\n\n"
 
         for i, comment in enumerate(comments, 1):
-            output += f"*Comment {i}: \"{comment}\"*\n\n"
+            output += f'*Comment {i}: "{comment}"*\n\n'
             output += "Response: [Your response here]\n\n"
 
     output += "We hope that these revisions adequately address the reviewers' concerns. "

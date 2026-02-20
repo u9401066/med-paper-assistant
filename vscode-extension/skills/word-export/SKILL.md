@@ -319,7 +319,7 @@ mcp_mdpaper_save_document(
 
 ### Q: 字數超過限制怎麼辦？
 
-A: 
+A:
 1. 呼叫 `check_word_limits` 找出超標章節
 2. 修改草稿內容
 3. 用 `insert_section` 重新插入（mode="replace"）

@@ -16,9 +16,9 @@
 ## 📝 Case Presentation | 案例呈現 ⚠️ REQUIRED
 
 ### Patient Demographics | 病患基本資料
-- **Age**: 
-- **Sex**: 
-- **Relevant background**: 
+- **Age**:
+- **Sex**:
+- **Relevant background**:
 
 ### Chief Complaint | 主訴
 > [Patient's primary concern in their own words]
@@ -27,8 +27,8 @@
 > [Chronological description of symptom development]
 
 ### Past Medical History | 過去病史
-- 
-- 
+-
+-
 
 ### Medications | 用藥
 | Medication | Dose | Duration | Indication |
@@ -46,10 +46,10 @@
 ## 📝 Clinical Findings | 臨床發現
 
 ### Physical Examination | 理學檢查
-- **Vital signs**: 
-- **General appearance**: 
+- **Vital signs**:
+- **General appearance**:
 - **System-specific findings**:
-  - 
+  -
 
 ### Laboratory Results | 實驗室檢查
 | Test | Result | Reference Range | Interpretation |
@@ -79,8 +79,8 @@
 
 ### Differential Diagnosis | 鑑別診斷
 1. **[Most likely]**: Reasoning...
-2. 
-3. 
+2.
+3.
 
 ### Final Diagnosis | 最終診斷
 > [Confirmed diagnosis with supporting evidence]
@@ -99,10 +99,10 @@
 > [Why this treatment was chosen]
 
 ### Treatment Details | 治療細節
-- **Medication/Procedure**: 
-- **Dose/Technique**: 
-- **Duration**: 
-- **Monitoring**: 
+- **Medication/Procedure**:
+- **Dose/Technique**:
+- **Duration**:
+- **Monitoring**:
 
 ---
 
@@ -112,9 +112,9 @@
 > [Describe the patient's response to treatment]
 
 ### Follow-up | 追蹤
-- **Duration**: 
-- **Status at last follow-up**: 
-- **Any complications**: 
+- **Duration**:
+- **Status at last follow-up**:
+- **Any complications**:
 
 ### Patient Perspective | 病患觀點
 > [Patient's satisfaction or reported quality of life, if available]
@@ -137,9 +137,9 @@
 ## 📝 Educational Messages | 教育訊息 ⚠️ REQUIRED
 
 ### Take-home Messages | 重點摘要
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ---
 

@@ -5,22 +5,19 @@ Tests that PDF download from PMC Open Access works correctly.
 Uses known Open Access articles to verify functionality.
 """
 
-import os
-import sys
-import tempfile
 import logging
+import os
+import tempfile
+
+import pytest
+from pubmed_search.entrez import LiteratureSearcher
 
 # Setup logging
 logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-# Add the src directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from med_paper_assistant.infrastructure.external.entrez import LiteratureSearcher
-
+pytestmark = pytest.mark.integration
 
 # Known Open Access PMIDs (these should always be available)
 # These are well-known open access articles from PMC
@@ -40,16 +37,16 @@ def test_pmc_id_lookup():
     print("\n" + "=" * 60)
     print("TEST: PMC ID Lookup")
     print("=" * 60)
-    
+
     searcher = LiteratureSearcher(email="test@example.com")
-    
+
     for pmid in OPEN_ACCESS_PMIDS:
         pmc_id = searcher._get_pmc_id(pmid)
         if pmc_id:
             print(f"✅ PMID {pmid} -> PMC{pmc_id}")
         else:
             print(f"❌ PMID {pmid} -> No PMC ID found")
-    
+
     print()
 
 
@@ -58,21 +55,21 @@ def test_pdf_download():
     print("\n" + "=" * 60)
     print("TEST: PDF Download")
     print("=" * 60)
-    
+
     searcher = LiteratureSearcher(email="test@example.com")
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         for pmid in OPEN_ACCESS_PMIDS:
             pdf_path = os.path.join(tmpdir, f"{pmid}.pdf")
-            
+
             success = searcher.download_pmc_pdf(pmid, pdf_path)
-            
+
             if success and os.path.exists(pdf_path):
                 size = os.path.getsize(pdf_path)
                 print(f"✅ PMID {pmid}: Downloaded {size:,} bytes")
             else:
                 print(f"❌ PMID {pmid}: Download failed")
-    
+
     print()
 
 
@@ -81,29 +78,29 @@ def test_non_oa_article():
     print("\n" + "=" * 60)
     print("TEST: Non-Open Access Article (should fail gracefully)")
     print("=" * 60)
-    
+
     # These are subscription-only PMIDs
     non_oa_pmids = [
         "26775126",  # One of the user's saved refs
         "25837741",  # Another of the user's saved refs
     ]
-    
+
     searcher = LiteratureSearcher(email="test@example.com")
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         for pmid in non_oa_pmids:
             pdf_path = os.path.join(tmpdir, f"{pmid}.pdf")
-            
+
             pmc_id = searcher._get_pmc_id(pmid)
             success = searcher.download_pmc_pdf(pmid, pdf_path)
-            
+
             if pmc_id:
                 status = "has PMC ID but download " + ("✅" if success else "❌")
             else:
                 status = "no PMC ID (not in PMC)"
-            
+
             print(f"PMID {pmid}: {status}")
-    
+
     print()
 
 
@@ -111,16 +108,17 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print(" PDF DOWNLOAD FUNCTIONALITY TEST")
     print("=" * 60)
-    
+
     try:
         test_pmc_id_lookup()
         test_pdf_download()
         test_non_oa_article()
-        
+
         print("\n" + "=" * 60)
         print("All tests completed!")
         print("=" * 60)
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()

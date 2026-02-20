@@ -18,18 +18,18 @@ if ($portInUse) {
 } else {
     # Start dashboard in background
     Write-Host "📦 Starting Next.js development server..." -ForegroundColor Yellow
-    
+
     $job = Start-Job -ScriptBlock {
         param($path)
         Set-Location $path
         npm run dev
     } -ArgumentList $DashboardPath
-    
+
     # Wait for server to be ready
     Write-Host "⏳ Waiting for server to be ready..." -ForegroundColor Yellow
     $maxAttempts = 30
     $attempt = 0
-    
+
     while ($attempt -lt $maxAttempts) {
         try {
             $response = Invoke-WebRequest -Uri "http://localhost:$Port" -TimeoutSec 1 -ErrorAction SilentlyContinue
@@ -44,22 +44,22 @@ if ($portInUse) {
         Write-Host "." -NoNewline
     }
     Write-Host ""
-    
+
     if ($attempt -ge $maxAttempts) {
         Write-Host "❌ Server failed to start within 30 seconds" -ForegroundColor Red
         exit 1
     }
-    
+
     Write-Host "✅ Dashboard server started!" -ForegroundColor Green
 }
 
 # Open in VS Code Simple Browser
 if (-not $SkipBrowser) {
     Write-Host "🌐 Opening in VS Code Simple Browser..." -ForegroundColor Cyan
-    
+
     # Use VS Code CLI to open Simple Browser
     $url = "http://localhost:$Port"
-    
+
     # Try to use VS Code command
     try {
         code --command "simpleBrowser.show" --args "$url"

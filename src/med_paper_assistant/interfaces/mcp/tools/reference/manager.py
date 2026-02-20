@@ -325,7 +325,9 @@ def register_reference_manager_tools(
             return str(e)
 
     @mcp.tool()
-    def format_references(pmids: str, style: str = "vancouver", journal: Optional[str] = None) -> str:
+    def format_references(
+        pmids: str, style: str = "vancouver", journal: Optional[str] = None
+    ) -> str:
         """
         Format references for insertion into manuscript.
 
@@ -503,7 +505,7 @@ def register_reference_manager_tools(
             for f in result.get("files_to_delete", []):
                 output += f"  - {f}\n"
             output += "\n⚠️ 此操作無法復原！\n"
-            output += "請使用 `delete_reference(pmid=\"{}\", confirm=True)` 確認刪除。".format(pmid)
+            output += '請使用 `delete_reference(pmid="{}", confirm=True)` 確認刪除。'.format(pmid)
             return output
 
         elif result.get("success"):
@@ -516,7 +518,7 @@ def register_reference_manager_tools(
             for f in result.get("deleted_files", []):
                 output += f"  - {f}\n"
             output += "\n💡 提示：如果其他草稿中有引用此文獻 (`[[{}]]`)，請記得更新。".format(
-                result['citation_key']
+                result["citation_key"]
             )
             return output
 

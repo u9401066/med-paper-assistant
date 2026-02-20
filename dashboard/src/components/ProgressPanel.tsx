@@ -62,8 +62,8 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
 
   if (!stats) return null;
 
-  const totalWords = 
-    stats.wordCounts.intro + stats.wordCounts.methods + 
+  const totalWords =
+    stats.wordCounts.intro + stats.wordCounts.methods +
     stats.wordCounts.results + stats.wordCounts.discussion;
 
   const sections = [
@@ -80,7 +80,7 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
         <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
           💡 Concept Status
         </h3>
-        
+
         {stats.concept.exists ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -91,7 +91,7 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
                 {stats.concept.validated ? '✅ Passed' : '⚠️ Not validated'}
               </span>
             </div>
-            
+
             {stats.concept.noveltyScore !== null && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Novelty Score</span>
@@ -113,7 +113,7 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
         <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
           📋 Pre-Analysis Checklist
         </h3>
-        
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
@@ -123,24 +123,24 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
               {stats.preAnalysis.ready ? '✅ Ready' : '⚠️ Incomplete'}
             </span>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-400">Completion</span>
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {stats.preAnalysis.score}%
             </span>
           </div>
-          
+
           {/* Progress Bar */}
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div 
+            <div
               className={`h-2 rounded-full transition-all ${
                 stats.preAnalysis.ready ? 'bg-green-500' : 'bg-amber-500'
               }`}
               style={{ width: `${stats.preAnalysis.score}%` }}
             />
           </div>
-          
+
           {!stats.preAnalysis.ready && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               Missing: Study Design, Participants, Sample Size, or Outcomes
@@ -154,7 +154,7 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
         <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
           📚 References & Assets
         </h3>
-        
+
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.references}</div>
@@ -179,13 +179,13 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
             ({totalWords.toLocaleString()} words total)
           </span>
         </h3>
-        
+
         <div className="space-y-3">
           {sections.map((section) => {
-            const percentage = totalWords > 0 
-              ? Math.round((section.words / totalWords) * 100) 
+            const percentage = totalWords > 0
+              ? Math.round((section.words / totalWords) * 100)
               : 0;
-            
+
             return (
               <div key={section.key}>
                 <div className="flex items-center justify-between text-sm mb-1">
@@ -195,7 +195,7 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                  <div 
+                  <div
                     className={`h-1.5 rounded-full transition-all ${
                       section.words > 0 ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
                     }`}

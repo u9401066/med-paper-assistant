@@ -16,7 +16,7 @@ function getProjectFiles(projectPath: string): string[] {
 export async function POST(request: NextRequest) {
   try {
     const { slug, openFiles = true } = await request.json();
-    
+
     if (!slug) {
       return NextResponse.json(
         { error: 'Project slug is required' },
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // 驗證專案存在
     const projectPath = path.join(PROJECTS_DIR, slug);
     const projectJsonPath = path.join(projectPath, 'project.json');
-    
+
     try {
       await fs.access(projectJsonPath);
     } catch {

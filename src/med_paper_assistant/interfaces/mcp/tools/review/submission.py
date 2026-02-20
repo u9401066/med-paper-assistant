@@ -663,7 +663,9 @@ Sincerely,
         output += "| `generic` | Generic (fallback) | 4000 | 300 | 50 | 6 | 5 |\n"
 
         output += "\n---\n"
-        output += "💡 Use the journal code in `generate_cover_letter` and `check_submission_checklist`.\n"
+        output += (
+            "💡 Use the journal code in `generate_cover_letter` and `check_submission_checklist`.\n"
+        )
         output += "📝 Don't see your journal? Use `generic` or request it to be added.\n"
 
         log_tool_result("list_supported_journals", "success", success=True)

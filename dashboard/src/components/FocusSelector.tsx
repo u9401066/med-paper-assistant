@@ -28,7 +28,7 @@ export function FocusSelector({ currentFocus, onFocusChange, disabled }: FocusSe
   return (
     <div className="space-y-3">
       <label className="block text-xs text-gray-500 dark:text-gray-400">Work Focus</label>
-      
+
       <div className="space-y-1">
         {FOCUS_OPTIONS.map((option) => (
           <button

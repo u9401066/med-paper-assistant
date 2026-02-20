@@ -104,7 +104,11 @@ def register_concept_validation_tools(mcp: FastMCP):
 
             pm = get_project_manager()
             current_info = pm.get_project_info()  # Returns dict with project details
-            paper_type = str(current_info.get("paper_type", "original-research")) if current_info else "original-research"
+            paper_type = (
+                str(current_info.get("paper_type", "original-research"))
+                if current_info
+                else "original-research"
+            )
 
             # 1. Wikilink 格式驗證（自動修復）
             references_dir = None

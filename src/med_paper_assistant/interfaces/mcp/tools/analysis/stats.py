@@ -86,7 +86,15 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
                 return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
 
         # Validate test type
-        valid_tests = ["ttest", "paired_ttest", "anova", "chi2", "correlation", "mann_whitney", "kruskal"]
+        valid_tests = [
+            "ttest",
+            "paired_ttest",
+            "anova",
+            "chi2",
+            "correlation",
+            "mann_whitney",
+            "kruskal",
+        ]
         if test_type not in valid_tests:
             return f"❌ Unknown test type: {test_type}\n\nSupported tests: {', '.join(valid_tests)}"
 

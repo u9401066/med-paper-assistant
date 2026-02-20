@@ -7,17 +7,17 @@
 ## 📝 Eligibility Criteria | 納入排除條件 ⚠️ REQUIRED
 
 ### Inclusion Criteria | 納入條件
-- Study design: 
-- Population: 
-- Intervention/Exposure: 
-- Outcome: 
-- Language: 
-- Publication period: 
+- Study design:
+- Population:
+- Intervention/Exposure:
+- Outcome:
+- Language:
+- Publication period:
 
 ### Exclusion Criteria | 排除條件
-- 
-- 
-- 
+-
+-
+-
 
 ---
 
@@ -29,7 +29,7 @@
 - [ ] Cochrane Library
 - [ ] CINAHL
 - [ ] PsycINFO
-- [ ] Other: 
+- [ ] Other:
 
 ### Search Terms | 搜尋詞
 ```
@@ -47,15 +47,15 @@
 ## 📝 Study Selection Process | 文獻篩選流程
 
 ### Screening Steps | 篩選步驟
-1. **Remove duplicates**: 
+1. **Remove duplicates**:
 2. **Title screening**: [Criteria]
 3. **Abstract screening**: [Criteria]
 4. **Full-text review**: [Criteria]
 
 ### Reviewer Process | 審查者流程
-- Number of reviewers: 
+- Number of reviewers:
 - Independence: [Yes / No]
-- Discrepancy resolution: 
+- Discrepancy resolution:
 
 ---
 
@@ -82,12 +82,12 @@
 - [ ] JBI Checklist
 - [ ] GRADE approach
 - [ ] Newcastle-Ottawa Scale
-- [ ] Other: 
+- [ ] Other:
 
 ### Quality Criteria | 品質標準
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ---
 
@@ -97,7 +97,7 @@
 - [ ] Narrative synthesis
 - [ ] Thematic analysis
 - [ ] Framework synthesis
-- [ ] Other: 
+- [ ] Other:
 
 ### Synthesis Framework | 整合架構
 > [Describe how findings will be organized and synthesized]
@@ -124,7 +124,7 @@
 
 - **Registration Status**: [Submitted / Registered / Not applicable]
 - **Registration Number**: CRD
-- **Date**: 
+- **Date**:
 
 ---
 

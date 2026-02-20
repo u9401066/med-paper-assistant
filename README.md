@@ -68,17 +68,17 @@ flowchart LR
         Agent[Copilot Agent]
         Foam[Foam Plugin]
     end
-    
+
     subgraph MCP["MCP Servers"]
         mdpaper[mdpaper<br/>Draft・Export・Validate]
         pubmed[pubmed-search<br/>Search・Metrics]
         cgu[CGU<br/>Deep Think]
     end
-    
+
     subgraph Data["Project Data"]
         proj[("projects/{slug}/<br/>• .memory/<br/>• references/<br/>• drafts/")]
     end
-    
+
     Agent <-->|MCP| mdpaper
     Agent <-->|MCP| pubmed
     Agent <-->|MCP| cgu

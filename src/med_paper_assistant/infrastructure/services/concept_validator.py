@@ -613,7 +613,7 @@ class ConceptValidator:
         2. Reviewer 2: The Methodologist (Rigor & Comparison)
         3. Reviewer 3: The Clinical Impact Expert (Significance & MCID)
         """
-        feedback = {
+        feedback: dict[str, Any] = {
             "verdict": "",
             "reviewers": {
                 "skeptic": {"comment": "", "score": 0, "questions": []},
@@ -630,18 +630,26 @@ class ConceptValidator:
 
         # === VERDICT ===
         if avg_score >= 85:
-            feedback["verdict"] = "💎 High-impact potential. The novelty is clear and well-supported."
+            feedback["verdict"] = (
+                "💎 High-impact potential. The novelty is clear and well-supported."
+            )
         elif avg_score >= 75:
             feedback["verdict"] = "✅ Novelty claim is defensible. Proceed to writing."
         elif avg_score >= 60:
-            feedback["verdict"] = "⚠️ Novelty claim has gaps. A skeptical reviewer would challenge you."
+            feedback["verdict"] = (
+                "⚠️ Novelty claim has gaps. A skeptical reviewer would challenge you."
+            )
         else:
-            feedback["verdict"] = "❌ Novelty claim is weak. Current statement would not survive peer review."
+            feedback["verdict"] = (
+                "❌ Novelty claim is weak. Current statement would not survive peer review."
+            )
 
         # --- Reviewer 1: The Skeptic (Focus: Is it REALLY new?) ---
         skeptic = feedback["reviewers"]["skeptic"]
         if ("first" in content_lower or "首次" in content) and "pubmed" not in content_lower:
-            skeptic["comment"] = "You claim this is 'first', but provide no search evidence. I am skeptical."
+            skeptic["comment"] = (
+                "You claim this is 'first', but provide no search evidence. I am skeptical."
+            )
             skeptic["score"] = 50
             skeptic["questions"].append("What was your exact PubMed search strategy and date?")
         else:
@@ -651,13 +659,21 @@ class ConceptValidator:
         # --- Reviewer 2: The Methodologist (Focus: How does it compare?) ---
         methodologist = feedback["reviewers"]["methodologist"]
         if not re.search(r"\[\[.+?\]\]", content) and "PMID" not in content:
-            methodologist["comment"] = "You haven't cited the studies you are supposedly improving upon."
+            methodologist["comment"] = (
+                "You haven't cited the studies you are supposedly improving upon."
+            )
             methodologist["score"] = 40
-            methodologist["questions"].append("Which specific studies are you comparing your method against?")
+            methodologist["questions"].append(
+                "Which specific studies are you comparing your method against?"
+            )
         elif "but" not in content_lower and "however" not in content_lower and "但" not in content:
-            methodologist["comment"] = "You cited literature but didn't explain their limitations clearly."
+            methodologist["comment"] = (
+                "You cited literature but didn't explain their limitations clearly."
+            )
             methodologist["score"] = 60
-            methodologist["questions"].append("What exactly was the failure or limitation of the cited studies?")
+            methodologist["questions"].append(
+                "What exactly was the failure or limitation of the cited studies?"
+            )
         else:
             methodologist["comment"] = "Methodological differentiation is well-articulated."
             methodologist["score"] = 85
@@ -667,9 +683,13 @@ class ConceptValidator:
         vague_words = ["improved", "better", "enhanced", "更好", "改善", "提升", "優於"]
         found_vague = [w for w in vague_words if w.lower() in content_lower]
         if found_vague and not re.search(r"\d+%|\d+\s*倍|OR\s*[\d.]|RR\s*[\d.]", content):
-            clinical["comment"] = f"You use vague terms like '{found_vague[0]}' without quantification."
+            clinical["comment"] = (
+                f"You use vague terms like '{found_vague[0]}' without quantification."
+            )
             clinical["score"] = 55
-            clinical["questions"].append("What is the expected effect size or MCID (Minimal Clinically Important Difference)?")
+            clinical["questions"].append(
+                "What is the expected effect size or MCID (Minimal Clinically Important Difference)?"
+            )
         else:
             clinical["comment"] = "The clinical significance and expected impact are clear."
             clinical["score"] = 80
@@ -679,27 +699,33 @@ class ConceptValidator:
 
         # Issue 1: Claiming "first" without search evidence
         if skeptic["score"] <= 50:
-            issues.append({
-                "problem": "您聲稱『首次』，但沒有提供文獻搜尋證據",
-                "challenge": "Reviewer 1 (Skeptic) 會問：『你怎麼知道沒人做過？搜尋策略是什麼？』",
-                "fix": "加入：『PubMed 搜尋 \"X AND Y\" (2024-12-17) 結果為 0 篇』",
-            })
+            issues.append(
+                {
+                    "problem": "您聲稱『首次』，但沒有提供文獻搜尋證據",
+                    "challenge": "Reviewer 1 (Skeptic) 會問：『你怎麼知道沒人做過？搜尋策略是什麼？』",
+                    "fix": '加入：『PubMed 搜尋 "X AND Y" (2024-12-17) 結果為 0 篇』',
+                }
+            )
 
         # Issue 2: Vague quantification
         if clinical["score"] <= 60:
-            issues.append({
-                "problem": "使用模糊用語但沒有量化",
-                "challenge": "Reviewer 3 (Clinical Expert) 會問：『好多少？臨床意義 (MCID) 是什麼？』",
-                "fix": "改為具體數字：『預期減少 30% 的併發症』或『優於現有技術 15%』",
-            })
+            issues.append(
+                {
+                    "problem": "使用模糊用語但沒有量化",
+                    "challenge": "Reviewer 3 (Clinical Expert) 會問：『好多少？臨床意義 (MCID) 是什麼？』",
+                    "fix": "改為具體數字：『預期減少 30% 的併發症』或『優於現有技術 15%』",
+                }
+            )
 
         # Issue 3: Comparison gap
         if methodologist["score"] <= 60:
-            issues.append({
-                "problem": "未明確說明與現有研究的差異",
-                "challenge": "Reviewer 2 (Methodologist) 會問：『既然 [Author 2024] 做過類似的，你的獨特性在哪？』",
-                "fix": "明確寫出：『與 [Author 2024] 不同的是，我們採用了 [新方法/新族群]』",
-            })
+            issues.append(
+                {
+                    "problem": "未明確說明與現有研究的差異",
+                    "challenge": "Reviewer 2 (Methodologist) 會問：『既然 [Author 2024] 做過類似的，你的獨特性在哪？』",
+                    "fix": "明確寫出：『與 [Author 2024] 不同的是，我們採用了 [新方法/新族群]』",
+                }
+            )
 
         feedback["critical_issues"] = issues
 
@@ -1042,9 +1068,15 @@ class ConceptValidator:
                 output.append("|----------|-------|----------|")
 
                 revs = feedback["reviewers"]
-                output.append(f"| 🕵️ **The Skeptic** | {revs['skeptic']['score']} | {revs['skeptic']['comment']} |")
-                output.append(f"| 📐 **The Methodologist** | {revs['methodologist']['score']} | {revs['methodologist']['comment']} |")
-                output.append(f"| 🏥 **The Clinical Expert** | {revs['clinical_expert']['score']} | {revs['clinical_expert']['comment']} |")
+                output.append(
+                    f"| 🕵️ **The Skeptic** | {revs['skeptic']['score']} | {revs['skeptic']['comment']} |"
+                )
+                output.append(
+                    f"| 📐 **The Methodologist** | {revs['methodologist']['score']} | {revs['methodologist']['comment']} |"
+                )
+                output.append(
+                    f"| 🏥 **The Clinical Expert** | {revs['clinical_expert']['score']} | {revs['clinical_expert']['comment']} |"
+                )
                 output.append("")
 
             # Show critical issues (sharp, evidence-based)

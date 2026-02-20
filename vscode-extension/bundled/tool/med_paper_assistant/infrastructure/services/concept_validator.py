@@ -608,9 +608,9 @@ class ConceptValidator:
     def _generate_novelty_feedback(self, content: str, scores: List[int]) -> Dict[str, Any]:
         """
         Generate sharp, reviewer-style feedback that challenges weak claims.
-        
+
         Like a top-journal reviewer: direct, evidence-based, impossible to dismiss.
-        
+
         Returns a dict with:
         - verdict: One-line assessment (no sugar-coating)
         - critical_issues: Problems that MUST be addressed (with evidence)
@@ -625,97 +625,127 @@ class ConceptValidator:
             "actionable_fixes": [],
             "cgu_recommendation": None,
         }
-        
+
         content_lower = content.lower()
         avg_score = sum(scores) / len(scores)
-        
+
         # === VERDICT (One sharp sentence) ===
         if avg_score >= 75:
             feedback["verdict"] = "✅ Novelty claim is defensible. Proceed to writing."
         elif avg_score >= 60:
-            feedback["verdict"] = "⚠️ Novelty claim has gaps. A skeptical reviewer would challenge you."
+            feedback["verdict"] = (
+                "⚠️ Novelty claim has gaps. A skeptical reviewer would challenge you."
+            )
         else:
-            feedback["verdict"] = "❌ Novelty claim is weak. Current statement would not survive peer review."
-        
+            feedback["verdict"] = (
+                "❌ Novelty claim is weak. Current statement would not survive peer review."
+            )
+
         # === CRITICAL ISSUES (Evidence-based challenges) ===
         issues = []
-        
+
         # Issue 1: Claiming "first" without search evidence
-        if ("first" in content_lower or "首次" in content) and "pubmed" not in content_lower and "搜尋" not in content:
-            issues.append({
-                "problem": "您聲稱『首次』，但沒有提供文獻搜尋證據",
-                "challenge": "Reviewer 會問：『你怎麼知道沒人做過？搜尋策略是什麼？』",
-                "fix": "加入：『PubMed 搜尋 \"X AND Y\" (2024-12-17) 結果為 0 篇』",
-            })
-        
+        if (
+            ("first" in content_lower or "首次" in content)
+            and "pubmed" not in content_lower
+            and "搜尋" not in content
+        ):
+            issues.append(
+                {
+                    "problem": "您聲稱『首次』，但沒有提供文獻搜尋證據",
+                    "challenge": "Reviewer 會問：『你怎麼知道沒人做過？搜尋策略是什麼？』",
+                    "fix": '加入：『PubMed 搜尋 "X AND Y" (2024-12-17) 結果為 0 篇』',
+                }
+            )
+
         # Issue 2: No "first/novel" claim at all
-        if "first" not in content_lower and "首次" not in content and "novel" not in content_lower and "創新" not in content:
-            issues.append({
-                "problem": "沒有明確的創新性聲明",
-                "challenge": "Reviewer 會問：『這跟現有研究有什麼不同？為什麼要發表？』",
-                "fix": "明確寫出：『這是首次...』或『與 [Author 2024] 不同的是...』",
-            })
-        
+        if (
+            "first" not in content_lower
+            and "首次" not in content
+            and "novel" not in content_lower
+            and "創新" not in content
+        ):
+            issues.append(
+                {
+                    "problem": "沒有明確的創新性聲明",
+                    "challenge": "Reviewer 會問：『這跟現有研究有什麼不同？為什麼要發表？』",
+                    "fix": "明確寫出：『這是首次...』或『與 [Author 2024] 不同的是...』",
+                }
+            )
+
         # Issue 3: Vague quantification
         vague_words = ["improved", "better", "enhanced", "更好", "改善", "提升", "優於"]
         found_vague = [w for w in vague_words if w.lower() in content_lower]
         if found_vague and not re.search(r"\d+%|\d+\s*倍|OR\s*[\d.]|RR\s*[\d.]", content):
-            issues.append({
-                "problem": f"使用模糊用語『{', '.join(found_vague)}』但沒有量化",
-                "challenge": "Reviewer 會問：『好多少？有統計學意義嗎？』",
-                "fix": "改為具體數字：『減少 50%』『OR 0.3 (95% CI 0.1-0.5)』",
-            })
-        
+            issues.append(
+                {
+                    "problem": f"使用模糊用語『{', '.join(found_vague)}』但沒有量化",
+                    "challenge": "Reviewer 會問：『好多少？有統計學意義嗎？』",
+                    "fix": "改為具體數字：『減少 50%』『OR 0.3 (95% CI 0.1-0.5)』",
+                }
+            )
+
         # Issue 4: Claiming comparison without specifying what's different
         if re.search(r"\[\[.+?\]\]", content):  # Has citations
-            if "但" not in content and "however" not in content_lower and "未" not in content and "沒有" not in content:
-                issues.append({
-                    "problem": "引用了文獻，但沒有說明它們的限制",
-                    "challenge": "Reviewer 會問：『既然有人做過，你的貢獻在哪？』",
-                    "fix": "加入：『[Author 2024] 比較了 A vs B，但【未納入 C / 未評估 X】』",
-                })
-        
+            if (
+                "但" not in content
+                and "however" not in content_lower
+                and "未" not in content
+                and "沒有" not in content
+            ):
+                issues.append(
+                    {
+                        "problem": "引用了文獻，但沒有說明它們的限制",
+                        "challenge": "Reviewer 會問：『既然有人做過，你的貢獻在哪？』",
+                        "fix": "加入：『[Author 2024] 比較了 A vs B，但【未納入 C / 未評估 X】』",
+                    }
+                )
+
         # Issue 5: No citations at all
         if not re.search(r"\[\[.+?\]\]", content) and "PMID" not in content:
-            issues.append({
-                "problem": "創新性聲明沒有任何文獻引用",
-                "challenge": "Reviewer 會問：『你的說法有什麼依據？』",
-                "fix": "為每個聲明加上支持文獻：[[author2024_12345678]]",
-            })
-        
+            issues.append(
+                {
+                    "problem": "創新性聲明沒有任何文獻引用",
+                    "challenge": "Reviewer 會問：『你的說法有什麼依據？』",
+                    "fix": "為每個聲明加上支持文獻：[[author2024_12345678]]",
+                }
+            )
+
         # Issue 6: Expected outcomes without mechanism
         if re.search(r"預期|expected|hypothesi", content_lower):
             if not re.search(r"因為|because|由於|機制|mechanism", content_lower):
-                issues.append({
-                    "problem": "有預期結果，但沒有解釋機制",
-                    "challenge": "Reviewer 會問：『為什麼你預期會這樣？機制是什麼？』",
-                    "fix": "加入：『因為 [機制]，我們預期...』",
-                })
-        
+                issues.append(
+                    {
+                        "problem": "有預期結果，但沒有解釋機制",
+                        "challenge": "Reviewer 會問：『為什麼你預期會這樣？機制是什麼？』",
+                        "fix": "加入：『因為 [機制]，我們預期...』",
+                    }
+                )
+
         feedback["critical_issues"] = issues
-        
+
         # === QUESTIONS (What a reviewer would ask) ===
         questions = []
-        
+
         if "three" in content_lower or "三" in content or "3" in content:
             if "為什麼" not in content and "why" not in content_lower:
                 questions.append("為什麼要比較這三組？現有研究比較了幾組？")
-        
+
         if re.search(r"<\s*\d+%|>\s*\d+%", content):
             questions.append("這些預期數字是基於什麼？有 pilot data 嗎？")
-        
+
         if "首次" in content or "first" in content_lower:
             questions.append("如果真的是首次，為什麼之前沒人做？是技術限制還是沒人關心？")
-        
+
         feedback["questions"] = questions[:3]  # Top 3
-        
+
         # === ACTIONABLE FIXES (Specific, not vague) ===
         fixes = []
         for issue in issues[:2]:  # Top 2 priorities
             fixes.append(f"🔧 **{issue['problem']}**\n   → {issue['fix']}")
-        
+
         feedback["actionable_fixes"] = fixes
-        
+
         # === CGU RECOMMENDATION ===
         if avg_score < 60:
             feedback["cgu_recommendation"] = {
@@ -733,9 +763,9 @@ class ConceptValidator:
             }
         else:
             feedback["cgu_recommendation"] = {"recommend": False}
-            
+
         return feedback
-    
+
     def _generate_novelty_suggestions(self, content: str, scores: List[int]) -> List[str]:
         """Generate improvement suggestions (legacy interface, calls new method)."""
         feedback = self._generate_novelty_feedback(content, scores)
@@ -1038,18 +1068,18 @@ class ConceptValidator:
             novelty_content = result.sections.get(
                 "novelty_statement", SectionCheck(name="", found=False, has_content=False)
             ).content
-            
+
             feedback = {}
             if novelty_content:
                 feedback = self._generate_novelty_feedback(novelty_content, result.novelty_scores)
-            
+
             # Show verdict (one sharp line)
             avg_score = result.novelty_average
             output.append(f"**Score:** {avg_score:.1f}/100")
             if feedback.get("verdict"):
                 output.append(f"**Verdict:** {feedback['verdict']}")
             output.append("")
-            
+
             # Show critical issues (sharp, evidence-based)
             if feedback.get("critical_issues"):
                 output.append("### ⚠️ Critical Issues (Reviewer 會質疑)")
@@ -1059,7 +1089,7 @@ class ConceptValidator:
                     output.append(f"- 🎯 {issue['challenge']}")
                     output.append(f"- 🔧 {issue['fix']}")
                     output.append("")
-            
+
             # Show questions (what reviewer would ask)
             if feedback.get("questions") and avg_score < 75:
                 output.append("### ❓ Reviewer 會問的問題")
@@ -1067,7 +1097,7 @@ class ConceptValidator:
                 for q in feedback["questions"]:
                     output.append(f"- {q}")
                 output.append("")
-            
+
             # CGU recommendation (if needed)
             cgu = feedback.get("cgu_recommendation", {})
             if cgu.get("recommend") and avg_score < 75:
@@ -1078,7 +1108,7 @@ class ConceptValidator:
                 if cgu.get("prompt"):
                     output.append(f"> **Prompt：** {cgu['prompt']}")
                 output.append("")
-            
+
             # Note: This is advisory, not blocking
             output.append("> 📌 **這是 reviewer 視角的建議，不是硬性門檻。**")
             output.append("> 您可以選擇：(1) 直接寫 (2) 補強後再寫 (3) 用 CGU 發想")
@@ -1150,10 +1180,10 @@ class ConceptValidator:
             # Sharp summary with clear options
             output.append("## 📋 Assessment Summary")
             output.append("")
-            
+
             output.append(f"**Novelty Score:** {result.novelty_average:.1f}/100")
             output.append("")
-            
+
             if result.novelty_average >= 60:
                 output.append("您的 concept 可以過關，但有可改進之處。")
             else:

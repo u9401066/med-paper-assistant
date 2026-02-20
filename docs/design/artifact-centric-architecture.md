@@ -158,29 +158,29 @@ from enum import Enum
 
 class ArtifactType(str, Enum):
     """All supported artifact types in staging area."""
-    
+
     # Literature
     REFERENCE = "reference"        # PubMed reference with metadata
     PDF = "pdf"                    # PDF file (unidentified)
     PDF_IDENTIFIED = "pdf_identified"  # PDF linked to PMID
-    
+
     # Writing
     NOTE = "note"                  # Standalone note/memo
     DRAFT = "draft"                # Draft section
     CONCEPT = "concept"            # Research concept
-    
+
     # Data & Analysis
     DATASET = "dataset"            # CSV, Excel, etc.
     ANALYSIS_RESULT = "analysis"   # Statistical output
-    
+
     # Figures & Tables
     FIGURE = "figure"              # Image, diagram
     TABLE = "table"                # Generated table
-    
+
     # External
     ZOTERO_IMPORT = "zotero"       # Imported from Zotero
     BIBTEX_IMPORT = "bibtex"       # Imported from BibTeX
-    
+
     # Mixed
     COLLECTION = "collection"     # Group of related artifacts
 ```
@@ -232,12 +232,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MedPaper MCP
-    
+
     U->>A: 幫我找 remimazolam 的文獻
     A->>M: search_literature("remimazolam")
     M-->>A: 10 results
     A-->>U: 找到 10 篇，要儲存哪些？
-    
+
     U->>A: 儲存前 3 篇
     A->>M: save_reference_mcp(pmid="111")
     Note over M: mode=EMPTY → EXPLORATION
@@ -245,12 +245,12 @@ sequenceDiagram
     A->>M: save_reference_mcp(pmid="222")
     A->>M: save_reference_mcp(pmid="333")
     M-->>A: ✓ 3 references saved to staging
-    
+
     U->>A: 看起來可以開始寫了
     A->>M: get_exploration_status()
     M-->>A: 3 references staged
     A-->>U: 您有 3 篇文獻在暫存區，要建立專案嗎？
-    
+
     U->>A: 好，建立 remimazolam-review 專案
     A->>M: convert_exploration_to_project(name="...", include_all=true)
     Note over M: mode=EXPLORATION → PROJECT
@@ -265,18 +265,18 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MedPaper MCP
-    
+
     U->>A: 我有一份實驗數據 data.csv，幫我分析
     A->>M: analyze_dataset(file="data.csv")
     Note over M: mode=EMPTY → EXPLORATION
     Note over M: 資料存入 _workspace/data/
     M-->>A: Table 1 generated
-    
+
     U->>A: 再幫我畫個流程圖
     A->>M: create_diagram(...)
     Note over M: 圖存入 _workspace/figures/
     M-->>A: Diagram created
-    
+
     U->>A: 這些是我的碩論，建立專案
     A->>M: create_project(name="Masters Thesis")
     A->>M: link_artifact_to_project("data.csv", "masters-thesis")
@@ -469,4 +469,3 @@ Total: 78 tools
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-01-22 | 0.1 | Initial draft |
-

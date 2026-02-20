@@ -12,15 +12,12 @@
                     ┌─────────────────────────────────────────────────────────────┐
                     │              MedPaper Assistant 發展藍圖                    │
                     ├─────────────────────────────────────────────────────────────┤
-2026 Q1             │  Phase 4: MVP for Original Research                         │
-(Current)           │  ├── generate_table_one ⭐                                   │
-                    │  ├── check_manuscript_consistency                           │
-                    │  └── create_reviewer_response                               │
+2026 Q1             │  Phase 4: MVP for Original Research ✅                      │
+(Current)           │  Phase 5a: Artifact-Centric Architecture                    │
+                    │  Phase 5c: Full VSX + Pandoc Export 🔥                      │
                     ├─────────────────────────────────────────────────────────────┤
-2026 Q2             │  Phase 5: Project Portfolio Management                      │
-                    │  ├── Multi-project Dashboard 2.0                            │
-                    │  ├── Cross-project Reference Library                        │
-                    │  └── Project Timeline & Milestones                          │
+2026 Q2             │  Phase 5b: Project Portfolio Management                     │
+                    │  Phase 8: AI Writing Intelligence                           │
                     ├─────────────────────────────────────────────────────────────┤
 2026 Q3             │  Phase 6: Systematic Review Pipeline                        │
                     │  ├── PRISMA Flow Tools                                      │
@@ -33,6 +30,11 @@
                     │  └── Smart Citation Suggestions                             │
                     └─────────────────────────────────────────────────────────────┘
 ```
+
+> **架構方向決策（2026-01）**：選擇 **Direction C — Full VSX + Foam + Pandoc**
+> - VS Code Extension 升級為完整 TreeView / CodeLens / Diagnostics
+> - 保留 Foam 做文獻知識圖譜
+> - 新增 Pandoc 支援 LaTeX + Word 雙輸出
 
 ---
 
@@ -70,6 +72,21 @@
 | **CRUD 盤點完成** ✅ | 52 工具盤點，識別 Delete 操作缺口 |
 | **Tool Description 精簡** ✅ | 71 工具 docstring 精簡，-77% token |
 | **Python 3.12 遷移** ✅ | UV 管理、pyproject.toml 更新 |
+
+### Phase 3.5: Infrastructure & Quality Cleanup (2026-01) 🆕
+
+> **大整理：從混亂到規範化**
+
+| Feature | Description |
+|---------|-------------|
+| **Pre-commit Hooks** ✅ | 13 hooks（ruff, mypy, bandit, pytest, whitespace…）全部通過 |
+| **DDD Import 遷移** ✅ | 全部 19 個測試檔從 `core.*` 遷移到 DDD 路徑 |
+| **Test Isolation** ✅ | 所有測試改用 `tmp_path` fixture，不再污染專案根目錄 |
+| **ARCHITECTURE.md 重寫** ✅ | 從 448 行過時文檔重寫為 ~240 行精確 DDD 架構文檔 |
+| **Legacy Cleanup** ✅ | 刪除空的 `core/` 目錄、多餘腳本、散落檔案 |
+| **Copilot Hook 修復** ✅ | AGENTS.md 補齊 7 skills + 8 prompts，修正 capability index |
+| **Coverage Baseline** ✅ | 17 passed / 1 skipped / 26 integration-deselected（27% 覆蓋率基線） |
+| **架構方向決策** ✅ | 選定 **Direction C: Full VSX + Foam + Pandoc** |
 ---
 
 ## 🚨 已知問題 (Known Issues) - 已大幅改善
@@ -283,7 +300,92 @@ EMPTY → EXPLORATION → PROJECT
 
 ---
 
-## 📊 Phase 5b: Project Portfolio Management (2026 Q2)
+## �️ Phase 5c: Full VSX + Pandoc Export (2026 Q1-Q2) 🔥
+
+> **架構方向 C：將 VS Code Extension 升級為完整的論文寫作環境**
+> 決策日期：2026-01 | 決策依據：需要比 Speckit-like shell prompts 更豐富的 UI 互動
+
+### 決策背景
+
+| 方向 | 說明 | 結果 |
+|------|------|------|
+| A. Lightweight | 純 MCP + Shell Prompts（像 Speckit） | ❌ 功能不足 |
+| B. Slim MCP | 精簡 MCP + 少數 VSX 功能 | ❌ 中間地帶 |
+| **C. Full VSX** | **完整 Extension + Foam + Pandoc** | **✅ 選定** |
+
+### 5c.1 VS Code Extension 升級
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    MedPaper Extension 升級                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  現有:                                                              │
+│  ├── MCP Server 註冊                                                │
+│  ├── @mdpaper Chat Participant                                     │
+│  └── 3 Commands (start/stop/status)                                │
+│                                                                      │
+│  新增:                                                              │
+│  ├── 🌳 TreeView  — 專案清單 + 文獻樹 + 草稿結構                   │
+│  ├── 🔍 CodeLens  — concept.md 上方顯示 novelty score              │
+│  │                 — draft 中 [[wikilink]] 上方顯示引用資訊         │
+│  ├── 🔴 Diagnostics — 缺少引用、wikilink 斷鏈、字數超限            │
+│  ├── 📊 Webview   — Dashboard 嵌入 (取代 Simple Browser)           │
+│  └── 📁 File Decoration — 專案/草稿狀態標示                        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+| 功能 | 說明 | 優先級 | 狀態 |
+|------|------|--------|------|
+| **TreeView: Projects** | 側邊欄顯示專案清單、狀態、進度 | ⭐⭐⭐⭐⭐ | 📋 |
+| **TreeView: References** | 當前專案的文獻樹，點擊開啟 note | ⭐⭐⭐⭐ | 📋 |
+| **CodeLens: Novelty** | concept.md 上方顯示最近驗證分數 | ⭐⭐⭐ | 📋 |
+| **CodeLens: Citations** | [[wikilink]] 上方顯示 "Author (Year)" | ⭐⭐⭐⭐ | 📋 |
+| **Diagnostics** | 引用缺失警告、wikilink 斷鏈、字數超限 | ⭐⭐⭐⭐ | 📋 |
+| **Webview Dashboard** | 內嵌 Next.js Dashboard（取代 Simple Browser） | ⭐⭐⭐ | 📋 |
+| **File Decorations** | 專案狀態圖示（drafting/submitted/published） | ⭐⭐ | 📋 |
+
+### 5c.2 Pandoc 整合（雙格式匯出）
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Pandoc Export Pipeline                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  drafts/*.md                                                         │
+│       │                                                              │
+│       ├──→ pandoc → .docx  (Word，投稿 / 共同作者協作)              │
+│       │         ├── 套用期刊 Word template                          │
+│       │         └── 引用格式化 (CSL)                                │
+│       │                                                              │
+│       └──→ pandoc → .tex   (LaTeX，精確排版 / 數學公式)             │
+│                 ├── 套用 journal .cls/.sty                          │
+│                 └── BibTeX 引用                                      │
+│                                                                      │
+│  取代: 現有 python-docx 基礎的 Word 匯出                            │
+│  優勢: 統一 pipeline、支援更多格式、CSL 引用、LaTeX 公式            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+| 功能 | 說明 | 優先級 | 狀態 |
+|------|------|--------|------|
+| **Pandoc Word Export** | 取代現有 python-docx 匯出 | ⭐⭐⭐⭐⭐ | 📋 |
+| **Pandoc LaTeX Export** | 新增 LaTeX 輸出 | ⭐⭐⭐⭐ | 📋 |
+| **CSL Citation Styles** | 用 CSL 取代手動格式化 | ⭐⭐⭐⭐⭐ | 📋 |
+| **Journal Templates** | 期刊 Word/LaTeX 模板庫 | ⭐⭐⭐ | 📋 |
+| **Math Support** | LaTeX 公式在 Word/PDF 中正確渲染 | ⭐⭐⭐ | 📋 |
+
+### 5c.3 Foam 保留 + 強化
+
+| 功能 | 說明 | 狀態 |
+|------|------|------|
+| **保持現有** | [[wikilink]] 引用、hover preview、backlinks | ✅ 已有 |
+| **Graph Scope** | `foam_settings.py` 動態切換專案範圍 | ✅ 已有 |
+| **Enhanced Autocomplete** | 文獻 autocomplete 加入 impact factor | 📋 |
+| **Backlink Dashboard** | 在 Dashboard 中顯示引用圖譜 | 📋 |
+
+---
+
+## �📊 Phase 5b: Project Portfolio Management (2026 Q2)
 
 > **多論文專案管理：讓研究者能同時管理多個進行中的論文**
 

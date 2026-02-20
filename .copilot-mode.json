@@ -1,5 +1,5 @@
 {
-  "mode": "normal",
+  "mode": "development",
   "description": "Copilot 運行模式設定",
   "modes": {
     "development": {
@@ -14,7 +14,12 @@
       "enabled_skills": [
         "literature-review",
         "concept-development",
-        "parallel-search"
+        "concept-validation",
+        "parallel-search",
+        "project-management",
+        "draft-writing",
+        "reference-management",
+        "word-export"
       ],
       "memory_bank_sync": "minimal",
       "static_analysis_tools": false,
@@ -36,7 +41,12 @@
       "enabled_skills": [
         "literature-review",
         "concept-development",
-        "parallel-search"
+        "concept-validation",
+        "parallel-search",
+        "project-management",
+        "draft-writing",
+        "reference-management",
+        "word-export"
       ],
       "memory_bank_sync": "project_only",
       "static_analysis_tools": false,

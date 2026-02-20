@@ -53,24 +53,24 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
 
     const provider: vscode.McpServerDefinitionProvider = {
         onDidChangeMcpServerDefinitions: new vscode.EventEmitter<void>().event,
-        
+
         provideMcpServerDefinitions(token: vscode.CancellationToken): vscode.ProviderResult<vscode.McpServerDefinition[]> {
             const pythonPath = getPythonPath(context);
             const workspaceFolders = vscode.workspace.workspaceFolders;
-            
+
             outputChannel.appendLine(`[MCP] Using Python Path: ${pythonPath}`);
-            
+
             // Determine PYTHONPATH
             // Include bundled tools and workspace src (for development)
             let pythonPathEnv = path.join(context.extensionPath, 'bundled', 'tool');
             if (workspaceFolders) {
                 const srcPath = path.join(workspaceFolders[0].uri.fsPath, 'src');
                 const integrationsPath = path.join(workspaceFolders[0].uri.fsPath, 'integrations');
-                
+
                 if (fs.existsSync(srcPath)) {
                     pythonPathEnv = `${srcPath}${path.delimiter}${pythonPathEnv}`;
                 }
-                
+
                 // Add integration src paths for development
                 const cguSrc = path.join(integrationsPath, 'cgu', 'src');
                 if (fs.existsSync(cguSrc)) {
@@ -139,8 +139,8 @@ function getPythonArgs(command: string, module: string): string[] {
     // Case 1: uv run python -m ...
     if (commandName === 'uv') {
         return ['run', 'python', '-m', module];
-    } 
-    
+    }
+
     // Case 2: uvx package (NO -m)
     if (commandName === 'uvx') {
         const packageMap: Record<string, string> = {
@@ -185,27 +185,27 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                     stream.markdown('🔍 使用 MCP 工具搜尋 PubMed...\n\n');
                     stream.markdown('請在 Agent Mode 中使用此功能，MCP 工具會自動被調用。');
                     break;
-                
+
                 case 'draft':
                     stream.markdown('✍️ 準備撰寫論文章節...\n\n');
                     stream.markdown('請提供章節類型和主題，我會協助您撰寫。');
                     break;
-                
+
                 case 'concept':
                     stream.markdown('💡 發展研究概念...\n\n');
                     stream.markdown('請描述您的研究想法，我會幫您驗證 novelty。');
                     break;
-                
+
                 case 'project':
                     stream.markdown('📁 專案管理...\n\n');
                     stream.markdown('使用 `/mdpaper.project` 來建立或管理研究專案。');
                     break;
-                
+
                 case 'format':
                     stream.markdown('📄 匯出 Word 文件...\n\n');
                     stream.markdown('請確保已完成所有章節的撰寫。');
                     break;
-                
+
                 default:
                     // General query - provide guidance
                     stream.markdown(`## MedPaper Assistant\n\n`);
@@ -224,7 +224,7 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
 
         const participant = vscode.chat.createChatParticipant('medpaper.assistant', handler);
         participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png');
-        
+
         // Follow-up provider
         participant.followupProvider = {
             provideFollowups(result, context, token) {
@@ -297,7 +297,7 @@ function getPythonPath(context: vscode.ExtensionContext): string {
 
 function loadSkillsAsInstructions(skillsPath: string): string {
     const instructions: string[] = [];
-    
+
     if (!fs.existsSync(skillsPath)) {
         return '';
     }

@@ -108,9 +108,7 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
         if not os.path.isabs(filename):
             # Try project drafts directory
             if current_info and current_info.get("project_path"):
-                draft_path = os.path.join(
-                    str(current_info["project_path"]), "drafts", filename
-                )
+                draft_path = os.path.join(str(current_info["project_path"]), "drafts", filename)
             else:
                 draft_path = os.path.join("drafts", filename)
 
@@ -118,9 +116,7 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
             return f"❌ Draft file not found: {draft_path}"
 
         result = citation_assistant.scan_draft_for_citations(draft_path)
-        log_tool_result(
-            "scan_draft_citations", f"scanned {draft_path}", success=True
-        )
+        log_tool_result("scan_draft_citations", f"scanned {draft_path}", success=True)
         return result
 
     @mcp.tool()

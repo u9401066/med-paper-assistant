@@ -1,34 +1,28 @@
-import sys
 import os
-import shutil
+
 from docx import Document
 
-# Add src to path
-sys.path.append(os.path.join(os.getcwd(), "src"))
+from med_paper_assistant.infrastructure.services.formatter import Formatter
 
-from med_paper_assistant.core.formatter import Formatter
 
-def test_formatter():
+def test_formatter(tmp_path):
     # Setup
-    test_dir = "test_formatter"
-    if os.path.exists(test_dir):
-        shutil.rmtree(test_dir)
-    os.makedirs(test_dir)
-    
+    test_dir = str(tmp_path)
+
     # 1. Create Dummy Template in test dir (to test full path)
     template_path = os.path.join(test_dir, "custom_template.docx")
     doc = Document()
-    doc.add_heading('Custom Template', 0)
+    doc.add_heading("Custom Template", 0)
     doc.save(template_path)
-    
+
     # 2. Create Dummy Draft
     draft_path = os.path.join(test_dir, "draft.md")
     with open(draft_path, "w") as f:
         f.write("# Title\nContent.")
-        
+
     # 3. Initialize Formatter
     formatter = Formatter()
-    
+
     # 4. Test with Full Path
     output_path_1 = os.path.join(test_dir, "output_1.docx")
     print("Testing full path template...")
@@ -49,6 +43,7 @@ def test_formatter():
         print("PASS: Template name lookup.")
     else:
         print("FAIL: Template name lookup.")
+
 
 if __name__ == "__main__":
     test_formatter()

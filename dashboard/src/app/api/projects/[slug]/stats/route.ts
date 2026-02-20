@@ -59,19 +59,19 @@ async function countWordsInFile(filePath: string): Promise<number> {
 
 async function getConceptStatus(projectPath: string): Promise<ProjectStats['concept']> {
   const conceptPath = path.join(projectPath, 'concept.md');
-  
+
   try {
     await fs.access(conceptPath);
     const content = await fs.readFile(conceptPath, 'utf-8');
-    
+
     // Check for validation markers in concept.md or cache
     const cacheDir = path.join(projectPath, '.cache');
     const validationCache = path.join(cacheDir, 'concept_validation.json');
-    
+
     let validated = false;
     let noveltyScore: number | null = null;
     let lastValidated: string | null = null;
-    
+
     try {
       const cacheContent = await fs.readFile(validationCache, 'utf-8');
       const cache = JSON.parse(cacheContent);
@@ -80,10 +80,10 @@ async function getConceptStatus(projectPath: string): Promise<ProjectStats['conc
       lastValidated = cache.validated_at || null;
     } catch {
       // No cache, check content for indicators
-      validated = content.includes('🔒 NOVELTY STATEMENT') && 
+      validated = content.includes('🔒 NOVELTY STATEMENT') &&
                   content.includes('🔒 KEY SELLING POINTS');
     }
-    
+
     return {
       exists: true,
       validated,
@@ -102,7 +102,7 @@ async function getConceptStatus(projectPath: string): Promise<ProjectStats['conc
 
 async function getWordCounts(projectPath: string): Promise<ProjectStats['wordCounts']> {
   const draftsDir = path.join(projectPath, 'drafts');
-  
+
   const sections = ['intro', 'methods', 'results', 'discussion'] as const;
   const counts: ProjectStats['wordCounts'] = {
     intro: 0,
@@ -110,7 +110,7 @@ async function getWordCounts(projectPath: string): Promise<ProjectStats['wordCou
     results: 0,
     discussion: 0,
   };
-  
+
   for (const section of sections) {
     // Try different naming conventions
     const possibleNames = [
@@ -118,7 +118,7 @@ async function getWordCounts(projectPath: string): Promise<ProjectStats['wordCou
       `${section}duction.md`,  // intro -> introduction
       `${section}s.md`,        // method -> methods
     ];
-    
+
     for (const name of possibleNames) {
       const filePath = path.join(draftsDir, name);
       const wordCount = await countWordsInFile(filePath);
@@ -128,16 +128,16 @@ async function getWordCounts(projectPath: string): Promise<ProjectStats['wordCou
       }
     }
   }
-  
+
   return counts;
 }
 
 async function getPreAnalysisStatus(projectPath: string): Promise<ProjectStats['preAnalysis']> {
   const conceptPath = path.join(projectPath, 'concept.md');
-  
+
   try {
     const content = await fs.readFile(conceptPath, 'utf-8');
-    
+
     // Check for required sections
     const requiredSections = [
       /##\s*📝?\s*Study Design/i,
@@ -145,10 +145,10 @@ async function getPreAnalysisStatus(projectPath: string): Promise<ProjectStats['
       /Sample Size/i,
       /##\s*📝?\s*Outcomes/i,
     ];
-    
+
     const passedCount = requiredSections.filter(regex => regex.test(content)).length;
     const score = Math.round((passedCount / requiredSections.length) * 100);
-    
+
     return {
       ready: passedCount === requiredSections.length,
       score,
@@ -170,7 +170,7 @@ export async function GET(
   try {
     const { slug } = params;
     const projectPath = path.join(PROJECTS_DIR, slug);
-    
+
     // Check if project exists
     try {
       await fs.access(projectPath);
@@ -180,7 +180,7 @@ export async function GET(
         { status: 404 }
       );
     }
-    
+
     // Gather stats in parallel
     const [references, drafts, diagrams, concept, wordCounts, preAnalysis] = await Promise.all([
       countFilesInDir(path.join(projectPath, 'references')),
@@ -190,7 +190,7 @@ export async function GET(
       getWordCounts(projectPath),
       getPreAnalysisStatus(projectPath),
     ]);
-    
+
     const stats: ProjectStats = {
       references,
       drafts,
@@ -199,7 +199,7 @@ export async function GET(
       preAnalysis,
       wordCounts,
     };
-    
+
     return NextResponse.json(stats);
   } catch (error) {
     console.error('Error getting project stats:', error);

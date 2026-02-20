@@ -6,18 +6,15 @@ Usage:
 """
 
 import sys
-import os
 
 
 def main():
     """Run the MCP server."""
-    # Add parent path for imports
-    extension_path = os.environ.get('MDPAPER_EXTENSION_PATH', '')
-    
     # For now, redirect to the main package
     # In production, this would be a standalone server
     try:
         from med_paper_assistant.interfaces.mcp import main as run_server
+
         run_server()
     except ImportError:
         # Fallback: minimal server for testing
