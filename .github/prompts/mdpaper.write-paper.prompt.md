@@ -28,23 +28,45 @@ Instructions (AGENTS.md) ──→ Skill (auto-paper) ──→ Writing (drafts)
 
 ---
 
+## 🗺️ 外部 MCP 工具使用時機
+
+> **Pipeline 定義「何時」用哪個 MCP — 不是每個 Phase 都需要所有工具。**
+
+| Phase | mdpaper | pubmed-search | CGU | Draw.io | Zotero |
+|-------|---------|---------------|-----|---------|--------|
+| 1 專案設置 | ✅ create/switch | - | - | - | - |
+| 2 文獻搜尋 | ✅ save_ref | ✅ search + metrics | - | - | 🔸 import |
+| 3 概念發展 | ✅ validate | - | 🔸 novelty boost | - | - |
+| 4 大綱規劃 | ✅ read_draft | - | - | - | - |
+| 5 章節撰寫 | ✅ draft/patch | - | 🔸 Discussion | 🔸 flow diagram | - |
+| 6 全稿審計 | ✅ hooks | - | - | - | - |
+| 7 引用同步 | ✅ sync_refs | - | - | - | - |
+| 8 匯出 | ✅ export | - | - | - | - |
+| 9 回顧改進 | ✅ meta | - | - | - | - |
+
+🔸 = 條件觸發（非每次都需要）
+
+---
+
 ## 📋 執行方式
 
 **載入並遵循**：`.claude/skills/auto-paper/SKILL.md`
 
 ### 9-Phase Pipeline
 
-| Phase | 名稱 | Skill | Gate |
-|-------|------|-------|------|
-| 1 | 專案設置 | project-management | 專案存在 + paper_type |
-| 2 | 文獻搜尋 | literature-review, parallel-search | ≥10 篇已儲存 |
-| 3 | 概念發展 | concept-development | score ≥ 75 |
-| 4 | 大綱規劃 | draft-writing | **🗣️ 用戶確認** |
-| 5 | 章節撰寫 | draft-writing + **Hook A/B** | 所有 section 通過 |
-| 6 | 全稿審計 | **Hook C** | 0 critical issues |
-| 7 | 引用同步 | reference-management | 0 broken links |
-| 8 | 匯出 | word-export | Word 已匯出 |
-| 9 | 回顧改進 | **Hook D (meta-learning)** | SKILL 已更新 |
+| Phase | 名稱 | Skill | 外部 MCP | Gate |
+|-------|------|-------|----------|------|
+| 1 | 專案設置 | project-management | - | 專案存在 + paper_type |
+| 2 | 文獻搜尋 | literature-review, parallel-search | pubmed-search, zotero🔸 | ≥10 篇已儲存 |
+| 3 | 概念發展 | concept-development | cgu🔸 | score ≥ 75 |
+| 4 | 大綱規劃 | draft-writing | - | **🗣️ 用戶確認大綱 + Asset Plan** |
+| 5 | 章節撰寫 | draft-writing + **Hook A/B** | drawio🔸, cgu🔸, data tools | 所有 section 通過 |
+| 6 | 全稿審計 | **Hook C** | - | 0 critical issues |
+| 7 | 引用同步 | reference-management | - | 0 broken links |
+| 8 | 匯出 | word-export | - | Word 已匯出 |
+| 9 | 回顧改進 | **Hook D (meta-learning)** | - | SKILL 已更新 |
+
+🔸 = 條件觸發（見 auto-paper SKILL.md Cross-Tool Orchestration Map）
 
 ### 3 層 Audit Hooks
 

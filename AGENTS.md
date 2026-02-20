@@ -446,7 +446,7 @@ Agent 應該主動識別用戶意圖並觸發對應 Capability：
 
 | 技能 | 觸發語 | 說明 |
 |------|--------|------|
-| **auto-paper** | 全自動寫論文、auto write、autopilot、一鍵寫論文 | 9-Phase 全自動撰寫 + 3 層 Audit Hooks + 閉環自我改進 |
+| **auto-paper** | 全自動寫論文、auto write、autopilot、一鍵寫論文 | 9-Phase 全自動撰寫 + 3 層 Audit Hooks + 閉環自我改進 + Cross-Tool Orchestration |
 | **literature-review** | 文獻回顧、找論文、PubMed、搜paper、reference | 系統性文獻搜尋、篩選、下載、整理 |
 | **concept-development** | concept、novelty、驗證失敗、怎麼改、補充概念 | 發展研究概念，通過 novelty 驗證 |
 | **concept-validation** | 驗證、validate、check concept、可以開始寫了嗎 | 驗證概念新穎性和結構完整性 |
@@ -493,6 +493,23 @@ Agent 應該主動識別用戶意圖並觸發對應 Capability：
 
 **跨 MCP 協調**：
 一個 Skill 可能需要呼叫多個 MCP 的工具（如 mdpaper + drawio），Agent 層級協調即可。
+
+### 🗺️ Cross-Tool Orchestration（跨 MCP 工具編排）
+
+> **核心原則**：Pipeline（auto-paper SKILL.md）定義「何時」用哪個 MCP；Skill 定義「如何」用；Hook 只負責「品質檢查」，不編排工具使用順序。
+
+**外部 MCP 在 Pipeline 中的角色**：
+
+| 外部 MCP | Phase | 觸發條件 | 工具鏈 |
+|----------|-------|---------|--------|
+| `pubmed-search` | 2 文獻搜尋 | 永遠 | search → metrics → Agent 選篇 → `save_reference_mcp(pmid)` |
+| `zotero-keeper` | 2 文獻搜尋 | 用戶有 Zotero | search_items → 取 PMID → `save_reference_mcp(pmid)` |
+| `cgu` | 3 概念發展 | novelty < 75 | deep_think / spark_collision → 修正 concept → 再驗證 |
+| `cgu` | 5 章節撰寫 | Discussion 論點弱 | deep_think → 強化 Discussion 邏輯 |
+| `drawio` | 5 章節撰寫 | Methods 需 flow diagram | create_diagram → `save_diagram(project, content)` |
+| mdpaper data tools | 5 章節撰寫 | Results 需表格/圖 | generate_table_one / create_plot / run_statistical_test |
+
+**詳細編排定義**：見 `.claude/skills/auto-paper/SKILL.md`「Cross-Tool Orchestration Map」
 
 ---
 

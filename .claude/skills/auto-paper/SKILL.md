@@ -210,6 +210,7 @@ Agent 偵測到 .audit/checkpoint.json 存在：
 
 ### Phase 2: LITERATURE SEARCH 🔍
 **Skill**: `literature-review`, `parallel-search`
+**外部 MCP**: `pubmed-search`, `zotero-keeper`（optional）
 
 ```
 1. generate_search_queries(topic, strategy="comprehensive")
@@ -217,6 +218,9 @@ Agent 偵測到 .audit/checkpoint.json 存在：
 3. merge_search_results()
 4. get_citation_metrics(sort_by="relative_citation_ratio")
 5. 選前 15-20 篇 → save_reference_mcp(pmid, agent_notes)
+6. [Optional] Zotero 既有文獻匯入：
+   a. mcp_zotero-keeper_search_items(query=topic) → 查用戶 Zotero 庫
+   b. 有相關文獻 → 取得 DOI/PMID → save_reference_mcp() 匯入專案
 ```
 
 **Gate**: ✅ ≥10 篇文獻已儲存
@@ -225,11 +229,13 @@ Agent 偵測到 .audit/checkpoint.json 存在：
 - 結果 <20 → `expand_search_queries` 再搜
 - 結果 >500 → 加 MeSH 限縮
 - RCR 排序取 top papers
+- 用戶有 Zotero → 主動問是否匯入既有收藏
 
 ---
 
 ### Phase 3: CONCEPT DEVELOPMENT 📐
 **Skill**: `concept-development`
+**外部 MCP**: `cgu`（when novelty needs boost）
 
 ```
 1. 分析 saved references → 識別 Gap
@@ -237,12 +243,26 @@ Agent 偵測到 .audit/checkpoint.json 存在：
 3. write_draft(filename="concept.md", content=..., skip_validation=True)
 4. validate_concept(project=...)
 5. IF score < 75:
-   ├── 自動修正 1 次（只改最關鍵的 1 點）
+   ├── 嘗試自動修正 1 次（只改最關鍵的 1 點）
    ├── 再驗證
-   └── IF 仍 < 75 → 🔴 STOP，回報用戶
+   ├── IF 仍 < 75 → 🔶 CGU 創意輔助：
+   │   ├── mcp_cgu_deep_think(「從 reviewer 角度，最容易被攻擊的弱點？」)
+   │   ├── mcp_cgu_spark_collision(「現有研究限制 × 我的方法優勢」)
+   │   ├── mcp_cgu_generate_ideas(「無可辯駁的 novelty 論點」)
+   │   ├── 根據 CGU 結果修正 concept → 再驗證
+   │   └── IF 仍 < 75 → 🔴 STOP，回報用戶（附 CGU 建議）
+   └── IF score ≥ 75 → 繼續
 ```
 
 **Gate**: ✅ concept score ≥ 75 OR 用戶明確說「繼續」
+
+**CGU ↔ Concept 互動模式**：
+| 問題 | CGU 工具 | 產出 |
+|------|----------|------|
+| 找弱點 | `deep_think` | Reviewer 最可能的攻擊角度 |
+| 找論點 | `spark_collision` | 碰撞出新穎角度 |
+| 廣泛發想 | `generate_ideas` | 3-5 個 novelty 候選 |
+| 多觀點 | `multi_agent_brainstorm` | 多角色辯論最佳策略 |
 
 ---
 
@@ -264,11 +284,35 @@ Agent 偵測到 .audit/checkpoint.json 存在：
      "Discussion": [...]
    }
 
-3. 🗣️ 呈現大綱給用戶（Pipeline 中唯一的確認點）
-4. 用戶可調整 → 確認 → 儲存到 .memory/
+3. � Asset Planning（規劃表格、圖表、流程圖）：
+
+   assets = {
+     "Results": [
+       { "type": "table", "id": "Table 1",
+         "desc": "Baseline characteristics",
+         "tool": "mcp_mdpaper_generate_table_one",
+         "data_source": "dataset.csv" },
+       { "type": "figure", "id": "Figure 1",
+         "desc": "Primary outcome comparison",
+         "tool": "mcp_mdpaper_create_plot",
+         "plot_type": "box" },
+       { "type": "figure", "id": "Figure 2",
+         "desc": "Kaplan-Meier survival curve",
+         "tool": "mcp_mdpaper_create_plot",
+         "plot_type": "kaplan_meier" }
+     ],
+     "Methods": [
+       { "type": "diagram", "id": "Figure S1",
+         "desc": "Study flow / CONSORT diagram",
+         "tool": "drawio.create_diagram → mcp_mdpaper_save_diagram" }
+     ]
+   }
+
+4. 🗣️ 呈現大綱 + Asset Plan 給用戶（Pipeline 中唯一的確認點）
+5. 用戶可調整 → 確認 → 儲存到 .memory/
 ```
 
-**Gate**: ✅ 大綱已確認
+**Gate**: ✅ 大綱 + Asset Plan 已確認
 
 **寫作順序**（依 paper type）：
 
@@ -282,14 +326,31 @@ Agent 偵測到 .audit/checkpoint.json 存在：
 
 ### Phase 5: SECTION WRITING ✍️ (核心 + Audit Loop)
 **Skill**: `draft-writing`
+**外部 MCP**: `drawio`（for diagrams）, `cgu`（for Discussion argumentation）
 
 ```
 FOR section IN writing_order:
   1. 讀取 outline[section]
   2. 讀取所有已完成 sections（全局 context）
   3. get_available_citations() → 取得可用引用
+
+  ▸ IF section == "Methods" AND asset_plan 有 diagram:
+    → drawio.create_diagram(type="flowchart") → CONSORT/PRISMA flow
+    → mcp_mdpaper_save_diagram(project=..., content=xml)
+    → 在 Methods 草稿中引用 Figure reference
+
   4. draft_section(topic=section, notes=outline_context)
      或 write_draft(filename=..., content=...)
+
+  ▸ IF section == "Results" AND asset_plan 有 tables/figures:
+    → mcp_mdpaper_generate_table_one(data_file=...) → Table 1
+    → mcp_mdpaper_create_plot(data_file=..., plot_type=...) → Figures
+    → mcp_mdpaper_run_statistical_test(...) → p-values
+    → 將表格/圖表結果整合到 Results 草稿
+
+  ▸ IF section == "Discussion" AND 論點需要強化:
+    → mcp_cgu_deep_think(「從 reviewer 角度看 Discussion 論點」)
+    → 用 CGU 輸出強化 Discussion 的邏輯鏈
 
   5. ═══════════════════════════════════════════
      🔔 HOOK A: post-write (見下方 Hook 定義)
@@ -744,6 +805,85 @@ auto-paper（本 Skill = 編排器）
   ├── word-export            → Phase 8
   └── submission-preparation → Phase 8 (cover letter 等)
 ```
+
+### 外部 MCP 使用時機
+
+```
+auto-paper（本 Skill = 編排器）
+  ├── pubmed-search          → Phase 2: 文獻搜尋 + RCR 篩選
+  ├── zotero-keeper          → Phase 2: 匯入用戶既有 Zotero 收藏 [optional]
+  ├── cgu                    → Phase 3: Novelty 不足時創意輔助
+  │                          → Phase 5: Discussion 論點強化
+  ├── drawio                 → Phase 5: CONSORT/PRISMA flow diagram
+  └── mdpaper (data tools)   → Phase 5: Table 1 + plots + statistics
+```
+
+---
+
+## 🗺️ Cross-Tool Orchestration Map
+
+> **核心原則**：Pipeline 定義「何時」用哪個 MCP；Skill 定義「如何」用；Hook 只負責「品質檢查」。
+
+### 完整工具鏈（依 Phase 展開）
+
+```
+Phase 1: PROJECT SETUP
+  └─ mdpaper: create_project, setup_project_interactive
+
+Phase 2: LITERATURE SEARCH
+  ├─ pubmed-search: generate_search_queries → search_literature → get_citation_metrics
+  ├─ mdpaper: save_reference_mcp(pmid)     ← MCP-to-MCP 驗證管道
+  └─ zotero-keeper: search_items [optional] → 取得 PMID → save_reference_mcp
+
+Phase 3: CONCEPT DEVELOPMENT
+  ├─ mdpaper: write_draft(concept.md), validate_concept
+  └─ cgu: deep_think, spark_collision, generate_ideas  ← 當 novelty score < 75
+
+Phase 4: MANUSCRIPT PLANNING
+  └─ mdpaper: read_draft(concept.md), list_saved_references
+     → Agent 產出 outline + asset_plan（表格/圖/流程圖清單）
+
+Phase 5: SECTION WRITING
+  ├─ mdpaper: draft_section, write_draft, patch_draft
+  ├─ mdpaper (data): generate_table_one, create_plot, run_statistical_test
+  │   └─ 觸發時機：寫 Results 時，按 asset_plan 執行
+  ├─ drawio: create_diagram → mdpaper: save_diagram
+  │   └─ 觸發時機：寫 Methods 時（CONSORT flow）或 Results（figure layout）
+  ├─ cgu: deep_think
+  │   └─ 觸發時機：寫 Discussion 時強化論點
+  └─ 🔔 Hooks A + B 品質審計
+
+Phase 6: CROSS-SECTION AUDIT
+  └─ 🔔 Hook C（全稿一致性）
+
+Phase 7: REFERENCE SYNC
+  └─ mdpaper: sync_references, format_references
+
+Phase 8: EXPORT
+  └─ mdpaper: word-export workflow
+
+Phase 9: RETROSPECTIVE
+  └─ 🔔 Hook D（meta-learning + self-improvement）
+```
+
+### 跨 MCP 傳遞模式
+
+| 來源 MCP | 目標 MCP | 傳遞物 | 規則 |
+|----------|----------|--------|------|
+| pubmed-search | mdpaper | PMID | `save_reference_mcp(pmid)` — 只傳 PMID，mdpaper 驗證 |
+| zotero-keeper | mdpaper | PMID/DOI | 從 Zotero item 取 PMID → `save_reference_mcp()` |
+| cgu | concept.md | 文字建議 | Agent 整合 CGU 輸出到 concept → `write_draft()` |
+| drawio | mdpaper | XML diagram | `save_diagram(project, content=xml, filename)` |
+| mdpaper (data) | drafts | 表格/圖/數字 | Agent 將結果整合到 draft 文字中 |
+
+### 何時不使用外部 MCP
+
+| 情境 | 行為 |
+|------|------|
+| 用戶無 Zotero | 跳過 zotero-keeper，只用 PubMed |
+| Concept score ≥ 75 首次通過 | 跳過 CGU |
+| 無資料集 | 跳過 generate_table_one / create_plot |
+| 純 review article（無 Methods flow） | 跳過 drawio |
 
 ---
 

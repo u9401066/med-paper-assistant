@@ -27,7 +27,8 @@
 | **觸發語** | 寫論文、寫 paper、完整流程、從頭開始寫、help me write、全自動、auto write、一鍵寫論文、autopilot |
 | **情境觸發** | 用戶提到研究主題但沒有專案存在 |
 | **編排 Skills** | auto-paper（編排器）→ project-management → literature-review → concept-development → draft-writing → word-export |
-| **特色** | 9-Phase Pipeline + 3 層 Audit Hooks + Meta-Learning 閉環自我改進 |
+| **跨 MCP 工具** | `pubmed-search`（Phase 2）, `zotero-keeper`🔸（Phase 2）, `cgu`🔸（Phase 3, 5）, `drawio`🔸（Phase 5） |
+| **特色** | 9-Phase Pipeline + 3 層 Audit Hooks + Meta-Learning 閉環自我改進 + Cross-Tool Orchestration |
 
 ### literature-survey（系統性文獻調查）
 
@@ -95,9 +96,24 @@
 
 ```
 Capability (write-paper)
-  └── Skill (auto-paper) ──→ Uses MCP: mdpaper, pubmed-search, cgu
+  └── Skill (auto-paper) ──→ Uses MCP: mdpaper, pubmed-search, cgu, drawio, zotero-keeper
+        │
+        ├── Phase 2 (Literature)
+        │     ├── pubmed-search: search + metrics + citations
+        │     ├── mdpaper: save_reference_mcp(pmid)
+        │     └── zotero-keeper: search_items [optional]
+        │
+        ├── Phase 3 (Concept)
+        │     ├── mdpaper: validate_concept
+        │     └── cgu: deep_think, spark_collision [when novelty < 75]
+        │
+        ├── Phase 5 (Writing)
+        │     ├── mdpaper: draft_section, generate_table_one, create_plot
+        │     ├── drawio: create_diagram [Methods flow diagrams]
+        │     └── cgu: deep_think [Discussion argumentation]
+        │
         ├── Copilot Hook A ──→ Uses MCP: mdpaper.count_words, patch_draft
-        ├── Copilot Hook B ──→ Uses MCP: mdpaper.read_draft, patch_draft
+        ├── Copilot Hook B ──→ Uses MCP: mdpaper.read_draft, patch_draft, check_writing_order
         ├── Copilot Hook C ──→ Uses MCP: mdpaper.check_formatting
         └── Copilot Hook D ──→ Uses: read_file, replace_string_in_file (on SKILL.md)
 

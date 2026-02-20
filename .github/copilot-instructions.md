@@ -169,6 +169,26 @@
 └──────────────────────┘  └─────────────────────────┘
 ```
 
+### ⭐ Cross-Tool Orchestration（跨 MCP 工具編排）
+
+```
+📌 Pipeline 定義「何時」用哪個 MCP；Skill 定義「如何」用；Hook 只負責「品質檢查」！
+
+外部 MCP 使用時機：
+┌─ Phase 2（文獻搜尋）
+│   ├─ pubmed-search: search → metrics → save_reference_mcp(pmid)
+│   └─ zotero-keeper: search_items → 取 PMID → save_reference_mcp [optional]
+├─ Phase 3（概念發展）
+│   └─ cgu: deep_think / spark_collision → 當 novelty score < 75
+├─ Phase 5（章節撰寫）
+│   ├─ drawio: create_diagram → save_diagram [Methods flow diagram]
+│   ├─ mdpaper data: generate_table_one, create_plot [Results]
+│   └─ cgu: deep_think [Discussion 論點強化]
+└─ 詳見：.claude/skills/auto-paper/SKILL.md「Cross-Tool Orchestration Map」
+```
+
+### 🔔 雙重 Hook 架構
+
 | Hook 類型 | Hooks | 使用的 MCP Tools |
 |-----------|-------|------------------|
 | **Copilot A** (post-write) | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `get_available_citations`, `validate_wikilinks`, `patch_draft` |
