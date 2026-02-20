@@ -32,17 +32,27 @@ fi
 
 source .venv/bin/activate
 
-# 2. Install dependenciesecho "🔄 Updating Git submodules..."
+# 2. Check uv is available
+if ! command -v uv &> /dev/null; then
+    echo "❌ uv is not installed. Please install it first:"
+    echo "   curl -LsSf https://astral.sh/uv/install.sh | sh"
+    exit 1
+fi
+
+# 3. Install dependencies
+echo "🔄 Updating Git submodules..."
 git submodule update --init --recursive --remote
 echo "📥 Installing dependencies with uv..."
 uv sync --all-extras
 echo "  ✅ Dependencies installed"
 
-# 3. Create .vscode/mcp.json (cross-platform)
-echo "⚙️  Configuring VS Code MCP (cross-platform)..."
+# 4. Create .vscode/mcp.json if not exists
 mkdir -p .vscode
-
-cat > .vscode/mcp.json << 'EOF'
+if [ -f .vscode/mcp.json ]; then
+    echo "⚙️  .vscode/mcp.json already exists, skipping (delete it manually to regenerate)"
+else
+    echo "⚙️  Creating .vscode/mcp.json (cross-platform)..."
+    cat > .vscode/mcp.json << 'EOF'
 {
   "inputs": [],
   "servers": {
@@ -68,9 +78,10 @@ cat > .vscode/mcp.json << 'EOF'
   }
 }
 EOF
-echo "  ✅ mcp.json created (cross-platform)"
+    echo "  ✅ mcp.json created (cross-platform)"
+fi
 
-# 4. Verify installation
+# 5. Verify installation
 echo "✅ Verifying installation..."
 python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server loaded: {len(mcp._tool_manager._tools)} tools')"
 

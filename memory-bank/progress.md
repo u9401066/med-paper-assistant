@@ -2,19 +2,21 @@
 
 ## Done
 
-- Auto-Paper 9-Phase Pipeline + 閉環自我改進系統 (commit af887f0)
-- Dual-Hook Architecture: Copilot Hooks (A/B/C/D) + Pre-Commit Hooks (P1-P8) + General Hooks (G1-G6) (commit e754489)
-- VSX Extension v0.2.0: 388KB, 14 skills, 12 prompts (commit 81427d0)
-- Production-Grade Audit System: CONSTITUTION v1.3.0 Chapter 8 (§20-§23), Hook B5 methodology, Hook D self-improvement, P8, .audit/ trail, quality scorecards 0-10 (commit 56e79b1)
-- Cross-Reference Integrity Fix + G6 Project Health Hook: 53 tools, 26 skills, 15 prompts, ~116 total (commit 96e3770)
-- Code Review Infrastructure Audit: 結構已完整 — pre-commit handles automated checks (ruff+mypy+bandit+pytest), code-reviewer skill for manual deep analysis, code-quality capability orchestrates all
+- Token-efficient documentation compression (a2c7f51)
+- User-perspective audit: identified README inconsistencies, setup.sh bugs
+- Foam alias lifecycle investigation
+- G6 consistency audit: mapped all number inconsistencies across 4 docs
+- README.md: fixed 20 number inconsistencies (tools 53/78/116→54/54/104, skills 22→26, prompts 15/17→14, groups 6→7)
+- README.zh-TW.md: mirrored all fixes from README.md
+- ARCHITECTURE.md: fixed tool counts (53→54, ~30→37, ~6→13, prompts 15→14)
+- setup.sh: fixed line 34 comment+echo bug, added uv prerequisite check, added mcp.json overwrite guard
+- setup-integrations.sh: rewrote to use uvx instead of nonexistent next-ai-draw-io submodule
 
 ## Doing
 
-
+- Git commit + push + tag for G6 audit fixes
 
 ## Next
 
-- Phase 5c: Full VSX Extension (TreeView, CodeLens, Diagnostics)
-- Pandoc 整合（取代 python-docx）
-- Citation Intelligence MVP
+- Phase 5c: Full VSX Extension upgrade
+- Pandoc export integration

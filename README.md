@@ -15,7 +15,7 @@
 
 <p align="center">
   <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
-  <i>3 MCP Servers · ~116 Tools · 26 Skills · 15 Prompt Workflows — All in VS Code</i>
+  <i>3 MCP Servers · ~104 Tools · 26 Skills · 14 Prompt Workflows — All in VS Code</i>
 </p>
 
 > 📖 [繁體中文版](README.zh-TW.md)
@@ -28,14 +28,14 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 | Component | Type | Tools | Description |
 |-----------|------|-------|-------------|
-| **[mdpaper](#-mdpaper-mcp-tools)** | Core MCP Server | 53 | Paper writing: projects, references, drafts, analysis, validation, export |
+| **[mdpaper](#-mdpaper-mcp-tools)** | Core MCP Server | 54 | Paper writing: projects, references, drafts, analysis, validation, export |
 | **[pubmed-search](integrations/pubmed-search-mcp/)** | MCP Server (submodule) | 37 | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt |
 | **[CGU](integrations/cgu/)** | MCP Server (submodule) | 13 | Creative generation: brainstorm, deep think, spark collision |
 | **[VS Code Extension](vscode-extension/)** | Extension | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)** | Next.js Web App | — | Project management UI, diagram editor |
 | **[Foam](https://foambubble.github.io/foam/)** | VS Code Extension | — | `[[wikilink]]` citation linking, hover preview, graph view |
 | **[Skills](.claude/skills/)** | Agent Workflows | 26 | Guided multi-tool workflows (literature review, draft writing...) |
-| **[Prompts](.github/prompts/)** | Prompt Files | 15 | `/mdpaper.search`, `/mdpaper.draft`, etc. |
+| **[Prompts](.github/prompts/)** | Prompt Files | 14 | `/mdpaper.search`, `/mdpaper.draft`, etc. |
 
 **External MCP Servers** (optional, installed via uvx):
 - **drawio** — CONSORT/PRISMA flowchart generation
@@ -46,14 +46,14 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 ```mermaid
 flowchart LR
     subgraph IDE["VS Code"]
-        Agent["Copilot Agent<br/>26 Skills · 15 Prompts"]
+        Agent["Copilot Agent<br/>26 Skills · 14 Prompts"]
         Foam[Foam Plugin]
         Ext[MedPaper Extension]
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers (~116 tools)"]
-        mdpaper["mdpaper<br/>53 tools<br/>Draft · Export · Validate"]
+    subgraph MCP["MCP Servers (~104 tools)"]
+        mdpaper["mdpaper<br/>54 tools<br/>Draft · Export · Validate"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -87,7 +87,7 @@ flowchart LR
 | Traditional Tools | Medical Paper Assistant |
 |-------------------|------------------------|
 | Fixed templates, rigid workflow | Flexible, exploratory approach |
-| Separate apps for search/write/cite | All-in-one: ~116 tools in VS Code |
+| Separate apps for search/write/cite | All-in-one: ~104 tools in VS Code |
 | Manual reference management | Auto-save with verified PubMed data |
 | Export then format | Direct Word export with journal styles |
 | Learn complex UI | Natural language conversation |
@@ -168,7 +168,7 @@ Tool  = Single capability (search, save, analyze...)
 Skill = Complete knowledge (how to combine tools to accomplish tasks)
 ```
 
-**22 Skills** covering the full research lifecycle:
+**26 Skills** covering the full research lifecycle:
 
 | Category | Skills | Triggers |
 |----------|--------|----------|
@@ -247,14 +247,14 @@ projects/{slug}/
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │               🤖 Copilot Agent (Orchestrator)                             │
-│      22 Skills + 17 Prompt Workflows + Agent Customization               │
+│      26 Skills + 14 Prompt Workflows + Agent Customization               │
 │   /mdpaper.search → /mdpaper.concept → /mdpaper.draft → export          │
 └───────┬──────────────────┬──────────────────┬──────────────────┬─────────┘
         │                  │                  │                  │
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  78 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│  54 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
@@ -300,9 +300,9 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-**78 active tools** organized into 6 groups:
+**54 active tools** organized into 7 groups:
 
-### 📁 Project Management (23 tools)
+### 📁 Project Management (15 tools)
 Projects, exploration mode, workspace state recovery, diagram management.
 
 | Key Tools | Description |
@@ -313,7 +313,7 @@ Projects, exploration mode, workspace state recovery, diagram management.
 | `save_diagram` / `list_diagrams` | Draw.io integration |
 | `setup_project_interactive` | Interactive paper type configuration |
 
-### 📚 Reference Management (12 tools)
+### 📚 Reference Management (10 tools)
 Save, search, format, and manage references with Foam integration.
 
 | Key Tools | Description |
@@ -323,7 +323,7 @@ Save, search, format, and manage references with Foam integration.
 | `format_references` / `set_citation_style` | Vancouver / APA / Nature |
 | `sync_references` | Sync `[[wikilinks]]` to numbered references |
 
-### ✍️ Draft & Editing (14 tools)
+### ✍️ Draft & Editing (13 tools)
 Write, edit, cite — with built-in validation.
 
 | Key Tools | Description |
@@ -335,7 +335,7 @@ Write, edit, cite — with built-in validation.
 | `scan_draft_citations` / `sync_references` | Citation management |
 | `get_section_template` | Section-specific writing guidelines |
 
-### ✅ Validation (4 tools)
+### ✅ Validation (3 tools)
 | Tool | Description |
 |------|-------------|
 | `validate_concept` | Full novelty scoring (3 rounds, threshold 75/100) |
@@ -351,7 +351,7 @@ Write, edit, cite — with built-in validation.
 | `generate_table_one` | Baseline characteristics with auto variable detection |
 | `create_plot` | Publication-ready figures |
 
-### 📄 Export & Submission (8 + 11 tools)
+### 📄 Export & Submission (6 + 1 tools)
 | Category | Key Tools |
 |----------|-----------|
 | **Word Export** | `export_word`, `list_templates`, `start_document_session`, `verify_document` |
@@ -450,7 +450,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 78 tools in 6 groups
+│   └── interfaces/mcp/            #   MCP server, 54 tools in 7 groups
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
@@ -472,8 +472,8 @@ med-paper-assistant/
 │       ├── drafts/                #   Markdown drafts
 │       └── results/               #   Figures, exports
 │
-├── .claude/skills/                # 22 Agent skill definitions
-├── .github/prompts/               # 17 Prompt workflow files
+├── .claude/skills/                # 26 Agent skill definitions
+├── .github/prompts/               # 14 Prompt workflow files
 ├── templates/                     # Journal Word templates
 ├── memory-bank/                   # Global project memory
 └── tests/                         # pytest test suite
@@ -485,7 +485,7 @@ med-paper-assistant/
 
 | Status | Feature | Description |
 |--------|---------|-------------|
-| ✅ | **3 MCP Servers** | mdpaper (78) + pubmed-search (37) + CGU (13) |
+| ✅ | **3 MCP Servers** | mdpaper (54) + pubmed-search (37) + CGU (13) |
 | ✅ | **Foam Integration** | Wikilinks, hover preview, backlinks, project isolation |
 | ✅ | **Project Memory** | `.memory/` for cross-session AI context |
 | ✅ | **Table 1 Generator** | Auto-generate baseline characteristics |

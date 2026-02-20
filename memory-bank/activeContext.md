@@ -4,9 +4,8 @@
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
 ## Current Goals
-- Phase 5c: Full VSX Extension 升級（TreeView, CodeLens, Diagnostics）
-- Pandoc 整合（取代 python-docx）
-- Citation Intelligence MVP 實作
+
+- G6 consistency audit completed. Fixed all number inconsistencies across README.md, README.zh-TW.md, ARCHITECTURE.md. Fixed setup.sh bugs (line 34 concatenation, uv check, mcp.json overwrite guard). Rewrote setup-integrations.sh for uvx. Actual counts: mdpaper=54 tools (7 groups), pubmed-search=37, CGU=13, total≈104, skills=26, prompts=14. Ready for git commit + push + tag v0.3.1.
 
 ## 當前焦點
 本 Session 完成 6 大功能，專案已達生產級別 ✅
