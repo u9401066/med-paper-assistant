@@ -1,18 +1,9 @@
 import json
-from unittest.mock import MagicMock
-
-import pytest
-from pubmed_search.entrez import LiteratureSearcher
 
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 
 
-@pytest.fixture
-def mock_searcher():
-    return MagicMock(spec=LiteratureSearcher)
-
-
-def test_local_search(mock_searcher, tmp_path):
+def test_local_search(tmp_path):
     # Setup: Create dummy references
     ref_dir = tmp_path / "references"
     ref_dir.mkdir()

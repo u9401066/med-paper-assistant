@@ -1,5 +1,5 @@
 import pytest
-from pubmed_search.entrez import LiteratureSearcher
+from pubmed_search import LiteratureSearcher
 
 
 @pytest.mark.skip(reason="StrategyManager removed during DDD refactor - needs reimplementation")

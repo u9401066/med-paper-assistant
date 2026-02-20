@@ -6,7 +6,7 @@ Tests new features: ESummary, ESpell, EGQuery, ECitMatch, ELink variants, EInfo,
 import time
 
 import pytest
-from pubmed_search.entrez import LiteratureSearcher
+from pubmed_search import LiteratureSearcher
 
 pytestmark = pytest.mark.integration
 

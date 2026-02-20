@@ -1,5 +1,5 @@
 import pytest
-from pubmed_search.entrez import LiteratureSearcher
+from pubmed_search import LiteratureSearcher
 
 pytestmark = pytest.mark.integration
 

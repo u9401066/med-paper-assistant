@@ -2,7 +2,7 @@ import os
 import shutil
 
 import pytest
-from pubmed_search.entrez import LiteratureSearcher
+from pubmed_search import LiteratureSearcher
 
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 
