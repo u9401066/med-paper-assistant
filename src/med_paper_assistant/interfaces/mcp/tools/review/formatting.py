@@ -239,7 +239,7 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
         missing_sections = [
             s
             for s in required_sections
-            if not re.search(rf"^#{1, 3}\s+{s}", content_lower, re.MULTILINE)
+            if not re.search(rf"^#{{1,3}}\s+{s}", content_lower, re.MULTILINE)  # fmt: skip
         ]
         if missing_sections:
             issues.append(

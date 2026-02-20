@@ -25,15 +25,16 @@ Pre-Commit Hooks（本檔，git commit 前最終把關）只報告不自動修�
 
 ## 通用 Hooks（每次觸發）
 
-| Hook                     | 條件                    | 動作                               | MCP Tools                                             |
-| ------------------------ | ----------------------- | ---------------------------------- | ----------------------------------------------------- |
-| **G1** memory-sync       | 必要                    | 更新 Memory Bank + workspace state | `memory_bank_update_progress`, `sync_workspace_state` |
-| **G2** readme-update     | 新功能/API 變更         | 更新 README                        | `read_file`, `replace_string_in_file`                 |
-| **G3** changelog-update  | 版本/重要修改           | 更新 CHANGELOG                     | 同上                                                  |
-| **G4** roadmap-update    | 里程碑完成              | 更新 ROADMAP                       | 同上                                                  |
-| **G5** arch-check        | 結構性變更              | 檢查架構文檔                       | `grep_search`, `list_dir`                             |
-| **G6** project-integrity | SKILL/AGENTS/src 變更   | 專案一致性審計                     | 見下方                                                |
-| **G7** vsx-integrity     | skills/prompts/vsx 變更 | VSX Extension 同步                 | 見下方                                                |
+| Hook                       | 條件                    | 動作                               | MCP Tools                                             |
+| -------------------------- | ----------------------- | ---------------------------------- | ----------------------------------------------------- |
+| **G1** memory-sync         | 必要                    | 更新 Memory Bank + workspace state | `memory_bank_update_progress`, `sync_workspace_state` |
+| **G2** readme-update       | 新功能/API 變更         | 更新 README                        | `read_file`, `replace_string_in_file`                 |
+| **G3** changelog-update    | 版本/重要修改           | 更新 CHANGELOG                     | 同上                                                  |
+| **G4** roadmap-update      | 里程碑完成              | 更新 ROADMAP                       | 同上                                                  |
+| **G5** arch-check          | 結構性變更              | 檢查架構文檔                       | `grep_search`, `list_dir`                             |
+| **G6** project-integrity   | SKILL/AGENTS/src 變更   | 專案一致性審計                     | 見下方                                                |
+| **G7** vsx-integrity       | skills/prompts/vsx 變更 | VSX Extension 同步                 | 見下方                                                |
+| **G8** doc-update-reminder | 任何程式/設定變更       | 提醒需更新的文檔                   | `scripts/check-doc-updates.py` (pre-commit hook)      |
 
 ### G6 專案一致性審計
 

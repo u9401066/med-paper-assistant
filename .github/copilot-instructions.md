@@ -39,16 +39,16 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | 3 概念 | cgu🔸（novelty < 75）          |
 | 5 撰寫 | drawio🔸, cgu🔸, data tools    |
 
-## Hook 架構（37 checks）
+## Hook 架構（38 checks）
 
-| 類型            | 時機            | 重點                               |
-| --------------- | --------------- | ---------------------------------- |
-| Copilot A1-4    | post-write      | 字數、引用、Anti-AI、Wikilink      |
-| Copilot B1-6    | post-section    | 概念一致、🔒保護、方法學、寫作順序 |
-| Copilot C1-6    | post-manuscript | 全稿一致、投稿清單                 |
-| Copilot D1-6    | Phase 9         | SKILL/Hook 自我改進                |
-| Pre-Commit P1-8 | git commit 前   | 最終品質把關                       |
-| General G1-7    | git commit 前   | Memory、文檔、架構、VSX            |
+| 類型            | 時機            | 重點                                  |
+| --------------- | --------------- | ------------------------------------- |
+| Copilot A1-4    | post-write      | 字數、引用、Anti-AI、Wikilink         |
+| Copilot B1-6    | post-section    | 概念一致、🔒保護、方法學、寫作順序    |
+| Copilot C1-6    | post-manuscript | 全稿一致、投稿清單                    |
+| Copilot D1-6    | Phase 9         | SKILL/Hook 自我改進                   |
+| Pre-Commit P1-8 | git commit 前   | 最終品質把關                          |
+| General G1-8    | git commit 前   | Memory、文檔、架構、VSX、文檔更新提醒 |
 
 ## 回應風格
 

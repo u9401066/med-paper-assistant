@@ -339,10 +339,12 @@ def _insert_into_draft(
 
     if after_section:
         # Find the section heading and insert after its content
+        # fmt: off
         pattern = re.compile(
-            rf"^(#{1, 3}\s+{re.escape(after_section)}.*?)(\n#{1, 3}\s|\Z)",
+            rf"^(#{{1,3}}\s+{re.escape(after_section)}.*?)(\n#{{1,3}}\s|\Z)",
             re.MULTILINE | re.DOTALL | re.IGNORECASE,
         )
+        # fmt: on
         match = pattern.search(content)
         if match:
             insert_pos = match.end(1)
