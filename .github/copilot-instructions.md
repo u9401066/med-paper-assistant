@@ -50,6 +50,50 @@
 - **Workspace State**：新對話開始呼叫 `get_workspace_state()` 恢復 context
 - **Python 環境**：uv 優先、禁止全域安裝
 
+### ⭐ 核心設計理念（CONSTITUTION §22）
+
+```
+📌 可審計、可拆解、可重組
+   論文講究的是再現性與方法學，不是文字用詞藝術。
+
+🔍 可審計（Auditable）：
+   → Pipeline 每步產出 .audit/ 審計紀錄
+   → 每個句子可追溯：決策 → 證據 → 搜尋策略 → PMID
+   → 品質用數字衡量（0-10 分），不只 pass/fail
+   → Hook 追蹤自身效能（觸發率、誤報率）
+
+🧩 可拆解（Decomposable）：
+   → 每個 Phase 獨立，輸入/輸出是檔案不是記憶狀態
+   → Hook 可個別啟用/停用/替換
+   → Skill 可獨立使用，不依賴特定 Pipeline
+
+🔄 可重組（Recomposable）：
+   → Phase 順序可調整（跳過、重排）
+   → 斷點恢復：Pipeline 可從任何 Phase 繼續
+   → Hook 可新增/移除而不破壞系統
+```
+
+### ⭐ 自我改進系統（CONSTITUTION §23）
+
+```
+📌 Hook 不只檢查論文 — Hook 自己也在進化！
+
+🔄 Hook D 三層改進：
+   Level 1: Skill 改進 → 更新 SKILL.md Lessons Learned
+   Level 2: Hook 改進 → 調整閾值、修正禁止詞清單（自動）
+   Level 3: Instruction 改進 → 更新觸發語等事實性內容（慎重）
+
+📊 效能指標：
+   觸發率 >80% → 太嚴，需放寬
+   觸發率 <5%（5次以上）→ 太鬆或過時，考慮移除
+   誤報率 >30% → 判斷標準需修正
+
+🚫 禁止自動修改：
+   ❌ CONSTITUTION 原則
+   ❌ 🔒 保護內容規則
+   ❌ save_reference_mcp 優先規則
+```
+
 ### ⭐ Workspace State 規則（新！）
 
 ```
@@ -128,10 +172,10 @@
 | Hook 類型 | Hooks | 使用的 MCP Tools |
 |-----------|-------|------------------|
 | **Copilot A** (post-write) | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `get_available_citations`, `validate_wikilinks`, `patch_draft` |
-| **Copilot B** (post-section) | 概念一致、🔒 保護內容 | `read_draft`, `patch_draft` |
+| **Copilot B** (post-section) | 概念一致、🔒 保護內容、**方法學驗證(B5)** | `read_draft`, `patch_draft` |
 | **Copilot C** (post-manuscript) | 全稿一致性、投稿清單 | `check_manuscript_consistency`, `scan_draft_citations`, `count_words` |
-| **Copilot D** (meta-learning) | SKILL 自我改進 | `read_file`, `replace_string_in_file` |
-| **Pre-Commit P1-P7** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻 | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
+| **Copilot D** (meta-learning) | SKILL 自我改進 + **Hook 自我改進** | `read_file`, `replace_string_in_file` |
+| **Pre-Commit P1-P8** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻、**方法學** | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
 
 **互補關係**：Copilot Hooks 在寫作時即時修正，Pre-Commit Hooks 是最終 safety net。
 

@@ -56,6 +56,7 @@ description: |
 │  │ P5: protected-content    🔒 保護內容完整          │   │
 │  │ P6: memory-sync          專案 .memory/ 已更新     │   │
 │  │ P7: reference-integrity  文獻引用完整             │   │
+│  │ P8: methodology-validation  方法學可再現性 [NEW]  │   │
 │  └──────────────────────────────────────────────────┘   │
 │                                                         │
 │  Step Final: commit-prepare  [最終] 準備提交             │
@@ -352,6 +353,97 @@ for ref in refs.referenced_in_drafts:
 
 ---
 
+### P8: methodology-validation（方法學驗證）
+
+> **CONSTITUTION §21**：Methods 必須可被第三方重現。
+
+**目的**：確保 Methods section 的方法學描述具備可再現性
+
+**觸發條件**：Methods 或 Discussion 草稿有變更
+
+**MCP Tools**：
+```python
+# 讀取 concept → 確認 paper_type
+concept = mcp_mdpaper_read_draft(filename="concept.md")
+paper_type = extract_paper_type(concept)  # original-research, case-report, etc.
+
+# 讀取 Methods 草稿
+methods = mcp_mdpaper_read_draft(filename="drafts/methods.md")
+
+# 讀取 Discussion（檢查限制段落）
+discussion = mcp_mdpaper_read_draft(filename="drafts/discussion.md")
+
+# Agent 依 paper_type 執行方法學 checklist
+checklist = {
+    "original-research": [
+        ("研究設計明確描述", methods),
+        ("主要結局定義", methods),
+        ("統計方法匹配設計", methods),
+        ("倫理審查聲明", methods),
+        ("Discussion 有限制段落", discussion),
+    ],
+    "case-report": [
+        ("病例描述完整", methods),
+        ("倫理/知情同意", methods),
+        ("Discussion 有限制段落", discussion),
+    ],
+    "systematic-review": [
+        ("搜尋策略描述", methods),
+        ("納入排除標準", methods),
+        ("PRISMA 流程", methods),
+        ("Discussion 有限制段落", discussion),
+    ],
+}
+
+# 逐項評估
+for item, source in checklist.get(paper_type, []):
+    score = agent_evaluate(item, source)  # 0-10
+    report(f"  {item}: {score}/10")
+```
+
+**判定**：
+- ✅ PASS: 所有項目 ≥ 5 分
+- ⚠️ WARN: 有項目 3-5 分（報告但不阻止）
+- ❌ FAIL: 有項目 < 3 分（建議修正後再提交）
+
+**與 Copilot Hook B5 的關係**：
+- B5 在寫作時即時檢查並自動修正
+- P8 在提交時做最終確認（safety net）
+- P8 只報告不修改，由用戶決定是否要回去修正
+
+---
+
+## 📊 Hook 效能追蹤（Self-Improving Hooks）
+
+> **CONSTITUTION §23**：Hook 必須追蹤自身效能並自我改進。
+
+每次 Pre-Commit 執行後，在 `projects/{slug}/.audit/precommit-stats.md` 記錄：
+
+```markdown
+# Pre-Commit Hook Statistics
+
+## 歷史統計（最近 N 次提交）
+| Hook | 執行次數 | 通過率 | 警告率 | 阻止率 | 趨勢 |
+|------|---------|--------|--------|--------|------|
+| P1 citation | 5 | 80% | 20% | 0% | → |
+| P2 anti_ai | 5 | 60% | 40% | 0% | ↓ 需注意 |
+| P3 concept | 5 | 100% | 0% | 0% | → |
+| P8 methodology | 2 | 50% | 50% | 0% | 新 Hook |
+
+## 自動調整紀錄
+| 日期 | Hook | 調整 | 原因 |
+|------|------|------|------|
+| 2026-02-20 | P2 | 移除 'comprehensive' | 連續 3 次誤報 |
+| 2026-02-21 | P4 | Discussion 限制 1500→1650 | 觀察性研究需更長 |
+```
+
+**效能判斷規則**：
+- Hook 通過率 >95%（5 次以上）→ 考慮是否太鬆
+- Hook 阻止率 >50%（5 次以上）→ 考慮是否太嚴
+- 記錄到 `.audit/` 供 auto-paper Hook D 分析
+
+---
+
 ## 🚀 執行模式
 
 ### 標準模式（完整檢查）
@@ -415,9 +507,11 @@ Agent：
 [P5] 🔒 保護內容 ✅
 [P6] .memory/ 同步 ✅ (auto-synced)
 [P7] 文獻完整 ✅ (15 refs, all VERIFIED)
+[P8] 方法學驗證 ✅
+  └─ 研究設計: 8/10 | 統計方法: 7/10 | 限制段落: 9/10
 
 ═══ 結果 ═══
-✅ 12/12 checks passed (1 warning)
+✅ 13/13 checks passed (1 warning)
 
 📋 Staged files: 8 files
 
@@ -459,7 +553,7 @@ Scope: paper, concept, refs, export, core
 | ddd-architect | `grep_search`, `list_dir` | G5 |
 | draft-writing | `read_draft`, `count_words`, `validate_wikilinks` | P1-P4 |
 | reference-management | `list_saved_references`, `get_reference_details` | P7 |
-| concept-development | `read_draft("concept.md")` | P3, P5 |
+| concept-development | `read_draft("concept.md")` | P3, P5, P8 |
 
 ---
 

@@ -147,6 +147,28 @@
 | 找論點 | `spark_collision` | 「將『現有研究的限制』與『我的方法優勢』碰撞」 |
 | 廣泛發想 | `generate_ideas` | 「如何讓這個研究的 novelty 無可辯駁」 |
 
+### ⭐ 核心設計理念（CONSTITUTION §22）
+
+> **可審計、可拆解、可重組** — 論文講究的是再現性與方法學，不是文字用詞藝術。
+
+| 原則 | 含義 | 實作 |
+|------|------|------|
+| **🔍 可審計** | Pipeline 每步有審計軌跡 | `.audit/` 目錄、quality-scorecard（0-10 分） |
+| **🧩 可拆解** | Phase 獨立、Hook 可插拔 | 輸入/輸出是檔案不是記憶、Hook 可啟用/停用 |
+| **🔄 可重組** | Phase 可跳過/重排、斷點恢復 | checkpoint.json、Pipeline 從任何 Phase 繼續 |
+
+### ⭐ 自我改進系統（CONSTITUTION §23）
+
+Hook D 不只改進 SKILL — 它改進 Hook 自身：
+
+| 改進層級 | 內容 | 限制 |
+|----------|------|------|
+| **Level 1: Skill** | 更新 SKILL.md Lessons Learned | 自動 |
+| **Level 2: Hook** | 調整閾值、修正禁止詞清單 | 自動（±20% 範圍） |
+| **Level 3: Instruction** | 更新觸發語等事實性內容 | 需慎重，記錄到 decisionLog |
+
+**禁止自動修改**：CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則
+
 ### 🔔 雙重 Hook 架構
 
 本系統使用**兩種 Hook** 確保論文品質，分別在不同時機觸發：
@@ -163,10 +185,10 @@
 | Hook 類型 | Hooks | 使用的 MCP Tools |
 |-----------|-------|------------------|
 | **Copilot A** (post-write) | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `get_available_citations`, `validate_wikilinks`, `patch_draft` |
-| **Copilot B** (post-section) | 概念一致、🔒 保護內容 | `read_draft`, `patch_draft` |
+| **Copilot B** (post-section) | 概念一致、🔒 保護內容、**方法學驗證(B5)** | `read_draft`, `patch_draft` |
 | **Copilot C** (post-manuscript) | 全稿一致性、投稿清單 | `check_manuscript_consistency`, `scan_draft_citations`, `count_words` |
-| **Copilot D** (meta-learning) | SKILL 自我改進 | `read_file`, `replace_string_in_file` |
-| **Pre-Commit P1-P7** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻 | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
+| **Copilot D** (meta-learning) | SKILL 自我改進 + **Hook 自我改進** | `read_file`, `replace_string_in_file` |
+| **Pre-Commit P1-P8** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻、**方法學** | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
 
 **互補關係**：Copilot Hooks 在寫作時即時修正，Pre-Commit Hooks 是最終 safety net。
 
