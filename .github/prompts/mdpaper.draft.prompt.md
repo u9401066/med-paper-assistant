@@ -4,140 +4,44 @@ description: "✍️ mdpaper.draft - 撰寫論文草稿"
 
 # 撰寫論文草稿
 
-📖 **技能參考**:
-- `.claude/skills/draft-writing/SKILL.md`
-- `.claude/skills/concept-validation/SKILL.md`
+技能：draft-writing + concept-validation
 
-## ⚠️ 前置條件
+⚠️ **前置條件**：`validate_concept("concept.md")` → Novelty ≥ 75 才能寫
 
-**必須先通過 concept 驗證才能撰寫 draft！**
+## Step 0: 寫作順序
 
-```
-mcp_mdpaper_validate_concept(filename="concept.md")
-→ Novelty Score ≥ 75 (3/3 rounds)
-→ 如果失敗 → 停止並要求用戶修正 concept
-```
+`check_writing_order()` → ✅ 繼續 / ⚠️ 缺前置 section → 詢問用戶先寫或忽略
 
----
+## Step 1: 確認專案 + 驗證
 
-## Step 0: 檢查寫作順序 `check-order`
+`get_current_project()` → `validate_for_section(section)` → ✅ CAN WRITE / ❌ 缺區塊
 
-📖 技能參考: `.claude/skills/draft-writing/SKILL.md` → 寫作順序規則
+## Step 2: 讀 Concept
 
-**任務：**
-```
-mcp_mdpaper_check_writing_order()
-```
+`read_draft("concept.md")` → 提取 🔒 NOVELTY STATEMENT + 🔒 KEY SELLING POINTS
 
-**結果判讀：**
-- ✅ 前置條件已完成 → 繼續 Step 1
-- ⚠️ 缺少前置 section → 詢問用戶：
-  - 「建議先完成 **Methods**，要先寫 Methods 嗎？」
-  - 或「忽略建議，直接寫（CONSTITUTION §22 允許）」
+## Step 3: 寫作指南
 
----
-
-## Step 1: 確認專案與驗證狀態 `validate`
-
-📖 技能參考: `.claude/skills/concept-development/SKILL.md`
-
-**任務：**
-```
-mcp_mdpaper_get_current_project()
-mcp_mdpaper_validate_for_section(section="Introduction")
-```
-
-**驗證結果：**
-- ✅ CAN WRITE → 繼續
-- ❌ CANNOT WRITE → 顯示缺少的區塊，請用戶補充
-
----
-
-## Step 2: 讀取 Concept 與受保護內容 `read-concept`
-
-```
-mcp_mdpaper_read_draft(filename="concept.md")
-```
-
-**提取 🔒 受保護內容：**
-- `🔒 NOVELTY STATEMENT` → 必須在 Introduction 體現
-- `🔒 KEY SELLING POINTS` → 必須在 Discussion 強調
-
----
-
-## Step 3: 取得寫作指南 `get-template`
-
-```
-mcp_mdpaper_get_section_template(section="Introduction")
-```
-
-**各 section 要點：**
+`get_section_template(section)` → 各 section 重點：
 
 | Section | 重點 |
 |---------|------|
-| Introduction | 背景 → Gap → 研究目的（含 🔒 NOVELTY）|
-| Methods | 研究設計 → 樣本 → 分析方法 |
-| Results | 主要發現 → 次要發現 → 表格/圖 |
-| Discussion | 主要發現討論 → 與文獻比較（含 🔒 SELLING POINTS）→ 限制 → 結論 |
-| Abstract | 依期刊格式（structured/unstructured）|
+| Introduction | 背景→Gap→目的（含 🔒 NOVELTY）|
+| Methods | 設計→樣本→分析 |
+| Results | 主要→次要→表/圖 |
+| Discussion | 發現討論→文獻比較（含 🔒 SELLING POINTS）→限制→結論 |
+| Abstract | 依期刊格式 |
 
----
+## Step 4: 撰寫
 
-## Step 4: 撰寫草稿 `write-draft`
+`draft_section(topic, notes)` 或 `write_draft(filename, content)`
 
-**方式一：逐段撰寫**
-```
-mcp_mdpaper_draft_section(topic="Introduction", notes="...")
-```
+🔒 規則：Introduction 含 NOVELTY、Discussion 含 SELLING POINTS、修改 🔒 前須問用戶
 
-**方式二：完整檔案**
-```
-mcp_mdpaper_write_draft(filename="drafts/introduction.md", content="...")
-```
+## Step 5: 字數
 
-**🔒 受保護內容規則：**
-- Introduction 必須體現 NOVELTY STATEMENT
-- Discussion 必須強調所有 KEY SELLING POINTS
-- 修改 🔒 區塊前必須詢問用戶
+`count_words(filename)` — Abstract 250-350, Intro 400-600, Methods 800-1200, Results 600-1000, Discussion 1000-1500
 
----
+## Step 6: 引用
 
-## Step 5: 確認字數 `word-count`
-
-```
-mcp_mdpaper_count_words(filename="drafts/introduction.md")
-```
-
-**常見期刊字數限制：**
-| Section | 一般限制 |
-|---------|----------|
-| Abstract | 250-350 words |
-| Introduction | 400-600 words |
-| Methods | 800-1200 words |
-| Results | 600-1000 words |
-| Discussion | 1000-1500 words |
-
----
-
-## Step 6: 同步引用 `sync-citations`
-
-```
-mcp_mdpaper_sync_references(filename="drafts/introduction.md")
-```
-
-**功能：**
-- 掃描 `[[wikilinks]]` 格式的引用
-- 自動生成 References 區塊
-- 確保引用格式一致
-
----
-
-## 📋 完成檢查
-
-- [ ] Step 0: 寫作順序已確認（或用戶選擇忽略）
-- [ ] Step 1: Concept 驗證通過
-- [ ] Step 2: 🔒 受保護內容已提取
-- [ ] Step 3: 寫作指南已取得
-- [ ] Step 4: 草稿已撰寫（保留 🔒 內容）
-- [ ] Step 5: 字數符合限制
-- [ ] Step 6: 引用已同步
+`sync_references(filename)` — 掃描 [[wikilinks]] 生成 References

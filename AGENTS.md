@@ -1,554 +1,204 @@
 # AGENTS.md - VS Code Copilot Agent 指引
 
-此文件為 VS Code GitHub Copilot 的 Agent Mode 提供專案上下文。
+> 操作前必查 `.copilot-mode.json` 確認當前模式。
 
 ---
 
-## 🎛️ 運行模式
+## 運行模式
 
-**⚠️ 重要：在開始任何操作前，先檢查 `.copilot-mode.json` 確認當前模式！**
+| 模式 | 啟用技能 | Memory Bank | 靜態分析 |
+|------|----------|-------------|----------|
+| `development` | 全部 | 完整同步 | ✅ |
+| `normal` | 研究技能 | 最小化 | ❌ |
+| `research` | 研究技能 | 僅專案 | ❌ |
 
-### 模式說明
+切換：修改 `.copilot-mode.json`。觸發語：「開發模式」→ development、「一般/normal」→ normal、「研究/寫論文」→ research。
 
-| 模式 | 啟用技能 | Memory Bank | 靜態分析 | 適用場景 |
-|------|----------|-------------|----------|----------|
-| **development** | 全部 | 完整同步 | ✅ | 開發/維護代碼 |
-| **normal** | 研究技能 | 最小化 | ❌ | 一般使用 |
-| **research** | 研究技能 | 僅專案 | ❌ | 專注論文寫作 |
+### 檔案保護（Normal/Research）
 
-### 切換模式
+**唯讀**：`.claude/` `.github/` `src/` `tests/` `integrations/` `AGENTS.md` `CONSTITUTION.md` `ARCHITECTURE.md` `pyproject.toml`
+**可寫**：`projects/` `memory-bank/` `docs/`
 
-用戶說法 → Agent 行動：
-
-| 用戶說 | 切換到 |
-|--------|--------|
-| "開發模式"、"dev mode"、"我要改代碼" | `development` |
-| "一般模式"、"normal"、"正常使用" | `normal` |
-| "研究模式"、"寫論文"、"專心寫作" | `research` |
-
-切換時修改 `.copilot-mode.json` 的 `"mode"` 值即可。
-
-### 模式行為差異
-
-#### Development 模式
-- ✅ 使用所有技能（包括 git-precommit, code-refactor, test-generator...）
-- ✅ 完整 Memory Bank 同步（memory-bank/ 和 projects/.memory/）
-- ✅ 主動執行靜態分析（ruff, mypy）
-- ✅ 詳細日誌輸出
-- ✅ **可以修改所有檔案**
-
-#### Normal / Research 模式
-- ✅ 只使用研究技能（literature-review, concept-development, parallel-search）
-- ⏸️ 簡化 Memory Bank 同步
-- ❌ 不主動執行靜態分析（除非用戶明確要求）
-- ❌ 不主動建議代碼重構
-- 🔒 **禁止修改開發檔案**（見下方保護清單）
-
-### 🔒 檔案保護規則（Normal/Research 模式）
-
-**在 normal 和 research 模式下，以下路徑為唯讀：**
-
-| 受保護路徑 | 內容 |
-|------------|------|
-| `.claude/` | Skills 定義檔 |
-| `.github/` | Copilot 指令、bylaws |
-| `src/` | 原始碼 |
-| `tests/` | 測試檔案 |
-| `integrations/` | MCP 整合模組 |
-| `AGENTS.md` | Agent 指引 |
-| `CONSTITUTION.md` | 憲法 |
-| `ARCHITECTURE.md` | 架構文件 |
-| `pyproject.toml` | 專案設定 |
-
-**可以修改的路徑：**
-- `projects/` - 研究專案內容
-- `memory-bank/` - Memory Bank（依模式限制）
-- `docs/` - 一般文件
-
-**如果用戶要求修改受保護檔案：**
-```
-⚠️ 目前是 [normal/research] 模式，這個檔案受保護。
-如果您需要修改，請說「開發模式」切換。
-```
+用戶要改受保護檔案 → 提示切換開發模式。
 
 ---
 
 ## 專案規則
 
-### 法規遵循
-你必須遵守以下法規層級：
+### 法規層級
 
-1. **憲法**：`CONSTITUTION.md` - 最高原則，不可違反
-2. **子法**：`.github/bylaws/*.md` - 細則規範
-3. **技能**：`.claude/skills/*/SKILL.md` - 操作程序
+CONSTITUTION.md > `.github/bylaws/*.md` > `.claude/skills/*/SKILL.md`
 
-### 架構原則
+### 架構
 
-- 採用 **DDD (Domain-Driven Design)**
-- **DAL (Data Access Layer) 必須獨立**
-- 依賴方向：`Presentation → Application → Domain ← Infrastructure`
+DDD，DAL 獨立。依賴方向：`Presentation → Application → Domain ← Infrastructure`。詳見 `.github/bylaws/ddd-architecture.md`。
 
-詳見：`.github/bylaws/ddd-architecture.md`
+### 儲存文獻（MCP-to-MCP）
 
-### MCP-to-MCP 通訊規則
+| 方法 | 資料來源 | 可篡改？ | 使用時機 |
+|------|----------|----------|----------|
+| `save_reference_mcp(pmid)` | pubmed-search API | ❌ | **永遠優先** |
+| `save_reference(article)` | Agent 傳遞 | ⚠️ | API 不可用時 |
 
-**⚠️ 儲存文獻時必須遵守：**
+信任層：🔒 VERIFIED（PubMed 原始）→ 🤖 AGENT（`agent_notes`）→ ✏️ USER（人類筆記，AI 不碰）
 
-```
-✅ 正確：save_reference_mcp(pmid="12345678", agent_notes="...")
-   → Agent 只傳 PMID，mdpaper 直接從 pubmed-search API 取得驗證資料
+### Novelty Check
 
-❌ 錯誤：save_reference(article={從 search 拿到的完整 metadata})
-   → Agent 可能修改/幻覺書目資料
-```
+犀利回饋 + 給選項（直接寫？修正？用 CGU？）。禁止：討好式回饋、自動改 NOVELTY、反覆追分。
+CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）、`generate_ideas`（廣泛發想）。
 
-| 方法 | 資料來源 | Agent 可篡改？ | 使用時機 |
-|------|----------|----------------|----------|
-| `save_reference_mcp` | pubmed-search HTTP API | ❌ 不可能 | **永遠優先** |
-| `save_reference` | Agent 傳遞 | ⚠️ 可能 | API 不可用時 fallback |
+### 核心設計（CONSTITUTION §22-23）
 
-**分層信任格式**：
-- `🔒 VERIFIED`: PubMed 原始資料（不可修改）
-- `🤖 AGENT`: AI 筆記（`agent_notes` 參數）
-- `✏️ USER`: 人類筆記（AI 絕不碰觸）
+| §22 原則 | 實作 |
+|----------|------|
+| 可審計 | `.audit/` + quality-scorecard（0-10） |
+| 可拆解 | Phase 獨立、Hook 可插拔、輸入/輸出是檔案 |
+| 可重組 | checkpoint.json、Pipeline 任意 Phase 繼續 |
 
-### ⚠️ Novelty Check 規則（犀利回饋模式）
+| §23 自我改進 | 限制 |
+|--------------|------|
+| L1 Skill — 更新 Lessons Learned | 自動 |
+| L2 Hook — 調整閾值 | ±20% |
+| L3 Instruction — 事實性內容 | 記錄 decisionLog |
 
-**核心原則：像頂尖 Reviewer 一樣犀利，但給選項！**
+禁止自動修改：CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則。
 
-```
-📌 正確行為：
-1. 給犀利回饋（直指問題、用證據說話）
-2. 提出 Reviewer 會問的問題
-3. 給具體修復方案（不是「可以考慮」，而是「加入這句話」）
-4. 主動問用戶：「直接寫？修正問題？用 CGU？」
-5. 用戶決定後立即執行
+### Hook 架構（37 checks）
 
-❌ 錯誤行為：
-1. 討好式回饋「您的 concept 很好喔～」
-2. 自動開始修改 NOVELTY STATEMENT
-3. 反覆修改追分數
-4. 不問用戶就繼續改
-```
+Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
 
-**犀利回饋模板**：
+| 類型 | 檢查內容 | MCP Tools |
+|------|----------|-----------|
+| **A** post-write | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `patch_draft`, `validate_wikilinks` |
+| **B** post-section | 概念一致、🔒保護、方法學(B5)、寫作順序(B6) | `read_draft`, `patch_draft`, `check_writing_order` |
+| **C** post-manuscript | 全稿一致性、投稿清單 | `check_formatting`, `scan_draft_citations` |
+| **D** meta-learning | SKILL + Hook 自我改進 | `read_file`, `replace_string_in_file` |
+| **P1-P8** pre-commit | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學 | `scan_draft_citations`, `read_draft`, `count_words` |
+| **G1-G7** general | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX | `read_file`, `grep_search`, `list_dir` |
 
-| 問題類型 | 回饋格式 |
-|----------|----------|
-| 聲稱「首次」但沒證據 | 「您聲稱『首次』，但沒有 PubMed 搜尋證據。Reviewer 會問：『搜尋策略是什麼？』」 |
-| 模糊量化 | 「使用『更好』但沒數字。Reviewer 會問：『好多少？臨床意義？』」 |
-| 引用但沒說限制 | 「引用了文獻但沒說它的限制。Reviewer 會問：『你的貢獻在哪？』」 |
+### Python 環境
 
-**CGU 創意工具整合**：
+uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/bylaws/python-environment.md`。
 
-| 情境 | 建議工具 | Prompt |
-|------|----------|--------|
-| 找弱點 | `deep_think` | 「從 reviewer 角度，這個研究最容易被攻擊的點是什麼？」 |
-| 找論點 | `spark_collision` | 「將『現有研究的限制』與『我的方法優勢』碰撞」 |
-| 廣泛發想 | `generate_ideas` | 「如何讓這個研究的 novelty 無可辯駁」 |
+### Workspace State
 
-### ⭐ 核心設計理念（CONSTITUTION §22）
+狀態檔：`.mdpaper-state.json`
 
-> **可審計、可拆解、可重組** — 論文講究的是再現性與方法學，不是文字用詞藝術。
+| 時機 | 動作 |
+|------|------|
+| 新對話 / 用戶說「繼續」 | `get_workspace_state()` |
+| 開始重要任務 / 完成階段 / 對話結束 | `sync_workspace_state(doing, next_action)` |
+| 恢復成功後 | `clear_recovery_state()` |
 
-| 原則 | 含義 | 實作 |
-|------|------|------|
-| **🔍 可審計** | Pipeline 每步有審計軌跡 | `.audit/` 目錄、quality-scorecard（0-10 分） |
-| **🧩 可拆解** | Phase 獨立、Hook 可插拔 | 輸入/輸出是檔案不是記憶、Hook 可啟用/停用 |
-| **🔄 可重組** | Phase 可跳過/重排、斷點恢復 | checkpoint.json、Pipeline 從任何 Phase 繼續 |
+### Artifact-Centric Architecture（部分上線）
 
-### ⭐ 自我改進系統（CONSTITUTION §23）
+`EMPTY → EXPLORATION → PROJECT`。設計文件：`docs/design/artifact-centric-architecture.md`
 
-Hook D 不只改進 SKILL — 它改進 Hook 自身：
-
-| 改進層級 | 內容 | 限制 |
-|----------|------|------|
-| **Level 1: Skill** | 更新 SKILL.md Lessons Learned | 自動 |
-| **Level 2: Hook** | 調整閾值、修正禁止詞清單 | 自動（±20% 範圍） |
-| **Level 3: Instruction** | 更新觸發語等事實性內容 | 需慎重，記錄到 decisionLog |
-
-**禁止自動修改**：CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則
-
-### 🔔 雙重 Hook 架構
-
-本系統使用**兩種 Hook** 確保論文品質，分別在不同時機觸發：
-
-```
-┌─── Copilot Hooks ───┐  ┌─── Pre-Commit Hooks ───┐
-│ 寫作時即時觸發       │  │ git commit 前觸發       │
-│ auto-paper/SKILL.md  │  │ git-precommit/SKILL.md  │
-│ 邊寫邊查（細節）     │  │ 全局總檢查（一致性）   │
-│ 自動修正             │  │ 只報告，用戶決定       │
-└──────────────────────┘  └─────────────────────────┘
-```
-
-| Hook 類型 | Hooks | 使用的 MCP Tools |
-|-----------|-------|------------------|
-| **Copilot A** (post-write) | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `get_available_citations`, `validate_wikilinks`, `patch_draft` |
-| **Copilot B** (post-section) | 概念一致、🔒 保護內容、**方法學驗證(B5)**、**寫作順序(B6)** | `read_draft`, `patch_draft`, `check_writing_order` |
-| **Copilot C** (post-manuscript) | 全稿一致性、投稿清單 | `check_formatting`, `scan_draft_citations`, `count_words` |
-| **Copilot D** (meta-learning) | SKILL 自我改進 + **Hook 自我改進** | `read_file`, `replace_string_in_file` |
-| **Pre-Commit P1-P8** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻、**方法學** | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
-| **General G1-G7** | Memory、README、CHANGELOG、ROADMAP、架構、**專案一致性**、**VSX同步** | `read_file`, `grep_search`, `list_dir` |
-
-**互補關係**：Copilot Hooks 在寫作時即時修正，Pre-Commit Hooks 是最終 safety net。
-
-**Skill 與 Hook 的層級**：
-```
-Capability (高層編排) → Skill (技能知識) → Hook (品質審計) → MCP Tool (底層操作)
-```
+已上線：`start_exploration` `get_exploration_status` `convert_exploration_to_project`
+未實作：`list_staged_artifacts` `tag_artifact` `link_artifact_to_project`
 
 ---
 
-### Python 環境規則
+## Memory 同步
 
-- **優先使用 uv** 管理套件和虛擬環境
-- 新專案必須建立 `pyproject.toml` + `uv.lock`
-- 禁止全域安裝套件
-
-```bash
-# 初始化環境
-uv venv
-uv sync --all-extras
-
-# 安裝依賴
-uv add package-name
-uv add --dev pytest ruff
-```
-
-詳見：`.github/bylaws/python-environment.md`
-
-### ⭐ Workspace State（跨 Session 狀態恢復）
-
-**⚠️ 重要：解決 Agent 被 Summarize 後遺失 Context 的問題！**
-
-狀態檔案：`.mdpaper-state.json`
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     新對話開始時                                  │
-├─────────────────────────────────────────────────────────────────┤
-│  1. 呼叫 get_workspace_state()                                  │
-│     → 恢復：當前專案、上次在做什麼、建議的下一步                    │
-│                                                                 │
-│  2. 繼續之前的工作，無需用戶重複說明                               │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-#### 必須呼叫 `get_workspace_state()` 的時機
-
-| 時機 | 說明 |
-|------|------|
-| **新對話開始** | 恢復上次的工作 context |
-| **用戶說「繼續」、「接續」** | 需要知道之前在做什麼 |
-| **不確定當前專案** | 確認正確的專案 context |
-
-#### 必須呼叫 `sync_workspace_state()` 的時機
-
-| 時機 | 範例 |
-|------|------|
-| **開始重要任務前** | `doing="Writing Methods section"` |
-| **完成階段性工作後** | `next_action="validate_concept"` |
-| **發現重要資訊時** | `context="Found 5 key papers, PMID: ..."` |
-| **對話即將結束時** | 保存 context 供下次使用 |
-
-#### Workspace State 工具
-
-| 工具 | 用途 |
-|------|------|
-| `get_workspace_state` | 獲取恢復摘要（新對話必呼叫） |
-| `sync_workspace_state` | 同步當前狀態（重要操作時呼叫） |
-| `clear_recovery_state` | 清除恢復提示（成功恢復後） |
-
----
-
-### 🆕 Artifact-Centric Architecture（部分已上線）
-
-> 📋 設計文件：[docs/design/artifact-centric-architecture.md](docs/design/artifact-centric-architecture.md)
-
-**三階段狀態機**（取代現有 Binary 模式）：
-
-```
-EMPTY → EXPLORATION → PROJECT
-          ↓
-    _workspace/ 暫存區
-```
-
-**Agent 行為變化**（實作後生效）：
-
-| 情境 | 現在 | 實作後 |
-|------|------|--------|
-| 用戶說「儲存這篇」但無專案 | 提示建立專案 | 自動存入 `_workspace/` |
-| 用戶搜尋後說「有興趣」 | 詢問專案名稱 | 直接 staging，稍後連結 |
-| 用戶要匯出 Word | 需要專案 | 仍需要專案（強制專案時機） |
-
-**工具狀態**：
-
-| 工具 | 功能 | 狀態 |
-|------|------|------|
-| `start_exploration` | 啟動探索模式 | ✅ 已上線 |
-| `get_exploration_status` | 查看 staging 狀態 | ✅ 已上線 |
-| `convert_exploration_to_project` | 探索轉專案 | ✅ 已上線 |
-| `list_staged_artifacts` | 列出暫存成品 | ⏳ 未實作 |
-| `tag_artifact` | 標記成品 | ⏳ 未實作 |
-| `link_artifact_to_project` | 連結成品到專案 | ⏳ 未實作 |
-
----
-
-### Memory Bank 同步（專案層級）
-
-**⚠️ 強制寫入位置：`memory-bank/`**
-
-每次重要操作必須更新 Memory Bank：
+### Memory Bank（`memory-bank/`）
 
 | 操作 | 更新文件 |
 |------|---------|
-| 完成任務 | `memory-bank/progress.md` (Done) |
-| 開始任務 | `memory-bank/progress.md` (Doing), `memory-bank/activeContext.md` |
-| 重大決策 | `memory-bank/decisionLog.md` |
-| 架構變更 | `memory-bank/architect.md` |
+| 完成/開始任務 | `progress.md`, `activeContext.md` |
+| 重大決策 | `decisionLog.md` |
+| 架構變更 | `architect.md` |
 
 詳見：`.github/bylaws/memory-bank.md`
 
----
+### Project Memory（`projects/{slug}/.memory/`）
 
-### ⭐ Project Memory 同步（研究專案層級）
+**每次對話結束**必更新 `activeContext.md`（Current Focus, Recent Decisions, Key References, Memo）和 `progress.md`。
+其他觸發：做出重要決定、發現關鍵文獻、有想法/建議、遇到問題。
 
-**⚠️ 強制更新位置：`projects/{slug}/.memory/`**
+### Memory Checkpoint
 
-每個研究專案有獨立的記憶，記錄 Agent 對這個研究的想法和進度：
-
-```
-projects/{slug}/
-├── .memory/
-│   ├── activeContext.md   ← Agent 的工作記憶
-│   └── progress.md         ← 研究進度追蹤
-├── concept.md
-├── references/
-└── drafts/
-```
-
-#### 何時讀取？
-
-| 時機 | 問用戶確認 | 說明 |
-|------|------------|------|
-| 開始工作前 | 不需要 | 了解之前做了什麼、Agent 的想法 |
-| 被問「之前...」 | 不需要 | 回顧歷史 |
-| 要做重大決定 | 不需要 | 檢查之前的決定 |
-
-#### 何時更新？（強制）
-
-| 時機 | 更新內容 |
-|------|----------|
-| **每次對話結束時** ✅ | Current Focus, 本次工作摘要 |
-| 做出重要決定後 | Recent Decisions |
-| 發現關鍵文獻後 | Key References |
-| 有想法/建議時 | Memo / Notes |
-| 遇到問題時 | Blockers / Questions |
-
-#### activeContext.md 區塊說明
-
-| 區塊 | 內容 |
-|------|------|
-| **Project Settings** | Paper type, sections（專案建立時設定）|
-| **User Preferences** | 用戶的互動風格、語言偏好 |
-| **Current Focus** | 目前在做什麼（每次更新）|
-| **Recent Decisions** | 重要決定和原因 |
-| **Key References** | 關鍵文獻及其重要性 |
-| **Blockers / Questions** | 待解決問題 |
-| **Memo / Notes** | Agent 對研究的想法和建議 |
-
-> 💡 **名言：「對話結束前，先更新 .memory/！」**
->
-> 這樣下次對話就能繼續之前的思路，不會忘記 Agent 對研究的看法。
+觸發：對話 >10 輪、修改 >5 檔案、完成重要功能、用戶要離開。
+記錄：當前焦點、變更檔案列表、待解決事項、下一步計畫。
 
 ### Git 工作流
 
-提交前必須執行檢查清單：
-1. ✅ Memory Bank 同步（必要）
-2. 📖 README 更新（如需要）
-3. 📋 CHANGELOG 更新（如需要）
-4. 🗺️ ROADMAP 標記（如需要）
-
-詳見：`.github/bylaws/git-workflow.md`
+提交前：Memory Bank 同步 → README → CHANGELOG → ROADMAP。詳見 `.github/bylaws/git-workflow.md`。
 
 ---
 
-## 🚀 Capabilities（高層編排）
+## Capabilities
 
-> **Capabilities 位於**：`.github/prompts/*.prompt.md`
-> **索引檔案**：`.github/prompts/_capability-index.md`
+索引：`.github/prompts/_capability-index.md`
 
-### 什麼是 Capability？
-
-```
-Capability = 編排多個 Skills 完成完整任務
-Skill = 知道如何使用多個 Tools
-Tool = 單一 MCP 操作
-```
-
-### 自動觸發規則
-
-Agent 應該主動識別用戶意圖並觸發對應 Capability：
-
-| 觸發類型 | 說明 | 範例 |
-|----------|------|------|
-| **精確觸發** | 用戶說 `/mdpaper.xxx` | `/mdpaper.draft` → 直接執行 |
-| **意圖觸發** | 用戶意圖匹配 | 「寫論文」→ write-paper |
-| **情境觸發** | 檢測到特定情境 | reviewer comment → manuscript-revision |
-
-### 可用 Capabilities
-
-#### 📚 研究相關
-
-| Capability | Prompt File | 觸發語 |
-|------------|-------------|--------|
-| **write-paper** | `mdpaper.write-paper.prompt.md` | 寫論文、完整流程、從頭開始 |
-| **literature-survey** | `mdpaper.literature-survey.prompt.md` | 系統性搜尋、找所有相關、全面調查 |
-| **manuscript-revision** | `mdpaper.manuscript-revision.prompt.md` | revision、reviewer comment、被退稿 |
-| **quick-search** | `mdpaper.search.prompt.md` | 找論文、search、PubMed |
-
-#### � 研究單步 Prompts
-
-| Prompt | Prompt File | 觸發語 |
-|--------|-------------|--------|
-| **concept** | `mdpaper.concept.prompt.md` | 發展概念、文獻缺口分析 |
-| **draft** | `mdpaper.draft.prompt.md` | 撰寫草稿、寫 Introduction |
-| **project** | `mdpaper.project.prompt.md` | 設置專案、配置 paper type |
-| **format** | `mdpaper.format.prompt.md` | 匯出 Word、export docx |
-| **strategy** | `mdpaper.strategy.prompt.md` | 搜尋策略、配置關鍵字 |
-| **analysis** | `mdpaper.analysis.prompt.md` | 資料分析、統計、Table 1 |
-| **clarify** | `mdpaper.clarify.prompt.md` | 改進內容、潤飾、refine |
-| **help** | `mdpaper.help.prompt.md` | 顯示所有可用指令 |
-
-#### �🛠️ 開發相關
-
-| Capability | Prompt File | 觸發語 |
-|------------|-------------|--------|
-| **code-quality** | `code-quality.prompt.md` | 程式碼檢查、code review、品質 |
-| **release-prep** | `release-prep.prompt.md` | 準備發布、release、版本發布 |
-
-### Agent 行為
-
-1. **讀取索引**：開始對話時掃描 `_capability-index.md`
-2. **匹配意圖**：用戶說話 → 匹配觸發語或情境
-3. **載入 Capability**：讀取對應的 `.prompt.md` 檔案
-4. **執行步驟**：按照 Prompt File 的 Phase 順序進行
-5. **銜接 Skills**：每個 Phase 參考對應的 Skill
+觸發規則：精確（`/mdpaper.xxx`）→ 意圖匹配 → 情境匹配。
+執行時載入對應 `.prompt.md`，按 Phase 順序進行，銜接 Skills。
 
 ---
 
-## 可用 Skills
+## Skills
 
-位於 `.claude/skills/` 目錄：
+位於 `.claude/skills/*/SKILL.md`。流程：識別用戶意圖 → 讀取 SKILL.md → 按工作流程執行 → 決策點詢問用戶。
 
-### 🔬 研究技能（本專案專屬）
+### 研究技能
 
-| 技能 | 觸發語 | 說明 |
-|------|--------|------|
-| **auto-paper** | 全自動寫論文、auto write、autopilot、一鍵寫論文 | 9-Phase 全自動撰寫 + 3 層 Audit Hooks + 閉環自我改進 + Cross-Tool Orchestration |
-| **literature-review** | 文獻回顧、找論文、PubMed、搜paper、reference | 系統性文獻搜尋、篩選、下載、整理 |
-| **concept-development** | concept、novelty、驗證失敗、怎麼改、補充概念 | 發展研究概念，通過 novelty 驗證 |
-| **concept-validation** | 驗證、validate、check concept、可以開始寫了嗎 | 驗證概念新穎性和結構完整性 |
-| **parallel-search** | 並行搜尋、多組搜尋、找更多、廣泛搜尋 | 多組關鍵字並行搜尋，提高覆蓋率 |
-| **project-management** | 新專案、切換專案、專案設定、paper type | 研究專案的建立、切換、設定管理 |
-| **draft-writing** | 寫草稿、draft、撰寫、Introduction、Methods、寫作順序 | 論文草稿撰寫、讀取、引用管理、寫作順序檢查 |
-| **reference-management** | 存這篇、save、儲存文獻、列出 references | 文獻的儲存、搜尋、格式化、PDF 管理 |
-| **word-export** | 匯出 Word、export、template、轉成 docx | 草稿匯出為符合期刊格式的 Word 文件 |
-| **academic-debate** | 辯論、debate、觀點比較、devil's advocate | 學術辯論框架、觀點比較、證據層級分析 |
-| **idea-validation** | 假說驗證、可行性、feasibility、PICO | 假說 PICO 分析、可行性評估清單 |
-| **manuscript-review** | peer review、報告指引、CONSORT、STROBE | 模擬同行審查、報告指引 checklist |
-| **submission-preparation** | 投稿準備、cover letter、highlights、reviewer response | 投稿文件準備（cover letter、回覆審稿） |
+| 技能 | 觸發語 |
+|------|--------|
+| auto-paper | 全自動寫論文、autopilot、一鍵寫論文 |
+| literature-review | 文獻回顧、找論文、PubMed |
+| concept-development | concept、novelty、驗證失敗 |
+| concept-validation | 驗證、validate、可以開始寫了嗎 |
+| parallel-search | 並行搜尋、多組搜尋、廣泛搜尋 |
+| project-management | 新專案、切換專案、paper type |
+| draft-writing | 寫草稿、draft、Introduction、Methods |
+| reference-management | 存這篇、save、儲存文獻 |
+| word-export | 匯出 Word、export、docx |
+| academic-debate | 辯論、debate、devil's advocate |
+| idea-validation | 假說驗證、feasibility、PICO |
+| manuscript-review | peer review、CONSORT、STROBE |
+| submission-preparation | 投稿準備、cover letter |
 
-### 🛠️ 通用技能
+### 通用技能
 
-| 技能 | 觸發語 | 說明 |
-|------|--------|------|
-| **git-precommit** | commit、推送、做完了、收工 | Git 提交前編排器 + Paper-Aware Pre-Commit Hooks |
-| **git-doc-updater** | docs、文檔、sync docs、發布 | Git 提交前文檔同步 |
-| **ddd-architect** | 架構、新功能、設計、structure | DDD 架構輔助與檢查 |
-| **code-refactor** | 重構、太長、整理、優化、難讀 | 主動重構與模組化 |
-| **memory-updater** | 記憶、進度、做到哪、紀錄 | Memory Bank 同步 |
-| **memory-checkpoint** | 存檔、等一下、要離開、怕忘記 | 記憶檢查點（Summarize 前外部化）|
-| **readme-updater** | readme、怎麼用、安裝說明 | README 智能更新 |
-| **readme-i18n** | i18n、翻譯、多語言、sync readme | README 多語言同步 |
-| **changelog-updater** | changelog、發布、改了什麼 | CHANGELOG 自動更新 |
-| **roadmap-updater** | roadmap、規劃、里程碑 | ROADMAP 狀態追蹤 |
-| **code-reviewer** | review、檢查、有沒有問題、安全 | 程式碼審查 |
-| **test-generator** | test、測試、coverage、pytest | 測試生成（Unit/Integration/E2E）|
-| **project-init** | init、新專案、初始化 | 專案初始化 |
+| 技能 | 觸發語 |
+|------|--------|
+| git-precommit | commit、推送、收工 |
+| git-doc-updater | docs、文檔、sync docs |
+| ddd-architect | 架構、新功能、structure |
+| code-refactor | 重構、整理、優化 |
+| memory-updater | 記憶、進度、紀錄 |
+| memory-checkpoint | 存檔、要離開、怕忘記 |
+| readme-updater | readme、安裝說明 |
+| readme-i18n | i18n、翻譯、多語言 |
+| changelog-updater | changelog、發布 |
+| roadmap-updater | roadmap、規劃 |
+| code-reviewer | review、檢查、安全 |
+| test-generator | test、coverage、pytest |
+| project-init | init、新專案、初始化 |
 
-### Skill 系統架構
+### 跨 MCP 編排
 
-```
-工具 (Tool) = 單一能力（搜尋、儲存、分析...）
-技能 (Skill) = 完整知識（如何組合工具完成任務）
-```
+Pipeline（auto-paper SKILL.md）定義「何時」→ Skill 定義「如何」→ Hook 定義「品質」。
 
-**執行流程**：
-1. 識別用戶意圖 → 對應的 Skill
-2. 讀取 `.claude/skills/{name}/SKILL.md`
-3. 按照 Skill 定義的工作流程執行
-4. 在決策點詢問用戶確認
+| 外部 MCP | Phase | 觸發 |
+|----------|-------|------|
+| pubmed-search | 2 文獻 | 永遠 |
+| zotero-keeper | 2 文獻 | 用戶有 Zotero |
+| cgu | 3 概念 / 5 Discussion | novelty < 75 / 論點弱 |
+| drawio | 5 Methods | 需 flow diagram |
+| data tools | 5 Results | 需表格/圖 |
 
-**跨 MCP 協調**：
-一個 Skill 可能需要呼叫多個 MCP 的工具（如 mdpaper + drawio），Agent 層級協調即可。
-
-### 🗺️ Cross-Tool Orchestration（跨 MCP 工具編排）
-
-> **核心原則**：Pipeline（auto-paper SKILL.md）定義「何時」用哪個 MCP；Skill 定義「如何」用；Hook 只負責「品質檢查」，不編排工具使用順序。
-
-**外部 MCP 在 Pipeline 中的角色**：
-
-| 外部 MCP | Phase | 觸發條件 | 工具鏈 |
-|----------|-------|---------|--------|
-| `pubmed-search` | 2 文獻搜尋 | 永遠 | search → metrics → Agent 選篇 → `save_reference_mcp(pmid)` |
-| `zotero-keeper` | 2 文獻搜尋 | 用戶有 Zotero | search_items → 取 PMID → `save_reference_mcp(pmid)` |
-| `cgu` | 3 概念發展 | novelty < 75 | deep_think / spark_collision → 修正 concept → 再驗證 |
-| `cgu` | 5 章節撰寫 | Discussion 論點弱 | deep_think → 強化 Discussion 邏輯 |
-| `drawio` | 5 章節撰寫 | Methods 需 flow diagram | create_diagram → `save_diagram(project, content)` |
-| mdpaper data tools | 5 章節撰寫 | Results 需表格/圖 | generate_table_one / create_plot / run_statistical_test |
-
-**詳細編排定義**：見 `.claude/skills/auto-paper/SKILL.md`「Cross-Tool Orchestration Map」
+詳見 `.claude/skills/auto-paper/SKILL.md`「Cross-Tool Orchestration Map」。
 
 ---
 
-## 💸 Memory Checkpoint 規則
-
-為避免對話被 Summarize 壓縮時遺失重要上下文：
-
-### 主動觸發時機
-1. 對話超過 **10 輪**
-2. 累積修改超過 **5 個檔案**
-3. 完成一個 **重要功能/修復**
-4. 使用者說要 **離開/等等**
-
-### 執行指令
-- 「記憶檢查點」「checkpoint」「存檔」
-- 「保存記憶」「sync memory」
-
-### 必須記錄
-- 當前工作焦點
-- 變更的檔案列表（完整路徑）
-- 待解決事項
-- 下一步計畫
-
----
-
-## 跨平台支援
-
-本專案支援 Windows/Linux/macOS：
+## 跨平台
 
 | 平台 | Python 路徑 | 安裝腳本 |
 |------|-------------|----------|
 | Windows | `.venv/Scripts/python.exe` | `scripts/setup.ps1` |
 | Linux/macOS | `.venv/bin/python` | `scripts/setup.sh` |
 
----
-
 ## 回應風格
 
-- 使用**繁體中文**
-- 提供清晰的步驟說明
-- 引用相關法規條文
-- 執行操作後更新 Memory Bank
+繁體中文 · 清晰步驟 · 引用法規 · uv 優先

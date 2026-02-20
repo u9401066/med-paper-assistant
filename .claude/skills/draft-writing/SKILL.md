@@ -8,73 +8,41 @@ description: |
 
 # 草稿撰寫技能
 
-## 適用情境
+觸發：寫草稿、draft、section、引用、citation、字數、patch、寫作順序
 
-| 觸發語 | 操作 |
-|--------|------|
-| 寫草稿、撰寫 section | `draft_section()` 或 `write_draft()` |
-| 看草稿、讀取 | `read_draft()` |
-| 有哪些草稿 | `list_drafts()` |
-| 加引用、插入引用 | `insert_citation()` |
-| 整理引用、生成 References | `sync_references()` |
-| 字數、word count | `count_words()` |
-| 怎麼寫這個 section | 參考下方「Section 寫作指南」 |
-| 可用引用、列出 citations | `get_available_citations()` |
-| 部分編輯、修改草稿段落 | `patch_draft()` |
-| 寫作順序、進度、先寫哪個 | `check_writing_order()` |
+## 前置條件
+1. `get_current_project()` 確認專案
+2. concept.md 存在且 🔒 區塊非空（寫 concept.md 本身除外）
 
 ---
 
-## ⚠️ 前置條件
+## MCP Tools
 
-**撰寫任何草稿前必須：**
-1. 確認專案已選定：`get_current_project()`
-2. 確認 concept.md 存在且包含 🔒 區塊
-3. 結構驗證通過（🔒 NOVELTY + 🔒 SELLING POINTS 不為空）
+### 撰寫
 
-**例外**：寫 `concept.md` 本身不需要驗證
+| 工具 | 說明 |
+|------|------|
+| `write_draft` | 建立/覆寫草稿（`filename`, `content`, `project`）|
+| `draft_section` | 根據 notes 產出 section（`topic`, `notes`）|
+| `read_draft` | 讀取草稿 |
+| `list_drafts` | 列出所有草稿 |
+| `check_writing_order` | ⭐ 檢查寫作順序與進度（advisory, 不阻止）|
 
----
+### 引用（⚠️ 修改引用必須用 `patch_draft`，禁止 `replace_string_in_file`）
 
-## MCP Tools 清單
+| 工具 | 說明 |
+|------|------|
+| `get_available_citations` | ⚠️ 編輯前必呼叫！列出可用 `[[citation_key]]` |
+| `patch_draft` | 部分編輯草稿，自動驗證 wikilinks |
+| `insert_citation` | 定點插入引用（`filename`, `target_text`, `pmid`）|
+| `sync_references` | 掃描 [[wikilinks]] 生成 References |
+| `count_words` | 計算字數 |
 
-### 撰寫工具 (mdpaper)
-
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `write_draft` | `filename`, `content`, `project` | 建立/覆寫草稿檔案 |
-| `draft_section` | `topic`, `notes`, `project` | 根據筆記產出特定 section |
-| `read_draft` | `filename`, `project` | 讀取草稿結構與內容 |
-| `list_drafts` | `project` | 列出所有草稿 |
-| `check_writing_order` | `project` | ⭐ 檢查寫作順序與進度（advisory）|
-
-### 引用工具 (mdpaper)
-
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `insert_citation` | `filename`, `target_text`, `pmid` | 在指定位置插入引用 |
-| `sync_references` | `filename`, `project` | 掃描 [[wikilinks]] 生成 References |
-| `count_words` | `filename`, `section` | 計算字數 |
-
-### ⭐ Citation-Aware 編輯工具 (mdpaper)
-
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `get_available_citations` | `project` | ⚠️ 編輯前必呼叫！列出所有可用的 `[[citation_key]]` |
-| `patch_draft` | `filename`, `old_text`, `new_text`, `project` | 部分編輯草稿，自動驗證 wikilinks |
-
-**⚠️ 重要規則：**
-- 修改草稿中的引用時，**必須用 `patch_draft`**，不要用 `replace_string_in_file`
-- 插入新引用前，**必須先呼叫 `get_available_citations`** 確認可用的 citation keys
-- `patch_draft` 會自動拒絕不存在的引用，防止幻覺引用
+**patch_draft vs replace_string_in_file**：patch_draft 驗證引用、自動修復格式、拒絕不存在的引用。
 
 ---
 
-## ⭐ 寫作順序規則（Advisory, CONSTITUTION §22）
-
-**每個 section 有前置條件。開始撰寫前應先呼叫 `check_writing_order()` 確認進度。**
-
-### 建議寫作順序（per paper_type）
+## 寫作順序（Advisory）
 
 | Paper Type | 順序 |
 |------------|------|
@@ -83,237 +51,54 @@ description: |
 | case-report | Case Presentation → Discussion → Introduction → Conclusion → Abstract |
 | review-article | Introduction → Body → Conclusion → Abstract |
 
-### 前置條件表
-
-| Target Section | 前置條件 | 原因 |
-|----------------|----------|------|
-| Results | Methods | Results 描述 Methods 定義的結局指標 |
-| Discussion | Results, Introduction | Discussion 討論 Results 並回應 Introduction 的研究問題 |
-| Conclusion | Discussion | Conclusion 是 Discussion 的總結 |
-| Abstract | 所有主體 section | Abstract 需摘錄所有 section 的精華 |
-
-**⚠️ Advisory, Not Blocking**：
-- `check_writing_order()` 產生警告，不阻止寫作
-- `write_draft()` 和 `draft_section()` 會自動顯示前置條件警告
-- Agent 應在警告出現時詢問用戶是否繼續
+前置：Results 需 Methods、Discussion 需 Results+Intro、Conclusion 需 Discussion、Abstract 需全部。
+`check_writing_order()` 產生警告，不阻止。警告出現時詢問用戶是否繼續。
 
 ---
 
-## 工作流程
+## Flow A: 撰寫新 Section
 
-### Flow A: 撰寫新 Section
+1. `check_writing_order()` → 確認前置
+2. `validate_for_section(section)` → ✅/❌
+3. `read_draft("concept.md")` → 提取 🔒 NOVELTY + 🔒 SELLING POINTS
+4. 參考下方 Section 指南撰寫
+5. `count_words()`
 
-```
-Step 0: 檢查寫作順序
-  check_writing_order()
-  → 確認前置 section 是否已完成
-  → ⚠️ 若缺少前置 → 詢問用戶要先寫哪個
+## Flow B: Citation-Aware 編輯
 
-Step 1: 確認專案和驗證狀態
-  get_current_project()
-  validate_for_section(section="Introduction")
-  → ✅ CAN WRITE / ❌ CANNOT WRITE
-
-Step 2: 讀取 concept 和受保護內容
-  read_draft(filename="concept.md")
-  → 提取 🔒 NOVELTY STATEMENT
-  → 提取 🔒 KEY SELLING POINTS
-
-Step 3: 參考本 Skill 下方「Section 寫作指南」
-  → 取得該 section 的結構建議、Anti-AI 規則、字數目標
-
-Step 4: 撰寫內容
-  draft_section(
-    topic="Introduction",
-    notes="Background on remimazolam... Gap in literature..."
-  )
-  或
-  write_draft(
-    filename="drafts/introduction.md",
-    content="..."
-  )
-
-Step 5: 確認字數
-  count_words(filename="drafts/introduction.md")
-```
+1. `get_available_citations()` → 取得可用 citation keys
+2. `patch_draft(filename, old_text, new_text)` → 自動驗證 wikilinks
+3. `sync_references(filename)` → 生成 References
 
 ---
 
-### Flow B: 插入引用
+## 🔒 受保護內容
 
-**方法 1: Wikilink 格式（推薦）**
-```markdown
-先前研究指出 [[greer2017_27345583]] 使用 propofol 有其限制。
-```
-
-然後執行：
-```
-sync_references(filename="drafts/introduction.md")
-→ 轉換為 [1] 格式
-→ 生成 References 區塊
-```
-
-**方法 2: 定點插入**
-```
-insert_citation(
-  filename="drafts/introduction.md",
-  target_text="先前研究指出",
-  pmid="27345583"
-)
-```
-
----
-
-### Flow C: 整理 References
-
-```
-Step 1: 確認草稿有 wikilinks
-  read_draft(filename="drafts/full_manuscript.md")
-  → 檢查是否有 [[citation_key]] 格式
-
-Step 2: 同步引用
-  sync_references(filename="drafts/full_manuscript.md")
-  → 輸出：
-    | # | Citation Key | Title |
-    | 1 | greer2017_27345583 | Review of... |
-    | 2 | smith2020_12345678 | Analysis of... |
-
-Step 3: 確認未找到的引用
-  → ⚠️ Not found: chen2019_87654321
-  → 需要先 save_reference_mcp(pmid="87654321")
-```
-
----
-
-### Flow D: Citation-Aware 部分編輯（推薦！）
-
-**⚠️ 修改草稿段落時，必須用 `patch_draft` 而非 `replace_string_in_file`！**
-
-```
-Step 1: 取得可用引用清單
-  get_available_citations()
-  → 返回所有 [[citation_key]] 和對應的 PMID、作者、標題
-
-Step 2: 部分修改草稿
-  patch_draft(
-    filename="introduction.md",
-    old_text="先前研究指出相關藥物有其限制。",
-    new_text="先前研究指出 [[greer2017_27345583]] remimazolam 相較於 propofol 有更好的安全性。"
-  )
-  → 自動驗證 [[greer2017_27345583]] 是否存在
-  → 自動修復格式 (如 [[27345583]] → [[greer2017_27345583]])
-  → 不存在的引用會被拒絕
-
-Step 3: 同步引用
-  sync_references(filename="introduction.md")
-```
-
-**為什麼不用 `replace_string_in_file`？**
-- ❌ 繞過 wikilink 驗證管線
-- ❌ 可能產生幻覺引用 (不存在的 PMID)
-- ❌ 格式可能混亂 (混用 [1] 和 [[wikilink]])
-- ✅ `patch_draft` 驗證所有引用、自動修復格式、拒絕不存在的引用
-
----
-
-## 🔒 受保護內容規則
-
-| 受保護區塊 | 出現位置 | 規則 |
-|------------|----------|------|
-| 🔒 NOVELTY STATEMENT | concept.md | Introduction 必須體現 |
-| 🔒 KEY SELLING POINTS | concept.md | Discussion 必須強調全部 |
-
-**撰寫時的強制要求：**
-```
-✅ Introduction 開頭或結尾必須呼應 NOVELTY
-✅ Discussion 必須逐條強調 SELLING POINTS
-❌ 不可刪除或弱化 🔒 區塊內容
-❌ 修改 🔒 區塊前必須詢問用戶
-```
+- Introduction 開頭/結尾必須呼應 🔒 NOVELTY
+- Discussion 必須逐條強調 🔒 SELLING POINTS
+- 不可刪除或弱化 🔒 區塊。修改前必須詢問用戶
 
 ---
 
 ## Section 寫作指南
 
 ### Introduction (400-600 words)
-**結構：Evidence Funnel (證據漏斗)**
-1. **Clinical Reality** - 具體數據開場（避免 "In recent years..."）
-2. **Evidence Base** - 綜合現有文獻（使用 [[wikilinks]]）
-3. **Knowledge Gap** - 明確指出不足（對應 🔒 NOVELTY）
-4. **Objective** - 本研究目的
-
-**🚫 Anti-AI 寫作規則：**
-- 禁止使用模糊開場（如 "With the advancement of..."）
-- 禁止每段開頭都用 "Furthermore", "Additionally"
-- 必須包含具體數字、百分比、機制描述
-- 轉折語必須具備邏輯性（如 "Despite these benefits...", "In contrast to..."）
+結構：Clinical Reality → Evidence Base (with [[wikilinks]]) → Knowledge Gap (對應 🔒 NOVELTY) → Objective
+🚫 禁止 "In recent years..." / 每段 "Furthermore"。必須有具體數字。
 
 ### Methods (800-1200 words)
-```
-1. Study Design - 研究設計
-2. Participants - 納入排除標準
-3. Intervention - 介入措施
-4. Outcomes - 結果指標
-5. Statistics - 統計方法
-```
+Study Design → Participants → Intervention → Outcomes → Statistics
 
 ### Results (600-1000 words)
-```
-1. Participants - 收案流程、基線特徵
-2. Primary Outcome - 主要結果
-3. Secondary Outcomes - 次要結果
-4. Tables/Figures - 圖表說明
-```
+Participants → Primary Outcome → Secondary Outcomes → Tables/Figures
 
 ### Discussion (1000-1500 words)
-```
-1. Main Findings - 主要發現（含 🔒 SELLING POINTS）
-2. Comparison - 與現有文獻比較
-3. Implications - 臨床意義
-4. Limitations - 研究限制
-5. Conclusion - 結論
-```
+Main Findings (含 🔒 SELLING POINTS) → Comparison → Implications → Limitations → Conclusion
 
 ### Abstract (250-350 words)
-```
 Structured: Background / Methods / Results / Conclusions
-Unstructured: 依期刊要求
-```
 
 ---
 
 ## Wikilink 格式
-
-**正確格式：**
-```
-[[author2024_12345678]]  ← 作者年份_PMID
-[[greer2017_27345583]]
-```
-
-**會被自動修復的格式：**
-```
-[[12345678]] → [[author2024_12345678]]
-[[PMID:12345678]] → [[author2024_12345678]]
-Author 2024 [[12345678]] → [[author2024_12345678]]
-```
-
----
-
-## 常見問題
-
-| 問題 | 解法 |
-|------|------|
-| 草稿被阻擋 | 檢查 concept.md 的 🔒 區塊是否填寫 |
-| 引用找不到 | 先 `save_reference_mcp()` 儲存文獻 |
-| 字數太多 | `count_words()` 逐 section 檢查 |
-| 不知道怎麼寫 | 參考本 Skill 的「Section 寫作指南」 |
-| Wikilink 格式錯誤 | `validate_wikilinks()` 自動修復 |
-
----
-
-## 相關技能
-
-- `concept-development` - 發展 concept（撰寫前）
-- `concept-validation` - 驗證 concept（撰寫前）
-- `reference-management` - 管理引用文獻
-- `word-export` - 匯出為 Word
+✅ `[[author2024_12345678]]` → 自動修復 `[[12345678]]` → `[[author2024_12345678]]`

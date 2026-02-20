@@ -1,211 +1,55 @@
-# Copilot 自定義指令
+# Copilot 指令（Quick Reference）
 
-> **📋 完整指引請參見 [AGENTS.md](../AGENTS.md)**
+> 完整指引：[AGENTS.md](../AGENTS.md)。本檔每次對話都載入，務求精簡。
 
-此文件為簡化版，完整的 Agent 指引位於專案根目錄。
+## 模式（操作前必查 `.copilot-mode.json`）
 
-## 🎛️ 運行模式
+| 模式 | 可修改檔案 | 技能範圍 |
+|------|-----------|---------|
+| `development` | 全部 | 全部技能 + 靜態分析 |
+| `normal` | `projects/` `docs/` | 僅研究技能 |
+| `research` | `projects/` `docs/` | 僅研究技能 |
 
-**在開始操作前，先檢查 `.copilot-mode.json` 的 `mode` 值！**
+Normal/Research 下 `.claude/` `.github/` `src/` `tests/` `integrations/` `AGENTS.md` `CONSTITUTION.md` `pyproject.toml` 皆唯讀。
+用戶要改受保護檔案 → 提示切換開發模式。
 
-| 模式 | 說明 | 檔案保護 |
-|------|------|----------|
-| `development` | 開發模式 - 啟用所有技能和靜態分析 | ❌ 無 |
-| `normal` | 一般模式 - 僅研究技能 | ✅ 受保護 |
-| `research` | 研究模式 - 專注論文寫作 | ✅ 受保護 |
+## 關鍵規則
 
-**切換方式**：用戶說「開發模式」/「一般模式」/「研究模式」時，修改 `.copilot-mode.json`
+**儲存文獻**: `save_reference_mcp(pmid)` 永遠優先（MCP-to-MCP 驗證）。`save_reference()` 僅 API 不可用時 fallback。
 
-### 🔒 檔案保護（Normal/Research 模式）
+**草稿引用**: `get_available_citations()` → `patch_draft()` → `sync_references()`。禁止直接 `replace_string_in_file` 改引用。
 
-**受保護路徑（唯讀）**：
-- `.claude/` - Skills 定義
-- `.github/` - Copilot 指令
-- `src/` - 原始碼
-- `tests/` - 測試
-- `integrations/` - MCP 整合
-- `AGENTS.md`, `CONSTITUTION.md`, `pyproject.toml`
+**Novelty Check**: 犀利回饋 + 給選項（「直接寫？修正？用 CGU？」）。禁止討好式回饋或自動改 NOVELTY。
 
-**可修改路徑**：
-- `projects/` - 研究專案
-- `docs/` - 文件
+**Workspace State**: 新對話 → `get_workspace_state()`。重要操作 → `sync_workspace_state()`。
 
-**用戶要修改受保護檔案時**：
-```
-⚠️ 目前是 [normal/research] 模式，這個檔案受保護。
-請說「開發模式」切換後再修改。
-```
+**Memory Bank**: 重要操作後更新 `memory-bank/`。對話結束前更新 `projects/{slug}/.memory/`。
 
-## 快速參考
+## 法規層級
 
-### 法規層級
-1. **憲法**：`CONSTITUTION.md`
-2. **子法**：`.github/bylaws/*.md`
-3. **技能**：`.claude/skills/*/SKILL.md`
+CONSTITUTION.md > `.github/bylaws/*.md` > `.claude/skills/*/SKILL.md`
 
-### 核心原則
-- **DDD 架構**：Domain-Driven Design
-- **MCP-to-MCP 通訊**：儲存文獻用 `save_reference_mcp(pmid)`，不是傳 metadata
-- **Memory Bank**：`memory-bank/` 強制同步
-- **Workspace State**：新對話開始呼叫 `get_workspace_state()` 恢復 context
-- **Python 環境**：uv 優先、禁止全域安裝
+## 跨 MCP 編排（詳見 auto-paper SKILL.md）
 
-### ⭐ 核心設計理念（CONSTITUTION §22）
+Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」。
 
-```
-📌 可審計、可拆解、可重組
-   論文講究的是再現性與方法學，不是文字用詞藝術。
+| Phase | 外部 MCP |
+|-------|---------|
+| 2 文獻 | pubmed-search, zotero-keeper🔸 |
+| 3 概念 | cgu🔸（novelty < 75） |
+| 5 撰寫 | drawio🔸, cgu🔸, data tools |
 
-🔍 可審計（Auditable）：
-   → Pipeline 每步產出 .audit/ 審計紀錄
-   → 每個句子可追溯：決策 → 證據 → 搜尋策略 → PMID
-   → 品質用數字衡量（0-10 分），不只 pass/fail
-   → Hook 追蹤自身效能（觸發率、誤報率）
+## Hook 架構（37 checks）
 
-🧩 可拆解（Decomposable）：
-   → 每個 Phase 獨立，輸入/輸出是檔案不是記憶狀態
-   → Hook 可個別啟用/停用/替換
-   → Skill 可獨立使用，不依賴特定 Pipeline
+| 類型 | 時機 | 重點 |
+|------|------|------|
+| Copilot A1-4 | post-write | 字數、引用、Anti-AI、Wikilink |
+| Copilot B1-6 | post-section | 概念一致、🔒保護、方法學、寫作順序 |
+| Copilot C1-6 | post-manuscript | 全稿一致、投稿清單 |
+| Copilot D1-6 | Phase 9 | SKILL/Hook 自我改進 |
+| Pre-Commit P1-8 | git commit 前 | 最終品質把關 |
+| General G1-7 | git commit 前 | Memory、文檔、架構、VSX |
 
-🔄 可重組（Recomposable）：
-   → Phase 順序可調整（跳過、重排）
-   → 斷點恢復：Pipeline 可從任何 Phase 繼續
-   → Hook 可新增/移除而不破壞系統
-```
+## 回應風格
 
-### ⭐ 自我改進系統（CONSTITUTION §23）
-
-```
-📌 Hook 不只檢查論文 — Hook 自己也在進化！
-
-🔄 Hook D 三層改進：
-   Level 1: Skill 改進 → 更新 SKILL.md Lessons Learned
-   Level 2: Hook 改進 → 調整閾值、修正禁止詞清單（自動）
-   Level 3: Instruction 改進 → 更新觸發語等事實性內容（慎重）
-
-📊 效能指標：
-   觸發率 >80% → 太嚴，需放寬
-   觸發率 <5%（5次以上）→ 太鬆或過時，考慮移除
-   誤報率 >30% → 判斷標準需修正
-
-🚫 禁止自動修改：
-   ❌ CONSTITUTION 原則
-   ❌ 🔒 保護內容規則
-   ❌ save_reference_mcp 優先規則
-```
-
-### ⭐ Workspace State 規則（新！）
-
-```
-📌 解決 Agent 被 Summarize 後遺失 Context 的問題
-
-🔵 新對話開始：
-   → 呼叫 get_workspace_state() 恢復 context
-
-🔵 重要操作前/後：
-   → 呼叫 sync_workspace_state(doing="...", next_action="...")
-
-🔵 狀態檔案：.mdpaper-state.json（唯一真相來源）
-```
-
-### ⚠️ 儲存文獻規則
-
-```
-✅ 正確：save_reference_mcp(pmid="12345678", agent_notes="...")
-   → mdpaper 直接從 pubmed-search API 取得驗證資料
-
-❌ 錯誤：save_reference(article={從 search 拿到的完整 metadata})
-   → Agent 可能修改/幻覺書目資料（僅當 API 不可用時 fallback）
-```
-
-### ⚠️ 草稿編輯引用規則
-
-```
-📌 核心：修改草稿中的引用必須經過驗證管線！
-
-✅ 正確做法：
-   1. get_available_citations() → 取得可用的 [[citation_key]] 清單
-   2. patch_draft(filename, old_text, new_text) → 部分編輯 + wikilink 驗證
-   3. sync_references(filename) → 生成 References section
-
-❌ 錯誤做法：
-   1. 直接用 replace_string_in_file 修改草稿中的引用
-   2. 不查可用 citations 就憑記憶插入 wikilinks
-   3. 混用 [1] 數字引用和 [[wikilink]] 格式
-```
-
-### ⚠️ Novelty Check 規則（犀利回饋模式！）
-
-```
-📌 核心：像頂尖 Reviewer 一樣犀利，但給選項！
-
-✅ 正確做法：
-   1. 直指問題：「您聲稱『首次』，但沒有搜尋證據」
-   2. 提出 Reviewer 會問的問題
-   3. 給具體修復方案（不是「可以考慮」）
-   4. 主動問：「直接寫？修正問題？用 CGU？」
-   5. 用戶決定後立即執行
-
-❌ 錯誤做法：
-   1. 討好式回饋「您的 concept 很好喔～」
-   2. 自動開始修改 NOVELTY STATEMENT
-   3. 反覆修改追分數
-   4. 越改越糟還繼續改
-```
-
-**CGU 創意工具**：主動問用戶要不要用 CGU 幫忙
-- `deep_think` - 從 reviewer 角度找弱點
-- `spark_collision` - 碰撞現有限制與我的優勢
-- `generate_ideas` - 發想無可辯駁的 novelty
-
-### 🔔 雙重 Hook 架構
-
-```
-┌─── Copilot Hooks ───┐  ┌─── Pre-Commit Hooks ───┐
-│ 寫作時即時觸發       │  │ git commit 前觸發       │
-│ auto-paper/SKILL.md  │  │ git-precommit/SKILL.md  │
-│ 邊寫邊查（細節）     │  │ 全局總檢查（一致性）   │
-│ 自動修正             │  │ 只報告，用戶決定       │
-└──────────────────────┘  └─────────────────────────┘
-```
-
-### ⭐ Cross-Tool Orchestration（跨 MCP 工具編排）
-
-```
-📌 Pipeline 定義「何時」用哪個 MCP；Skill 定義「如何」用；Hook 只負責「品質檢查」！
-
-外部 MCP 使用時機：
-┌─ Phase 2（文獻搜尋）
-│   ├─ pubmed-search: search → metrics → save_reference_mcp(pmid)
-│   └─ zotero-keeper: search_items → 取 PMID → save_reference_mcp [optional]
-├─ Phase 3（概念發展）
-│   └─ cgu: deep_think / spark_collision → 當 novelty score < 75
-├─ Phase 5（章節撰寫）
-│   ├─ drawio: create_diagram → save_diagram [Methods flow diagram]
-│   ├─ mdpaper data: generate_table_one, create_plot [Results]
-│   └─ cgu: deep_think [Discussion 論點強化]
-└─ 詳見：.claude/skills/auto-paper/SKILL.md「Cross-Tool Orchestration Map」
-```
-
-### 🔔 雙重 Hook 架構
-
-| Hook 類型 | Hooks | 使用的 MCP Tools |
-|-----------|-------|------------------|
-| **Copilot A** (post-write) | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `get_available_citations`, `validate_wikilinks`, `patch_draft` |
-| **Copilot B** (post-section) | 概念一致、🔒 保護內容、**方法學驗證(B5)**、**寫作順序(B6)** | `read_draft`, `patch_draft`, `check_writing_order` |
-| **Copilot C** (post-manuscript) | 全稿一致性、投稿清單 | `check_formatting`, `scan_draft_citations`, `count_words` |
-| **Copilot D** (meta-learning) | SKILL 自我改進 + **Hook 自我改進** | `read_file`, `replace_string_in_file` |
-| **Pre-Commit P1-P8** | 引用完整、Anti-AI、概念、字數、🔒、.memory、文獻、**方法學** | `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
-| **General G1-G7** | Memory、README、CHANGELOG、ROADMAP、架構、**專案一致性**、**VSX同步** | `read_file`, `grep_search`, `list_dir` |
-
-**互補關係**：Copilot Hooks 在寫作時即時修正，Pre-Commit Hooks 是最終 safety net。
-
-**Skill 與 Hook 的層級**：
-```
-Capability (高層編排) → Skill (技能知識) → Hook (品質審計) → MCP Tool (底層操作)
-```
-
-### 回應風格
-- 繁體中文
-- 清晰步驟
-- 引用法規
+繁體中文 · 清晰步驟 · 引用法規 · uv 優先

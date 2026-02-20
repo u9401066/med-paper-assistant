@@ -1,87 +1,37 @@
 ---
-description: "❓ mdpaper.help - 顯示所有可用指令"
+description: "❓ mdpaper.help - 指令與工作流程參考"
 ---
 
-# MedPaper Assistant 指令說明
+# 指令參考
 
-📖 **所有 Skills 位於**: `.claude/skills/`
+## 可用指令
 
-## 🚀 可用指令
+| 指令 | 用途 |
+|------|------|
+| `/mdpaper.project` | 建立/切換專案 |
+| `/mdpaper.search` | 文獻搜尋 |
+| `/mdpaper.strategy` | 搜尋策略 |
+| `/mdpaper.concept` | 發展概念 |
+| `/mdpaper.draft` | 撰寫草稿 |
+| `/mdpaper.analysis` | 資料分析 |
+| `/mdpaper.clarify` | 潤稿 |
+| `/mdpaper.format` | 匯出 Word |
 
-| 指令 | 說明 | 使用時機 |
-|------|------|----------|
-| `/mdpaper.project` | 設置研究專案 | 開始新專案或切換專案 |
-| `/mdpaper.concept` | 發展研究概念 | 定義研究問題、進行文獻缺口分析 |
-| `/mdpaper.search` | 智能文獻搜尋 | 搜尋 PubMed、探索文獻 |
-| `/mdpaper.strategy` | 配置搜尋策略 | 設定關鍵字、排除條件、年份範圍 |
-| `/mdpaper.draft` | 撰寫論文草稿 | 撰寫各 section（需先通過 concept 驗證）|
-| `/mdpaper.analysis` | 資料分析 | 統計分析、生成 Table 1、視覺化 |
-| `/mdpaper.clarify` | 改進與潤飾 | 文法潤飾、邏輯強化、精簡內容 |
-| `/mdpaper.format` | 匯出為 Word | 套用期刊模板、匯出 .docx |
-| `/mdpaper.help` | 顯示此說明 | 查看所有可用指令 |
+## 建議順序
 
----
+project → search → concept → draft → analysis → clarify → format
 
-## 📋 推薦工作流程
+## MCP 工具集
 
-```
-1. /mdpaper.project     ← 建立或切換專案
-         ↓
-2. /mdpaper.search      ← 探索文獻（可選）
-         ↓
-3. /mdpaper.concept     ← 發展研究概念 + 驗證
-         ↓
-4. /mdpaper.draft       ← 撰寫各 section
-         ↓
-5. /mdpaper.clarify     ← 改進內容（可重複）
-         ↓
-6. /mdpaper.format      ← 匯出 Word
-```
+| Server | 用途 |
+|--------|------|
+| mdpaper | 專案/草稿/引用/分析/匯出（54 tools） |
+| pubmed-search | 文獻搜尋/全文/引用分析 |
+| cgu | 創意發想（Novelty 不足時） |
+| zotero-keeper | Zotero 整合（選用） |
 
----
+## 核心規則
 
-## 🔧 MCP Tools 說明
-
-這些指令會呼叫以下 MCP Servers 的工具：
-
-| MCP Server | 功能 | 工具前綴 |
-|------------|------|----------|
-| **mdpaper** | 專案管理、草稿撰寫、驗證 | `mcp_mdpaper_*` |
-| **pubmed-search** | PubMed 文獻搜尋 | `mcp_pubmed-search_*` |
-| **cgu** | 創意輔助工具 | `mcp_cgu_*` |
-| **zotero-keeper** | 書目管理 | `mcp_zotero-keeper_*` |
-
----
-
-## ⚠️ 重要規則
-
-### 1. Concept 驗證
-- 撰寫 draft 前必須通過 `validate_concept()`
-- Novelty Score 需達 75+ 分（3/3 rounds）
-
-### 2. 🔒 受保護內容
-- `🔒 NOVELTY STATEMENT` - 不可刪除或弱化
-- `🔒 KEY SELLING POINTS` - 必須全部保留
-
-### 3. 儲存文獻
-- 優先使用 `save_reference_mcp(pmid)` 確保資料完整性
-- 避免傳遞完整 metadata（可能產生幻覺）
-
----
-
-## 💡 快速開始
-
-**新專案：**
-```
-/mdpaper.project 我的研究專案
-```
-
-**探索文獻：**
-```
-/mdpaper.search remimazolam sedation
-```
-
-**撰寫草稿：**
-```
-/mdpaper.draft Introduction
-```
+- 儲存文獻：`save_reference_mcp(pmid)` 優先
+- 草稿前：`validate_concept()` 必須 Novelty ≥ 75
+- 🔒 內容：NOVELTY + SELLING POINTS 不可刪改
