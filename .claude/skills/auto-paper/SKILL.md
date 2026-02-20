@@ -849,6 +849,42 @@ result = engine.analyze()  # → {adjustments, lessons, suggestions, audit_trail
 
 **禁止修改**：CONSTITUTION 原則、🔒 規則、save_reference_mcp 優先、Hook D 自身邏輯
 
+##### Hook 傳播程序（用戶確認後自動執行）
+
+當 D3 提出新增 Hook 且用戶確認後，依以下 spec 自動同步所有檔案：
+
+**Hook Spec 格式**（D3 產出）：
+
+```yaml
+hook_id: C7 # 類型字母 + 編號
+category: C # A/B/C/D
+name: 時間一致性 # 簡短中文名
+description: 逆向掃描修正因寫作順序造成的過時引用
+check_tool: "`read_draft` × N + Agent 掃描"
+fix_action: "`patch_draft` 更新過時描述"
+detailed_definition: |
+  #### Hook C7: 時間一致性
+  C1-C6 完成後，逆向掃描每個 section...
+```
+
+**傳播清單**（5 個檔案，按順序更新）：
+
+| #   | 檔案                                          | 更新內容                                                            | 模式   |
+| --- | --------------------------------------------- | ------------------------------------------------------------------- | ------ |
+| 1   | `.claude/skills/auto-paper/SKILL.md`          | Hook 表格加行 + 詳細定義 + Phase 流程                               | 插入行 |
+| 2   | `AGENTS.md`                                   | `### Hook 架構（N checks）` N+1 + 表格描述列                        | 替換   |
+| 3   | `.github/copilot-instructions.md`             | `## Hook 架構（N checks）` N+1 + 表格列 `Copilot X1-M` → `X1-(M+1)` | 替換   |
+| 4   | `vscode-extension/copilot-instructions.md`    | 同上                                                                | 替換   |
+| 5   | `vscode-extension/skills/auto-paper/SKILL.md` | 同 #1（VSX 鏡像）                                                   | 插入行 |
+
+**自動計算**：
+
+- `new_count` = grep 所有 `Hook 架構（(\d+) checks）` 取得舊值 + 1
+- `new_range` = 解析 `Copilot {cat}1-{M}` → `{cat}1-{M+1}`
+- 使用 `multi_replace_string_in_file` 一次完成所有替換
+
+**驗證**：傳播完成後 `grep -rn "Hook 架構" AGENTS.md .github/ vscode-extension/` 確認數字一致
+
 #### D4-D5: SKILL + Instruction 改進
 
 `MetaLearningEngine._d4_d5_skill_suggestions()` 偵測：
