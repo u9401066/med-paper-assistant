@@ -54,59 +54,6 @@ def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
     """Register project settings tools."""
 
     @mcp.tool()
-    def get_paper_types() -> str:
-        """
-        Get available paper types and their characteristics.
-
-        Use this to understand what paper types are available when creating a project.
-
-        Returns:
-            List of paper types with descriptions and typical structure.
-        """
-        types = project_manager.get_paper_types()
-
-        lines = ["**Which type of paper are you writing?**\n"]
-
-        for key, info in types.items():
-            lines.append(f"- **{info['name']}** (`{key}`) - {info['description']}")
-
-        lines.append("")
-        lines.append("Please tell me the type (e.g., 'original-research' or 'meta-analysis').")
-
-        return "\n".join(lines)
-
-    @mcp.tool()
-    def update_project_status(status: str) -> str:
-        """
-        Update the status of the current project.
-
-        Args:
-            status: New status. One of:
-                    - "concept": Initial concept development
-                    - "drafting": Writing paper sections
-                    - "review": Internal review and revision
-                    - "submitted": Submitted to journal
-                    - "published": Published
-
-        Returns:
-            Confirmation of status update.
-        """
-        result = project_manager.update_project_status(status)
-
-        if result.get("success"):
-            status_emoji = {
-                "concept": "💡",
-                "drafting": "✍️",
-                "review": "🔍",
-                "submitted": "📤",
-                "published": "📗",
-            }.get(status, "❓")
-
-            return f"✅ Project status updated to: {status_emoji} **{status}**"
-        else:
-            return f"❌ Error: {result.get('error', 'Unknown error')}"
-
-    @mcp.tool()
     def update_project_settings(
         paper_type: str = "",
         target_journal: str = "",
@@ -114,27 +61,21 @@ def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
         language_preference: str = "",
         writing_style: str = "",
         memo: str = "",
+        status: str = "",
+        citation_style: str = "",
     ) -> str:
         """
-        Update settings for the current project.
-
-        Use this to configure paper type, preferences, and notes.
-        These settings affect concept templates, writing style, and AI interaction.
+        Update project settings (paper type, status, preferences, citation style, memo).
 
         Args:
-            paper_type: Type of paper (use get_paper_types to see options).
-            target_journal: Target journal for submission.
-            interaction_style: How you want the AI to interact (e.g.,
-                              "Ask before making major changes",
-                              "Be concise", "Explain reasoning").
-            language_preference: Language notes (e.g., "Use British English",
-                                "Technical but accessible").
-            writing_style: Writing style notes (e.g., "Formal academic",
-                          "Active voice preferred").
-            memo: Additional notes and reminders for this project.
-
-        Returns:
-            Confirmation of updated settings.
+            paper_type: Paper type (use get_paper_types)
+            target_journal: Target journal
+            interaction_style: AI interaction style
+            language_preference: Language notes
+            writing_style: Writing style notes
+            memo: Project notes/reminders
+            status: Project status (concept|drafting|review|submitted|published)
+            citation_style: Citation style (vancouver|apa|harvard|nature|ama)
         """
         # Build interaction preferences dict
         interaction_preferences = {}
@@ -144,6 +85,26 @@ def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
             interaction_preferences["language"] = language_preference
         if writing_style:
             interaction_preferences["writing_style"] = writing_style
+
+        # Handle status update
+        if status:
+            status_result = project_manager.update_project_status(status)
+            if not status_result.get("success"):
+                return f"❌ Error updating status: {status_result.get('error', 'Unknown error')}"
+
+        # Handle citation style update
+        if citation_style:
+            try:
+                from med_paper_assistant.infrastructure.services import get_drafter
+
+                drafter = get_drafter()
+                drafter.set_citation_style(citation_style)
+            except Exception:  # nosec B110 - Citation style is best-effort
+                pass
+            # Also save to project settings
+            if not interaction_preferences:
+                interaction_preferences = {}
+            interaction_preferences["citation_style"] = citation_style
 
         result = project_manager.update_project_settings(
             paper_type=paper_type if paper_type else None,
@@ -188,16 +149,7 @@ These settings are saved in `project.json` and `.memory/activeContext.md`
     @mcp.tool()
     async def setup_project_interactive(ctx: Context) -> str:
         """
-        Interactively configure the current project step-by-step.
-
-        If the project is already configured, returns current status and suggests next steps.
-        Otherwise, uses elicitation to ask user for:
-        1. Paper type (required)
-        2. Interaction preferences (optional)
-        3. Project memo/notes (optional)
-
-        Returns:
-            Configuration summary or project status with next steps.
+        Interactive project setup wizard using elicitation (paper type, preferences, memo).
         """
         current = project_manager.get_current_project()
 

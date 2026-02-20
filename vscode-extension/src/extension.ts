@@ -29,6 +29,12 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('mdpaper.showStatus', () => {
             outputChannel.show();
             outputChannel.appendLine(`[${new Date().toISOString()}] MedPaper Assistant Status: Active`);
+        }),
+        vscode.commands.registerCommand('mdpaper.autoPaper', () => {
+            // Open Copilot chat with autopaper command
+            vscode.commands.executeCommand('workbench.action.chat.open', {
+                query: '@mdpaper /autopaper 全自動寫論文'
+            });
         })
     );
 
@@ -173,6 +179,9 @@ function getPythonArgs(command: string, module: string): string[] {
 
 function registerChatParticipant(context: vscode.ExtensionContext): vscode.Disposable | null {
     try {
+        // Pre-load skill summaries for chat context
+        const skillsPath = path.join(context.extensionPath, 'skills');
+
         const handler: vscode.ChatRequestHandler = async (
             request: vscode.ChatRequest,
             chatContext: vscode.ChatContext,
@@ -182,40 +191,141 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
             // Handle different commands
             switch (request.command) {
                 case 'search':
-                    stream.markdown('🔍 使用 MCP 工具搜尋 PubMed...\n\n');
-                    stream.markdown('請在 Agent Mode 中使用此功能，MCP 工具會自動被調用。');
+                    stream.markdown('🔍 **文獻搜尋模式**\n\n');
+                    stream.markdown('在 Agent Mode 中，我可以使用以下 MCP 工具：\n');
+                    stream.markdown('- `search_literature` - PubMed 搜尋\n');
+                    stream.markdown('- `find_related_articles` - 相關文獻\n');
+                    stream.markdown('- `save_reference_mcp` - 儲存文獻\n\n');
+                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
                     break;
 
                 case 'draft':
-                    stream.markdown('✍️ 準備撰寫論文章節...\n\n');
-                    stream.markdown('請提供章節類型和主題，我會協助您撰寫。');
+                    stream.markdown('✍️ **草稿撰寫模式**\n\n');
+                    stream.markdown('在 Agent Mode 中，我可以：\n');
+                    stream.markdown('- 撰寫 Introduction、Methods、Results、Discussion\n');
+                    stream.markdown('- 自動插入 [[wikilink]] 引用\n');
+                    stream.markdown('- 字數控制和 Anti-AI 檢查\n\n');
+                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
                     break;
 
                 case 'concept':
-                    stream.markdown('💡 發展研究概念...\n\n');
-                    stream.markdown('請描述您的研究想法，我會幫您驗證 novelty。');
+                    stream.markdown('💡 **研究概念發展**\n\n');
+                    stream.markdown('在 Agent Mode 中，我可以：\n');
+                    stream.markdown('- 發展研究概念 (concept.md)\n');
+                    stream.markdown('- 驗證 novelty（三輪評分）\n');
+                    stream.markdown('- 文獻缺口分析\n\n');
+                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
                     break;
 
                 case 'project':
-                    stream.markdown('📁 專案管理...\n\n');
-                    stream.markdown('使用 `/mdpaper.project` 來建立或管理研究專案。');
+                    stream.markdown('📁 **專案管理**\n\n');
+                    stream.markdown('在 Agent Mode 中，使用以下工具：\n');
+                    stream.markdown('- `create_project` / `list_projects` / `switch_project`\n');
+                    stream.markdown('- `setup_project_interactive` - 互動設定\n');
+                    stream.markdown('- `get_paper_types` - 可用論文類型\n\n');
+                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
                     break;
 
                 case 'format':
-                    stream.markdown('📄 匯出 Word 文件...\n\n');
-                    stream.markdown('請確保已完成所有章節的撰寫。');
+                    stream.markdown('📄 **Word 匯出**\n\n');
+                    stream.markdown('匯出流程：\n');
+                    stream.markdown('1. `list_templates` → 選擇模板\n');
+                    stream.markdown('2. `start_document_session` → 開始編輯\n');
+                    stream.markdown('3. `insert_section` → 插入各章節\n');
+                    stream.markdown('4. `save_document` → 儲存 .docx\n\n');
+                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
+                    break;
+
+                case 'autopaper': {
+                    // Load auto-paper skill
+                    const autoPaperSkill = loadSkillContent(skillsPath, 'auto-paper');
+                    stream.markdown('🚀 **全自動論文撰寫 (Auto Paper)**\n\n');
+                    stream.markdown('### 9-Phase Pipeline\n\n');
+                    stream.markdown('| Phase | 名稱 | 說明 |\n');
+                    stream.markdown('|-------|------|------|\n');
+                    stream.markdown('| 1 | 文獻搜索 | 並行搜尋 + 儲存 |\n');
+                    stream.markdown('| 2 | 概念發展 | concept.md 撰寫 |\n');
+                    stream.markdown('| 3 | Novelty 驗證 | 三輪評分 ≥ 75 |\n');
+                    stream.markdown('| 4 | 專案建立 | 設定 paper type |\n');
+                    stream.markdown('| 5 | 逐節撰寫 | Introduction → Methods → Results → Discussion |\n');
+                    stream.markdown('| 6 | 引用同步 | sync_references |\n');
+                    stream.markdown('| 7 | 全稿一致性 | manuscript consistency |\n');
+                    stream.markdown('| 8 | Word 匯出 | 產生 .docx |\n');
+                    stream.markdown('| 9 | Meta-Learning | 更新 SKILL |\n\n');
+                    stream.markdown('### 品質保證：3 層 Audit Hooks\n\n');
+                    stream.markdown('- **Hook A** (post-write): 字數、引用密度、Anti-AI、Wikilink\n');
+                    stream.markdown('- **Hook B** (post-section): 概念一致性、🔒 保護內容\n');
+                    stream.markdown('- **Hook C** (post-manuscript): 全稿一致性\n\n');
+                    if (autoPaperSkill) {
+                        stream.markdown('---\n\n<details><summary>📖 完整 Auto-Paper Skill</summary>\n\n');
+                        stream.markdown(autoPaperSkill);
+                        stream.markdown('\n\n</details>\n\n');
+                    }
+                    stream.markdown('💡 **請切換到 Agent Mode**，然後輸入「全自動寫論文」開始。');
+                    break;
+                }
+
+                case 'analysis':
+                    stream.markdown('📊 **資料分析模式**\n\n');
+                    stream.markdown('在 Agent Mode 中，可用工具：\n');
+                    stream.markdown('- `analyze_dataset` - 摘要統計\n');
+                    stream.markdown('- `run_statistical_test` - t-test、correlation 等\n');
+                    stream.markdown('- `create_plot` - 建立圖表\n');
+                    stream.markdown('- `generate_table_one` - 生成 Table 1\n\n');
+                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
+                    break;
+
+                case 'strategy':
+                    stream.markdown('🎯 **搜尋策略設定**\n\n');
+                    stream.markdown('在 Agent Mode 中，我可以：\n');
+                    stream.markdown('- 定義搜尋關鍵字和 MeSH terms\n');
+                    stream.markdown('- 設定 inclusion/exclusion criteria\n');
+                    stream.markdown('- 產生多組搜尋查詢並行執行\n\n');
+                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
+                    break;
+
+                case 'help':
+                    stream.markdown('## 📚 MedPaper Assistant 完整指令列表\n\n');
+                    stream.markdown('### 💬 Chat 指令 (@mdpaper)\n\n');
+                    stream.markdown('| 指令 | 說明 |\n');
+                    stream.markdown('|------|------|\n');
+                    stream.markdown('| `/search` | 搜尋 PubMed 文獻 |\n');
+                    stream.markdown('| `/draft` | 撰寫論文章節 |\n');
+                    stream.markdown('| `/concept` | 發展研究概念 |\n');
+                    stream.markdown('| `/project` | 管理研究專案 |\n');
+                    stream.markdown('| `/format` | 匯出 Word 文件 |\n');
+                    stream.markdown('| `/autopaper` | 🚀 全自動寫論文 |\n');
+                    stream.markdown('| `/analysis` | 資料分析與統計 |\n');
+                    stream.markdown('| `/strategy` | 搜尋策略設定 |\n');
+                    stream.markdown('| `/help` | 顯示本說明 |\n\n');
+                    stream.markdown('### 🎯 Command Palette (Ctrl+Shift+P)\n\n');
+                    stream.markdown('| 指令 | 說明 |\n');
+                    stream.markdown('|------|------|\n');
+                    stream.markdown('| `MedPaper: Auto Paper` | 全自動寫論文 |\n');
+                    stream.markdown('| `MedPaper: Show Status` | 顯示狀態 |\n\n');
+                    stream.markdown('### 🔧 Agent Mode 自然語言\n\n');
+                    stream.markdown('直接在 Agent Mode 輸入：\n');
+                    stream.markdown('- 「全自動寫論文」「一鍵寫論文」→ Auto Paper Pipeline\n');
+                    stream.markdown('- 「找論文」「搜尋 PubMed」→ 文獻搜尋\n');
+                    stream.markdown('- 「寫 Introduction」→ 草稿撰寫\n');
+                    stream.markdown('- 「驗證 novelty」→ 概念驗證\n');
                     break;
 
                 default:
                     // General query - provide guidance
                     stream.markdown(`## MedPaper Assistant\n\n`);
                     stream.markdown(`您好！我是 MedPaper Assistant，專門協助醫學論文撰寫。\n\n`);
-                    stream.markdown(`### 可用指令\n`);
+                    stream.markdown(`### ⭐ 主打功能\n`);
+                    stream.markdown(`- \`/autopaper\` - 🚀 **全自動寫論文** (9-Phase Pipeline + Hooks)\n\n`);
+                    stream.markdown(`### 所有指令\n`);
                     stream.markdown(`- \`/search\` - 搜尋 PubMed 文獻\n`);
                     stream.markdown(`- \`/draft\` - 撰寫論文章節\n`);
                     stream.markdown(`- \`/concept\` - 發展研究概念\n`);
                     stream.markdown(`- \`/project\` - 管理研究專案\n`);
-                    stream.markdown(`- \`/format\` - 匯出 Word 文件\n\n`);
+                    stream.markdown(`- \`/format\` - 匯出 Word 文件\n`);
+                    stream.markdown(`- \`/analysis\` - 資料分析\n`);
+                    stream.markdown(`- \`/strategy\` - 搜尋策略\n`);
+                    stream.markdown(`- \`/help\` - 顯示完整說明\n\n`);
                     stream.markdown(`💡 **建議**：在 Agent Mode 中使用以獲得完整的 MCP 工具支援。`);
             }
 
@@ -229,9 +339,10 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
         participant.followupProvider = {
             provideFollowups(result, context, token) {
                 return [
-                    { prompt: '搜尋相關文獻', label: '🔍 Search Literature' },
-                    { prompt: '開始撰寫草稿', label: '✍️ Start Drafting' },
-                    { prompt: '驗證研究概念', label: '💡 Validate Concept' }
+                    { prompt: '全自動寫論文', label: '🚀 Auto Paper', command: 'autopaper' },
+                    { prompt: '搜尋相關文獻', label: '🔍 Search Literature', command: 'search' },
+                    { prompt: '開始撰寫草稿', label: '✍️ Start Drafting', command: 'draft' },
+                    { prompt: '驗證研究概念', label: '💡 Validate Concept', command: 'concept' }
                 ];
             }
         };
@@ -315,6 +426,14 @@ function loadSkillsAsInstructions(skillsPath: string): string {
     }
 
     return instructions.join('\n\n---\n\n');
+}
+
+function loadSkillContent(skillsPath: string, skillName: string): string | null {
+    const skillFile = path.join(skillsPath, skillName, 'SKILL.md');
+    if (fs.existsSync(skillFile)) {
+        return fs.readFileSync(skillFile, 'utf-8');
+    }
+    return null;
 }
 
 export function deactivate() {

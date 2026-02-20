@@ -13,6 +13,7 @@ from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
+from med_paper_assistant.infrastructure.services.prompts import SECTION_PROMPTS
 
 from .._shared import (
     ensure_project_context,
@@ -25,6 +26,17 @@ from .._shared import (
 
 # Global validator instance
 _concept_validator = ConceptValidator()
+
+
+def _get_drafts_dir() -> Optional[str]:
+    """Get the current project's drafts directory."""
+    from med_paper_assistant.infrastructure.persistence import get_project_manager
+
+    pm = get_project_manager()
+    current_info = pm.get_project_info()
+    if current_info and current_info.get("project_path"):
+        return os.path.join(str(current_info["project_path"]), "drafts")
+    return None
 
 
 def _get_concept_path() -> Optional[str]:
@@ -152,20 +164,13 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         topic: str, notes: str, project: Optional[str] = None, skip_validation: bool = False
     ) -> str:
         """
-        Draft a section of a medical paper based on notes.
-
-        ⚠️ REQUIRES: Valid concept.md with novelty check passed.
-
-        This tool enforces concept validation before drafting. The draft must:
-        - Preserve 🔒 NOVELTY STATEMENT in Introduction
-        - Preserve 🔒 KEY SELLING POINTS in Discussion
-        - Not weaken or remove protected content
+        Draft a paper section using concept.md and saved references as context.
 
         Args:
-            topic: The topic of the section (e.g., "Introduction").
-            notes: Raw notes or bullet points to convert into text.
-            project: Project slug. Agent should confirm with user before calling.
-            skip_validation: For internal use only. Do not set to True.
+            topic: Section name (e.g., "Introduction")
+            notes: Raw notes/bullet points to convert
+            project: Project slug (uses current if omitted)
+            skip_validation: Internal use only
         """
         log_tool_call(
             "draft_section",
@@ -184,39 +189,91 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             )
             return error_msg
 
+        # 1. Enforce Concept Validation
         if not skip_validation:
             can_proceed, message, protected = _enforce_concept_validation()
             if not can_proceed:
                 log_tool_result("draft_section", "concept validation failed", success=False)
                 return message
+        else:
+            protected = {}
 
-        reminder = ""
-        if topic.lower() == "introduction":
-            reminder = "\n\n⚠️ **REMINDER**: Introduction must reflect the 🔒 NOVELTY STATEMENT."
-        elif topic.lower() == "discussion":
-            reminder = "\n\n⚠️ **REMINDER**: Discussion must emphasize 🔒 KEY SELLING POINTS."
+        # 2. Gather Reference Context
+        ref_context = ""
+        concept_path = _get_concept_path()
+        if concept_path and os.path.exists(concept_path):
+            with open(concept_path, "r", encoding="utf-8") as f:
+                concept_content = f.read()
 
-        result = f"Drafting section '{topic}' based on notes...{reminder}"
-        log_tool_result("draft_section", result, success=True)
-        return result
+            # Find all wikilinks in concept
+            wikilinks = re.findall(r"\[\[([^\]]+)\]\]", concept_content)
+            pmids = []
+            for wl in wikilinks:
+                if "_" in wl:
+                    pmid = wl.split("_")[-1]
+                    if pmid.isdigit():
+                        pmids.append(pmid)
+                elif wl.isdigit():
+                    pmids.append(wl)
+
+            if pmids:
+                ref_context = "\n### 📚 Key Evidence from References\n\n"
+                for pmid in list(set(pmids))[:5]:  # Limit to top 5 for context window
+                    meta = drafter.ref_manager.get_metadata(pmid)
+                    if meta:
+                        title = meta.get("title", "Unknown Title")
+                        abstract = meta.get("abstract", "No abstract available.")
+                        # Extract key numbers/findings if possible (simple heuristic)
+                        findings = re.findall(r"\d+\.?\d*\s*%", abstract)
+                        findings_str = f" (Key figures: {', '.join(findings)})" if findings else ""
+
+                        ref_context += f"#### [[{meta.get('citation_key', pmid)}]]\n"
+                        ref_context += f"**Title**: {title}\n"
+                        ref_context += f"**Abstract Summary**: {abstract[:500]}...\n"
+                        ref_context += f"**Evidence**: {findings_str}\n\n"
+
+        # 3. Get Writing Strategy
+        strategy = SECTION_PROMPTS.get(topic.lower(), "Write a professional medical section.")
+
+        # 4. Construct Final Instructions for the Agent
+        output = f"## 📝 Drafting Instructions for {topic}\n\n"
+        output += f"### 🎯 Writing Strategy\n{strategy}\n\n"
+
+        if protected.get("novelty_statement"):
+            output += (
+                f"### 🔒 NOVELTY STATEMENT (MUST PRESERVE)\n> {protected['novelty_statement']}\n\n"
+            )
+
+        if protected.get("selling_points"):
+            output += (
+                f"### 🔒 KEY SELLING POINTS (MUST EMPHASIZE)\n{protected['selling_points']}\n\n"
+            )
+
+        output += f"### 📝 User Notes/Outline\n{notes}\n\n"
+        output += ref_context
+
+        output += "\n---\n"
+        output += (
+            "💡 **Agent Action**: Use the evidence above to write a solid, data-driven section. "
+        )
+        output += "Avoid generic AI filler. Focus on the logical flow from existing evidence to your novelty."
+
+        log_tool_result("draft_section", f"prepared context for {topic}", success=True)
+        return output
 
     @mcp.tool()
     def write_draft(
         filename: str, content: str, project: Optional[str] = None, skip_validation: bool = False
     ) -> str:
         """
-        Create a draft file with automatic citation formatting.
-        Use (PMID:123456) or [PMID:123456] in content to insert citations.
-
-        ⚠️ REQUIRES: Valid concept.md with novelty check passed.
-
-        Exception: Writing to concept.md itself does not require validation.
+        Create/update a draft file with auto citation formatting.
+        Use (PMID:123456) or [PMID:123456] for citations.
 
         Args:
-            filename: Name of the file (e.g., "draft.md").
-            content: The text content with citation placeholders.
-            project: Project slug. Agent should confirm with user before calling.
-            skip_validation: For internal use only. Do not set to True.
+            filename: Draft filename (e.g., "draft.md")
+            content: Text content with citation placeholders
+            project: Project slug (uses current if omitted)
+            skip_validation: Internal use only
         """
         log_tool_call(
             "write_draft",
@@ -280,13 +337,10 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
     @mcp.tool()
     def list_drafts(project: Optional[str] = None) -> str:
         """
-        List all available draft files in the drafts/ directory.
+        List all draft files in drafts/ with section and word counts.
 
         Args:
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            List of draft files with their word counts.
+            project: Project slug (uses current if omitted)
         """
         log_tool_call("list_drafts", {"project": project})
 
@@ -298,7 +352,9 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 )
                 return error_msg
 
-        drafts_dir = "drafts"
+        drafts_dir = _get_drafts_dir()
+        if not drafts_dir:
+            drafts_dir = "drafts"
         if not os.path.exists(drafts_dir):
             result = "📁 No drafts/ directory found. Create drafts using write_draft tool first."
             log_tool_result("list_drafts", result, success=True)
@@ -334,14 +390,11 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
     @mcp.tool()
     def read_draft(filename: str, project: Optional[str] = None) -> str:
         """
-        Read a draft file and return its structure and content.
+        Read a draft file's structure and content by sections.
 
         Args:
-            filename: Path to the markdown draft file.
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            Draft content organized by sections with word counts.
+            filename: Draft filename (in drafts/ directory)
+            project: Project slug (uses current if omitted)
         """
         log_tool_call("read_draft", {"filename": filename, "project": project})
 
@@ -354,7 +407,8 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 return error_msg
 
         if not os.path.isabs(filename):
-            filename = os.path.join("drafts", filename)
+            drafts_dir = _get_drafts_dir() or "drafts"
+            filename = os.path.join(drafts_dir, filename)
 
         if not os.path.exists(filename):
             result = f"Error: Draft file not found: {filename}"
@@ -408,3 +462,79 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         except Exception as e:
             log_tool_error("read_draft", e, {"filename": filename})
             return f"Error reading draft: {str(e)}"
+
+    @mcp.tool()
+    def delete_draft(filename: str, confirm: bool = False, project: Optional[str] = None) -> str:
+        """
+        ⚠️ DESTRUCTIVE: Delete a draft file permanently.
+
+        Args:
+            filename: Draft filename (e.g., "draft.md")
+            confirm: False=preview, True=actually delete
+            project: Project slug (uses current if omitted)
+        """
+        log_tool_call(
+            "delete_draft", {"filename": filename, "confirm": confirm, "project": project}
+        )
+
+        if project:
+            is_valid, error_msg = _validate_project_context(project)
+            if not is_valid:
+                log_agent_misuse(
+                    "delete_draft",
+                    "valid project context required",
+                    {"project": project},
+                    error_msg,
+                )
+                return error_msg
+
+        # Resolve the full path
+        if not os.path.isabs(filename):
+            drafts_dir = _get_drafts_dir() or "drafts"
+            filename = os.path.join(drafts_dir, filename)
+
+        if not os.path.exists(filename):
+            error_msg = f"❌ Draft file not found: {filename}"
+            log_tool_result("delete_draft", error_msg, success=False)
+            return error_msg
+
+        # Get file info
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                content = f.read()
+            word_count = len([w for w in content.split() if w.strip()])
+            sections = len(re.findall(r"^#+\s+", content, re.MULTILINE))
+            file_size = os.path.getsize(filename)
+        except Exception as e:
+            error_msg = f"❌ Error reading draft: {str(e)}"
+            log_tool_error("delete_draft", e, {"filename": filename})
+            return error_msg
+
+        basename = os.path.basename(filename)
+
+        if not confirm:
+            # Preview mode
+            output = "⚠️ **即將刪除草稿 (Preview)**\n\n"
+            output += f"**檔案名稱**: {basename}\n"
+            output += f"**路徑**: {filename}\n"
+            output += f"**字數**: {word_count} words\n"
+            output += f"**章節數**: {sections} sections\n"
+            output += f"**檔案大小**: {file_size:,} bytes\n"
+            output += "\n⚠️ 此操作無法復原！\n"
+            output += f'請使用 `delete_draft(filename="{basename}", confirm=True)` 確認刪除。'
+            log_tool_result("delete_draft", "preview shown", success=True)
+            return output
+
+        # Actually delete
+        try:
+            os.remove(filename)
+            result = "✅ **已刪除草稿**\n\n"
+            result += f"**檔案名稱**: {basename}\n"
+            result += f"**已刪除字數**: {word_count} words\n"
+            result += f"**已刪除章節數**: {sections} sections\n"
+            log_tool_result("delete_draft", f"deleted {basename}", success=True)
+            return result
+        except Exception as e:
+            error_msg = f"❌ 刪除失敗: {str(e)}"
+            log_tool_error("delete_draft", e, {"filename": filename})
+            return error_msg

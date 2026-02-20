@@ -201,7 +201,6 @@ def validate_wikilinks_in_content(
         # 檢查標準 wikilinks
         for match in ALL_WIKILINK_PATTERN.finditer(line):
             wikilink = match.group(0)
-            match.group(1)
 
             # 跳過已處理的混亂格式
             if any(wikilink in issue.original for issue in issues):

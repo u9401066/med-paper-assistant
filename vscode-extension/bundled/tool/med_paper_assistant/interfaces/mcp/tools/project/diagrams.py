@@ -28,50 +28,21 @@ def register_diagram_tools(mcp: FastMCP, project_manager: ProjectManager):
         project: Optional[str] = None,
         content_format: str = "xml",
         description: str = "",
+        output_dir: str = "",
     ) -> str:
         """
-        Save a diagram file to the project's results/figures directory.
-
-        Use this after getting diagram content from Draw.io MCP's get_diagram_content tool.
-
-        Workflow:
-        1. User creates/edits diagram in Draw.io
-        2. Agent calls drawio.get_diagram_content() to get XML
-        3. Agent calls this tool to save to project
+        Save Draw.io diagram to project figures or standalone location.
 
         Args:
-            filename: Diagram filename (e.g., "consort-flowchart.drawio").
-            content: Diagram content (XML or base64 encoded XML).
-            project: Project slug. Agent should confirm with user.
-            content_format: "xml" or "base64".
-            description: Optional description.
-
-        Returns:
-            Success message with saved path, or error message.
+            filename: Diagram filename (e.g., "consort-flowchart.drawio")
+            content: Diagram XML content
+            project: Project slug (default: current). If no project, saves standalone.
+            content_format: xml|base64
+            description: Optional description
+            output_dir: Standalone output directory (used when no project context)
         """
-        is_valid, msg, project_info = ensure_project_context(project)
-
-        if not is_valid:
-            return f"""⚠️ **No Project Context**
-
-{msg}
-
-**Options:**
-1. Specify a project: `save_diagram(filename="...", content="...", project="project-slug")`
-2. Save to standalone location: Use `save_diagram_standalone` tool instead
-3. Create a project first: `create_project(name="My Research")`
-
-{get_project_list_for_prompt()}"""
-
         if not filename.endswith(".drawio"):
             filename = f"{filename}.drawio"
-
-        project_path = project_info.get("project_path")
-        if not project_path:
-            return "❌ Error: Could not determine project path"
-
-        figures_dir = Path(project_path) / "results" / "figures"
-        figures_dir.mkdir(parents=True, exist_ok=True)
 
         if content_format == "base64":
             try:
@@ -82,18 +53,27 @@ def register_diagram_tools(mcp: FastMCP, project_manager: ProjectManager):
         if not content.strip().startswith("<"):
             return "❌ Error: Content does not appear to be valid XML"
 
-        output_path = figures_dir / filename
-        try:
-            output_path.write_text(content, encoding="utf-8")
-        except Exception as e:
-            return f"❌ Error saving diagram: {e}"
+        # Try project context first
+        is_valid, msg, project_info = ensure_project_context(project)
 
-        if description:
-            meta_path = figures_dir / f"{filename}.meta.txt"
-            meta_path.write_text(description, encoding="utf-8")
+        if is_valid and project_info:
+            project_path = project_info.get("project_path")
+            if project_path:
+                figures_dir = Path(project_path) / "results" / "figures"
+                figures_dir.mkdir(parents=True, exist_ok=True)
 
-        project_name = project_info.get("name", "Unknown")
-        return f"""✅ **Diagram Saved**
+                output_path = figures_dir / filename
+                try:
+                    output_path.write_text(content, encoding="utf-8")
+                except Exception as e:
+                    return f"❌ Error saving diagram: {e}"
+
+                if description:
+                    meta_path = figures_dir / f"{filename}.meta.txt"
+                    meta_path.write_text(description, encoding="utf-8")
+
+                project_name = project_info.get("name", "Unknown")
+                return f"""✅ **Diagram Saved**
 
 **File:** {output_path}
 **Project:** {project_name}
@@ -104,35 +84,9 @@ The diagram is now part of your research project and can be:
 - Edited again using Draw.io MCP
 - Referenced in your drafts"""
 
-    @mcp.tool()
-    def save_diagram_standalone(
-        filename: str, content: str, output_dir: str = ".", content_format: str = "xml"
-    ) -> str:
-        """
-        Save a diagram to a standalone location (not in any project).
-
-        Args:
-            filename: Diagram filename (e.g., "quick-diagram.drawio").
-            content: Diagram content (XML or base64 encoded XML).
-            output_dir: Directory to save to. Defaults to current directory.
-            content_format: "xml" or "base64".
-
-        Returns:
-            Success message with saved path.
-        """
-        if not filename.endswith(".drawio"):
-            filename = f"{filename}.drawio"
-
-        if content_format == "base64":
-            try:
-                content = base64.b64decode(content).decode("utf-8")
-            except Exception as e:
-                return f"❌ Error decoding base64 content: {e}"
-
-        if not content.strip().startswith("<"):
-            return "❌ Error: Content does not appear to be valid XML"
-
-        output_path = Path(output_dir) / filename
+        # No project context — save standalone
+        save_dir = Path(output_dir) if output_dir else Path(".")
+        output_path = save_dir / filename
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(content, encoding="utf-8")
@@ -150,13 +104,10 @@ To associate with a project, use `save_diagram` with a project parameter."""
     @mcp.tool()
     def list_diagrams(project: Optional[str] = None) -> str:
         """
-        List all diagrams in a project's results/figures directory.
+        List diagrams in project's results/figures directory.
 
         Args:
-            project: Project slug. If not specified, uses current project.
-
-        Returns:
-            List of diagram files with metadata.
+            project: Project slug (default: current)
         """
         is_valid, msg, project_info = ensure_project_context(project)
 

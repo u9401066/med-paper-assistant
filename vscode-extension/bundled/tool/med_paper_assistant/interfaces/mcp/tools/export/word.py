@@ -27,39 +27,10 @@ def register_word_export_tools(
 ):
     """Register Word export tools."""
 
-    # ============================================================
-    # LEGACY EXPORT
-    # ============================================================
-
-    @mcp.tool()
-    def export_word(draft_filename: str, template_name: str, output_filename: str) -> str:
-        """
-        [LEGACY] Simple export - use the new workflow for better control.
-
-        Export a markdown draft to a Word document using a template.
-
-        Args:
-            draft_filename: Path to the markdown draft file.
-            template_name: Name of the template file in templates/ or full path.
-            output_filename: Path to save the output file.
-        """
-        try:
-            path = formatter.apply_template(draft_filename, template_name, output_filename)
-            return f"Word document exported successfully to: {path}"
-        except Exception as e:
-            return f"Error exporting Word document: {str(e)}"
-
-    # ============================================================
-    # NEW WORKFLOW
-    # ============================================================
-
     @mcp.tool()
     def list_templates() -> str:
         """
-        List all available Word templates.
-
-        Returns:
-            List of template files in the templates/ directory.
+        List all available Word templates in templates/ directory.
         """
         try:
             templates = template_reader.list_templates()
@@ -76,14 +47,10 @@ def register_word_export_tools(
     @mcp.tool()
     def read_template(template_name: str) -> str:
         """
-        Read a Word template and get its structure.
-        Use this FIRST to understand what sections the template has.
+        Read a Word template's structure (sections, styles, word limits).
 
         Args:
-            template_name: Name of the template file (e.g., "Type of the Paper.docx").
-
-        Returns:
-            Template structure including sections, styles, and word limits.
+            template_name: Template filename (e.g., "Type of the Paper.docx")
         """
         try:
             return template_reader.get_template_summary(template_name)
@@ -93,14 +60,11 @@ def register_word_export_tools(
     @mcp.tool()
     def start_document_session(template_name: str, session_id: str = "default") -> str:
         """
-        Start a new document editing session by loading a template.
+        Start a document editing session from a Word template.
 
         Args:
-            template_name: Name of the template file.
-            session_id: Unique identifier for this editing session.
-
-        Returns:
-            Confirmation and template structure.
+            template_name: Template filename
+            session_id: Unique session identifier (default: "default")
         """
         try:
             template_path = os.path.join(template_reader.templates_dir, template_name)
@@ -125,16 +89,13 @@ def register_word_export_tools(
         session_id: str, section_name: str, content: str, mode: str = "replace"
     ) -> str:
         """
-        Insert content into a specific section of the active document.
+        Insert content into a document section.
 
         Args:
-            session_id: The document session ID.
-            section_name: Target section name (e.g., "Introduction", "Methods").
-            content: The text content to insert.
-            mode: "replace" (clear existing) or "append" (add to existing).
-
-        Returns:
-            Confirmation with word count for the section.
+            session_id: Session ID from start_document_session
+            section_name: Target section (e.g., "Introduction")
+            content: Text content to insert
+            mode: "replace" or "append"
         """
         if session_id not in _active_documents:
             return f"Error: No active session '{session_id}'. Use start_document_session first."
@@ -169,15 +130,14 @@ def register_word_export_tools(
             return f"Error inserting section: {str(e)}"
 
     @mcp.tool()
-    def verify_document(session_id: str) -> str:
+    def verify_document(session_id: str, limits_json: Optional[str] = None) -> str:
         """
-        Get a summary of the current document state for verification.
+        Get document summary with all sections and word counts.
+        Optionally check against word limits per section.
 
         Args:
-            session_id: The document session ID.
-
-        Returns:
-            Document summary with all sections and word counts.
+            session_id: Session ID from start_document_session
+            limits_json: Optional JSON with section word limits (e.g., '{"Abstract": 300, "Introduction": 800}')
         """
         if session_id not in _active_documents:
             return f"Error: No active session '{session_id}'."
@@ -203,87 +163,63 @@ def register_word_export_tools(
             for mod in session["modifications"]:
                 output += f"- {mod['section']}: {mod['paragraphs']} paragraphs ({mod['mode']})\n"
 
+            # Word limit check if limits provided
+            if limits_json:
+                limits = {
+                    "Abstract": 250,
+                    "Introduction": 800,
+                    "Methods": 1500,
+                    "Materials and Methods": 1500,
+                    "Results": 1500,
+                    "Discussion": 1500,
+                    "Conclusions": 300,
+                }
+
+                custom_limits = json.loads(limits_json)
+                limits.update(custom_limits)
+
+                output += "\n📏 **Word Limit Check**\n\n"
+                output += "| Section | Words | Limit | Status |\n"
+                output += "|---------|-------|-------|--------|\n"
+
+                all_ok = True
+                for section, count in counts.items():
+                    limit = None
+                    for limit_key, limit_val in limits.items():
+                        if (
+                            limit_key.lower() in section.lower()
+                            or section.lower() in limit_key.lower()
+                        ):
+                            limit = limit_val
+                            break
+
+                    if limit:
+                        if count <= limit:
+                            status = "✅"
+                        else:
+                            status = f"⚠️ Over by {count - limit}"
+                            all_ok = False
+                        output += f"| {section} | {count} | {limit} | {status} |\n"
+                    else:
+                        output += f"| {section} | {count} | - | - |\n"
+
+                if all_ok:
+                    output += "\n✅ **All sections within word limits!**"
+                else:
+                    output += "\n⚠️ **Some sections exceed word limits.**"
+
             return output
         except Exception as e:
             return f"Error verifying document: {str(e)}"
 
     @mcp.tool()
-    def check_word_limits(session_id: str, limits_json: Optional[str] = None) -> str:
-        """
-        Check if all sections meet their word limits.
-
-        Args:
-            session_id: The document session ID.
-            limits_json: Optional JSON with custom limits.
-
-        Returns:
-            Word limit compliance report.
-        """
-        if session_id not in _active_documents:
-            return f"Error: No active session '{session_id}'."
-
-        try:
-            session = _active_documents[session_id]
-            doc = session["doc"]
-
-            counts = word_writer.get_all_word_counts(doc)
-
-            limits = {
-                "Abstract": 250,
-                "Introduction": 800,
-                "Methods": 1500,
-                "Materials and Methods": 1500,
-                "Results": 1500,
-                "Discussion": 1500,
-                "Conclusions": 300,
-            }
-
-            if limits_json:
-                custom_limits = json.loads(limits_json)
-                limits.update(custom_limits)
-
-            output = "📏 **Word Limit Check**\n\n"
-            output += "| Section | Words | Limit | Status |\n"
-            output += "|---------|-------|-------|--------|\n"
-
-            all_ok = True
-            for section, count in counts.items():
-                limit = None
-                for limit_key, limit_val in limits.items():
-                    if limit_key.lower() in section.lower() or section.lower() in limit_key.lower():
-                        limit = limit_val
-                        break
-
-                if limit:
-                    if count <= limit:
-                        status = "✅"
-                    else:
-                        status = f"⚠️ Over by {count - limit}"
-                        all_ok = False
-                    output += f"| {section} | {count} | {limit} | {status} |\n"
-                else:
-                    output += f"| {section} | {count} | - | - |\n"
-
-            if all_ok:
-                output += "\n✅ **All sections within word limits!**"
-            else:
-                output += "\n⚠️ **Some sections exceed word limits.**"
-
-            return output
-        except Exception as e:
-            return f"Error checking word limits: {str(e)}"
-
-    @mcp.tool()
     def save_document(session_id: str, output_filename: str) -> str:
         """
-        Save the document to a Word file.
+        Save the document to Word file and close session.
 
         Args:
-            session_id: The document session ID.
-            output_filename: Path to save the output file.
-
-        Returns:
-            Confirmation with file path.
+            session_id: Session ID from start_document_session
+            output_filename: Output file path
         """
         if session_id not in _active_documents:
             return f"Error: No active session '{session_id}'."

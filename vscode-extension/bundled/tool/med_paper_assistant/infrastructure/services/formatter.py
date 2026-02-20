@@ -6,10 +6,12 @@ from med_paper_assistant.infrastructure.services.exporter import WordExporter
 class Formatter:
     def __init__(self):
         self.exporter = WordExporter()
-        # Define templates directory relative to the project root (assuming core is in src/med_paper_assistant/core)
-        # Go up 3 levels: core -> med_paper_assistant -> src -> root
+        # Define templates directory relative to the project root
+        # Go up 5 levels: services -> infrastructure -> med_paper_assistant -> src -> root
         self.templates_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            ),
             "templates",
         )
 

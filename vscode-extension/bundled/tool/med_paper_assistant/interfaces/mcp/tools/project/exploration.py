@@ -15,18 +15,8 @@ def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
     @mcp.tool()
     def start_exploration() -> str:
         """
-        Start a literature exploration workspace without creating a formal project.
-
-        Use this when you want to:
-        - Search and save papers to find research inspiration
-        - Explore a topic before committing to a research direction
-        - Collect references before deciding on paper type
-
-        All saved references and notes are preserved and can be converted
-        to a formal project later using `convert_exploration_to_project`.
-
-        Returns:
-            Exploration workspace info.
+        Start literature exploration workspace without formal project.
+        Save papers freely, convert to project later with convert_exploration_to_project.
         """
         result = project_manager.get_or_create_temp_project()
 
@@ -79,23 +69,14 @@ def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
         keep_exploration: bool = False,
     ) -> str:
         """
-        Convert the exploration workspace to a formal research project.
-
-        All saved references, drafts, and data files are transferred to the new project.
-        This is useful after you've explored literature and found a research direction.
-
-        IMPORTANT: The 'name' parameter MUST be in English for proper slug generation.
-        If user provides a non-English name, translate it to English before calling.
+        Convert exploration workspace to formal project. Transfers all saved content.
 
         Args:
-            name: Project name in ENGLISH (e.g., "Diabetes Prevention Study").
-            description: Brief research description.
-            paper_type: Type of paper (original-research, meta-analysis, etc.).
-            target_journal: Target journal for submission.
-            keep_exploration: If True, copy instead of move (keep exploration workspace).
-
-        Returns:
-            New project info with transferred content statistics.
+            name: English project name (translate if needed)
+            description: Brief description
+            paper_type: original-research|meta-analysis|systematic-review|...
+            target_journal: Target journal
+            keep_exploration: True=copy, False=move
         """
         result = project_manager.convert_temp_to_project(
             name=name,
@@ -137,72 +118,3 @@ def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
 - Choose a unique project name in English
 - Check that the paper_type is valid
 """
-
-    @mcp.tool()
-    def get_exploration_status() -> str:
-        """
-        Check the status of the exploration workspace.
-
-        Shows saved references and provides guidance on next steps.
-
-        Returns:
-            Exploration workspace status and contents.
-        """
-        # Check if temp project exists
-        temp_path = project_manager.projects_dir / project_manager.TEMP_PROJECT_SLUG
-
-        if not temp_path.exists():
-            return """📭 **No Exploration Workspace**
-
-You haven't started exploring yet.
-
-Use `start_exploration()` to create a workspace for literature exploration,
-or `create_project()` if you already know your research direction.
-"""
-
-        # Get temp project info
-        result = project_manager.get_project_info(project_manager.TEMP_PROJECT_SLUG)
-
-        if not result.get("success"):
-            return "❌ Error reading exploration workspace."
-
-        stats = result.get("stats", {})
-        ref_count = stats.get("references", 0)
-
-        # Build status message
-        lines = ["# 🔍 Exploration Workspace Status\n"]
-
-        lines.append(f"**Created:** {result.get('created_at', 'Unknown')[:10]}")
-        lines.append(f"**Last Updated:** {result.get('updated_at', 'Unknown')[:10]}")
-        lines.append("")
-
-        lines.append("## Contents")
-        lines.append(f"- 📚 **References:** {ref_count}")
-        lines.append(f"- 📝 **Draft Notes:** {stats.get('drafts', 0)}")
-        lines.append(f"- 📊 **Data Files:** {stats.get('data_files', 0)}")
-        lines.append("")
-
-        # Recommendations based on content
-        if ref_count == 0:
-            lines.append("## 💡 Recommendation")
-            lines.append("Start by searching for literature:")
-            lines.append("```")
-            lines.append('search_literature(query="your topic")')
-            lines.append("```")
-        elif ref_count < 5:
-            lines.append("## 💡 Recommendation")
-            lines.append(f"You have {ref_count} references. Consider:")
-            lines.append("- Search for more related papers")
-            lines.append("- Find citing/related articles for key papers")
-            lines.append("- Review abstracts to refine your focus")
-        else:
-            lines.append("## ✅ Ready to Convert!")
-            lines.append(f"You have {ref_count} references - enough to start a project!")
-            lines.append("```")
-            lines.append("convert_exploration_to_project(")
-            lines.append('    name="Your Research Title",')
-            lines.append('    paper_type="original-research"  # or meta-analysis, etc.')
-            lines.append(")")
-            lines.append("```")
-
-        return "\n".join(lines)

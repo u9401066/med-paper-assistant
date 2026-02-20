@@ -1,17 +1,27 @@
 SECTION_PROMPTS = {
     "introduction": """
-Write an Introduction section for a medical research paper with the following structure:
-1. Opening statement about the clinical problem/significance
-2. Current state of knowledge (cite provided references)
-3. Knowledge gap or controversy
-4. Study rationale and hypothesis
-5. Study objectives
+Write a high-impact Introduction for a medical research paper.
 
-Guidelines:
-- Use formal academic tone
-- Each claim should have a citation
-- Avoid first person (use "this study" instead of "we")
-- Target length: 400-600 words
+### 🚫 ANTI-AI WRITING RULES (CRITICAL)
+- **NO generic openings**: Avoid "In recent years...", "With the advancement of...", "X is a major public health concern...".
+- **NO generic transitions**: Avoid starting paragraphs with "Furthermore", "Additionally", "Moreover". Use logical transitions based on evidence (e.g., "Despite these findings...", "In contrast to...").
+- **NO vague adjectives**: Avoid "significant", "better", "improved" without specific numbers or mechanisms.
+- **NO passive voice overload**: Use active voice where appropriate to describe the study's intent.
+
+### 🏗️ STRUCTURE: THE EVIDENCE FUNNEL
+1. **The Clinical Reality**: Start with a specific, data-driven statement about the current clinical situation or mechanism. Use numbers/percentages from references.
+2. **Current Evidence Base**: Synthesize what is known. Do not just list studies; group them by findings or mechanisms.
+3. **The Knowledge Gap**: Explicitly state what is NOT known. Use the 🔒 NOVELTY STATEMENT as your guide.
+4. **The Study Rationale**: Why is this study necessary NOW? What specific problem does it solve?
+5. **Objectives**: State the primary and secondary objectives clearly.
+
+### 🔒 PROTECTED CONTENT
+- You MUST reflect the **🔒 NOVELTY STATEMENT** provided in the context.
+- Do not weaken or generalize the novelty claim.
+
+### 📝 CITATION STYLE
+- Use [[citation_key]] or [PMID:xxxx] for every factual claim.
+- Ground every statement in the provided reference abstracts.
 """,
     "methods": """
 Write a Methods section following CONSORT/STROBE guidelines:

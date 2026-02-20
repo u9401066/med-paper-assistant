@@ -69,6 +69,11 @@ class ProjectManager:
         # Initialize helpers
         self.template_reader = ConceptTemplateReader()
 
+        # Initialize workspace state manager
+        from .workspace_state_manager import get_workspace_state_manager
+
+        self._workspace_state = get_workspace_state_manager(str(self.base_path))
+
         # Ensure projects directory exists
         self.projects_dir.mkdir(parents=True, exist_ok=True)
 
@@ -540,8 +545,10 @@ class ProjectManager:
         return slug or "untitled"
 
     def _save_current_project(self, slug: str) -> None:
-        """Save current project to state file."""
+        """Save current project to state file and workspace state."""
         self.state_file.write_text(slug)
+        # Also update workspace state for cross-session persistence
+        self._workspace_state.set_current_project(slug)
 
     def _create_project_config(
         self,

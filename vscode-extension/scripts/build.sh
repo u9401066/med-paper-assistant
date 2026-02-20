@@ -21,10 +21,12 @@ SKILLS_SRC="$ROOT_DIR/.claude/skills"
 SKILLS_DST="$EXT_DIR/skills"
 
 if [ -d "$SKILLS_SRC" ]; then
-    # Copy mdpaper-related skills
-    for skill in literature-review concept-development parallel-search \
-                 project-management draft-writing reference-management \
-                 word-export concept-validation; do
+    # Copy ALL research skills + paper-aware hooks
+    for skill in literature-review concept-development concept-validation \
+                 parallel-search project-management draft-writing \
+                 reference-management word-export auto-paper \
+                 academic-debate idea-validation manuscript-review \
+                 submission-preparation git-precommit; do
         if [ -d "$SKILLS_SRC/$skill" ]; then
             mkdir -p "$SKILLS_DST/$skill"
             cp "$SKILLS_SRC/$skill/SKILL.md" "$SKILLS_DST/$skill/" 2>/dev/null || true
@@ -38,12 +40,20 @@ PROMPTS_SRC="$ROOT_DIR/.github/prompts"
 PROMPTS_DST="$EXT_DIR/prompts"
 
 if [ -d "$PROMPTS_SRC" ]; then
-    # Copy mdpaper-related prompts
-    for prompt in mdpaper.write-paper mdpaper.literature-survey mdpaper.manuscript-revision; do
+    # Copy ALL mdpaper prompts + capability index
+    for prompt in mdpaper.write-paper mdpaper.literature-survey \
+                 mdpaper.manuscript-revision mdpaper.search \
+                 mdpaper.concept mdpaper.draft mdpaper.project \
+                 mdpaper.format mdpaper.strategy mdpaper.analysis \
+                 mdpaper.clarify mdpaper.help; do
         if [ -f "$PROMPTS_SRC/$prompt.prompt.md" ]; then
             cp "$PROMPTS_SRC/$prompt.prompt.md" "$PROMPTS_DST/" 2>/dev/null || true
         fi
     done
+    # Copy capability index
+    if [ -f "$PROMPTS_SRC/_capability-index.md" ]; then
+        cp "$PROMPTS_SRC/_capability-index.md" "$PROMPTS_DST/" 2>/dev/null || true
+    fi
 fi
 
 # 3. Copy Python MCP source (for development)

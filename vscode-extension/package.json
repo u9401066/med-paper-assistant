@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "medpaper",
   "license": "Apache-2.0",
   "repository": {
@@ -64,6 +64,22 @@
           {
             "name": "format",
             "description": "匯出為 Word 文件"
+          },
+          {
+            "name": "autopaper",
+            "description": "全自動寫論文（9-Phase Pipeline + Hooks）"
+          },
+          {
+            "name": "analysis",
+            "description": "資料分析與統計"
+          },
+          {
+            "name": "strategy",
+            "description": "搜尋策略設定"
+          },
+          {
+            "name": "help",
+            "description": "顯示所有可用指令"
           }
         ],
         "disambiguation": [
@@ -75,7 +91,8 @@
               "寫一篇關於 ECMO 的 introduction",
               "驗證我的研究 novelty",
               "搜尋 PubMed",
-              "Write a discussion section",
+              "全自動寫論文",
+              "一鍵寫論文",
               "Help me respond to reviewer comments"
             ]
           }
@@ -96,6 +113,11 @@
       {
         "command": "mdpaper.showStatus",
         "title": "Show MedPaper Status",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.autoPaper",
+        "title": "Auto Paper - 全自動寫論文",
         "category": "MedPaper"
       }
     ],

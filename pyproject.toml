@@ -88,6 +88,7 @@ creativity-generation-unit = { path = "integrations/cgu", editable = true }
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["vscode-extension/bundled"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]

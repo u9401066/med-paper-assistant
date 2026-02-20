@@ -3,11 +3,12 @@ Project Management Tools Module
 
 Provides tools for managing research paper projects.
 Split into submodules for maintainability:
-- crud: Create, list, switch, delete, get_current
-- settings: update_settings, get_paper_types, update_status
-- exploration: start_exploration, convert_to_project
-- diagrams: save_diagram, list_diagrams (Draw.io integration)
-- workspace: VS Code integration for file opening/closing
+- crud: create_project, list_projects, switch_project, get_current_project (with include_files)
+- settings: update_project_settings (with status, citation_style)
+- exploration: start_exploration, convert_exploration_to_project
+- diagrams: save_diagram (with output_dir for standalone), list_diagrams
+- workspace: open_project_files
+- workspace_state: get_workspace_state, sync_workspace_state (with clear)
 """
 
 from mcp.server.fastmcp import FastMCP
@@ -19,6 +20,7 @@ from .diagrams import register_diagram_tools
 from .exploration import register_exploration_tools
 from .settings import register_settings_tools
 from .workspace import register_workspace_tools
+from .workspace_state import register_workspace_state_tools
 
 
 def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
@@ -28,6 +30,7 @@ def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
     register_exploration_tools(mcp, project_manager)
     register_diagram_tools(mcp, project_manager)
     register_workspace_tools(mcp, project_manager)
+    register_workspace_state_tools(mcp)  # Workspace state tools
 
 
 __all__ = ["register_project_tools"]

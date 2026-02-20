@@ -5,7 +5,7 @@ echo "🧪 MedPaper Assistant Extension Test Guide"
 echo "==========================================="
 echo ""
 
-VSIX_PATH="/home/eric/workspace251125/vscode-extension/medpaper-assistant-0.1.0.vsix"
+VSIX_PATH="/home/eric/workspace251125/vscode-extension/medpaper-assistant-0.2.0.vsix"
 
 # Check if vsix exists
 if [ ! -f "$VSIX_PATH" ]; then
@@ -30,7 +30,7 @@ echo "  3. Select: $VSIX_PATH"
 echo ""
 echo "Method 3: Copy to local machine"
 echo "  scp eric@192.168.1.111:$VSIX_PATH ."
-echo "  code --install-extension medpaper-assistant-0.1.0.vsix"
+echo "  code --install-extension medpaper-assistant-0.2.0.vsix"
 echo ""
 
 echo "🔍 After Installation, Verify:"
@@ -44,7 +44,10 @@ echo "  [ ] Extension appears in Extensions list"
 echo "  [ ] MCP Server listed in 'MCP: List Servers'"
 echo "  [ ] @mdpaper chat participant available"
 echo "  [ ] /search, /draft, /concept commands work"
+echo "  [ ] /autopaper shows 9-Phase Pipeline"
+echo "  [ ] /help shows all commands"
 echo "  [ ] Agent mode can use mdpaper tools"
+echo "  [ ] Command: 'MedPaper: Auto Paper' opens chat"
 echo ""
 
 echo "📊 Expected Output Channel:"

@@ -1,22 +1,34 @@
 """
-Review Tools Module (Future)
+Review Tools Module
 
-Tools for peer review simulation and formatting checks.
-- critique: Simulate peer review feedback
-- check_formatting: Verify journal formatting requirements
-- suggest_improvements: AI-powered writing suggestions
+Tools for manuscript formatting verification (includes consistency checks and submission checklist).
+
+Migrated to Skills:
+- critique (peer_review, check_reporting_guidelines) → .claude/skills/manuscript-review/SKILL.md
+- submission preparation (cover letter, highlights, reviewer response) → .claude/skills/submission-preparation/SKILL.md
 """
+
+from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from .critique import register_critique_tools
+from med_paper_assistant.infrastructure.persistence import (
+    ProjectManager,
+    ReferenceManager,
+)
+from med_paper_assistant.infrastructure.services import Drafter
+
 from .formatting import register_formatting_tools
 
 
-def register_review_tools(mcp: FastMCP):
+def register_review_tools(
+    mcp: FastMCP,
+    drafter: Drafter,
+    ref_manager: ReferenceManager,
+    project_manager: Optional[ProjectManager] = None,
+):
     """Register all review tools with the MCP server."""
-    register_critique_tools(mcp)
-    register_formatting_tools(mcp)
+    register_formatting_tools(mcp, drafter, ref_manager)
 
 
 __all__ = ["register_review_tools"]

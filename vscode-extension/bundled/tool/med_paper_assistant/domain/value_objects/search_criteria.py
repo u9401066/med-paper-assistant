@@ -5,7 +5,7 @@ Search Criteria Value Object - Immutable search parameters.
 from dataclasses import dataclass
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class SearchCriteria(BaseModel):
@@ -15,6 +15,8 @@ class SearchCriteria(BaseModel):
     Value object defining search parameters for PubMed queries.
     Uses Pydantic for validation and serialization.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     keywords: List[str] = []
     exclusions: List[str] = []
@@ -60,9 +62,6 @@ class SearchCriteria(BaseModel):
             parts.append('"humans"[MeSH Terms]')
 
         return " AND ".join(parts) if parts else ""
-
-    class Config:
-        frozen = True  # Make immutable
 
 
 @dataclass(frozen=True)
