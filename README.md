@@ -15,7 +15,7 @@
 
 <p align="center">
   <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
-  <i>3 MCP Servers · 128 Tools · 22 Skills · 17 Prompt Workflows — All in VS Code</i>
+  <i>3 MCP Servers · ~116 Tools · 26 Skills · 15 Prompt Workflows — All in VS Code</i>
 </p>
 
 > 📖 [繁體中文版](README.zh-TW.md)
@@ -28,14 +28,14 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 | Component | Type | Tools | Description |
 |-----------|------|-------|-------------|
-| **[mdpaper](#-mdpaper-mcp-tools)** | Core MCP Server | 78 | Paper writing: projects, references, drafts, analysis, validation, export |
+| **[mdpaper](#-mdpaper-mcp-tools)** | Core MCP Server | 53 | Paper writing: projects, references, drafts, analysis, validation, export |
 | **[pubmed-search](integrations/pubmed-search-mcp/)** | MCP Server (submodule) | 37 | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt |
 | **[CGU](integrations/cgu/)** | MCP Server (submodule) | 13 | Creative generation: brainstorm, deep think, spark collision |
 | **[VS Code Extension](vscode-extension/)** | Extension | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)** | Next.js Web App | — | Project management UI, diagram editor |
 | **[Foam](https://foambubble.github.io/foam/)** | VS Code Extension | — | `[[wikilink]]` citation linking, hover preview, graph view |
-| **[Skills](.claude/skills/)** | Agent Workflows | 22 | Guided multi-tool workflows (literature review, draft writing...) |
-| **[Prompts](.github/prompts/)** | Prompt Files | 17 | `/mdpaper.search`, `/mdpaper.draft`, etc. |
+| **[Skills](.claude/skills/)** | Agent Workflows | 26 | Guided multi-tool workflows (literature review, draft writing...) |
+| **[Prompts](.github/prompts/)** | Prompt Files | 15 | `/mdpaper.search`, `/mdpaper.draft`, etc. |
 
 **External MCP Servers** (optional, installed via uvx):
 - **drawio** — CONSORT/PRISMA flowchart generation
@@ -46,14 +46,14 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 ```mermaid
 flowchart LR
     subgraph IDE["VS Code"]
-        Agent["Copilot Agent<br/>22 Skills · 17 Prompts"]
+        Agent["Copilot Agent<br/>26 Skills · 15 Prompts"]
         Foam[Foam Plugin]
         Ext[MedPaper Extension]
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers (128 tools)"]
-        mdpaper["mdpaper<br/>78 tools<br/>Draft · Export · Validate"]
+    subgraph MCP["MCP Servers (~116 tools)"]
+        mdpaper["mdpaper<br/>53 tools<br/>Draft · Export · Validate"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -87,7 +87,7 @@ flowchart LR
 | Traditional Tools | Medical Paper Assistant |
 |-------------------|------------------------|
 | Fixed templates, rigid workflow | Flexible, exploratory approach |
-| Separate apps for search/write/cite | All-in-one: 128 tools in VS Code |
+| Separate apps for search/write/cite | All-in-one: ~116 tools in VS Code |
 | Manual reference management | Auto-save with verified PubMed data |
 | Export then format | Direct Word export with journal styles |
 | Learn complex UI | Natural language conversation |
@@ -355,8 +355,8 @@ Write, edit, cite — with built-in validation.
 | Category | Key Tools |
 |----------|-----------|
 | **Word Export** | `export_word`, `list_templates`, `start_document_session`, `verify_document` |
-| **Submission** | `generate_cover_letter`, `check_submission_checklist`, `generate_highlights` |
-| **Review** | `check_manuscript_consistency`, `create_reviewer_response`, `format_revision_changes` |
+| **Submission** | `generate_cover_letter`, `check_formatting`, `generate_highlights` |
+| **Review** | `create_reviewer_response`, `format_revision_changes` |
 
 ### 🔍 pubmed-search MCP Tools (37 tools)
 

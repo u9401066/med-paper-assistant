@@ -38,8 +38,7 @@ description: |
 | `read_draft` | **必用** — 讀取要審查的草稿內容 |
 | `list_drafts` | 列出所有草稿選擇要審查的 |
 | `count_words` | 字數統計 |
-| `check_formatting` | 期刊格式量化檢查（字數/引用數/圖表數 vs 限制）|
-| `check_manuscript_consistency` | 跨文件一致性檢查 |
+| `check_formatting` | 期刊格式量化檢查（字數/引用數/圖表數 vs 限制）+ 跨文件一致性 |
 | `get_section_template` | 對照 section 寫作指南 |
 
 ---

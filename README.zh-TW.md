@@ -9,7 +9,7 @@
 
 <p align="center">
   <b>🔬 醫學論文寫作的整合式 AI 工具包</b><br>
-  <i>3 個 MCP Server · 128 個工具 · 22 個技能 · 17 個 Prompt 工作流 — 全在 VS Code 裡</i>
+  <i>3 個 MCP Server · ~116 個工具 · 26 個技能 · 15 個 Prompt 工作流 — 全在 VS Code 裡</i>
 </p>
 
 > 📖 [English Version](README.md)
@@ -22,14 +22,14 @@
 
 | 元件 | 類型 | 工具數 | 說明 |
 |------|------|--------|------|
-| **[mdpaper](#-mdpaper-mcp-工具)** | 核心 MCP Server | 78 | 論文寫作：專案、文獻、草稿、分析、驗證、匯出 |
+| **[mdpaper](#-mdpaper-mcp-工具)** | 核心 MCP Server | 53 | 論文寫作：專案、文獻、草稿、分析、驗證、匯出 |
 | **[pubmed-search](integrations/pubmed-search-mcp/)** | MCP Server（子模組） | 37 | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理 |
 | **[CGU](integrations/cgu/)** | MCP Server（子模組） | 13 | 創意發想：腦力激盪、深度思考、火花碰撞 |
 | **[VS Code Extension](vscode-extension/)** | 擴充功能 | 3 指令 | MCP Server 生命週期、`@mdpaper` 聊天參與者 |
 | **[Dashboard](dashboard/)** | Next.js Web App | — | 專案管理 UI、圖表編輯器 |
 | **[Foam](https://foambubble.github.io/foam/)** | VS Code 擴充功能 | — | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖 |
-| **[Skills](.claude/skills/)** | Agent 工作流 | 22 | 引導式多工具工作流（文獻回顧、草稿寫作...） |
-| **[Prompts](.github/prompts/)** | Prompt Files | 17 | `/mdpaper.search`、`/mdpaper.draft` 等 |
+| **[Skills](.claude/skills/)** | Agent 工作流 | 26 | 引導式多工具工作流（文獻回顧、草稿寫作...） |
+| **[Prompts](.github/prompts/)** | Prompt Files | 15 | `/mdpaper.search`、`/mdpaper.draft` 等 |
 
 **外部 MCP Server**（選用，透過 uvx 安裝）：
 - **drawio** — CONSORT/PRISMA 流程圖生成
@@ -40,14 +40,14 @@
 ```mermaid
 flowchart LR
     subgraph IDE["VS Code"]
-        Agent["Copilot Agent<br/>22 技能 · 17 Prompts"]
+        Agent["Copilot Agent<br/>26 技能 · 15 Prompts"]
         Foam[Foam Plugin]
         Ext[MedPaper Extension]
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Server（128 工具）"]
-        mdpaper["mdpaper<br/>78 工具<br/>草稿 · 匯出 · 驗證"]
+    subgraph MCP["MCP Server（~116 工具）"]
+        mdpaper["mdpaper<br/>53 工具<br/>草稿 · 匯出 · 驗證"]
         pubmed["pubmed-search<br/>37 工具<br/>搜尋 · 指標"]
         cgu["CGU<br/>13 工具<br/>深度思考 · 創意"]
     end
@@ -81,7 +81,7 @@ flowchart LR
 | 傳統工具 | Medical Paper Assistant |
 |---------|------------------------|
 | 固定模板、僵化流程 | 彈性、探索式方法 |
-| 搜尋/寫作/引用分開多個 App | 一站式：128 個工具在 VS Code 裡 |
+| 搜尋/寫作/引用分開多個 App | 一站式：~116 個工具在 VS Code 裡 |
 | 手動管理參考文獻 | 自動儲存 + PubMed 驗證資料 |
 | 匯出後再排版 | 直接匯出符合期刊格式的 Word |
 | 學習複雜介面 | 自然語言對話 |
@@ -241,7 +241,7 @@ projects/{slug}/
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │               🤖 Copilot Agent（協調者）                                   │
-│      22 技能 + 17 Prompt 工作流 + Agent 自訂                              │
+│      26 技能 + 15 Prompt 工作流 + Agent 自訂                              │
 │   /mdpaper.search → /mdpaper.concept → /mdpaper.draft → 匯出            │
 └───────┬──────────────────┬──────────────────┬──────────────────┬─────────┘
         │                  │                  │                  │
@@ -349,8 +349,8 @@ pubmed-search: GET /api/cached_article/24891204
 | 分類 | 關鍵工具 |
 |------|----------|
 | **Word 匯出** | `export_word`、`list_templates`、`start_document_session`、`verify_document` |
-| **投稿準備** | `generate_cover_letter`、`check_submission_checklist`、`generate_highlights` |
-| **審稿回覆** | `check_manuscript_consistency`、`create_reviewer_response`、`format_revision_changes` |
+| **投稿準備** | `generate_cover_letter`、`check_formatting`、`generate_highlights` |
+| **審稿回覆** | `create_reviewer_response`、`format_revision_changes` |
 
 ### 🔍 pubmed-search MCP 工具（37 工具）
 

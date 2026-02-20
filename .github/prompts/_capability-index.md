@@ -89,7 +89,7 @@
 | Hook 類型 | 定義位置 | 觸發時機 | 使用 MCP Tools |
 |-----------|----------|----------|----------------|
 | **Copilot Hooks** (A-D) | `.claude/skills/auto-paper/SKILL.md` | 寫作過程中 | mdpaper: `patch_draft`, `count_words`, `validate_wikilinks`, `read_draft` |
-| **Pre-Commit Hooks** (P1-P7) | `.claude/skills/git-precommit/SKILL.md` | `git commit` 前 | mdpaper: `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
+| **Pre-Commit Hooks** (P1-P8) | `.claude/skills/git-precommit/SKILL.md` | `git commit` 前 | mdpaper: `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
 
 ### Hook ↔ Skill ↔ MCP 關係
 
@@ -98,7 +98,7 @@ Capability (write-paper)
   └── Skill (auto-paper) ──→ Uses MCP: mdpaper, pubmed-search, cgu
         ├── Copilot Hook A ──→ Uses MCP: mdpaper.count_words, patch_draft
         ├── Copilot Hook B ──→ Uses MCP: mdpaper.read_draft, patch_draft
-        ├── Copilot Hook C ──→ Uses MCP: mdpaper.check_manuscript_consistency
+        ├── Copilot Hook C ──→ Uses MCP: mdpaper.check_formatting
         └── Copilot Hook D ──→ Uses: read_file, replace_string_in_file (on SKILL.md)
 
 Skill (git-precommit) ──→ Orchestrates: memory-updater, draft-writing, reference-management
@@ -108,7 +108,10 @@ Skill (git-precommit) ──→ Orchestrates: memory-updater, draft-writing, ref
   ├── Pre-Commit P4 ──→ Uses MCP: mdpaper.count_words
   ├── Pre-Commit P5 ──→ Uses MCP: mdpaper.read_draft (concept.md)
   ├── Pre-Commit P6 ──→ Uses MCP: mdpaper.sync_workspace_state
-  └── Pre-Commit P7 ──→ Uses MCP: mdpaper.list_saved_references, get_reference_details
+  ├── Pre-Commit P7 ──→ Uses MCP: mdpaper.list_saved_references, get_reference_details
+  ├── Pre-Commit P8 ──→ Uses MCP: mdpaper.read_draft + Agent methodology check
+  ├── General G1-G5 ──→ Uses: memory_bank tools, read_file, replace_string_in_file
+  └── General G6 ──→ Uses: grep_search, list_dir (project self-consistency audit)
 ```
 
 ---

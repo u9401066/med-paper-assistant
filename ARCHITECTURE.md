@@ -37,7 +37,7 @@ MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫
 
 ## MCP Server（DDD Architecture）
 
-主要的 Python MCP Server，提供 ~46 個 tools。
+主要的 Python MCP Server，提供 53 個 tools。
 
 ### 層級結構
 
@@ -136,7 +136,7 @@ Copilot Agent Mode 同時連接多個 MCP Server：
 
 | Server | 來源 | 用途 | Tools 數量 |
 |--------|------|------|-----------|
-| **mdpaper** | 本專案 | 專案管理、草稿、引用、匯出 | ~46 |
+| **mdpaper** | 本專案 | 專案管理、草稿、引用、匯出 | 53 |
 | **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule) | PubMed 文獻搜尋 | ~30 |
 | **cgu** | `integrations/cgu/` (submodule) | 創意發想（快思慢想） | ~6 |
 | **drawio** | `uvx drawio-mcp-server` | CONSORT/PRISMA 圖表 | ~5 |
@@ -206,8 +206,8 @@ Foam (VS Code extension) 提供論文引用的知識圖譜功能：
 
 | 類型 | 位置 | 數量 | 作用 |
 |------|------|------|------|
-| **Skills** | `.claude/skills/*/SKILL.md` | 21 | 單一任務的知識（如何組合 tools） |
-| **Prompts** | `.github/prompts/*.prompt.md` | 14 | 高層編排（多 skill 組合的工作流程） |
+| **Skills** | `.claude/skills/*/SKILL.md` | 26 | 單一任務的知識（如何組合 tools） |
+| **Prompts** | `.github/prompts/*.prompt.md` | 15 | 高層編排（多 skill 組合的工作流程） |
 | **Bylaws** | `.github/bylaws/*.md` | 4 | 規範（架構、git、memory、python 環境） |
 | **Instructions** | `.github/copilot-instructions.md` | 1 | 全域指引入口 |
 
@@ -335,8 +335,8 @@ med-paper-assistant/
 ├── scripts/                    # 工具腳本
 ├── docs/                       # 設計文件
 ├── memory-bank/                # 全域 AI 記憶
-├── .claude/skills/             # Copilot Skills（21 個）
-├── .github/prompts/            # Copilot Prompts（14 個）
+├── .claude/skills/             # Copilot Skills（26 個）
+├── .github/prompts/            # Copilot Prompts（15 個）
 ├── .github/bylaws/             # 規範（4 個）
 └── .pre-commit-config.yaml     # Git hooks
 ```

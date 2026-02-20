@@ -46,6 +46,7 @@ description: |
 │  │ G3: changelog-update[條件] CHANGELOG 更新         │  │
 │  │ G4: roadmap-update  [條件] ROADMAP 更新           │  │
 │  │ G5: arch-check      [條件] 架構文檔檢查           │  │
+│  │ G6: project-integrity[條件] 專案自我一致性審計    │  │
 │  └───────────────────────────────────────────────────┘  │
 │                                                         │
 │  ┌─── Paper Hooks（偵測到論文變更時）────────────────┐   │
@@ -138,6 +139,77 @@ mcp_mdpaper_sync_workspace_state(
 
 **觸發條件**：結構性程式碼變更
 **工具**：`grep_search`, `list_dir`
+
+---
+
+### G6: project-integrity [條件] — 專案閉環進化
+
+> **CONSTITUTION §22 延伸**：專案本身也應該可審計、可拆解、可重組。
+> Hook D 改進論文 + Hook 自身，G6 則確保專案文檔的自我一致性。
+
+**觸發條件**：`SKILL.md`、`AGENTS.md`、`_capability-index.md`、`ARCHITECTURE.md`、`README.md`、`src/` 工具定義有變更
+
+**檢查項目**：
+
+| # | 檢查項 | 方法 | 失敗行為 |
+|---|--------|------|----------|
+| G6.1 | Tool 數量一致 | `grep -c "mcp.tool"` vs README/ARCHITECTURE 宣稱的數字 | ⚠️ 報告差異，建議更新 |
+| G6.2 | Skill 數量一致 | `ls -d .claude/skills/*/` vs AGENTS.md 表格行數 | ⚠️ 報告缺漏的 Skill |
+| G6.3 | Prompt 數量一致 | `ls .github/prompts/*.prompt.md` vs 文檔宣稱的數字 | ⚠️ 報告差異 |
+| G6.4 | Hook 引用工具存在 | 掃描 SKILL.md 中的 `mcp_mdpaper_*` → 確認 tool 已註冊 | ❌ FAIL：引用了已廢棄工具 |
+| G6.5 | 跨文件數字一致 | README vs ARCHITECTURE vs AGENTS vs _capability-index | ⚠️ 報告不一致 |
+
+**執行邏輯**：
+
+```bash
+# G6.1: 計算實際 tool 數量
+actual_tools=$(grep -r "mcp.tool" src/med_paper_assistant/interfaces/mcp/tools/ --include="*.py" -l | \
+  xargs grep -c "@mcp.tool" | grep -v ":0" | awk -F: '{s+=$2} END {print s}')
+
+# G6.2: 計算實際 skill 數量
+actual_skills=$(ls -d .claude/skills/*/ | wc -l)
+
+# G6.3: 計算實際 prompt 數量
+actual_prompts=$(ls .github/prompts/*.prompt.md | wc -l)
+
+# G6.4: 檢查 Hook 中引用的 tool 是否存在
+grep -oP 'mcp_mdpaper_\w+' .claude/skills/auto-paper/SKILL.md | sort -u | while read tool; do
+  tool_name=$(echo "$tool" | sed 's/mcp_mdpaper_//')
+  if ! grep -rq "@mcp.tool.*$tool_name\|def $tool_name" src/; then
+    echo "❌ Hook 引用了不存在的工具: $tool"
+  fi
+done
+
+# G6.5: 比對各文件數字
+readme_tools=$(grep -oP '\d+ tools' README.md | head -1)
+arch_tools=$(grep -oP '\d+ 個 tools' ARCHITECTURE.md | head -1)
+# 比對並報告差異
+```
+
+**報告格式**：
+
+```
+[G6] 專案一致性審計
+  G6.1 Tool 數量: 實際 53 | README 53 | ARCHITECTURE 53 ✅
+  G6.2 Skill 數量: 實際 26 | AGENTS 26 ✅
+  G6.3 Prompt 數量: 實際 15 | README 15 ✅
+  G6.4 Hook 工具引用: 全部存在 ✅
+  G6.5 跨文件一致性: 全部一致 ✅
+
+  → 專案健康度: ✅ 一致
+```
+
+**失敗時行為**：
+- G6.1-G6.3, G6.5: ⚠️ WARN — 報告差異，列出需更新的文件和正確數字，不阻止提交
+- G6.4: ❌ FAIL — Hook 引用了不存在的工具會導致 Pipeline 執行時崩潰，阻止提交
+
+**自我改進閉環**：
+```
+G6 發現不一致 → 報告問題 → Agent 或用戶修正 → 下次 G6 驗證修正
+                    ↑                               │
+                    └───────────────────────────────┘
+                          專案本身的閉環進化
+```
 
 ---
 
@@ -453,8 +525,8 @@ for item, source in checklist.get(paper_type, []):
 
 Agent：
   Step 0 → 偵測變更範圍
-  G1-G5 → 通用 Hooks
-  P1-P7 → Paper Hooks（如適用）
+  G1-G6 → 通用 Hooks
+  P1-P8 → Paper Hooks（如適用）
   Final → 準備提交
 ```
 
@@ -476,7 +548,7 @@ Agent：
 用戶：「commit code changes」
 
 Agent：
-  G1-G5 → 通用 Hooks
+  G1-G6 → 通用 Hooks
   跳過 Paper Hooks
   Final → 準備提交
 ```
@@ -496,6 +568,8 @@ Agent：
   └─ 添加條目
 [G4] ROADMAP 更新 ⏭️
 [G5] 架構文檔 ⏭️
+[G6] 專案一致性 ✅
+  └─ Tools: 53 | Skills: 26 | Prompts: 15 | 全部一致
 
 ═══ Paper Hooks ═══ (偵測到 3 個草稿變更)
 [P1] 引用完整性 ✅ (12 citations, 0 unresolved)

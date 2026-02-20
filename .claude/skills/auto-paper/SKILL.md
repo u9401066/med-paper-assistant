@@ -177,7 +177,7 @@ Agent 偵測到 .audit/checkpoint.json 存在：
 │  │                              │  │ P5: protected-content   │  │
 │  │ 定義：本 SKILL (auto-paper)  │  │ P6: memory-sync         │  │
 │  │ 時機：Phase 5-9 自動觸發     │  │ P7: reference-integrity │  │
-│  │ 對象：每次寫作操作           │  │                         │  │
+│  │ 對象：每次寫作操作           │  │ P8: methodology-valid.  │  │
 │  └──────────────────────────────┘  │ 定義：git-precommit     │  │
 │                                    │ 時機：git commit 前      │  │
 │                                    │ 對象：已變更的論文檔案   │  │
@@ -479,8 +479,8 @@ IF EQUATOR checklist 未覆蓋：
 
 | # | 檢查項 | MCP Tool | 失敗行為 |
 |---|--------|----------|----------|
-| C1 | 稿件一致性 | `mcp_mdpaper_check_manuscript_consistency()` | 定點 `mcp_mdpaper_patch_draft()` |
-| C2 | 投稿清單 | `mcp_mdpaper_check_submission_checklist()` | 定點修正 |
+| C1 | 稿件一致性 | `mcp_mdpaper_check_formatting(check_type="consistency")` | 定點 `mcp_mdpaper_patch_draft()` |
+| C2 | 投稿清單 | `mcp_mdpaper_check_formatting(check_type="submission")` | 定點修正 |
 | C3 | N 值跨 section 一致 | `mcp_mdpaper_read_draft()` × N + Agent 數字比對 | `mcp_mdpaper_patch_draft()` 統一 |
 | C4 | 縮寫首次定義 | `mcp_mdpaper_read_draft()` + Agent 全文掃描 | `mcp_mdpaper_patch_draft()` 補定義 |
 | C5 | 所有 wikilinks 可解析 | `mcp_mdpaper_scan_draft_citations()` | `mcp_mdpaper_save_reference_mcp()` 補存 |
