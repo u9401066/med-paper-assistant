@@ -28,6 +28,7 @@ from .consistency import (
     ConsistencyReport,
     _check_abbreviations,
     _check_citations,
+    _check_figure_table_archive,
     _check_numbers,
     _check_pvalue_format,
     _check_statistical_reporting,
@@ -269,6 +270,16 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
         _check_table_figure_refs(all_content, consistency_report)
         _check_pvalue_format(all_content, consistency_report)
         _check_statistical_reporting(all_content, consistency_report)
+
+        # Figure/table archive cross-validation
+        from med_paper_assistant.infrastructure.persistence import get_project_manager
+
+        pm = get_project_manager()
+        project_info = pm.get_project_info()
+        project_path = (
+            str(project_info["project_path"]) if project_info.get("project_path") else None
+        )
+        _check_figure_table_archive(all_content, project_path, consistency_report)
 
         # Convert consistency issues to formatting issues format
         for ci in consistency_report.issues:

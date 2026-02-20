@@ -5,6 +5,8 @@ Helper functions for consistency checks used by check_formatting.
 No MCP tools registered here — all checks are called from formatting.py.
 """
 
+import json
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Optional
@@ -215,6 +217,152 @@ def _check_table_figure_refs(content: str, report: ConsistencyReport):
                 description=f"Figure numbering gap: missing Figure(s) {sorted(missing)}",
                 suggestion="Check if all figures are referenced in sequence",
             )
+
+
+def _check_figure_table_archive(
+    content: str, project_path: Optional[str], report: ConsistencyReport
+):
+    """Cross-validate figures/tables on disk with references in the manuscript."""
+    if not project_path:
+        return
+
+    figures_dir = os.path.join(project_path, "results", "figures")
+    tables_dir = os.path.join(project_path, "results", "tables")
+
+    # Collect files on disk
+    figure_files: list[str] = []
+    if os.path.isdir(figures_dir):
+        figure_files = [
+            f
+            for f in os.listdir(figures_dir)
+            if f.lower().endswith((".png", ".jpg", ".jpeg", ".svg", ".tiff", ".drawio"))
+        ]
+
+    table_files: list[str] = []
+    if os.path.isdir(tables_dir):
+        table_files = [
+            f
+            for f in os.listdir(tables_dir)
+            if f.lower().endswith((".csv", ".xlsx", ".md", ".html"))
+        ]
+
+    # Collect references in manuscript text
+    figure_refs_in_text = set(
+        int(n) for n in re.findall(r"(?:Figure|Fig\.?)\s+(\d+)", content, re.IGNORECASE)
+    )
+    table_refs_in_text = set(int(n) for n in re.findall(r"Table\s+(\d+)", content, re.IGNORECASE))
+
+    # Check manifest for mapping (figure_number -> filename)
+    manifest_path = os.path.join(project_path, "results", "manifest.json")
+    manifest: dict = {}
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            report.add(
+                category="Figure/Table Archive",
+                severity="warning",
+                description="manifest.json exists but is unreadable",
+                suggestion="Run insert_figure/insert_table to regenerate",
+            )
+
+    # --- Orphan file detection ---
+    manifest_files = set()
+    for entry in manifest.get("figures", []):
+        manifest_files.add(entry.get("filename", ""))
+    for entry in manifest.get("tables", []):
+        manifest_files.add(entry.get("filename", ""))
+
+    orphan_figures = [f for f in figure_files if f not in manifest_files] if manifest else []
+    orphan_tables = [f for f in table_files if f not in manifest_files] if manifest else []
+
+    if orphan_figures:
+        report.add(
+            category="Figure/Table Archive",
+            severity="warning",
+            description=f"Orphan figure files not in manifest: {', '.join(orphan_figures)}",
+            suggestion="Use insert_figure to register them, or delete if unused",
+        )
+    if orphan_tables:
+        report.add(
+            category="Figure/Table Archive",
+            severity="warning",
+            description=f"Orphan table files not in manifest: {', '.join(orphan_tables)}",
+            suggestion="Use insert_table to register them, or delete if unused",
+        )
+
+    # --- Missing file detection (manifest entry but file gone) ---
+    for entry in manifest.get("figures", []):
+        fname = entry.get("filename", "")
+        if fname and not os.path.isfile(os.path.join(figures_dir, fname)):
+            report.add(
+                category="Figure/Table Archive",
+                severity="error",
+                description=f"Figure '{fname}' in manifest but file missing from results/figures/",
+                suggestion="Recreate the figure or remove from manifest",
+            )
+    for entry in manifest.get("tables", []):
+        fname = entry.get("filename", "")
+        if fname and not os.path.isfile(os.path.join(tables_dir, fname)):
+            report.add(
+                category="Figure/Table Archive",
+                severity="error",
+                description=f"Table '{fname}' in manifest but file missing from results/tables/",
+                suggestion="Recreate the table or remove from manifest",
+            )
+
+    # --- Cross-validate: text refs vs manifest entries ---
+    manifest_fig_nums = {e.get("number") for e in manifest.get("figures", []) if e.get("number")}
+    manifest_tbl_nums = {e.get("number") for e in manifest.get("tables", []) if e.get("number")}
+
+    # Figures referenced in text but not in manifest
+    if manifest and figure_refs_in_text:
+        unregistered_figs = figure_refs_in_text - manifest_fig_nums
+        for n in sorted(unregistered_figs):
+            report.add(
+                category="Figure/Table Archive",
+                severity="warning",
+                description=f"Figure {n} referenced in text but not registered in manifest",
+                suggestion="Use insert_figure to register it",
+            )
+
+    # Tables referenced in text but not in manifest
+    if manifest and table_refs_in_text:
+        unregistered_tbls = table_refs_in_text - manifest_tbl_nums
+        for n in sorted(unregistered_tbls):
+            report.add(
+                category="Figure/Table Archive",
+                severity="warning",
+                description=f"Table {n} referenced in text but not registered in manifest",
+                suggestion="Use insert_table to register it",
+            )
+
+    # Manifest entries never cited in text
+    for n in sorted(manifest_fig_nums - figure_refs_in_text):
+        report.add(
+            category="Figure/Table Archive",
+            severity="info",
+            description=f"Figure {n} in manifest but not cited in manuscript text",
+            suggestion="Add a reference in text or remove from manifest if unused",
+        )
+    for n in sorted(manifest_tbl_nums - table_refs_in_text):
+        report.add(
+            category="Figure/Table Archive",
+            severity="info",
+            description=f"Table {n} in manifest but not cited in manuscript text",
+            suggestion="Add a reference in text or remove from manifest if unused",
+        )
+
+    # --- Summary when files exist but no manifest ---
+    if not manifest and (figure_files or table_files):
+        count = len(figure_files) + len(table_files)
+        report.add(
+            category="Figure/Table Archive",
+            severity="info",
+            description=f"{count} figure/table files found but no manifest.json exists",
+            suggestion="Use insert_figure/insert_table to create a manifest for tracking",
+        )
 
 
 def _check_pvalue_format(content: str, report: ConsistencyReport):
