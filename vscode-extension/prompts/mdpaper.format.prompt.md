@@ -13,6 +13,7 @@ mcp_mdpaper_list_templates()
 ```
 
 **常用模板：**
+
 - `Type of the Paper.docx` - 標準論文格式
 - `Review Article.docx` - 回顧性文章
 - `Case Report.docx` - 病例報告
@@ -26,6 +27,7 @@ mcp_mdpaper_read_template(template_name="Type of the Paper.docx")
 ```
 
 **輸出：**
+
 - 可用的 sections
 - 每個 section 的 styles
 - 字數限制（如有）
@@ -39,6 +41,7 @@ mcp_mdpaper_read_draft(filename="drafts/full_manuscript.md")
 ```
 
 或列出所有草稿選擇：
+
 ```
 mcp_mdpaper_list_drafts()
 ```
@@ -85,6 +88,7 @@ mcp_mdpaper_verify_document(session_id="...")
 ```
 
 確認：
+
 - 所有 section 已插入
 - 格式正確
 - 無遺漏

@@ -1,6 +1,7 @@
 # README Badges Update - 2025-11-28
 
 ## Added Badges
+
 Added project badges to README.md header:
 
 1. **Python 3.10+** - Shows minimum Python version requirement
@@ -10,13 +11,15 @@ Added project badges to README.md header:
 5. **PRs Welcome** - Encourages community contributions
 
 ## Badge Format
+
 ```html
 <p align="center">
-  <a href="..."><img alt="..." src="..."></a>
+  <a href="..."><img alt="..." src="..." /></a>
   ...
 </p>
 ```
 
 ## Note
+
 - No GitHub Actions yet, so no CI/CD badges
 - Consider adding test workflow in future for test badge

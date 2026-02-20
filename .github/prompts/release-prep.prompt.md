@@ -21,8 +21,8 @@ description: "🚢 release-prep - 發布準備流程"
 ## Phase 3: 版本更新（SemVer）
 
 | Breaking | New features | Bug fixes |
-|----------|-------------|-----------|
-| Major | Minor | Patch |
+| -------- | ------------ | --------- |
+| Major    | Minor        | Patch     |
 
 同步：`pyproject.toml` + `CHANGELOG.md` 標題 + `__version__`
 

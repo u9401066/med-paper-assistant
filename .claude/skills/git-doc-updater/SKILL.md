@@ -13,12 +13,12 @@ description: Git 提交前文檔同步。觸發：docs、文檔、sync docs、�
 
 ## 更新對應
 
-| 文檔 | 更新條件 | 調用 Skill |
-|------|----------|------------|
-| README.md | 新功能/依賴變更 | readme-updater |
-| CHANGELOG.md | 任何代碼變更 | changelog-updater |
-| ROADMAP.md | 完成里程碑 | roadmap-updater |
-| memory-bank/ | 每次提交 | memory-updater |
+| 文檔         | 更新條件        | 調用 Skill        |
+| ------------ | --------------- | ----------------- |
+| README.md    | 新功能/依賴變更 | readme-updater    |
+| CHANGELOG.md | 任何代碼變更    | changelog-updater |
+| ROADMAP.md   | 完成里程碑      | roadmap-updater   |
+| memory-bank/ | 每次提交        | memory-updater    |
 
 ## 工作流
 

@@ -7,16 +7,19 @@
 ## 第一章：架構原則
 
 ### 第 1 條：DDD 領域驅動設計
+
 1. 專案採用 Domain-Driven Design 架構
 2. 核心領域邏輯與基礎設施分離
 3. 使用 Ubiquitous Language（統一語言）
 
 ### 第 2 條：DAL 資料存取層獨立
+
 1. Data Access Layer 必須獨立於業務邏輯
 2. Repository Pattern 為唯一資料存取方式
 3. 禁止在 Domain Layer 直接操作資料庫
 
 ### 第 3 條：分層架構
+
 ```
 ├── Domain/          # 核心領域（純業務邏輯，無外部依賴）
 ├── Application/     # 應用層（用例、服務編排）
@@ -29,6 +32,7 @@
 ## 第二章：Memory Bank 原則（專案層級）
 
 ### 第 4 條：操作綁定
+
 1. 每次重要操作必須同步更新 Memory Bank
 2. Memory Bank 是專案的「長期記憶」
 3. 優先更新順序：progress > activeContext > decisionLog
@@ -38,12 +42,13 @@
 > 不要另開文件寫筆記，直接寫進 Memory Bank，讓知識留在專案內。
 
 ### 第 5 條：更新時機
-| 操作類型 | 必須更新 |
-|----------|----------|
-| 完成功能 | progress.md (Done) |
+
+| 操作類型 | 必須更新                              |
+| -------- | ------------------------------------- |
+| 完成功能 | progress.md (Done)                    |
 | 開始任務 | progress.md (Doing), activeContext.md |
-| 重大決策 | decisionLog.md |
-| 架構變更 | architect.md, systemPatterns.md |
+| 重大決策 | decisionLog.md                        |
+| 架構變更 | architect.md, systemPatterns.md       |
 
 ---
 
@@ -60,21 +65,22 @@ projects/{slug}/.memory/
 ```
 
 **強制規則：**
+
 1. **每次對話結束時必須主動更新** `.memory/activeContext.md`
 2. 開始工作前必須先讀取 `.memory/` 了解上下文
 3. Agent 的想法和建議必須記錄在 Memo / Notes 區塊
 
 ### 第 5.2 條：activeContext.md 區塊定義
 
-| 區塊 | 內容 | 更新頻率 |
-|------|------|----------|
-| **Project Settings** | Paper type, sections | 專案建立時 |
-| **User Preferences** | 互動風格、語言 | 用戶表達偏好時 |
-| **Current Focus** | 目前在做什麼 | **每次對話** |
-| **Recent Decisions** | 重要決定 | 做出決策時 |
-| **Key References** | 關鍵文獻 | 發現重要文獻時 |
-| **Blockers / Questions** | 待解決問題 | 遇到問題時 |
-| **Memo / Notes** | Agent 想法 | 有想法時 |
+| 區塊                     | 內容                 | 更新頻率       |
+| ------------------------ | -------------------- | -------------- |
+| **Project Settings**     | Paper type, sections | 專案建立時     |
+| **User Preferences**     | 互動風格、語言       | 用戶表達偏好時 |
+| **Current Focus**        | 目前在做什麼         | **每次對話**   |
+| **Recent Decisions**     | 重要決定             | 做出決策時     |
+| **Key References**       | 關鍵文獻             | 發現重要文獻時 |
+| **Blockers / Questions** | 待解決問題           | 遇到問題時     |
+| **Memo / Notes**         | Agent 想法           | 有想法時       |
 
 ### 第 5.3 條：Project Memory 目的
 
@@ -92,11 +98,13 @@ projects/{slug}/.memory/
 ## 第三章：文檔原則
 
 ### 第 6 條：文檔優先
+
 1. 程式碼是文檔的「編譯產物」
 2. 修改程式碼前先更新規格文檔
 3. README 是專案的「門面」，必須保持最新
 
 ### 第 7 條：Changelog 規範
+
 1. 遵循 Keep a Changelog 格式
 2. 語義化版本號
 3. 每次 commit 前檢查是否需要更新
@@ -106,6 +114,7 @@ projects/{slug}/.memory/
 ## 第三點五章：開發哲學
 
 ### 第 7.1 條：測試即文檔
+
 1. 測試程式碼是最好的使用範例
 2. 零散測試也是測試，寫進 `tests/` 資料夾
 3. 不要在 REPL 或 notebook 中測試後就丟棄
@@ -115,11 +124,13 @@ projects/{slug}/.memory/
 > 今天的零散測試，就是明天的回歸測試。
 
 ### 第 7.2 條：環境即程式碼
+
 1. 虛擬環境配置必須可重現
 2. 依賴必須明確版本鎖定
 3. 環境設定納入版本控制
 
 ### 第 7.3 條：主動重構原則
+
 1. **持續重構**：程式碼應隨時保持可重構狀態
 2. **單一職責**：一個模組/類別/函數只做一件事
 3. **適時拆分**：當檔案/函數過長時必須拆分
@@ -134,16 +145,19 @@ projects/{slug}/.memory/
 ## 第四章：Agent 行為規範
 
 ### 第 8 條：語言規則
+
 1. **對話語言**：必須使用繁體中文（Traditional Chinese）與用戶溝通
 2. **程式碼註解**：可使用英文或中文
 3. **Git Commit**：使用英文，遵循 Conventional Commits 格式
 
 ### 第 9 條：程式碼品質
+
 1. 撰寫乾淨、有文件、高效的程式碼
 2. 遵循專案現有的程式碼風格
 3. 新增功能需包含適當的測試
 
 ### 第 10 條：用戶隱私
+
 1. 不在 Memory Bank 中儲存敏感資訊
 2. 不記錄個人識別資訊 (PII)
 
@@ -152,6 +166,7 @@ projects/{slug}/.memory/
 ## 第五章：研究操作規則
 
 ### 第 11 條：Concept 開發流程
+
 執行概念開發時，必須遵循以下步驟：
 
 1. **📚 文獻搜尋**（強制）
@@ -173,13 +188,14 @@ projects/{slug}/.memory/
 
 以下內容為受保護區塊，Agent **必須詢問用戶確認後才能修改**：
 
-| 區塊 | 說明 | 修改規則 |
-|------|------|----------|
-| 🔒 NOVELTY STATEMENT | 研究創新性聲明 | 必須詢問才能修改 |
-| 🔒 KEY SELLING POINTS | 核心賣點（3-5點）| 必須詢問才能修改 |
-| 🔒 Author Notes | 作者私人備註 | 不納入論文，不可修改 |
+| 區塊                  | 說明              | 修改規則             |
+| --------------------- | ----------------- | -------------------- |
+| 🔒 NOVELTY STATEMENT  | 研究創新性聲明    | 必須詢問才能修改     |
+| 🔒 KEY SELLING POINTS | 核心賣點（3-5點） | 必須詢問才能修改     |
+| 🔒 Author Notes       | 作者私人備註      | 不納入論文，不可修改 |
 
 **修改規則：**
+
 - ✅ 可以潤飾文字 (refine wording)
 - ✅ 可以改善學術表達
 - ⛔ **必須先詢問用戶確認**才能進行實質修改
@@ -192,20 +208,22 @@ projects/{slug}/.memory/
 
 以下內容可自由改進：
 
-| 區塊 | 說明 |
-|------|------|
-| 📝 Background | 研究背景 |
-| 📝 Research Gap | 研究缺口（需含文獻證據）|
-| 📝 Research Question | 研究問題/假設 |
-| 📝 Methods Overview | 方法概述 |
-| 📝 Expected Outcomes | 預期結果 |
+| 區塊                 | 說明                     |
+| -------------------- | ------------------------ |
+| 📝 Background        | 研究背景                 |
+| 📝 Research Gap      | 研究缺口（需含文獻證據） |
+| 📝 Research Question | 研究問題/假設            |
+| 📝 Methods Overview  | 方法概述                 |
+| 📝 Expected Outcomes | 預期結果                 |
 
 **編輯規則：**
+
 - ✅ 可自由改進內容
 - ✅ 可添加文獻支持
 - ⚠️ 必須與 🔒 受保護內容保持一致性
 
 ### 第 14 條：Draft 撰寫規則
+
 執行論文草稿撰寫時：
 
 1. **必須先讀取** concept 檔案
@@ -216,7 +234,9 @@ projects/{slug}/.memory/
 6. 修改受保護內容前**必須詢問用戶**
 
 ### 第 15 條：驗證規則
+
 在 draft 撰寫前，必須確認：
+
 - [ ] NOVELTY STATEMENT 存在且完整
 - [ ] KEY SELLING POINTS 至少 3 點
 - [ ] 所有必填區塊有內容
@@ -226,6 +246,7 @@ projects/{slug}/.memory/
 ## 第六章：互動指南
 
 ### 第 16 條：用戶互動原則
+
 1. 主動提供幫助，預測用戶需求
 2. 遇到模糊請求時主動澄清
 3. 複雜任務提供逐步說明
@@ -237,6 +258,7 @@ projects/{slug}/.memory/
 ## 第七章：子法授權
 
 ### 第 17 條：子法層級
+
 ```
 憲法 (CONSTITUTION.md)
   └── 子法 (.github/bylaws/*.md)
@@ -244,6 +266,7 @@ projects/{slug}/.memory/
 ```
 
 ### 第 18 條：子法優先順序
+
 1. 子法不得違反憲法
 2. 衝突時以較高層級為準
 3. 未規範事項由 Skills 自行決定
@@ -257,6 +280,7 @@ projects/{slug}/.memory/
 > 系統的每個環節都是可審計、可拆解、可重組的。
 
 ### 第 20 條：再現性優先（Reproducibility First）
+
 1. Pipeline 的每一步都必須產出**結構化審計紀錄**
 2. 從最終稿件的任何一句話，都能追溯到：決策 → 證據 → 搜尋策略
 3. 審計紀錄格式：
@@ -274,6 +298,7 @@ projects/{slug}/.memory/
 4. 每次 Pipeline 執行後，`projects/{slug}/.audit/` 必須包含完整軌跡
 
 ### 第 21 條：方法學驗證（Methodology Validation）
+
 1. Methods section 不只是「寫出來」，而是必須**可被第三方再現**
 2. 必須驗證：
    - 統計方法與研究設計的匹配性
@@ -305,17 +330,18 @@ projects/{slug}/.memory/
    - Pipeline 可從任何 Phase 恢復執行（Checkpoint 機制）
 
 ### 第 23 條：自我改進系統（Self-Improving Systems）
+
 1. **Skill 自我改進**：Hook D 更新 SKILL.md 的 Lessons Learned
 2. **Hook 自我改進**：Hook 追蹤自己的有效性指標，調整閾值和檢查項
 3. **Instruction 自我改進**：重大發現寫回 AGENTS.md（需審慎）
 4. 改進方向：
 
-| 指標 | 含義 | 改進行動 |
-|------|------|----------|
-| Hook 觸發率 >80% | 閾值太嚴 | 放寬或細化條件 |
-| Hook 觸發率 <5% | 閾值太鬆或冗餘 | 收緊或合併 |
-| 同一問題重複修正 >2 次 | 根本原因未解決 | 加入 pre-check |
-| Hook 修正後仍失敗 | Hook 修正邏輯有誤 | 更新修正策略 |
+| 指標                   | 含義              | 改進行動       |
+| ---------------------- | ----------------- | -------------- |
+| Hook 觸發率 >80%       | 閾值太嚴          | 放寬或細化條件 |
+| Hook 觸發率 <5%        | 閾值太鬆或冗餘    | 收緊或合併     |
+| 同一問題重複修正 >2 次 | 根本原因未解決    | 加入 pre-check |
+| Hook 修正後仍失敗      | Hook 修正邏輯有誤 | 更新修正策略   |
 
 5. **改進邊界**：
    - ✅ 可自動調整：閾值、Anti-AI 詞庫、引用密度標準
@@ -327,6 +353,7 @@ projects/{slug}/.memory/
 ## 附則
 
 ### 第 24 條：修憲程序
+
 1. 修改憲法須在 decisionLog.md 記錄原因
 2. 重大修改須更新版本號
 3. 本憲法版本：v1.3.0
@@ -335,9 +362,9 @@ projects/{slug}/.memory/
 
 ## 修憲記錄
 
-| 版本 | 日期 | 變更 |
-|------|------|------|
-| v1.3.0 | 2026-02-20 | 新增第八章 研究管線原則（再現性、方法學、審計、自我改進）|
-| v1.2.0 | 2025-12-17 | 新增第二點五章 Project Memory 原則 |
-| v1.1.0 | - | 新增第三點五章開發哲學 |
-| v1.0.0 | - | 初始版本 |
+| 版本   | 日期       | 變更                                                      |
+| ------ | ---------- | --------------------------------------------------------- |
+| v1.3.0 | 2026-02-20 | 新增第八章 研究管線原則（再現性、方法學、審計、自我改進） |
+| v1.2.0 | 2025-12-17 | 新增第二點五章 Project Memory 原則                        |
+| v1.1.0 | -          | 新增第三點五章開發哲學                                    |
+| v1.0.0 | -          | 初始版本                                                  |

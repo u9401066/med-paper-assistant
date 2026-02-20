@@ -6,11 +6,11 @@
 
 ## 運行模式
 
-| 模式 | 啟用技能 | Memory Bank | 靜態分析 |
-|------|----------|-------------|----------|
-| `development` | 全部 | 完整同步 | ✅ |
-| `normal` | 研究技能 | 最小化 | ❌ |
-| `research` | 研究技能 | 僅專案 | ❌ |
+| 模式          | 啟用技能 | Memory Bank | 靜態分析 |
+| ------------- | -------- | ----------- | -------- |
+| `development` | 全部     | 完整同步    | ✅       |
+| `normal`      | 研究技能 | 最小化      | ❌       |
+| `research`    | 研究技能 | 僅專案      | ❌       |
 
 切換：修改 `.copilot-mode.json`。觸發語：「開發模式」→ development、「一般/normal」→ normal、「研究/寫論文」→ research。
 
@@ -35,10 +35,10 @@ DDD，DAL 獨立。依賴方向：`Presentation → Application → Domain ← I
 
 ### 儲存文獻（MCP-to-MCP）
 
-| 方法 | 資料來源 | 可篡改？ | 使用時機 |
-|------|----------|----------|----------|
-| `save_reference_mcp(pmid)` | pubmed-search API | ❌ | **永遠優先** |
-| `save_reference(article)` | Agent 傳遞 | ⚠️ | API 不可用時 |
+| 方法                       | 資料來源          | 可篡改？ | 使用時機     |
+| -------------------------- | ----------------- | -------- | ------------ |
+| `save_reference_mcp(pmid)` | pubmed-search API | ❌       | **永遠優先** |
+| `save_reference(article)`  | Agent 傳遞        | ⚠️       | API 不可用時 |
 
 信任層：🔒 VERIFIED（PubMed 原始）→ 🤖 AGENT（`agent_notes`）→ ✏️ USER（人類筆記，AI 不碰）
 
@@ -49,17 +49,17 @@ CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）�
 
 ### 核心設計（CONSTITUTION §22-23）
 
-| §22 原則 | 實作 |
-|----------|------|
-| 可審計 | `.audit/` + quality-scorecard（0-10） |
-| 可拆解 | Phase 獨立、Hook 可插拔、輸入/輸出是檔案 |
-| 可重組 | checkpoint.json、Pipeline 任意 Phase 繼續 |
+| §22 原則 | 實作                                      |
+| -------- | ----------------------------------------- |
+| 可審計   | `.audit/` + quality-scorecard（0-10）     |
+| 可拆解   | Phase 獨立、Hook 可插拔、輸入/輸出是檔案  |
+| 可重組   | checkpoint.json、Pipeline 任意 Phase 繼續 |
 
-| §23 自我改進 | 限制 |
-|--------------|------|
-| L1 Skill — 更新 Lessons Learned | 自動 |
-| L2 Hook — 調整閾值 | ±20% |
-| L3 Instruction — 事實性內容 | 記錄 decisionLog |
+| §23 自我改進                    | 限制             |
+| ------------------------------- | ---------------- |
+| L1 Skill — 更新 Lessons Learned | 自動             |
+| L2 Hook — 調整閾值              | ±20%             |
+| L3 Instruction — 事實性內容     | 記錄 decisionLog |
 
 禁止自動修改：CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則。
 
@@ -67,14 +67,14 @@ CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）�
 
 Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
 
-| 類型 | 檢查內容 | MCP Tools |
-|------|----------|-----------|
-| **A** post-write | 字數、引用密度、Anti-AI、Wikilink | `count_words`, `patch_draft`, `validate_wikilinks` |
-| **B** post-section | 概念一致、🔒保護、方法學(B5)、寫作順序(B6) | `read_draft`, `patch_draft`, `check_writing_order` |
-| **C** post-manuscript | 全稿一致性、投稿清單 | `check_formatting`, `scan_draft_citations` |
-| **D** meta-learning | SKILL + Hook 自我改進 | `read_file`, `replace_string_in_file` |
-| **P1-P8** pre-commit | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學 | `scan_draft_citations`, `read_draft`, `count_words` |
-| **G1-G7** general | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX | `read_file`, `grep_search`, `list_dir` |
+| 類型                  | 檢查內容                                                  | MCP Tools                                           |
+| --------------------- | --------------------------------------------------------- | --------------------------------------------------- |
+| **A** post-write      | 字數、引用密度、Anti-AI、Wikilink                         | `count_words`, `patch_draft`, `validate_wikilinks`  |
+| **B** post-section    | 概念一致、🔒保護、方法學(B5)、寫作順序(B6)                | `read_draft`, `patch_draft`, `check_writing_order`  |
+| **C** post-manuscript | 全稿一致性、投稿清單                                      | `check_formatting`, `scan_draft_citations`          |
+| **D** meta-learning   | SKILL + Hook 自我改進                                     | `read_file`, `replace_string_in_file`               |
+| **P1-P8** pre-commit  | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學      | `scan_draft_citations`, `read_draft`, `count_words` |
+| **G1-G7** general     | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX | `read_file`, `grep_search`, `list_dir`              |
 
 ### Python 環境
 
@@ -84,11 +84,11 @@ uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/
 
 狀態檔：`.mdpaper-state.json`
 
-| 時機 | 動作 |
-|------|------|
-| 新對話 / 用戶說「繼續」 | `get_workspace_state()` |
+| 時機                               | 動作                                       |
+| ---------------------------------- | ------------------------------------------ |
+| 新對話 / 用戶說「繼續」            | `get_workspace_state()`                    |
 | 開始重要任務 / 完成階段 / 對話結束 | `sync_workspace_state(doing, next_action)` |
-| 恢復成功後 | `clear_recovery_state()` |
+| 恢復成功後                         | `clear_recovery_state()`                   |
 
 ### Artifact-Centric Architecture（部分上線）
 
@@ -103,11 +103,11 @@ uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/
 
 ### Memory Bank（`memory-bank/`）
 
-| 操作 | 更新文件 |
-|------|---------|
+| 操作          | 更新文件                          |
+| ------------- | --------------------------------- |
 | 完成/開始任務 | `progress.md`, `activeContext.md` |
-| 重大決策 | `decisionLog.md` |
-| 架構變更 | `architect.md` |
+| 重大決策      | `decisionLog.md`                  |
+| 架構變更      | `architect.md`                    |
 
 詳見：`.github/bylaws/memory-bank.md`
 
@@ -142,51 +142,51 @@ uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/
 
 ### 研究技能
 
-| 技能 | 觸發語 |
-|------|--------|
-| auto-paper | 全自動寫論文、autopilot、一鍵寫論文 |
-| literature-review | 文獻回顧、找論文、PubMed |
-| concept-development | concept、novelty、驗證失敗 |
-| concept-validation | 驗證、validate、可以開始寫了嗎 |
-| parallel-search | 並行搜尋、多組搜尋、廣泛搜尋 |
-| project-management | 新專案、切換專案、paper type |
-| draft-writing | 寫草稿、draft、Introduction、Methods |
-| reference-management | 存這篇、save、儲存文獻 |
-| word-export | 匯出 Word、export、docx |
-| academic-debate | 辯論、debate、devil's advocate |
-| idea-validation | 假說驗證、feasibility、PICO |
-| manuscript-review | peer review、CONSORT、STROBE |
-| submission-preparation | 投稿準備、cover letter |
+| 技能                   | 觸發語                               |
+| ---------------------- | ------------------------------------ |
+| auto-paper             | 全自動寫論文、autopilot、一鍵寫論文  |
+| literature-review      | 文獻回顧、找論文、PubMed             |
+| concept-development    | concept、novelty、驗證失敗           |
+| concept-validation     | 驗證、validate、可以開始寫了嗎       |
+| parallel-search        | 並行搜尋、多組搜尋、廣泛搜尋         |
+| project-management     | 新專案、切換專案、paper type         |
+| draft-writing          | 寫草稿、draft、Introduction、Methods |
+| reference-management   | 存這篇、save、儲存文獻               |
+| word-export            | 匯出 Word、export、docx              |
+| academic-debate        | 辯論、debate、devil's advocate       |
+| idea-validation        | 假說驗證、feasibility、PICO          |
+| manuscript-review      | peer review、CONSORT、STROBE         |
+| submission-preparation | 投稿準備、cover letter               |
 
 ### 通用技能
 
-| 技能 | 觸發語 |
-|------|--------|
-| git-precommit | commit、推送、收工 |
-| git-doc-updater | docs、文檔、sync docs |
-| ddd-architect | 架構、新功能、structure |
-| code-refactor | 重構、整理、優化 |
-| memory-updater | 記憶、進度、紀錄 |
-| memory-checkpoint | 存檔、要離開、怕忘記 |
-| readme-updater | readme、安裝說明 |
-| readme-i18n | i18n、翻譯、多語言 |
-| changelog-updater | changelog、發布 |
-| roadmap-updater | roadmap、規劃 |
-| code-reviewer | review、檢查、安全 |
-| test-generator | test、coverage、pytest |
-| project-init | init、新專案、初始化 |
+| 技能              | 觸發語                  |
+| ----------------- | ----------------------- |
+| git-precommit     | commit、推送、收工      |
+| git-doc-updater   | docs、文檔、sync docs   |
+| ddd-architect     | 架構、新功能、structure |
+| code-refactor     | 重構、整理、優化        |
+| memory-updater    | 記憶、進度、紀錄        |
+| memory-checkpoint | 存檔、要離開、怕忘記    |
+| readme-updater    | readme、安裝說明        |
+| readme-i18n       | i18n、翻譯、多語言      |
+| changelog-updater | changelog、發布         |
+| roadmap-updater   | roadmap、規劃           |
+| code-reviewer     | review、檢查、安全      |
+| test-generator    | test、coverage、pytest  |
+| project-init      | init、新專案、初始化    |
 
 ### 跨 MCP 編排
 
 Pipeline（auto-paper SKILL.md）定義「何時」→ Skill 定義「如何」→ Hook 定義「品質」。
 
-| 外部 MCP | Phase | 觸發 |
-|----------|-------|------|
-| pubmed-search | 2 文獻 | 永遠 |
-| zotero-keeper | 2 文獻 | 用戶有 Zotero |
-| cgu | 3 概念 / 5 Discussion | novelty < 75 / 論點弱 |
-| drawio | 5 Methods | 需 flow diagram |
-| data tools | 5 Results | 需表格/圖 |
+| 外部 MCP      | Phase                 | 觸發                  |
+| ------------- | --------------------- | --------------------- |
+| pubmed-search | 2 文獻                | 永遠                  |
+| zotero-keeper | 2 文獻                | 用戶有 Zotero         |
+| cgu           | 3 概念 / 5 Discussion | novelty < 75 / 論點弱 |
+| drawio        | 5 Methods             | 需 flow diagram       |
+| data tools    | 5 Results             | 需表格/圖             |
 
 詳見 `.claude/skills/auto-paper/SKILL.md`「Cross-Tool Orchestration Map」。
 
@@ -194,10 +194,10 @@ Pipeline（auto-paper SKILL.md）定義「何時」→ Skill 定義「如何」�
 
 ## 跨平台
 
-| 平台 | Python 路徑 | 安裝腳本 |
-|------|-------------|----------|
-| Windows | `.venv/Scripts/python.exe` | `scripts/setup.ps1` |
-| Linux/macOS | `.venv/bin/python` | `scripts/setup.sh` |
+| 平台        | Python 路徑                | 安裝腳本            |
+| ----------- | -------------------------- | ------------------- |
+| Windows     | `.venv/Scripts/python.exe` | `scripts/setup.ps1` |
+| Linux/macOS | `.venv/bin/python`         | `scripts/setup.sh`  |
 
 ## 回應風格
 

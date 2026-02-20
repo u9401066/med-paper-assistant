@@ -14,11 +14,11 @@ LLM 語意理解 > regex 關鍵字匹配。資料用 `read_draft` MCP tool，審
 
 ## 搭配 MCP Tools
 
-| 工具 | 用途 |
-|------|------|
-| `read_draft` | **必用** — 讀草稿 |
-| `list_drafts` | 列出可審查的草稿 |
-| `count_words` | 字數統計 |
+| 工具               | 用途                            |
+| ------------------ | ------------------------------- |
+| `read_draft`       | **必用** — 讀草稿               |
+| `list_drafts`      | 列出可審查的草稿                |
+| `count_words`      | 字數統計                        |
 | `check_formatting` | 期刊格式量化檢查 + 跨文件一致性 |
 
 ---
@@ -56,6 +56,7 @@ LLM 語意理解 > regex 關鍵字匹配。資料用 `read_draft` MCP tool，審
 | Word count / Reference density | Minor |
 
 ### 判定
+
 Major ≥3 → 🔴 Major revision required | 1-2 → 🟡 Major revision | 0 → ✅ Minor/Accept
 
 ---
@@ -66,31 +67,37 @@ Major ≥3 → 🔴 Major revision required | 1-2 → 🟡 Major revision | 0 �
 
 ### Auto-Detection
 
-| 草稿特徵 | 指引 |
-|----------|------|
-| randomized, RCT, blinded, placebo | CONSORT |
-| systematic review, meta-analysis | PRISMA |
-| case report, case presentation | CARE |
-| observational, cohort, case-control | STROBE |
+| 草稿特徵                            | 指引    |
+| ----------------------------------- | ------- |
+| randomized, RCT, blinded, placebo   | CONSORT |
+| systematic review, meta-analysis    | PRISMA  |
+| case report, case presentation      | CARE    |
+| observational, cohort, case-control | STROBE  |
 
 ### CONSORT (RCT, 21 items)
+
 Title(1), Abstract(2), Intro(3-4: background, objectives), Methods(5-13: design, eligibility, interventions, outcomes, sample size, randomization, allocation concealment, blinding, statistics), Results(14-19: flow, recruitment, baseline, N analysed, outcomes+CI, harms), Discussion(20: interpretation+limitations), Other(21: registration)
 
 ### STROBE (Observational, 16 items)
+
 Title(1), Intro(2-3), Methods(4-11: design, setting, participants, variables, measurement, bias, sample size, statistics), Results(12-14: participants, descriptive, outcome), Discussion(15: interpretation), Other(16: funding)
 
 ### PRISMA (SR, 17 items)
+
 Title(1), Abstract(2), Intro(3), Methods(4-11: protocol, eligibility, sources, strategy, selection, extraction, RoB, synthesis), Results(12-15: flow, characteristics, results, heterogeneity), Discussion(16), Other(17: registration)
 
 ### CARE (Case Report, 13 items)
+
 Title(1), Abstract(2), Intro(3), Patient(4-7: demographics, complaints, history, exam), Clinical(8-10: diagnosis, intervention, follow-up), Discussion(11-12: strengths/limits, rationale), Patient(13: consent)
 
 ### 判定
+
 ≥80% → 🟢 Good | 60-80% → 🟡 Needs attention | <60% → 🔴 Significant gaps
 
 ---
 
 ## 使用原則
+
 1. 語意理解，非關鍵字匹配（「倫理委員會核准」= ethics approval）
 2. Major = 可能被 reject，Minor = 改善建議
 3. 給具體修復建議

@@ -3,6 +3,7 @@
 ## Architecture Overview
 
 ### Main MCP Server (DDD Pattern - 2025-11-27)
+
 ```
 src/med_paper_assistant/
 ├── domain/              # Core business logic
@@ -22,6 +23,7 @@ src/med_paper_assistant/
 ```
 
 ### Draw.io MCP Server (Submodule - 2025-11-28)
+
 ```
 integrations/next-ai-draw-io/
 ├── app/                 # Next.js 15 frontend
@@ -41,6 +43,7 @@ integrations/next-ai-draw-io/
 - **Agent Constitution**: .memory/.agent_constitution.md defining agent behavior.
 
 ## Design Patterns
+
 - **Modular Tool Registration**: Each tool module exports register_xxx_tools(mcp, deps).
 - **Dependency Injection**: Tools receive required managers via deps dict.
 - **Context Persistence**: Agent reads Memory Bank at start, updates at end or significant changes.
@@ -48,13 +51,14 @@ integrations/next-ai-draw-io/
 - **Mandatory Concept Pattern**: /mdpaper.draft prompt REQUIRES concept file before writing.
 
 ## Data Structures
+
 - **Reference Storage**:
   - Directory: references/{PMID}/
   - metadata.json: Citation info (Title, Authors, Journal, Year, DOI, etc.).
   - content.md: Abstract or full text.
 - **Draft Storage**:
   - Directory: drafts/
-  - Naming: concept_*.md for research concepts (MANDATORY for draft writing)
+  - Naming: concept\_\*.md for research concepts (MANDATORY for draft writing)
   - Format: Markdown with citations [1] and References section.
 - **Citation Workflow**:
   - Agent reads draft → Identifies insertion → insert_citation tool → Auto-renumbering.

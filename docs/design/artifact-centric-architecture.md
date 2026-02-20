@@ -12,11 +12,11 @@
 ### 核心變革
 
 | 面向 | 原架構 (Project-First) | 新架構 (Artifact-Centric) |
-|------|----------------------|-------------------------|
-| 起點 | 必須先建立專案 | 可從任何成品開始 |
-| 儲存 | 成品必須屬於專案 | 成品先進 staging，後連結 |
-| 狀態 | Binary (有/無專案) | State Machine (3 階段) |
-| 彈性 | 線性流程 | 非線性、多入口 |
+| ---- | ---------------------- | ------------------------- |
+| 起點 | 必須先建立專案         | 可從任何成品開始          |
+| 儲存 | 成品必須屬於專案       | 成品先進 staging，後連結  |
+| 狀態 | Binary (有/無專案)     | State Machine (3 階段)    |
+| 彈性 | 線性流程               | 非線性、多入口            |
 
 ---
 
@@ -67,11 +67,11 @@
 
 **狀態說明**：
 
-| 狀態 | 描述 | `.mdpaper-state.json` |
-|------|------|----------------------|
-| **EMPTY** | 無任何成品 | `mode: "empty"` |
-| **EXPLORATION** | 有成品在 staging | `mode: "exploration"` |
-| **PROJECT** | 有活躍專案 | `mode: "project", current_project: "xxx"` |
+| 狀態            | 描述             | `.mdpaper-state.json`                     |
+| --------------- | ---------------- | ----------------------------------------- |
+| **EMPTY**       | 無任何成品       | `mode: "empty"`                           |
+| **EXPLORATION** | 有成品在 staging | `mode: "exploration"`                     |
+| **PROJECT**     | 有活躍專案       | `mode: "project", current_project: "xxx"` |
 
 ### 目錄結構
 
@@ -191,23 +191,23 @@ class ArtifactType(str, Enum):
 
 ### Exploration Tools (6 個新工具)
 
-| Tool | 功能 | 參數 |
-|------|------|------|
-| `start_exploration` | 啟動探索模式 | `topic?: str` |
-| `get_exploration_status` | 查看 staging 狀態 | - |
-| `list_staged_artifacts` | 列出暫存成品 | `type?: ArtifactType` |
-| `tag_artifact` | 標記成品 | `artifact_id, tags[]` |
-| `link_artifact_to_project` | 連結成品到專案 | `artifact_id, project_slug` |
-| `convert_exploration_to_project` | 將探索轉為專案 | `name, slug, include_artifacts[]` |
+| Tool                             | 功能              | 參數                              |
+| -------------------------------- | ----------------- | --------------------------------- |
+| `start_exploration`              | 啟動探索模式      | `topic?: str`                     |
+| `get_exploration_status`         | 查看 staging 狀態 | -                                 |
+| `list_staged_artifacts`          | 列出暫存成品      | `type?: ArtifactType`             |
+| `tag_artifact`                   | 標記成品          | `artifact_id, tags[]`             |
+| `link_artifact_to_project`       | 連結成品到專案    | `artifact_id, project_slug`       |
+| `convert_exploration_to_project` | 將探索轉為專案    | `name, slug, include_artifacts[]` |
 
 ### Modified Tools
 
-| 原工具 | 變更 |
-|--------|------|
+| 原工具               | 變更                                  |
+| -------------------- | ------------------------------------- |
 | `save_reference_mcp` | 無專案時存入 `_workspace/references/` |
-| `save_diagram` | 無專案時存入 `_workspace/figures/` |
-| `analyze_dataset` | 結果存入 `_workspace/data/` |
-| `write_draft` | 無專案時存入 `_workspace/notes/` |
+| `save_diagram`       | 無專案時存入 `_workspace/figures/`    |
+| `analyze_dataset`    | 結果存入 `_workspace/data/`           |
+| `write_draft`        | 無專案時存入 `_workspace/notes/`      |
 
 ### Tool Behavior Matrix
 
@@ -304,39 +304,42 @@ Agent: 要將這些文獻連結到 remimazolam-review 嗎？
 
 ### Decision 1: 成品能否屬於多個專案？
 
-| 選項 | 說明 | 優點 | 缺點 |
-|------|------|------|------|
-| **A. Copy** | 複製成品到專案 | 簡單、獨立 | 佔用空間、不同步 |
-| **B. Symlink** | 符號連結 | 節省空間 | 跨平台問題 |
-| **C. Reference** ⭐ | 註冊表記錄多對多關係 | 彈性、可追蹤 | 複雜度較高 |
+| 選項                | 說明                 | 優點         | 缺點             |
+| ------------------- | -------------------- | ------------ | ---------------- |
+| **A. Copy**         | 複製成品到專案       | 簡單、獨立   | 佔用空間、不同步 |
+| **B. Symlink**      | 符號連結             | 節省空間     | 跨平台問題       |
+| **C. Reference** ⭐ | 註冊表記錄多對多關係 | 彈性、可追蹤 | 複雜度較高       |
 
 **選擇**: C. Reference
+
 - 成品實體在 `_workspace/` 或第一個連結的專案
 - Registry 記錄 `linked_projects[]` 陣列
 - 匯出時複製到專案（copy-on-export）
 
 ### Decision 2: 何時強制建立專案？
 
-| 選項 | 說明 |
-|------|------|
-| **A. Never** | 永遠不強制，使用者完全自由 |
+| 選項             | 說明                       |
+| ---------------- | -------------------------- |
+| **A. Never**     | 永遠不強制，使用者完全自由 |
 | **B. Export** ⭐ | 匯出 Word/PDF 時才需要專案 |
-| **C. Validate** | 驗證 concept 時需要專案 |
+| **C. Validate**  | 驗證 concept 時需要專案    |
 
 **選擇**: B. Export
+
 - 探索階段完全自由
 - 需要正式輸出時才建立專案
 - 提供 "Quick Project" 一鍵轉換
 
 ### Decision 3: 向後相容性？
 
-| 選項 | 說明 |
-|------|------|
+| 選項                | 說明                       |
+| ------------------- | -------------------------- |
 | **A. Keep Both** ⭐ | 舊專案保持不變，新功能並存 |
-| **B. Migrate All** | 強制遷移所有專案 |
-| **C. Gradual** | 漸進式遷移 |
+| **B. Migrate All**  | 強制遷移所有專案           |
+| **C. Gradual**      | 漸進式遷移                 |
 
 **選擇**: A. Keep Both
+
 - 現有 `projects/` 結構完全不變
 - 新增 `_workspace/` 作為 staging
 - 現有工具在有專案時行為不變
@@ -445,18 +448,19 @@ Total: 78 tools
 
 ### B. State Transitions
 
-| From | To | Trigger | Condition |
-|------|----|---------|-----------|
-| EMPTY | EXPLORATION | save_reference | no project |
-| EMPTY | PROJECT | create_project | - |
-| EXPLORATION | PROJECT | convert_exploration | user confirms |
-| EXPLORATION | PROJECT | create_project | - |
-| PROJECT | EXPLORATION | archive_project | current project archived |
-| PROJECT | PROJECT | switch_project | - |
+| From        | To          | Trigger             | Condition                |
+| ----------- | ----------- | ------------------- | ------------------------ |
+| EMPTY       | EXPLORATION | save_reference      | no project               |
+| EMPTY       | PROJECT     | create_project      | -                        |
+| EXPLORATION | PROJECT     | convert_exploration | user confirms            |
+| EXPLORATION | PROJECT     | create_project      | -                        |
+| PROJECT     | EXPLORATION | archive_project     | current project archived |
+| PROJECT     | PROJECT     | switch_project      | -                        |
 
 ### C. Migration Notes
 
 對於現有使用者：
+
 1. 首次更新後，系統會建立 `_workspace/` 目錄
 2. 現有專案不受影響
 3. 新的 `save_reference_mcp` 會檢查是否有活躍專案
@@ -466,6 +470,6 @@ Total: 78 tools
 
 ## 📝 Changelog
 
-| Date | Version | Changes |
-|------|---------|---------|
-| 2025-01-22 | 0.1 | Initial draft |
+| Date       | Version | Changes       |
+| ---------- | ------- | ------------- |
+| 2025-01-22 | 0.1     | Initial draft |

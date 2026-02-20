@@ -10,13 +10,13 @@ description: |
 
 ## 適用情境
 
-| 觸發語 | 操作 |
-|--------|------|
-| 新專案、開始研究 | `create_project()` |
-| 切換、換專案 | `switch_project()` |
-| 設定 paper type | `setup_project_interactive()` |
-| 先瀏覽文獻 | `start_exploration()` |
-| 轉成正式專案 | `convert_exploration_to_project()` |
+| 觸發語           | 操作                               |
+| ---------------- | ---------------------------------- |
+| 新專案、開始研究 | `create_project()`                 |
+| 切換、換專案     | `switch_project()`                 |
+| 設定 paper type  | `setup_project_interactive()`      |
+| 先瀏覽文獻       | `start_exploration()`              |
+| 轉成正式專案     | `convert_exploration_to_project()` |
 
 ---
 
@@ -24,25 +24,25 @@ description: |
 
 ### 專案 CRUD (mdpaper)
 
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `create_project` | `name`, `description`, `paper_type` | 建立新專案 |
-| `list_projects` | 無 | 列出所有專案 |
-| `switch_project` | `slug` | 切換專案 |
-| `get_current_project` | `include_files` | 取得目前專案資訊（include_files=True 列出檔案）|
+| 工具                  | 參數                                | 說明                                            |
+| --------------------- | ----------------------------------- | ----------------------------------------------- |
+| `create_project`      | `name`, `description`, `paper_type` | 建立新專案                                      |
+| `list_projects`       | 無                                  | 列出所有專案                                    |
+| `switch_project`      | `slug`                              | 切換專案                                        |
+| `get_current_project` | `include_files`                     | 取得目前專案資訊（include_files=True 列出檔案） |
 
 ### 專案設定 (mdpaper)
 
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `setup_project_interactive` | 無 | 互動式設定（使用 elicitation）|
-| `update_project_settings` | `paper_type`, `target_journal`, `status`, `citation_style` | 更新設定（含狀態和引用格式）|
+| 工具                        | 參數                                                       | 說明                           |
+| --------------------------- | ---------------------------------------------------------- | ------------------------------ |
+| `setup_project_interactive` | 無                                                         | 互動式設定（使用 elicitation） |
+| `update_project_settings`   | `paper_type`, `target_journal`, `status`, `citation_style` | 更新設定（含狀態和引用格式）   |
 
 ### 探索模式 (mdpaper)
 
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `start_exploration` | 無 | 建立探索工作區 |
+| 工具                             | 參數                  | 說明           |
+| -------------------------------- | --------------------- | -------------- |
+| `start_exploration`              | 無                    | 建立探索工作區 |
 | `convert_exploration_to_project` | `name`, `description` | 轉換為正式專案 |
 
 ---
@@ -70,6 +70,7 @@ Step 3: 互動式設定
 ```
 
 **⚠️ 重要規則：**
+
 - `name` 必須是英文！
 - 若用戶給中文名稱，Agent 必須翻譯：
   - "死亡率預測" → "Mortality Prediction"
@@ -121,26 +122,28 @@ Step 4: 決定方向後轉換
 
 ## Paper Types
 
-| 類型代碼 | 名稱 | 結構 |
-|----------|------|------|
-| `original-research` | 原創研究 | IMRAD |
-| `systematic-review` | 系統性回顧 | PRISMA |
-| `meta-analysis` | 統合分析 | PRISMA + Forest |
-| `case-report` | 病例報告 | CARE |
-| `review-article` | 回顧文章 | 敘事結構 |
-| `letter` | 讀者來函 | 精簡結構 |
+| 類型代碼            | 名稱       | 結構            |
+| ------------------- | ---------- | --------------- |
+| `original-research` | 原創研究   | IMRAD           |
+| `systematic-review` | 系統性回顧 | PRISMA          |
+| `meta-analysis`     | 統合分析   | PRISMA + Forest |
+| `case-report`       | 病例報告   | CARE            |
+| `review-article`    | 回顧文章   | 敘事結構        |
+| `letter`            | 讀者來函   | 精簡結構        |
 
 ---
 
 ## Project Memory 同步
 
 **切換專案後必須讀取：**
+
 ```
 projects/{slug}/.memory/activeContext.md
 → 了解上次工作到哪裡、Agent 的想法
 ```
 
 **離開專案前必須寫入：**
+
 ```
 projects/{slug}/.memory/activeContext.md
 → Current Focus: 目前進度
@@ -152,15 +155,15 @@ projects/{slug}/.memory/activeContext.md
 
 ## 常見問題
 
-| 問題 | 解法 |
-|------|------|
-| 專案名稱有中文 | Agent 翻譯成英文再呼叫 |
-| 不確定用哪個專案 | `list_projects()` 先列出 |
-| 想先看文獻再決定 | `start_exploration()` |
-| 探索區有文獻要保留 | `convert_exploration_to_project()` |
-| 要改 paper type | `update_project_settings(paper_type="...")` |
-| 要改專案狀態 | `update_project_settings(status="...")` |
-| 要改引用格式 | `update_project_settings(citation_style="...")` |
+| 問題               | 解法                                            |
+| ------------------ | ----------------------------------------------- |
+| 專案名稱有中文     | Agent 翻譯成英文再呼叫                          |
+| 不確定用哪個專案   | `list_projects()` 先列出                        |
+| 想先看文獻再決定   | `start_exploration()`                           |
+| 探索區有文獻要保留 | `convert_exploration_to_project()`              |
+| 要改 paper type    | `update_project_settings(paper_type="...")`     |
+| 要改專案狀態       | `update_project_settings(status="...")`         |
+| 要改引用格式       | `update_project_settings(citation_style="...")` |
 
 ---
 

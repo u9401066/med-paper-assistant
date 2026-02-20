@@ -22,28 +22,28 @@ list_templates → read_template → read_draft → start_document_session
 
 ## MCP Tools
 
-| Tool | 用途 | 關鍵參數 |
-|------|------|----------|
-| `list_templates` | 列出可用模板 | 無 |
-| `read_template` | 讀取模板結構（必先呼叫！）| `template_name` |
-| `start_document_session` | 開啟編輯 session | `template_name`, `session_id` |
-| `insert_section` | 插入章節內容（自動修復 wikilink）| `session_id`, `section_name`, `content`, `mode` |
-| `verify_document` | 驗證文件狀態 | `session_id` |
-| `check_word_limits` | 檢查字數限制 | `session_id`, `limits_json`(optional) |
-| `save_document` | 儲存並關閉 session | `session_id`, `output_filename` |
+| Tool                     | 用途                              | 關鍵參數                                        |
+| ------------------------ | --------------------------------- | ----------------------------------------------- |
+| `list_templates`         | 列出可用模板                      | 無                                              |
+| `read_template`          | 讀取模板結構（必先呼叫！）        | `template_name`                                 |
+| `start_document_session` | 開啟編輯 session                  | `template_name`, `session_id`                   |
+| `insert_section`         | 插入章節內容（自動修復 wikilink） | `session_id`, `section_name`, `content`, `mode` |
+| `verify_document`        | 驗證文件狀態                      | `session_id`                                    |
+| `check_word_limits`      | 檢查字數限制                      | `session_id`, `limits_json`(optional)           |
+| `save_document`          | 儲存並關閉 session                | `session_id`, `output_filename`                 |
 
 `export_word`（Legacy）：簡易匯出，建議改用 session 流程。
 
 ## 預設字數限制
 
-| 章節 | 上限 |
-|------|------|
-| Abstract | 250 |
-| Introduction | 800 |
-| Methods | 1500 |
-| Results | 1500 |
-| Discussion | 1500 |
-| Conclusions | 300 |
+| 章節         | 上限 |
+| ------------ | ---- |
+| Abstract     | 250  |
+| Introduction | 800  |
+| Methods      | 1500 |
+| Results      | 1500 |
+| Discussion   | 1500 |
+| Conclusions  | 300  |
 
 ## 注意事項
 

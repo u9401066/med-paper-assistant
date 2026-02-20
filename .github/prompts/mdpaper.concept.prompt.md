@@ -22,12 +22,12 @@ description: "📝 mdpaper.concept - 發展研究概念與文獻缺口分析"
 
 `get_concept_template(paper_type)` → 撰寫必要區塊：
 
-| Paper Type | 必要區塊 |
-|------------|----------|
+| Paper Type        | 必要區塊                                            |
+| ----------------- | --------------------------------------------------- |
 | original-research | Research Question, NOVELTY, SELLING POINTS, Methods |
-| systematic-review | PRISMA, Search Strategy, Inclusion Criteria |
-| case-report | Case Timeline, Key Findings |
-| letter | Main Argument, Response Points |
+| systematic-review | PRISMA, Search Strategy, Inclusion Criteria         |
+| case-report       | Case Timeline, Key Findings                         |
+| letter            | Main Argument, Response Points                      |
 
 🔒 不可刪除/弱化：NOVELTY STATEMENT + KEY SELLING POINTS
 

@@ -13,6 +13,7 @@ description: 發展研究概念並驗證創新性。觸發：concept、發展概
 ```
 
 **犀利回饋原則**：
+
 1. **直指問題核心** - 不繞彎、不糖衣
 2. **用證據說話** - 「你說 X，但文獻顯示 Y」
 3. **提出 Reviewer 會問的問題** - 讓作者無法反駁
@@ -31,15 +32,15 @@ description: 發展研究概念並驗證創新性。觸發：concept、發展概
 
 ## 核心工具
 
-| 工具 | 用途 |
-|------|------|
-| `read_draft` / `write_draft` | 讀寫 concept.md |
-| `validate_for_section` | ⭐ 針對特定 section 驗證（推薦）|
-| `validate_concept` | 完整驗證（給出犀利回饋）|
-| `list_saved_references` | 檢視已收集文獻 |
-| `save_reference_mcp` | 儲存新文獻（**永遠優先**）|
-| `sync_references` | 同步 wikilinks 到 References |
-| `mcp_cgu_deep_think` | CGU 深度分析概念弱點 |
+| 工具                         | 用途                             |
+| ---------------------------- | -------------------------------- |
+| `read_draft` / `write_draft` | 讀寫 concept.md                  |
+| `validate_for_section`       | ⭐ 針對特定 section 驗證（推薦） |
+| `validate_concept`           | 完整驗證（給出犀利回饋）         |
+| `list_saved_references`      | 檢視已收集文獻                   |
+| `save_reference_mcp`         | 儲存新文獻（**永遠優先**）       |
+| `sync_references`            | 同步 wikilinks 到 References     |
+| `mcp_cgu_deep_think`         | CGU 深度分析概念弱點             |
 
 ---
 
@@ -121,12 +122,13 @@ description: 發展研究概念並驗證創新性。觸發：concept、發展概
 
 ## 🔒 Protected Content 規則
 
-| 標記 | 內容 | 規則 |
-|------|------|------|
-| 🔒 NOVELTY STATEMENT | 創新點聲明 | **不可刪除、不可弱化** |
-| 🔒 KEY SELLING POINTS | 賣點清單 | **必須全部保留** |
+| 標記                  | 內容       | 規則                   |
+| --------------------- | ---------- | ---------------------- |
+| 🔒 NOVELTY STATEMENT  | 創新點聲明 | **不可刪除、不可弱化** |
+| 🔒 KEY SELLING POINTS | 賣點清單   | **必須全部保留**       |
 
 **在後續撰寫中**：
+
 - Introduction 必須呼應 NOVELTY STATEMENT
 - Discussion 必須強調 KEY SELLING POINTS
 - Agent 修改前必須問用戶確認
@@ -196,28 +198,29 @@ description: 發展研究概念並驗證創新性。觸發：concept、發展概
 
 **Step 2: 根據用戶回應**
 
-| 用戶說 | Agent 行為 |
-|--------|------------|
-| 「直接寫」 | ✅ 立即開始寫 Introduction |
-| 「幫我加搜尋證據」 | 🔧 只改那一點，不改其他 |
-| 「用 CGU 想想」 | 🤖 呼叫 CGU 從 reviewer 角度分析 |
+| 用戶說             | Agent 行為                       |
+| ------------------ | -------------------------------- |
+| 「直接寫」         | ✅ 立即開始寫 Introduction       |
+| 「幫我加搜尋證據」 | 🔧 只改那一點，不改其他          |
+| 「用 CGU 想想」    | 🤖 呼叫 CGU 從 reviewer 角度分析 |
 
 ---
 
 ## 🤖 CGU 創意工具使用指南
 
 **何時建議使用 CGU？**
+
 - 用戶卡關，不知道怎麼強化
 - Score < 60，需要從對手角度思考
 - 用戶主動說「幫我想想」
 
 ### 工具選擇
 
-| 情境 | CGU 工具 | 用法 |
-|------|----------|------|
-| 找出弱點在哪 | `deep_think` | `deep_think(topic="從 reviewer 角度，這個研究最容易被攻擊的點是什麼？", depth="medium")` |
-| 找強化論點 | `spark_collision` | `spark_collision(concept_a="現有研究的限制", concept_b="我的方法優勢")` |
-| 廣泛發想 | `generate_ideas` | `generate_ideas(topic="如何讓這個研究的 novelty 無可辯駁", count=5)` |
+| 情境         | CGU 工具          | 用法                                                                                     |
+| ------------ | ----------------- | ---------------------------------------------------------------------------------------- |
+| 找出弱點在哪 | `deep_think`      | `deep_think(topic="從 reviewer 角度，這個研究最容易被攻擊的點是什麼？", depth="medium")` |
+| 找強化論點   | `spark_collision` | `spark_collision(concept_a="現有研究的限制", concept_b="我的方法優勢")`                  |
+| 廣泛發想     | `generate_ideas`  | `generate_ideas(topic="如何讓這個研究的 novelty 無可辯駁", count=5)`                     |
 
 ### CGU 使用流程
 
@@ -261,25 +264,26 @@ description: 發展研究概念並驗證創新性。觸發：concept、發展概
 
 ## 🚨 危險信號：何時必須停下來
 
-| 信號 | 行動 |
-|------|------|
-| 已經改了 2 次，分數沒改善 | **停！** 問用戶要不要換方向 |
-| 改完分數反而變低 | **停！** 恢復原版，討論其他方案 |
-| 發現要大幅修改研究方向 | **停！** 這是用戶的決定 |
-| 用戶沒回應就繼續改 | **停！** 永遠等用戶確認 |
+| 信號                      | 行動                            |
+| ------------------------- | ------------------------------- |
+| 已經改了 2 次，分數沒改善 | **停！** 問用戶要不要換方向     |
+| 改完分數反而變低          | **停！** 恢復原版，討論其他方案 |
+| 發現要大幅修改研究方向    | **停！** 這是用戶的決定         |
+| 用戶沒回應就繼續改        | **停！** 永遠等用戶確認         |
 
 ---
 
 ## 分層驗證（快速參考）
 
-| Paper Type | Core Required | Intro | Methods |
-|------------|---------------|-------|---------|
+| Paper Type        | Core Required           | Intro           | Methods        |
+| ----------------- | ----------------------- | --------------- | -------------- |
 | original-research | NOVELTY, SELLING_POINTS | background, gap | ⚠️ recommended |
-| systematic-review | + search_strategy | same | same |
-| case-report | same | same | minimal |
-| letter | NOVELTY only | minimal | - |
+| systematic-review | + search_strategy       | same            | same           |
+| case-report       | same                    | same            | minimal        |
+| letter            | NOVELTY only            | minimal         | -              |
 
 **Section-Specific 驗證**：
+
 ```
 validate_for_section(section="Introduction")
 # → can_write_section=True 就能開始寫，Methods 缺少不 blocking
@@ -289,12 +293,13 @@ validate_for_section(section="Introduction")
 
 ## Wikilink 格式
 
-| 格式 | 範例 | 狀態 |
-|------|------|------|
-| ✅ 正確 | `[[ruetzler2024_38497992]]` | 標準 |
-| ❌ 錯誤 | `[[38497992]]` | 缺 author_year |
+| 格式    | 範例                        | 狀態           |
+| ------- | --------------------------- | -------------- |
+| ✅ 正確 | `[[ruetzler2024_38497992]]` | 標準           |
+| ❌ 錯誤 | `[[38497992]]`              | 缺 author_year |
 
 **取得 citation_key**：
+
 ```
 save_reference_mcp(pmid="38497992")
 # 回傳：💡 Use [[ruetzler2024_38497992]]
@@ -313,11 +318,11 @@ save_reference_mcp(pmid="38497992")
 
 ## 決策點
 
-| 時機 | 問題 | 選項 |
-|------|------|------|
-| 驗證顯示 score < 75 | 怎麼辦？ | **先問用戶**：直接寫 / 修正問題 / 用 CGU |
-| 用戶選「修正」 | 改哪個？ | 只改用戶指定的那一點 |
-| 用戶選「CGU」 | 用哪個？ | deep_think（找弱點）/ spark_collision（找論點）|
+| 時機                | 問題     | 選項                                            |
+| ------------------- | -------- | ----------------------------------------------- |
+| 驗證顯示 score < 75 | 怎麼辦？ | **先問用戶**：直接寫 / 修正問題 / 用 CGU        |
+| 用戶選「修正」      | 改哪個？ | 只改用戶指定的那一點                            |
+| 用戶選「CGU」       | 用哪個？ | deep_think（找弱點）/ spark_collision（找論點） |
 
 ---
 

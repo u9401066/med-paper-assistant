@@ -4,12 +4,12 @@
 
 ## 觸發條件
 
-| 用戶說法 | 觸發 |
-|----------|------|
-| 驗證、validate、check concept | ✅ |
-| novelty、新穎性、原創性 | ✅ |
-| 可以開始寫了嗎？ready to write? | ✅ |
-| wikilink 格式、引用格式 | ✅ |
+| 用戶說法                        | 觸發 |
+| ------------------------------- | ---- |
+| 驗證、validate、check concept   | ✅   |
+| novelty、新穎性、原創性         | ✅   |
+| 可以開始寫了嗎？ready to write? | ✅   |
+| wikilink 格式、引用格式         | ✅   |
 
 ---
 
@@ -24,17 +24,18 @@
 
 ### Novelty 評分標準
 
-| 分數 | 狀態 | 行動 |
-|------|------|------|
-| ≥ 75 | ✅ 通過 | 可以開始撰寫 |
+| 分數  | 狀態    | 行動                       |
+| ----- | ------- | -------------------------- |
+| ≥ 75  | ✅ 通過 | 可以開始撰寫               |
 | 60-74 | ⚠️ 邊緣 | 建議加強 novelty statement |
-| < 60 | ❌ 失敗 | 必須修改 concept |
+| < 60  | ❌ 失敗 | 必須修改 concept           |
 
 ### 驗證三輪制
 
 驗證會執行 **3 輪**獨立評分，取平均：
+
 - 第 1 輪：結構評估
-- 第 2 輪：新穎性評估  
+- 第 2 輪：新穎性評估
 - 第 3 輪：可行性評估
 
 **目的**：避免單次評分的偏差。
@@ -48,6 +49,7 @@
 **用途**：完整驗證 concept.md（含 novelty 評分）
 
 **參數**：
+
 ```
 filename: str           # 檔案路徑（必填，通常是 "concept.md"）
 project: str            # 專案 slug（選填）
@@ -56,6 +58,7 @@ target_section: str     # 目標章節（選填，用於章節特定驗證）
 ```
 
 **呼叫範例**：
+
 ```python
 # 完整驗證
 mcp_mdpaper_validate_concept(filename="concept.md")
@@ -68,6 +71,7 @@ mcp_mdpaper_validate_concept(
 ```
 
 **回應格式**：
+
 ```
 📋 **Concept Validation Report**
 
@@ -97,17 +101,20 @@ mcp_mdpaper_validate_concept(
 **用途**：快速結構檢查（不呼叫 LLM）
 
 **參數**：
+
 ```
 filename: str  # 檔案路徑（必填）
 project: str   # 專案 slug（選填）
 ```
 
 **什麼時候用**：
+
 - 編輯 concept 過程中快速檢查結構
 - 不需要 novelty 評分時
 - 想節省 API 呼叫時
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_validate_concept_quick(filename="concept.md")
 ```
@@ -119,6 +126,7 @@ mcp_mdpaper_validate_concept_quick(filename="concept.md")
 **用途**：檢查是否可以撰寫特定章節
 
 **參數**：
+
 ```
 section: str   # 目標章節（必填）
 project: str   # 專案 slug（選填）
@@ -126,14 +134,15 @@ project: str   # 專案 slug（選填）
 
 **章節特定需求**：
 
-| 章節 | 必須有 | 建議有 |
-|------|--------|--------|
-| Introduction | NOVELTY + Background + Research Gap | - |
-| Methods | - | Study Design |
-| Results | Basic structure | - |
-| Discussion | KEY SELLING POINTS | Limitations |
+| 章節         | 必須有                              | 建議有       |
+| ------------ | ----------------------------------- | ------------ |
+| Introduction | NOVELTY + Background + Research Gap | -            |
+| Methods      | -                                   | Study Design |
+| Results      | Basic structure                     | -            |
+| Discussion   | KEY SELLING POINTS                  | Limitations  |
 
 **呼叫範例**：
+
 ```python
 # 寫 Introduction 前
 mcp_mdpaper_validate_for_section(section="Introduction")
@@ -143,6 +152,7 @@ mcp_mdpaper_validate_for_section(section="Discussion")
 ```
 
 **回應格式**：
+
 ```
 ✅ **CAN WRITE: Introduction**
 
@@ -162,6 +172,7 @@ Required sections present:
 **用途**：驗證並修復 wikilink 格式
 
 **參數**：
+
 ```
 filename: str   # 檔案路徑（必填）
 project: str    # 專案 slug（選填）
@@ -178,6 +189,7 @@ auto_fix: bool  # 是否自動修復（預設 True）
 | `[[PMID:12345678]]` | `[[author2024_12345678]]` |
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_validate_wikilinks(
     filename="concept.md",
@@ -201,6 +213,7 @@ graph TD
 ```
 
 **步驟**：
+
 1. 用戶完成 concept.md 編輯
 2. 呼叫 `validate_concept(filename="concept.md")`
 3. 檢查 novelty 分數
@@ -240,17 +253,18 @@ mcp_mdpaper_validate_wikilinks(
 
 ### original-research（標準研究論文）
 
-| 區塊 | 必須 | 檢查項目 |
-|------|------|----------|
-| NOVELTY STATEMENT | ✅ | 明確聲明、有數據支持 |
-| Background | ✅ | 有引用文獻 |
-| Research Gap | ✅ | 明確指出現有研究的不足 |
-| Study Design | ✅ | 研究方法描述 |
-| KEY SELLING POINTS | ✅ | 主要發現和貢獻 |
+| 區塊               | 必須 | 檢查項目               |
+| ------------------ | ---- | ---------------------- |
+| NOVELTY STATEMENT  | ✅   | 明確聲明、有數據支持   |
+| Background         | ✅   | 有引用文獻             |
+| Research Gap       | ✅   | 明確指出現有研究的不足 |
+| Study Design       | ✅   | 研究方法描述           |
+| KEY SELLING POINTS | ✅   | 主要發現和貢獻         |
 
 ### systematic-review / meta-analysis
 
 **額外要求**：
+
 - PRISMA checklist 項目
 - 搜尋策略描述
 - 納入/排除標準
@@ -258,12 +272,14 @@ mcp_mdpaper_validate_wikilinks(
 ### case-report
 
 **額外要求**：
+
 - Case timeline
 - 病人同意聲明
 
 ### letter
 
 **最低要求**：
+
 - 主要論點
 - 簡短 novelty 聲明
 
@@ -275,11 +291,11 @@ mcp_mdpaper_validate_wikilinks(
 
 **像頂尖 Reviewer 一樣犀利，但給選項！**
 
-| 情況 | 回饋方式 |
-|------|----------|
-| 聲稱「首次」但沒證據 | 「您聲稱『首次』，但沒有 PubMed 搜尋證據。Reviewer 會問：『搜尋策略是什麼？』」|
-| 模糊量化 | 「使用『更好』但沒數字。Reviewer 會問：『好多少？臨床意義？』」|
-| 引用但沒說限制 | 「引用了文獻但沒說它的限制。Reviewer 會問：『你的貢獻在哪？』」|
+| 情況                 | 回饋方式                                                                        |
+| -------------------- | ------------------------------------------------------------------------------- |
+| 聲稱「首次」但沒證據 | 「您聲稱『首次』，但沒有 PubMed 搜尋證據。Reviewer 會問：『搜尋策略是什麼？』」 |
+| 模糊量化             | 「使用『更好』但沒數字。Reviewer 會問：『好多少？臨床意義？』」                 |
+| 引用但沒說限制       | 「引用了文獻但沒說它的限制。Reviewer 會問：『你的貢獻在哪？』」                 |
 
 ### 犀利但不是討好
 
@@ -304,11 +320,11 @@ mcp_mdpaper_validate_wikilinks(
 
 ## 與其他 Skills 的關係
 
-| 相關 Skill | 關係 |
-|------------|------|
+| 相關 Skill          | 關係                    |
+| ------------------- | ----------------------- |
 | concept-development | 先發展 concept → 再驗證 |
-| draft-writing | 驗證通過後才能寫草稿 |
-| literature-review | 驗證需要文獻支持 |
+| draft-writing       | 驗證通過後才能寫草稿    |
+| literature-review   | 驗證需要文獻支持        |
 
 ---
 
@@ -317,6 +333,7 @@ mcp_mdpaper_validate_wikilinks(
 ### Q: Novelty score 一直過不了怎麼辦？
 
 A:
+
 1. 檢查 NOVELTY STATEMENT 是否有具體數據
 2. 確認有引用文獻支持「現有方法的限制」
 3. 用 CGU 工具（`deep_think`, `spark_collision`）發想更強的論點
@@ -325,6 +342,7 @@ A:
 ### Q: 為什麼要三輪驗證？
 
 A: 單次 LLM 評分可能有偏差。三輪取平均可以：
+
 - 減少隨機波動
 - 獲得更穩定的分數
 - 如果三輪差異大，表示 concept 本身有模糊之處
@@ -332,6 +350,7 @@ A: 單次 LLM 評分可能有偏差。三輪取平均可以：
 ### Q: validate_for_section vs validate_concept？
 
 A:
+
 - `validate_for_section`：只檢查特定章節需要的部分，較快
 - `validate_concept`：完整檢查所有項目，較慢但全面
 
@@ -340,6 +359,7 @@ A:
 ### Q: Wikilink 格式為什麼重要？
 
 A: 正確的 wikilink 格式 `[[author2024_12345678]]` 可以：
+
 - 在 VS Code Foam 中自動連結
 - 匯出 Word 時正確轉換為引用
 - sync_references 時正確生成 References 清單

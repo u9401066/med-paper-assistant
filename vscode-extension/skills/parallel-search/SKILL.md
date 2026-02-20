@@ -10,6 +10,7 @@ description: 使用多組關鍵字並行搜尋，提高文獻覆蓋率。觸發�
 利用 Agent 的並行呼叫能力來加速文獻搜尋，提高覆蓋率。
 
 **核心概念**：
+
 1. 預設搜尋策略（日期、排除詞、文章類型）
 2. 策略工具返回多組搜尋語法（自動整合策略設定）
 3. Agent 並行呼叫搜尋工具
@@ -21,37 +22,37 @@ description: 使用多組關鍵字並行搜尋，提高文獻覆蓋率。觸發�
 
 ### 🔍 pubmed-search MCP 搜尋工具
 
-| 工具 | 用途 | 關鍵參數 |
-|------|------|----------|
-| `generate_search_queries` | 從主題生成 MeSH + 同義詞材料 | `topic`, `strategy`, `check_spelling` |
-| `search_literature` | 執行 PubMed 搜尋（可並行多次）| `query`, `limit`, `min_year`, `article_type` |
-| `merge_search_results` | 合併多組搜尋結果並去重 | `results_json` |
-| `expand_search_queries` | 結果不足時擴展搜尋 | `topic`, `expansion_type` |
-| `parse_pico` | 解析 PICO 臨床問題 | `description` 或 `p`, `i`, `c`, `o` |
+| 工具                      | 用途                           | 關鍵參數                                     |
+| ------------------------- | ------------------------------ | -------------------------------------------- |
+| `generate_search_queries` | 從主題生成 MeSH + 同義詞材料   | `topic`, `strategy`, `check_spelling`        |
+| `search_literature`       | 執行 PubMed 搜尋（可並行多次） | `query`, `limit`, `min_year`, `article_type` |
+| `merge_search_results`    | 合併多組搜尋結果並去重         | `results_json`                               |
+| `expand_search_queries`   | 結果不足時擴展搜尋             | `topic`, `expansion_type`                    |
+| `parse_pico`              | 解析 PICO 臨床問題             | `description` 或 `p`, `i`, `c`, `o`          |
 
 ### 📊 結果處理工具
 
-| 工具 | 用途 | 關鍵參數 |
-|------|------|----------|
-| `fetch_article_details` | 取得完整文章資訊 | `pmids` (逗號分隔) |
-| `get_citation_metrics` | 取得 iCite 引用指標 (RCR) | `pmids`, `sort_by`, `min_rcr` |
-| `find_related_articles` | 找相似文章 | `pmid` |
-| `find_citing_articles` | 找引用此文章的研究 | `pmid` |
+| 工具                    | 用途                      | 關鍵參數                      |
+| ----------------------- | ------------------------- | ----------------------------- |
+| `fetch_article_details` | 取得完整文章資訊          | `pmids` (逗號分隔)            |
+| `get_citation_metrics`  | 取得 iCite 引用指標 (RCR) | `pmids`, `sort_by`, `min_rcr` |
+| `find_related_articles` | 找相似文章                | `pmid`                        |
+| `find_citing_articles`  | 找引用此文章的研究        | `pmid`                        |
 
 ### 💾 Session 管理工具
 
-| 工具 | 用途 | 說明 |
-|------|------|------|
-| `get_session_pmids` | 取得 session 中的 PMID | `search_index=-1` 取最近搜尋 |
-| `get_session_summary` | 查看 session 狀態 | 確認快取和搜尋歷史 |
-| `list_search_history` | 列出搜尋歷史 | 回溯過往搜尋 |
+| 工具                  | 用途                   | 說明                         |
+| --------------------- | ---------------------- | ---------------------------- |
+| `get_session_pmids`   | 取得 session 中的 PMID | `search_index=-1` 取最近搜尋 |
+| `get_session_summary` | 查看 session 狀態      | 確認快取和搜尋歷史           |
+| `list_search_history` | 列出搜尋歷史           | 回溯過往搜尋                 |
 
 ### 📚 儲存文獻工具（⚠️ 注意優先級）
 
-| 工具 | 資料來源 | 使用時機 |
-|------|----------|----------|
-| `save_reference_mcp` | pubmed-search HTTP API | **永遠優先使用** ✅ |
-| `save_reference` | Agent 傳遞 | 僅當 API 不可用時 fallback ⚠️ |
+| 工具                 | 資料來源               | 使用時機                      |
+| -------------------- | ---------------------- | ----------------------------- |
+| `save_reference_mcp` | pubmed-search HTTP API | **永遠優先使用** ✅           |
+| `save_reference`     | Agent 傳遞             | 僅當 API 不可用時 fallback ⚠️ |
 
 ## 工作流程
 
@@ -132,12 +133,12 @@ Phase 3: 如果還不夠
 
 ### 擴展類型選擇指南
 
-| 情況 | expansion_type | 預期效果 |
-|------|----------------|----------|
-| 擔心遺漏不同術語 | `synonyms` | sedation → conscious sedation |
-| 想找類似比較研究 | `related` | remimazolam → propofol |
-| 結果太少 | `broader` | 使用 OR、移除限制 |
-| 結果太多 | `narrower` | 限定 RCT、最近 2 年 |
+| 情況             | expansion_type | 預期效果                      |
+| ---------------- | -------------- | ----------------------------- |
+| 擔心遺漏不同術語 | `synonyms`     | sedation → conscious sedation |
+| 想找類似比較研究 | `related`      | remimazolam → propofol        |
+| 結果太少         | `broader`      | 使用 OR、移除限制             |
+| 結果太多         | `narrower`     | 限定 RCT、最近 2 年           |
 
 ## 流程圖
 
@@ -193,6 +194,7 @@ merge（含所有結果）
 ```
 
 **為什麼 `save_reference_mcp` 優先？**
+
 - `save_reference_mcp`：mdpaper 直接從 pubmed-search API 取得驗證資料，Agent 無法篡改
 - `save_reference`：Agent 傳遞 metadata，可能被修改或幻覺
 

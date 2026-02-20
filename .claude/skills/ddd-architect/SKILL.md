@@ -25,11 +25,11 @@ description: DDD 架構輔助與檢查。觸發：架構、新功能、新模組
 
 ## 違規檢查
 
-| 違規 | 修復 |
-|------|------|
+| 違規                    | 修復                 |
+| ----------------------- | -------------------- |
 | Domain → Infrastructure | 使用 Repository 介面 |
-| 直接 SQL 在 Domain | 抽出到 Repository |
-| Application → DB | 透過 Repository |
+| 直接 SQL 在 Domain      | 抽出到 Repository    |
+| Application → DB        | 透過 Repository      |
 
 檢查方法：`grep_search(query="from.*infrastructure.*import", isRegexp=True, includePattern="**/domain/**/*.py")`
 

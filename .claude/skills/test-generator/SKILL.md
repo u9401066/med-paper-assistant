@@ -7,12 +7,12 @@ description: 生成測試套件。觸發：test、測試、寫測試、coverage�
 
 ## 靜態分析
 
-| 工具 | 用途 | 命令 |
-|------|------|------|
-| ruff | Linter + Formatter | `uv run ruff check src/ --fix && uv run ruff format src/` |
-| mypy | 類型檢查 | `uv run mypy src/ --ignore-missing-imports` |
-| bandit | 安全掃描 | `uv run bandit -r src/ -ll` |
-| vulture | 死代碼檢測 | `uv run vulture src/ --min-confidence 80` |
+| 工具    | 用途               | 命令                                                      |
+| ------- | ------------------ | --------------------------------------------------------- |
+| ruff    | Linter + Formatter | `uv run ruff check src/ --fix && uv run ruff format src/` |
+| mypy    | 類型檢查           | `uv run mypy src/ --ignore-missing-imports`               |
+| bandit  | 安全掃描           | `uv run bandit -r src/ -ll`                               |
+| vulture | 死代碼檢測         | `uv run vulture src/ --min-confidence 80`                 |
 
 完整：`uv run ruff check src/; uv run mypy src/ --ignore-missing-imports; uv run bandit -r src/ -ll`
 
@@ -20,12 +20,12 @@ description: 生成測試套件。觸發：test、測試、寫測試、coverage�
 
 ## 測試金字塔
 
-| 層級 | 工具 | 目錄 |
-|------|------|------|
-| Unit | pytest | tests/unit/ |
+| 層級        | 工具           | 目錄               |
+| ----------- | -------------- | ------------------ |
+| Unit        | pytest         | tests/unit/        |
 | Integration | pytest + httpx | tests/integration/ |
-| E2E | playwright | tests/e2e/ |
-| Coverage | pytest-cov | 目標 ≥80% |
+| E2E         | playwright     | tests/e2e/         |
+| Coverage    | pytest-cov     | 目標 ≥80%          |
 
 ---
 

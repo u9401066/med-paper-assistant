@@ -34,30 +34,31 @@ Instructions (AGENTS.md) ──→ Skill (auto-paper) ──→ Writing (drafts)
 
 ### 9-Phase Pipeline
 
-| Phase | 名稱 | Skill | Gate |
-|-------|------|-------|------|
-| 1 | 專案設置 | project-management | 專案存在 + paper_type |
-| 2 | 文獻搜尋 | literature-review, parallel-search | ≥10 篇已儲存 |
-| 3 | 概念發展 | concept-development | score ≥ 75 |
-| 4 | 大綱規劃 | draft-writing | **🗣️ 用戶確認** |
-| 5 | 章節撰寫 | draft-writing + **Hook A/B** | 所有 section 通過 |
-| 6 | 全稿審計 | **Hook C** | 0 critical issues |
-| 7 | 引用同步 | reference-management | 0 broken links |
-| 8 | 匯出 | word-export | Word 已匯出 |
-| 9 | 回顧改進 | **Hook D (meta-learning)** | SKILL 已更新 |
+| Phase | 名稱     | Skill                              | Gate                  |
+| ----- | -------- | ---------------------------------- | --------------------- |
+| 1     | 專案設置 | project-management                 | 專案存在 + paper_type |
+| 2     | 文獻搜尋 | literature-review, parallel-search | ≥10 篇已儲存          |
+| 3     | 概念發展 | concept-development                | score ≥ 75            |
+| 4     | 大綱規劃 | draft-writing                      | **🗣️ 用戶確認**       |
+| 5     | 章節撰寫 | draft-writing + **Hook A/B**       | 所有 section 通過     |
+| 6     | 全稿審計 | **Hook C**                         | 0 critical issues     |
+| 7     | 引用同步 | reference-management               | 0 broken links        |
+| 8     | 匯出     | word-export                        | Word 已匯出           |
+| 9     | 回顧改進 | **Hook D (meta-learning)**         | SKILL 已更新          |
 
 ### 3 層 Audit Hooks
 
-| Hook | 觸發時機 | 檢查對象 | 更新對象 |
-|------|----------|----------|----------|
-| **A: post-write** | 每次寫完 | 字數、引用密度、Anti-AI | patch_draft 修正 |
-| **B: post-section** | section 完成 | concept 一致性、🔒 保護內容 | patch_draft 補充 |
-| **C: post-manuscript** | 全稿完成 | 一致性、投稿清單、wikilinks | 定點修正 |
-| **D: meta-learning** | Phase 9 | SKILL 本身 + Instructions | 更新 SKILL + AGENTS |
+| Hook                   | 觸發時機     | 檢查對象                    | 更新對象            |
+| ---------------------- | ------------ | --------------------------- | ------------------- |
+| **A: post-write**      | 每次寫完     | 字數、引用密度、Anti-AI     | patch_draft 修正    |
+| **B: post-section**    | section 完成 | concept 一致性、🔒 保護內容 | patch_draft 補充    |
+| **C: post-manuscript** | 全稿完成     | 一致性、投稿清單、wikilinks | 定點修正            |
+| **D: meta-learning**   | Phase 9      | SKILL 本身 + Instructions   | 更新 SKILL + AGENTS |
 
 ### 人工介入點（最小化）
 
 Pipeline **絕大部分自動執行**，僅在以下情況暫停：
+
 - Phase 4 大綱需用戶確認（唯一確認點）
 - Concept score < 60（兩次修正後仍低）
 - 3 rounds 修正後 Hook 仍失敗
@@ -68,6 +69,7 @@ Pipeline **絕大部分自動執行**，僅在以下情況暫停：
 ## ⏸️ 中斷與恢復
 
 如果用戶中途離開：
+
 1. `sync_workspace_state(doing="...", next_action="...")`
 2. 更新專案 `.memory/activeContext.md`（含 execution log）
 3. 下次對話：`get_workspace_state()` → 從斷點繼續

@@ -1,4 +1,5 @@
 # MCP Server Internal Templates
+
 # MCP 伺服器內部範本
 
 ## Purpose | 用途
@@ -9,15 +10,15 @@ This directory contains **internal templates** used by the MCP server and AI Age
 
 ## ⚠️ Important Distinction | 重要區別
 
-| Directory | Purpose | Format |
-|-----------|---------|--------|
-| `/templates/` (root) | Word document templates for export | `.docx` |
-| `/src/.../interfaces/mcp/templates/` (here) | Internal templates for Agent guidance | `.md` |
+| Directory                                   | Purpose                               | Format  |
+| ------------------------------------------- | ------------------------------------- | ------- |
+| `/templates/` (root)                        | Word document templates for export    | `.docx` |
+| `/src/.../interfaces/mcp/templates/` (here) | Internal templates for Agent guidance | `.md`   |
 
-| 目錄 | 用途 | 格式 |
-|------|------|------|
-| `/templates/` (根目錄) | Word 文件輸出範本 | `.docx` |
-| `/src/.../interfaces/mcp/templates/` (此處) | Agent 引導用內部範本 | `.md` |
+| 目錄                                        | 用途                 | 格式    |
+| ------------------------------------------- | -------------------- | ------- |
+| `/templates/` (根目錄)                      | Word 文件輸出範本    | `.docx` |
+| `/src/.../interfaces/mcp/templates/` (此處) | Agent 引導用內部範本 | `.md`   |
 
 ## Template Architecture | 範本架構
 
@@ -53,61 +54,68 @@ templates/
 
 ### Variables | 變數
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `{{PROJECT_NAME}}` | Project name | "Ketamine vs Propofol Study" |
-| `{{PAPER_TYPE}}` | Paper type display name | "Meta-Analysis" |
-| `{{CREATED_DATE}}` | Creation date | "2025-01-15" |
+| Variable                  | Description                 | Example                       |
+| ------------------------- | --------------------------- | ----------------------------- |
+| `{{PROJECT_NAME}}`        | Project name                | "Ketamine vs Propofol Study"  |
+| `{{PAPER_TYPE}}`          | Paper type display name     | "Meta-Analysis"               |
+| `{{CREATED_DATE}}`        | Creation date               | "2025-01-15"                  |
 | `{{PAPER_TYPE_SECTIONS}}` | Paper-type specific content | (inserted from type template) |
-| `{{TARGET_JOURNAL}}` | Target journal | "Anesthesiology" |
-| `{{MEMO}}` | Initial memo/notes | User-provided notes |
+| `{{TARGET_JOURNAL}}`      | Target journal              | "Anesthesiology"              |
+| `{{MEMO}}`                | Initial memo/notes          | User-provided notes           |
 
 ## Section Markers | 區塊標記
 
-| Marker | Meaning | Agent Behavior |
-|--------|---------|----------------|
+| Marker       | Meaning                                                | Agent Behavior                |
+| ------------ | ------------------------------------------------------ | ----------------------------- |
 | 🔒 PROTECTED | Content requires user confirmation before modification | Must ask user before changing |
-| 📝 EDITABLE | Content can be freely improved | Can modify without asking |
-| ⚠️ REQUIRED | Must be filled before proceeding | Validation will fail if empty |
+| 📝 EDITABLE  | Content can be freely improved                         | Can modify without asking     |
+| ⚠️ REQUIRED  | Must be filled before proceeding                       | Validation will fail if empty |
 
-| 標記 | 含義 | Agent 行為 |
-|------|------|-----------|
+| 標記      | 含義             | Agent 行為     |
+| --------- | ---------------- | -------------- |
 | 🔒 受保護 | 修改前需用戶確認 | 必須先詢問用戶 |
-| 📝 可編輯 | 可自由改進 | 可直接修改 |
-| ⚠️ 必填 | 繼續前必須填寫 | 空白時驗證失敗 |
+| 📝 可編輯 | 可自由改進       | 可直接修改     |
+| ⚠️ 必填   | 繼續前必須填寫   | 空白時驗證失敗 |
 
 ## Paper-Type Specific Sections | 論文類型專屬區塊
 
 ### Original Research
+
 - Study Design, Participants, Intervention/Exposure, Outcomes
 - Statistical Analysis, Ethical Considerations
 
 ### Meta-Analysis
+
 - PICO Question, Eligibility Criteria, Search Strategy
 - Risk of Bias Assessment, Statistical Analysis Plan
 - PROSPERO Registration
 
 ### Systematic Review
+
 - Research Question, Study Selection Process
 - Quality Assessment, Data Synthesis Method
 
 ### Case Report
+
 - Case Significance, Case Presentation, Timeline
 - Discussion Points, Patient Consent, CARE Checklist
 
 ### Review Article
+
 - Review Scope, Structure/Outline, Key Messages
 - Future Directions, Visual Elements Planning
 
 ## Usage | 使用方式
 
 These templates are used internally by:
+
 1. **`create_project` tool**: Generates concept.md using templates
 2. **`/mdpaper.concept` prompt**: Guides concept development
 3. **`validate_concept` tool**: Checks template completeness
 4. **`/mdpaper.draft` prompt**: References protected sections
 
 這些範本由以下內部使用：
+
 1. **`create_project` 工具**：使用範本生成 concept.md
 2. **`/mdpaper.concept` 提示**：引導概念開發
 3. **`validate_concept` 工具**：檢查範本完整性
@@ -116,6 +124,7 @@ These templates are used internally by:
 ## Modifying Templates | 修改範本
 
 To customize templates:
+
 1. Edit the appropriate `.md` file
 2. Restart MCP server to apply changes
 3. New projects will use updated templates

@@ -10,23 +10,24 @@ description: |
 
 ## 適用情境
 
-| 觸發語 | 操作 |
-|--------|------|
-| 寫草稿、撰寫 section | `draft_section()` 或 `write_draft()` |
-| 看草稿、讀取 | `read_draft()` |
-| 有哪些草稿 | `list_drafts()` |
-| 加引用、插入引用 | `insert_citation()` |
-| 整理引用、生成 References | `sync_references()` |
-| 字數、word count | `count_words()` |
-| 怎麼寫這個 section | 參考下方「Section 寫作指南」 |
-| 可用引用、列出 citations | `get_available_citations()` |
-| 部分編輯、修改草稿段落 | `patch_draft()` |
+| 觸發語                    | 操作                                 |
+| ------------------------- | ------------------------------------ |
+| 寫草稿、撰寫 section      | `draft_section()` 或 `write_draft()` |
+| 看草稿、讀取              | `read_draft()`                       |
+| 有哪些草稿                | `list_drafts()`                      |
+| 加引用、插入引用          | `insert_citation()`                  |
+| 整理引用、生成 References | `sync_references()`                  |
+| 字數、word count          | `count_words()`                      |
+| 怎麼寫這個 section        | 參考下方「Section 寫作指南」         |
+| 可用引用、列出 citations  | `get_available_citations()`          |
+| 部分編輯、修改草稿段落    | `patch_draft()`                      |
 
 ---
 
 ## ⚠️ 前置條件
 
 **撰寫任何草稿前必須：**
+
 1. 確認專案已選定：`get_current_project()`
 2. 確認 concept.md 存在且包含 🔒 區塊
 3. 結構驗證通過（🔒 NOVELTY + 🔒 SELLING POINTS 不為空）
@@ -39,29 +40,30 @@ description: |
 
 ### 撰寫工具 (mdpaper)
 
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `write_draft` | `filename`, `content`, `project` | 建立/覆寫草稿檔案 |
-| `draft_section` | `topic`, `notes`, `project` | 根據筆記產出特定 section |
-| `read_draft` | `filename`, `project` | 讀取草稿結構與內容 |
-| `list_drafts` | `project` | 列出所有草稿 |
+| 工具            | 參數                             | 說明                     |
+| --------------- | -------------------------------- | ------------------------ |
+| `write_draft`   | `filename`, `content`, `project` | 建立/覆寫草稿檔案        |
+| `draft_section` | `topic`, `notes`, `project`      | 根據筆記產出特定 section |
+| `read_draft`    | `filename`, `project`            | 讀取草稿結構與內容       |
+| `list_drafts`   | `project`                        | 列出所有草稿             |
 
 ### 引用工具 (mdpaper)
 
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `insert_citation` | `filename`, `target_text`, `pmid` | 在指定位置插入引用 |
-| `sync_references` | `filename`, `project` | 掃描 [[wikilinks]] 生成 References |
-| `count_words` | `filename`, `section` | 計算字數 |
+| 工具              | 參數                              | 說明                               |
+| ----------------- | --------------------------------- | ---------------------------------- |
+| `insert_citation` | `filename`, `target_text`, `pmid` | 在指定位置插入引用                 |
+| `sync_references` | `filename`, `project`             | 掃描 [[wikilinks]] 生成 References |
+| `count_words`     | `filename`, `section`             | 計算字數                           |
 
 ### ⭐ Citation-Aware 編輯工具 (mdpaper)
 
-| 工具 | 參數 | 說明 |
-|------|------|------|
-| `get_available_citations` | `project` | ⚠️ 編輯前必呼叫！列出所有可用的 `[[citation_key]]` |
-| `patch_draft` | `filename`, `old_text`, `new_text`, `project` | 部分編輯草稿，自動驗證 wikilinks |
+| 工具                      | 參數                                          | 說明                                               |
+| ------------------------- | --------------------------------------------- | -------------------------------------------------- |
+| `get_available_citations` | `project`                                     | ⚠️ 編輯前必呼叫！列出所有可用的 `[[citation_key]]` |
+| `patch_draft`             | `filename`, `old_text`, `new_text`, `project` | 部分編輯草稿，自動驗證 wikilinks                   |
 
 **⚠️ 重要規則：**
+
 - 修改草稿中的引用時，**必須用 `patch_draft`**，不要用 `replace_string_in_file`
 - 插入新引用前，**必須先呼叫 `get_available_citations`** 確認可用的 citation keys
 - `patch_draft` 會自動拒絕不存在的引用，防止幻覺引用
@@ -106,11 +108,13 @@ Step 5: 確認字數
 ### Flow B: 插入引用
 
 **方法 1: Wikilink 格式（推薦）**
+
 ```markdown
 先前研究指出 [[greer2017_27345583]] 使用 propofol 有其限制。
 ```
 
 然後執行：
+
 ```
 sync_references(filename="drafts/introduction.md")
 → 轉換為 [1] 格式
@@ -118,6 +122,7 @@ sync_references(filename="drafts/introduction.md")
 ```
 
 **方法 2: 定點插入**
+
 ```
 insert_citation(
   filename="drafts/introduction.md",
@@ -173,6 +178,7 @@ Step 3: 同步引用
 ```
 
 **為什麼不用 `replace_string_in_file`？**
+
 - ❌ 繞過 wikilink 驗證管線
 - ❌ 可能產生幻覺引用 (不存在的 PMID)
 - ❌ 格式可能混亂 (混用 [1] 和 [[wikilink]])
@@ -182,12 +188,13 @@ Step 3: 同步引用
 
 ## 🔒 受保護內容規則
 
-| 受保護區塊 | 出現位置 | 規則 |
-|------------|----------|------|
-| 🔒 NOVELTY STATEMENT | concept.md | Introduction 必須體現 |
+| 受保護區塊            | 出現位置   | 規則                    |
+| --------------------- | ---------- | ----------------------- |
+| 🔒 NOVELTY STATEMENT  | concept.md | Introduction 必須體現   |
 | 🔒 KEY SELLING POINTS | concept.md | Discussion 必須強調全部 |
 
 **撰寫時的強制要求：**
+
 ```
 ✅ Introduction 開頭或結尾必須呼應 NOVELTY
 ✅ Discussion 必須逐條強調 SELLING POINTS
@@ -200,19 +207,23 @@ Step 3: 同步引用
 ## Section 寫作指南
 
 ### Introduction (400-600 words)
+
 **結構：Evidence Funnel (證據漏斗)**
+
 1. **Clinical Reality** - 具體數據開場（避免 "In recent years..."）
 2. **Evidence Base** - 綜合現有文獻（使用 [[wikilinks]]）
 3. **Knowledge Gap** - 明確指出不足（對應 🔒 NOVELTY）
 4. **Objective** - 本研究目的
 
 **🚫 Anti-AI 寫作規則：**
+
 - 禁止使用模糊開場（如 "With the advancement of..."）
 - 禁止每段開頭都用 "Furthermore", "Additionally"
 - 必須包含具體數字、百分比、機制描述
 - 轉折語必須具備邏輯性（如 "Despite these benefits...", "In contrast to..."）
 
 ### Methods (800-1200 words)
+
 ```
 1. Study Design - 研究設計
 2. Participants - 納入排除標準
@@ -222,6 +233,7 @@ Step 3: 同步引用
 ```
 
 ### Results (600-1000 words)
+
 ```
 1. Participants - 收案流程、基線特徵
 2. Primary Outcome - 主要結果
@@ -230,6 +242,7 @@ Step 3: 同步引用
 ```
 
 ### Discussion (1000-1500 words)
+
 ```
 1. Main Findings - 主要發現（含 🔒 SELLING POINTS）
 2. Comparison - 與現有文獻比較
@@ -239,6 +252,7 @@ Step 3: 同步引用
 ```
 
 ### Abstract (250-350 words)
+
 ```
 Structured: Background / Methods / Results / Conclusions
 Unstructured: 依期刊要求
@@ -249,12 +263,14 @@ Unstructured: 依期刊要求
 ## Wikilink 格式
 
 **正確格式：**
+
 ```
 [[author2024_12345678]]  ← 作者年份_PMID
 [[greer2017_27345583]]
 ```
 
 **會被自動修復的格式：**
+
 ```
 [[12345678]] → [[author2024_12345678]]
 [[PMID:12345678]] → [[author2024_12345678]]
@@ -265,13 +281,13 @@ Author 2024 [[12345678]] → [[author2024_12345678]]
 
 ## 常見問題
 
-| 問題 | 解法 |
-|------|------|
-| 草稿被阻擋 | 檢查 concept.md 的 🔒 區塊是否填寫 |
-| 引用找不到 | 先 `save_reference_mcp()` 儲存文獻 |
-| 字數太多 | `count_words()` 逐 section 檢查 |
-| 不知道怎麼寫 | 參考本 Skill 的「Section 寫作指南」 |
-| Wikilink 格式錯誤 | `validate_wikilinks()` 自動修復 |
+| 問題              | 解法                                |
+| ----------------- | ----------------------------------- |
+| 草稿被阻擋        | 檢查 concept.md 的 🔒 區塊是否填寫  |
+| 引用找不到        | 先 `save_reference_mcp()` 儲存文獻  |
+| 字數太多          | `count_words()` 逐 section 檢查     |
+| 不知道怎麼寫      | 參考本 Skill 的「Section 寫作指南」 |
+| Wikilink 格式錯誤 | `validate_wikilinks()` 自動修復     |
 
 ---
 

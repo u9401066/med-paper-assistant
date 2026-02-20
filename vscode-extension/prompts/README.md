@@ -8,11 +8,11 @@ Each prompt is a Markdown file that defines a workflow.
 
 ## Available Prompts
 
-| Prompt | Slash Command | Description |
-|--------|---------------|-------------|
-| `write-paper.md` | `/mcp.mdpaper.write-paper` | Complete paper writing workflow |
-| `literature-survey.md` | `/mcp.mdpaper.literature-survey` | Systematic literature survey |
-| `manuscript-revision.md` | `/mcp.mdpaper.manuscript-revision` | Respond to reviewer comments |
+| Prompt                   | Slash Command                      | Description                     |
+| ------------------------ | ---------------------------------- | ------------------------------- |
+| `write-paper.md`         | `/mcp.mdpaper.write-paper`         | Complete paper writing workflow |
+| `literature-survey.md`   | `/mcp.mdpaper.literature-survey`   | Systematic literature survey    |
+| `manuscript-revision.md` | `/mcp.mdpaper.manuscript-revision` | Respond to reviewer comments    |
 
 ## How Prompts Work
 

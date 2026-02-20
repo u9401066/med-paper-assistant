@@ -8,16 +8,16 @@
 
 ## 支援期刊
 
-| 代碼 | 期刊 | 字數 | Abstract | Refs | Figs | Tables |
-|------|------|------|----------|------|------|--------|
-| bja | British J Anaesthesia | 3500 | 250 | 40 | 6 | 5 |
-| anesthesiology | Anesthesiology | 4500 | 300 (structured) | 50 | 6 | 5 |
-| aa | Anesthesia & Analgesia | 3500 | 400 | 35 | 6 | 5 |
-| jama | JAMA | 3000 | 350 (structured) | 40 | 4 | 4 |
-| nejm | NEJM | 2500 | 250 | 40 | 4 | 4 |
-| lancet | Lancet | 3500 | 300 | 30 | 5 | 5 |
-| ccm | Critical Care Medicine | 3000 | 250 | 50 | 6 | 5 |
-| generic | Generic | 4000 | 300 | 50 | 6 | 5 |
+| 代碼           | 期刊                   | 字數 | Abstract         | Refs | Figs | Tables |
+| -------------- | ---------------------- | ---- | ---------------- | ---- | ---- | ------ |
+| bja            | British J Anaesthesia  | 3500 | 250              | 40   | 6    | 5      |
+| anesthesiology | Anesthesiology         | 4500 | 300 (structured) | 50   | 6    | 5      |
+| aa             | Anesthesia & Analgesia | 3500 | 400              | 35   | 6    | 5      |
+| jama           | JAMA                   | 3000 | 350 (structured) | 40   | 4    | 4      |
+| nejm           | NEJM                   | 2500 | 250              | 40   | 4    | 4      |
+| lancet         | Lancet                 | 3500 | 300              | 30   | 5    | 5      |
+| ccm            | Critical Care Medicine | 3000 | 250              | 50   | 6    | 5      |
+| generic        | Generic                | 4000 | 300              | 50   | 6    | 5      |
 
 所有期刊都要求：Author Contributions, COI Statement, Ethics Statement, Data Availability
 
@@ -32,6 +32,7 @@
 ---
 
 ## Highlights
+
 - 3-5 bullets, 每條 ≤125 chars
 - 第一條 = novelty/innovation, 最後一條 = clinical impact
 
@@ -39,11 +40,11 @@
 
 ## Reviewer Response
 
-| 格式 | 適用 |
-|------|------|
-| Structured（推薦）| > Comment → Response → Changes made (page/line) |
-| Table | # / Comment / Response / Changes |
-| Letter | 正式書信體 |
+| 格式               | 適用                                            |
+| ------------------ | ----------------------------------------------- |
+| Structured（推薦） | > Comment → Response → Changes made (page/line) |
+| Table              | # / Comment / Response / Changes                |
+| Letter             | 正式書信體                                      |
 
 Comment 解析：`Reviewer #N:` 分隔 reviewer，`1.` / `-` / `•` 分隔 comments。
 
@@ -54,12 +55,14 @@ Revision Change Format：Location + ~~Original~~ + **Revised** + Summary of Chan
 ## 工作流
 
 ### 投稿準備
+
 1. 確認目標期刊 → 查上方要求
 2. Cover Letter → concept.md title + novelty
 3. Highlights → 如期刊要求
 4. `check_formatting(check_submission=True)` → checklist
 
 ### Revision 回覆
+
 1. 用戶貼 reviewer comments
 2. 選格式 → 生成 template
 3. 用 revision change format 標記修改

@@ -8,13 +8,13 @@
 
 ## 工具
 
-| 階段 | Tool | 說明 |
-|------|------|------|
-| 搜尋 | `search_literature(query, limit)` | 每組關鍵字獨立搜尋 |
-| 結果 | `merge_search_results(search_indices)` | 合併 + 去重 |
-| Session | `get_session_pmids(search_index)` | 取回暫存 PMIDs |
-| Session | `list_search_history()` | 列出搜尋歷史 |
-| 儲存 | `save_reference_mcp(pmid)` | 存入專案（永遠優先） |
+| 階段    | Tool                                   | 說明                 |
+| ------- | -------------------------------------- | -------------------- |
+| 搜尋    | `search_literature(query, limit)`      | 每組關鍵字獨立搜尋   |
+| 結果    | `merge_search_results(search_indices)` | 合併 + 去重          |
+| Session | `get_session_pmids(search_index)`      | 取回暫存 PMIDs       |
+| Session | `list_search_history()`                | 列出搜尋歷史         |
+| 儲存    | `save_reference_mcp(pmid)`             | 存入專案（永遠優先） |
 
 ---
 
@@ -29,12 +29,12 @@
 
 ## 擴展策略
 
-| 類型 | 適用 | 方法 |
-|------|------|------|
-| broaden | 結果太少 | 移除限制詞、用上位概念 |
-| narrow | 結果太多 | 加 AND 條件、限制 study type |
-| lateral | 結果偏離 | 換同義詞、相關但不同角度 |
-| temporal | 需歷史脈絡 | 分年代搜尋 |
+| 類型     | 適用         | 方法                                             |
+| -------- | ------------ | ------------------------------------------------ |
+| broaden  | 結果太少     | 移除限制詞、用上位概念                           |
+| narrow   | 結果太多     | 加 AND 條件、限制 study type                     |
+| lateral  | 結果偏離     | 換同義詞、相關但不同角度                         |
+| temporal | 需歷史脈絡   | 分年代搜尋                                       |
 | citation | 找到核心文獻 | `find_related_articles` / `find_citing_articles` |
 
 ## Session 提示

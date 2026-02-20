@@ -5,16 +5,19 @@ A lightweight project management dashboard for Medical Paper Assistant, designed
 ## Features
 
 ### 📁 Project Management
+
 - View and switch between research projects
 - Display project status and metadata
 - Quick access to project directories
 
 ### 🎯 Focus Mode
+
 - Set current writing focus (Introduction, Methods, Results, Discussion)
 - Track progress across sections
 - Context switching for AI assistance
 
 ### 🎨 Diagrams Integration
+
 - List project diagrams
 - Preview diagram thumbnails
 - Integration with Draw.io MCP
@@ -58,17 +61,18 @@ dashboard/
 
 The dashboard communicates with the MCP server via HTTP API:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/projects` | GET | List all projects |
-| `/api/projects/current` | GET | Get current project |
-| `/api/projects/switch` | POST | Switch active project |
-| `/api/focus` | GET/POST | Get/set writing focus |
-| `/api/diagrams` | GET | List project diagrams |
+| Endpoint                | Method   | Description           |
+| ----------------------- | -------- | --------------------- |
+| `/api/projects`         | GET      | List all projects     |
+| `/api/projects/current` | GET      | Get current project   |
+| `/api/projects/switch`  | POST     | Switch active project |
+| `/api/focus`            | GET/POST | Get/set writing focus |
+| `/api/diagrams`         | GET      | List project diagrams |
 
 ## Environment Detection
 
 The dashboard automatically detects its runtime environment:
+
 - **VS Code Browser**: Optimized for embedded use
 - **External Browser**: Full standalone mode
 

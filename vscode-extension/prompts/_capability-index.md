@@ -20,41 +20,41 @@
 
 ### write-paper / auto-paper（全自動論文 + 閉環審計）
 
-| 項目 | 內容 |
-|------|------|
-| **Prompt File** | `mdpaper.write-paper.prompt.md` |
-| **核心 Skill** | `.claude/skills/auto-paper/SKILL.md` |
-| **觸發語** | 寫論文、寫 paper、完整流程、從頭開始寫、help me write、全自動、auto write、一鍵寫論文、autopilot |
-| **情境觸發** | 用戶提到研究主題但沒有專案存在 |
+| 項目            | 內容                                                                                                             |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Prompt File** | `mdpaper.write-paper.prompt.md`                                                                                  |
+| **核心 Skill**  | `.claude/skills/auto-paper/SKILL.md`                                                                             |
+| **觸發語**      | 寫論文、寫 paper、完整流程、從頭開始寫、help me write、全自動、auto write、一鍵寫論文、autopilot                 |
+| **情境觸發**    | 用戶提到研究主題但沒有專案存在                                                                                   |
 | **編排 Skills** | auto-paper（編排器）→ project-management → literature-review → concept-development → draft-writing → word-export |
-| **特色** | 9-Phase Pipeline + 3 層 Audit Hooks + Meta-Learning 閉環自我改進 |
+| **特色**        | 9-Phase Pipeline + 3 層 Audit Hooks + Meta-Learning 閉環自我改進                                                 |
 
 ### literature-survey（系統性文獻調查）
 
-| 項目 | 內容 |
-|------|------|
-| **Prompt File** | `mdpaper.literature-survey.prompt.md` |
-| **觸發語** | 文獻調查、系統性搜尋、找所有相關論文、comprehensive search、survey |
-| **情境觸發** | 用戶要求「找齊」「全面搜尋」「不要漏」|
-| **編排 Skills** | parallel-search → literature-review → reference-management |
+| 項目            | 內容                                                               |
+| --------------- | ------------------------------------------------------------------ |
+| **Prompt File** | `mdpaper.literature-survey.prompt.md`                              |
+| **觸發語**      | 文獻調查、系統性搜尋、找所有相關論文、comprehensive search、survey |
+| **情境觸發**    | 用戶要求「找齊」「全面搜尋」「不要漏」                             |
+| **編排 Skills** | parallel-search → literature-review → reference-management         |
 
 ### manuscript-revision（稿件修改）
 
-| 項目 | 內容 |
-|------|------|
-| **Prompt File** | `mdpaper.manuscript-revision.prompt.md` |
-| **觸發語** | 修改稿件、revision、reviewer comment、修訂、response to reviewer |
-| **情境觸發** | 用戶提到「reviewer 說」「被退稿」「major/minor revision」|
-| **編排 Skills** | draft-writing → concept-validation → word-export |
+| 項目            | 內容                                                             |
+| --------------- | ---------------------------------------------------------------- |
+| **Prompt File** | `mdpaper.manuscript-revision.prompt.md`                          |
+| **觸發語**      | 修改稿件、revision、reviewer comment、修訂、response to reviewer |
+| **情境觸發**    | 用戶提到「reviewer 說」「被退稿」「major/minor revision」        |
+| **編排 Skills** | draft-writing → concept-validation → word-export                 |
 
 ### quick-search（快速搜尋，現有）
 
-| 項目 | 內容 |
-|------|------|
-| **Prompt File** | `mdpaper.search.prompt.md` |
-| **觸發語** | 找論文、search、搜尋、PubMed |
-| **情境觸發** | 用戶詢問特定主題的文獻 |
-| **編排 Skills** | literature-review |
+| 項目            | 內容                         |
+| --------------- | ---------------------------- |
+| **Prompt File** | `mdpaper.search.prompt.md`   |
+| **觸發語**      | 找論文、search、搜尋、PubMed |
+| **情境觸發**    | 用戶詢問特定主題的文獻       |
+| **編排 Skills** | literature-review            |
 
 ---
 
@@ -62,20 +62,20 @@
 
 ### code-quality（程式碼品質檢查）
 
-| 項目 | 內容 |
-|------|------|
-| **Prompt File** | `code-quality.prompt.md` |
-| **觸發語** | 檢查程式碼、code review、品質檢查、安全檢查、有沒有 bug |
-| **情境觸發** | 用戶完成功能開發、準備 PR |
-| **編排 Skills** | code-reviewer → test-generator → ddd-architect |
+| 項目            | 內容                                                    |
+| --------------- | ------------------------------------------------------- |
+| **Prompt File** | `code-quality.prompt.md`                                |
+| **觸發語**      | 檢查程式碼、code review、品質檢查、安全檢查、有沒有 bug |
+| **情境觸發**    | 用戶完成功能開發、準備 PR                               |
+| **編排 Skills** | code-reviewer → test-generator → ddd-architect          |
 
 ### release-prep（發布準備）
 
-| 項目 | 內容 |
-|------|------|
-| **Prompt File** | `release-prep.prompt.md` |
-| **觸發語** | 準備發布、release、版本發布、上線前 |
-| **情境觸發** | 用戶說「做完了」「可以上線」|
+| 項目            | 內容                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------ |
+| **Prompt File** | `release-prep.prompt.md`                                                             |
+| **觸發語**      | 準備發布、release、版本發布、上線前                                                  |
+| **情境觸發**    | 用戶說「做完了」「可以上線」                                                         |
 | **編排 Skills** | code-reviewer → changelog-updater → readme-updater → roadmap-updater → git-precommit |
 
 ---
@@ -86,9 +86,9 @@
 
 ### 雙重 Hook 架構
 
-| Hook 類型 | 定義位置 | 觸發時機 | 使用 MCP Tools |
-|-----------|----------|----------|----------------|
-| **Copilot Hooks** (A-D) | `.claude/skills/auto-paper/SKILL.md` | 寫作過程中 | mdpaper: `patch_draft`, `count_words`, `validate_wikilinks`, `read_draft` |
+| Hook 類型                    | 定義位置                                | 觸發時機        | 使用 MCP Tools                                                                        |
+| ---------------------------- | --------------------------------------- | --------------- | ------------------------------------------------------------------------------------- |
+| **Copilot Hooks** (A-D)      | `.claude/skills/auto-paper/SKILL.md`    | 寫作過程中      | mdpaper: `patch_draft`, `count_words`, `validate_wikilinks`, `read_draft`             |
 | **Pre-Commit Hooks** (P1-P7) | `.claude/skills/git-precommit/SKILL.md` | `git commit` 前 | mdpaper: `scan_draft_citations`, `read_draft`, `count_words`, `list_saved_references` |
 
 ### Hook ↔ Skill ↔ MCP 關係
@@ -132,7 +132,7 @@ Agent：
 Agent：
   「您想要進行哪個步驟？
    1. 📚 文獻搜尋 → /mdpaper.search
-   2. 📝 發展概念 → /mdpaper.concept  
+   2. 📝 發展概念 → /mdpaper.concept
    3. ✍️ 撰寫草稿 → /mdpaper.draft
    4. 🚀 完整流程 → /mdpaper.write-paper」
 ```
@@ -174,6 +174,7 @@ MCP Tool (底層能力)
 ## 🔄 更新此索引
 
 當新增 Capability 時：
+
 1. 在此檔案新增條目
 2. 建立對應的 Prompt File
 3. 確保觸發語不與現有衝突

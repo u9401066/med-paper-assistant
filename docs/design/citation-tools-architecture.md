@@ -3,6 +3,7 @@
 ## 目標
 
 建立完整的引用管理系統，支援：
+
 1. 儲存參考文獻（Foam 整合）
 2. 在草稿中插入/管理引用
 3. 智慧引用建議（為某句話找文獻）
@@ -26,15 +27,15 @@ references/
 ---
 # ========== Foam 連結 ==========
 aliases:
-  - greer2017_27345583      # 主要引用 key
-  - "PMID:27345583"         # PMID 格式
-  - "27345583"              # 純數字
+  - greer2017_27345583 # 主要引用 key
+  - "PMID:27345583" # PMID 格式
+  - "27345583" # 純數字
 type: reference
 
 # ========== 書目資訊 ==========
 pmid: "27345583"
 doi: "10.1002/lary.26134"
-pmc: null                   # PMC ID (如果有)
+pmc: null # PMC ID (如果有)
 year: 2017
 title: "Review of videolaryngoscopy pharyngeal wall injuries"
 
@@ -42,8 +43,8 @@ title: "Review of videolaryngoscopy pharyngeal wall injuries"
 authors: ["Greer D", "Marshall KE", "Bevans S"]
 first_author: "Greer"
 authors_full:
-  - {last: "Greer", first: "Devon", initials: "D"}
-  - {last: "Marshall", first: "Kathryn E", initials: "KE"}
+  - { last: "Greer", first: "Devon", initials: "D" }
+  - { last: "Marshall", first: "Kathryn E", initials: "KE" }
 
 # ========== 期刊 ==========
 journal: "The Laryngoscope"
@@ -58,16 +59,16 @@ cite:
   apa: "Greer, D., Marshall, K. E., et al. (2017). Review... *The Laryngoscope*, *127*(2), 349-353."
   nature: "Greer D, et al. *Laryngoscope* **127**, 349-353 (2017)."
   inline: "(Greer et al., 2017)"
-  number: null              # 待分配的數字編號
+  number: null # 待分配的數字編號
 
 # ========== 語意搜尋索引 ==========
 keywords: ["GlideScope", "Laryngoscopy", "injury"]
 mesh_terms: ["Intubation, Intratracheal", "Laryngoscopy"]
-abstract_embedding: null    # 未來：向量嵌入
+abstract_embedding: null # 未來：向量嵌入
 
 # ========== 元資料 ==========
 saved_at: "2025-12-17T18:40:00"
-source: pubmed              # pubmed | zotero | doi | manual
+source: pubmed # pubmed | zotero | doi | manual
 has_pdf: false
 pdf_path: null
 ---
@@ -75,13 +76,13 @@ pdf_path: null
 
 ### 為什麼用 YAML 而不是 JSON？
 
-| 特性 | YAML in Frontmatter | 獨立 JSON |
-|------|---------------------|-----------|
-| Foam 相容 | ✅ 原生支援 | ❌ 需要額外處理 |
-| 人類可讀 | ✅ 易讀易改 | ⚠️ 較難閱讀 |
-| 程式解析 | ✅ 標準格式 | ✅ 標準格式 |
-| 版本控制 | ✅ 差異易讀 | ⚠️ 差異較亂 |
-| IDE 支援 | ✅ 語法高亮 | ✅ 語法高亮 |
+| 特性      | YAML in Frontmatter | 獨立 JSON       |
+| --------- | ------------------- | --------------- |
+| Foam 相容 | ✅ 原生支援         | ❌ 需要額外處理 |
+| 人類可讀  | ✅ 易讀易改         | ⚠️ 較難閱讀     |
+| 程式解析  | ✅ 標準格式         | ✅ 標準格式     |
+| 版本控制  | ✅ 差異易讀         | ⚠️ 差異較亂     |
+| IDE 支援  | ✅ 語法高亮         | ✅ 語法高亮     |
 
 ---
 
@@ -228,7 +229,7 @@ def auto_cite_draft(
 #### `verify_citations` - 驗證引用 🔥
 
 ```python
-@mcp.tool()  
+@mcp.tool()
 def verify_citations(filename: str) -> str:
     """
     驗證草稿中的引用是否真的支持相關聲明。
@@ -281,21 +282,25 @@ def format_reference_list(
 ## 3. 實作優先順序
 
 ### Phase 1: 基礎設施 (現在)
+
 - [x] save_reference - 儲存參考文獻
 - [ ] **重構檔案結構** - 單一 .md 檔案 + 豐富 frontmatter
 - [ ] insert_citation - 基本插入
 
 ### Phase 2: 引用管理 (近期)
+
 - [ ] list_citations_in_draft
-- [ ] update_citation_numbers  
+- [ ] update_citation_numbers
 - [ ] format_reference_list
 
 ### Phase 3: 智慧引用 (未來)
+
 - [ ] find_citation_for_claim (需要語意搜尋)
 - [ ] auto_cite_draft
 - [ ] verify_citations
 
 ### Phase 4: 進階功能 (遠期)
+
 - [ ] 向量嵌入 (abstract embedding)
 - [ ] 跨文獻知識圖譜
 - [ ] AI 輔助引用建議
@@ -308,12 +313,12 @@ def format_reference_list(
 
 支援多種格式，自動轉換：
 
-| 格式 | 範例 | 說明 |
-|------|------|------|
+| 格式          | 範例                     | 說明              |
+| ------------- | ------------------------ | ----------------- |
 | Foam wikilink | `[[greer2017_27345583]]` | 最推薦，Foam 原生 |
-| PMID 標記 | `[PMID:27345583]` | 匯出時轉換 |
-| 數字編號 | `[1]` | 最終輸出格式 |
-| 行內引用 | `(Greer et al., 2017)` | Author-year style |
+| PMID 標記     | `[PMID:27345583]`        | 匯出時轉換        |
+| 數字編號      | `[1]`                    | 最終輸出格式      |
+| 行內引用      | `(Greer et al., 2017)`   | Author-year style |
 
 ### 轉換流程
 
@@ -333,22 +338,19 @@ Export Phase:
 
 ### Foam 功能利用
 
-| Foam 功能 | 用途 |
-|-----------|------|
-| `[[wikilinks]]` | 引用連結 |
-| Hover preview | 快速查看文獻 |
-| Backlinks | 查看哪些草稿引用了某文獻 |
-| Graph view | 視覺化引用網絡 |
-| Daily notes | 研究日誌 |
+| Foam 功能       | 用途                     |
+| --------------- | ------------------------ |
+| `[[wikilinks]]` | 引用連結                 |
+| Hover preview   | 快速查看文獻             |
+| Backlinks       | 查看哪些草稿引用了某文獻 |
+| Graph view      | 視覺化引用網絡           |
+| Daily notes     | 研究日誌                 |
 
 ### 設定建議 (.vscode/settings.json)
 
 ```json
 {
-  "foam.files.ignore": [
-    "**/node_modules/**",
-    "**/.git/**"
-  ],
+  "foam.files.ignore": ["**/node_modules/**", "**/.git/**"],
   "foam.graph.style": {
     "reference": {
       "color": "#4CAF50",

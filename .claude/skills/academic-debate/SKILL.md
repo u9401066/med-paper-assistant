@@ -26,6 +26,7 @@ SR/Meta > RCT > Cohort > Case-Control > Cross-Sectional > Case Series > Expert O
 ## Framework 2: Devil's Advocate（魔鬼代言人）
 
 系統性挑戰一個研究主張。5 面向：
+
 1. **Methodological** — 研究類型對應偏誤（見下方）
 2. **Statistical** — multiple comparisons, effect size, CI width, missing data, power
 3. **Generalizability** — population, setting, timeframe, intervention fidelity
@@ -45,19 +46,20 @@ Evidence Base, Theoretical Foundation, Clinical Applicability, Patient Safety, C
 
 ## Study-Type-Specific Biases
 
-| Type | Key Biases |
-|------|-----------|
-| RCT | Selection, performance, detection, attrition, reporting |
-| Cohort | Selection, confounding, information, loss to follow-up, healthy worker |
-| Case-Control | Recall, selection (controls), confounding, misclassification, temporal ambiguity |
-| Cross-Sectional | No temporality, prevalence-incidence, non-response, information |
-| Retrospective | Information (records), survivorship, confounding, missing data |
+| Type            | Key Biases                                                                       |
+| --------------- | -------------------------------------------------------------------------------- |
+| RCT             | Selection, performance, detection, attrition, reporting                          |
+| Cohort          | Selection, confounding, information, loss to follow-up, healthy worker           |
+| Case-Control    | Recall, selection (controls), confounding, misclassification, temporal ambiguity |
+| Cross-Sectional | No temporality, prevalence-incidence, non-response, information                  |
+| Retrospective   | Information (records), survivorship, confounding, missing data                   |
 
 Auto-detect：randomized/RCT=RCT, cohort/prospective=Cohort, case-control/odds=Case-Control, cross-sectional/prevalence=Cross-Sectional, retrospective/chart=Retrospective
 
 ---
 
 ## 使用原則
+
 1. 基於證據，引用已存文獻
 2. 平衡呈現雙方
 3. 偏誤分析對應正確研究類型

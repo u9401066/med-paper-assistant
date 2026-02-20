@@ -4,12 +4,12 @@
 
 ## 觸發條件
 
-| 用戶說法 | 觸發 |
-|----------|------|
-| 匯出 Word、export、輸出 | ✅ |
-| template、模板 | ✅ |
-| word count、字數 | ✅ |
-| 轉成 docx | ✅ |
+| 用戶說法                | 觸發 |
+| ----------------------- | ---- |
+| 匯出 Word、export、輸出 | ✅   |
+| template、模板          | ✅   |
+| word count、字數        | ✅   |
+| 轉成 docx               | ✅   |
 
 ---
 
@@ -47,11 +47,13 @@ graph TD
 **參數**：無
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_list_templates()
 ```
 
 **回應格式**：
+
 ```
 📄 **Available Templates**
 
@@ -67,16 +69,19 @@ mcp_mdpaper_list_templates()
 **用途**：讀取模板結構，了解有哪些章節和字數限制
 
 **參數**：
+
 ```
 template_name: str  # 模板檔名（必填）
 ```
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_read_template(template_name="Type of the Paper.docx")
 ```
 
 **回應包含**：
+
 - 章節列表和順序
 - 每個章節的字數限制
 - 樣式名稱
@@ -91,12 +96,14 @@ mcp_mdpaper_read_template(template_name="Type of the Paper.docx")
 **用途**：開啟文件編輯 session
 
 **參數**：
+
 ```
 template_name: str  # 模板檔名（必填）
 session_id: str     # Session 識別碼（預設 "default"）
 ```
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_start_document_session(
     template_name="Type of the Paper.docx",
@@ -105,6 +112,7 @@ mcp_mdpaper_start_document_session(
 ```
 
 **回應**：
+
 ```
 ✅ Document session 'my_paper_v1' started with template: Type of the Paper.docx
 
@@ -118,6 +126,7 @@ mcp_mdpaper_start_document_session(
 **用途**：將內容插入文件的特定章節
 
 **參數**：
+
 ```
 session_id: str     # Session 識別碼（必填）
 section_name: str   # 章節名稱（必填，如 "Introduction"）
@@ -126,6 +135,7 @@ mode: str           # "replace" 或 "append"（預設 "replace"）
 ```
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_insert_section(
     session_id="my_paper_v1",
@@ -136,12 +146,14 @@ mcp_mdpaper_insert_section(
 ```
 
 **回應**：
+
 ```
 ✅ Inserted 5 paragraphs into 'Introduction' (450 words)
 🔧 自動修復 2 個 wikilink 格式錯誤
 ```
 
 **⚠️ 自動修復功能**：
+
 - 自動修復 wikilink 格式問題
 - 如果有無法修復的問題會警告
 
@@ -152,16 +164,19 @@ mcp_mdpaper_insert_section(
 **用途**：驗證文件目前狀態
 
 **參數**：
+
 ```
 session_id: str  # Session 識別碼（必填）
 ```
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_verify_document(session_id="my_paper_v1")
 ```
 
 **回應格式**：
+
 ```
 📊 **Document Verification: Type of the Paper.docx**
 
@@ -186,17 +201,20 @@ mcp_mdpaper_verify_document(session_id="my_paper_v1")
 **用途**：檢查各章節是否符合字數限制
 
 **參數**：
+
 ```
 session_id: str     # Session 識別碼（必填）
 limits_json: str    # 自訂字數限制（選填，JSON 格式）
 ```
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_check_word_limits(session_id="my_paper_v1")
 ```
 
 **自訂限制範例**：
+
 ```python
 mcp_mdpaper_check_word_limits(
     session_id="my_paper_v1",
@@ -205,6 +223,7 @@ mcp_mdpaper_check_word_limits(
 ```
 
 **回應格式**：
+
 ```
 📏 **Word Limit Check**
 
@@ -234,12 +253,14 @@ mcp_mdpaper_check_word_limits(
 **用途**：儲存文件並關閉 session
 
 **參數**：
+
 ```
 session_id: str       # Session 識別碼（必填）
 output_filename: str  # 輸出檔案路徑（必填）
 ```
 
 **呼叫範例**：
+
 ```python
 mcp_mdpaper_save_document(
     session_id="my_paper_v1",
@@ -248,6 +269,7 @@ mcp_mdpaper_save_document(
 ```
 
 **回應**：
+
 ```
 ✅ Document saved successfully to: /path/to/output/my_paper_2025-01-15.docx
 
@@ -261,6 +283,7 @@ Session 'my_paper_v1' closed.
 **用途**：簡易匯出（舊版，不建議使用）
 
 **參數**：
+
 ```
 draft_filename: str    # 草稿檔案路徑
 template_name: str     # 模板名稱
@@ -320,6 +343,7 @@ mcp_mdpaper_save_document(
 ### Q: 字數超過限制怎麼辦？
 
 A:
+
 1. 呼叫 `check_word_limits` 找出超標章節
 2. 修改草稿內容
 3. 用 `insert_section` 重新插入（mode="replace"）
@@ -328,6 +352,7 @@ A:
 ### Q: 模板裡沒有我要的章節？
 
 A:
+
 1. 使用 `read_template` 確認可用章節
 2. 選擇最接近的章節名稱
 3. 或使用 `export_word` 直接匯出整份草稿
@@ -335,6 +360,7 @@ A:
 ### Q: Session 中斷怎麼辦？
 
 A: Session 存在記憶體中，如果 MCP server 重啟會遺失。建議：
+
 1. 分批處理，每次處理幾個章節後就 `save_document`
 2. 如果失敗，重新 `start_document_session`
 
@@ -346,11 +372,11 @@ A: `insert_section` 會自動修復常見的 wikilink 格式問題（如 `[[PMID
 
 ## 與其他 Skills 的關係
 
-| 相關 Skill | 關係 |
-|------------|------|
-| draft-writing | 先寫好草稿再匯出 |
-| concept-validation | 匯出前確保 concept 通過驗證 |
-| reference-management | 確保引用文獻都已儲存 |
+| 相關 Skill           | 關係                        |
+| -------------------- | --------------------------- |
+| draft-writing        | 先寫好草稿再匯出            |
+| concept-validation   | 匯出前確保 concept 通過驗證 |
+| reference-management | 確保引用文獻都已儲存        |
 
 ---
 

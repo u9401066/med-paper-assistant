@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - **Placeholder Tools Implementation (Phase 8)** ✅
   - 9 個佔位工具升級為完整實作（74→83 tools）
   - Analysis: `analyze_dataset`, `detect_variable_types`, `list_data_files`, `create_plot`, `run_statistical_test`, `generate_table_one`
@@ -76,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 新增 Phase 3.5: 學術品質保證系統
 
 ### Changed
+
 - **Novelty Check 改為 Advisory（不阻擋）**
   - `writing.py`: `_enforce_concept_validation()` 改為建議性質
   - 用戶可選擇：直接寫 / 修正問題 / 用 CGU 發想
@@ -89,10 +91,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 消除 `PydanticDeprecatedSince20` 警告
 
 ### Fixed
+
 - **wikilink_validator.py**: 移除未使用的 `match.group(1)` 呼叫
 - **list_drafts / read_draft**: 路徑解析改用 `_get_drafts_dir()` 取得專案路徑，與 `patch_draft` 一致
 
 ### Documentation
+
 - **AGENTS.md**: 新增 Novelty Check 規則和 CGU 整合
 - **copilot-instructions.md**: 新增犀利回饋做法
 - **pubmed-search-mcp ROADMAP.md**: 新增 Phase 5.5 搜尋紀錄驗證機制
@@ -102,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.2] - 2025-12-18 (Previous)
 
 ### Added
+
 - **完整靜態分析工具鏈**
   - Ruff linter/formatter: 修復 1839 個錯誤
   - Mypy 類型檢查: 修復 49 個類型錯誤
@@ -117,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 完整執行流程說明
 
 ### Changed
+
 - **代碼品質改進**
   - 所有 `import *` 改為明確導入
   - 所有 `except:` 改為 `except Exception:`
@@ -125,6 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pyproject.toml** - 新增 dev 依賴: `bandit>=1.9.2`, `vulture>=2.14`
 
 ### Fixed
+
 - **類型錯誤修復**
   - `concept_validator.py`: 修正 `result` 變數衝突
   - `project_context.py`: 使用 `get_project_info()` 替代 `get_current_project()`
@@ -136,6 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.1] - 2025-12-18 (靜態分析大掃除)
 
 ### Added
+
 - **MCP-to-MCP Direct Communication Architecture** ✅ 已實作
   - pubmed-search 新增 HTTP API endpoints:
     - `GET /api/cached_article/{pmid}` - 取得單一文章
@@ -161,6 +169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 所有 skill 明確標示 `save_reference_mcp` 為 PRIMARY 方法
 
 ### Changed
+
 - **Reference 內容順序優化** - Abstract 移到 Citation Formats 之前
   - Foam hover preview 現在優先顯示 Abstract（更實用）
 - **Foam settings 更新** - `foam.files.ignore` 改為 `foam.files.exclude`
@@ -188,6 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `from_standardized()` 類別方法
 
 ### Changed
+
 - **授權變更** - 從 MIT 改為 Apache License 2.0
 - **日誌位置遷移** - 從系統 temp 目錄改為專案目錄 `logs/`
 - **README.md** - 新增 MCP 協調架構說明、更新工具列表
@@ -196,16 +206,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **copilot-instructions.md** - 簡化為參照 AGENTS.md，避免重複
 
 ### Fixed
+
 - **save_reference JSON 解析** - 處理 MCP 傳遞 JSON 字串的情況
   - 新增 `Union[dict, str]` 型別支援
   - 自動偵測並解析 JSON 字串輸入
 
 ### Deprecated
+
 - `save_reference_by_pmid` - 改用 `save_reference(article=metadata)`
 
 ## [0.2.0] - 2025-12-17
 
 ### Added
+
 - MCP 解耦架構：mdpaper 不再直接依賴 pubmed-search
 - 多 MCP 協調模式：Agent 協調 mdpaper + pubmed-search + drawio
 - 文獻探索工作區：`start_exploration()` / `convert_exploration_to_project()`
@@ -213,11 +226,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Paper type 支援：original-research, systematic-review, meta-analysis 等
 
 ### Changed
+
 - Python 版本需求升級至 3.11+
 - ReferenceManager 重構：接受 article metadata dict 而非 PMID
 - 專案結構採用 DDD (Domain-Driven Design)
 
 ### Removed
+
 - `infrastructure/external/entrez/` - 文獻搜尋移至 pubmed-search MCP
 - `infrastructure/external/pubmed/` - 同上
 - `services/strategy_manager.py` - 搜尋策略移至 pubmed-search MCP
@@ -226,13 +241,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-12-01
 
 ### Added
+
 - 初始版本
 - MCP Server 框架 (FastMCP)
 - 46 個 MCP 工具
 - Word 匯出功能
 - 參考文獻管理
 - 草稿撰寫流程
-
 
 [0.2.0]: https://github.com/u9401066/med-paper-assistant/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/u9401066/med-paper-assistant/releases/tag/v0.1.0

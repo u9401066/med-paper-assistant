@@ -1,6 +1,7 @@
 # 🗺️ MedPaper Assistant Roadmap
 
 ## Vision
+
 成為醫學研究人員從文獻探索到論文發表的完整 AI 輔助平台。
 **支援多個論文專案並行管理，確保每篇論文都達到頂尖期刊標準。**
 
@@ -32,6 +33,7 @@
 ```
 
 > **架構方向決策（2026-01）**：選擇 **Direction C — Full VSX + Foam + Pandoc**
+>
 > - VS Code Extension 升級為完整 TreeView / CodeLens / Diagnostics
 > - 保留 Foam 做文獻知識圖譜
 > - 新增 Pandoc 支援 LaTeX + Word 雙輸出
@@ -41,56 +43,60 @@
 ## ✅ 已完成 (Completed)
 
 ### Phase 1: Core Features (2025-10)
-| Feature | Description |
-|---------|-------------|
+
+| Feature            | Description              |
+| ------------------ | ------------------------ |
 | PubMed Integration | 搜尋、下載、參考文獻管理 |
-| Draft Generation | 智慧草稿生成、引用插入 |
-| Word Export | 匯出符合期刊格式的 .docx |
-| Data Analysis | 統計分析、Table 1 生成 |
+| Draft Generation   | 智慧草稿生成、引用插入   |
+| Word Export        | 匯出符合期刊格式的 .docx |
+| Data Analysis      | 統計分析、Table 1 生成   |
 
 ### Phase 2: Advanced Features (2025-11 ~ 2025-12)
-| Feature | Description |
-|---------|-------------|
-| Multi-Project | 多專案管理、Exploration 模式 |
-| Novelty Validation | 研究概念原創性驗證 |
-| Draw.io Integration | CONSORT/PRISMA 流程圖 |
-| Skills System | AI 工作流程引導 (.skills/) |
-| Parallel Search | 並行搜尋、策略整合 |
-| Dashboard | 專案管理 UI |
-| pubmed-search-mcp | 獨立 PubMed MCP 伺服器 |
+
+| Feature             | Description                  |
+| ------------------- | ---------------------------- |
+| Multi-Project       | 多專案管理、Exploration 模式 |
+| Novelty Validation  | 研究概念原創性驗證           |
+| Draw.io Integration | CONSORT/PRISMA 流程圖        |
+| Skills System       | AI 工作流程引導 (.skills/)   |
+| Parallel Search     | 並行搜尋、策略整合           |
+| Dashboard           | 專案管理 UI                  |
+| pubmed-search-mcp   | 獨立 PubMed MCP 伺服器       |
 
 ### Phase 3: Knowledge Management (2025-12 ~ 2026-01)
-| Feature | Description |
-|---------|-------------|
-| Foam Integration | Wikilinks、Hover Preview、Backlinks |
-| MCP-to-MCP Communication | 分層信任、資料完整性保證 |
-| Project Memory | `.memory/` 專案記憶系統 |
-| **Three Reviewers Model** | Novelty 三位審稿人驗證模型 |
-| **Anti-AI Writing Logic** | 去 AI 味、證據漏斗結構 |
-| **uv Toolchain** | 全專案標準化 uv 套件管理 |
-| **Citation Assistant** ✨ | 智慧引用助手 - 選段落找引用 |
-| **CRUD 盤點完成** ✅ | 52 工具盤點，識別 Delete 操作缺口 |
-| **Tool Description 精簡** ✅ | 71 工具 docstring 精簡，-77% token |
-| **Python 3.12 遷移** ✅ | UV 管理、pyproject.toml 更新 |
+
+| Feature                      | Description                         |
+| ---------------------------- | ----------------------------------- |
+| Foam Integration             | Wikilinks、Hover Preview、Backlinks |
+| MCP-to-MCP Communication     | 分層信任、資料完整性保證            |
+| Project Memory               | `.memory/` 專案記憶系統             |
+| **Three Reviewers Model**    | Novelty 三位審稿人驗證模型          |
+| **Anti-AI Writing Logic**    | 去 AI 味、證據漏斗結構              |
+| **uv Toolchain**             | 全專案標準化 uv 套件管理            |
+| **Citation Assistant** ✨    | 智慧引用助手 - 選段落找引用         |
+| **CRUD 盤點完成** ✅         | 52 工具盤點，識別 Delete 操作缺口   |
+| **Tool Description 精簡** ✅ | 71 工具 docstring 精簡，-77% token  |
+| **Python 3.12 遷移** ✅      | UV 管理、pyproject.toml 更新        |
 
 ### Phase 3.5: Infrastructure & Quality Cleanup (2026-01) 🆕
 
 > **大整理：從混亂到規範化**
 
-| Feature | Description |
-|---------|-------------|
-| **Pre-commit Hooks** ✅ | 13 hooks（ruff, mypy, bandit, pytest, whitespace…）全部通過 |
-| **DDD Import 遷移** ✅ | 全部 19 個測試檔從 `core.*` 遷移到 DDD 路徑 |
-| **Test Isolation** ✅ | 所有測試改用 `tmp_path` fixture，不再污染專案根目錄 |
-| **ARCHITECTURE.md 重寫** ✅ | 從 448 行過時文檔重寫為 ~240 行精確 DDD 架構文檔 |
-| **Legacy Cleanup** ✅ | 刪除空的 `core/` 目錄、多餘腳本、散落檔案 |
-| **Copilot Hook 修復** ✅ | AGENTS.md 補齊 7 skills + 8 prompts，修正 capability index |
-| **Coverage Baseline** ✅ | 17 passed / 1 skipped / 26 integration-deselected（27% 覆蓋率基線） |
-| **架構方向決策** ✅ | 選定 **Direction C: Full VSX + Foam + Pandoc** |
-| **Citation-Aware Editing** ✅ | Layer 1 `get_available_citations` + Layer 2 `patch_draft` — 解決 Agent 繞過驗證管線的引用正確性問題 |
-| **Pydantic V2 遷移** ✅ | `SearchCriteria` 從 `class Config` 遷移至 `model_config = ConfigDict` |
-| **Code Review Clean** ✅ | unused variable 修復、路徑一致性修正、32 passed / 1 skipped |
-| **Tool Consolidation (Phase 8→10)** ✅ | 74→83（佔位工具實作）→76（模板轉Skill）→**53**（6策略精簡 -30%）|
+| Feature                                | Description                                                                                         |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Pre-commit Hooks** ✅                | 13 hooks（ruff, mypy, bandit, pytest, whitespace…）全部通過                                         |
+| **DDD Import 遷移** ✅                 | 全部 19 個測試檔從 `core.*` 遷移到 DDD 路徑                                                         |
+| **Test Isolation** ✅                  | 所有測試改用 `tmp_path` fixture，不再污染專案根目錄                                                 |
+| **ARCHITECTURE.md 重寫** ✅            | 從 448 行過時文檔重寫為 ~240 行精確 DDD 架構文檔                                                    |
+| **Legacy Cleanup** ✅                  | 刪除空的 `core/` 目錄、多餘腳本、散落檔案                                                           |
+| **Copilot Hook 修復** ✅               | AGENTS.md 補齊 7 skills + 8 prompts，修正 capability index                                          |
+| **Coverage Baseline** ✅               | 17 passed / 1 skipped / 26 integration-deselected（27% 覆蓋率基線）                                 |
+| **架構方向決策** ✅                    | 選定 **Direction C: Full VSX + Foam + Pandoc**                                                      |
+| **Citation-Aware Editing** ✅          | Layer 1 `get_available_citations` + Layer 2 `patch_draft` — 解決 Agent 繞過驗證管線的引用正確性問題 |
+| **Pydantic V2 遷移** ✅                | `SearchCriteria` 從 `class Config` 遷移至 `model_config = ConfigDict`                               |
+| **Code Review Clean** ✅               | unused variable 修復、路徑一致性修正、32 passed / 1 skipped                                         |
+| **Tool Consolidation (Phase 8→10)** ✅ | 74→83（佔位工具實作）→76（模板轉Skill）→**53**（6策略精簡 -30%）                                    |
+
 ---
 
 ## 🚨 已知問題 (Known Issues) - 已大幅改善
@@ -99,35 +105,35 @@
 
 ### Issue #1: 驗證機制不穩定 ⭐⭐⭐ (優先級下調)
 
-| 問題 | 說明 | 狀態 |
-|------|------|------|
-| **現象** | Agent 不會主動去 PubMed 搜尋驗證聲稱的事實 | ⏳ 進行中 |
-| **改善** | AGENTS.md 已強化「犀利回饋」規則，要求 Agent 質疑無證據的聲稱 | ✅ |
+| 問題     | 說明                                                          | 狀態      |
+| -------- | ------------------------------------------------------------- | --------- |
+| **現象** | Agent 不會主動去 PubMed 搜尋驗證聲稱的事實                    | ⏳ 進行中 |
+| **改善** | AGENTS.md 已強化「犀利回饋」規則，要求 Agent 質疑無證據的聲稱 | ✅        |
 
 ### Issue #2: Novelty 確認機制 ~~仍在開發~~ ✅ 已改善
 
-| 問題 | 說明 | 狀態 |
-|------|------|------|
-| **現象** | ~~`validate_concept` 評分不穩定~~ | ✅ 已改善 |
-| **改善** | **三位審稿人模型** - Skeptic / Methodologist / Clinical Expert 獨立評分 | ✅ |
-| **改善** | 強化 CGU 整合，建議使用 `deep_think` 進行壓力測試 | ✅ |
+| 問題     | 說明                                                                    | 狀態      |
+| -------- | ----------------------------------------------------------------------- | --------- |
+| **現象** | ~~`validate_concept` 評分不穩定~~                                       | ✅ 已改善 |
+| **改善** | **三位審稿人模型** - Skeptic / Methodologist / Clinical Expert 獨立評分 | ✅        |
+| **改善** | 強化 CGU 整合，建議使用 `deep_think` 進行壓力測試                       | ✅        |
 
 ### Issue #3: AI 建議無法達到學術標準 ✅ 已改善
 
-| 問題 | 說明 | 狀態 |
-|------|------|------|
-| **現象** | ~~AI 給的寫作建議過於籠統~~ | ✅ 已改善 |
-| **改善** | **Anti-AI Writing Rules** - 禁止陳腔濫調 | ✅ |
-| **改善** | **Evidence Funnel** - 強制引用具體數據 | ✅ |
-| **改善** | `draft_section` 自動注入已存文獻的摘要作為背景 | ✅ |
+| 問題     | 說明                                           | 狀態      |
+| -------- | ---------------------------------------------- | --------- |
+| **現象** | ~~AI 給的寫作建議過於籠統~~                    | ✅ 已改善 |
+| **改善** | **Anti-AI Writing Rules** - 禁止陳腔濫調       | ✅        |
+| **改善** | **Evidence Funnel** - 強制引用具體數據         | ✅        |
+| **改善** | `draft_section` 自動注入已存文獻的摘要作為背景 | ✅        |
 
 ### Issue #4: 跨 MCP 協調不一致 ⭐⭐ (優先級下調)
 
-| 問題 | 說明 | 狀態 |
-|------|------|------|
-| **現象** | 資料流不一致 | ⏳ 部分改善 |
-| **改善** | `save_reference_mcp` 實作 MCP-to-MCP 直接通訊 | ✅ |
-| **待做** | `verify_search` HTTP API 讓 mdpaper 驗證搜尋來源 | 📋 |
+| 問題     | 說明                                             | 狀態        |
+| -------- | ------------------------------------------------ | ----------- |
+| **現象** | 資料流不一致                                     | ⏳ 部分改善 |
+| **改善** | `save_reference_mcp` 實作 MCP-to-MCP 直接通訊    | ✅          |
+| **待做** | `verify_search` HTTP API 讓 mdpaper 驗證搜尋來源 | 📋          |
 
 ---
 
@@ -154,14 +160,15 @@
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-| 功能 | 說明 | 狀態 |
-|------|------|------|
-| 自動偵測變數類型 | `detect_variable_types` | ✅ |
-| 分組比較 | t-test / Mann-Whitney / Chi-square / Fisher's | ✅ |
-| 格式化輸出 | Markdown Table 格式 | ✅ |
-| 統計報告 | p 值、mean±SD | ✅ |
+| 功能             | 說明                                          | 狀態 |
+| ---------------- | --------------------------------------------- | ---- |
+| 自動偵測變數類型 | `detect_variable_types`                       | ✅   |
+| 分組比較         | t-test / Mann-Whitney / Chi-square / Fisher's | ✅   |
+| 格式化輸出       | Markdown Table 格式                           | ✅   |
+| 統計報告         | p 值、mean±SD                                 | ✅   |
 
 **新增工具**：
+
 - `generate_table_one` - 主要工具
 - `detect_variable_types` - 資料檢視
 - `list_data_files` - 檔案列表
@@ -187,6 +194,7 @@
 ```
 
 **新增工具**：
+
 - `check_manuscript_consistency` - 稿件一致性檢查
 
 ### 4.3 Reviewer Response 生成器 ⭐⭐⭐⭐ ✅ 已完成
@@ -208,20 +216,22 @@
 ```
 
 **新增工具**：
+
 - `create_reviewer_response` - 回覆模板生成
 - `format_revision_changes` - 修改差異格式化
 
 ### 4.4 投稿準備清單 ✅ 已完成（部分轉為 Skill）
 
-| 工具 | 功能 | 狀態 |
-|------|------|------|
-| `generate_cover_letter` | 根據 concept + target journal 生成 Cover Letter | ✅ → Skill |
-| `check_submission_checklist` | 期刊投稿清單檢查 (word count, figure format...) | ✅ → `check_formatting` |
-| `list_supported_journals` | 列出支援的期刊及其要求 | ✅ → Skill |
-| `generate_highlights` | 生成 3-5 bullet points highlights | ✅ → Skill |
-| `generate_graphical_abstract` | Draw.io 視覺摘要模板 | 📋 |
+| 工具                          | 功能                                            | 狀態                    |
+| ----------------------------- | ----------------------------------------------- | ----------------------- |
+| `generate_cover_letter`       | 根據 concept + target journal 生成 Cover Letter | ✅ → Skill              |
+| `check_submission_checklist`  | 期刊投稿清單檢查 (word count, figure format...) | ✅ → `check_formatting` |
+| `list_supported_journals`     | 列出支援的期刊及其要求                          | ✅ → Skill              |
+| `generate_highlights`         | 生成 3-5 bullet points highlights               | ✅ → Skill              |
+| `generate_graphical_abstract` | Draw.io 視覺摘要模板                            | 📋                      |
 
 > **Phase 10 Tool Consolidation (2026-02-21)**:
+>
 > - `generate_cover_letter`, `list_supported_journals`, `generate_highlights` 轉為 `submission-preparation/SKILL.md` 知識
 > - `check_submission_checklist` 併入 `check_formatting` 工具（新增 `check_submission` 參數）
 > - `create_reviewer_response`, `format_revision_changes` 轉為 Skill 知識
@@ -230,23 +240,23 @@
 
 > **根據 2026-01-06 CRUD 盤點結果：52 個工具中 0 個 Delete 操作 → 已補齊**
 
-| 工具 | 功能 | 優先級 | 狀態 |
-|------|------|--------|------|
-| `delete_reference` | 刪除儲存錯誤的文獻 | ⭐⭐⭐⭐⭐ | ✅ |
-| `delete_draft` | 刪除草稿檔案 | ⭐⭐⭐ | ✅ |
-| `archive_project` | 封存專案（不完全刪除） | ⭐⭐⭐ | ✅ |
-| `delete_project` | 永久刪除專案 | ⭐⭐ | ✅ |
+| 工具               | 功能                   | 優先級     | 狀態 |
+| ------------------ | ---------------------- | ---------- | ---- |
+| `delete_reference` | 刪除儲存錯誤的文獻     | ⭐⭐⭐⭐⭐ | ✅   |
+| `delete_draft`     | 刪除草稿檔案           | ⭐⭐⭐     | ✅   |
+| `archive_project`  | 封存專案（不完全刪除） | ⭐⭐⭐     | ✅   |
+| `delete_project`   | 永久刪除專案           | ⭐⭐       | ✅   |
 
 **CRUD 盤點摘要**：
 
-| Entity | Create | Read | Update | Delete | Other |
-|--------|--------|------|--------|--------|-------|
-| Project | 3 | 6 | 4 | **0** | 2 |
-| Concept | 0 | 4 | 0 | **0** | 0 |
-| Draft | 2 | 4 | 2 | **0** | 3 |
-| Reference | 3 | 5 | 1 | **0** | 2 |
-| Word/Export | 3 | 4 | 1 | **0** | 0 |
-| Diagram | 2 | 1 | 0 | **0** | 0 |
+| Entity      | Create | Read | Update | Delete | Other |
+| ----------- | ------ | ---- | ------ | ------ | ----- |
+| Project     | 3      | 6    | 4      | **0**  | 2     |
+| Concept     | 0      | 4    | 0      | **0**  | 0     |
+| Draft       | 2      | 4    | 2      | **0**  | 3     |
+| Reference   | 3      | 5    | 1      | **0**  | 2     |
+| Word/Export | 3      | 4    | 1      | **0**  | 0     |
+| Diagram     | 2      | 1    | 0      | **0**  | 0     |
 
 ---
 
@@ -259,16 +269,17 @@
 
 目前架構假設「專案優先」：使用者必須先建立專案才能儲存文獻。但實際研究者的工作流程是**非線性**的：
 
-| 入口模式 | 說明 |
-|----------|------|
+| 入口模式    | 說明                               |
+| ----------- | ---------------------------------- |
 | 🔍 搜尋先行 | 先找論文，找到好題目才決定研究方向 |
-| 📊 資料先行 | 已有實驗數據，需要找文獻支持 |
-| 📝 草稿先行 | 從舊稿件改寫，需要更新引用 |
-| 📚 PDF 匯入 | 有一堆下載好的 PDF，需要整理 |
+| 📊 資料先行 | 已有實驗數據，需要找文獻支持       |
+| 📝 草稿先行 | 從舊稿件改寫，需要更新引用         |
+| 📚 PDF 匯入 | 有一堆下載好的 PDF，需要整理       |
 
 ### 解決方案
 
 **三階段狀態機**：
+
 ```
 EMPTY → EXPLORATION → PROJECT
           ↓
@@ -276,28 +287,29 @@ EMPTY → EXPLORATION → PROJECT
 ```
 
 **核心變更**：
+
 - 新增 `_workspace/` 成品暫存區
 - 無專案時成品自動進入 staging
 - 使用者決定時機再建立專案
 
 ### 新增工具 (+6)
 
-| 工具 | 功能 |
-|------|------|
-| `start_exploration` | 啟動探索模式 |
-| `get_exploration_status` | 查看 staging 狀態 |
-| `list_staged_artifacts` | 列出暫存成品 |
-| `tag_artifact` | 標記成品 |
-| `link_artifact_to_project` | 連結成品到專案 |
-| `convert_exploration_to_project` | 探索轉專案 |
+| 工具                             | 功能              |
+| -------------------------------- | ----------------- |
+| `start_exploration`              | 啟動探索模式      |
+| `get_exploration_status`         | 查看 staging 狀態 |
+| `list_staged_artifacts`          | 列出暫存成品      |
+| `tag_artifact`                   | 標記成品          |
+| `link_artifact_to_project`       | 連結成品到專案    |
+| `convert_exploration_to_project` | 探索轉專案        |
 
 ### 設計決策
 
-| 決策 | 選擇 | 理由 |
-|------|------|------|
-| 成品歸屬 | Reference（多對多） | 彈性最高 |
-| 強制專案時機 | Export 時 | 探索階段零阻力 |
-| 向後相容 | Keep Both | 現有專案不受影響 |
+| 決策         | 選擇                | 理由             |
+| ------------ | ------------------- | ---------------- |
+| 成品歸屬     | Reference（多對多） | 彈性最高         |
+| 強制專案時機 | Export 時           | 探索階段零阻力   |
+| 向後相容     | Keep Both           | 現有專案不受影響 |
 
 ### 實作計畫
 
@@ -316,11 +328,11 @@ EMPTY → EXPLORATION → PROJECT
 
 ### 決策背景
 
-| 方向 | 說明 | 結果 |
-|------|------|------|
-| A. Lightweight | 純 MCP + Shell Prompts（像 Speckit） | ❌ 功能不足 |
-| B. Slim MCP | 精簡 MCP + 少數 VSX 功能 | ❌ 中間地帶 |
-| **C. Full VSX** | **完整 Extension + Foam + Pandoc** | **✅ 選定** |
+| 方向            | 說明                                 | 結果        |
+| --------------- | ------------------------------------ | ----------- |
+| A. Lightweight  | 純 MCP + Shell Prompts（像 Speckit） | ❌ 功能不足 |
+| B. Slim MCP     | 精簡 MCP + 少數 VSX 功能             | ❌ 中間地帶 |
+| **C. Full VSX** | **完整 Extension + Foam + Pandoc**   | **✅ 選定** |
 
 ### 5c.1 VS Code Extension 升級
 
@@ -343,15 +355,15 @@ EMPTY → EXPLORATION → PROJECT
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-| 功能 | 說明 | 優先級 | 狀態 |
-|------|------|--------|------|
-| **TreeView: Projects** | 側邊欄顯示專案清單、狀態、進度 | ⭐⭐⭐⭐⭐ | 📋 |
-| **TreeView: References** | 當前專案的文獻樹，點擊開啟 note | ⭐⭐⭐⭐ | 📋 |
-| **CodeLens: Novelty** | concept.md 上方顯示最近驗證分數 | ⭐⭐⭐ | 📋 |
-| **CodeLens: Citations** | [[wikilink]] 上方顯示 "Author (Year)" | ⭐⭐⭐⭐ | 📋 |
-| **Diagnostics** | 引用缺失警告、wikilink 斷鏈、字數超限 | ⭐⭐⭐⭐ | 📋 |
-| **Webview Dashboard** | 內嵌 Next.js Dashboard（取代 Simple Browser） | ⭐⭐⭐ | 📋 |
-| **File Decorations** | 專案狀態圖示（drafting/submitted/published） | ⭐⭐ | 📋 |
+| 功能                     | 說明                                          | 優先級     | 狀態 |
+| ------------------------ | --------------------------------------------- | ---------- | ---- |
+| **TreeView: Projects**   | 側邊欄顯示專案清單、狀態、進度                | ⭐⭐⭐⭐⭐ | 📋   |
+| **TreeView: References** | 當前專案的文獻樹，點擊開啟 note               | ⭐⭐⭐⭐   | 📋   |
+| **CodeLens: Novelty**    | concept.md 上方顯示最近驗證分數               | ⭐⭐⭐     | 📋   |
+| **CodeLens: Citations**  | [[wikilink]] 上方顯示 "Author (Year)"         | ⭐⭐⭐⭐   | 📋   |
+| **Diagnostics**          | 引用缺失警告、wikilink 斷鏈、字數超限         | ⭐⭐⭐⭐   | 📋   |
+| **Webview Dashboard**    | 內嵌 Next.js Dashboard（取代 Simple Browser） | ⭐⭐⭐     | 📋   |
+| **File Decorations**     | 專案狀態圖示（drafting/submitted/published）  | ⭐⭐       | 📋   |
 
 ### 5c.2 Pandoc 整合（雙格式匯出）
 
@@ -375,22 +387,22 @@ EMPTY → EXPLORATION → PROJECT
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-| 功能 | 說明 | 優先級 | 狀態 |
-|------|------|--------|------|
-| **Pandoc Word Export** | 取代現有 python-docx 匯出 | ⭐⭐⭐⭐⭐ | 📋 |
-| **Pandoc LaTeX Export** | 新增 LaTeX 輸出 | ⭐⭐⭐⭐ | 📋 |
-| **CSL Citation Styles** | 用 CSL 取代手動格式化 | ⭐⭐⭐⭐⭐ | 📋 |
-| **Journal Templates** | 期刊 Word/LaTeX 模板庫 | ⭐⭐⭐ | 📋 |
-| **Math Support** | LaTeX 公式在 Word/PDF 中正確渲染 | ⭐⭐⭐ | 📋 |
+| 功能                    | 說明                             | 優先級     | 狀態 |
+| ----------------------- | -------------------------------- | ---------- | ---- |
+| **Pandoc Word Export**  | 取代現有 python-docx 匯出        | ⭐⭐⭐⭐⭐ | 📋   |
+| **Pandoc LaTeX Export** | 新增 LaTeX 輸出                  | ⭐⭐⭐⭐   | 📋   |
+| **CSL Citation Styles** | 用 CSL 取代手動格式化            | ⭐⭐⭐⭐⭐ | 📋   |
+| **Journal Templates**   | 期刊 Word/LaTeX 模板庫           | ⭐⭐⭐     | 📋   |
+| **Math Support**        | LaTeX 公式在 Word/PDF 中正確渲染 | ⭐⭐⭐     | 📋   |
 
 ### 5c.3 Foam 保留 + 強化
 
-| 功能 | 說明 | 狀態 |
-|------|------|------|
-| **保持現有** | [[wikilink]] 引用、hover preview、backlinks | ✅ 已有 |
-| **Graph Scope** | `foam_settings.py` 動態切換專案範圍 | ✅ 已有 |
-| **Enhanced Autocomplete** | 文獻 autocomplete 加入 impact factor | 📋 |
-| **Backlink Dashboard** | 在 Dashboard 中顯示引用圖譜 | 📋 |
+| 功能                      | 說明                                        | 狀態    |
+| ------------------------- | ------------------------------------------- | ------- |
+| **保持現有**              | [[wikilink]] 引用、hover preview、backlinks | ✅ 已有 |
+| **Graph Scope**           | `foam_settings.py` 動態切換專案範圍         | ✅ 已有 |
+| **Enhanced Autocomplete** | 文獻 autocomplete 加入 impact factor        | 📋      |
+| **Backlink Dashboard**    | 在 Dashboard 中顯示引用圖譜                 | 📋      |
 
 ---
 
@@ -425,12 +437,12 @@ EMPTY → EXPLORATION → PROJECT
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-| 功能 | 說明 | 狀態 |
-|------|------|------|
-| **Project Kanban** | Concept → Drafting → Review → Submitted → Published | 📋 |
-| **Timeline View** | 甘特圖顯示各專案進度與 deadline | 📋 |
-| **Milestone Tracking** | 設定里程碑並追蹤 | 📋 |
-| **Priority Matrix** | 依重要性/緊急性排序專案 | 📋 |
+| 功能                   | 說明                                                | 狀態 |
+| ---------------------- | --------------------------------------------------- | ---- |
+| **Project Kanban**     | Concept → Drafting → Review → Submitted → Published | 📋   |
+| **Timeline View**      | 甘特圖顯示各專案進度與 deadline                     | 📋   |
+| **Milestone Tracking** | 設定里程碑並追蹤                                    | 📋   |
+| **Priority Matrix**    | 依重要性/緊急性排序專案                             | 📋   |
 
 ### 5.2 跨專案文獻庫
 
@@ -463,13 +475,13 @@ EMPTY → EXPLORATION → PROJECT
 
 ### 5.3 專案模板庫
 
-| 模板 | 說明 |
-|------|------|
+| 模板                  | 說明                         |
+| --------------------- | ---------------------------- |
 | **Original Research** | RCT, Cohort, Cross-sectional |
-| **Systematic Review** | PRISMA workflow 內建 |
-| **Meta-analysis** | 含 Forest plot 工作流 |
-| **Case Report** | CARE checklist 整合 |
-| **Technical Note** | 簡化結構 |
+| **Systematic Review** | PRISMA workflow 內建         |
+| **Meta-analysis**     | 含 Forest plot 工作流        |
+| **Case Report**       | CARE checklist 整合          |
+| **Technical Note**    | 簡化結構                     |
 
 ---
 
@@ -507,26 +519,26 @@ EMPTY → EXPLORATION → PROJECT
 
 ### 6.2 Risk of Bias 評估
 
-| 工具 | 說明 | 支援量表 |
-|------|------|----------|
-| `assess_rob2` | RCT 風險評估 | RoB 2.0 |
-| `assess_robins_i` | 觀察性研究風險評估 | ROBINS-I |
-| `assess_newcastle_ottawa` | 非隨機研究評估 | NOS |
-| `generate_rob_summary` | 彙總圖 (紅綠燈) | All |
-| `generate_rob_graph` | Traffic light plot | All |
+| 工具                      | 說明               | 支援量表 |
+| ------------------------- | ------------------ | -------- |
+| `assess_rob2`             | RCT 風險評估       | RoB 2.0  |
+| `assess_robins_i`         | 觀察性研究風險評估 | ROBINS-I |
+| `assess_newcastle_ottawa` | 非隨機研究評估     | NOS      |
+| `generate_rob_summary`    | 彙總圖 (紅綠燈)    | All      |
+| `generate_rob_graph`      | Traffic light plot | All      |
 
 ### 6.3 Meta-analysis 整合
 
-| 工具 | 說明 |
-|------|------|
-| `calculate_effect_size` | OR, RR, MD, SMD 計算 |
-| `run_meta_analysis` | Fixed/Random effects 模型 |
-| `generate_forest_plot` | Forest plot (Draw.io) |
-| `test_heterogeneity` | I², Q test, Tau² |
-| `run_sensitivity_analysis` | Leave-one-out, influence |
-| `run_subgroup_analysis` | 亞組分析 |
-| `test_publication_bias` | Funnel plot, Egger's test |
-| `generate_grade_summary` | GRADE 證據品質評估 |
+| 工具                       | 說明                      |
+| -------------------------- | ------------------------- |
+| `calculate_effect_size`    | OR, RR, MD, SMD 計算      |
+| `run_meta_analysis`        | Fixed/Random effects 模型 |
+| `generate_forest_plot`     | Forest plot (Draw.io)     |
+| `test_heterogeneity`       | I², Q test, Tau²          |
+| `run_sensitivity_analysis` | Leave-one-out, influence  |
+| `run_subgroup_analysis`    | 亞組分析                  |
+| `test_publication_bias`    | Funnel plot, Egger's test |
+| `generate_grade_summary`   | GRADE 證據品質評估        |
 
 ---
 
@@ -599,13 +611,13 @@ EMPTY → EXPLORATION → PROJECT
 
 ### 7.3 Cross-section Consistency Auto-fix
 
-| 功能 | 說明 |
-|------|------|
-| **Number Sync** | 自動同步所有章節的 N 值 |
-| **Term Standardization** | 建立術語表並自動替換 |
-| **Reference Renumbering** | 依出現順序自動重編號 |
-| **Figure/Table Check** | 確保所有圖表都有被引用 |
-| **Statistical Style** | 統一 p 值、CI 格式 |
+| 功能                      | 說明                    |
+| ------------------------- | ----------------------- |
+| **Number Sync**           | 自動同步所有章節的 N 值 |
+| **Term Standardization**  | 建立術語表並自動替換    |
+| **Reference Renumbering** | 依出現順序自動重編號    |
+| **Figure/Table Check**    | 確保所有圖表都有被引用  |
+| **Statistical Style**     | 統一 p 值、CI 格式      |
 
 ---
 
@@ -616,22 +628,23 @@ EMPTY → EXPLORATION → PROJECT
 
 ### 問題陳述
 
-| 問題 | 症狀 | 目前解法 | 為什麼不夠 |
-|------|------|---------|------------|
-| **連貫性** | 段落跳躍、邏輯斷裂 | Prompt 說「要連貫」 | 沒有強制機制 |
-| **引用** | 不知哪裡該引用 | `suggest_citations` 事後建議 | 補引用很彆扭 |
-| **思考脈絡** | 缺乏全局架構 | `validate_concept` 檢查 | 只檢查不引導 |
+| 問題         | 症狀               | 目前解法                     | 為什麼不夠   |
+| ------------ | ------------------ | ---------------------------- | ------------ |
+| **連貫性**   | 段落跳躍、邏輯斷裂 | Prompt 說「要連貫」          | 沒有強制機制 |
+| **引用**     | 不知哪裡該引用     | `suggest_citations` 事後建議 | 補引用很彆扭 |
+| **思考脈絡** | 缺乏全局架構       | `validate_concept` 檢查      | 只檢查不引導 |
 
 ### 8.1 Citation Intelligence（MVP）🎯
 
-| 工具 | 功能 | 狀態 |
-|------|------|------|
-| `analyze_citation_needs` | 分析句子引用需求（Rule-based） | 📋 設計中 |
-| `find_supporting_references` | 為 claim 找引用（Semantic search） | 📋 設計中 |
-| `verify_citation_support` | 驗證引用是否支持 claim | 📋 設計中 |
-| `write_paragraph_with_citations` | 寫作時即時插入引用 | 📋 設計中 |
+| 工具                             | 功能                               | 狀態      |
+| -------------------------------- | ---------------------------------- | --------- |
+| `analyze_citation_needs`         | 分析句子引用需求（Rule-based）     | 📋 設計中 |
+| `find_supporting_references`     | 為 claim 找引用（Semantic search） | 📋 設計中 |
+| `verify_citation_support`        | 驗證引用是否支持 claim             | 📋 設計中 |
+| `write_paragraph_with_citations` | 寫作時即時插入引用                 | 📋 設計中 |
 
 **技術選型**：
+
 - `sentence-transformers` - 語義搜尋
 - `spaCy` - NLP 句子分析
 - Rule-based patterns - 引用需求偵測
@@ -646,19 +659,19 @@ EMPTY → EXPLORATION → PROJECT
 
 ### 8.2 Coherence Engine（Phase 2）
 
-| 工具 | 功能 |
-|------|------|
-| `generate_section_outline` | 段落級大綱 |
+| 工具                           | 功能         |
+| ------------------------------ | ------------ |
+| `generate_section_outline`     | 段落級大綱   |
 | `write_paragraph_with_context` | 帶上下文寫作 |
-| `check_coherence` | 連貫性檢查 |
+| `check_coherence`              | 連貫性檢查   |
 
 ### 8.3 Argument Tracker（Phase 3）
 
-| 工具 | 功能 |
-|------|------|
-| `create_argument_map` | 論點地圖（整合 CGU deep_think） |
-| `generate_structured_draft` | 結構化生成 |
-| `track_logic_chain` | 邏輯鏈追蹤 |
+| 工具                        | 功能                            |
+| --------------------------- | ------------------------------- |
+| `create_argument_map`       | 論點地圖（整合 CGU deep_think） |
+| `generate_structured_draft` | 結構化生成                      |
+| `track_logic_chain`         | 邏輯鏈追蹤                      |
 
 ---
 
@@ -666,41 +679,42 @@ EMPTY → EXPLORATION → PROJECT
 
 **參考 medical-calc-mcp 的部署架構**
 
-| Feature | Description | Use Case |
-|---------|-------------|----------|
-| **REST API Mode** | 將 MCP 工具以 API 公開 | 外部系統整合 |
-| SSE Mode | Server-Sent Events 支援 | 輕量即時通訊 |
-| Docker Support | 容器化部署 | 一鍵啟動 |
-| HTTPS + Nginx | 生產環境安全部署 | 團隊使用 |
+| Feature           | Description             | Use Case     |
+| ----------------- | ----------------------- | ------------ |
+| **REST API Mode** | 將 MCP 工具以 API 公開  | 外部系統整合 |
+| SSE Mode          | Server-Sent Events 支援 | 輕量即時通訊 |
+| Docker Support    | 容器化部署              | 一鍵啟動     |
+| HTTPS + Nginx     | 生產環境安全部署        | 團隊使用     |
 
 ---
 
 ## 💡 構想中 (Ideas)
 
-| Idea | Description | Priority |
-|------|-------------|----------|
-| **Tool Discovery** | 兩層級工具索引 (Low/High Level) | Medium |
-| **Resources API** | `paper://list`, `reference://{pmid}` | Medium |
-| **Multi-Author Mode** | 多人協作、版本控制 | Low |
-| **Reference Graph** | 文獻引用關係視覺化 | Low |
-| **Voice Input** | 語音輸入筆記 | Idea |
+| Idea                  | Description                          | Priority |
+| --------------------- | ------------------------------------ | -------- |
+| **Tool Discovery**    | 兩層級工具索引 (Low/High Level)      | Medium   |
+| **Resources API**     | `paper://list`, `reference://{pmid}` | Medium   |
+| **Multi-Author Mode** | 多人協作、版本控制                   | Low      |
+| **Reference Graph**   | 文獻引用關係視覺化                   | Low      |
+| **Voice Input**       | 語音輸入筆記                         | Idea     |
 
 ---
 
 ## 🔗 Related Projects
 
-| Project | Description | Status |
-|---------|-------------|--------|
+| Project                                                            | Description         | Status        |
+| ------------------------------------------------------------------ | ------------------- | ------------- |
 | [pubmed-search-mcp](https://github.com/u9401066/pubmed-search-mcp) | PubMed 文獻搜尋 MCP | ✅ Integrated |
-| [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io) | Draw.io 流程圖 MCP | ✅ Integrated |
-| [medical-calc-mcp](https://github.com/u9401066/medical-calc-mcp) | 醫學計算器 MCP | 📋 Planned |
-| [CGU](integrations/cgu/) | 創意發想 MCP | ✅ Integrated |
+| [next-ai-draw-io](https://github.com/u9401066/next-ai-draw-io)     | Draw.io 流程圖 MCP  | ✅ Integrated |
+| [medical-calc-mcp](https://github.com/u9401066/medical-calc-mcp)   | 醫學計算器 MCP      | 📋 Planned    |
+| [CGU](integrations/cgu/)                                           | 創意發想 MCP        | ✅ Integrated |
 
 ---
 
 ## Contributing
 
 有興趣參與開發？歡迎：
+
 - 🐛 回報問題
 - 💡 提出功能建議
 - 🔧 提交 Pull Request

@@ -12,6 +12,7 @@ description: "📝 manuscript-revision - 稿件修改與回覆審稿意見"
 ## 🎯 此 Capability 的目標
 
 處理期刊審稿意見，系統性地：
+
 1. 分析 reviewer comments
 2. 逐項回應並修改稿件
 3. 撰寫 response letter
@@ -65,12 +66,14 @@ description: "📝 manuscript-revision - 稿件修改與回覆審稿意見"
 ## Reviewer 1
 
 ### Comment 1.1
+
 > [原始 comment]
 
 **Response:**
 [回應內容]
 
 **Changes made:**
+
 - Page X, Line Y: [具體修改]
 
 ---

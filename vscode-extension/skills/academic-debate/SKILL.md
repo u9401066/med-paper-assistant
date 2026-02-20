@@ -18,24 +18,24 @@ description: |
 
 ## 適用情境
 
-| 觸發語 | 操作 |
-|--------|------|
-| 「幫我辯論 X vs Y」 | → 使用 Debate Framework |
-| 「挑戰一下這個觀點」 | → 使用 Devil's Advocate Framework |
-| 「比較這幾種方法」 | → 使用 Viewpoint Comparison Framework |
-| 「這個 claim 站得住腳嗎」 | → 使用 Devil's Advocate Framework |
+| 觸發語                    | 操作                                  |
+| ------------------------- | ------------------------------------- |
+| 「幫我辯論 X vs Y」       | → 使用 Debate Framework               |
+| 「挑戰一下這個觀點」      | → 使用 Devil's Advocate Framework     |
+| 「比較這幾種方法」        | → 使用 Viewpoint Comparison Framework |
+| 「這個 claim 站得住腳嗎」 | → 使用 Devil's Advocate Framework     |
 
 ---
 
 ## 可搭配的 MCP Tools
 
-| 工具 | 用途 |
-|------|------|
-| `read_draft` | 讀取草稿獲取需要辯論/挑戰的內容 |
-| `search_local_references` | 搜尋已存文獻佐證正反方觀點 |
-| `list_saved_references` | 列出可用引用 |
-| `mcp_cgu_deep_think` | 深度分析弱點 |
-| `mcp_cgu_spark_collision` | 碰撞正反觀點產生新洞見 |
+| 工具                      | 用途                            |
+| ------------------------- | ------------------------------- |
+| `read_draft`              | 讀取草稿獲取需要辯論/挑戰的內容 |
+| `search_local_references` | 搜尋已存文獻佐證正反方觀點      |
+| `list_saved_references`   | 列出可用引用                    |
+| `mcp_cgu_deep_think`      | 深度分析弱點                    |
+| `mcp_cgu_spark_collision` | 碰撞正反觀點產生新洞見          |
 
 ---
 
@@ -56,15 +56,17 @@ description: |
 ## ✅ Position A: {supporting_position}
 
 ### Supporting Arguments
+
 （按照證據等級排列，最強的放最前面）
 
-| # | Argument | Evidence Level | Source |
-|---|----------|---------------|--------|
-| 1 | [具體論點] | [證據等級] | [[citation]] |
+| #   | Argument   | Evidence Level | Source       |
+| --- | ---------- | -------------- | ------------ |
+| 1   | [具體論點] | [證據等級]     | [[citation]] |
 
 ## ❌ Position B: {opposing_position}
 
 ### Counter-Arguments
+
 （同樣按照證據等級排列）
 
 ## ⚖️ Methodological Considerations ({study_type})
@@ -74,7 +76,9 @@ description: |
 ## 🔄 Synthesis for Discussion Section
 
 ### Areas of Agreement
+
 ### Key Disagreements
+
 ### Clinical Bottom Line
 ```
 
@@ -96,9 +100,11 @@ description: |
 ---
 
 ## 1. Methodological Challenges ({study_type})
+
 （根據研究類型選擇相關偏誤，見下方偏誤清單）
 
 ## 2. Statistical Challenges
+
 - Multiple comparisons / Type I error
 - Effect size (clinical significance vs statistical significance)
 - Confidence interval width
@@ -106,21 +112,25 @@ description: |
 - Power / sample size adequacy
 
 ## 3. Generalizability Concerns
+
 - Population: 結果能推廣嗎？
 - Setting: 單中心 vs 多中心？
 - Timeframe: 短期 → 長期？
 - Intervention fidelity: 能被重複嗎？
 
 ## 4. Alternative Explanations
+
 - Confounding?
 - Reverse causation?
 - Temporal trends?
 - Hawthorne/placebo effect?
 
 ## 5. Likely Reviewer Questions
+
 （基於 Study Type 產出最可能被 reviewer 問的問題）
 
 ## 💪 Strengthening Recommendations
+
 1. Address strongest counter-argument in Discussion
 2. Add sensitivity/subgroup analyses
 3. Acknowledge limitations proactively
@@ -141,17 +151,18 @@ description: |
 
 ## Summary Comparison
 
-| Criterion | Viewpoint A | Viewpoint B | ... |
-|-----------|-------------|-------------|-----|
-| Evidence Base | [analysis] | [analysis] | |
-| Theoretical Foundation | ... | ... | |
-| Clinical Applicability | ... | ... | |
-| Patient Safety | ... | ... | |
-| Cost-Effectiveness | ... | ... | |
-| Current Guidelines | ... | ... | |
-| Limitations | ... | ... | |
+| Criterion              | Viewpoint A | Viewpoint B | ... |
+| ---------------------- | ----------- | ----------- | --- |
+| Evidence Base          | [analysis]  | [analysis]  |     |
+| Theoretical Foundation | ...         | ...         |     |
+| Clinical Applicability | ...         | ...         |     |
+| Patient Safety         | ...         | ...         |     |
+| Cost-Effectiveness     | ...         | ...         |     |
+| Current Guidelines     | ...         | ...         |     |
+| Limitations            | ...         | ...         |     |
 
 ## Viewpoint 1: {name}
+
 - Core Premise
 - Key Proponents
 - Best Evidence
@@ -161,14 +172,18 @@ description: |
 (repeat for each viewpoint)
 
 ## 🔗 Implications for Your Research
+
 ### Points of Convergence
+
 ### Points of Divergence
+
 ### Recommended Position
 ```
 
 ### 預設比較維度
 
 如果用戶沒有指定比較維度，使用以下預設：
+
 1. Evidence Base（證據基礎）
 2. Theoretical Foundation（理論基礎）
 3. Clinical Applicability（臨床適用性）
@@ -196,6 +211,7 @@ Agent 在構建辯論時，按此等級排列證據：
 ## 🧠 Domain Knowledge: Study-Type-Specific Biases
 
 ### RCT
+
 - Selection bias (randomization failure)
 - Performance bias (blinding issues)
 - Detection bias (outcome assessment)
@@ -203,6 +219,7 @@ Agent 在構建辯論時，按此等級排列證據：
 - Reporting bias (selective outcome reporting)
 
 ### Cohort Study
+
 - Selection bias (non-random sampling)
 - Confounding (unmeasured variables)
 - Information bias (measurement error)
@@ -210,6 +227,7 @@ Agent 在構建辯論時，按此等級排列證據：
 - Healthy worker effect
 
 ### Case-Control Study
+
 - Recall bias
 - Selection bias (control selection)
 - Confounding
@@ -217,6 +235,7 @@ Agent 在構建辯論時，按此等級排列證據：
 - Temporal ambiguity
 
 ### Cross-Sectional Study
+
 - Cannot establish temporality
 - Prevalence-incidence bias
 - Non-response bias
@@ -224,6 +243,7 @@ Agent 在構建辯論時，按此等級排列證據：
 - Confounding
 
 ### Retrospective Study
+
 - Information bias (records quality)
 - Selection bias (survivorship)
 - Confounding
@@ -236,13 +256,13 @@ Agent 在構建辯論時，按此等級排列證據：
 
 根據文字內容自動偵測研究類型，用以下關鍵字：
 
-| 關鍵字 | 研究類型 |
-|--------|----------|
-| randomized, RCT, blinded, placebo | RCT |
-| cohort, prospective, follow-up, incidence | Cohort |
-| case-control, odds ratio, exposure | Case-Control |
-| cross-sectional, prevalence, survey | Cross-Sectional |
-| retrospective, chart review, medical records | Retrospective |
+| 關鍵字                                       | 研究類型        |
+| -------------------------------------------- | --------------- |
+| randomized, RCT, blinded, placebo            | RCT             |
+| cohort, prospective, follow-up, incidence    | Cohort          |
+| case-control, odds ratio, exposure           | Case-Control    |
+| cross-sectional, prevalence, survey          | Cross-Sectional |
+| retrospective, chart review, medical records | Retrospective   |
 
 ---
 

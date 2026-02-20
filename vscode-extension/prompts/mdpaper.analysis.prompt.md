@@ -26,6 +26,7 @@ mcp_mdpaper_analyze_dataset(
 ```
 
 **輸出：**
+
 - 描述性統計
 - 缺失值分析
 - 變數分佈
@@ -81,6 +82,7 @@ mcp_mdpaper_create_plot(
 ```
 
 **可用圖表：**
+
 - `boxplot` - 箱形圖
 - `histogram` - 直方圖
 - `scatter` - 散佈圖

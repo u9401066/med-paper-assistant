@@ -14,23 +14,23 @@ description: 系統性文獻搜尋、篩選、下載、整理。觸發：文獻�
 
 ### pubmed-search MCP
 
-| 類別 | 工具 | 說明 |
-|------|------|------|
-| 搜尋 | `search_literature` | 基本 PubMed 搜尋 |
-| | `generate_search_queries` | MeSH + 同義詞材料 |
-| | `parse_pico` | 解析 PICO 臨床問題 |
-| | `merge_search_results` | 合併去重 |
-| 探索 | `find_related_articles` / `find_citing_articles` / `get_article_references` | 引用網路 |
-| | `get_citation_metrics` | iCite RCR 排序 |
-| Session | `get_session_pmids` / `get_session_summary` | 取回搜尋結果 |
-| 匯出 | `prepare_export` / `analyze_fulltext_access` | RIS/BibTeX/PMC |
+| 類別    | 工具                                                                        | 說明               |
+| ------- | --------------------------------------------------------------------------- | ------------------ |
+| 搜尋    | `search_literature`                                                         | 基本 PubMed 搜尋   |
+|         | `generate_search_queries`                                                   | MeSH + 同義詞材料  |
+|         | `parse_pico`                                                                | 解析 PICO 臨床問題 |
+|         | `merge_search_results`                                                      | 合併去重           |
+| 探索    | `find_related_articles` / `find_citing_articles` / `get_article_references` | 引用網路           |
+|         | `get_citation_metrics`                                                      | iCite RCR 排序     |
+| Session | `get_session_pmids` / `get_session_summary`                                 | 取回搜尋結果       |
+| 匯出    | `prepare_export` / `analyze_fulltext_access`                                | RIS/BibTeX/PMC     |
 
 ### mdpaper 儲存文獻
 
-| 方法 | 說明 |
-|------|------|
+| 方法                          | 說明                         |
+| ----------------------------- | ---------------------------- |
 | `save_reference_mcp(pmid)` ✅ | **永遠優先** MCP-to-MCP 驗證 |
-| `save_reference(article)` ⚠️ | FALLBACK 僅 API 不可用 |
+| `save_reference(article)` ⚠️  | FALLBACK 僅 API 不可用       |
 
 ---
 
@@ -46,9 +46,9 @@ description: 系統性文獻搜尋、篩選、下載、整理。觸發：文獻�
 
 ## 決策點
 
-| 時機 | 選擇 |
-|------|------|
-| 建立專案 or 探索？ | 先探索熟悉文獻 |
-| 關鍵字 or PICO？ | 比較性問題用 PICO |
-| 結果數量 | 50-300 繼續，<20 擴展，>500 限縮 |
-| 篩選方式 | <30 逐篇，>30 用 RCR 排序 |
+| 時機               | 選擇                             |
+| ------------------ | -------------------------------- |
+| 建立專案 or 探索？ | 先探索熟悉文獻                   |
+| 關鍵字 or PICO？   | 比較性問題用 PICO                |
+| 結果數量           | 50-300 繼續，<20 擴展，>500 限縮 |
+| 篩選方式           | <30 逐篇，>30 用 RCR 排序        |

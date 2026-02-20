@@ -13,28 +13,28 @@ description: Proactively detect and execute code refactoring to maintain DDD arc
 
 ## 閾值設定
 
-| 類型 | 警告 | 強制重構 |
-|------|------|----------|
-| 檔案 | > 200 行 | > 400 行 |
-| 類別 | > 150 行 | > 300 行 |
-| 函數 | > 30 行 | > 50 行 |
-| 目錄檔案數 | > 10 | > 15 |
-| 圈複雜度 | > 10 | > 15 |
-| 巢狀深度 | > 3 層 | > 4 層 |
-| 參數數量 | > 4 | > 6 |
-| 依賴數量 | > 5 | > 8 |
+| 類型       | 警告     | 強制重構 |
+| ---------- | -------- | -------- |
+| 檔案       | > 200 行 | > 400 行 |
+| 類別       | > 150 行 | > 300 行 |
+| 函數       | > 30 行  | > 50 行  |
+| 目錄檔案數 | > 10     | > 15     |
+| 圈複雜度   | > 10     | > 15     |
+| 巢狀深度   | > 3 層   | > 4 層   |
+| 參數數量   | > 4      | > 6      |
+| 依賴數量   | > 5      | > 8      |
 
 ---
 
 ## 重構模式庫
 
-| # | 模式 | 觸發條件 |
-|---|------|----------|
-| 1 | Extract Method | 函數過長、重複邏輯 |
-| 2 | Extract Class | 類別職責過多、>150 行 |
-| 3 | Replace Conditional with Polymorphism | 大量 if-elif-else |
-| 4 | Introduce Parameter Object | 參數 >4 個 |
-| 5 | Split Module | 目錄 >10 檔案 → 按子領域拆分 |
+| #   | 模式                                  | 觸發條件                     |
+| --- | ------------------------------------- | ---------------------------- |
+| 1   | Extract Method                        | 函數過長、重複邏輯           |
+| 2   | Extract Class                         | 類別職責過多、>150 行        |
+| 3   | Replace Conditional with Polymorphism | 大量 if-elif-else            |
+| 4   | Introduce Parameter Object            | 參數 >4 個                   |
+| 5   | Split Module                          | 目錄 >10 檔案 → 按子領域拆分 |
 
 ---
 
@@ -58,9 +58,9 @@ description: Proactively detect and execute code refactoring to maintain DDD arc
 
 ## 與其他 Skills 整合
 
-| Skill | 整合 |
-|-------|------|
-| code-reviewer | 審查時觸發重構建議 |
-| test-generator | 重構前先生成測試 |
-| ddd-architect | 確保重構符合 DDD |
-| memory-updater | 記錄重構決策 |
+| Skill          | 整合               |
+| -------------- | ------------------ |
+| code-reviewer  | 審查時觸發重構建議 |
+| test-generator | 重構前先生成測試   |
+| ddd-architect  | 確保重構符合 DDD   |
+| memory-updater | 記錄重構決策       |

@@ -10,13 +10,13 @@ description: "🎯 mdpaper.strategy - 配置搜尋策略"
 
 詢問用戶以下資訊：
 
-| 參數 | 說明 | 範例 |
-|------|------|------|
-| Keywords | 主要關鍵字 | "remimazolam", "sedation" |
-| Exclusions | 排除關鍵字 | "pediatric", "animal" |
-| Year Range | 年份範圍 | 2015-2024 |
-| Article Types | 文章類型 | "Clinical Trial", "Review" |
-| Sample Size | 最小樣本數 | 50 |
+| 參數          | 說明       | 範例                       |
+| ------------- | ---------- | -------------------------- |
+| Keywords      | 主要關鍵字 | "remimazolam", "sedation"  |
+| Exclusions    | 排除關鍵字 | "pediatric", "animal"      |
+| Year Range    | 年份範圍   | 2015-2024                  |
+| Article Types | 文章類型   | "Clinical Trial", "Review" |
+| Sample Size   | 最小樣本數 | 50                         |
 
 ---
 

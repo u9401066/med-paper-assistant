@@ -5,6 +5,7 @@
 ---
 
 <a name="english"></a>
+
 ## 🇬🇧 English
 
 Thank you for your interest in contributing to Medical Paper Assistant! This document explains how you can participate in the development of this project.
@@ -12,6 +13,7 @@ Thank you for your interest in contributing to Medical Paper Assistant! This doc
 ### What is this document?
 
 This is a **Contributing Guide** - a standard document in open source projects that explains:
+
 - How to report bugs or suggest features
 - How to set up your development environment
 - How to submit code changes
@@ -19,14 +21,14 @@ This is a **Contributing Guide** - a standard document in open source projects t
 
 ### Ways to Contribute
 
-| Type | Description | Skill Level |
-|------|-------------|-------------|
-| 🐛 **Report Bugs** | Found something broken? Let us know! | Beginner |
-| �� **Suggest Features** | Have an idea? Open an issue! | Beginner |
-| 📝 **Improve Documentation** | Fix typos, add examples | Beginner |
-| 🧪 **Write Tests** | Help improve test coverage | Intermediate |
-| 🔧 **Fix Bugs** | Pick an issue and submit a fix | Intermediate |
-| ✨ **Add Features** | Implement new functionality | Advanced |
+| Type                         | Description                          | Skill Level  |
+| ---------------------------- | ------------------------------------ | ------------ |
+| 🐛 **Report Bugs**           | Found something broken? Let us know! | Beginner     |
+| �� **Suggest Features**      | Have an idea? Open an issue!         | Beginner     |
+| 📝 **Improve Documentation** | Fix typos, add examples              | Beginner     |
+| 🧪 **Write Tests**           | Help improve test coverage           | Intermediate |
+| 🔧 **Fix Bugs**              | Pick an issue and submit a fix       | Intermediate |
+| ✨ **Add Features**          | Implement new functionality          | Advanced     |
 
 ### Getting Started
 
@@ -68,6 +70,7 @@ git checkout -b feature/your-feature-name
 ```
 
 > 💡 **Branch naming convention:**
+>
 > - `feature/xxx` - New features
 > - `fix/xxx` - Bug fixes
 > - `docs/xxx` - Documentation changes
@@ -103,6 +106,7 @@ src/med_paper_assistant/
 - **Language**: Code and comments in English; documentation can be bilingual
 
 Example:
+
 ```python
 def save_reference(pmid: str, download_pdf: bool = True) -> str:
     """
@@ -132,6 +136,7 @@ uv run pytest tests/ --cov=src/med_paper_assistant
 ```
 
 Please ensure:
+
 - All existing tests pass
 - New features have corresponding tests
 - Test files are named `test_*.py`
@@ -149,6 +154,7 @@ git commit -m "feat: Add PDF download from PMC Open Access"
 ```
 
 > 💡 **Commit message format:**
+>
 > - `feat:` - New feature
 > - `fix:` - Bug fix
 > - `docs:` - Documentation
@@ -195,6 +201,7 @@ When opening an issue, please include:
 ---
 
 <a name="繁體中文"></a>
+
 ## 🇹🇼 繁體中文
 
 感謝您有興趣為 Medical Paper Assistant 做出貢獻！本文件說明如何參與此專案的開發。
@@ -202,6 +209,7 @@ When opening an issue, please include:
 ### 這份文件是什麼？
 
 這是一份**貢獻指南**（Contributing Guide）——開源專案中的標準文件，說明：
+
 - 如何回報錯誤或建議功能
 - 如何設置開發環境
 - 如何提交程式碼變更
@@ -209,14 +217,14 @@ When opening an issue, please include:
 
 ### 貢獻方式
 
-| 類型 | 說明 | 技能等級 |
-|------|------|----------|
-| 🐛 **回報錯誤** | 發現問題？讓我們知道！ | 初學者 |
-| 💡 **建議功能** | 有想法？開一個 Issue！ | 初學者 |
-| 📝 **改善文件** | 修正錯字、增加範例 | 初學者 |
-| 🧪 **撰寫測試** | 幫助提高測試覆蓋率 | 中級 |
-| 🔧 **修復錯誤** | 選擇一個 Issue 並提交修復 | 中級 |
-| ✨ **新增功能** | 實作新功能 | 進階 |
+| 類型            | 說明                      | 技能等級 |
+| --------------- | ------------------------- | -------- |
+| 🐛 **回報錯誤** | 發現問題？讓我們知道！    | 初學者   |
+| 💡 **建議功能** | 有想法？開一個 Issue！    | 初學者   |
+| 📝 **改善文件** | 修正錯字、增加範例        | 初學者   |
+| 🧪 **撰寫測試** | 幫助提高測試覆蓋率        | 中級     |
+| 🔧 **修復錯誤** | 選擇一個 Issue 並提交修復 | 中級     |
+| ✨ **新增功能** | 實作新功能                | 進階     |
 
 ### 開始貢獻
 
@@ -258,6 +266,7 @@ git checkout -b feature/您的功能名稱
 ```
 
 > 💡 **分支命名慣例：**
+>
 > - `feature/xxx` - 新功能
 > - `fix/xxx` - 錯誤修復
 > - `docs/xxx` - 文件變更
@@ -293,6 +302,7 @@ src/med_paper_assistant/
 - **語言**：程式碼與註解使用英文；文件可使用雙語
 
 範例：
+
 ```python
 def save_reference(pmid: str, download_pdf: bool = True) -> str:
     """
@@ -322,6 +332,7 @@ uv run pytest tests/ --cov=src/med_paper_assistant
 ```
 
 請確保：
+
 - 所有現有測試通過
 - 新功能有對應的測試
 - 測試檔案命名為 `test_*.py`
@@ -339,6 +350,7 @@ git commit -m "feat: 新增從 PMC Open Access 下載 PDF 功能"
 ```
 
 > 💡 **提交訊息格式：**
+>
 > - `feat:` - 新功能
 > - `fix:` - 錯誤修復
 > - `docs:` - 文件更新

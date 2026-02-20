@@ -3,10 +3,12 @@ description: "🔍 mdpaper.search - 智能文獻搜尋與探索"
 ---
 
 # 智能文獻搜尋
+
 📖 **技能參考**:
+
 - `.claude/skills/literature-review/SKILL.md`
 - `.claude/skills/reference-management/SKILL.md`
-請根據用戶情境選擇適合的搜尋模式：
+  請根據用戶情境選擇適合的搜尋模式：
 
 ## 情境判斷
 
@@ -30,6 +32,7 @@ mcp_mdpaper_read_draft(filename="concept.md")
 ```
 
 **任務：**
+
 - 從 concept.md 提取：Research Question, PICO elements, Key terms
 - 向用戶確認搜尋策略
 
@@ -41,19 +44,20 @@ mcp_mdpaper_read_draft(filename="concept.md")
 
 **使用 pubmed-search MCP：**
 
-| 搜尋類型 | 工具 | 說明 |
-|----------|------|------|
-| 快速搜尋 | `search_literature(query)` | 直接關鍵字搜尋 |
-| PICO 搜尋 | `parse_pico() → generate_queries()` | 結構化 PICO 查詢 |
-| MeSH 精確 | `generate_search_queries()` | 使用 MeSH 術語 |
-| 擴展搜尋 | `find_related_articles(pmid)` | 從已知論文延伸 |
-| 引用搜尋 | `find_citing_articles(pmid)` | 找引用該論文的文獻 |
+| 搜尋類型  | 工具                                | 說明               |
+| --------- | ----------------------------------- | ------------------ |
+| 快速搜尋  | `search_literature(query)`          | 直接關鍵字搜尋     |
+| PICO 搜尋 | `parse_pico() → generate_queries()` | 結構化 PICO 查詢   |
+| MeSH 精確 | `generate_search_queries()`         | 使用 MeSH 術語     |
+| 擴展搜尋  | `find_related_articles(pmid)`       | 從已知論文延伸     |
+| 引用搜尋  | `find_citing_articles(pmid)`        | 找引用該論文的文獻 |
 
 ---
 
 ### Step A3: 儲存文獻
 
 **⚠️ 使用 MCP-to-MCP 通訊：**
+
 ```
 mcp_mdpaper_save_reference_mcp(pmid="12345678", agent_notes="關鍵論文說明")
 ```
@@ -69,6 +73,7 @@ mcp_mdpaper_start_exploration()
 ```
 
 **說明：**
+
 - 無需正式專案即可開始搜尋
 - 文獻暫存於 `~exploration/references/`
 
@@ -77,6 +82,7 @@ mcp_mdpaper_start_exploration()
 ### Step B2: 自由搜尋
 
 **詢問用戶搜尋條件後執行：**
+
 ```
 mcp_pubmed-search_search_literature(query="用戶關鍵字")
 ```
@@ -94,6 +100,7 @@ mcp_mdpaper_save_reference_mcp(pmid="...", agent_notes="...")
 ### Step B4: 轉換為正式專案（可選）
 
 **當用戶準備好建立正式專案時：**
+
 ```
 mcp_mdpaper_convert_exploration_to_project(name="新專案名稱")
 ```
@@ -104,13 +111,13 @@ mcp_mdpaper_convert_exploration_to_project(name="新專案名稱")
 
 詢問用戶想要哪種搜尋方式：
 
-| 選項 | 說明 | 執行 |
-|------|------|------|
-| "快速找" | 直接關鍵字 | `search_literature()` |
-| "精確找" | MeSH + Boolean | `generate_search_queries()` |
-| "PICO" | 結構化搜尋 | `parse_pico()` workflow |
-| "相關論文" | 從已存文獻延伸 | `find_related_articles()` |
-| "誰引用" | 找引用文獻 | `find_citing_articles()` |
+| 選項       | 說明           | 執行                        |
+| ---------- | -------------- | --------------------------- |
+| "快速找"   | 直接關鍵字     | `search_literature()`       |
+| "精確找"   | MeSH + Boolean | `generate_search_queries()` |
+| "PICO"     | 結構化搜尋     | `parse_pico()` workflow     |
+| "相關論文" | 從已存文獻延伸 | `find_related_articles()`   |
+| "誰引用"   | 找引用文獻     | `find_citing_articles()`    |
 
 ---
 
@@ -122,7 +129,7 @@ mcp_mdpaper_convert_exploration_to_project(name="新專案名稱")
 
 ```
 Query Set 1: "remimazolam AND anesthesia"
-Query Set 2: "benzodiazepine AND sedation"  
+Query Set 2: "benzodiazepine AND sedation"
 Query Set 3: "procedural sedation AND safety"
 → 合併結果 → 去重 → 呈現給用戶
 ```

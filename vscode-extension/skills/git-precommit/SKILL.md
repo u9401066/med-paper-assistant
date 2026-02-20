@@ -22,10 +22,10 @@ description: |
 
 ## 觸發條件
 
-| 用戶說法 | 觸發 |
-|----------|------|
-| 準備 commit、要提交了 | ✅ |
-| 推送、做完了、收工 | ✅ |
+| 用戶說法              | 觸發        |
+| --------------------- | ----------- |
+| 準備 commit、要提交了 | ✅          |
+| 推送、做完了、收工    | ✅          |
 | 快速 commit (--quick) | ✅ 快速模式 |
 
 ---
@@ -152,13 +152,13 @@ mcp_mdpaper_sync_workspace_state(
 
 **檢查項目**：
 
-| # | 檢查項 | 方法 | 失敗行為 |
-|---|--------|------|----------|
-| G6.1 | Tool 數量一致 | `grep -c "mcp.tool"` vs README/ARCHITECTURE 宣稱的數字 | ⚠️ 報告差異，建議更新 |
-| G6.2 | Skill 數量一致 | `ls -d .claude/skills/*/` vs AGENTS.md 表格行數 | ⚠️ 報告缺漏的 Skill |
-| G6.3 | Prompt 數量一致 | `ls .github/prompts/*.prompt.md` vs 文檔宣稱的數字 | ⚠️ 報告差異 |
-| G6.4 | Hook 引用工具存在 | 掃描 SKILL.md 中的 `mcp_mdpaper_*` → 確認 tool 已註冊 | ❌ FAIL：引用了已廢棄工具 |
-| G6.5 | 跨文件數字一致 | README vs ARCHITECTURE vs AGENTS vs _capability-index | ⚠️ 報告不一致 |
+| #    | 檢查項            | 方法                                                   | 失敗行為                  |
+| ---- | ----------------- | ------------------------------------------------------ | ------------------------- |
+| G6.1 | Tool 數量一致     | `grep -c "mcp.tool"` vs README/ARCHITECTURE 宣稱的數字 | ⚠️ 報告差異，建議更新     |
+| G6.2 | Skill 數量一致    | `ls -d .claude/skills/*/` vs AGENTS.md 表格行數        | ⚠️ 報告缺漏的 Skill       |
+| G6.3 | Prompt 數量一致   | `ls .github/prompts/*.prompt.md` vs 文檔宣稱的數字     | ⚠️ 報告差異               |
+| G6.4 | Hook 引用工具存在 | 掃描 SKILL.md 中的 `mcp_mdpaper_*` → 確認 tool 已註冊  | ❌ FAIL：引用了已廢棄工具 |
+| G6.5 | 跨文件數字一致    | README vs ARCHITECTURE vs AGENTS vs \_capability-index | ⚠️ 報告不一致             |
 
 **執行邏輯**：
 
@@ -201,10 +201,12 @@ arch_tools=$(grep -oP '\d+ 個 tools' ARCHITECTURE.md | head -1)
 ```
 
 **失敗時行為**：
+
 - G6.1-G6.3, G6.5: ⚠️ WARN — 報告差異，列出需更新的文件和正確數字，不阻止提交
 - G6.4: ❌ FAIL — Hook 引用了不存在的工具會導致 Pipeline 執行時崩潰，阻止提交
 
 **自我改進閉環**：
+
 ```
 G6 發現不一致 → 報告問題 → Agent 或用戶修正 → 下次 G6 驗證修正
                     ↑                               │
@@ -221,13 +223,13 @@ G6 發現不一致 → 報告問題 → Agent 或用戶修正 → 下次 G6 驗�
 
 **檢查項目**：
 
-| # | 檢查項 | 方法 | 失敗行為 |
-|---|--------|------|----------|
-| G7.1 | Skills 同步 | `diff` source vs bundled SKILL.md | ⚠️ 報告 outdated skills |
-| G7.2 | Prompts 同步 | `diff` source vs bundled prompts | ⚠️ 報告 outdated prompts |
+| #    | 檢查項             | 方法                               | 失敗行為                  |
+| ---- | ------------------ | ---------------------------------- | ------------------------- |
+| G7.1 | Skills 同步        | `diff` source vs bundled SKILL.md  | ⚠️ 報告 outdated skills   |
+| G7.2 | Prompts 同步       | `diff` source vs bundled prompts   | ⚠️ 報告 outdated prompts  |
 | G7.3 | Chat commands 完整 | 檢查 package.json chatParticipants | ❌ FAIL：缺少必要 command |
-| G7.4 | Version 格式有效 | semver 驗證 | ❌ FAIL：無效版本號 |
-| G7.5 | TypeScript 編譯 | `tsc --noEmit` 或檢查 out/ | ⚠️ 報告編譯問題 |
+| G7.4 | Version 格式有效   | semver 驗證                        | ❌ FAIL：無效版本號       |
+| G7.5 | TypeScript 編譯    | `tsc --noEmit` 或檢查 out/         | ⚠️ 報告編譯問題           |
 
 **執行邏輯**：
 
@@ -268,11 +270,13 @@ cd vscode-extension && npx vitest run --reporter=dot 2>&1 | tail -3
 ```
 
 **失敗時行為**：
+
 - G7.1-G7.2: ⚠️ WARN — 報告 outdated 檔案，建議執行 `build.sh` 重新同步
 - G7.3-G7.4: ❌ FAIL — 關鍵斷裂（chat commands 缺失或版本無效），阻止提交
 - G7.5: ⚠️ WARN — TypeScript 編譯問題，不阻止提交但建議修復
 
 **自動修復**：
+
 ```bash
 # 快速修復：重新同步所有 bundled 檔案
 cd vscode-extension && ./scripts/build.sh
@@ -289,6 +293,7 @@ cd vscode-extension && ./scripts/build.sh
 **目的**：確保所有 `[[wikilinks]]` 能解析到已儲存的文獻
 
 **MCP Tools**：
+
 ```python
 # 掃描草稿中的所有引用
 result = mcp_mdpaper_scan_draft_citations(filename="drafts/manuscript.md")
@@ -305,6 +310,7 @@ if result.unresolved_citations:
 ```
 
 **判定**：
+
 - ✅ PASS: 0 個未解析引用
 - ⚠️ WARN: 有未解析但已知原因
 - ❌ FAIL: 有 unknown wikilinks → 阻止提交
@@ -316,6 +322,7 @@ if result.unresolved_citations:
 **目的**：掃描草稿中的 AI 痕跡用詞
 
 **MCP Tools**：
+
 ```python
 # 讀取所有已變更的草稿
 for draft_file in changed_draft_files:
@@ -343,6 +350,7 @@ for draft_file in changed_draft_files:
 ```
 
 **判定**：
+
 - ✅ PASS: 0 個 AI 用詞
 - ⚠️ WARN: 1-2 個（報告但不阻止）
 - ❌ FAIL: ≥3 個 → 建議修正後再提交
@@ -354,6 +362,7 @@ for draft_file in changed_draft_files:
 **目的**：草稿與 concept.md 的核心概念保持一致
 
 **MCP Tools**：
+
 ```python
 # 讀取 concept
 concept = mcp_mdpaper_read_draft(filename="concept.md")
@@ -374,6 +383,7 @@ for draft_file in changed_draft_files:
 ```
 
 **判定**：
+
 - ✅ PASS: 核心概念完整體現
 - ⚠️ WARN: 部分概念缺失
 - ❌ FAIL: NOVELTY 完全缺失 → 阻止提交
@@ -385,6 +395,7 @@ for draft_file in changed_draft_files:
 **目的**：各 section 字數在合理範圍
 
 **MCP Tools**：
+
 ```python
 for draft_file in changed_draft_files:
     result = mcp_mdpaper_count_words(filename=draft_file)
@@ -404,6 +415,7 @@ for draft_file in changed_draft_files:
 ```
 
 **判定**：
+
 - ✅ PASS: 所有 section 在限制 ±20% 內
 - ⚠️ WARN: 超標 20-50%
 - ❌ FAIL: 超標 >50%
@@ -415,6 +427,7 @@ for draft_file in changed_draft_files:
 **目的**：確保 `concept.md` 的 🔒 區塊未被刪除或弱化
 
 **MCP Tools**：
+
 ```python
 # 讀取 concept.md
 concept = mcp_mdpaper_read_draft(filename="concept.md")
@@ -433,6 +446,7 @@ for marker, name in checks:
 ```
 
 **判定**：
+
 - ✅ PASS: 兩個 🔒 區塊都存在且有內容
 - ❌ FAIL: 任一缺失 → 阻止提交
 
@@ -443,6 +457,7 @@ for marker, name in checks:
 **目的**：確保專案的 `.memory/activeContext.md` 已更新
 
 **MCP Tools**：
+
 ```python
 # 檢查 .memory/ 是否在變更清單中
 project_memory_updated = any(
@@ -461,6 +476,7 @@ if not project_memory_updated:
 ```
 
 **判定**：
+
 - ✅ PASS: .memory/ 已在變更清單中
 - ⚠️ AUTO-FIX: 自動同步後加入暫存
 
@@ -471,6 +487,7 @@ if not project_memory_updated:
 **目的**：已儲存的文獻都有必要的 metadata
 
 **MCP Tools**：
+
 ```python
 # 列出所有已儲存的文獻
 refs = mcp_mdpaper_list_saved_references()
@@ -487,6 +504,7 @@ for ref in refs.referenced_in_drafts:
 ```
 
 **判定**：
+
 - ✅ PASS: 所有引用的文獻都是 🔒 VERIFIED
 - ⚠️ WARN: 有 fallback 儲存的文獻（建議重新用 `save_reference_mcp` 驗證）
 
@@ -501,6 +519,7 @@ for ref in refs.referenced_in_drafts:
 **觸發條件**：Methods 或 Discussion 草稿有變更
 
 **MCP Tools**：
+
 ```python
 # 讀取 concept → 確認 paper_type
 concept = mcp_mdpaper_read_draft(filename="concept.md")
@@ -541,11 +560,13 @@ for item, source in checklist.get(paper_type, []):
 ```
 
 **判定**：
+
 - ✅ PASS: 所有項目 ≥ 5 分
 - ⚠️ WARN: 有項目 3-5 分（報告但不阻止）
 - ❌ FAIL: 有項目 < 3 分（建議修正後再提交）
 
 **與 Copilot Hook B5 的關係**：
+
 - B5 在寫作時即時檢查並自動修正
 - P8 在提交時做最終確認（safety net）
 - P8 只報告不修改，由用戶決定是否要回去修正
@@ -562,21 +583,24 @@ for item, source in checklist.get(paper_type, []):
 # Pre-Commit Hook Statistics
 
 ## 歷史統計（最近 N 次提交）
-| Hook | 執行次數 | 通過率 | 警告率 | 阻止率 | 趨勢 |
-|------|---------|--------|--------|--------|------|
-| P1 citation | 5 | 80% | 20% | 0% | → |
-| P2 anti_ai | 5 | 60% | 40% | 0% | ↓ 需注意 |
-| P3 concept | 5 | 100% | 0% | 0% | → |
-| P8 methodology | 2 | 50% | 50% | 0% | 新 Hook |
+
+| Hook           | 執行次數 | 通過率 | 警告率 | 阻止率 | 趨勢     |
+| -------------- | -------- | ------ | ------ | ------ | -------- |
+| P1 citation    | 5        | 80%    | 20%    | 0%     | →        |
+| P2 anti_ai     | 5        | 60%    | 40%    | 0%     | ↓ 需注意 |
+| P3 concept     | 5        | 100%   | 0%     | 0%     | →        |
+| P8 methodology | 2        | 50%    | 50%    | 0%     | 新 Hook  |
 
 ## 自動調整紀錄
-| 日期 | Hook | 調整 | 原因 |
-|------|------|------|------|
-| 2026-02-20 | P2 | 移除 'comprehensive' | 連續 3 次誤報 |
-| 2026-02-21 | P4 | Discussion 限制 1500→1650 | 觀察性研究需更長 |
+
+| 日期       | Hook | 調整                      | 原因             |
+| ---------- | ---- | ------------------------- | ---------------- |
+| 2026-02-20 | P2   | 移除 'comprehensive'      | 連續 3 次誤報    |
+| 2026-02-21 | P4   | Discussion 限制 1500→1650 | 觀察性研究需更長 |
 ```
 
 **效能判斷規則**：
+
 - Hook 通過率 >95%（5 次以上）→ 考慮是否太鬆
 - Hook 阻止率 >50%（5 次以上）→ 考慮是否太嚴
 - 記錄到 `.audit/` 供 auto-paper Hook D 分析
@@ -668,14 +692,15 @@ Agent：
 
 ## Git 操作工具
 
-| 工具 | 用途 |
-|------|------|
-| `get_changed_files()` | 取得變更檔案清單 |
-| `run_in_terminal("git status")` | 檢查 Git 狀態 |
-| `run_in_terminal("git add .")` | 暫存變更 |
-| `run_in_terminal("git commit -m '...'")` | 提交 |
+| 工具                                     | 用途             |
+| ---------------------------------------- | ---------------- |
+| `get_changed_files()`                    | 取得變更檔案清單 |
+| `run_in_terminal("git status")`          | 檢查 Git 狀態    |
+| `run_in_terminal("git add .")`           | 暫存變更         |
+| `run_in_terminal("git commit -m '...'")` | 提交             |
 
 **Commit Message 格式**：
+
 ```
 type(scope): description
 
@@ -687,29 +712,29 @@ Scope: paper, concept, refs, export, core
 
 ## Skill 依賴
 
-| 編排的 Skill | 工具 | 在哪個 Hook |
-|-------------|------|-------------|
-| memory-updater | `memory_bank_update_progress` | G1 |
-| readme-updater | `read_file`, `replace_string_in_file` | G2 |
-| changelog-updater | `read_file`, `replace_string_in_file` | G3 |
-| roadmap-updater | `read_file`, `replace_string_in_file` | G4 |
-| ddd-architect | `grep_search`, `list_dir` | G5 |
-| draft-writing | `read_draft`, `count_words`, `validate_wikilinks` | P1-P4 |
-| reference-management | `list_saved_references`, `get_reference_details` | P7 |
-| concept-development | `read_draft("concept.md")` | P3, P5, P8 |
+| 編排的 Skill         | 工具                                              | 在哪個 Hook |
+| -------------------- | ------------------------------------------------- | ----------- |
+| memory-updater       | `memory_bank_update_progress`                     | G1          |
+| readme-updater       | `read_file`, `replace_string_in_file`             | G2          |
+| changelog-updater    | `read_file`, `replace_string_in_file`             | G3          |
+| roadmap-updater      | `read_file`, `replace_string_in_file`             | G4          |
+| ddd-architect        | `grep_search`, `list_dir`                         | G5          |
+| draft-writing        | `read_draft`, `count_words`, `validate_wikilinks` | P1-P4       |
+| reference-management | `list_saved_references`, `get_reference_details`  | P7          |
+| concept-development  | `read_draft("concept.md")`                        | P3, P5, P8  |
 
 ---
 
 ## 與 Copilot Hooks 的關係
 
-| 面向 | Copilot Hooks | Pre-Commit Hooks |
-|------|---------------|------------------|
-| **誰定義** | `auto-paper/SKILL.md` | 本 SKILL（`git-precommit`） |
-| **何時觸發** | 寫作過程中（每次 write/patch） | `git commit` 前 |
-| **檢查粒度** | 單個 section | 所有已變更檔案 |
-| **自動修復** | ✅ 自動 `patch_draft` | ⚠️ 只報告，不自動修改 |
-| **目的** | 即時品質控制 | 最終品質把關 |
-| **互補性** | 處理寫作細節 | 處理全局一致性 |
+| 面向         | Copilot Hooks                  | Pre-Commit Hooks            |
+| ------------ | ------------------------------ | --------------------------- |
+| **誰定義**   | `auto-paper/SKILL.md`          | 本 SKILL（`git-precommit`） |
+| **何時觸發** | 寫作過程中（每次 write/patch） | `git commit` 前             |
+| **檢查粒度** | 單個 section                   | 所有已變更檔案              |
+| **自動修復** | ✅ 自動 `patch_draft`          | ⚠️ 只報告，不自動修改       |
+| **目的**     | 即時品質控制                   | 最終品質把關                |
+| **互補性**   | 處理寫作細節                   | 處理全局一致性              |
 
 **💡 理想情況**：如果 Copilot Hooks 在 auto-paper pipeline 中都正確執行，
 Pre-Commit Hooks 應該全部 PASS（因為問題已在寫作時修正）。

@@ -3,7 +3,7 @@ name: Bug Report 錯誤回報
 about: Report a bug to help us improve
 title: "[BUG] "
 labels: bug
-assignees: ''
+assignees: ""
 ---
 
 ## Description 描述

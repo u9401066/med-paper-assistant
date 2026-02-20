@@ -24,12 +24,12 @@ description: "🔍 mdpaper.search - 智能文獻搜尋與探索"
 
 ## 快捷選項
 
-| 選項 | 執行 |
-|------|------|
-| 快速找 | `search_literature()` |
-| 精確找 | `generate_search_queries()` |
-| PICO | `parse_pico()` workflow |
-| 相關論文 | `find_related_articles()` |
-| 誰引用 | `find_citing_articles()` |
+| 選項     | 執行                        |
+| -------- | --------------------------- |
+| 快速找   | `search_literature()`       |
+| 精確找   | `generate_search_queries()` |
+| PICO     | `parse_pico()` workflow     |
+| 相關論文 | `find_related_articles()`   |
+| 誰引用   | `find_citing_articles()`    |
 
 並行搜尋：多組 query → 合併去重 → 呈現

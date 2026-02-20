@@ -4,11 +4,11 @@
 
 ## 模式（操作前必查 `.copilot-mode.json`）
 
-| 模式 | 可修改檔案 | 技能範圍 |
-|------|-----------|---------|
-| `development` | 全部 | 全部技能 + 靜態分析 |
-| `normal` | `projects/` `docs/` | 僅研究技能 |
-| `research` | `projects/` `docs/` | 僅研究技能 |
+| 模式          | 可修改檔案          | 技能範圍            |
+| ------------- | ------------------- | ------------------- |
+| `development` | 全部                | 全部技能 + 靜態分析 |
+| `normal`      | `projects/` `docs/` | 僅研究技能          |
+| `research`    | `projects/` `docs/` | 僅研究技能          |
 
 Normal/Research 下 `.claude/` `.github/` `src/` `tests/` `integrations/` `AGENTS.md` `CONSTITUTION.md` `pyproject.toml` 皆唯讀。
 用戶要改受保護檔案 → 提示切換開發模式。
@@ -33,22 +33,22 @@ CONSTITUTION.md > `.github/bylaws/*.md` > `.claude/skills/*/SKILL.md`
 
 Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」。
 
-| Phase | 外部 MCP |
-|-------|---------|
+| Phase  | 外部 MCP                       |
+| ------ | ------------------------------ |
 | 2 文獻 | pubmed-search, zotero-keeper🔸 |
-| 3 概念 | cgu🔸（novelty < 75） |
-| 5 撰寫 | drawio🔸, cgu🔸, data tools |
+| 3 概念 | cgu🔸（novelty < 75）          |
+| 5 撰寫 | drawio🔸, cgu🔸, data tools    |
 
 ## Hook 架構（37 checks）
 
-| 類型 | 時機 | 重點 |
-|------|------|------|
-| Copilot A1-4 | post-write | 字數、引用、Anti-AI、Wikilink |
-| Copilot B1-6 | post-section | 概念一致、🔒保護、方法學、寫作順序 |
-| Copilot C1-6 | post-manuscript | 全稿一致、投稿清單 |
-| Copilot D1-6 | Phase 9 | SKILL/Hook 自我改進 |
-| Pre-Commit P1-8 | git commit 前 | 最終品質把關 |
-| General G1-7 | git commit 前 | Memory、文檔、架構、VSX |
+| 類型            | 時機            | 重點                               |
+| --------------- | --------------- | ---------------------------------- |
+| Copilot A1-4    | post-write      | 字數、引用、Anti-AI、Wikilink      |
+| Copilot B1-6    | post-section    | 概念一致、🔒保護、方法學、寫作順序 |
+| Copilot C1-6    | post-manuscript | 全稿一致、投稿清單                 |
+| Copilot D1-6    | Phase 9         | SKILL/Hook 自我改進                |
+| Pre-Commit P1-8 | git commit 前   | 最終品質把關                       |
+| General G1-7    | git commit 前   | Memory、文檔、架構、VSX            |
 
 ## 回應風格
 

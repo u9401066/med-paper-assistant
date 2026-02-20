@@ -17,13 +17,13 @@ description: 初始化新專案。觸發：init、新專案、初始化、create
 
 ## 互動式設定
 
-| 項目 | 選項 |
-|------|------|
-| 專案名稱 | 自訂 |
+| 項目     | 選項                        |
+| -------- | --------------------------- |
+| 專案名稱 | 自訂                        |
 | 程式語言 | Python / TypeScript / Other |
-| 授權 | MIT / Apache-2.0 / GPL-3.0 |
-| Docker | 是 / 否 |
-| CI/CD | GitHub Actions / None |
+| 授權     | MIT / Apache-2.0 / GPL-3.0  |
+| Docker   | 是 / 否                     |
+| CI/CD    | GitHub Actions / None       |
 
 ## 工作流
 

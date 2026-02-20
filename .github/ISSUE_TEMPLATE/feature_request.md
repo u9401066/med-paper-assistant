@@ -3,7 +3,7 @@ name: Feature Request 功能請求
 about: Suggest a new feature or enhancement
 title: "[FEATURE] "
 labels: enhancement
-assignees: ''
+assignees: ""
 ---
 
 ## Problem 問題

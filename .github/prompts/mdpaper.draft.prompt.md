@@ -24,13 +24,13 @@ description: "✍️ mdpaper.draft - 撰寫論文草稿"
 
 `get_section_template(section)` → 各 section 重點：
 
-| Section | 重點 |
-|---------|------|
-| Introduction | 背景→Gap→目的（含 🔒 NOVELTY）|
-| Methods | 設計→樣本→分析 |
-| Results | 主要→次要→表/圖 |
-| Discussion | 發現討論→文獻比較（含 🔒 SELLING POINTS）→限制→結論 |
-| Abstract | 依期刊格式 |
+| Section      | 重點                                                |
+| ------------ | --------------------------------------------------- |
+| Introduction | 背景→Gap→目的（含 🔒 NOVELTY）                      |
+| Methods      | 設計→樣本→分析                                      |
+| Results      | 主要→次要→表/圖                                     |
+| Discussion   | 發現討論→文獻比較（含 🔒 SELLING POINTS）→限制→結論 |
+| Abstract     | 依期刊格式                                          |
 
 ## Step 4: 撰寫
 

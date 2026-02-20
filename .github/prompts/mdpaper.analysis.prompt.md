@@ -20,13 +20,13 @@ description: "📊 mdpaper.analysis - 資料分析與視覺化"
 
 ## Step 4: 統計檢定
 
-| 檢定 | 適用 |
-|------|------|
-| t-test | 兩組連續 |
-| chi-square | 兩組類別 |
+| 檢定         | 適用       |
+| ------------ | ---------- |
+| t-test       | 兩組連續   |
+| chi-square   | 兩組類別   |
 | mann-whitney | 兩組非常態 |
-| anova | 多組連續 |
-| correlation | 兩連續關聯 |
+| anova        | 多組連續   |
+| correlation  | 兩連續關聯 |
 
 `run_statistical_test(file, test, params)`
 

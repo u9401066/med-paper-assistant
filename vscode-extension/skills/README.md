@@ -5,21 +5,25 @@ This directory contains the Agent knowledge base (Skills) that are embedded into
 ## Structure
 
 Each skill is a directory containing:
+
 - `SKILL.md` - The skill definition and workflow
 
 ## Available Skills
 
 ### Research Skills
+
 - `literature-review/` - Systematic literature search and review
 - `concept-development/` - Research concept development and validation
 - `parallel-search/` - Multi-query parallel search
 
 ### Writing Skills
+
 - `draft-writing/` - Paper section drafting
 - `reference-management/` - Citation and reference management
 - `word-export/` - Word document export
 
 ### Project Skills
+
 - `project-management/` - Research project management
 - `concept-validation/` - Novelty validation
 

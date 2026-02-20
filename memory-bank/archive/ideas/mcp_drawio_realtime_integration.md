@@ -3,6 +3,7 @@
 ## 問題分析
 
 ### 現狀
+
 ```
 User Request → mdpaper MCP → drawio MCP → 產生 .drawio 檔案
                                               ↓
@@ -10,6 +11,7 @@ User Request → mdpaper MCP → drawio MCP → 產生 .drawio 檔案
 ```
 
 ### 理想流程
+
 ```
 User Request → mdpaper MCP → drawio MCP → 即時顯示在瀏覽器
                                               ↓
@@ -21,11 +23,13 @@ User Request → mdpaper MCP → drawio MCP → 即時顯示在瀏覽器
 ## 技術挑戰
 
 ### 1. MCP 無法直接控制瀏覽器
+
 - MCP 是 server-side 工具
 - 無法主動開啟/控制 VS Code Simple Browser
 - 需要 VS Code Extension API 或其他機制
 
 ### 2. 跨 MCP 通訊
+
 - `mdpaper` MCP 需要調用 `drawio` MCP
 - 目前沒有 MCP-to-MCP 直接調用機制
 - Copilot Agent 是中間協調者
@@ -33,6 +37,7 @@ User Request → mdpaper MCP → drawio MCP → 即時顯示在瀏覽器
 ## 解決方案選項
 
 ### Option A: VS Code Extension 整合 (推薦)
+
 ```
 med-paper-assistant VSCode Extension
     ├── 監聽 MCP 事件
@@ -41,12 +46,14 @@ med-paper-assistant VSCode Extension
 ```
 
 **實作方式**:
+
 1. 建立 VS Code Extension
 2. Extension 監聽特定檔案變更 (`.drawio` 在 results/ 目錄)
 3. 檔案變更時自動在 Simple Browser 開啟
 4. 或透過 WebSocket 與 Next.js 即時通訊
 
 ### Option B: Next.js WebSocket 推送
+
 ```
 drawio MCP → 產生圖表 → POST to Next.js API
                               ↓
@@ -56,11 +63,13 @@ drawio MCP → 產生圖表 → POST to Next.js API
 ```
 
 **實作方式** (next-ai-draw-io 已部分支援):
+
 1. MCP 呼叫 Next.js API endpoint
 2. Next.js 儲存圖表並通知前端
 3. 前端 Draw.io 編輯器自動載入新圖表
 
 ### Option C: 檔案監控 + 自動重載
+
 ```
 drawio MCP → 產生 .drawio 檔案
                  ↓
@@ -70,11 +79,13 @@ drawio MCP → 產生 .drawio 檔案
 ```
 
 **實作方式**:
+
 1. Next.js 後端監控指定目錄
 2. 新 .drawio 檔案出現時，透過 WebSocket 通知前端
 3. 前端自動載入並顯示
 
 ### Option D: mdpaper MCP 內建 Draw.io 調用
+
 ```python
 # 在 mdpaper MCP 中新增工具
 @mcp.tool()
@@ -104,6 +115,7 @@ async def create_study_flowchart(concept_file: str):
 ## 推薦方案
 
 ### 短期 (現在可做): Option B + D
+
 1. **修改 next-ai-draw-io**:
    - 確保 `/api/mcp` 可以接收圖表並即時顯示
    - 加入 WebSocket 即時更新
@@ -117,6 +129,7 @@ async def create_study_flowchart(concept_file: str):
    - Agent 自動呼叫 `open_simple_browser`
 
 ### 長期: Option A (VS Code Extension)
+
 1. 建立 `med-paper-assistant` VS Code Extension
 2. 整合 MCP Server 管理
 3. 自動開啟/管理 Draw.io 瀏覽器視窗
@@ -139,6 +152,7 @@ async def create_study_flowchart(concept_file: str):
 ## 程式碼變更位置
 
 ### next-ai-draw-io (submodule)
+
 ```
 mcp-server/src/drawio_mcp_server/
 ├── server.py          ← 修改 create_diagram 邏輯
@@ -150,6 +164,7 @@ app/api/mcp/
 ```
 
 ### med-paper-assistant
+
 ```
 src/med_paper_assistant/interfaces/mcp/
 ├── instructions.py    ← 加入 drawio 使用指引
@@ -344,19 +359,28 @@ atexit.register(stop_web_server)
 export function TabBar({ tabs, activeTabId, onSwitch, onClose, onCreate }) {
   return (
     <div className="flex border-b bg-gray-50">
-      {tabs.map(tab => (
+      {tabs.map((tab) => (
         <div
           key={tab.id}
           className={`px-4 py-2 cursor-pointer flex items-center gap-2 ${
-            tab.id === activeTabId ? 'bg-white border-b-2 border-blue-500' : ''
+            tab.id === activeTabId ? "bg-white border-b-2 border-blue-500" : ""
           }`}
           onClick={() => onSwitch(tab.id)}
         >
           <span>{tab.name}</span>
-          <button onClick={(e) => { e.stopPropagation(); onClose(tab.id); }}>×</button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose(tab.id);
+            }}
+          >
+            ×
+          </button>
         </div>
       ))}
-      <button onClick={onCreate} className="px-3 py-2 text-gray-500">+ New</button>
+      <button onClick={onCreate} className="px-3 py-2 text-gray-500">
+        + New
+      </button>
     </div>
   );
 }

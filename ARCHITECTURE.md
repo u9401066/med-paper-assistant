@@ -134,13 +134,13 @@ interfaces → application → domain ← infrastructure
 
 Copilot Agent Mode 同時連接多個 MCP Server：
 
-| Server | 來源 | 用途 | Tools 數量 |
-|--------|------|------|-----------|
-| **mdpaper** | 本專案 | 專案管理、草稿、引用、匯出 | 54 |
-| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule) | PubMed 文獻搜尋 | 37 |
-| **cgu** | `integrations/cgu/` (submodule) | 創意發想（快思慢想） | 13 |
-| **drawio** | `uvx drawio-mcp-server` | CONSORT/PRISMA 圖表 | ~5 |
-| **zotero-keeper** | `uvx zotero-keeper` | Zotero 書目管理 | ~15 |
+| Server            | 來源                                          | 用途                       | Tools 數量 |
+| ----------------- | --------------------------------------------- | -------------------------- | ---------- |
+| **mdpaper**       | 本專案                                        | 專案管理、草稿、引用、匯出 | 54         |
+| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule) | PubMed 文獻搜尋            | 37         |
+| **cgu**           | `integrations/cgu/` (submodule)               | 創意發想（快思慢想）       | 13         |
+| **drawio**        | `uvx drawio-mcp-server`                       | CONSORT/PRISMA 圖表        | ~5         |
+| **zotero-keeper** | `uvx zotero-keeper`                           | Zotero 書目管理            | ~15        |
 
 ### MCP-to-MCP 通訊
 
@@ -204,14 +204,15 @@ Foam (VS Code extension) 提供論文引用的知識圖譜功能：
 
 行為指引層（不是代碼，是 Copilot 的 SOP）：
 
-| 類型 | 位置 | 數量 | 作用 |
-|------|------|------|------|
-| **Skills** | `.claude/skills/*/SKILL.md` | 26 | 單一任務的知識（如何組合 tools） |
-| **Prompts** | `.github/prompts/*.prompt.md` | 14 | 高層編排（多 skill 組合的工作流程） |
-| **Bylaws** | `.github/bylaws/*.md` | 4 | 規範（架構、git、memory、python 環境） |
-| **Instructions** | `.github/copilot-instructions.md` | 1 | 全域指引入口 |
+| 類型             | 位置                              | 數量 | 作用                                   |
+| ---------------- | --------------------------------- | ---- | -------------------------------------- |
+| **Skills**       | `.claude/skills/*/SKILL.md`       | 26   | 單一任務的知識（如何組合 tools）       |
+| **Prompts**      | `.github/prompts/*.prompt.md`     | 14   | 高層編排（多 skill 組合的工作流程）    |
+| **Bylaws**       | `.github/bylaws/*.md`             | 4    | 規範（架構、git、memory、python 環境） |
+| **Instructions** | `.github/copilot-instructions.md` | 1    | 全域指引入口                           |
 
 層級關係：
+
 ```
 Capability (Prompt) = 編排多個 Skills 完成完整任務
 Skill               = 知道如何使用多個 Tools
@@ -281,13 +282,13 @@ mdpaper: validate_concept(concept.md)
 
 ## Citation Styles
 
-| Style | 範例 |
-|-------|------|
-| Vancouver | `[1] Kim SH, Lee JW. Title. Journal 2024; 1: 1-10.` |
-| APA | `Kim, S.H., Lee, J.W. (2024). Title. *Journal*, 1, 1-10.` |
-| Harvard | `Kim, S.H. (2024) 'Title', *Journal*, vol. 1, pp. 1-10.` |
-| Nature | `1. Kim SH, Lee JW. Title. Journal 1, 1-10 (2024).` |
-| AMA | `1. Kim SH, Lee JW. Title. Journal 1, 1-10 (2024).` |
+| Style     | 範例                                                      |
+| --------- | --------------------------------------------------------- |
+| Vancouver | `[1] Kim SH, Lee JW. Title. Journal 2024; 1: 1-10.`       |
+| APA       | `Kim, S.H., Lee, J.W. (2024). Title. *Journal*, 1, 1-10.` |
+| Harvard   | `Kim, S.H. (2024) 'Title', *Journal*, vol. 1, pp. 1-10.`  |
+| Nature    | `1. Kim SH, Lee JW. Title. Journal 1, 1-10 (2024).`       |
+| AMA       | `1. Kim SH, Lee JW. Title. Journal 1, 1-10 (2024).`       |
 
 ---
 
@@ -295,27 +296,27 @@ mdpaper: validate_concept(concept.md)
 
 ### Python (managed by uv)
 
-| 套件 | 用途 |
-|------|------|
-| `mcp[cli]` | Model Context Protocol SDK |
-| `python-docx` | Word 文件操作 |
-| `pandas` | 資料分析 |
-| `scipy` | 統計檢定 |
-| `matplotlib` / `seaborn` | 繪圖 |
-| `pydantic` | 資料驗證 |
-| `tabulate` | 表格格式化 |
-| `httpx` | MCP-to-MCP HTTP 通訊 |
+| 套件                     | 用途                       |
+| ------------------------ | -------------------------- |
+| `mcp[cli]`               | Model Context Protocol SDK |
+| `python-docx`            | Word 文件操作              |
+| `pandas`                 | 資料分析                   |
+| `scipy`                  | 統計檢定                   |
+| `matplotlib` / `seaborn` | 繪圖                       |
+| `pydantic`               | 資料驗證                   |
+| `tabulate`               | 表格格式化                 |
+| `httpx`                  | MCP-to-MCP HTTP 通訊       |
 
 ### Dev Tools
 
-| 工具 | 用途 |
-|------|------|
-| `uv` | 套件管理（唯一，禁止 pip） |
-| `ruff` | Lint + Format |
-| `mypy` | Type checking |
-| `bandit` | Security scanning |
-| `pytest` | Testing |
-| `pre-commit` | Git hooks |
+| 工具         | 用途                       |
+| ------------ | -------------------------- |
+| `uv`         | 套件管理（唯一，禁止 pip） |
+| `ruff`       | Lint + Format              |
+| `mypy`       | Type checking              |
+| `bandit`     | Security scanning          |
+| `pytest`     | Testing                    |
+| `pre-commit` | Git hooks                  |
 
 ---
 

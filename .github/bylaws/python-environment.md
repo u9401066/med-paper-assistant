@@ -11,12 +11,15 @@ uv > pip-tools > pip
 ```
 
 ### 1.1 uv 優先原則
+
 1. **新專案必須使用 uv** 作為套件管理器
 2. uv 速度比 pip 快 10-100 倍
 3. 原生支援 lockfile 和虛擬環境
 
 ### 1.2 降級條件
+
 僅在以下情況可使用 pip：
+
 - 舊專案遷移成本過高
 - CI 環境不支援 uv
 - 特殊依賴衝突
@@ -26,6 +29,7 @@ uv > pip-tools > pip
 ## 第 2 條：虛擬環境規範
 
 ### 2.1 必須使用虛擬環境
+
 ```bash
 # ✅ 正確
 uv venv
@@ -37,6 +41,7 @@ pip install package  # 在系統 Python 中
 ```
 
 ### 2.2 虛擬環境位置
+
 ```
 project/
 ├── .venv/           # 虛擬環境（gitignore）
@@ -45,6 +50,7 @@ project/
 ```
 
 ### 2.3 Python 版本
+
 - 新專案使用 Python 3.11+
 - 版本在 `pyproject.toml` 中明確指定
 
@@ -53,6 +59,7 @@ project/
 ## 第 3 條：依賴管理
 
 ### 3.1 檔案結構
+
 ```
 pyproject.toml       # 主要依賴定義（必須）
 uv.lock              # 依賴鎖定檔（必須，納入版控）
@@ -60,6 +67,7 @@ requirements.txt     # 相容性匯出（可選，CI 用）
 ```
 
 ### 3.2 pyproject.toml 範本
+
 ```toml
 [project]
 name = "my-project"
@@ -90,6 +98,7 @@ dev-dependencies = [
 ```
 
 ### 3.3 常用 uv 指令
+
 ```bash
 # 初始化專案
 uv init my-project
@@ -121,6 +130,7 @@ uv pip compile pyproject.toml -o requirements.txt
 ## 第 4 條：專案初始化流程
 
 ### 4.1 新專案（使用 uv）
+
 ```bash
 # 1. 建立專案
 uv init my-project
@@ -143,6 +153,7 @@ touch memory-bank/{activeContext,progress,decisionLog,productContext,projectBrie
 ```
 
 ### 4.2 現有專案遷移
+
 ```bash
 # 1. 從 requirements.txt 遷移
 uv pip compile requirements.txt -o requirements.lock
@@ -164,6 +175,7 @@ uv lock
 ## 第 5 條：CI/CD 整合
 
 ### 5.1 GitHub Actions 使用 uv
+
 ```yaml
 jobs:
   test:
@@ -187,6 +199,7 @@ jobs:
 ```
 
 ### 5.2 Docker 使用 uv
+
 ```dockerfile
 FROM python:3.11-slim
 
@@ -204,6 +217,7 @@ CMD ["python", "-m", "src.main"]
 ```
 
 ### 5.3 uvx 工具執行（類似 npx）
+
 ```bash
 # 臨時執行工具（不安裝）
 uvx ruff check .
@@ -219,16 +233,21 @@ uvx ruff@0.1.0 check .
 ## 第 6 條：常見問題
 
 ### Q1: uv 和 pip 可以混用嗎？
+
 A: 不建議。混用可能導致依賴衝突。若必須，先用 `uv pip` 取代 `pip`。
 
 ### Q2: 為什麼不用 Poetry/Pipenv？
+
 A: uv 比 Poetry 快 10-100 倍，且與 pip 完全相容。Poetry 的 resolver 較慢。
 
 ### Q3: Windows 支援如何？
+
 A: uv 完整支援 Windows。安裝：`powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
 
 ### Q4: 如何處理私有套件？
+
 A: 在 `pyproject.toml` 中設定：
+
 ```toml
 [tool.uv]
 index-url = "https://pypi.org/simple"
@@ -239,17 +258,17 @@ extra-index-url = ["https://your-private-pypi.com/simple"]
 
 ## 附錄：快速參考卡
 
-| 操作 | uv 指令 (推薦) | pip 對應 (已棄用) |
-|------|---------|----------|
-| 建立 venv | `uv venv` | `python -m venv .venv` |
-| 安裝套件 | `uv add package` | `pip install package` |
-| 安裝開發依賴 | `uv add --dev package` | `pip install package` |
-| 安裝全部 | `uv sync --all-extras` | `pip install -e .` |
-| 更新 lock | `uv lock` | `pip-compile` |
-| 執行命令 | `uv run pytest` | `pytest` |
-| 查看依賴 | `uv pip list` | `pip list` |
+| 操作         | uv 指令 (推薦)         | pip 對應 (已棄用)      |
+| ------------ | ---------------------- | ---------------------- |
+| 建立 venv    | `uv venv`              | `python -m venv .venv` |
+| 安裝套件     | `uv add package`       | `pip install package`  |
+| 安裝開發依賴 | `uv add --dev package` | `pip install package`  |
+| 安裝全部     | `uv sync --all-extras` | `pip install -e .`     |
+| 更新 lock    | `uv lock`              | `pip-compile`          |
+| 執行命令     | `uv run pytest`        | `pytest`               |
+| 查看依賴     | `uv pip list`          | `pip list`             |
 
 ---
 
-*本子法版本：v1.0.0*
-*依據：憲法第 7.2 條*
+_本子法版本：v1.0.0_
+_依據：憲法第 7.2 條_

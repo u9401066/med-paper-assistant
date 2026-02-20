@@ -1,0 +1,11 @@
+# Submodules
+integrations/
+
+# Build outputs
+node_modules/
+.venv/
+dist/
+build/
+
+# Project data (user content, not tracked)
+projects/

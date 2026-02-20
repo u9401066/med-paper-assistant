@@ -17,21 +17,21 @@ description: README 多語言同步。觸發：i18n、翻譯、多語言、sync 
 
 ## 同步方向
 
-| 情況 | 動作 |
-|------|------|
-| 用戶提供中文 | 同步到英文版 |
+| 情況                          | 動作         |
+| ----------------------------- | ------------ |
+| 用戶提供中文                  | 同步到英文版 |
 | 用戶提供英文 / README.md 變更 | 同步到中文版 |
 
 ## 術語對照
 
-| EN | 中文 |
-|----|------|
-| Constitution | 憲法 |
-| Bylaws | 子法 |
-| Skills | 技能 |
-| Memory Bank | 記憶庫 |
+| EN                   | 中文         |
+| -------------------- | ------------ |
+| Constitution         | 憲法         |
+| Bylaws               | 子法         |
+| Skills               | 技能         |
+| Memory Bank          | 記憶庫       |
 | Domain-Driven Design | 領域驅動設計 |
-| Data Access Layer | 資料存取層 |
+| Data Access Layer    | 資料存取層   |
 
 ## 翻譯原則
 

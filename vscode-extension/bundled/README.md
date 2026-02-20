@@ -22,6 +22,7 @@ npm run bundle-python
 ```
 
 This will:
+
 1. Build the Python wheel from `../../src/med_paper_assistant`
 2. Install dependencies to `libs/`
 3. Copy the wheel to `tool/`
