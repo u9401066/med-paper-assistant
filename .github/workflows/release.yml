@@ -210,7 +210,7 @@ jobs:
         run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
 
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
           path: vscode-extension/*.vsix
