@@ -2,6 +2,20 @@
 
 ## Done (Recent)
 
+- **Citation-Aware Editing (Layer 1+2) (2026-02-20)** ✅：
+  - `get_available_citations()` — 列出所有可用 [[citation_key]]
+  - `patch_draft(filename, old_text, new_text)` — 部分編輯 + wikilink 驗證
+  - 14 個測試，全部通過
+  - SKILL.md 新增 Flow D、copilot-instructions.md 新增引用規則
+
+- **Code Review & Fixes (2026-02-20)** ✅：
+  - Pydantic V2 遷移：`SearchCriteria` class Config → model_config = ConfigDict
+  - wikilink_validator.py：移除未使用的 match.group(1)
+  - writing.py：list_drafts/read_draft/delete_draft 路徑解析改用 _get_drafts_dir()
+  - CHANGELOG 更新：新增 Citation-Aware Editing + Phase 3.5 紀錄
+  - ROADMAP 更新：Phase 3.5 加入 Citation-Aware Editing 完成項
+  - 32 passed / 1 skipped / 2 warnings（Pydantic 警告已消除）
+
 - **Infrastructure & Quality Cleanup 大整理 (2026-02-20)** ✅：
   - Pre-commit hooks：13 hooks (ruff, mypy, bandit, pytest, whitespace…) 全部通過
   - DDD Import 遷移：19 個測試檔從 `core.*` 遷移至 DDD 路徑

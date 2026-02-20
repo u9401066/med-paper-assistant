@@ -28,6 +28,17 @@ from .._shared import (
 _concept_validator = ConceptValidator()
 
 
+def _get_drafts_dir() -> Optional[str]:
+    """Get the current project's drafts directory."""
+    from med_paper_assistant.infrastructure.persistence import get_project_manager
+
+    pm = get_project_manager()
+    current_info = pm.get_project_info()
+    if current_info and current_info.get("project_path"):
+        return os.path.join(str(current_info["project_path"]), "drafts")
+    return None
+
+
 def _get_concept_path() -> Optional[str]:
     """Get the path to the current project's concept.md file."""
     from med_paper_assistant.infrastructure.persistence import get_project_manager
@@ -341,7 +352,9 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 )
                 return error_msg
 
-        drafts_dir = "drafts"
+        drafts_dir = _get_drafts_dir()
+        if not drafts_dir:
+            drafts_dir = "drafts"
         if not os.path.exists(drafts_dir):
             result = "📁 No drafts/ directory found. Create drafts using write_draft tool first."
             log_tool_result("list_drafts", result, success=True)
@@ -394,7 +407,8 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 return error_msg
 
         if not os.path.isabs(filename):
-            filename = os.path.join("drafts", filename)
+            drafts_dir = _get_drafts_dir() or "drafts"
+            filename = os.path.join(drafts_dir, filename)
 
         if not os.path.exists(filename):
             result = f"Error: Draft file not found: {filename}"
@@ -476,7 +490,8 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
 
         # Resolve the full path
         if not os.path.isabs(filename):
-            filename = os.path.join("drafts", filename)
+            drafts_dir = _get_drafts_dir() or "drafts"
+            filename = os.path.join(drafts_dir, filename)
 
         if not os.path.exists(filename):
             error_msg = f"❌ Draft file not found: {filename}"

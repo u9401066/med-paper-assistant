@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Citation-Aware Editing Tools (Layer 1+2)** ✅
+  - `get_available_citations()` — 列出所有可用 `[[citation_key]]`，含 PMID/作者/年份/標題表格
+  - `patch_draft(filename, old_text, new_text)` — 部分編輯草稿，自動驗證所有 wikilinks
+    - 唯一匹配檢查（防止模糊替換）
+    - Wikilink 格式自動修復（`[[12345678]]` → `[[author2024_12345678]]`）
+    - 引用存在驗證（拒絕 hallucinated citations）
+  - 解決 Agent 使用 `replace_string_in_file` 繞過 MCP 驗證管線的核心問題
+  - 14 個測試（3 test classes: GetAvailableCitations, PatchDraft, EditingIntegration）
+  - SKILL.md 新增 Flow D: Citation-Aware 部分編輯
+  - copilot-instructions.md 新增草稿編輯引用規則
+- **Infrastructure & Quality Cleanup (Phase 3.5)** ✅
+  - Pre-commit hooks: 13 hooks（ruff, ruff-format, mypy, bandit, pytest, whitespace, yaml, json, toml, large files, merge conflicts, debug statements）全部通過
+  - DDD Import 遷移：19 個測試檔從 `core.*` 遷移至 DDD 路徑
+  - Test Isolation：所有測試改用 `tmp_path` fixture，不再污染專案根目錄
+  - ARCHITECTURE.md 重寫：從 448 行過時文檔重寫為 ~240 行精確 DDD 架構文檔
+  - Legacy Cleanup：刪除空的 `core/` 目錄、多餘腳本、散落檔案
+  - Copilot Hook 修復：AGENTS.md 補齊 7 skills + 8 prompts，修正 capability index
+  - Coverage Baseline：32 passed / 1 skipped / 26 integration-deselected
+  - 架構方向決策：選定 **Direction C: Full VSX + Foam + Pandoc**
 - **Prompt Files 機制**
   - 新增 `.github/prompts/` 目錄，包含 9 個 prompt files
   - `/mdpaper.project` - 專案設置與切換
@@ -45,6 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 新增犀利回饋原則和模板
   - 新增 CGU 工具使用指南
   - 新增危險信號處理流程
+- **Pydantic V2 遷移**
+  - `SearchCriteria`: `class Config` → `model_config = ConfigDict(frozen=True)`
+  - 消除 `PydanticDeprecatedSince20` 警告
+
+### Fixed
+- **wikilink_validator.py**: 移除未使用的 `match.group(1)` 呼叫
+- **list_drafts / read_draft**: 路徑解析改用 `_get_drafts_dir()` 取得專案路徑，與 `patch_draft` 一致
 
 ### Documentation
 - **AGENTS.md**: 新增 Novelty Check 規則和 CGU 整合

@@ -87,6 +87,9 @@
 | **Copilot Hook 修復** ✅ | AGENTS.md 補齊 7 skills + 8 prompts，修正 capability index |
 | **Coverage Baseline** ✅ | 17 passed / 1 skipped / 26 integration-deselected（27% 覆蓋率基線） |
 | **架構方向決策** ✅ | 選定 **Direction C: Full VSX + Foam + Pandoc** |
+| **Citation-Aware Editing** ✅ | Layer 1 `get_available_citations` + Layer 2 `patch_draft` — 解決 Agent 繞過驗證管線的引用正確性問題 |
+| **Pydantic V2 遷移** ✅ | `SearchCriteria` 從 `class Config` 遷移至 `model_config = ConfigDict` |
+| **Code Review Clean** ✅ | unused variable 修復、路徑一致性修正、32 passed / 1 skipped |
 ---
 
 ## 🚨 已知問題 (Known Issues) - 已大幅改善
