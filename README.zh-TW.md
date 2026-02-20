@@ -20,16 +20,16 @@
 
 這是一個 **Monorepo 工具包**，將醫學研究者需要的一切 — 從文獻搜尋到 Word/LaTeX 匯出 — 整合在一個 VS Code 環境中。
 
-| 元件                                                 | 類型                 | 工具數 | 說明                                                      |
-| ---------------------------------------------------- | -------------------- | ------ | --------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-工具)**                    | 核心 MCP Server      | 54     | 論文寫作：專案、文獻、草稿、分析、驗證、匯出              |
-| **[pubmed-search](integrations/pubmed-search-mcp/)** | MCP Server（子模組） | 37     | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理 |
-| **[CGU](integrations/cgu/)**                         | MCP Server（子模組） | 13     | 創意發想：腦力激盪、深度思考、火花碰撞                    |
-| **[VS Code Extension](vscode-extension/)**           | 擴充功能             | 3 指令 | MCP Server 生命週期、`@mdpaper` 聊天參與者                |
-| **[Dashboard](dashboard/)**                          | Next.js Web App      | —      | 專案管理 UI、圖表編輯器                                   |
-| **[Foam](https://foambubble.github.io/foam/)**       | VS Code 擴充功能     | —      | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖               |
-| **[Skills](.claude/skills/)**                        | Agent 工作流         | 26     | 引導式多工具工作流（文獻回顧、草稿寫作...）               |
-| **[Prompts](.github/prompts/)**                      | Prompt Files         | 14     | `/mdpaper.search`、`/mdpaper.draft` 等                    |
+| 元件                                                               | 類型                 | 工具數 | 說明                                                      |
+| ------------------------------------------------------------------ | -------------------- | ------ | --------------------------------------------------------- |
+| **[mdpaper](#-mdpaper-mcp-工具)**                                  | 核心 MCP Server      | 54     | 論文寫作：專案、文獻、草稿、分析、驗證、匯出              |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37     | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理 |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13     | 創意發想：腦力激盪、深度思考、火花碰撞                    |
+| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 3 指令 | MCP Server 生命週期、`@mdpaper` 聊天參與者                |
+| **[Dashboard](dashboard/)**                                        | Next.js Web App      | —      | 專案管理 UI、圖表編輯器                                   |
+| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —      | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖               |
+| **[Skills](.claude/skills/)**                                      | Agent 工作流         | 26     | 引導式多工具工作流（文獻回顧、草稿寫作...）               |
+| **[Prompts](.github/prompts/)**                                    | Prompt Files         | 14     | `/mdpaper.search`、`/mdpaper.draft` 等                    |
 
 **外部 MCP Server**（選用，透過 uvx 安裝）：
 

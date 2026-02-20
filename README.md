@@ -26,16 +26,16 @@
 
 This is a **monorepo toolkit** that bundles everything a medical researcher needs — from literature search to Word/LaTeX export — into one integrated VS Code environment.
 
-| Component                                            | Type                   | Tools  | Description                                                               |
-| ---------------------------------------------------- | ---------------------- | ------ | ------------------------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-tools)**                   | Core MCP Server        | 54     | Paper writing: projects, references, drafts, analysis, validation, export |
-| **[pubmed-search](integrations/pubmed-search-mcp/)** | MCP Server (submodule) | 37     | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt       |
-| **[CGU](integrations/cgu/)**                         | MCP Server (submodule) | 13     | Creative generation: brainstorm, deep think, spark collision              |
-| **[VS Code Extension](vscode-extension/)**           | Extension              | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant                         |
-| **[Dashboard](dashboard/)**                          | Next.js Web App        | —      | Project management UI, diagram editor                                     |
-| **[Foam](https://foambubble.github.io/foam/)**       | VS Code Extension      | —      | `[[wikilink]]` citation linking, hover preview, graph view                |
-| **[Skills](.claude/skills/)**                        | Agent Workflows        | 26     | Guided multi-tool workflows (literature review, draft writing...)         |
-| **[Prompts](.github/prompts/)**                      | Prompt Files           | 14     | `/mdpaper.search`, `/mdpaper.draft`, etc.                                 |
+| Component                                                          | Type                   | Tools  | Description                                                               |
+| ------------------------------------------------------------------ | ---------------------- | ------ | ------------------------------------------------------------------------- |
+| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 54     | Paper writing: projects, references, drafts, analysis, validation, export |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37     | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt       |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13     | Creative generation: brainstorm, deep think, spark collision              |
+| **[VS Code Extension](vscode-extension/)**                         | Extension              | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant                         |
+| **[Dashboard](dashboard/)**                                        | Next.js Web App        | —      | Project management UI, diagram editor                                     |
+| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —      | `[[wikilink]]` citation linking, hover preview, graph view                |
+| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26     | Guided multi-tool workflows (literature review, draft writing...)         |
+| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 14     | `/mdpaper.search`, `/mdpaper.draft`, etc.                                 |
 
 **External MCP Servers** (optional, installed via uvx):
 
