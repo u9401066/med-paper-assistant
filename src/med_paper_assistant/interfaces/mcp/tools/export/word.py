@@ -27,30 +27,6 @@ def register_word_export_tools(
 ):
     """Register Word export tools."""
 
-    # ============================================================
-    # LEGACY EXPORT
-    # ============================================================
-
-    @mcp.tool()
-    def export_word(draft_filename: str, template_name: str, output_filename: str) -> str:
-        """
-        [Legacy] Simple export. Use new workflow (start_document_session) for more control.
-
-        Args:
-            draft_filename: Markdown draft path
-            template_name: Template file in templates/
-            output_filename: Output path
-        """
-        try:
-            path = formatter.apply_template(draft_filename, template_name, output_filename)
-            return f"Word document exported successfully to: {path}"
-        except Exception as e:
-            return f"Error exporting Word document: {str(e)}"
-
-    # ============================================================
-    # NEW WORKFLOW
-    # ============================================================
-
     @mcp.tool()
     def list_templates() -> str:
         """
@@ -154,12 +130,14 @@ def register_word_export_tools(
             return f"Error inserting section: {str(e)}"
 
     @mcp.tool()
-    def verify_document(session_id: str) -> str:
+    def verify_document(session_id: str, limits_json: Optional[str] = None) -> str:
         """
         Get document summary with all sections and word counts.
+        Optionally check against word limits per section.
 
         Args:
             session_id: Session ID from start_document_session
+            limits_json: Optional JSON with section word limits (e.g., '{"Abstract": 300, "Introduction": 800}')
         """
         if session_id not in _active_documents:
             return f"Error: No active session '{session_id}'."
@@ -185,72 +163,54 @@ def register_word_export_tools(
             for mod in session["modifications"]:
                 output += f"- {mod['section']}: {mod['paragraphs']} paragraphs ({mod['mode']})\n"
 
-            return output
-        except Exception as e:
-            return f"Error verifying document: {str(e)}"
-
-    @mcp.tool()
-    def check_word_limits(session_id: str, limits_json: Optional[str] = None) -> str:
-        """
-        Check if sections meet word limits.
-
-        Args:
-            session_id: Session ID from start_document_session
-            limits_json: Optional JSON with custom limits (e.g., '{"Abstract": 300}')
-        """
-        if session_id not in _active_documents:
-            return f"Error: No active session '{session_id}'."
-
-        try:
-            session = _active_documents[session_id]
-            doc = session["doc"]
-
-            counts = word_writer.get_all_word_counts(doc)
-
-            limits = {
-                "Abstract": 250,
-                "Introduction": 800,
-                "Methods": 1500,
-                "Materials and Methods": 1500,
-                "Results": 1500,
-                "Discussion": 1500,
-                "Conclusions": 300,
-            }
-
+            # Word limit check if limits provided
             if limits_json:
+                limits = {
+                    "Abstract": 250,
+                    "Introduction": 800,
+                    "Methods": 1500,
+                    "Materials and Methods": 1500,
+                    "Results": 1500,
+                    "Discussion": 1500,
+                    "Conclusions": 300,
+                }
+
                 custom_limits = json.loads(limits_json)
                 limits.update(custom_limits)
 
-            output = "📏 **Word Limit Check**\n\n"
-            output += "| Section | Words | Limit | Status |\n"
-            output += "|---------|-------|-------|--------|\n"
+                output += "\n📏 **Word Limit Check**\n\n"
+                output += "| Section | Words | Limit | Status |\n"
+                output += "|---------|-------|-------|--------|\n"
 
-            all_ok = True
-            for section, count in counts.items():
-                limit = None
-                for limit_key, limit_val in limits.items():
-                    if limit_key.lower() in section.lower() or section.lower() in limit_key.lower():
-                        limit = limit_val
-                        break
+                all_ok = True
+                for section, count in counts.items():
+                    limit = None
+                    for limit_key, limit_val in limits.items():
+                        if (
+                            limit_key.lower() in section.lower()
+                            or section.lower() in limit_key.lower()
+                        ):
+                            limit = limit_val
+                            break
 
-                if limit:
-                    if count <= limit:
-                        status = "✅"
+                    if limit:
+                        if count <= limit:
+                            status = "✅"
+                        else:
+                            status = f"⚠️ Over by {count - limit}"
+                            all_ok = False
+                        output += f"| {section} | {count} | {limit} | {status} |\n"
                     else:
-                        status = f"⚠️ Over by {count - limit}"
-                        all_ok = False
-                    output += f"| {section} | {count} | {limit} | {status} |\n"
-                else:
-                    output += f"| {section} | {count} | - | - |\n"
+                        output += f"| {section} | {count} | - | - |\n"
 
-            if all_ok:
-                output += "\n✅ **All sections within word limits!**"
-            else:
-                output += "\n⚠️ **Some sections exceed word limits.**"
+                if all_ok:
+                    output += "\n✅ **All sections within word limits!**"
+                else:
+                    output += "\n⚠️ **Some sections exceed word limits.**"
 
             return output
         except Exception as e:
-            return f"Error checking word limits: {str(e)}"
+            return f"Error verifying document: {str(e)}"
 
     @mcp.tool()
     def save_document(session_id: str, output_filename: str) -> str:

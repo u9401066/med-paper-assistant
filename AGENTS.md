@@ -401,6 +401,9 @@ Agent 應該主動識別用戶意圖並觸發對應 Capability：
 | **draft-writing** | 寫草稿、draft、撰寫、Introduction、Methods | 論文草稿撰寫、讀取、引用管理 |
 | **reference-management** | 存這篇、save、儲存文獻、列出 references | 文獻的儲存、搜尋、格式化、PDF 管理 |
 | **word-export** | 匯出 Word、export、template、轉成 docx | 草稿匯出為符合期刊格式的 Word 文件 |
+| **academic-debate** | 辯論、debate、觀點比較、devil's advocate | 學術辯論框架、觀點比較、證據層級分析 |
+| **idea-validation** | 假說驗證、可行性、feasibility、PICO | 假說 PICO 分析、可行性評估清單 |
+| **manuscript-review** | peer review、報告指引、CONSORT、STROBE | 模擬同行審查、報告指引 checklist |
 
 ### 🛠️ 通用技能
 

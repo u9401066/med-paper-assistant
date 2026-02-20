@@ -3,7 +3,7 @@ name: draft-writing
 description: |
   論文草稿的撰寫、讀取、引用管理。
   LOAD THIS SKILL WHEN: 寫草稿、draft、撰寫、Introduction、Methods、Results、Discussion、引用、citation、字數、patch、編輯草稿
-  CAPABILITIES: write_draft, draft_section, read_draft, list_drafts, insert_citation, sync_references, count_words, get_section_template, get_available_citations, patch_draft
+  CAPABILITIES: write_draft, draft_section, read_draft, list_drafts, insert_citation, sync_references, count_words, get_available_citations, patch_draft
 ---
 
 # 草稿撰寫技能
@@ -18,7 +18,7 @@ description: |
 | 加引用、插入引用 | `insert_citation()` |
 | 整理引用、生成 References | `sync_references()` |
 | 字數、word count | `count_words()` |
-| 怎麼寫這個 section | `get_section_template()` |
+| 怎麼寫這個 section | 參考下方「Section 寫作指南」 |
 | 可用引用、列出 citations | `get_available_citations()` |
 | 部分編輯、修改草稿段落 | `patch_draft()` |
 
@@ -53,7 +53,6 @@ description: |
 | `insert_citation` | `filename`, `target_text`, `pmid` | 在指定位置插入引用 |
 | `sync_references` | `filename`, `project` | 掃描 [[wikilinks]] 生成 References |
 | `count_words` | `filename`, `section` | 計算字數 |
-| `get_section_template` | `section` | 取得 section 寫作指南 |
 
 ### ⭐ Citation-Aware 編輯工具 (mdpaper)
 
@@ -84,9 +83,8 @@ Step 2: 讀取 concept 和受保護內容
   → 提取 🔒 NOVELTY STATEMENT
   → 提取 🔒 KEY SELLING POINTS
 
-Step 3: 取得寫作指南
-  get_section_template(section="Introduction")
-  → 返回該 section 的結構建議
+Step 3: 參考本 Skill 下方「Section 寫作指南」
+  → 取得該 section 的結構建議、Anti-AI 規則、字數目標
 
 Step 4: 撰寫內容
   draft_section(
@@ -272,7 +270,7 @@ Author 2024 [[12345678]] → [[author2024_12345678]]
 | 草稿被阻擋 | 檢查 concept.md 的 🔒 區塊是否填寫 |
 | 引用找不到 | 先 `save_reference_mcp()` 儲存文獻 |
 | 字數太多 | `count_words()` 逐 section 檢查 |
-| 不知道怎麼寫 | `get_section_template()` 取得指南 |
+| 不知道怎麼寫 | 參考本 Skill 的「Section 寫作指南」 |
 | Wikilink 格式錯誤 | `validate_wikilinks()` 自動修復 |
 
 ---

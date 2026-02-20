@@ -37,6 +37,7 @@ def register_workspace_state_tools(mcp: FastMCP):
         doing: Optional[str] = None,
         next_action: Optional[str] = None,
         context: Optional[str] = None,
+        clear: bool = False,
     ) -> str:
         """
         Sync workspace state for future session recovery. Call before important ops or session end.
@@ -45,8 +46,16 @@ def register_workspace_state_tools(mcp: FastMCP):
             doing: Current activity description
             next_action: Suggested next action
             context: Important context (comma-separated)
+            clear: If True, clear recovery hints instead of syncing
         """
         state_manager = get_workspace_state_manager()
+
+        if clear:
+            success = state_manager.clear_recovery_hints()
+            if success:
+                return "✅ Recovery hints cleared. Ready for new work!"
+            else:
+                return "❌ Failed to clear recovery hints."
 
         # Parse context if provided
         context_list = None
@@ -71,14 +80,3 @@ def register_workspace_state_tools(mcp: FastMCP):
 💡 This state will be available in future sessions via `get_workspace_state`."""
         else:
             return "❌ Failed to sync workspace state. Check file permissions."
-
-    @mcp.tool()
-    def clear_recovery_state() -> str:
-        """Clear recovery hints after successful context recovery."""
-        state_manager = get_workspace_state_manager()
-        success = state_manager.clear_recovery_hints()
-
-        if success:
-            return "✅ Recovery hints cleared. Ready for new work!"
-        else:
-            return "❌ Failed to clear recovery hints."

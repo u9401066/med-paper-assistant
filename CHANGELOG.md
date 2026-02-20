@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Placeholder Tools Implementation (Phase 8)** ✅
+  - 9 個佔位工具升級為完整實作（74→83 tools）
+  - Analysis: `analyze_dataset`, `detect_variable_types`, `list_data_files`, `create_plot`, `run_statistical_test`, `generate_table_one`
+  - Review: `check_manuscript_consistency`, `create_reviewer_response`, `format_revision_changes`
+- **Tool Layer Architecture Audit (Phase 9)** ✅
+  - 7 個模板型工具（debate, critique, idea-validation）轉為 3 個 Skill 檔案
+  - 新增 `.claude/skills/academic-debate/SKILL.md`
+  - 新增 `.claude/skills/idea-validation/SKILL.md`
+  - 新增 `.claude/skills/manuscript-review/SKILL.md`
+  - 工具數量：83→76
+- **Comprehensive Tool Consolidation (Phase 10)** ✅
+  - 6 大策略精簡 76→53 tools（-30%）
+  - **Strategy A: 移除無用工具** — `close_other_project_files`, `export_word`（legacy）
+  - **Strategy B: 簡單合併** — `validate_for_section`, `get_project_paths`, `check_reference_exists` 併入現有工具
+  - **Strategy C: 參數合併** — 6 組工具對合併（validate_concept +structure_only, get_current_project +include_files, update_project_settings +status/citation_style, save_diagram +output_dir, sync_workspace_state +clear, suggest_citations +claim_type/max_results, verify_document +limits_json）
+  - **Strategy D: 功能吸收** — consistency 檢查 + submission checklist 併入 `check_formatting`
+  - **Strategy E+F: Skill 轉換** — 7 個工具轉為 skill 知識（get_section_template, generate_cover_letter, list_supported_journals, generate_highlights, check_submission_checklist, create_reviewer_response, format_revision_changes）
+  - 新增 `.claude/skills/submission-preparation/SKILL.md`（cover letter、highlights、journal requirements、reviewer response 模板）
+  - 更新 `draft-writing/SKILL.md`、`project-management/SKILL.md` 反映工具變更
+  - 測試驗證：35 passed / 21 pre-existing failures / 0 regressions
 - **Citation-Aware Editing Tools (Layer 1+2)** ✅
   - `get_available_citations()` — 列出所有可用 `[[citation_key]]`，含 PMID/作者/年份/標題表格
   - `patch_draft(filename, old_text, new_text)` — 部分編輯草稿，自動驗證所有 wikilinks

@@ -44,6 +44,7 @@ def register_concept_validation_tools(mcp: FastMCP):
         project: Optional[str] = None,
         run_novelty_check: bool = True,
         target_section: Optional[str] = None,
+        structure_only: bool = False,
     ) -> str:
         """
         Comprehensive validation: structure, novelty scoring (3 rounds, 75+ threshold), and consistency.
@@ -53,6 +54,7 @@ def register_concept_validation_tools(mcp: FastMCP):
             project: Project slug (uses current if omitted)
             run_novelty_check: Run LLM-based novelty scoring (default: True)
             target_section: Optional section to validate for (e.g., "Introduction")
+            structure_only: Quick structural check without LLM calls (default: False)
         """
         log_tool_call(
             "validate_concept",
@@ -61,6 +63,7 @@ def register_concept_validation_tools(mcp: FastMCP):
                 "project": project,
                 "run_novelty_check": run_novelty_check,
                 "target_section": target_section,
+                "structure_only": structure_only,
             },
         )
 
@@ -99,6 +102,17 @@ def register_concept_validation_tools(mcp: FastMCP):
             return error_result
 
         try:
+            # Quick structural check only (no LLM calls)
+            if structure_only:
+                validation_result = _concept_validator.validate_structure_only(filename)
+                report = _concept_validator.generate_report(validation_result)
+                log_tool_result(
+                    "validate_concept",
+                    f"structure_only passed={validation_result.overall_passed}",
+                    success=validation_result.overall_passed,
+                )
+                return report
+
             # Get paper_type from project
             from med_paper_assistant.infrastructure.persistence import get_project_manager
 
@@ -149,127 +163,6 @@ def register_concept_validation_tools(mcp: FastMCP):
         except Exception as e:
             log_tool_error("validate_concept", e, {"filename": filename})
             return f"❌ Error validating concept: {str(e)}"
-
-    @mcp.tool()
-    def validate_concept_quick(filename: str, project: Optional[str] = None) -> str:
-        """
-        Quick structural validation without LLM calls. Use for fast section checks.
-
-        Args:
-            filename: Concept file path
-            project: Project slug (uses current if omitted)
-        """
-        log_tool_call("validate_concept_quick", {"filename": filename, "project": project})
-
-        if project:
-            is_valid, error_msg = _validate_project_context(project)
-            if not is_valid:
-                log_agent_misuse(
-                    "validate_concept_quick",
-                    "valid project context required",
-                    {"project": project},
-                    error_msg,
-                )
-                return error_msg
-
-        if not os.path.isabs(filename):
-            from med_paper_assistant.infrastructure.persistence import get_project_manager
-
-            pm = get_project_manager()
-            current_info = pm.get_project_info()
-
-            if current_info and current_info.get("project_path"):
-                project_concept = os.path.join(str(current_info["project_path"]), "concept.md")
-                if os.path.exists(project_concept) and filename in ["concept.md", project_concept]:
-                    filename = project_concept
-                else:
-                    filename = os.path.join("drafts", filename)
-            else:
-                filename = os.path.join("drafts", filename)
-
-        if not os.path.exists(filename):
-            error_result = f"❌ Error: Concept file not found: {filename}"
-            log_tool_result("validate_concept_quick", "concept file not found", success=False)
-            return error_result
-
-        try:
-            validation_result = _concept_validator.validate_structure_only(filename)
-            report = _concept_validator.generate_report(validation_result)
-            log_tool_result(
-                "validate_concept_quick",
-                f"passed={validation_result.overall_passed}",
-                success=validation_result.overall_passed,
-            )
-            return report
-        except Exception as e:
-            log_tool_error("validate_concept_quick", e, {"filename": filename})
-            return f"❌ Error: {str(e)}"
-
-    @mcp.tool()
-    def validate_for_section(section: str, project: Optional[str] = None) -> str:
-        """
-        Check if a specific section can be written based on concept.md.
-
-        Args:
-            section: Target section (e.g., "Introduction", "Methods", "Discussion")
-            project: Project slug (uses current if omitted)
-        """
-        log_tool_call("validate_for_section", {"section": section, "project": project})
-
-        is_valid, error_msg = _validate_project_context(project)
-        if not is_valid:
-            log_agent_misuse(
-                "validate_for_section",
-                "valid project context required",
-                {"project": project},
-                error_msg,
-            )
-            return error_msg
-
-        # Resolve concept.md path
-        from med_paper_assistant.infrastructure.persistence import get_project_manager
-
-        pm = get_project_manager()
-        current_info = pm.get_project_info()
-
-        if not current_info or not current_info.get("project_path"):
-            error_result = "❌ No active project. Use `switch_project` first."
-            log_tool_result("validate_for_section", "no active project", success=False)
-            return error_result
-
-        filename = os.path.join(str(current_info["project_path"]), "concept.md")
-        if not os.path.exists(filename):
-            error_result = (
-                f"❌ Concept file not found: {filename}\n\nUse `/mdpaper.concept` to create one."
-            )
-            log_tool_result("validate_for_section", "concept file not found", success=False)
-            return error_result
-
-        paper_type = str(current_info.get("paper_type", "original-research"))
-
-        try:
-            validation_result = _concept_validator.validate(
-                filename,
-                paper_type=paper_type,
-                target_section=section,
-                run_novelty_check=True,  # Still check NOVELTY score
-                run_consistency_check=False,  # Skip for speed
-                run_citation_check=False,
-                force_refresh=False,  # Use cache if available
-            )
-
-            report = _concept_validator.generate_report(validation_result)
-
-            log_tool_result(
-                "validate_for_section",
-                f"section={section}, can_write={validation_result.can_write_section}, paper_type={paper_type}",
-                success=validation_result.can_write_section,
-            )
-            return report
-
-        except Exception as e:
-            log_tool_error("validate_for_section", e, {"section": section, "project": project})
-            return f"❌ Error: {str(e)}"
 
     @mcp.tool()
     def validate_wikilinks(

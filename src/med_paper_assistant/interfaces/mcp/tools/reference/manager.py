@@ -270,21 +270,6 @@ def register_reference_manager_tools(
         return f"# Fulltext: PMID {pmid}\n\n{text}"
 
     @mcp.tool()
-    def check_reference_exists(pmid: str) -> str:
-        """
-        Check if a reference is already saved locally.
-
-        Args:
-            pmid: PubMed ID to check
-        """
-        exists = ref_manager.check_reference_exists(pmid)
-        if exists:
-            summary = ref_manager.get_reference_summary(pmid)
-            title = summary.get("title", "Unknown")[:50]
-            return f"✅ Reference {pmid} exists locally.\nTitle: {title}..."
-        return f"❌ Reference {pmid} not found locally."
-
-    @mcp.tool()
     def save_reference_pdf(pmid: str, pdf_content: str) -> str:
         """
         Save base64-encoded PDF content for an existing reference.
@@ -300,29 +285,6 @@ def register_reference_manager_tools(
             return ref_manager.save_pdf(pmid, decoded)
         except Exception as e:
             return f"❌ Error decoding PDF: {str(e)}"
-
-    @mcp.tool()
-    def set_citation_style(style: str) -> str:
-        """
-        Set citation style for current project/session.
-
-        Args:
-            style: "vancouver", "apa", "harvard", "nature", or "ama"
-        """
-        try:
-            drafter.set_citation_style(style)
-
-            # Also save to project settings if a project is active
-            current = project_manager.get_current_project()
-            if current:
-                project_manager.update_project_settings(
-                    slug=current["slug"], settings={"citation_style": style}
-                )
-                return f"Citation style set to: {style} (saved to project: {current['name']})"
-
-            return f"Citation style set to: {style} (session only, no active project)"
-        except ValueError as e:
-            return str(e)
 
     @mcp.tool()
     def format_references(

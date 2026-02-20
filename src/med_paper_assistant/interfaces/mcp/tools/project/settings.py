@@ -54,44 +54,6 @@ def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
     """Register project settings tools."""
 
     @mcp.tool()
-    def get_paper_types() -> str:
-        """List available paper types with descriptions."""
-        types = project_manager.get_paper_types()
-
-        lines = ["**Which type of paper are you writing?**\n"]
-
-        for key, info in types.items():
-            lines.append(f"- **{info['name']}** (`{key}`) - {info['description']}")
-
-        lines.append("")
-        lines.append("Please tell me the type (e.g., 'original-research' or 'meta-analysis').")
-
-        return "\n".join(lines)
-
-    @mcp.tool()
-    def update_project_status(status: str) -> str:
-        """
-        Update project status.
-
-        Args:
-            status: concept|drafting|review|submitted|published
-        """
-        result = project_manager.update_project_status(status)
-
-        if result.get("success"):
-            status_emoji = {
-                "concept": "💡",
-                "drafting": "✍️",
-                "review": "🔍",
-                "submitted": "📤",
-                "published": "📗",
-            }.get(status, "❓")
-
-            return f"✅ Project status updated to: {status_emoji} **{status}**"
-        else:
-            return f"❌ Error: {result.get('error', 'Unknown error')}"
-
-    @mcp.tool()
     def update_project_settings(
         paper_type: str = "",
         target_journal: str = "",
@@ -99,9 +61,11 @@ def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
         language_preference: str = "",
         writing_style: str = "",
         memo: str = "",
+        status: str = "",
+        citation_style: str = "",
     ) -> str:
         """
-        Update project settings (paper type, preferences, memo).
+        Update project settings (paper type, status, preferences, citation style, memo).
 
         Args:
             paper_type: Paper type (use get_paper_types)
@@ -110,6 +74,8 @@ def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
             language_preference: Language notes
             writing_style: Writing style notes
             memo: Project notes/reminders
+            status: Project status (concept|drafting|review|submitted|published)
+            citation_style: Citation style (vancouver|apa|harvard|nature|ama)
         """
         # Build interaction preferences dict
         interaction_preferences = {}
@@ -119,6 +85,26 @@ def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
             interaction_preferences["language"] = language_preference
         if writing_style:
             interaction_preferences["writing_style"] = writing_style
+
+        # Handle status update
+        if status:
+            status_result = project_manager.update_project_status(status)
+            if not status_result.get("success"):
+                return f"❌ Error updating status: {status_result.get('error', 'Unknown error')}"
+
+        # Handle citation style update
+        if citation_style:
+            try:
+                from med_paper_assistant.infrastructure.services import get_drafter
+
+                drafter = get_drafter()
+                drafter.set_citation_style(citation_style)
+            except Exception:  # nosec B110 - Citation style is best-effort
+                pass
+            # Also save to project settings
+            if not interaction_preferences:
+                interaction_preferences = {}
+            interaction_preferences["citation_style"] = citation_style
 
         result = project_manager.update_project_settings(
             paper_type=paper_type if paper_type else None,

@@ -4,6 +4,8 @@ Project CRUD Tools
 Create, List, Switch, Get Current project operations.
 """
 
+import os
+
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.domain.paper_types import get_paper_type_dict
@@ -176,9 +178,14 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 """
 
     @mcp.tool()
-    def get_current_project() -> str:
-        """Get current project info including paths and statistics."""
-        log_tool_call("get_current_project", {})
+    def get_current_project(include_files: bool = False) -> str:
+        """
+        Get current project info including paths, statistics, and exploration status.
+
+        Args:
+            include_files: Include detailed file listing with existence checks (default: False)
+        """
+        log_tool_call("get_current_project", {"include_files": include_files})
 
         result = project_manager.get_project_info()
 
@@ -186,8 +193,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
             stats = result.get("stats", {})
             paths = result.get("paths", {})
 
-            log_tool_result("get_current_project", f"current: {result.get('slug')}", success=True)
-            return f"""# 📁 Current Project: {result.get("name", "Unknown")}
+            output = f"""# 📁 Current Project: {result.get("name", "Unknown")}
 
 **Slug:** {result.get("slug")}
 **Status:** {result.get("status", "unknown")}
@@ -211,7 +217,56 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 ## Target Journal
 {result.get("target_journal", "Not specified")}
 """
+
+            if include_files:
+                project_path = paths.get("root", "") or paths.get("concept", "").rsplit("/", 1)[0]
+                file_paths = {
+                    "project_root": project_path,
+                    "concept": paths.get("concept", ""),
+                    "drafts_dir": paths.get("drafts", ""),
+                    "references_dir": paths.get("references", ""),
+                    "data_dir": paths.get("data", ""),
+                    "results_dir": paths.get("results", ""),
+                }
+                output += "\n## File Details\n\n"
+                output += "| Path | Exists |\n"
+                output += "|------|--------|\n"
+                for key, path in file_paths.items():
+                    exists = os.path.exists(path) if path else False
+                    output += f"| `{key}`: {path} | {'✅' if exists else '❌'} |\n"
+
+            log_tool_result("get_current_project", f"current: {result.get('slug')}", success=True)
+            return output
         else:
+            # Check for exploration workspace
+            temp_path = project_manager.projects_dir / project_manager.TEMP_PROJECT_SLUG
+            if temp_path.exists():
+                temp_result = project_manager.get_project_info(project_manager.TEMP_PROJECT_SLUG)
+                if temp_result.get("success"):
+                    temp_stats = temp_result.get("stats", {})
+                    ref_count = temp_stats.get("references", 0)
+
+                    output = f"""# 🔍 Exploration Workspace Active
+
+**Created:** {temp_result.get("created_at", "Unknown")[:10]}
+
+## Contents
+- 📚 **References:** {ref_count}
+- 📝 **Draft Notes:** {temp_stats.get("drafts", 0)}
+- 📊 **Data Files:** {temp_stats.get("data_files", 0)}
+
+"""
+                    if ref_count >= 5:
+                        output += "## ✅ Ready to Convert!\n"
+                        output += '```\nconvert_exploration_to_project(name="Your Research Title", paper_type="original-research")\n```\n'
+                    elif ref_count > 0:
+                        output += f"## 💡 {ref_count} references saved. Keep exploring or convert when ready.\n"
+                    else:
+                        output += '## 💡 Start by searching literature:\n```\nsearch_literature(query="your topic")\n```\n'
+
+                    log_tool_result("get_current_project", "exploration workspace", success=True)
+                    return output
+
             log_tool_result(
                 "get_current_project", result.get("error", "No project selected"), success=False
             )
@@ -221,39 +276,8 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 1. `list_projects()` - See existing projects
 2. `create_project(name="Your Research")` - Create new project
 3. `switch_project(slug="project-name")` - Switch to existing
+4. `start_exploration()` - Browse literature without a project
 """
-
-    @mcp.tool()
-    def get_project_paths() -> str:
-        """Get all file paths (root, drafts, references, data, results) for current project."""
-        log_tool_call("get_project_paths", {})
-
-        try:
-            paths = project_manager.get_project_paths()
-            current = project_manager.get_current_project()
-
-            log_tool_result("get_project_paths", f"paths for {current}", success=True)
-            return f"""# 📂 Project Paths: {current}
-
-| Purpose | Path |
-|---------|------|
-| Root | `{paths["root"]}` |
-| Concept | `{paths["concept"]}` |
-| Drafts | `{paths["drafts"]}` |
-| References | `{paths["references"]}` |
-| Data | `{paths["data"]}` |
-| Results | `{paths["results"]}` |
-| Config | `{paths["config"]}` |
-
-**Usage:**
-- Save drafts to: `{paths["drafts"]}/introduction.md`
-- Save references to: `{paths["references"]}/{{PMID}}/`
-- Save data to: `{paths["data"]}/dataset.csv`
-- Export results to: `{paths["results"]}/paper.docx`
-"""
-        except ValueError as e:
-            log_tool_error("get_project_paths", e, {})
-            return f"⚠️ {str(e)}\n\nUse `create_project` or `switch_project` first."
 
     @mcp.tool()
     def archive_project(slug: str, confirm: bool = False) -> str:

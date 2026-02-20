@@ -28,40 +28,21 @@ def register_diagram_tools(mcp: FastMCP, project_manager: ProjectManager):
         project: Optional[str] = None,
         content_format: str = "xml",
         description: str = "",
+        output_dir: str = "",
     ) -> str:
         """
-        Save Draw.io diagram to project's results/figures directory.
+        Save Draw.io diagram to project figures or standalone location.
 
         Args:
             filename: Diagram filename (e.g., "consort-flowchart.drawio")
             content: Diagram XML content
-            project: Project slug (default: current)
+            project: Project slug (default: current). If no project, saves standalone.
             content_format: xml|base64
             description: Optional description
+            output_dir: Standalone output directory (used when no project context)
         """
-        is_valid, msg, project_info = ensure_project_context(project)
-
-        if not is_valid:
-            return f"""⚠️ **No Project Context**
-
-{msg}
-
-**Options:**
-1. Specify a project: `save_diagram(filename="...", content="...", project="project-slug")`
-2. Save to standalone location: Use `save_diagram_standalone` tool instead
-3. Create a project first: `create_project(name="My Research")`
-
-{get_project_list_for_prompt()}"""
-
         if not filename.endswith(".drawio"):
             filename = f"{filename}.drawio"
-
-        project_path = project_info.get("project_path")
-        if not project_path:
-            return "❌ Error: Could not determine project path"
-
-        figures_dir = Path(project_path) / "results" / "figures"
-        figures_dir.mkdir(parents=True, exist_ok=True)
 
         if content_format == "base64":
             try:
@@ -72,18 +53,27 @@ def register_diagram_tools(mcp: FastMCP, project_manager: ProjectManager):
         if not content.strip().startswith("<"):
             return "❌ Error: Content does not appear to be valid XML"
 
-        output_path = figures_dir / filename
-        try:
-            output_path.write_text(content, encoding="utf-8")
-        except Exception as e:
-            return f"❌ Error saving diagram: {e}"
+        # Try project context first
+        is_valid, msg, project_info = ensure_project_context(project)
 
-        if description:
-            meta_path = figures_dir / f"{filename}.meta.txt"
-            meta_path.write_text(description, encoding="utf-8")
+        if is_valid and project_info:
+            project_path = project_info.get("project_path")
+            if project_path:
+                figures_dir = Path(project_path) / "results" / "figures"
+                figures_dir.mkdir(parents=True, exist_ok=True)
 
-        project_name = project_info.get("name", "Unknown")
-        return f"""✅ **Diagram Saved**
+                output_path = figures_dir / filename
+                try:
+                    output_path.write_text(content, encoding="utf-8")
+                except Exception as e:
+                    return f"❌ Error saving diagram: {e}"
+
+                if description:
+                    meta_path = figures_dir / f"{filename}.meta.txt"
+                    meta_path.write_text(description, encoding="utf-8")
+
+                project_name = project_info.get("name", "Unknown")
+                return f"""✅ **Diagram Saved**
 
 **File:** {output_path}
 **Project:** {project_name}
@@ -94,32 +84,9 @@ The diagram is now part of your research project and can be:
 - Edited again using Draw.io MCP
 - Referenced in your drafts"""
 
-    @mcp.tool()
-    def save_diagram_standalone(
-        filename: str, content: str, output_dir: str = ".", content_format: str = "xml"
-    ) -> str:
-        """
-        Save diagram to standalone location (not in project).
-
-        Args:
-            filename: Diagram filename
-            content: Diagram XML content
-            output_dir: Output directory (default: current)
-            content_format: xml|base64
-        """
-        if not filename.endswith(".drawio"):
-            filename = f"{filename}.drawio"
-
-        if content_format == "base64":
-            try:
-                content = base64.b64decode(content).decode("utf-8")
-            except Exception as e:
-                return f"❌ Error decoding base64 content: {e}"
-
-        if not content.strip().startswith("<"):
-            return "❌ Error: Content does not appear to be valid XML"
-
-        output_path = Path(output_dir) / filename
+        # No project context — save standalone
+        save_dir = Path(output_dir) if output_dir else Path(".")
+        output_path = save_dir / filename
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(content, encoding="utf-8")

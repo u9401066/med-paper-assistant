@@ -1,5 +1,45 @@
 # Decision Log
 
+## [2026-02-21] Comprehensive Tool Consolidation (76→53 tools)
+
+### 背景
+MCP tool 數量膨脹至 76 個，造成 Agent context window 壓力過大。用戶明確要求「tool太多了!!!應該盡量精簡」。
+
+### 選項（6 大策略，全部採用）
+
+| 策略 | 說明 | 移除數 |
+|------|------|--------|
+| A. 移除無用工具 | close_other_project_files, export_word (legacy) | -2 |
+| B. 簡單合併 | 功能已被其他工具涵蓋 | -3 |
+| C. 參數合併 | 相關工具合為一，新增 optional params | -11 |
+| D. 功能吸收 | consistency + submission → check_formatting | -2 |
+| E+F. Skill 轉換 | 模板/知識型工具轉為 SKILL.md | -7 |
+
+### 決定
+全部 6 策略同時執行，從 76 降至 53 個工具。
+
+### 具體合併
+- `validate_concept` ← `validate_concept_quick` + `validate_for_section`（新增 `structure_only` param）
+- `get_current_project` ← `get_project_paths` + `get_exploration_status`（新增 `include_files` param）
+- `update_project_settings` ← `get_paper_types` + `update_project_status` + `set_citation_style`（新增 `status`, `citation_style` params）
+- `save_diagram` ← `save_diagram_standalone`（新增 `output_dir` param）
+- `sync_workspace_state` ← `clear_recovery_state`（新增 `clear` param）
+- `suggest_citations` ← `find_citation_for_claim`（新增 `claim_type`, `max_results` params）
+- `verify_document` ← `check_word_limits`（新增 `limits_json` param）
+- `check_formatting` ← `check_manuscript_consistency` + `check_submission_checklist`（新增 `check_submission` + 8 boolean params）
+
+### Skill 轉換
+- `submission-preparation/SKILL.md` — cover letter, highlights, journal requirements, reviewer response, revision changes
+- `draft-writing/SKILL.md` — section template 知識內嵌
+- `project-management/SKILL.md` — 更新移除已合併工具
+
+### 影響
+- Agent context window 壓力大幅降低
+- 0 regressions（35 tests pass）
+- 模板/知識型功能移至 Skill 檔案，Agent 可按需讀取
+
+---
+
 ## [2026-02-20] 架構方向選定：Direction C — Full VSX + Foam + Pandoc
 
 ### 背景

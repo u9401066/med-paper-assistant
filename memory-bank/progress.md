@@ -1,6 +1,27 @@
-# Progress (Updated: 2026-02-20)
+# Progress (Updated: 2026-02-21)
 
 ## Done (Recent)
+
+- **Comprehensive Tool Consolidation — Phase 10 (2026-02-21)** ✅：
+  - 6 大策略精簡工具數量：76→53 tools（-30%）
+  - Strategy A: 移除 2 無用工具（close_other_project_files, export_word legacy）
+  - Strategy B: 簡單合併移除 3 工具（validate_for_section, get_project_paths, check_reference_exists）
+  - Strategy C: 參數合併移除 11 工具（6 組 merge：validate_concept, get_current_project, update_project_settings, save_diagram, sync_workspace_state, suggest_citations, verify_document）
+  - Strategy D: 功能吸收 — consistency + submission checklist 併入 check_formatting
+  - Strategy E+F: 7 工具轉為 Skill 知識（get_section_template, generate_cover_letter, list_supported_journals, generate_highlights, check_submission_checklist, create_reviewer_response, format_revision_changes）
+  - 新增 submission-preparation SKILL.md
+  - 更新 draft-writing, project-management SKILL.md
+  - 測試驗證：35 passed / 21 pre-existing / 0 regressions
+
+- **Tool Layer Architecture Audit — Phase 9 (2026-02-21)** ✅：
+  - 7 個模板型工具轉為 3 個 Skill 檔案（83→76 tools）
+  - 新增 academic-debate, idea-validation, manuscript-review SKILL.md
+  - 移除 debate.py, critique.py, idea.py 中的 MCP tool 註冊
+
+- **Placeholder Tools Implementation — Phase 8 (2026-02-21)** ✅：
+  - 9 個佔位工具升級為完整實作（74→83 tools）
+  - Analysis: analyze_dataset, detect_variable_types, list_data_files, create_plot, run_statistical_test, generate_table_one
+  - Review: check_manuscript_consistency, create_reviewer_response, format_revision_changes
 
 - **Citation-Aware Editing (Layer 1+2) (2026-02-20)** ✅：
   - `get_available_citations()` — 列出所有可用 [[citation_key]]
@@ -248,13 +269,6 @@
 | Pandoc Word Export | 取代 python-docx 匯出 |
 | Pandoc LaTeX Export | 新增 LaTeX 雙輸出 |
 | CSL Citation Styles | 取代手動格式化 |
-
-### Phase 4 剩餘
-
-| 工具 | 說明 |
-|------|------|
-| `generate_cover_letter` | Cover Letter 自動生成 |
-| `check_submission_checklist` | 期刊投稿清單檢查 |
 
 ### Phase 5: Project Portfolio Management (2026 Q2)
 

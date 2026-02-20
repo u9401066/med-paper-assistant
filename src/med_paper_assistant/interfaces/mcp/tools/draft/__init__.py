@@ -4,9 +4,12 @@ Draft Tools Module
 Provides tools for creating and editing paper drafts.
 Split into submodules for maintainability:
 - writing: write_draft, draft_section, read_draft, list_drafts
-- templates: get_section_template, count_words, insert_citation
-- citation: suggest_citations, scan_draft_citations, find_citation_for_claim
+- templates: count_words, insert_citation, sync_references
+- citation: suggest_citations (with claim_type), scan_draft_citations
 - editing: get_available_citations, patch_draft (citation-aware partial editing)
+
+Migrated to Skills:
+- get_section_template → .claude/skills/draft-writing/SKILL.md
 """
 
 from mcp.server.fastmcp import FastMCP

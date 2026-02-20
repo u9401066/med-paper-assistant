@@ -29,24 +29,20 @@ description: |
 | `create_project` | `name`, `description`, `paper_type` | 建立新專案 |
 | `list_projects` | 無 | 列出所有專案 |
 | `switch_project` | `slug` | 切換專案 |
-| `get_current_project` | 無 | 取得目前專案資訊 |
-| `get_project_paths` | 無 | 取得專案目錄路徑 |
+| `get_current_project` | `include_files` | 取得目前專案資訊（include_files=True 列出檔案）|
 
 ### 專案設定 (mdpaper)
 
 | 工具 | 參數 | 說明 |
 |------|------|------|
 | `setup_project_interactive` | 無 | 互動式設定（使用 elicitation）|
-| `get_paper_types` | 無 | 列出可用論文類型 |
-| `update_project_status` | `status` | 更新專案狀態 |
-| `update_project_settings` | `paper_type`, `target_journal` | 更新設定 |
+| `update_project_settings` | `paper_type`, `target_journal`, `status`, `citation_style` | 更新設定（含狀態和引用格式）|
 
 ### 探索模式 (mdpaper)
 
 | 工具 | 參數 | 說明 |
 |------|------|------|
 | `start_exploration` | 無 | 建立探索工作區 |
-| `get_exploration_status` | 無 | 查看探索狀態 |
 | `convert_exploration_to_project` | `name`, `description` | 轉換為正式專案 |
 
 ---
@@ -110,8 +106,8 @@ Step 2: 自由搜尋文獻
   → 儲存有興趣的文獻到探索區
 
 Step 3: 查看探索成果
-  get_exploration_status()
-  → 顯示已儲存的文獻
+  get_current_project(include_files=True)
+  → 自動偵測探索工作區並顯示已儲存的文獻
 
 Step 4: 決定方向後轉換
   convert_exploration_to_project(
@@ -163,6 +159,8 @@ projects/{slug}/.memory/activeContext.md
 | 想先看文獻再決定 | `start_exploration()` |
 | 探索區有文獻要保留 | `convert_exploration_to_project()` |
 | 要改 paper type | `update_project_settings(paper_type="...")` |
+| 要改專案狀態 | `update_project_settings(status="...")` |
+| 要改引用格式 | `update_project_settings(citation_style="...")` |
 
 ---
 

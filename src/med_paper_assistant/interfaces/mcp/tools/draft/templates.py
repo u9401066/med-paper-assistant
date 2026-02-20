@@ -27,20 +27,6 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
     """Register template and utility tools."""
 
     @mcp.tool()
-    def get_section_template(section: str) -> str:
-        """
-        Get writing guidelines for a specific paper section.
-
-        Args:
-            section: "introduction", "methods", "results", "discussion", "abstract"
-        """
-        from med_paper_assistant.infrastructure.services import SECTION_PROMPTS
-
-        return SECTION_PROMPTS.get(
-            section.lower(), "Section not found. Available: " + ", ".join(SECTION_PROMPTS.keys())
-        )
-
-    @mcp.tool()
     def insert_citation(
         filename: str, target_text: str, pmid: str, project: Optional[str] = None
     ) -> str:

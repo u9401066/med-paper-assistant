@@ -1,24 +1,15 @@
 """
 Manuscript Consistency Checker
 
-Check for consistency issues in medical paper drafts before submission.
+Helper functions for consistency checks used by check_formatting.
+No MCP tools registered here — all checks are called from formatting.py.
 """
 
 import re
 from dataclasses import dataclass, field
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
-
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
-from med_paper_assistant.infrastructure.services import Drafter
-
-from .._shared import (
-    ensure_project_context,
-    get_project_list_for_prompt,
-    log_tool_call,
-    log_tool_result,
-)
 
 
 @dataclass
@@ -97,76 +88,6 @@ class ConsistencyReport:
                 output += "\n"
 
         return output
-
-
-def register_consistency_tools(mcp: FastMCP, drafter: Drafter, ref_manager: ReferenceManager):
-    """Register manuscript consistency checking tools."""
-
-    @mcp.tool()
-    def check_manuscript_consistency(
-        drafts: Optional[str] = None,
-        project: Optional[str] = None,
-    ) -> str:
-        """
-        Check manuscript for pre-submission issues (citations, numbers, abbreviations, formatting).
-
-        Args:
-            drafts: Comma-separated draft filenames (optional, checks all if omitted)
-            project: Project slug (uses current if omitted)
-        """
-        log_tool_call(
-            "check_manuscript_consistency",
-            {"drafts": drafts, "project": project},
-        )
-
-        if project:
-            is_valid, msg, _ = ensure_project_context(project)
-            if not is_valid:
-                return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-
-        report = ConsistencyReport()
-
-        # Get draft content
-        if drafts:
-            draft_list = [d.strip() for d in drafts.split(",") if d.strip()]
-        else:
-            # Get all drafts from project
-            all_drafts = drafter.list_drafts()
-            draft_list = [d["filename"] for d in all_drafts if d["filename"].endswith(".md")]
-
-        if not draft_list:
-            return "❌ No draft files found to check."
-
-        # Collect all content
-        all_content: dict[str, str] = {}
-        for draft in draft_list:
-            try:
-                content = drafter.read_draft(draft)
-                all_content[draft] = content
-            except FileNotFoundError:
-                report.add(
-                    category="File Issues",
-                    severity="error",
-                    description=f"Draft file not found: {draft}",
-                )
-
-        combined_content = "\n\n".join(all_content.values())
-
-        # Run checks
-        _check_citations(combined_content, ref_manager, report)
-        _check_numbers(combined_content, report)
-        _check_abbreviations(combined_content, report)
-        _check_table_figure_refs(combined_content, report)
-        _check_pvalue_format(combined_content, report)
-        _check_statistical_reporting(combined_content, report)
-
-        result = report.to_markdown()
-        log_tool_result(
-            "check_manuscript_consistency",
-            f"errors={report.error_count}, warnings={report.warning_count}",
-            success=True,
-        )
-        return result
 
 
 def _check_citations(content: str, ref_manager: ReferenceManager, report: ConsistencyReport):

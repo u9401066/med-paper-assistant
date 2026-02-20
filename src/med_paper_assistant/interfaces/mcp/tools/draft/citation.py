@@ -27,6 +27,8 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
     def suggest_citations(
         text: str,
         section: str = "",
+        claim_type: str = "general",
+        max_results: int = 5,
         search_pubmed: bool = True,
         project: Optional[str] = None,
     ) -> str:
@@ -34,8 +36,10 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
         Analyze text and suggest citations from local library + PubMed queries.
 
         Args:
-            text: Text passage to analyze
+            text: Text passage or specific claim to analyze
             section: Optional context (Introduction/Methods/Results/Discussion)
+            claim_type: "general", "statistical", "comparison", "guideline", "mechanism", "definition"
+            max_results: Max suggestions (default 5)
             search_pubmed: Generate PubMed search suggestions for gaps
             project: Project slug (uses current if omitted)
         """
@@ -44,6 +48,7 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
             {
                 "text_len": len(text),
                 "section": section,
+                "claim_type": claim_type,
                 "search_pubmed": search_pubmed,
                 "project": project,
             },
@@ -61,13 +66,55 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
                 )
                 return error_msg
 
-        result = citation_assistant.suggest_for_selection(
+        # Apply claim type suffix for specialized search
+        type_suffixes = {
+            "statistical": "epidemiology prevalence incidence",
+            "comparison": "randomized controlled trial comparison",
+            "guideline": "guideline recommendation",
+            "mechanism": "mechanism pharmacology",
+            "definition": "definition criteria",
+        }
+
+        if claim_type != "general" and claim_type in type_suffixes:
+            search_text = f"{text} {type_suffixes[claim_type]}".strip()
+            result = citation_assistant.analyze_text(
+                text=search_text,
+                search_local=True,
+                generate_queries=True,
+            )
+
+            output = f"## 🎯 Citation Search: {claim_type.upper()}\n\n"
+            output += f"**Claim**: {text}\n\n"
+
+            if result.local_suggestions:
+                output += "### 📚 From Local Library\n\n"
+                for sug in result.local_suggestions[:max_results]:
+                    output += f"- **[[{sug.citation_key}]]**\n"
+                    output += f"  {sug.title[:80]}...\n"
+                    output += f"  *Relevance: {sug.relevance_reason}*\n\n"
+            else:
+                output += "### 📚 Local Library\n*No relevant references found.*\n\n"
+
+            if result.pubmed_search_queries:
+                output += "### 🔎 Suggested PubMed Searches\n\n"
+                for i, q in enumerate(result.pubmed_search_queries[:3], 1):
+                    output += f"{i}. `{q}`\n"
+
+            log_tool_result(
+                "suggest_citations",
+                f"found {len(result.local_suggestions)} local matches",
+                success=True,
+            )
+            return output
+
+        # Default general mode
+        result_text = citation_assistant.suggest_for_selection(
             selected_text=text,
             section=section,
         )
 
         log_tool_result("suggest_citations", f"analyzed {len(text)} chars", success=True)
-        return result
+        return result_text
 
     @mcp.tool()
     def scan_draft_citations(
@@ -118,87 +165,6 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
         result = citation_assistant.scan_draft_for_citations(draft_path)
         log_tool_result("scan_draft_citations", f"scanned {draft_path}", success=True)
         return result
-
-    @mcp.tool()
-    def find_citation_for_claim(
-        claim: str,
-        claim_type: str = "general",
-        max_results: int = 5,
-        project: Optional[str] = None,
-    ) -> str:
-        """
-        Find citations for a specific claim type.
-
-        Args:
-            claim: The claim that needs support
-            claim_type: "statistical", "comparison", "guideline", "mechanism", "definition", "general"
-            max_results: Max suggestions (default 5)
-            project: Project slug (uses current if omitted)
-        """
-        log_tool_call(
-            "find_citation_for_claim",
-            {
-                "claim": claim[:50],
-                "claim_type": claim_type,
-                "max_results": max_results,
-                "project": project,
-            },
-        )
-
-        if project:
-            is_valid, msg, _ = ensure_project_context(project)
-            if not is_valid:
-                error_msg = f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-                log_agent_misuse(
-                    "find_citation_for_claim",
-                    "valid project context",
-                    {"project": project},
-                    error_msg,
-                )
-                return error_msg
-
-        # Add claim type suffix for better search
-        type_suffixes = {
-            "statistical": "epidemiology prevalence incidence",
-            "comparison": "randomized controlled trial comparison",
-            "guideline": "guideline recommendation",
-            "mechanism": "mechanism pharmacology",
-            "definition": "definition criteria",
-        }
-
-        suffix = type_suffixes.get(claim_type, "")
-        search_text = f"{claim} {suffix}".strip()
-
-        result = citation_assistant.analyze_text(
-            text=search_text,
-            search_local=True,
-            generate_queries=True,
-        )
-
-        # Format output
-        output = f"## 🎯 Citation Search: {claim_type.upper()}\n\n"
-        output += f"**Claim**: {claim}\n\n"
-
-        if result.local_suggestions:
-            output += "### 📚 From Local Library\n\n"
-            for sug in result.local_suggestions[:max_results]:
-                output += f"- **[[{sug.citation_key}]]**\n"
-                output += f"  {sug.title[:80]}...\n"
-                output += f"  *Relevance: {sug.relevance_reason}*\n\n"
-        else:
-            output += "### 📚 Local Library\n*No relevant references found.*\n\n"
-
-        if result.pubmed_search_queries:
-            output += "### 🔎 Suggested PubMed Searches\n\n"
-            for i, q in enumerate(result.pubmed_search_queries[:3], 1):
-                output += f"{i}. `{q}`\n"
-
-        log_tool_result(
-            "find_citation_for_claim",
-            f"found {len(result.local_suggestions)} local matches",
-            success=True,
-        )
-        return output
 
 
 __all__ = ["register_citation_tools"]

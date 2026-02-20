@@ -1,20 +1,10 @@
 """
-Discussion Tools Module (Future)
+Discussion Tools Module — DEPRECATED
 
-Tools for academic debate and viewpoint comparison.
-- debate_topic: Simulate academic debate on a research topic
-- compare_viewpoints: Compare different theoretical perspectives
-- devils_advocate: Challenge assumptions in research design
+All tools in this module have been migrated to Skills:
+- debate_topic        → .claude/skills/academic-debate/SKILL.md
+- compare_viewpoints  → .claude/skills/academic-debate/SKILL.md
+- devils_advocate     → .claude/skills/academic-debate/SKILL.md
+
+No MCP tools remain. Module kept as stub for documentation only.
 """
-
-from mcp.server.fastmcp import FastMCP
-
-from .debate import register_debate_tools
-
-
-def register_discussion_tools(mcp: FastMCP):
-    """Register all discussion tools with the MCP server."""
-    register_debate_tools(mcp)
-
-
-__all__ = ["register_discussion_tools"]

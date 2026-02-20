@@ -90,6 +90,7 @@
 | **Citation-Aware Editing** ✅ | Layer 1 `get_available_citations` + Layer 2 `patch_draft` — 解決 Agent 繞過驗證管線的引用正確性問題 |
 | **Pydantic V2 遷移** ✅ | `SearchCriteria` 從 `class Config` 遷移至 `model_config = ConfigDict` |
 | **Code Review Clean** ✅ | unused variable 修復、路徑一致性修正、32 passed / 1 skipped |
+| **Tool Consolidation (Phase 8→10)** ✅ | 74→83（佔位工具實作）→76（模板轉Skill）→**53**（6策略精簡 -30%）|
 ---
 
 ## 🚨 已知問題 (Known Issues) - 已大幅改善
@@ -210,15 +211,20 @@
 - `create_reviewer_response` - 回覆模板生成
 - `format_revision_changes` - 修改差異格式化
 
-### 4.4 投稿準備清單 ✅ 已完成
+### 4.4 投稿準備清單 ✅ 已完成（部分轉為 Skill）
 
 | 工具 | 功能 | 狀態 |
 |------|------|------|
-| `generate_cover_letter` | 根據 concept + target journal 生成 Cover Letter | ✅ |
-| `check_submission_checklist` | 期刊投稿清單檢查 (word count, figure format...) | ✅ |
-| `list_supported_journals` | 列出支援的期刊及其要求 | ✅ |
-| `generate_highlights` | 生成 3-5 bullet points highlights | ✅ |
+| `generate_cover_letter` | 根據 concept + target journal 生成 Cover Letter | ✅ → Skill |
+| `check_submission_checklist` | 期刊投稿清單檢查 (word count, figure format...) | ✅ → `check_formatting` |
+| `list_supported_journals` | 列出支援的期刊及其要求 | ✅ → Skill |
+| `generate_highlights` | 生成 3-5 bullet points highlights | ✅ → Skill |
 | `generate_graphical_abstract` | Draw.io 視覺摘要模板 | 📋 |
+
+> **Phase 10 Tool Consolidation (2026-02-21)**:
+> - `generate_cover_letter`, `list_supported_journals`, `generate_highlights` 轉為 `submission-preparation/SKILL.md` 知識
+> - `check_submission_checklist` 併入 `check_formatting` 工具（新增 `check_submission` 參數）
+> - `create_reviewer_response`, `format_revision_changes` 轉為 Skill 知識
 
 ### 4.5 CRUD Delete 操作補齊 ✅ 已完成
 
