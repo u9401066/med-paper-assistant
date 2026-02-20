@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-02-20
+
+### Fixed
+
+- **Lazy Import**: `matplotlib`、`seaborn`、`scipy` 改為方法內 lazy import，修復 `uvx` 安裝時 `ModuleNotFoundError: No module named 'matplotlib'`（這些是可選依賴，核心 MCP server 啟動不應依賴）
+
 ## [0.3.7] - 2026-02-20
 
 ### Fixed
