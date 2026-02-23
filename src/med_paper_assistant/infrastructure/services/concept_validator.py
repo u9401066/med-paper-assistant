@@ -520,18 +520,35 @@ class ConceptValidator:
             scores.append(score)
 
         result.novelty_scores = scores
-        result.novelty_average = sum(scores) / len(scores)
+        heuristic_avg = sum(scores) / len(scores)
 
-        # Check if all rounds pass threshold
-        passing_rounds = sum(1 for s in scores if s >= self.NOVELTY_CONFIG["threshold"])
-        result.novelty_passed = passing_rounds >= self.NOVELTY_CONFIG["required_passing_rounds"]
+        # Generate reviewer feedback and incorporate reviewer scores
+        # Reviewer scores provide semantic analysis; heuristic provides keyword analysis
+        # Use weighted combination: 40% heuristic + 60% reviewer average
+        novelty_content = result.sections.get(
+            "novelty_statement", SectionCheck(name="", found=False, has_content=False)
+        ).content
+        if novelty_content:
+            feedback = self._generate_novelty_feedback(novelty_content, scores)
+            reviewer_scores = [
+                feedback["reviewers"]["skeptic"]["score"],
+                feedback["reviewers"]["methodologist"]["score"],
+                feedback["reviewers"]["clinical_expert"]["score"],
+            ]
+            reviewer_avg = sum(reviewer_scores) / len(reviewer_scores)
+            result.novelty_average = 0.4 * heuristic_avg + 0.6 * reviewer_avg
+        else:
+            result.novelty_average = heuristic_avg
+
+        # Check if combined score passes threshold
+        result.novelty_passed = result.novelty_average >= self.NOVELTY_CONFIG["threshold"]
 
         # Generate suggestions if not passed
         if not result.novelty_passed:
             result.suggestions.extend(self._generate_novelty_suggestions(novelty_content, scores))
             result.warnings.append(
-                f"Novelty check: {passing_rounds}/{self.NOVELTY_CONFIG['rounds']} rounds passed "
-                f"(need {self.NOVELTY_CONFIG['required_passing_rounds']}, threshold: {self.NOVELTY_CONFIG['threshold']})"
+                f"Novelty check: combined score {result.novelty_average:.1f} "
+                f"(threshold: {self.NOVELTY_CONFIG['threshold']})"
             )
 
         return result
@@ -594,8 +611,10 @@ class ConceptValidator:
                 # Vague without quantification
                 score -= 5
 
-        # Check for placeholder text still present
-        if "[" in content and "]" in content:
+        # Check for placeholder text still present (but not wikilinks [[...]] or PubMed syntax [pt])
+        # Only penalize actual unfilled placeholders like [INSERT HERE], [TODO]
+        placeholder_pattern = r"\[(?!\[)[A-Z][A-Z\s_]{2,}\]"
+        if re.search(placeholder_pattern, content):
             score -= 20
 
         # Add some variance for different rounds (simulating LLM variance)
@@ -658,7 +677,33 @@ class ConceptValidator:
 
         # --- Reviewer 2: The Methodologist (Focus: How does it compare?) ---
         methodologist = feedback["reviewers"]["methodologist"]
-        if not re.search(r"\[\[.+?\]\]", content) and "PMID" not in content:
+        has_citations = bool(re.search(r"\[\[.+?\]\]", content)) or "PMID" in content
+        # Check for limitation/differentiation analysis (multiple patterns)
+        limitation_patterns = [
+            r"\blimitation\b",
+            r"\blimited\b",
+            r"\bdoes not\b",
+            r"\bdid not\b",
+            r"\bdo not\b",
+            r"\bfail(s|ed|ure)?\b",
+            r"\black(s|ing|ed)?\b",
+            r"\bour addition\b",
+            r"\bwe extend\b",
+            r"\bwe (add|include|place|systematically|dedicate)\b",
+            r"\bdifferentiation\b",
+            r"\bunlike\b",
+            r"\bin contrast\b",
+            r"\bhowever\b",
+            r"\bbut\b",
+            r"但",
+            r"不同",
+            r"限制",
+        ]
+        has_limitations = sum(
+            1 for p in limitation_patterns if re.search(p, content, re.IGNORECASE)
+        )
+
+        if not has_citations:
             methodologist["comment"] = (
                 "You haven't cited the studies you are supposedly improving upon."
             )
@@ -666,13 +711,21 @@ class ConceptValidator:
             methodologist["questions"].append(
                 "Which specific studies are you comparing your method against?"
             )
-        elif "but" not in content_lower and "however" not in content_lower and "但" not in content:
+        elif has_limitations < 2:
             methodologist["comment"] = (
                 "You cited literature but didn't explain their limitations clearly."
             )
             methodologist["score"] = 60
             methodologist["questions"].append(
                 "What exactly was the failure or limitation of the cited studies?"
+            )
+        elif has_limitations < 4:
+            methodologist["comment"] = (
+                "Some differentiation provided, but could be more systematic."
+            )
+            methodologist["score"] = 75
+            methodologist["questions"].append(
+                "Can you provide a structured comparison table?"
             )
         else:
             methodologist["comment"] = "Methodological differentiation is well-articulated."
