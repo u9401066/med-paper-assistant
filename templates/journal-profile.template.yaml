@@ -1,0 +1,139 @@
+# ═══════════════════════════════════════════════════════════════════
+# Journal Profile Template — auto-paper Phase 0 產出
+# ═══════════════════════════════════════════════════════════════════
+# 使用方式：
+#   1. Agent 根據用戶提供的 submission guide / for-authors 文件自動填寫
+#   2. 用戶手動填寫後放入 projects/{slug}/journal-profile.yaml
+#   3. Phase 0 互動式問答產出
+#
+# 所有後續 Phase 和 Hook 都引用此檔案作為約束條件。
+# ═══════════════════════════════════════════════════════════════════
+
+# ── 期刊資訊 ──
+journal:
+  name: ""                          # e.g. "British Journal of Anaesthesia"
+  abbreviation: ""                  # e.g. "Br J Anaesth"
+  issn: ""                          # optional
+  submission_url: ""                # optional, e.g. "https://mc.manuscriptcentral.com/bja"
+  guidelines_url: ""                # for-authors page URL
+
+# ── 論文類型與結構 ──
+paper:
+  type: "original-research"         # original-research | systematic-review | meta-analysis | case-report | review-article | letter | other
+  sections:                         # 按期刊要求的 section 順序
+    - name: "Title Page"
+      required: true
+    - name: "Abstract"
+      required: true
+      structured: true              # structured abstract (Background/Methods/Results/Conclusions)
+      word_limit: 250
+    - name: "Introduction"
+      required: true
+      word_limit: 800
+    - name: "Methods"
+      required: true
+      word_limit: 1500
+    - name: "Results"
+      required: true
+      word_limit: 1500
+    - name: "Discussion"
+      required: true
+      word_limit: 1500
+    - name: "Conclusions"
+      required: false               # 有些期刊把 Conclusion 併入 Discussion
+      word_limit: 300
+    # 可新增自訂 sections，例：
+    # - name: "Case Presentation"
+    #   required: true
+    #   word_limit: 1000
+
+# ── 字數限制 ──
+word_limits:
+  total_manuscript: 3000            # 全文字數上限（不含 abstract/references）
+  abstract: 250
+  title_characters: 150             # 標題字元上限
+  running_title_characters: 50      # 眉題字元上限
+
+# ── 圖表限制 ──
+assets:
+  figures_max: 6                    # 圖片上限
+  tables_max: 6                     # 表格上限
+  total_display_items_max: 8        # 圖 + 表 合計上限（有些期刊合算）
+  supplementary_allowed: true       # 是否允許 supplementary materials
+  figure_formats:                   # 接受的圖片格式
+    - "TIFF"
+    - "EPS"
+    - "PDF"
+    - "PNG"
+  figure_dpi: 300                   # 最低解析度
+  table_format: "editable"          # editable | image | both
+
+# ── 引用格式 ──
+references:
+  style: "vancouver"                # vancouver | apa | harvard | numbered | author-year
+  csl: ""                           # CSL 檔案名 (e.g. "vancouver") 或完整路徑; 空值則用 style 對應的內建 CSL
+  max_references: 40                # 參考文獻上限
+  max_authors_before_etal: 6        # 超過幾位作者用 et al.
+  doi_required: false
+  pmid_preferred: true
+
+# ── 必要文件 ──
+required_documents:
+  cover_letter: true
+  highlights: false                 # key findings / highlights
+  graphical_abstract: false
+  author_contributions: true        # CRediT or similar
+  conflict_of_interest: true
+  funding_statement: true
+  ethics_statement: true            # IRB / Ethics Committee
+  data_availability: true
+  keywords:
+    required: true
+    count: "3-5"                    # 關鍵字數量
+
+# ── 報告指引（EQUATOR） ──
+reporting_guidelines:
+  checklist: ""                     # CONSORT | STROBE | PRISMA | CARE | ARRIVE | SPIRIT | STARD | TRIPOD | ...
+  registration_required: false      # 是否需要臨床試驗註冊號
+  protocol_registration: ""         # e.g. "PROSPERO" for systematic reviews
+
+# ── Pipeline 行為設定 ──
+pipeline:
+  # 審計循環上限
+  hook_a_max_rounds: 3              # post-write audit 最多幾輪
+  hook_b_max_rounds: 2              # post-section audit 最多幾輪
+  hook_c_max_rounds: 3              # post-manuscript audit 最多幾輪
+  review_max_rounds: 3              # autonomous review 最多幾輪
+
+  # 自主 review 設定
+  autonomous_review:
+    enabled: true                   # 啟用自主 review stage
+    reviewer_perspectives:          # 模擬哪些角色
+      - "methodology_expert"        # 方法學專家
+      - "domain_specialist"         # 領域專家
+      - "statistician"              # 統計專家
+      - "editor"                    # 期刊編輯
+    quality_threshold: 7            # quality-scorecard 總分 ≥ 此值才通過 (0-10)
+
+  # 寫作偏好
+  writing:
+    language: "en"                  # en | zh-TW
+    tone: "formal-academic"         # formal-academic | concise | narrative
+    anti_ai_strictness: "high"      # low | medium | high
+    citation_density:               # 引用密度設定（每 N 字至少 1 個引用）
+      introduction: 100             # ≥1 per 100 words
+      methods: 0                    # 不強制
+      results: 0                    # 不強制
+      discussion: 150               # ≥1 per 150 words
+
+  # Asset 生成
+  assets:
+    auto_generate_table_one: true   # 自動生成 Table 1
+    auto_generate_plots: true       # 自動生成圖表
+    flow_diagram_tool: "drawio"     # drawio | mermaid | manual
+    fallback_to_description: true   # 工具不可用時以文字描述替代
+
+# ── 用戶自訂備註（Agent 不修改此區） ──
+notes: |
+  # 在此填入任何額外的期刊要求或特殊注意事項
+  # 例如：special issue deadline, co-author requirements, etc.

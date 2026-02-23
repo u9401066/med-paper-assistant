@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<style xmlns="http://purl.org/net/xbiblio/csl" class="in-text" version="1.0"
+  demote-non-dropping-particle="sort-only"
+  default-locale="en-US">
+  <info>
+    <title>APA 7th edition (embedded minimal)</title>
+    <id>http://www.zotero.org/styles/apa-7-embedded</id>
+    <link href="https://apastyle.apa.org/style-grammar-guidelines/references" rel="documentation"/>
+    <category citation-format="author-date"/>
+    <category field="psychology"/>
+    <category field="medicine"/>
+    <summary>APA 7th edition. Minimal embedded version for med-paper-assistant.</summary>
+    <updated>2025-01-01T00:00:00+00:00</updated>
+    <rights license="http://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA-3.0</rights>
+  </info>
+
+  <!-- ── Macros ── -->
+  <macro name="author">
+    <names variable="author">
+      <name and="symbol" delimiter=", " delimiter-precedes-last="always"
+            initialize-with=". " name-as-sort-order="all"/>
+      <et-al font-style="italic"/>
+      <label form="short" prefix=" (" suffix=")"/>
+      <substitute>
+        <names variable="editor"/>
+        <text variable="title"/>
+      </substitute>
+    </names>
+  </macro>
+
+  <macro name="author-short">
+    <names variable="author">
+      <name form="short" and="symbol" delimiter=", "/>
+      <et-al font-style="italic"/>
+      <substitute>
+        <names variable="editor"/>
+        <text variable="title" form="short"/>
+      </substitute>
+    </names>
+  </macro>
+
+  <macro name="year">
+    <group prefix="(" suffix=")">
+      <date variable="issued">
+        <date-part name="year"/>
+      </date>
+    </group>
+  </macro>
+
+  <macro name="year-sort">
+    <date variable="issued">
+      <date-part name="year"/>
+    </date>
+  </macro>
+
+  <macro name="title">
+    <text variable="title"/>
+  </macro>
+
+  <macro name="journal">
+    <text variable="container-title" font-style="italic"/>
+  </macro>
+
+  <macro name="volume-issue">
+    <group>
+      <text variable="volume" font-style="italic"/>
+      <text variable="issue" prefix="(" suffix=")"/>
+    </group>
+  </macro>
+
+  <macro name="pages">
+    <text variable="page"/>
+  </macro>
+
+  <macro name="doi">
+    <text variable="DOI" prefix="https://doi.org/"/>
+  </macro>
+
+  <!-- ── Citation (in-text) ── -->
+  <citation et-al-min="3" et-al-use-first="1" disambiguate-add-year-suffix="true"
+            disambiguate-add-names="true" collapse="year">
+    <sort>
+      <key macro="author-short"/>
+      <key macro="year-sort"/>
+    </sort>
+    <layout prefix="(" suffix=")" delimiter="; ">
+      <group delimiter=", ">
+        <text macro="author-short"/>
+        <date variable="issued">
+          <date-part name="year"/>
+        </date>
+      </group>
+    </layout>
+  </citation>
+
+  <!-- ── Bibliography ── -->
+  <bibliography hanging-indent="true" et-al-min="21" et-al-use-first="19"
+                entry-spacing="0" line-spacing="2">
+    <sort>
+      <key macro="author"/>
+      <key macro="year-sort"/>
+    </sort>
+    <layout>
+      <group delimiter=" " suffix=".">
+        <text macro="author"/>
+        <text macro="year"/>
+        <text macro="title" suffix="."/>
+        <text macro="journal" suffix=","/>
+        <text macro="volume-issue" suffix=","/>
+        <text macro="pages" suffix="."/>
+      </group>
+      <text macro="doi" prefix=" "/>
+    </layout>
+  </bibliography>
+</style>
