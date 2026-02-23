@@ -4,58 +4,48 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## Current Goals
+## 當前焦點 (2026-02-23)
 
-- G6 consistency audit completed. Fixed all number inconsistencies across README.md, README.zh-TW.md, ARCHITECTURE.md. Fixed setup.sh bugs (line 34 concatenation, uv check, mcp.json overwrite guard). Rewrote setup-integrations.sh for uvx. Actual counts: mdpaper=54 tools (7 groups), pubmed-search=37, CGU=13, total≈104, skills=26, prompts=14. Ready for git commit + push + tag v0.3.1.
+所有程式碼已完成並通過測試，正在進行 Memory Bank 更新 + 分段 Git commit。
 
-## 當前焦點
+### 近期完成的元件（v0.3.8 之後，尚未 commit）
 
-本 Session 完成 6 大功能，專案已達生產級別 ✅
+| 元件 | 檔案 | 測試 |
+|------|------|------|
+| CSL Formatter | `infrastructure/services/csl_formatter.py` | 31/31 ✅ |
+| Pandoc Exporter | `infrastructure/services/pandoc_exporter.py` | (同上) |
+| DraftSnapshotManager | `infrastructure/persistence/draft_snapshot_manager.py` | 28/28 ✅ |
+| CheckpointManager | `infrastructure/persistence/checkpoint_manager.py` | (同上) |
+| HookEffectivenessTracker | `infrastructure/persistence/hook_effectiveness_tracker.py` | 44/44 ✅ |
+| MetaLearningEngine | `infrastructure/persistence/meta_learning_engine.py` | (同上) |
+| QualityScorecard | `infrastructure/persistence/quality_scorecard.py` | (同上) |
+| CitationConverter | `domain/services/citation_converter.py` | 40/40 ✅ |
+| ExportPipeline | `application/export_pipeline.py` | 17/17 ✅ |
+| GitAutoCommitter | `infrastructure/persistence/git_auto_committer.py` | 11/11 ✅ |
+| pandoc_export MCP tool | `interfaces/mcp/tools/export/pandoc_export.py` | — |
 
-### Session 成果 (2026-02-22)
+**新測試總計**: 171 個 (31+28+44+40+17+11)
 
-| #   | 功能                                                       | Commit  |
-| --- | ---------------------------------------------------------- | ------- |
-| 1   | Auto-Paper 9-Phase Pipeline + 閉環自我改進                 | af887f0 |
-| 2   | Dual-Hook Architecture (Copilot + Pre-Commit + General)    | e754489 |
-| 3   | VSX Extension v0.2.0 (388KB, 14 skills, 12 prompts)        | 81427d0 |
-| 4   | Production-Grade Audit: CONSTITUTION v1.3.0 Ch.8 (§20-§23) | 56e79b1 |
-| 5   | Cross-Reference Integrity + G6 Project Health Hook         | 96e3770 |
-| 6   | Code Review Infrastructure Audit（結構已完整，無需新增）   | —       |
+### 關鍵數字
 
-### 關鍵數字（已跨文件統一）
-
-- MCP Tools: **53**
+- MCP Tools: **54+** (新增 pandoc_export)
 - Skills: **26**
-- Prompts: **15**
-- Total tools (含 external MCP): **~116**
-- Hooks: **37 checks** (Copilot A1-4 + B1-6 + C1-6 + D1-6 + P1-8 + G1-7)
-- Constitution: **v1.3.0** (Chapter 8: §20-§23)
-- Tests: 35 pass / 21 pre-existing / 0 regressions
+- Hooks: **38 checks** (A1-4 + B1-6 + C1-6 + D1-6 + P1-8 + G1-8)
+- 新測試: **171** across 6 test files
+- Git HEAD: `12e0c64` (v0.3.8, origin/master)
 
-### Code Review Infrastructure（完整）
+### 已知問題
 
-| 層級       | 工具                                 | 觸發      | 自動修正    |
-| ---------- | ------------------------------------ | --------- | ----------- |
-| Git Hook   | pre-commit (ruff+mypy+bandit+pytest) | 自動      | ✅ ruff     |
-| Agent Hook | G6 project-integrity                 | commit 時 | ❌ report   |
-| Skill      | code-reviewer                        | 手動      | ❌ report   |
-| Skill      | code-refactor                        | 手動      | ✅ auto-fix |
-| Capability | code-quality.prompt.md               | 手動      | 混合        |
-
-## 工具統計
-
-- 目前工具數：**53 個**（MCP tools across 7 modules）
-- Python 3.12.12 / uv 0.10.0
-- 測試：35 passed / 21 pre-existing failures / 0 regressions
-- pre-commit 13 hooks 全部通過
+- `application/__init__.py` 的 import chain 壞掉（missing pubmed, search_literature modules）— 測試用 sys.modules mock 繞過
+- `pandoc.exe` + `pandoc-3.9-windows-x86_64.msi` 在工作目錄，需加 .gitignore
 
 ## 下一步
 
-- [ ] Phase 5c: Full VSX Extension 升級（TreeView, CodeLens, Diagnostics）
-- [ ] Pandoc 整合（取代 python-docx）
-- [ ] Citation Intelligence MVP 實作
+- [ ] 完成分段 Git commit + push
+- [ ] Phase 5c: Full VSX Extension 升級
+- [ ] Citation Intelligence MVP
+- [ ] 修復 application/__init__.py import chain
 
 ## 更新時間
 
-2026-02-22
+2026-02-23

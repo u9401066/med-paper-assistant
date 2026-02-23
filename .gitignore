@@ -57,3 +57,7 @@ test_foam_refs/
 # Memory Bank is tracked (DO NOT ignore)
 # memory-bank/
 .coverage
+
+# Pandoc binaries (install via system package manager)
+pandoc.exe
+pandoc-*.msi

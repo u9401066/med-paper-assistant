@@ -38,9 +38,15 @@ analysis = [
     "seaborn>=0.12.0",
     "pypdf>=3.0.0",
 ]
+# 學術出版工具鏈（CSL 引用 + Pandoc 匯出）
+publishing = [
+    "citeproc-py>=0.6.0",
+    "pypandoc>=1.13",
+    "lxml>=4.9.0",
+]
 # 完整安裝（開發用）
 all = [
-    "med-paper-assistant[pubmed,creativity,analysis]",
+    "med-paper-assistant[pubmed,creativity,analysis,publishing]",
 ]
 dev = [
     "pytest>=7.0.0",
