@@ -43,6 +43,16 @@ description: |
 
 ---
 
+## 自動快照（CONSTITUTION §22 Auditable）
+
+所有草稿寫入路徑（`write_draft`、`patch_draft`、`insert_citation`、`create_draft`）在覆寫前**自動建立快照**，儲存於 `drafts/.snapshots/`。
+
+- 最多保留 20 個快照/檔案，自動清理
+- 不依賴 git 或 agent 合作，純粹在寫入路徑中觸發
+- 使用 `DraftSnapshotManager`（`infrastructure/persistence/`）
+
+---
+
 ## 寫作順序（Advisory）
 
 | Paper Type        | 順序                                                                  |
