@@ -49,7 +49,10 @@ def register_workspace_tools(mcp: Any, project_manager: Any) -> None:
                     # 嘗試用 code 命令開啟
                     try:
                         subprocess.run(  # nosec B603 B607 - trusted VS Code CLI
-                            ["code", "--goto", file_path], check=False, capture_output=True
+                            ["code", "--goto", file_path],
+                            check=False,
+                            stdin=subprocess.DEVNULL,
+                            capture_output=True,
                         )
                         opened.append(file_path)
                     except FileNotFoundError:

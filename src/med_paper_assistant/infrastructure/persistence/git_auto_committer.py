@@ -154,10 +154,15 @@ class GitAutoCommitter:
             return False
 
     def _run_git(self, args: list[str]) -> subprocess.CompletedProcess:
-        """Run a git command in the repo directory."""
+        """Run a git command in the repo directory.
+
+        IMPORTANT: stdin=DEVNULL prevents git from inheriting MCP server's
+        stdin (JSON-RPC channel), which would cause deadlocks in stdio transport.
+        """
         return subprocess.run(
             ["git"] + args,
             cwd=str(self._repo_dir),
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             encoding="utf-8",
             errors="replace",
