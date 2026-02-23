@@ -99,6 +99,68 @@ class Reference:
         """Get formatted citation in specified style."""
         return self.citations.get(style, self.citations.get("vancouver", ""))
 
+    def to_csl_json(self, ref_id: str | None = None) -> Dict[str, Any]:
+        """
+        Convert to CSL-JSON format for citeproc processors.
+
+        CSL-JSON is the standard interchange format for citation processors
+        (citeproc-py, Pandoc citeproc, Zotero, etc.).
+
+        Args:
+            ref_id: Override the CSL-JSON "id" field. Defaults to unique_id or citation_key.
+
+        Returns:
+            Dict in CSL-JSON format.
+        """
+        csl_id = ref_id or self.unique_id or self.citation_key or "ref"
+
+        # Build author list
+        authors = []
+        if self.authors_full:
+            for au in self.authors_full:
+                if isinstance(au, dict):
+                    authors.append({
+                        "family": au.get("last_name", ""),
+                        "given": au.get("first_name", au.get("initials", "")),
+                    })
+        elif self.authors:
+            for name in self.authors:
+                parts = name.strip().split()
+                if len(parts) >= 2:
+                    authors.append({"family": parts[0], "given": " ".join(parts[1:])})
+                elif parts:
+                    authors.append({"family": parts[0]})
+
+        # Build issued date
+        issued: Dict[str, Any] = {}
+        if self.year:
+            issued = {"date-parts": [[int(self.year)]]}
+
+        entry: Dict[str, Any] = {
+            "id": csl_id,
+            "type": "article-journal",
+            "title": self.title,
+            "author": authors,
+            "issued": issued,
+        }
+
+        # Optional fields
+        journal = self.journal_abbrev or self.journal
+        if journal:
+            entry["container-title"] = journal
+        if self.volume:
+            entry["volume"] = self.volume
+        if self.issue:
+            entry["issue"] = self.issue
+        if self.pages:
+            entry["page"] = self.pages
+        if self.doi:
+            entry["DOI"] = self.doi
+        if self.pmid:
+            entry["PMID"] = self.pmid
+
+        return entry
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
