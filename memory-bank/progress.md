@@ -21,7 +21,11 @@
 
 ## Doing
 
-- Memory Bank update + staged Git commits + push
+- **Dogfooding**: 全自動論文 pipeline 測試 — "Difficult Airway Prediction in Anesthesia Review"
+  - ✅ Phase 0-2: Pre-Planning, Project Setup, Literature Search (17 refs)
+  - ⚠️ Phase 3: Concept Development — concept.md 已寫入, 需要 validate_concept
+  - ⬜ Phase 4-10: Pending
+- **Bug fixes**: BUG-001 (project_path 鍵名不匹配), BUG-002 (workspace_state 過期)
 
 ## Next
 
