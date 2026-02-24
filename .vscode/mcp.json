@@ -47,6 +47,15 @@
     },
 
     // ============================================
+    // Submodule：Asset-Aware MCP (v0.3.3 本地)
+    // ============================================
+    "asset-aware": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "${workspaceFolder}/integrations/asset-aware-mcp", "asset-aware-mcp"]
+    },
+
+    // ============================================
     // 獨立安裝：Draw.io 架構圖 (需另外啟動 Next.js)
     // ============================================
     "drawio": {

@@ -61,7 +61,7 @@ def register_pandoc_export_tools(mcp: FastMCP):
         })
 
         # Ensure project context
-        context_error = ensure_project_context(project, "export_docx")
+        context_error = ensure_project_context(project)
         if context_error:
             return context_error
 
@@ -142,7 +142,7 @@ def register_pandoc_export_tools(mcp: FastMCP):
         """
         log_tool_call("preview_citations", {"draft": draft_filename, "project": project})
 
-        context_error = ensure_project_context(project, "preview_citations")
+        context_error = ensure_project_context(project)
         if context_error:
             return context_error
 
@@ -215,7 +215,7 @@ def register_pandoc_export_tools(mcp: FastMCP):
         """
         log_tool_call("build_bibliography", {"draft": draft_filename, "project": project})
 
-        context_error = ensure_project_context(project, "build_bibliography")
+        context_error = ensure_project_context(project)
         if context_error:
             return context_error
 

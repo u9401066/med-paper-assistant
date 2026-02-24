@@ -4,3 +4,6 @@
 [submodule "integrations/cgu"]
 	path = integrations/cgu
 	url = https://github.com/u9401066/creativity-generation-unit.git
+[submodule "integrations/asset-aware-mcp"]
+	path = integrations/asset-aware-mcp
+	url = https://github.com/u9401066/asset-aware-mcp.git
