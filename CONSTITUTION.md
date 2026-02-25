@@ -170,10 +170,12 @@ projects/{slug}/.memory/
 執行概念開發時，必須遵循以下步驟：
 
 1. **📚 文獻搜尋**（強制）
+
    - 搜尋 5-10 篇相關文獻
    - 儲存重要參考文獻
 
 2. **🔍 研究缺口識別**（強制）
+
    - 呈現文獻摘要給用戶
    - 識別研究缺口
    - **🛑 必須詢問用戶確認**缺口再繼續
@@ -313,11 +315,13 @@ projects/{slug}/.memory/
 **這是本專案的核心設計理念。**
 
 1. **可審計（Auditable）**：
+
    - 每個 Phase 產出明確的 input/output 契約
    - 每個 Hook 的觸發、判定、修正都有紀錄
    - 品質分數不是 pass/fail，而是**量化指標 + 歷史趨勢**
 
 2. **可拆解（Decomposable）**：
+
    - Pipeline 的 Phase 可以獨立執行（不依賴前一個 Phase 的記憶體狀態）
    - Hook 可以獨立觸發（不依賴完整 Pipeline context）
    - Skill 可以獨立使用（不需要 auto-paper 編排器）
@@ -348,6 +352,55 @@ projects/{slug}/.memory/
    - ⚠️ 需用戶確認：新增/移除 Hook、改變 Phase 順序
    - ⛔ 禁止自動改：憲法原則、🔒 保護規則
 
+### 第 23.1 條：結構化資料格式規範（YAML + TOON）
+
+1. **資料持久化格式 — YAML**：
+
+   - 所有 Hook 產出的結構化資料檔案**必須**使用 YAML 格式（`.yaml` 副檔名）
+   - 適用範圍：`quality-scorecard.yaml`、`hook-effectiveness.yaml`、`meta-learning-audit.yaml`
+   - 理由：人類可讀性優先，方便審計與版本追蹤
+   - **例外**：追加型 log 檔案（如 `evolution-log.jsonl`）維持 JSONL 格式
+
+2. **MCP Tool 回應格式 — TOON**：
+
+   - 所有審計相關 MCP tool 回應**必須**使用 TOON（Token-Oriented Object Notation）格式
+   - TOON 規格：https://github.com/toon-format/toon
+   - 語法規則：
+     - 純量值：`key: value`（無引號）
+     - 表格資料：`array[N]{field1,field2,...}:` + 縮排 CSV 行
+     - 分隔符號使用逗號；欄位內逗號以分號替代
+   - 理由：相比 JSON 節省 ~40% token；相比 Markdown 表格節省 ~30% token
+   - 適用工具：`record_hook_event`、`run_quality_audit`、`run_meta_learning`
+
+3. **Hook 檢查（Enforcement）**：
+   - Pre-Commit Hook P9：驗證 `.audit/` 下資料檔案為 `.yaml` 格式（非 `.json`）
+   - Hook B8：驗證 MCP tool 回應包含 TOON 格式標記（如 `status:` 開頭、`array[` 表格語法）
+   - 違反時：FAIL 並要求修正
+
+### 第 23.2 條：數據產出物溯源與交叉驗證
+
+1. **溯源追蹤（Provenance Tracking）**：
+
+   - 所有數據分析工具（`create_plot`、`run_statistical_test`、`generate_table_one`、`analyze_dataset`）**必須**在執行後記錄至 `.audit/data-artifacts.yaml`
+   - 記錄內容：工具名稱、完整參數、資料來源、輸出路徑、可重現程式碼（`provenance_code`）、結果摘要
+   - 理由：確保每個圖表和統計結果都有可審計的產生路徑
+
+2. **交叉引用驗證（Cross-Reference Validation）**：
+
+   - 草稿中的 Figure N / Table N 引用**必須**對應 `results/manifest.json` 中的註冊項目
+   - `results/figures/` 和 `results/tables/` 中的檔案**必須**同時存在於 manifest 和 provenance 記錄中
+   - 草稿中的統計宣稱（p-value、CI、odds ratio 等）**必須**有對應的 `statistics` 類型產出物記錄
+   - 違反類型：
+     - `phantom_reference`：草稿引用了不存在的圖表（CRITICAL）
+     - `orphan_asset`：manifest 中有圖表但草稿未引用（WARNING）
+     - `provenance_missing`：檔案存在但無溯源記錄（WARNING）
+     - `unverified_stats`：統計宣稱無對應工具記錄（CRITICAL）
+
+3. **Phase Gate 強制執行**：
+   - Phase 5 gate：若草稿含 Figure/Table/統計引用，`data-artifacts.yaml` 必須存在且有記錄
+   - Phase 6 gate：若有數據產出物，`validate_data_artifacts()` 報告必須已產生
+   - 工具：`validate_data_artifacts` MCP tool（TOON 格式回應）
+
 ---
 
 ## 附則
@@ -356,7 +409,7 @@ projects/{slug}/.memory/
 
 1. 修改憲法須在 decisionLog.md 記錄原因
 2. 重大修改須更新版本號
-3. 本憲法版本：v1.3.0
+3. 本憲法版本：v1.5.0
 
 ---
 
@@ -364,6 +417,8 @@ projects/{slug}/.memory/
 
 | 版本   | 日期       | 變更                                                      |
 | ------ | ---------- | --------------------------------------------------------- |
+| v1.5.0 | 2026-02-21 | 新增 §23.2 數據產出物溯源與交叉驗證                       |
+| v1.4.0 | 2026-02-20 | 新增 §23.1 YAML + TOON 格式規範                           |
 | v1.3.0 | 2026-02-20 | 新增第八章 研究管線原則（再現性、方法學、審計、自我改進） |
 | v1.2.0 | 2025-12-17 | 新增第二點五章 Project Memory 原則                        |
 | v1.1.0 | -          | 新增第三點五章開發哲學                                    |

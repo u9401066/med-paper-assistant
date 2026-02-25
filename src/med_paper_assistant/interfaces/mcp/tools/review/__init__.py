@@ -18,7 +18,9 @@ from med_paper_assistant.infrastructure.persistence import (
 )
 from med_paper_assistant.infrastructure.services import Drafter
 
+from .audit_hooks import register_audit_hook_tools
 from .formatting import register_formatting_tools
+from .pipeline_gate import register_pipeline_tools
 
 
 def register_review_tools(
@@ -29,6 +31,9 @@ def register_review_tools(
 ):
     """Register all review tools with the MCP server."""
     register_formatting_tools(mcp, drafter, ref_manager)
+    if project_manager is not None:
+        register_pipeline_tools(mcp, project_manager)
+    register_audit_hook_tools(mcp)
 
 
-__all__ = ["register_review_tools"]
+__all__ = ["register_review_tools", "register_pipeline_tools", "register_audit_hook_tools"]
