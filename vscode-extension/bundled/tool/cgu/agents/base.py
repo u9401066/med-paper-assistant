@@ -17,11 +17,10 @@ from pydantic import BaseModel
 
 class AgentPersonality(Enum):
     """Agent 人格類型 - 影響思考風格"""
-
-    EXPLORER = "explorer"  # 探索者：廣度優先，尋找可能性
-    CRITIC = "critic"  # 批判者：深度分析，找出問題
-    WILDCARD = "wildcard"  # 狂想者：打破規則，極端想法
-    SYNTHESIZER = "synthesizer"  # 整合者：融合觀點，尋找共識
+    EXPLORER = "explorer"      # 探索者：廣度優先，尋找可能性
+    CRITIC = "critic"          # 批判者：深度分析，找出問題
+    WILDCARD = "wildcard"      # 狂想者：打破規則，極端想法
+    SYNTHESIZER = "synthesizer" # 整合者：融合觀點，尋找共識
     CONTRARIAN = "contrarian"  # 反骨者：逆向思考，質疑一切
 
 
@@ -32,7 +31,6 @@ class AgentContext:
 
     每個 Agent 維護自己的思考空間，避免污染其他 Agent
     """
-
     agent_id: str
     personality: AgentPersonality
     topic: str
@@ -62,7 +60,6 @@ class AgentContext:
 
 class AgentIdea(BaseModel):
     """Agent 產生的點子"""
-
     id: str = ""
     content: str
     source_agent: str
@@ -80,7 +77,6 @@ class AgentIdea(BaseModel):
 @dataclass
 class ThinkingStep:
     """單步思考記錄"""
-
     step_type: str
     input_context: str
     output: str
@@ -220,7 +216,6 @@ class CreativeAgent(ABC):
 
 class AgentMessage(BaseModel):
     """Agent 間通訊的訊息"""
-
     from_agent: str
     to_agent: str | None = None  # None = 廣播
     message_type: str  # "idea", "challenge", "spark", "merge"

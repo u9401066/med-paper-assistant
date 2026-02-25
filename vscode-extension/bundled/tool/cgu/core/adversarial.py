@@ -15,7 +15,7 @@ AdversarialEngine - 對抗式創意引擎
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
@@ -26,29 +26,26 @@ logger = logging.getLogger(__name__)
 
 class AttackType(str, Enum):
     """攻擊類型"""
-
-    ALREADY_EXISTS = "already_exists"  # 已經有人做過
-    NOT_FEASIBLE = "not_feasible"  # 不可行
-    TOO_OBVIOUS = "too_obvious"  # 太顯而易見
-    MISSING_DETAIL = "missing_detail"  # 缺乏細節
+    ALREADY_EXISTS = "already_exists"      # 已經有人做過
+    NOT_FEASIBLE = "not_feasible"          # 不可行
+    TOO_OBVIOUS = "too_obvious"            # 太顯而易見
+    MISSING_DETAIL = "missing_detail"      # 缺乏細節
     WRONG_ASSUMPTION = "wrong_assumption"  # 假設錯誤
     BETTER_ALTERNATIVE = "better_alternative"  # 有更好的替代方案
 
 
 class DefenseType(str, Enum):
     """防禦/進化類型"""
-
-    DIFFERENTIATE = "differentiate"  # 差異化：說明與現有方案的不同
-    PIVOT = "pivot"  # 轉向：改變方向但保持核心
-    DEEPEN = "deepen"  # 深化：增加細節和可行性
-    REFRAME = "reframe"  # 重構：用新角度詮釋
-    COMBINE = "combine"  # 結合：整合其他概念
+    DIFFERENTIATE = "differentiate"    # 差異化：說明與現有方案的不同
+    PIVOT = "pivot"                    # 轉向：改變方向但保持核心
+    DEEPEN = "deepen"                  # 深化：增加細節和可行性
+    REFRAME = "reframe"                # 重構：用新角度詮釋
+    COMBINE = "combine"                # 結合：整合其他概念
 
 
 @dataclass
 class Attack:
     """一次攻擊"""
-
     attack_type: AttackType
     content: str
     severity: float = 0.5  # 嚴重程度 0-1
@@ -68,7 +65,6 @@ class Attack:
 @dataclass
 class Defense:
     """一次防禦/進化"""
-
     defense_type: DefenseType
     evolved_idea: str
     reasoning: str
@@ -88,7 +84,6 @@ class Defense:
 @dataclass
 class AdversarialRound:
     """一輪對抗"""
-
     round_number: int
     idea_before: str
     attack: Attack
@@ -111,7 +106,6 @@ class AdversarialRound:
 
 class AdversarialResult(BaseModel):
     """對抗式創意的最終結果"""
-
     original_idea: str
     final_idea: str
     topic: str
@@ -120,8 +114,8 @@ class AdversarialResult(BaseModel):
     total_rounds: int = 0
 
     # 品質指標
-    novelty_improvement: float = 0.0  # 新穎度提升
-    robustness_score: float = 0.0  # 穩健度（經受了多少攻擊）
+    novelty_improvement: float = 0.0    # 新穎度提升
+    robustness_score: float = 0.0       # 穩健度（經受了多少攻擊）
     evolution_trajectory: list[str] = Field(default_factory=list)
 
     @property
@@ -217,12 +211,16 @@ class AdversarialEngine:
             )
 
             # 2. 生成防禦/進化
-            defense = await self._generate_defense(current_idea, attack, topic)
+            defense = await self._generate_defense(
+                current_idea, attack, topic
+            )
 
             evolved_idea = defense.evolved_idea
 
             # 3. 計算進化程度
-            evolution_score = self._compute_evolution(current_idea, evolved_idea, attack)
+            evolution_score = self._compute_evolution(
+                current_idea, evolved_idea, attack
+            )
 
             # 4. 記錄這輪
             round_record = AdversarialRound(
@@ -248,7 +246,9 @@ class AdversarialEngine:
         # 最終結果
         result.final_idea = current_idea
         result.total_rounds = len(result.rounds)
-        result.novelty_improvement = self._compute_novelty_improvement(initial_idea, current_idea)
+        result.novelty_improvement = self._compute_novelty_improvement(
+            initial_idea, current_idea
+        )
         result.robustness_score = min(1.0, cumulative_severity / 2.0)
 
         return result
@@ -326,6 +326,8 @@ class AdversarialEngine:
     ) -> Attack:
         """使用 LLM 生成攻擊"""
         try:
+            from cgu.llm import SYSTEM_PROMPT_CREATIVITY
+
             prompt = f"""你是一個嚴格的創意評論家。你的任務是找出以下想法的最大弱點。
 
 主題：{topic}
@@ -414,6 +416,8 @@ class AdversarialEngine:
     ) -> Defense:
         """使用 LLM 生成防禦"""
         try:
+            from cgu.llm import SYSTEM_PROMPT_CREATIVITY
+
             prompt = f"""你是一個創意捍衛者。你的想法被攻擊了，你必須進化它。
 
 主題：{topic}
@@ -506,31 +510,26 @@ class AdversarialEngine:
         ]
 
         for r in result.rounds:
-            lines.extend(
-                [
-                    "─" * 60,
-                    f"🔄 第 {r['round']} 輪",
-                    f"⚔️ 攻擊 [{r['attack']['type']}]：{r['attack']['content']}",
-                    f"🛡️ 防禦 [{r['defense']['type']}]：{r['defense']['reasoning']}",
-                    f"💡 進化後：{r['defense']['evolved_idea'][:100]}...",
-                    "",
-                ]
-            )
+            lines.extend([
+                "─" * 60,
+                f"🔄 第 {r['round']} 輪",
+                f"⚔️ 攻擊 [{r['attack']['type']}]：{r['attack']['content']}",
+                f"🛡️ 防禦 [{r['defense']['type']}]：{r['defense']['reasoning']}",
+                f"💡 進化後：{r['defense']['evolved_idea'][:100]}...",
+                "",
+            ])
 
-        lines.extend(
-            [
-                "═" * 60,
-                "🏆 最終想法",
-                result.final_idea,
-                "═" * 60,
-            ]
-        )
+        lines.extend([
+            "═" * 60,
+            "🏆 最終想法",
+            result.final_idea,
+            "═" * 60,
+        ])
 
         return "\n".join(lines)
 
 
 # === 便捷函數 ===
-
 
 async def evolve_idea(idea: str, topic: str, rounds: int = 5) -> AdversarialResult:
     """快速進化一個想法"""
@@ -541,5 +540,4 @@ async def evolve_idea(idea: str, topic: str, rounds: int = 5) -> AdversarialResu
 def evolve_idea_sync(idea: str, topic: str, rounds: int = 5) -> AdversarialResult:
     """同步版本的 evolve_idea"""
     import asyncio
-
     return asyncio.run(evolve_idea(idea, topic, rounds))

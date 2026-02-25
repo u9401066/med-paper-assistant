@@ -47,40 +47,39 @@ class CreativityMethod(str, Enum):
     """
 
     # === 發散類 (Divergent) ===
-    MIND_MAP = "mind_map"  # 心智圖 - Tony Buzan
-    BRAINSTORM = "brainstorm"  # 腦力激盪
-    SCAMPER = "scamper"  # SCAMPER 檢核表 - Bob Eberle
-    RANDOM_INPUT = "random_input"  # 隨機輸入法 - de Bono
+    MIND_MAP = "mind_map"                 # 心智圖 - Tony Buzan
+    BRAINSTORM = "brainstorm"             # 腦力激盪
+    SCAMPER = "scamper"                   # SCAMPER 檢核表 - Bob Eberle
+    RANDOM_INPUT = "random_input"         # 隨機輸入法 - de Bono
 
     # === 結構類 (Structural) ===
-    MANDALA_9GRID = "mandala_9grid"  # 曼陀羅九宮格 - 今泉浩晃
-    MORPHOLOGICAL = "morphological"  # 形態分析法 - Fritz Zwicky
-    FIVE_W_TWO_H = "5w2h"  # 5W2H
-    FISHBONE = "fishbone"  # 魚骨圖 - 石川馨
+    MANDALA_9GRID = "mandala_9grid"       # 曼陀羅九宮格 - 今泉浩晃
+    MORPHOLOGICAL = "morphological"       # 形態分析法 - Fritz Zwicky
+    FIVE_W_TWO_H = "5w2h"                 # 5W2H
+    FISHBONE = "fishbone"                 # 魚骨圖 - 石川馨
 
     # === 觀點類 (Perspective) ===
-    SIX_HATS = "six_hats"  # 六頂思考帽 - de Bono
-    REVERSE = "reverse"  # 逆向腦力激盪
-    ANALOGY = "analogy"  # 類比思考
+    SIX_HATS = "six_hats"                 # 六頂思考帽 - de Bono
+    REVERSE = "reverse"                   # 逆向腦力激盪
+    ANALOGY = "analogy"                   # 類比思考
 
     # === 流程類 (Process) ===
-    DOUBLE_DIAMOND = "double_diamond"  # 雙鑽石 - 英國設計協會
-    DESIGN_SPRINT = "design_sprint"  # 設計衝刺 - Google Ventures
-    KJ_METHOD = "kj_method"  # KJ 法 - 川喜田二郎
-    WORLD_CAFE = "world_cafe"  # 世界咖啡館
+    DOUBLE_DIAMOND = "double_diamond"     # 雙鑽石 - 英國設計協會
+    DESIGN_SPRINT = "design_sprint"       # 設計衝刺 - Google Ventures
+    KJ_METHOD = "kj_method"               # KJ 法 - 川喜田二郎
+    WORLD_CAFE = "world_cafe"             # 世界咖啡館
 
     # === 系統類 (Systematic) ===
-    TRIZ = "triz"  # TRIZ 40原理 - Altshuller
+    TRIZ = "triz"                         # TRIZ 40原理 - Altshuller
 
 
 class MethodCategory(str, Enum):
     """方法分類"""
-
-    DIVERGENT = "divergent"  # 發散類
-    STRUCTURAL = "structural"  # 結構類
+    DIVERGENT = "divergent"      # 發散類
+    STRUCTURAL = "structural"    # 結構類
     PERSPECTIVE = "perspective"  # 觀點類
-    PROCESS = "process"  # 流程類
-    SYSTEMATIC = "systematic"  # 系統類
+    PROCESS = "process"          # 流程類
+    SYSTEMATIC = "systematic"    # 系統類
 
 
 class MethodConfig(BaseModel):
@@ -93,10 +92,10 @@ class MethodConfig(BaseModel):
     description: str = ""
 
     # 方法特性
-    is_divergent: bool = True  # 是否發散型
+    is_divergent: bool = True      # 是否發散型
     requires_iteration: bool = False  # 是否需要迭代
-    min_inputs: int = 1  # 最少輸入數
-    agent_strategy: str = ""  # Agent 實現策略
+    min_inputs: int = 1            # 最少輸入數
+    agent_strategy: str = ""       # Agent 實現策略
 
 
 # === 方法配置表 ===
@@ -139,6 +138,7 @@ METHOD_CONFIGS: dict[CreativityMethod, MethodConfig] = {
         is_divergent=True,
         agent_strategy="低關聯詞注入 + 強制連結",
     ),
+
     # --- 結構類 ---
     CreativityMethod.MANDALA_9GRID: MethodConfig(
         method=CreativityMethod.MANDALA_9GRID,
@@ -177,6 +177,7 @@ METHOD_CONFIGS: dict[CreativityMethod, MethodConfig] = {
         is_divergent=False,
         agent_strategy="6M 維度拆解分析",
     ),
+
     # --- 觀點類 ---
     CreativityMethod.SIX_HATS: MethodConfig(
         method=CreativityMethod.SIX_HATS,
@@ -206,6 +207,7 @@ METHOD_CONFIGS: dict[CreativityMethod, MethodConfig] = {
         is_divergent=True,
         agent_strategy="Cross-domain embedding 搜尋",
     ),
+
     # --- 流程類 ---
     CreativityMethod.DOUBLE_DIAMOND: MethodConfig(
         method=CreativityMethod.DOUBLE_DIAMOND,
@@ -247,6 +249,7 @@ METHOD_CONFIGS: dict[CreativityMethod, MethodConfig] = {
         requires_iteration=True,
         agent_strategy="Agent 輪替 + 上下文傳遞",
     ),
+
     # --- 系統類 ---
     CreativityMethod.TRIZ: MethodConfig(
         method=CreativityMethod.TRIZ,
@@ -264,11 +267,7 @@ METHOD_CONFIGS: dict[CreativityMethod, MethodConfig] = {
 
 METHOD_SELECTION_GUIDE: dict[str, list[CreativityMethod]] = {
     "廣泛探索": [CreativityMethod.MIND_MAP, CreativityMethod.BRAINSTORM],
-    "結構化分析": [
-        CreativityMethod.MANDALA_9GRID,
-        CreativityMethod.FIVE_W_TWO_H,
-        CreativityMethod.FISHBONE,
-    ],
+    "結構化分析": [CreativityMethod.MANDALA_9GRID, CreativityMethod.FIVE_W_TWO_H, CreativityMethod.FISHBONE],
     "強制創新": [CreativityMethod.SCAMPER, CreativityMethod.RANDOM_INPUT],
     "系統性組合": [CreativityMethod.MORPHOLOGICAL, CreativityMethod.TRIZ],
     "多元觀點": [CreativityMethod.SIX_HATS, CreativityMethod.WORLD_CAFE],
@@ -309,8 +308,7 @@ def select_method_for_task(
     speed = "fast" if prefer_fast else "slow"
 
     candidates = [
-        method
-        for method, config in METHOD_CONFIGS.items()
+        method for method, config in METHOD_CONFIGS.items()
         if level in config.suitable_levels and config.thinking_speed == speed
     ]
 

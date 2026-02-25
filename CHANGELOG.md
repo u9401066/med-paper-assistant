@@ -5,17 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.9] - 2026-02-24
 
 ### Added
 
-- **Hook C7 (Temporal Consistency Pass)**: 新增 post-manuscript hook，逆向掃描所有 section 修正因寫作順序造成的過時引用（如 B2 "Deferred" 在 Introduction 寫完後未更新）
-  - Hook 計數: 38 → 39 checks
-  - Phase 6 流程更新：C1-C6 後執行 C7，修正後重跑 C1 確認一致性
+- **Multi-Stage Review Architecture**: 設計文件 `docs/design/multi-stage-review-architecture.md`，記錄 4 層審查機制（Prompt 15 + Skill 26 + Hook 42 + Agent Mode）
+- **42 Hooks 完整實作**: Hook 系統從 38 → 42 checks
+  - Hook C8 (Temporal Consistency Pass): post-manuscript 時間一致性檢查
+  - Hook B5 (Methodology Audit): 方法學驗證
+  - Hook B6 (Writing Order): 寫作順序強制
+  - Hook B7 (Section Brief Compliance): Section Brief 合規
+  - Hook D7 (Review Retrospective): 自我改進回顧
+- **11-Phase Pipeline (Phase 0-10)**: auto-paper 從 9-Phase 升級至 11-Phase
+- **Auto-Paper Guide**: `docs/auto-paper-guide.md` 完整操作手冊
+- **VSX Template Bundling**: `journal-profile.template.yaml` 打包進 VSX extension
+  - `setupWorkspace` 自動複製 templates（含內容比對 auto-update）
+  - `mdpaper.autoPaper` runtime safeguard（template 缺失時警告 + 一鍵修復）
+  - `validateBundledTemplates()` 驗證函式 + 2 個新 unit tests
+- **Citation Section**: README.md + README.zh-TW.md 加入 BibTeX 引用區塊
 
 ### Fixed
 
-- **project_path resolution bug**: `get_project_info()` 返回值缺少 `project_path` key，導致 11 個 call sites 無法取得專案路徑
+- **Bash Arithmetic Bug**: `build.sh` / `validate-build.sh` 中 `((VAR++))` 在 `set -e` 下 VAR=0 時回傳 exit code 1 → 改用 `VAR=$((VAR + 1))`
+- **V6 Vitest Detection**: `validate-build.sh` 測試結果擷取修復（vitest v4 輸出格式變更）
+- **Integration Test Async**: 6 個 integration tests 修正為 `async def` + `await`（`searcher.search()` 已改為 async）
+- **Integration Test CWD**: `test_drafter` / `test_insertion` 改用 `tmp_path` fixture 避免 CWD 相依路徑問題
+- **CI VSX Template Sync**: `ci.yml` + `release.yml` 的 VSX sync step 加入 templates 同步
+- **project_path resolution bug**: `get_project_info()` 返回值缺少 `project_path` key
+
+### Changed
+
+- **pytest default config**: `addopts = "-m 'not integration and not slow'"` — 本地 `pytest` 預設只跑 unit tests（與 CI 行為一致）
+- **VSX autopaper 描述**: "9-Phase Pipeline + Hooks" → "11-Phase Pipeline + 42 Hooks"
+- **Hook C7 (Temporal Consistency)**: 新增 post-manuscript hook 修正過時引用
+
+## [Unreleased]
 
 ## [0.3.8] - 2026-02-20
 

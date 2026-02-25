@@ -12,19 +12,23 @@ CreativityCore - 統一創意引擎
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from cgu.core.adversarial import (
-    AdversarialEngine,
-)
-from cgu.core.analogy import AnalogyEngine
+from cgu.core.analogy import AnalogyEngine, Analogy, find_analogy
 from cgu.core.graph import (
     GraphTraversalEngine,
+    ConceptPath,
     get_graph_engine,
+    find_connection,
+)
+from cgu.core.adversarial import (
+    AdversarialEngine,
+    AdversarialResult,
+    evolve_idea,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,17 +36,15 @@ logger = logging.getLogger(__name__)
 
 class CreativityMode(str, Enum):
     """創意模式"""
-
-    ANALOGY = "analogy"  # 類比搜尋
-    EXPLORATION = "exploration"  # 圖譜探索
-    ADVERSARIAL = "adversarial"  # 對抗進化
-    FULL = "full"  # 完整流程（三者結合）
+    ANALOGY = "analogy"           # 類比搜尋
+    EXPLORATION = "exploration"   # 圖譜探索
+    ADVERSARIAL = "adversarial"   # 對抗進化
+    FULL = "full"                 # 完整流程（三者結合）
 
 
 @dataclass
 class CreativityConfig:
     """創意配置"""
-
     # 類比配置
     max_analogies: int = 5
     min_structural_match: float = 0.3
@@ -62,7 +64,6 @@ class CreativityConfig:
 
 class CreativityResult(BaseModel):
     """創意生成結果"""
-
     mode: str
     topic: str
 
@@ -214,8 +215,10 @@ class CreativityCore:
         if len(concepts) >= 2:
             # 找概念間的連結
             for i, concept_a in enumerate(concepts[:-1]):
-                for concept_b in concepts[i + 1 :]:
-                    connection = self.graph_engine.find_unexpected_connection(concept_a, concept_b)
+                for concept_b in concepts[i+1:]:
+                    connection = self.graph_engine.find_unexpected_connection(
+                        concept_a, concept_b
+                    )
                     if connection.get("creative_paths"):
                         result.unexpected_connections.append(connection)
 
@@ -228,7 +231,8 @@ class CreativityCore:
         # 計算驚喜度
         if result.unexpected_connections:
             avg_surprise = sum(
-                c.get("surprise_score", 0) for c in result.unexpected_connections
+                c.get("surprise_score", 0)
+                for c in result.unexpected_connections
             ) / len(result.unexpected_connections)
             result.surprise_score = avg_surprise
             result.novelty_score = avg_surprise * 0.8
@@ -307,7 +311,7 @@ class CreativityCore:
         import re
 
         # 移除標點，分詞
-        words = re.split(r"[\s,，、。！？：；]+", text)
+        words = re.split(r'[\s,，、。！？：；]+', text)
         words = [w.strip() for w in words if len(w.strip()) > 1]
 
         # 檢查哪些在圖譜中有
@@ -368,7 +372,7 @@ class CreativityCore:
                 if conn.get("insight"):
                     conn_texts.append(f"  • {conn['insight']}")
             if conn_texts:
-                sections.append("🌉 意外連結\n" + "\n".join(conn_texts))
+                sections.append(f"🌉 意外連結\n" + "\n".join(conn_texts))
 
         # 進化過程
         if result.evolution_trajectory and len(result.evolution_trajectory) > 1:
@@ -400,53 +404,49 @@ class CreativityCore:
         ]
 
         if result.analogies:
-            lines.extend(
-                [
-                    "─" * 70,
-                    f"🔗 類比搜尋（找到 {len(result.analogies)} 個）",
-                ]
-            )
+            lines.extend([
+                "─" * 70,
+                f"🔗 類比搜尋（找到 {len(result.analogies)} 個）",
+            ])
             for a in result.analogies[:3]:
                 lines.append(
-                    f"  • [{a['source_domain']}] {a['insight'][:60]}... (品質: {a['quality']:.0%})"
+                    f"  • [{a['source_domain']}] {a['insight'][:60]}... "
+                    f"(品質: {a['quality']:.0%})"
                 )
             lines.append("")
 
         if result.unexpected_connections:
-            lines.extend(
-                [
-                    "─" * 70,
-                    f"🌉 意外連結（找到 {len(result.unexpected_connections)} 個）",
-                ]
-            )
+            lines.extend([
+                "─" * 70,
+                f"🌉 意外連結（找到 {len(result.unexpected_connections)} 個）",
+            ])
             for conn in result.unexpected_connections[:3]:
                 if conn.get("creative_paths"):
                     path = conn["creative_paths"][0]
-                    lines.append(f"  • {path['path'][:60]}... (新穎度: {path['novelty']:.0%})")
+                    lines.append(
+                        f"  • {path['path'][:60]}... "
+                        f"(新穎度: {path['novelty']:.0%})"
+                    )
             lines.append("")
 
         if result.evolution_trajectory:
-            lines.extend(
-                [
-                    "─" * 70,
-                    f"⚔️ 對抗進化（{result.adversarial_rounds} 輪）",
-                    f"  起點：{result.evolution_trajectory[0][:50]}...",
-                    f"  終點：{result.evolution_trajectory[-1][:50]}...",
-                    "",
-                ]
-            )
+            lines.extend([
+                "─" * 70,
+                f"⚔️ 對抗進化（{result.adversarial_rounds} 輪）",
+                f"  起點：{result.evolution_trajectory[0][:50]}...",
+                f"  終點：{result.evolution_trajectory[-1][:50]}...",
+                "",
+            ])
 
-        lines.extend(
-            [
-                "═" * 70,
-                "🏆 最終創意輸出",
-                "═" * 70,
-                "",
-                result.final_creative_output or result.evolved_idea or "（無輸出）",
-                "",
-                "═" * 70,
-            ]
-        )
+        lines.extend([
+            "═" * 70,
+            "🏆 最終創意輸出",
+            "═" * 70,
+            "",
+            result.final_creative_output or result.evolved_idea or "（無輸出）",
+            "",
+            "═" * 70,
+        ])
 
         return "\n".join(lines)
 
@@ -496,5 +496,4 @@ def create_sync(
 ) -> CreativityResult:
     """同步版本的 create"""
     import asyncio
-
     return asyncio.run(create(topic, mode, initial_idea, domain))

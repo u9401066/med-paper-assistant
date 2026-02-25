@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS } from './utils';
+import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES } from './utils';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -32,6 +32,26 @@ export function activate(context: vscode.ExtensionContext) {
             outputChannel.appendLine(`[${new Date().toISOString()}] MedPaper Assistant Status: Active`);
         }),
         vscode.commands.registerCommand('mdpaper.autoPaper', () => {
+            // Check if journal-profile template exists in workspace
+            const wsFolder = vscode.workspace.workspaceFolders?.[0];
+            if (wsFolder) {
+                const templatePath = path.join(wsFolder.uri.fsPath, 'templates', 'journal-profile.template.yaml');
+                if (!fs.existsSync(templatePath)) {
+                    const bundledTemplate = path.join(context.extensionPath, 'templates', 'journal-profile.template.yaml');
+                    if (fs.existsSync(bundledTemplate)) {
+                        vscode.window.showWarningMessage(
+                            'MedPaper: journal-profile.template.yaml 尚未存在於 workspace。Auto Paper Phase 0 需要此模板。要複製嗎？',
+                            '複製模板', '稍後再說'
+                        ).then(selection => {
+                            if (selection === '複製模板') {
+                                fs.mkdirSync(path.dirname(templatePath), { recursive: true });
+                                fs.copyFileSync(bundledTemplate, templatePath);
+                                vscode.window.showInformationMessage('MedPaper: journal-profile.template.yaml 已複製到 templates/');
+                            }
+                        });
+                    }
+                }
+            }
             // Open Copilot chat with autopaper command
             vscode.commands.executeCommand('workbench.action.chat.open', {
                 query: '@mdpaper /autopaper 全自動寫論文'
@@ -212,22 +232,25 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                     // Load auto-paper skill
                     const autoPaperSkill = loadSkillContent(skillsPath, 'auto-paper');
                     stream.markdown('🚀 **全自動論文撰寫 (Auto Paper)**\n\n');
-                    stream.markdown('### 9-Phase Pipeline\n\n');
+                    stream.markdown('### 11-Phase Pipeline + 42 Hooks\n\n');
                     stream.markdown('| Phase | 名稱 | 說明 |\n');
                     stream.markdown('|-------|------|------|\n');
-                    stream.markdown('| 1 | 文獻搜索 | 並行搜尋 + 儲存 |\n');
-                    stream.markdown('| 2 | 概念發展 | concept.md 撰寫 |\n');
-                    stream.markdown('| 3 | Novelty 驗證 | 三輪評分 ≥ 75 |\n');
-                    stream.markdown('| 4 | 專案建立 | 設定 paper type |\n');
+                    stream.markdown('| 0 | 期刊定位 | journal-profile.yaml 設定 |\n');
+                    stream.markdown('| 1 | 寫作計畫 | manuscript-plan.yaml 產出 |\n');
+                    stream.markdown('| 2 | 文獻搜索 | 並行搜尋 + 儲存 |\n');
+                    stream.markdown('| 3 | 概念發展 | concept.md 撰寫 |\n');
+                    stream.markdown('| 4 | Novelty 驗證 | 三輪評分 ≥ 75 |\n');
                     stream.markdown('| 5 | 逐節撰寫 | Introduction → Methods → Results → Discussion |\n');
                     stream.markdown('| 6 | 引用同步 | sync_references |\n');
-                    stream.markdown('| 7 | 全稿一致性 | manuscript consistency |\n');
+                    stream.markdown('| 7 | 全稿審查 | Autonomous Review |\n');
                     stream.markdown('| 8 | Word 匯出 | 產生 .docx |\n');
-                    stream.markdown('| 9 | Meta-Learning | 更新 SKILL |\n\n');
-                    stream.markdown('### 品質保證：3 層 Audit Hooks\n\n');
+                    stream.markdown('| 9 | 投稿準備 | Cover letter, checklist |\n');
+                    stream.markdown('| 10 | Meta-Learning | 更新 SKILL + Hooks |\n\n');
+                    stream.markdown('### 品質保證：42 Checks（4 層 Audit Hooks）\n\n');
                     stream.markdown('- **Hook A** (post-write): 字數、引用密度、Anti-AI、Wikilink\n');
-                    stream.markdown('- **Hook B** (post-section): 概念一致性、🔒 保護內容\n');
-                    stream.markdown('- **Hook C** (post-manuscript): 全稿一致性\n\n');
+                    stream.markdown('- **Hook B** (post-section): 概念一致、🔒 保護、方法學、寫作順序\n');
+                    stream.markdown('- **Hook C** (post-manuscript): 全稿一致性、投稿清單、時間一致性\n');
+                    stream.markdown('- **Hook D** (meta-learning): SKILL/Hook 自我改進\n\n');
                     if (autoPaperSkill) {
                         stream.markdown('---\n\n<details><summary>📖 完整 Auto-Paper Skill</summary>\n\n');
                         stream.markdown(autoPaperSkill);
@@ -431,9 +454,26 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
         copied++;
     }
 
+    // 5. Copy templates → templates/ (overwrite if outdated)
+    for (const tmpl of BUNDLED_TEMPLATES) {
+        const src = path.join(extPath, 'templates', tmpl);
+        const dst = path.join(wsRoot, 'templates', tmpl);
+        if (fs.existsSync(src)) {
+            const needsCopy = !fs.existsSync(dst) ||
+                fs.readFileSync(src, 'utf-8') !== fs.readFileSync(dst, 'utf-8');
+            if (needsCopy) {
+                fs.mkdirSync(path.dirname(dst), { recursive: true });
+                fs.copyFileSync(src, dst);
+                copied++;
+            }
+        } else {
+            outputChannel.appendLine(`[Setup] ⚠️ Bundled template missing: ${tmpl}`);
+        }
+    }
+
     if (copied > 0) {
         vscode.window.showInformationMessage(
-            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、instructions）到 workspace。重新載入視窗以啟用全部功能。`,
+            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、instructions、templates）到 workspace。重新載入視窗以啟用全部功能。`,
             '重新載入'
         ).then(selection => {
             if (selection === '重新載入') {

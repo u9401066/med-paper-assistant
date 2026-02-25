@@ -123,6 +123,14 @@ export const BUNDLED_PROMPTS = [
 ] as const;
 
 /**
+ * List of templates that should be bundled in the VSX extension.
+ * Single source of truth for build.sh and validation.
+ */
+export const BUNDLED_TEMPLATES = [
+    'journal-profile.template.yaml',
+] as const;
+
+/**
  * Validate that bundled skills match the source directory.
  * Returns a report of missing/extra skills.
  */
@@ -194,6 +202,39 @@ export function validateBundledPrompts(
     const idxDst = path.join(bundledPromptsDir, '_capability-index.md');
     if (fs.existsSync(idxSrc) && !fs.existsSync(idxDst)) {
         missing.push('_capability-index.md');
+    }
+
+    return { missing, extra, synced };
+}
+
+/**
+ * Validate that bundled templates match the source directory.
+ */
+export function validateBundledTemplates(
+    bundledTemplatesDir: string,
+    sourceTemplatesDir: string,
+): { missing: string[]; extra: string[]; synced: string[] } {
+    const missing: string[] = [];
+    const extra: string[] = [];
+    const synced: string[] = [];
+
+    for (const tmpl of BUNDLED_TEMPLATES) {
+        const srcFile = path.join(sourceTemplatesDir, tmpl);
+        const dstFile = path.join(bundledTemplatesDir, tmpl);
+
+        if (!fs.existsSync(srcFile)) {
+            extra.push(tmpl);
+        } else if (!fs.existsSync(dstFile)) {
+            missing.push(tmpl);
+        } else {
+            const srcContent = fs.readFileSync(srcFile, 'utf-8');
+            const dstContent = fs.readFileSync(dstFile, 'utf-8');
+            if (srcContent !== dstContent) {
+                missing.push(tmpl + ' (outdated)');
+            } else {
+                synced.push(tmpl);
+            }
+        }
     }
 
     return { missing, extra, synced };

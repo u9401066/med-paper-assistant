@@ -1,6 +1,6 @@
 [project]
 name = "med-paper-assistant"
-version = "0.3.8"
+version = "0.3.9"
 description = "A medical paper writing assistant using MCP support"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -110,6 +110,7 @@ ignore = ["E501"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+addopts = "-m 'not integration and not slow'"
 timeout = 60
 markers = [
     "slow: marks tests as slow (deselect with '-m not slow')",

@@ -17,6 +17,7 @@ Agent 自己決定怎麼用這些工具，而不是我們規定流程。
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import random
 from dataclasses import dataclass, field
@@ -29,11 +30,9 @@ logger = logging.getLogger(__name__)
 # Tool 1: 概念搜尋器 (Concept Explorer)
 # ============================================================
 
-
 @dataclass
 class ConceptSearchResult:
     """概念搜尋結果"""
-
     query: str
     found_concepts: list[str]
     related_domains: list[str]
@@ -52,65 +51,25 @@ class ConceptExplorer:
         # 簡單的概念知識庫（實際應連接外部 KB）
         self.knowledge_base: dict[str, dict] = {
             # 科技
-            "AI": {
-                "domain": "科技",
-                "related": ["機器學習", "神經網路", "自動化", "數據"],
-                "cross": ["創意", "藝術", "醫療"],
-            },
-            "程式設計": {
-                "domain": "科技",
-                "related": ["演算法", "Debug", "重構", "軟體"],
-                "cross": ["音樂", "寫作", "建築"],
-            },
-            "自動化": {
-                "domain": "科技",
-                "related": ["機器人", "流程", "效率"],
-                "cross": ["農業", "製造", "服務"],
-            },
+            "AI": {"domain": "科技", "related": ["機器學習", "神經網路", "自動化", "數據"], "cross": ["創意", "藝術", "醫療"]},
+            "程式設計": {"domain": "科技", "related": ["演算法", "Debug", "重構", "軟體"], "cross": ["音樂", "寫作", "建築"]},
+            "自動化": {"domain": "科技", "related": ["機器人", "流程", "效率"], "cross": ["農業", "製造", "服務"]},
+
             # 商業
-            "創業": {
-                "domain": "商業",
-                "related": ["商業模式", "融資", "市場"],
-                "cross": ["藝術", "科學", "社會"],
-            },
-            "行銷": {
-                "domain": "商業",
-                "related": ["品牌", "廣告", "用戶"],
-                "cross": ["心理學", "社會學", "藝術"],
-            },
+            "創業": {"domain": "商業", "related": ["商業模式", "融資", "市場"], "cross": ["藝術", "科學", "社會"]},
+            "行銷": {"domain": "商業", "related": ["品牌", "廣告", "用戶"], "cross": ["心理學", "社會學", "藝術"]},
+
             # 自然
-            "生態": {
-                "domain": "自然",
-                "related": ["環境", "永續", "循環"],
-                "cross": ["城市", "經濟", "社會"],
-            },
-            "演化": {
-                "domain": "自然",
-                "related": ["適應", "選擇", "突變"],
-                "cross": ["商業", "技術", "文化"],
-            },
+            "生態": {"domain": "自然", "related": ["環境", "永續", "循環"], "cross": ["城市", "經濟", "社會"]},
+            "演化": {"domain": "自然", "related": ["適應", "選擇", "突變"], "cross": ["商業", "技術", "文化"]},
+
             # 人文
-            "教育": {
-                "domain": "人文",
-                "related": ["學習", "知識", "成長"],
-                "cross": ["遊戲", "科技", "藝術"],
-            },
-            "創意": {
-                "domain": "人文",
-                "related": ["想像", "創新", "藝術"],
-                "cross": ["科技", "商業", "科學"],
-            },
+            "教育": {"domain": "人文", "related": ["學習", "知識", "成長"], "cross": ["遊戲", "科技", "藝術"]},
+            "創意": {"domain": "人文", "related": ["想像", "創新", "藝術"], "cross": ["科技", "商業", "科學"]},
+
             # 社會
-            "遠端工作": {
-                "domain": "社會",
-                "related": ["協作", "效率", "孤獨", "彈性"],
-                "cross": ["咖啡廳", "游牧", "儀式"],
-            },
-            "社群": {
-                "domain": "社會",
-                "related": ["歸屬", "連結", "文化"],
-                "cross": ["遊戲", "宗教", "部落"],
-            },
+            "遠端工作": {"domain": "社會", "related": ["協作", "效率", "孤獨", "彈性"], "cross": ["咖啡廳", "游牧", "儀式"]},
+            "社群": {"domain": "社會", "related": ["歸屬", "連結", "文化"], "cross": ["遊戲", "宗教", "部落"]},
         }
 
     def search(self, query: str, include_cross_domain: bool = True) -> ConceptSearchResult:
@@ -166,11 +125,9 @@ class ConceptExplorer:
 # Tool 2: 連結發現器 (Connection Finder)
 # ============================================================
 
-
 @dataclass
 class Connection:
     """一個連結"""
-
     concept_a: str
     concept_b: str
     connection_type: str  # "direct", "indirect", "unexpected"
@@ -280,11 +237,9 @@ class ConnectionFinder:
 # Tool 3: 新穎度驗證器 (Novelty Checker)
 # ============================================================
 
-
 @dataclass
 class NoveltyReport:
     """新穎度報告"""
-
     idea: str
     is_novel: bool
     novelty_score: float  # 0-1
@@ -372,11 +327,9 @@ class NoveltyChecker:
 # Tool 4: 想法演化器 (Idea Evolver)
 # ============================================================
 
-
 @dataclass
 class Evolution:
     """一次演化"""
-
     original: str
     evolved: str
     mutation_type: str
@@ -485,11 +438,9 @@ class IdeaEvolver:
 # Tool 5: 創意記錄器 (Creativity Logger)
 # ============================================================
 
-
 @dataclass
 class CreativitySession:
     """創意探索會話"""
-
     session_id: str
     topic: str
     explorations: list[dict] = field(default_factory=list)
@@ -526,23 +477,19 @@ class CreativityLogger:
     def log_exploration(self, action: str, result: Any) -> None:
         """記錄一次探索"""
         if self.current_session:
-            self.current_session.explorations.append(
-                {
-                    "action": action,
-                    "result": str(result)[:200],  # 截斷
-                }
-            )
+            self.current_session.explorations.append({
+                "action": action,
+                "result": str(result)[:200],  # 截斷
+            })
 
     def log_idea(self, idea: str, novelty_score: float = 0.0) -> None:
         """記錄一個想法"""
         if self.current_session:
             self.current_session.ideas_generated.append(idea)
-            self.current_session.ideas_validated.append(
-                {
-                    "idea": idea,
-                    "novelty_score": novelty_score,
-                }
-            )
+            self.current_session.ideas_validated.append({
+                "idea": idea,
+                "novelty_score": novelty_score,
+            })
 
             # 更新最佳想法
             if novelty_score > self.current_session.best_novelty_score:
@@ -573,7 +520,6 @@ class CreativityLogger:
 # ============================================================
 # 統一工具箱 (Creativity Toolbox)
 # ============================================================
-
 
 class CreativityToolbox:
     """
@@ -702,9 +648,7 @@ class CreativityToolbox:
         return {
             "idea": idea,
             "novelty_score": novelty.novelty_score,
-            "is_best_so_far": idea == self.logger.current_session.best_idea
-            if self.logger.current_session
-            else False,
+            "is_best_so_far": idea == self.logger.current_session.best_idea if self.logger.current_session else False,
         }
 
     def get_progress(self) -> dict:
@@ -728,7 +672,6 @@ class CreativityToolbox:
 # 測試：模擬 Agent 使用工具
 # ============================================================
 
-
 def simulate_agent_creativity(topic: str) -> dict:
     """
     模擬 Agent 使用工具探索創意
@@ -749,9 +692,9 @@ def simulate_agent_creativity(topic: str) -> dict:
     print(f"   意外發現：{exploration['unexpected']}")
 
     # Agent 決定嘗試跨域連結
-    if exploration["unexpected"]:
+    if exploration['unexpected']:
         print("\n🔗 Step 2: Agent 嘗試跨域連結")
-        unexpected = exploration["unexpected"][0]
+        unexpected = exploration['unexpected'][0]
         connection = toolbox.find_connection(topic.split()[0], unexpected)
         print(f"   連結類型：{connection['connection_type']}")
         print(f"   新穎度：{connection['novelty_score']:.2f}")
@@ -764,18 +707,18 @@ def simulate_agent_creativity(topic: str) -> dict:
     print(f"   新穎度：{novelty['novelty_score']:.2f}")
 
     # 如果不夠新穎，Agent 決定演化
-    if not novelty["is_novel"]:
+    if not novelty['is_novel']:
         print("\n🔄 Step 4: Agent 發現不夠新穎，進行演化")
         evolved = toolbox.evolve_idea(initial_idea, "combine")
         print(f"   演化類型：{evolved['mutation_type']}")
         print(f"   新想法：{evolved['evolved']}")
 
         # 再次檢查
-        new_novelty = toolbox.check_novelty(evolved["evolved"])
+        new_novelty = toolbox.check_novelty(evolved['evolved'])
         print(f"   新新穎度：{new_novelty['novelty_score']:.2f}")
 
         # 記錄
-        toolbox.record_idea(evolved["evolved"])
+        toolbox.record_idea(evolved['evolved'])
     else:
         toolbox.record_idea(initial_idea)
 

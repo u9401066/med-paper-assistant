@@ -11,11 +11,10 @@ Critic Agent - 批判者
 """
 
 import random
-
 from cgu.agents.base import (
-    AgentIdea,
-    AgentPersonality,
     CreativeAgent,
+    AgentPersonality,
+    AgentIdea,
     ThinkingStep,
 )
 
@@ -32,14 +31,8 @@ class CriticAgent(CreativeAgent):
 
         # 批判視角
         self.critical_lenses = [
-            "可行性",
-            "成本效益",
-            "風險",
-            "倫理",
-            "永續性",
-            "擴展性",
-            "用戶體驗",
-            "技術債",
+            "可行性", "成本效益", "風險", "倫理",
+            "永續性", "擴展性", "用戶體驗", "技術債",
         ]
 
     async def think_step(self) -> ThinkingStep:

@@ -4,11 +4,11 @@ from pubmed_search import LiteratureSearcher
 pytestmark = pytest.mark.integration
 
 
-def test_advanced_search():
+async def test_advanced_search():
     searcher = LiteratureSearcher(email="u9401066@gap.kmu.edu.tw")
 
     print("--- Test 1: Recent Reviews on Asthma (2024-2025) ---")
-    results = searcher.search(
+    results = await searcher.search(
         "asthma", limit=3, min_year=2023, article_type="Review", strategy="recent"
     )
 
@@ -26,14 +26,12 @@ def test_advanced_search():
                 print("PASS: Year check")
 
     print("\n--- Test 2: Clinical Trials on Diabetes (Sort by Date) ---")
-    results = searcher.search("diabetes", limit=3, article_type="Clinical Trial", strategy="recent")
+    results = await searcher.search(
+        "diabetes", limit=3, article_type="Clinical Trial", strategy="recent"
+    )
 
     if not results:
         print("No results found.")
     else:
         for p in results:
             print(f"[{p['year']}] {p['title']}")
-
-
-if __name__ == "__main__":
-    test_advanced_search()

@@ -15,28 +15,27 @@ from pydantic import BaseModel, Field
 
 class ThinkingSpeed(str, Enum):
     """思考速度"""
-
-    FAST = "fast"  # System 1: 快速直覺
-    SLOW = "slow"  # System 2: 慢速分析
+    FAST = "fast"      # System 1: 快速直覺
+    SLOW = "slow"      # System 2: 慢速分析
 
 
 class ThinkingMode(str, Enum):
     """思考模式 - 從 React 到 Creativity"""
 
     # === Fast Thinking (System 1) ===
-    REACT = "react"  # 基本反應：輸入 → 輸出
-    ASSOCIATE = "associate"  # 快速聯想：概念 → 相關概念
-    PATTERN_MATCH = "pattern_match"  # 模式匹配：識別已知模式
+    REACT = "react"                    # 基本反應：輸入 → 輸出
+    ASSOCIATE = "associate"            # 快速聯想：概念 → 相關概念
+    PATTERN_MATCH = "pattern_match"    # 模式匹配：識別已知模式
 
     # === Slow Thinking (System 2) ===
-    ANALYZE = "analyze"  # 分析：拆解問題結構
-    SYNTHESIZE = "synthesize"  # 綜合：組合多個概念
-    EVALUATE = "evaluate"  # 評估：判斷品質與可行性
+    ANALYZE = "analyze"                # 分析：拆解問題結構
+    SYNTHESIZE = "synthesize"          # 綜合：組合多個概念
+    EVALUATE = "evaluate"              # 評估：判斷品質與可行性
 
     # === Creative Thinking (System 1 + 2) ===
-    DIVERGE = "diverge"  # 發散：產生多種可能
-    CONVERGE = "converge"  # 收斂：選擇最佳方案
-    TRANSFORM = "transform"  # 變革：打破規則創新
+    DIVERGE = "diverge"                # 發散：產生多種可能
+    CONVERGE = "converge"              # 收斂：選擇最佳方案
+    TRANSFORM = "transform"            # 變革：打破規則創新
 
 
 class ThinkingStep(BaseModel):

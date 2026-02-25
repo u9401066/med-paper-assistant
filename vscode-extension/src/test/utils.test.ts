@@ -8,10 +8,12 @@ import {
     loadSkillContent,
     validateBundledSkills,
     validateBundledPrompts,
+    validateBundledTemplates,
     validateChatCommands,
     getPackageVersion,
     BUNDLED_SKILLS,
     BUNDLED_PROMPTS,
+    BUNDLED_TEMPLATES,
 } from '../utils';
 
 // ──────────────────────────────────────────────────────────
@@ -291,8 +293,10 @@ describe('Source ↔ VSX Sync', () => {
     const extDir = path.resolve(__dirname, '..', '..');
     const sourceSkillsDir = path.join(rootDir, '.claude', 'skills');
     const sourcePromptsDir = path.join(rootDir, '.github', 'prompts');
+    const sourceTemplatesDir = path.join(rootDir, 'templates');
     const bundledSkillsDir = path.join(extDir, 'skills');
     const bundledPromptsDir = path.join(extDir, 'prompts');
+    const bundledTemplatesDir = path.join(extDir, 'templates');
 
     it('all BUNDLED_SKILLS exist in source .claude/skills/', () => {
         for (const skill of BUNDLED_SKILLS) {
@@ -323,5 +327,20 @@ describe('Source ↔ VSX Sync', () => {
         }
         const result = validateBundledPrompts(bundledPromptsDir, sourcePromptsDir);
         expect(result.missing, `Out of sync prompts: ${result.missing.join(', ')}`).toHaveLength(0);
+    });
+
+    it('all BUNDLED_TEMPLATES exist in source templates/', () => {
+        for (const tmpl of BUNDLED_TEMPLATES) {
+            const tmplPath = path.join(sourceTemplatesDir, tmpl);
+            expect(fs.existsSync(tmplPath), `Missing source template: ${tmpl}`).toBe(true);
+        }
+    });
+
+    it('bundled templates are in sync with source (after build)', () => {
+        if (!fs.existsSync(bundledTemplatesDir)) {
+            return; // Skip pre-build
+        }
+        const result = validateBundledTemplates(bundledTemplatesDir, sourceTemplatesDir);
+        expect(result.missing, `Out of sync templates: ${result.missing.join(', ')}`).toHaveLength(0);
     });
 });

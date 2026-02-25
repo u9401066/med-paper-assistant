@@ -41,41 +41,40 @@ Agent Orchestrator - 協調者
                     └─────────────────┘
 """
 
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
 from cgu.agents.base import AgentPool, CreativeAgent
-from cgu.agents.critic import CriticAgent
 from cgu.agents.explorer import ExplorerAgent
-from cgu.agents.spark import Spark, SparkEngine
+from cgu.agents.critic import CriticAgent
 from cgu.agents.wildcard import WildcardAgent
+from cgu.agents.spark import SparkEngine, Spark
 
 
 @dataclass
 class OrchestratorConfig:
     """協調者配置"""
-
     # Agent 配置
     enable_explorer: bool = True
     enable_critic: bool = True
     enable_wildcard: bool = True
 
     # 思考配置
-    thinking_steps: int = 3  # 每個 Agent 思考幾步
-    ideas_per_agent: int = 3  # 每個 Agent 產生幾個點子
+    thinking_steps: int = 3    # 每個 Agent 思考幾步
+    ideas_per_agent: int = 3   # 每個 Agent 產生幾個點子
 
     # 碰撞配置
-    collision_count: int = 5  # 產生幾個火花
-    top_sparks: int = 3  # 保留幾個最佳火花
+    collision_count: int = 5   # 產生幾個火花
+    top_sparks: int = 3        # 保留幾個最佳火花
 
     # 迭代配置
-    max_iterations: int = 2  # 最多迭代幾輪
+    max_iterations: int = 2    # 最多迭代幾輪
 
 
 @dataclass
 class CreativeSession:
     """創意會話結果"""
-
     topic: str
     agent_results: list[dict] = field(default_factory=list)
     sparks: list[Spark] = field(default_factory=list)
@@ -184,7 +183,9 @@ class AgentOrchestrator:
             session.sparks = sparks  # 直接使用返回的火花列表
 
             # === Phase 3: 整合結果 ===
-            session.final_ideas = self._integrate_results(agent_results, session.sparks)
+            session.final_ideas = self._integrate_results(
+                agent_results, session.sparks
+            )
 
             # 檢查是否需要繼續迭代
             if self._should_stop(session):
@@ -205,25 +206,21 @@ class AgentOrchestrator:
         # 從各 Agent 取最佳點子
         for result in agent_results:
             for idea in result["ideas"][:2]:  # 每個 Agent 取 2 個
-                final.append(
-                    {
-                        "content": idea["content"],
-                        "source": result["personality"],
-                        "type": "agent_idea",
-                        "score": idea.get("novelty", 0.5) * idea.get("association", 0.5),
-                    }
-                )
+                final.append({
+                    "content": idea["content"],
+                    "source": result["personality"],
+                    "type": "agent_idea",
+                    "score": idea.get("novelty", 0.5) * idea.get("association", 0.5),
+                })
 
         # 加入火花
         for spark in best_sparks:
-            final.append(
-                {
-                    "content": spark.spark_content,
-                    "source": f"{spark.personality_a.value} × {spark.personality_b.value}",
-                    "type": "spark",
-                    "score": spark.spark_value,
-                }
-            )
+            final.append({
+                "content": spark.spark_content,
+                "source": f"{spark.personality_a.value} × {spark.personality_b.value}",
+                "type": "spark",
+                "score": spark.spark_value,
+            })
 
         # 按分數排序
         final.sort(key=lambda x: x["score"], reverse=True)
@@ -267,7 +264,6 @@ class AgentOrchestrator:
 
 
 # === 便捷函數 ===
-
 
 async def quick_brainstorm(
     topic: str,

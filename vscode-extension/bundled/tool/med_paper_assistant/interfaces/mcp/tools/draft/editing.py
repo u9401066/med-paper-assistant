@@ -19,6 +19,8 @@ from med_paper_assistant.domain.services.wikilink_validator import (
     find_citation_key_for_pmid,
     validate_wikilinks_in_content,
 )
+from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import DraftSnapshotManager
+from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
 from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
@@ -286,12 +288,23 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
         # 5. Apply the patch
         new_content = content.replace(old_text, fixed_new_text, 1)
 
+        # Auto-snapshot before overwrite
+        if drafts_dir:
+            snap_mgr = DraftSnapshotManager(drafts_dir)
+            snap_mgr.snapshot_before_write(os.path.basename(filepath), reason="patch_draft")
+
         try:
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(new_content)
         except Exception as e:
             log_tool_error("patch_draft", e, {"filepath": filepath})
             return f"❌ Error writing draft: {e}"
+
+        # Auto-commit after successful write
+        if drafts_dir:
+            project_root = os.path.dirname(drafts_dir)
+            git_committer = GitAutoCommitter(project_root)
+            git_committer.commit_draft(os.path.basename(filepath), reason="patch_draft")
 
         # 6. Build result report
         output = "✅ **Draft patched successfully**\n\n"

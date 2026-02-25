@@ -14,6 +14,8 @@
 
 > 📖 [English Version](README.md)
 
+> 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 11 階段 Pipeline、42 項品質檢查、結構化 Review Loop
+
 ---
 
 ## 📦 工具包內容一覽
@@ -527,6 +529,25 @@ med-paper-assistant/
 
 ---
 
-## 📄 授權
+## � 引用
+
+如果您在研究中使用了 Medical Paper Assistant，請引用我們的論文：
+
+```bibtex
+@article{medpaper2025,
+  title   = {MedPaper Assistant: A Self-Evolving, MCP-Based Framework for
+             AI-Assisted Medical Paper Writing with Closed-Loop Quality Assurance},
+  author  = {[Authors]},
+  year    = {2025},
+  note    = {Preprint forthcoming},
+  url     = {https://github.com/u9401066/med-paper-assistant}
+}
+```
+
+> **說明：** 這篇論文完全由 MedPaper Assistant 的自主 Pipeline 產出，作為自我參照式驗證。稿件、審計軌跡和所有品質指標均可在 [`projects/self-evolving-ai-paper-writing-framework/`](projects/self-evolving-ai-paper-writing-framework/) 查看。預印本即將上傳 — DOI 可用後將更新此區塊。
+
+---
+
+## �📄 授權
 
 Apache License 2.0 — 詳見 [LICENSE](LICENSE)

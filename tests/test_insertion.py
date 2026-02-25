@@ -1,6 +1,3 @@
-import os
-import shutil
-
 import pytest
 from pubmed_search import LiteratureSearcher
 
@@ -10,17 +7,11 @@ from med_paper_assistant.infrastructure.services.drafter import Drafter
 pytestmark = pytest.mark.integration
 
 
-def test_insertion():
+async def test_insertion(tmp_path):
     # Setup
     searcher = LiteratureSearcher(email="u9401066@gap.kmu.edu.tw")
-    test_ref_dir = "test_references_insert"
-    test_draft_dir = "test_drafts_insert"
-
-    # Clean up
-    if os.path.exists(test_ref_dir):
-        shutil.rmtree(test_ref_dir)
-    if os.path.exists(test_draft_dir):
-        shutil.rmtree(test_draft_dir)
+    test_ref_dir = str(tmp_path / "test_references_insert")
+    test_draft_dir = str(tmp_path / "test_drafts_insert")
 
     ref_manager = ReferenceManager(base_dir=test_ref_dir)
     drafter = Drafter(ref_manager, drafts_dir=test_draft_dir)
@@ -47,7 +38,7 @@ This is the second statement.
 
     # Let's find another PMID.
     print("\nSearching for second PMID...")
-    results = searcher.search("diabetes", limit=1)
+    results = await searcher.search("diabetes", limit=1)
     pmid2 = results[0]["pmid"]
     print(f"Found PMID2: {pmid2}")
 
@@ -80,7 +71,7 @@ This is the second statement.
     # 4. Test Insertion BEFORE (Renumbering)
     # Insert a 3rd citation at the very beginning.
     print("\nSearching for third PMID...")
-    results = searcher.search("cancer", limit=1)
+    results = await searcher.search("cancer", limit=1)
     pmid3 = results[0]["pmid"]
 
     print(f"\nInserting citation {pmid3} after 'Test Draft'...")
@@ -100,7 +91,3 @@ This is the second statement.
         print("Test PASSED: Renumbering successful (New [1]).")
     else:
         print("Test FAILED: Renumbering failed.")
-
-
-if __name__ == "__main__":
-    test_insertion()

@@ -11,11 +11,10 @@ Explorer Agent - 探索者
 """
 
 import random
-
 from cgu.agents.base import (
-    AgentIdea,
-    AgentPersonality,
     CreativeAgent,
+    AgentPersonality,
+    AgentIdea,
     ThinkingStep,
 )
 
@@ -32,16 +31,8 @@ class ExplorerAgent(CreativeAgent):
 
         # 探索方向
         self.exploration_dimensions = [
-            "功能",
-            "用戶",
-            "場景",
-            "技術",
-            "情感",
-            "歷史",
-            "未來",
-            "文化",
-            "自然",
-            "藝術",
+            "功能", "用戶", "場景", "技術", "情感",
+            "歷史", "未來", "文化", "自然", "藝術",
         ]
 
     async def think_step(self) -> ThinkingStep:

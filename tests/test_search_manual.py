@@ -4,14 +4,14 @@ from pubmed_search import LiteratureSearcher
 pytestmark = pytest.mark.integration
 
 
-def test_search():
+async def test_search():
     print("Initializing Searcher...")
     searcher = LiteratureSearcher(email="test@example.com")
 
     query = "COVID-19 vaccine efficacy"
     print(f"Searching for: {query}")
 
-    results = searcher.search(query, limit=3, strategy="recent")
+    results = await searcher.search(query, limit=3, strategy="recent")
 
     if not results:
         print("No results found.")
@@ -30,7 +30,3 @@ def test_search():
         print(f"PMID: {paper['pmid']}")
         print(f"Abstract length: {len(paper['abstract'])}")
         print("")
-
-
-if __name__ == "__main__":
-    test_search()

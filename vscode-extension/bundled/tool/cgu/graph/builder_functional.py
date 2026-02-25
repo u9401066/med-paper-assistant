@@ -5,12 +5,13 @@ CGU Graph Builder - LangGraph 1.0 Functional API 版本
 支援 Python 3.12 新特性
 """
 
-from typing import TypedDict
-
+from typing import TypedDict, override
 from langgraph.func import entrypoint, task
+from langgraph.types import Command, interrupt
 
-from cgu.core import CreativityLevel, ThinkingMode, ThinkingSpeed, ThinkingStep
-from cgu.graph.state import Idea
+from cgu.core import ThinkingMode, CreativityLevel, ThinkingStep, ThinkingSpeed
+from cgu.graph.state import CGUState, Idea
+
 
 # === Python 3.12 新語法：Type Parameter Syntax (PEP 695) ===
 type IdeaList = list[Idea]
@@ -19,7 +20,6 @@ type AssociationList = list[str]
 
 class ThinkingResult(TypedDict):
     """思考結果類型"""
-
     ideas: IdeaList
     associations: AssociationList
     step: ThinkingStep
@@ -27,7 +27,6 @@ class ThinkingResult(TypedDict):
 
 
 # === Fast Thinking Tasks (System 1) ===
-
 
 @task
 async def react_task(topic: str, context: str = "") -> ThinkingResult:
@@ -74,12 +73,10 @@ async def associate_task(
     """
     new_associations = []
     for concept in existing[:3]:
-        new_associations.extend(
-            [
-                f"{concept} 的延伸",
-                f"{concept} 的變體",
-            ]
-        )
+        new_associations.extend([
+            f"{concept} 的延伸",
+            f"{concept} 的變體",
+        ])
 
     step = ThinkingStep(
         mode=ThinkingMode.ASSOCIATE,
@@ -131,7 +128,6 @@ async def pattern_match_task(
 
 
 # === Slow Thinking Tasks (System 2) ===
-
 
 @task
 async def analyze_task(
@@ -208,7 +204,6 @@ async def evaluate_task(
 
 
 # === Main Entrypoint ===
-
 
 @entrypoint()
 async def cgu_workflow(
@@ -304,7 +299,6 @@ async def cgu_workflow(
 
 # === Alternative: Using Command for more control ===
 
-
 @entrypoint()
 async def cgu_workflow_with_commands(
     topic: str,
@@ -339,13 +333,13 @@ async def cgu_workflow_with_commands(
     return {
         "topic": topic,
         "ideas": [
-            {"content": i.content, "score": i.association_score} for i in evaluate_result["ideas"]
+            {"content": i.content, "score": i.association_score}
+            for i in evaluate_result["ideas"]
         ],
     }
 
 
 # === Convenience function ===
-
 
 async def run_cgu_functional(
     topic: str,

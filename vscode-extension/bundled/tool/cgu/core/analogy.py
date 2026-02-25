@@ -22,12 +22,11 @@ logger = logging.getLogger(__name__)
 
 class StructuralDimension(str, Enum):
     """問題的結構維度"""
-
-    PATTERN = "pattern"  # 模式：累積、循環、突變...
-    DYNAMIC = "dynamic"  # 動態：增長、衰減、震盪...
-    CONSTRAINT = "constraint"  # 約束：資源、時間、規則...
+    PATTERN = "pattern"          # 模式：累積、循環、突變...
+    DYNAMIC = "dynamic"          # 動態：增長、衰減、震盪...
+    CONSTRAINT = "constraint"    # 約束：資源、時間、規則...
     STAKEHOLDER = "stakeholder"  # 利害關係：衝突、合作、競爭...
-    TRADEOFF = "tradeoff"  # 權衡：短期/長期、成本/品質...
+    TRADEOFF = "tradeoff"        # 權衡：短期/長期、成本/品質...
 
 
 @dataclass
@@ -37,16 +36,15 @@ class ProblemStructure:
 
     不是關鍵字，是問題的「骨架」
     """
-
-    domain: str  # 原始領域
-    core_problem: str  # 核心問題描述
+    domain: str                                    # 原始領域
+    core_problem: str                              # 核心問題描述
 
     # 結構維度
-    patterns: list[str] = field(default_factory=list)  # 問題的模式
-    dynamics: list[str] = field(default_factory=list)  # 變化的動態
-    constraints: list[str] = field(default_factory=list)  # 約束條件
-    stakeholders: list[str] = field(default_factory=list)  # 利害關係人
-    tradeoffs: list[str] = field(default_factory=list)  # 權衡關係
+    patterns: list[str] = field(default_factory=list)        # 問題的模式
+    dynamics: list[str] = field(default_factory=list)        # 變化的動態
+    constraints: list[str] = field(default_factory=list)     # 約束條件
+    stakeholders: list[str] = field(default_factory=list)    # 利害關係人
+    tradeoffs: list[str] = field(default_factory=list)       # 權衡關係
 
     # 抽象層級
     abstraction_level: int = 1  # 1=具體, 2=中等, 3=高度抽象
@@ -69,23 +67,22 @@ class ProblemStructure:
 
 class Analogy(BaseModel):
     """一個類比"""
-
-    source_domain: str  # 來源領域
-    target_domain: str  # 目標領域（原問題所在）
+    source_domain: str                    # 來源領域
+    target_domain: str                    # 目標領域（原問題所在）
 
     # 類比內容
-    source_concept: str  # 來源概念
-    mapping_explanation: str  # 映射說明
-    insight: str  # 產生的洞察
+    source_concept: str                   # 來源概念
+    mapping_explanation: str              # 映射說明
+    insight: str                          # 產生的洞察
 
     # 結構匹配
     matched_dimensions: list[str] = Field(default_factory=list)
 
     # 品質評分
-    structural_match: float = 0.0  # 結構匹配度
-    surface_distance: float = 0.0  # 表面差異（越大越好）
-    insight_potential: float = 0.0  # 洞察潛力
-    transferability: float = 0.0  # 可遷移性
+    structural_match: float = 0.0         # 結構匹配度
+    surface_distance: float = 0.0         # 表面差異（越大越好）
+    insight_potential: float = 0.0        # 洞察潛力
+    transferability: float = 0.0          # 可遷移性
 
     @property
     def quality_score(self) -> float:
@@ -95,7 +92,9 @@ class Analogy(BaseModel):
         最佳類比：結構相同但領域很遠
         """
         return (
-            self.structural_match * 0.4 + self.surface_distance * 0.3 + self.insight_potential * 0.3
+            self.structural_match * 0.4 +
+            self.surface_distance * 0.3 +
+            self.insight_potential * 0.3
         )
 
 
@@ -227,6 +226,8 @@ class AnalogyEngine:
     def _extract_with_llm(self, problem: str, domain: str | None = None) -> ProblemStructure:
         """使用 LLM 抽取結構"""
         try:
+            from cgu.llm import SYSTEM_PROMPT_CREATIVITY
+
             prompt = f"""分析以下問題的結構特徵：
 
 問題：{problem}
@@ -347,7 +348,9 @@ class AnalogyEngine:
         )
 
         # 計算表面差異（領域越不相關，差異越大）
-        surface_distance = self._compute_surface_distance(source_structure.domain, target_domain)
+        surface_distance = self._compute_surface_distance(
+            source_structure.domain, target_domain
+        )
 
         return Analogy(
             source_domain=target_domain,
@@ -399,9 +402,7 @@ class AnalogyEngine:
                 insight_parts.append(f"{target_domain}在「{t}」的權衡上有成熟經驗")
 
         mapping = "；".join(mapping_parts) if mapping_parts else f"在結構層面與{target_domain}相似"
-        insight = (
-            "。".join(insight_parts) if insight_parts else f"可以研究{target_domain}的解決方案"
-        )
+        insight = "。".join(insight_parts) if insight_parts else f"可以研究{target_domain}的解決方案"
 
         return mapping, insight
 
@@ -455,7 +456,6 @@ class AnalogyEngine:
 
 # === 便捷函數 ===
 
-
 def find_analogy(problem: str, domain: str | None = None) -> list[Analogy]:
     """快速查找類比"""
     engine = AnalogyEngine()
@@ -468,15 +468,15 @@ def explain_problem_structure(problem: str) -> str:
     structure = engine.extract_structure(problem)
 
     lines = [
-        "📋 問題結構分析",
-        "",
+        f"📋 問題結構分析",
+        f"",
         f"🎯 核心問題：{structure.core_problem}",
         f"📁 領域：{structure.domain}",
-        "",
+        f"",
         f"📊 模式：{', '.join(structure.patterns) or '無'}",
         f"📈 動態：{', '.join(structure.dynamics) or '無'}",
         f"⚖️ 權衡：{', '.join(structure.tradeoffs) or '無'}",
-        "",
+        f"",
         f"🔑 抽象簽名：{structure.to_abstract_signature()}",
     ]
     return "\n".join(lines)

@@ -1,10 +1,7 @@
 import os
 from typing import List, Optional
 
-import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
-from scipy import stats
 
 
 class Analyzer:
@@ -70,6 +67,8 @@ class Analyzer:
 
         if not variables:
             return "Error: No variables specified."
+
+        from scipy import stats
 
         # Normalize test type
         test_type = test_type.lower().replace("-", "_").replace(" ", "_")
@@ -176,6 +175,9 @@ class Analyzer:
         Returns:
             Path to saved image.
         """
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
         df = self.load_data(filename)
         plt.figure(figsize=(10, 6))
 
@@ -264,6 +266,8 @@ class Analyzer:
             Markdown formatted Table 1.
         """
         df = self.load_data(filename)
+
+        from scipy import stats
 
         # Get groups
         groups = df[group_col].unique()

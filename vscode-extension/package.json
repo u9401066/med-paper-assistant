@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "publisher": "u9401066",
   "license": "Apache-2.0",
   "repository": {
@@ -67,7 +67,7 @@
           },
           {
             "name": "autopaper",
-            "description": "全自動寫論文（9-Phase Pipeline + Hooks）"
+            "description": "全自動寫論文（11-Phase Pipeline + 42 Hooks）"
           },
           {
             "name": "analysis",
@@ -122,7 +122,7 @@
       },
       {
         "command": "mdpaper.setupWorkspace",
-        "title": "Setup Workspace - 設定 Skills/Prompts/Instructions",
+        "title": "Setup Workspace - 設定 Skills/Prompts/Instructions/Templates",
         "category": "MedPaper"
       }
     ],

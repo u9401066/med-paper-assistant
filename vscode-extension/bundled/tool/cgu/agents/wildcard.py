@@ -12,11 +12,10 @@ Wildcard Agent - 狂想者
 """
 
 import random
-
 from cgu.agents.base import (
-    AgentIdea,
-    AgentPersonality,
     CreativeAgent,
+    AgentPersonality,
+    AgentIdea,
     ThinkingStep,
 )
 
@@ -34,33 +33,21 @@ class WildcardAgent(CreativeAgent):
 
         # 狂想技巧
         self.wildcard_techniques = [
-            "反轉",  # 完全相反
-            "極端化",  # 放大 100 倍
+            "反轉",      # 完全相反
+            "極端化",    # 放大 100 倍
             "隨機跨界",  # 隨機連結不相關領域
             "時間旅行",  # 放到過去/未來
-            "擬人化",  # 如果它是人會怎樣
-            "縮小化",  # 縮到極小
+            "擬人化",    # 如果它是人會怎樣
+            "縮小化",    # 縮到極小
             "合併矛盾",  # 強制結合對立概念
             "荒謬假設",  # 如果物理定律不存在
         ]
 
         # 隨機跨界用的領域庫
         self.random_domains = [
-            "烹飪",
-            "太空",
-            "音樂",
-            "體育",
-            "宗教",
-            "昆蟲",
-            "海洋",
-            "童話",
-            "武器",
-            "醫療",
-            "建築",
-            "哲學",
-            "遊戲",
-            "時尚",
-            "農業",
+            "烹飪", "太空", "音樂", "體育", "宗教",
+            "昆蟲", "海洋", "童話", "武器", "醫療",
+            "建築", "哲學", "遊戲", "時尚", "農業",
         ]
 
     async def think_step(self) -> ThinkingStep:

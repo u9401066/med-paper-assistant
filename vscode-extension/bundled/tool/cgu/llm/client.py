@@ -6,10 +6,10 @@ Ollama 服務持續運行（ollama serve），客戶端只需連接 API
 """
 
 import os
-from typing import Type, TypeVar
+from typing import TypeVar, Type
 
-from langchain_ollama import ChatOllama
 from pydantic import BaseModel
+from langchain_ollama import ChatOllama
 
 # 預設配置（Ollama）
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
@@ -21,7 +21,6 @@ T = TypeVar("T", bound=BaseModel)
 
 class LLMConfig(BaseModel):
     """LLM 配置"""
-
     base_url: str = DEFAULT_OLLAMA_BASE_URL
     model: str = DEFAULT_MODEL
     temperature: float = 0.7
@@ -78,7 +77,7 @@ class CGULLMClient:
         Returns:
             生成的文字
         """
-        from langchain_core.messages import HumanMessage, SystemMessage
+        from langchain_core.messages import SystemMessage, HumanMessage
 
         messages = []
         if system_prompt:
@@ -120,7 +119,7 @@ class CGULLMClient:
         Returns:
             Pydantic 模型實例
         """
-        from langchain_core.messages import HumanMessage, SystemMessage
+        from langchain_core.messages import SystemMessage, HumanMessage
 
         messages = []
         if system_prompt:

@@ -18,15 +18,15 @@ Creativity Generation Unit (CGU)
 __version__ = "0.1.0"
 
 from cgu.core import (
-    # Creativity
-    CreativityLevel,
-    CreativityMethod,
-    MethodCategory,
-    ThinkingChain,
     # Thinking
     ThinkingMode,
     ThinkingSpeed,
     ThinkingStep,
+    ThinkingChain,
+    # Creativity
+    CreativityLevel,
+    CreativityMethod,
+    MethodCategory,
 )
 
 __all__ = [

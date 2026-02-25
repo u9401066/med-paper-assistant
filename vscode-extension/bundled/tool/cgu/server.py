@@ -10,17 +10,17 @@ CGU MCP Server
 - spark: 概念碰撞產生靈感火花
 """
 
-import logging
 import os
+import logging
 
 from mcp.server.fastmcp import FastMCP
 
 from cgu.core import (
-    METHOD_CONFIGS,
     CreativityLevel,
     CreativityMethod,
     ThinkingMode,
     ThinkingSpeed,
+    METHOD_CONFIGS,
     select_method_for_task,
 )
 
@@ -47,7 +47,6 @@ mcp = FastMCP(
 
 # === LLM 輔助函數 ===
 
-
 def _get_llm_client():
     """取得 LLM 客戶端"""
     # copilot 模式：不使用本地 LLM，返回框架讓 Copilot 思考
@@ -56,8 +55,7 @@ def _get_llm_client():
     if not USE_LLM:
         return None
     try:
-        from cgu.llm import LLMConfig, get_llm_client
-
+        from cgu.llm import get_llm_client, LLMConfig
         # 使用環境變數配置
         config = LLMConfig(model=OLLAMA_MODEL)
         return get_llm_client(config)
@@ -75,7 +73,7 @@ def _is_copilot_mode() -> bool:
 def _get_thinking_engine():
     """取得統一思考引擎"""
     try:
-        from cgu.thinking import ThinkingConfig, ThinkingDepth, ThinkingEngine
+        from cgu.thinking import ThinkingEngine, ThinkingConfig, ThinkingDepth
 
         depth_map = {
             "shallow": ThinkingDepth.SHALLOW,
@@ -126,7 +124,7 @@ async def generate_ideas(
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import SYSTEM_PROMPT_CREATIVITY, IdeasOutput
+            from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY
 
             constraints_text = "\n".join(f"- {c}" for c in (constraints or []))
             prompt = f"""為以下主題產生 {count} 個創意點子：
@@ -142,10 +140,8 @@ async def generate_ideas(
                 response_model=IdeasOutput,
                 system_prompt=SYSTEM_PROMPT_CREATIVITY,
             )
-            ideas = [
-                {"id": i + 1, "content": idea, "association_score": 0.7 - i * 0.05}
-                for i, idea in enumerate(result.ideas[:count])
-            ]
+            ideas = [{"id": i+1, "content": idea, "association_score": 0.7 - i*0.05}
+                     for i, idea in enumerate(result.ideas[:count])]
             method_used = "llm_brainstorm"
         except Exception as e:
             logger.warning(f"LLM 生成失敗: {e}")
@@ -155,11 +151,7 @@ async def generate_ideas(
         if _is_copilot_mode():
             # Copilot 模式：返回思考框架，讓 Copilot 填充
             ideas = [
-                {
-                    "id": i + 1,
-                    "content": f"[請 Copilot 思考] {topic} 的第 {i + 1} 個點子",
-                    "association_score": 0.5,
-                }
+                {"id": i + 1, "content": f"[請 Copilot 思考] {topic} 的第 {i + 1} 個點子", "association_score": 0.5}
                 for i in range(count)
             ]
             method_used = "copilot_framework"
@@ -209,7 +201,7 @@ async def spark_collision(
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import PROMPT_SPARK, SYSTEM_PROMPT_CREATIVITY, SparkOutput
+            from cgu.llm import SparkOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_SPARK
 
             prompt = PROMPT_SPARK.format(
                 concept_a=concept_a,
@@ -228,7 +220,10 @@ async def spark_collision(
 
     # Fallback
     if not sparks:
-        sparks = [f"[模擬] {concept_a} + {concept_b} 的創意組合 {i}" for i in range(1, 4)]
+        sparks = [
+            f"[模擬] {concept_a} + {concept_b} 的創意組合 {i}"
+            for i in range(1, 4)
+        ]
 
     return {
         "concept_a": concept_a,
@@ -265,7 +260,7 @@ async def associative_expansion(
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import SYSTEM_PROMPT_CREATIVITY, AssociationList
+            from cgu.llm import AssociationList, SYSTEM_PROMPT_CREATIVITY
 
             for level in range(1, depth + 1):
                 prompt = f"""從「{seed}」進行 {direction} 方向的聯想，第 {level} 層擴展。
@@ -282,22 +277,17 @@ async def associative_expansion(
                     response_model=AssociationList,
                     system_prompt=SYSTEM_PROMPT_CREATIVITY,
                 )
-                associations.append(
-                    {
-                        "level": level,
-                        "concepts": result.associations[:5],
-                    }
-                )
+                associations.append({
+                    "level": level,
+                    "concepts": result.associations[:5],
+                })
         except Exception as e:
             logger.warning(f"LLM 聯想失敗: {e}")
 
     # Fallback
     if not associations:
         associations = [
-            {
-                "level": i + 1,
-                "concepts": [f"[模擬] {seed} 的 {direction} 聯想 {j}" for j in range(1, 4)],
-            }
+            {"level": i+1, "concepts": [f"[模擬] {seed} 的 {direction} 聯想 {j}" for j in range(1, 4)]}
             for i in range(depth)
         ]
 
@@ -358,8 +348,7 @@ async def apply_method(
     if method == "scamper":
         if client is not None:
             try:
-                from cgu.llm import PROMPT_SCAMPER, SYSTEM_PROMPT_CREATIVITY, ScamperOutput
-
+                from cgu.llm import ScamperOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_SCAMPER
                 prompt = PROMPT_SCAMPER.format(topic=input_concept)
                 scamper_result = client.generate_structured(
                     prompt=prompt,
@@ -386,8 +375,7 @@ async def apply_method(
     elif method == "six_hats":
         if client is not None:
             try:
-                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, SixHatsOutput
-
+                from cgu.llm import SixHatsOutput, SYSTEM_PROMPT_CREATIVITY
                 prompt = f"使用六頂思考帽方法分析主題「{input_concept}」，從白、紅、黑、黃、綠、藍六個角度思考。"
                 hats_result = client.generate_structured(
                     prompt=prompt,
@@ -412,8 +400,7 @@ async def apply_method(
     elif method == "mandala_9grid":
         if client is not None:
             try:
-                from cgu.llm import PROMPT_MANDALA, SYSTEM_PROMPT_CREATIVITY, MandalaOutput
-
+                from cgu.llm import MandalaOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_MANDALA
                 prompt = PROMPT_MANDALA.format(concept=input_concept)
                 mandala_result = client.generate_structured(
                     prompt=prompt,
@@ -433,9 +420,8 @@ async def apply_method(
     elif method == "5w2h":
         if client is not None:
             try:
-                from pydantic import BaseModel
-
                 from cgu.llm import SYSTEM_PROMPT_CREATIVITY
+                from pydantic import BaseModel
 
                 class FiveW2HOutput(BaseModel):
                     what: str
@@ -483,8 +469,7 @@ async def apply_method(
     elif method == "reverse":
         if client is not None:
             try:
-                from cgu.llm import PROMPT_REVERSE, SYSTEM_PROMPT_CREATIVITY, ReverseOutput
-
+                from cgu.llm import ReverseOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_REVERSE
                 prompt = PROMPT_REVERSE.format(problem=input_concept)
                 reverse_result = client.generate_structured(
                     prompt=prompt,
@@ -506,13 +491,10 @@ async def apply_method(
     elif method == "mind_map":
         if client is not None:
             try:
-                from cgu.llm import PROMPT_MIND_MAP, SYSTEM_PROMPT_CREATIVITY, MindMapOutput
-
+                from cgu.llm import MindMapOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_MIND_MAP
                 branches = (options or {}).get("branches", 4)
                 sub_branches = (options or {}).get("sub_branches", 3)
-                prompt = PROMPT_MIND_MAP.format(
-                    topic=input_concept, branches=branches, sub_branches=sub_branches
-                )
+                prompt = PROMPT_MIND_MAP.format(topic=input_concept, branches=branches, sub_branches=sub_branches)
                 mindmap_result = client.generate_structured(
                     prompt=prompt,
                     response_model=MindMapOutput,
@@ -535,8 +517,7 @@ async def apply_method(
     elif method == "brainstorm":
         if client is not None:
             try:
-                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, IdeasOutput
-
+                from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY
                 count = (options or {}).get("count", 10)
                 prompt = f"""對以下主題進行腦力激盪，產生 {count} 個不受限制的創意點子：
 
@@ -564,24 +545,11 @@ async def apply_method(
     # 隨機輸入
     elif method == "random_input":
         import random
-
-        random_words = [
-            "星空",
-            "咖啡",
-            "森林",
-            "機器人",
-            "音樂",
-            "海洋",
-            "夢想",
-            "旅行",
-            "魔法",
-            "時間",
-        ]
+        random_words = ["星空", "咖啡", "森林", "機器人", "音樂", "海洋", "夢想", "旅行", "魔法", "時間"]
         random_word = random.choice(random_words)
         if client is not None:
             try:
-                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, SparkOutput
-
+                from cgu.llm import SparkOutput, SYSTEM_PROMPT_CREATIVITY
                 prompt = f"""使用隨機詞強制聯想法：
 
 原始主題：{input_concept}
@@ -765,8 +733,7 @@ async def deep_think(
         return await generate_ideas(topic=topic, count=5)
 
     try:
-        from cgu.thinking import ThinkingDepth
-        from cgu.thinking import ThinkingMode as TMode
+        from cgu.thinking import ThinkingMode as TMode, ThinkingDepth
 
         # 解析深度
         depth_map = {
@@ -926,14 +893,12 @@ async def list_methods() -> dict:
         if category not in methods_by_category:
             methods_by_category[category] = []
 
-        methods_by_category[category].append(
-            {
-                "name": method.value,
-                "description": config.description,
-                "thinking_speed": config.thinking_speed,
-                "suitable_levels": config.suitable_levels,
-            }
-        )
+        methods_by_category[category].append({
+            "name": method.value,
+            "description": config.description,
+            "thinking_speed": config.thinking_speed,
+            "suitable_levels": config.suitable_levels,
+        })
 
     return {
         "total_methods": len(METHOD_CONFIGS),
@@ -1042,7 +1007,7 @@ async def spark_soup_quick(
 
         if client is not None:
             try:
-                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, IdeasOutput
+                from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY
 
                 prompt = f"""請基於以下「創意湯」產生 5 個創意想法。
 
@@ -1056,7 +1021,7 @@ async def spark_soup_quick(
                     system_prompt=SYSTEM_PROMPT_CREATIVITY,
                 )
                 ideas = [
-                    {"id": i + 1, "content": idea, "source": "spark_soup"}
+                    {"id": i+1, "content": idea, "source": "spark_soup"}
                     for i, idea in enumerate(result.ideas[:5])
                 ]
             except Exception as e:
@@ -1065,11 +1030,7 @@ async def spark_soup_quick(
         # Fallback
         if not ideas:
             ideas = [
-                {
-                    "id": i + 1,
-                    "content": f"[請基於創意湯思考] {topic} 的想法 {i + 1}",
-                    "source": "framework",
-                }
+                {"id": i+1, "content": f"[請基於創意湯思考] {topic} 的想法 {i+1}", "source": "framework"}
                 for i in range(5)
             ]
 
@@ -1077,9 +1038,7 @@ async def spark_soup_quick(
             "success": True,
             "topic": topic,
             "ideas": ideas,
-            "soup_preview": soup_result.soup[:500] + "..."
-            if len(soup_result.soup) > 500
-            else soup_result.soup,
+            "soup_preview": soup_result.soup[:500] + "..." if len(soup_result.soup) > 500 else soup_result.soup,
             "diversity_score": soup_result.diversity_score,
             "fragments_count": len(soup_result.fragments_used),
         }
@@ -1174,9 +1133,8 @@ async def get_trigger_words(
         觸發詞列表
     """
     try:
-        import random
-
         from cgu.soup import TRIGGER_WORDS
+        import random
 
         requested_cats = categories or list(TRIGGER_WORDS.keys())
 

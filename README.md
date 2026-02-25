@@ -20,6 +20,8 @@
 
 > 📖 [繁體中文版](README.zh-TW.md)
 
+> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 42 Quality Hooks, Structured Review Loop
+
 ---
 
 ## 📦 What's in the Box
@@ -533,6 +535,25 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-## 📄 License
+## � Citation
+
+If you use Medical Paper Assistant in your research, please cite our paper:
+
+```bibtex
+@article{medpaper2025,
+  title   = {MedPaper Assistant: A Self-Evolving, MCP-Based Framework for
+             AI-Assisted Medical Paper Writing with Closed-Loop Quality Assurance},
+  author  = {[Authors]},
+  year    = {2025},
+  note    = {Preprint forthcoming},
+  url     = {https://github.com/u9401066/med-paper-assistant}
+}
+```
+
+> **Note:** This paper was produced entirely by the MedPaper Assistant's autonomous pipeline as a self-referential demonstration. The manuscript, audit trail, and all quality metrics are available in [`projects/self-evolving-ai-paper-writing-framework/`](projects/self-evolving-ai-paper-writing-framework/). The preprint will be uploaded soon — this section will be updated with the DOI once available.
+
+---
+
+## �📄 License
 
 Apache License 2.0 — See [LICENSE](LICENSE)

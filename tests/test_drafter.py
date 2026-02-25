@@ -1,5 +1,4 @@
 import os
-import shutil
 
 import pytest
 
@@ -9,16 +8,10 @@ from med_paper_assistant.infrastructure.services.drafter import Drafter
 pytestmark = pytest.mark.integration
 
 
-def test_drafter():
+def test_drafter(tmp_path):
     # Setup
-    test_ref_dir = "test_references_draft"
-    test_draft_dir = "test_drafts"
-
-    # Clean up
-    if os.path.exists(test_ref_dir):
-        shutil.rmtree(test_ref_dir)
-    if os.path.exists(test_draft_dir):
-        shutil.rmtree(test_draft_dir)
+    test_ref_dir = str(tmp_path / "test_references_draft")
+    test_draft_dir = str(tmp_path / "test_drafts")
 
     ref_manager = ReferenceManager(base_dir=test_ref_dir)
     drafter = Drafter(ref_manager, drafts_dir=test_draft_dir)
@@ -60,11 +53,3 @@ Recent studies have shown significant economic burden [PMID:{pmid}].
 
     else:
         print("Test FAILED: File not created.")
-
-    # Cleanup
-    # shutil.rmtree(test_ref_dir)
-    # shutil.rmtree(test_draft_dir)
-
-
-if __name__ == "__main__":
-    test_drafter()

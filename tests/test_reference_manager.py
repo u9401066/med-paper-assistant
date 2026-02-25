@@ -1,5 +1,4 @@
 import os
-import shutil
 
 import pytest
 from pubmed_search import LiteratureSearcher
@@ -9,20 +8,16 @@ from med_paper_assistant.infrastructure.persistence.reference_manager import Ref
 pytestmark = pytest.mark.integration
 
 
-def test_reference_manager():
+async def test_reference_manager(tmp_path):
     # Setup
     searcher = LiteratureSearcher(email="u9401066@gap.kmu.edu.tw")
-    test_dir = "test_references"
-
-    # Clean up previous test run
-    if os.path.exists(test_dir):
-        shutil.rmtree(test_dir)
+    test_dir = str(tmp_path / "test_references")
 
     manager = ReferenceManager(base_dir=test_dir)
 
     # 1. Search to get a PMID
     print("Searching for a PMID...")
-    results = searcher.search("asthma", limit=1)
+    results = await searcher.search("asthma", limit=1)
     if not results:
         print("Search failed.")
         return
@@ -58,12 +53,3 @@ def test_reference_manager():
 
     if pmid in refs:
         print("Test PASSED.")
-    else:
-        print("Test FAILED.")
-
-    # Cleanup
-    # shutil.rmtree(test_dir)
-
-
-if __name__ == "__main__":
-    test_reference_manager()

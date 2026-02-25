@@ -38,7 +38,7 @@ if [ -d "$SKILLS_SRC" ]; then
         if [ -d "$SKILLS_SRC/$skill" ]; then
             mkdir -p "$SKILLS_DST/$skill"
             cp "$SKILLS_SRC/$skill/SKILL.md" "$SKILLS_DST/$skill/" 2>/dev/null || true
-            ((SKILLS_COPIED++))
+            SKILLS_COPIED=$((SKILLS_COPIED + 1))
         else
             echo "  ⚠️ Source skill not found: $skill"
         fi
@@ -66,7 +66,7 @@ if [ -d "$PROMPTS_SRC" ]; then
     for prompt in "${BUNDLED_PROMPTS[@]}"; do
         if [ -f "$PROMPTS_SRC/$prompt.prompt.md" ]; then
             cp "$PROMPTS_SRC/$prompt.prompt.md" "$PROMPTS_DST/" 2>/dev/null || true
-            ((PROMPTS_COPIED++))
+            PROMPTS_COPIED=$((PROMPTS_COPIED + 1))
         else
             echo "  ⚠️ Source prompt not found: $prompt"
         fi
@@ -88,6 +88,30 @@ if [ -f "$COPILOT_INSTR_SRC" ]; then
 else
     echo "  ⚠️ copilot-instructions.md not found"
 fi
+
+# ──────────────────────────────────────────────────────
+# 2c. Copy Templates
+#     Keep in sync with src/utils.ts BUNDLED_TEMPLATES
+# ──────────────────────────────────────────────────────
+echo "📄 Copying Templates..."
+TEMPLATES_SRC="$ROOT_DIR/templates"
+TEMPLATES_DST="$EXT_DIR/templates"
+
+BUNDLED_TEMPLATES=(
+    journal-profile.template.yaml
+)
+
+TEMPLATES_COPIED=0
+mkdir -p "$TEMPLATES_DST"
+for tmpl in "${BUNDLED_TEMPLATES[@]}"; do
+    if [ -f "$TEMPLATES_SRC/$tmpl" ]; then
+        cp "$TEMPLATES_SRC/$tmpl" "$TEMPLATES_DST/" 2>/dev/null || true
+        TEMPLATES_COPIED=$((TEMPLATES_COPIED + 1))
+    else
+        echo "  ⚠️ Source template not found: $tmpl"
+    fi
+done
+echo "  → Copied $TEMPLATES_COPIED / ${#BUNDLED_TEMPLATES[@]} templates"
 
 # ──────────────────────────────────────────────────────
 # 3. Copy Python MCP source (for development)

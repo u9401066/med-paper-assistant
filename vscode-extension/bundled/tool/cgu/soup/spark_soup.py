@@ -57,7 +57,7 @@ class SparkSoupResult:
             "fragments_count": len(self.fragments_used),
             "diversity_score": self.diversity_score,
             "trigger_words": self.trigger_words_used,
-            "sources": list(set(f.source.value for f in self.fragments_used)),
+            "sources": list({f.source.value for f in self.fragments_used}),
         }
 
 
@@ -408,7 +408,7 @@ class SoupAssembler:
             return 0.0
 
         # 來源多樣性
-        sources = set(f.source for f in fragments)
+        sources = {f.source for f in fragments}
         source_diversity = len(sources) / len(FragmentSource)
 
         # 相關性分布（越分散越好）

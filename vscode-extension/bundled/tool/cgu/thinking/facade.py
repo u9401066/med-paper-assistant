@@ -9,8 +9,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from cgu.thinking.engine import (
-    ThinkingDepth,
+    ThinkingEngine,
     ThinkingMode,
+    ThinkingDepth,
+    ThinkingConfig,
+    ThinkingResult,
     get_thinking_engine,
 )
 
@@ -170,26 +173,22 @@ async def spark_think(
 def think_sync(topic: str, depth: str = "medium", mode: str | None = None) -> dict:
     """同步版本的 think"""
     import asyncio
-
     return asyncio.run(think(topic, depth, mode))
 
 
 def quick_think_sync(topic: str, count: int = 5) -> list[dict]:
     """同步版本的 quick_think"""
     import asyncio
-
     return asyncio.run(quick_think(topic, count))
 
 
 def deep_think_sync(topic: str, agents: int = 3, steps: int = 3) -> dict:
     """同步版本的 deep_think"""
     import asyncio
-
     return asyncio.run(deep_think(topic, agents, steps))
 
 
 def spark_think_sync(concept_a: str, concept_b: str | None = None, count: int = 5) -> list[dict]:
     """同步版本的 spark_think"""
     import asyncio
-
     return asyncio.run(spark_think(concept_a, concept_b, count))

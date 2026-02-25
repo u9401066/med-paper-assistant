@@ -10,6 +10,7 @@
 | literature-survey   | `mdpaper.literature-survey.prompt.md`   | 系統性搜尋、找所有相關、全面調查              |
 | manuscript-revision | `mdpaper.manuscript-revision.prompt.md` | revision、reviewer comment、被退稿            |
 | quick-search        | `mdpaper.search.prompt.md`              | 找論文、search、PubMed                        |
+| audit               | `mdpaper.audit.prompt.md`               | 審計、audit、Phase 6+7、品質檢查、review loop |
 
 ## 研究單步 Prompts
 
@@ -33,6 +34,6 @@
 
 ## Hook 系統
 
-Copilot Hooks（A-D，寫作時）→ `auto-paper/SKILL.md`
-Pre-Commit Hooks（P1-P8 + G1-G7）→ `git-precommit/SKILL.md`
+Copilot Hooks（A-D，42 checks）→ `auto-paper/SKILL.md`
+Pre-Commit Hooks（P1-P8 + G1-G8）→ `git-precommit/SKILL.md`
 詳見 AGENTS.md Hook 架構表。

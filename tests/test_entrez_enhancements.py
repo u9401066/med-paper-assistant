@@ -20,19 +20,19 @@ def searcher():
 class TestExistingFeatures:
     """Test that existing features still work."""
 
-    def test_basic_search(self, searcher):
+    async def test_basic_search(self, searcher):
         """Test basic search functionality."""
-        results = searcher.search("diabetes mellitus type 2", limit=3)
+        results = await searcher.search("diabetes mellitus type 2", limit=3)
         assert len(results) > 0
         assert "pmid" in results[0]
         assert "title" in results[0]
         print(f"\n✓ Basic search returned {len(results)} results")
         time.sleep(1)
 
-    def test_fetch_details(self, searcher):
+    async def test_fetch_details(self, searcher):
         """Test fetching article details."""
         # PMID for a well-known paper
-        results = searcher.fetch_details(["33892063"])  # COVID-19 vaccine paper
+        results = await searcher.fetch_details(["33892063"])  # COVID-19 vaccine paper
         assert len(results) == 1
         assert results[0]["pmid"] == "33892063"
         print(f"\n✓ Fetch details: {results[0]['title'][:60]}...")
@@ -42,29 +42,29 @@ class TestExistingFeatures:
 class TestRelatedArticles:
     """Test ELink features for finding related articles."""
 
-    def test_get_related_articles(self, searcher):
+    async def test_get_related_articles(self, searcher):
         """Test finding related articles."""
         pmid = "33892063"
-        related = searcher.get_related_articles(pmid, limit=3)
+        related = await searcher.get_related_articles(pmid, limit=3)
         assert isinstance(related, list)
         if related and "error" not in related[0]:
             assert len(related) <= 3
             print(f"\n✓ Found {len(related)} related articles")
         time.sleep(1)
 
-    def test_get_citing_articles(self, searcher):
+    async def test_get_citing_articles(self, searcher):
         """Test finding citing articles."""
         pmid = "33892063"
-        citing = searcher.get_citing_articles(pmid, limit=3)
+        citing = await searcher.get_citing_articles(pmid, limit=3)
         assert isinstance(citing, list)
         if citing and "error" not in citing[0]:
             print(f"\n✓ Found {len(citing)} citing articles")
         time.sleep(1)
 
-    def test_get_article_references(self, searcher):
+    async def test_get_article_references(self, searcher):
         """Test getting article references."""
         pmid = "33892063"
-        refs = searcher.get_article_references(pmid, limit=5)
+        refs = await searcher.get_article_references(pmid, limit=5)
         assert isinstance(refs, list)
         if refs and "error" not in refs[0]:
             print(f"\n✓ Found {len(refs)} references")
@@ -74,10 +74,10 @@ class TestRelatedArticles:
 class TestQuickSummary:
     """Test ESummary for faster metadata retrieval."""
 
-    def test_quick_fetch_summary(self, searcher):
+    async def test_quick_fetch_summary(self, searcher):
         """Test ESummary for quick metadata."""
         pmids = ["33892063", "34043894"]
-        summaries = searcher.quick_fetch_summary(pmids)
+        summaries = await searcher.quick_fetch_summary(pmids)
         assert len(summaries) == 2
         assert "pmid" in summaries[0]
         assert "title" in summaries[0]
@@ -89,18 +89,18 @@ class TestQuickSummary:
 class TestSpellCheck:
     """Test ESpell for query spell checking."""
 
-    def test_spell_check_query_correct(self, searcher):
+    async def test_spell_check_query_correct(self, searcher):
         """Test spell check with correct spelling."""
         query = "diabetes mellitus"
-        corrected = searcher.spell_check_query(query)
+        corrected = await searcher.spell_check_query(query)
         assert isinstance(corrected, str)
         print(f"\n✓ Spell check: '{query}' -> '{corrected}'")
         time.sleep(1)
 
-    def test_spell_check_query_typo(self, searcher):
+    async def test_spell_check_query_typo(self, searcher):
         """Test spell check with typo."""
         query = "diabetis melitus"
-        corrected = searcher.spell_check_query(query)
+        corrected = await searcher.spell_check_query(query)
         assert isinstance(corrected, str)
         print(f"\n✓ Spell check: '{query}' -> '{corrected}'")
         time.sleep(1)
@@ -109,10 +109,10 @@ class TestSpellCheck:
 class TestDatabaseCounts:
     """Test EGQuery for multi-database counts."""
 
-    def test_get_database_counts(self, searcher):
+    async def test_get_database_counts(self, searcher):
         """Test getting counts across databases."""
         query = "diabetes type 2"
-        counts = searcher.get_database_counts(query)
+        counts = await searcher.get_database_counts(query)
         assert isinstance(counts, dict)
         if "error" not in counts:
             assert "pubmed" in counts
@@ -125,10 +125,10 @@ class TestDatabaseCounts:
 class TestMeSHValidation:
     """Test MeSH term validation."""
 
-    def test_validate_mesh_terms(self, searcher):
+    async def test_validate_mesh_terms(self, searcher):
         """Test MeSH term validation."""
         terms = ["Diabetes Mellitus", "Insulin"]
-        result = searcher.validate_mesh_terms(terms)
+        result = await searcher.validate_mesh_terms(terms)
         assert isinstance(result, dict)
         if "error" not in result:
             print(f"\n✓ MeSH validation: {result['valid_count']} valid terms")
@@ -140,10 +140,10 @@ class TestMeSHValidation:
 class TestCitationMatch:
     """Test ECitMatch for finding articles by citation."""
 
-    def test_find_by_citation(self, searcher):
+    async def test_find_by_citation(self, searcher):
         """Test finding article by citation."""
         # Example: Find a known paper
-        pmid = searcher.find_by_citation(
+        pmid = await searcher.find_by_citation(
             journal="Science", year="2020", volume="370", first_page="1110"
         )
         assert pmid is None or pmid.isdigit()
@@ -157,10 +157,10 @@ class TestCitationMatch:
 class TestHistoryServer:
     """Test History Server for large result sets."""
 
-    def test_search_with_history(self, searcher):
+    async def test_search_with_history(self, searcher):
         """Test initiating search with history server."""
         query = "cancer treatment"
-        history = searcher.search_with_history(query, batch_size=100)
+        history = await searcher.search_with_history(query, batch_size=100)
         assert isinstance(history, dict)
         if "error" not in history:
             assert "webenv" in history
@@ -170,13 +170,13 @@ class TestHistoryServer:
             print(f"  WebEnv: {history['webenv'][:20]}...")
         time.sleep(1)
 
-    def test_fetch_batch_from_history(self, searcher):
+    async def test_fetch_batch_from_history(self, searcher):
         """Test fetching batch using history server."""
         query = "diabetes"
-        history = searcher.search_with_history(query, batch_size=5)
+        history = await searcher.search_with_history(query, batch_size=5)
 
         if "error" not in history and history.get("count", 0) > 0:
-            batch = searcher.fetch_batch_from_history(
+            batch = await searcher.fetch_batch_from_history(
                 webenv=history["webenv"], query_key=history["query_key"], start=0, batch_size=3
             )
             assert isinstance(batch, list)
@@ -189,20 +189,20 @@ class TestHistoryServer:
 class TestExportCitations:
     """Test citation export in various formats."""
 
-    def test_export_medline(self, searcher):
+    async def test_export_medline(self, searcher):
         """Test exporting in MEDLINE format."""
         pmids = ["33892063"]
-        result = searcher.export_citations(pmids, format="medline")
+        result = await searcher.export_citations(pmids, format="medline")
         assert isinstance(result, str)
         assert len(result) > 0
         print(f"\n✓ MEDLINE export: {len(result)} characters")
         print(f"  Preview: {result[:100]}...")
         time.sleep(1)
 
-    def test_export_abstract(self, searcher):
+    async def test_export_abstract(self, searcher):
         """Test exporting abstract format."""
         pmids = ["33892063"]
-        result = searcher.export_citations(pmids, format="abstract")
+        result = await searcher.export_citations(pmids, format="abstract")
         assert isinstance(result, str)
         print(f"\n✓ Abstract export: {len(result)} characters")
         time.sleep(1)
@@ -211,9 +211,9 @@ class TestExportCitations:
 class TestDatabaseInfo:
     """Test EInfo for database information."""
 
-    def test_get_database_info(self, searcher):
+    async def test_get_database_info(self, searcher):
         """Test getting PubMed database info."""
-        info = searcher.get_database_info("pubmed")
+        info = await searcher.get_database_info("pubmed")
         assert isinstance(info, dict)
         if "error" not in info:
             assert "name" in info
@@ -227,11 +227,11 @@ class TestDatabaseInfo:
 class TestPMCFeatures:
     """Test PMC-related features."""
 
-    def test_get_pmc_fulltext_url(self, searcher):
+    async def test_get_pmc_fulltext_url(self, searcher):
         """Test getting PMC full text URL."""
         # Use a PMID known to have PMC full text
         pmid = "33892063"
-        url = searcher.get_pmc_fulltext_url(pmid)
+        url = await searcher.get_pmc_fulltext_url(pmid)
         if url:
             assert "pmc" in url.lower()
             print(f"\n✓ PMC URL found: {url}")
@@ -240,7 +240,7 @@ class TestPMCFeatures:
         time.sleep(1)
 
 
-def test_integration_workflow(searcher):
+async def test_integration_workflow(searcher):
     """Test a complete workflow using multiple features."""
     print("\n" + "=" * 60)
     print("INTEGRATION TEST: Complete workflow")
@@ -248,18 +248,18 @@ def test_integration_workflow(searcher):
 
     # Step 1: Spell check query
     original_query = "diabetis treatmnt"
-    corrected_query = searcher.spell_check_query(original_query)
+    corrected_query = await searcher.spell_check_query(original_query)
     print(f"\n1. Spell check: '{original_query}' -> '{corrected_query}'")
     time.sleep(1)
 
     # Step 2: Get database counts
-    counts = searcher.get_database_counts("diabetes treatment")
+    counts = await searcher.get_database_counts("diabetes treatment")
     if "error" not in counts:
         print(f"\n2. Database counts: PubMed has {counts.get('pubmed', 0)} results")
     time.sleep(1)
 
     # Step 3: Search for articles
-    results = searcher.search("diabetes treatment guidelines", limit=2)
+    results = await searcher.search("diabetes treatment guidelines", limit=2)
     if results and "error" not in results[0]:
         print(f"\n3. Search found {len(results)} articles")
         pmid = results[0]["pmid"]
@@ -267,29 +267,16 @@ def test_integration_workflow(searcher):
         time.sleep(1)
 
         # Step 4: Get related articles
-        related = searcher.get_related_articles(pmid, limit=2)
+        related = await searcher.get_related_articles(pmid, limit=2)
         if related and "error" not in related[0]:
             print(f"\n4. Found {len(related)} related articles")
         time.sleep(1)
 
         # Step 5: Export citation
-        citation = searcher.export_citations([pmid], format="medline")
+        citation = await searcher.export_citations([pmid], format="medline")
         print(f"\n5. Exported citation ({len(citation)} chars)")
         time.sleep(1)
 
     print("\n" + "=" * 60)
     print("✓ Integration test complete!")
     print("=" * 60)
-
-
-if __name__ == "__main__":
-    print("\nRunning Bio.Entrez Enhancement Tests...")
-    print("=" * 60)
-
-    searcher = LiteratureSearcher(email="test@example.com")
-
-    # Run integration test
-    test_integration_workflow(searcher)
-
-    print("\n\nTo run full test suite with pytest:")
-    print("  pytest tests/test_entrez_enhancements.py -v -s")

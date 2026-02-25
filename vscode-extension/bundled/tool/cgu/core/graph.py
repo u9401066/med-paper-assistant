@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import heapq
 import logging
+import random
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Iterator
 
 from pydantic import BaseModel, Field
 
@@ -26,25 +27,23 @@ logger = logging.getLogger(__name__)
 
 class EdgeType(str, Enum):
     """邊的類型 - 關係種類"""
-
-    IS_A = "is_a"  # 是一種
-    PART_OF = "part_of"  # 是...的一部分
-    CAUSES = "causes"  # 導致
-    USED_FOR = "used_for"  # 用於
-    LOCATED_IN = "located_in"  # 位於
-    RELATED_TO = "related_to"  # 相關於
+    IS_A = "is_a"                # 是一種
+    PART_OF = "part_of"          # 是...的一部分
+    CAUSES = "causes"            # 導致
+    USED_FOR = "used_for"        # 用於
+    LOCATED_IN = "located_in"    # 位於
+    RELATED_TO = "related_to"    # 相關於
     OPPOSITE_OF = "opposite_of"  # 相反於
-    SIMILAR_TO = "similar_to"  # 類似於
-    MADE_OF = "made_of"  # 由...組成
-    SYMBOL_OF = "symbol_of"  # 象徵
-    ORIGIN = "origin"  # 起源
-    LEADS_TO = "leads_to"  # 通往
+    SIMILAR_TO = "similar_to"    # 類似於
+    MADE_OF = "made_of"          # 由...組成
+    SYMBOL_OF = "symbol_of"      # 象徵
+    ORIGIN = "origin"            # 起源
+    LEADS_TO = "leads_to"        # 通往
 
 
 @dataclass
 class ConceptNode:
     """概念節點"""
-
     id: str
     name: str
     domain: str = "general"
@@ -62,12 +61,11 @@ class ConceptNode:
 @dataclass
 class ConceptEdge:
     """概念間的邊（關係）"""
-
-    source: str  # 來源節點 ID
-    target: str  # 目標節點 ID
+    source: str       # 來源節點 ID
+    target: str       # 目標節點 ID
     edge_type: EdgeType
-    weight: float = 1.0  # 關係強度（越小越常見）
-    novelty: float = 0.5  # 新穎度（越大越不常見）
+    weight: float = 1.0      # 關係強度（越小越常見）
+    novelty: float = 0.5     # 新穎度（越大越不常見）
 
     @property
     def creative_weight(self) -> float:
@@ -81,7 +79,6 @@ class ConceptEdge:
 
 class ConceptPath(BaseModel):
     """一條概念路徑"""
-
     nodes: list[str] = Field(default_factory=list)
     edges: list[str] = Field(default_factory=list)  # edge types
 
@@ -157,7 +154,6 @@ class ConceptGraph:
 
 # === 預設的概念圖譜 ===
 
-
 def build_default_graph() -> ConceptGraph:
     """
     建構預設的概念圖譜
@@ -180,13 +176,11 @@ def build_default_graph() -> ConceptGraph:
 
     for domain, concepts in domains_nodes.items():
         for concept in concepts:
-            graph.add_node(
-                ConceptNode(
-                    id=concept,
-                    name=concept,
-                    domain=domain,
-                )
-            )
+            graph.add_node(ConceptNode(
+                id=concept,
+                name=concept,
+                domain=domain,
+            ))
 
     # === 添加邊 ===
     edges_data = [
@@ -197,6 +191,7 @@ def build_default_graph() -> ConceptGraph:
         ("咖啡", "衣索比亞", EdgeType.ORIGIN, 0.8, 0.7),
         ("咖啡", "專注", EdgeType.CAUSES, 0.5, 0.3),
         ("咖啡", "儀式", EdgeType.SYMBOL_OF, 0.7, 0.6),
+
         # 程式設計相關
         ("程式設計", "軟體", EdgeType.USED_FOR, 0.3, 0.1),
         ("程式設計", "演算法", EdgeType.PART_OF, 0.4, 0.2),
@@ -204,27 +199,32 @@ def build_default_graph() -> ConceptGraph:
         ("程式設計", "重構", EdgeType.RELATED_TO, 0.5, 0.3),
         ("程式設計", "抽象", EdgeType.RELATED_TO, 0.6, 0.5),
         ("程式設計", "自動化", EdgeType.LEADS_TO, 0.5, 0.3),
+
         # 跨域連結（創意的來源）
         ("衣索比亞", "非洲", EdgeType.LOCATED_IN, 0.3, 0.1),
         ("衣索比亞", "貿易", EdgeType.RELATED_TO, 0.7, 0.6),
         ("貿易", "全球化", EdgeType.LEADS_TO, 0.5, 0.4),
         ("全球化", "遠端工作", EdgeType.CAUSES, 0.7, 0.7),
         ("遠端工作", "程式設計", EdgeType.RELATED_TO, 0.6, 0.5),
+
         # 自然類比
         ("樹木", "根", EdgeType.PART_OF, 0.3, 0.1),
         ("根", "養分", EdgeType.USED_FOR, 0.4, 0.2),
         ("樹木", "生長", EdgeType.RELATED_TO, 0.4, 0.2),
         ("種子", "樹木", EdgeType.LEADS_TO, 0.4, 0.2),
+
         # 抽象概念
         ("累積", "循環", EdgeType.RELATED_TO, 0.6, 0.4),
         ("累積", "突破", EdgeType.OPPOSITE_OF, 0.7, 0.6),
         ("抽象", "具體", EdgeType.OPPOSITE_OF, 0.3, 0.1),
+
         # 工作相關
         ("效率", "疲勞", EdgeType.OPPOSITE_OF, 0.5, 0.3),
         ("專注", "效率", EdgeType.CAUSES, 0.4, 0.2),
         ("創意", "專注", EdgeType.RELATED_TO, 0.6, 0.5),
         ("遠端工作", "孤獨", EdgeType.CAUSES, 0.6, 0.5),
         ("孤獨", "歸屬", EdgeType.OPPOSITE_OF, 0.4, 0.3),
+
         # 社會文化
         ("儀式", "習慣", EdgeType.SIMILAR_TO, 0.4, 0.2),
         ("儀式", "歸屬", EdgeType.CAUSES, 0.6, 0.5),
@@ -234,25 +234,21 @@ def build_default_graph() -> ConceptGraph:
 
     for source, target, edge_type, weight, novelty in edges_data:
         if graph.has_node(source) and graph.has_node(target):
-            graph.add_edge(
-                ConceptEdge(
-                    source=source,
-                    target=target,
-                    edge_type=edge_type,
-                    weight=weight,
-                    novelty=novelty,
-                )
-            )
+            graph.add_edge(ConceptEdge(
+                source=source,
+                target=target,
+                edge_type=edge_type,
+                weight=weight,
+                novelty=novelty,
+            ))
             # 添加反向邊（較弱）
-            graph.add_edge(
-                ConceptEdge(
-                    source=target,
-                    target=source,
-                    edge_type=edge_type,
-                    weight=weight * 1.5,
-                    novelty=novelty,
-                )
-            )
+            graph.add_edge(ConceptEdge(
+                source=target,
+                target=source,
+                edge_type=edge_type,
+                weight=weight * 1.5,
+                novelty=novelty,
+            ))
 
     return graph
 
@@ -390,16 +386,14 @@ class GraphTraversalEngine:
                 coherence = 1.0 - (0.1 * sum(1 for e in path_edges if e.novelty > 0.7))
                 coherence = max(0.3, coherence)
 
-                all_paths.append(
-                    ConceptPath(
-                        nodes=path_nodes.copy(),
-                        edges=[e.edge_type.value for e in path_edges],
-                        total_weight=sum(e.weight for e in path_edges),
-                        hop_count=len(path_edges),
-                        novelty_score=novelty,
-                        semantic_coherence=coherence,
-                    )
-                )
+                all_paths.append(ConceptPath(
+                    nodes=path_nodes.copy(),
+                    edges=[e.edge_type.value for e in path_edges],
+                    total_weight=sum(e.weight for e in path_edges),
+                    hop_count=len(path_edges),
+                    novelty_score=novelty,
+                    semantic_coherence=coherence,
+                ))
                 return
 
             for neighbor, edge in self.graph.get_neighbors(current):
@@ -471,7 +465,7 @@ class GraphTraversalEngine:
             # 取最佳創意路徑產生洞察
             best = creative[0]
             result["insight"] = self._generate_path_insight(best)
-            result["surprise_score"] = best.novelty_score * (1 - 1 / max(best.hop_count, 1))
+            result["surprise_score"] = best.novelty_score * (1 - 1/max(best.hop_count, 1))
 
         return result
 
@@ -531,13 +525,11 @@ class GraphTraversalEngine:
     def add_concept(self, concept: str, domain: str = "general") -> None:
         """動態添加概念"""
         if not self.graph.has_node(concept):
-            self.graph.add_node(
-                ConceptNode(
-                    id=concept,
-                    name=concept,
-                    domain=domain,
-                )
-            )
+            self.graph.add_node(ConceptNode(
+                id=concept,
+                name=concept,
+                domain=domain,
+            ))
 
     def add_relation(
         self,
@@ -551,15 +543,13 @@ class GraphTraversalEngine:
         self.add_concept(source)
         self.add_concept(target)
 
-        self.graph.add_edge(
-            ConceptEdge(
-                source=source,
-                target=target,
-                edge_type=relation,
-                weight=weight,
-                novelty=novelty,
-            )
-        )
+        self.graph.add_edge(ConceptEdge(
+            source=source,
+            target=target,
+            edge_type=relation,
+            weight=weight,
+            novelty=novelty,
+        ))
 
 
 # === 便捷函數 ===

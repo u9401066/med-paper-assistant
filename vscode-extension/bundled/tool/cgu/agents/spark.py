@@ -12,8 +12,10 @@ Spark Engine - 火花引擎
 靈感 = 意外的連結 = 低關聯度 + 高潛在價值
 """
 
+import asyncio
 import random
 from dataclasses import dataclass
+from itertools import combinations
 
 from cgu.agents.base import AgentIdea, AgentPersonality
 
@@ -23,7 +25,6 @@ class Spark:
     """
     火花 - 兩個概念碰撞的產物
     """
-
     id: str
     concept_a: str
     concept_b: str
@@ -148,7 +149,9 @@ class SparkEngine:
         personalities = list(by_personality.keys())
 
         for i in range(count):
-            spark = self._create_single_collision_sync(ideas, by_personality, personalities, i)
+            spark = self._create_single_collision_sync(
+                ideas, by_personality, personalities, i
+            )
             if spark:
                 sparks.append(spark)
 
@@ -305,16 +308,14 @@ class SparkEngine:
         lines = ["=" * 50, "⚡ 火花報告 ⚡", "=" * 50, ""]
 
         for i, spark in enumerate(self.get_best_sparks(5), 1):
-            lines.extend(
-                [
-                    f"#{i} 火花值: {spark.spark_value:.2f}",
-                    f"   類型: {spark.collision_type}",
-                    f"   概念A ({spark.personality_a.value}): {spark.concept_a}",
-                    f"   概念B ({spark.personality_b.value}): {spark.concept_b}",
-                    f"   火花: {spark.spark_content}",
-                    f"   驚喜: {spark.surprise_score:.2f} | 潛力: {spark.potential_score:.2f} | 連貫: {spark.coherence_score:.2f}",
-                    "",
-                ]
-            )
+            lines.extend([
+                f"#{i} 火花值: {spark.spark_value:.2f}",
+                f"   類型: {spark.collision_type}",
+                f"   概念A ({spark.personality_a.value}): {spark.concept_a}",
+                f"   概念B ({spark.personality_b.value}): {spark.concept_b}",
+                f"   火花: {spark.spark_content}",
+                f"   驚喜: {spark.surprise_score:.2f} | 潛力: {spark.potential_score:.2f} | 連貫: {spark.coherence_score:.2f}",
+                "",
+            ])
 
         return "\n".join(lines)

@@ -6,21 +6,21 @@ LangGraph 圖形編排 - 實作快思慢想流程
 
 from typing import Literal
 
-from langgraph.graph import END, StateGraph
+from langgraph.graph import StateGraph, END
 
-from cgu.core import FAST_SLOW_PATTERNS, CreativityLevel, ThinkingMode
+from cgu.core import ThinkingMode, CreativityLevel, FAST_SLOW_PATTERNS
+from cgu.graph.state import CGUState
 from cgu.graph.nodes import (
-    analyze_node,
-    associate_node,
-    converge_node,
-    diverge_node,
-    evaluate_node,
-    pattern_match_node,
     react_node,
+    associate_node,
+    pattern_match_node,
+    analyze_node,
     synthesize_node,
+    evaluate_node,
+    diverge_node,
+    converge_node,
     transform_node,
 )
-from cgu.graph.state import CGUState
 
 
 def should_continue(state: CGUState) -> Literal["continue", "finalize"]:
@@ -114,9 +114,11 @@ async def finalize_node(state: CGUState) -> dict:
     # 如果 final_ideas 還沒填充，從 candidate_ideas 選取
     if not state.final_ideas and state.candidate_ideas:
         sorted_ideas = sorted(
-            state.candidate_ideas, key=lambda x: x.association_score, reverse=True
+            state.candidate_ideas,
+            key=lambda x: x.association_score,
+            reverse=True
         )
-        final = sorted_ideas[: state.target_count]
+        final = sorted_ideas[:state.target_count]
         return {"final_ideas": final, "should_stop": True}
 
     return {"should_stop": True}
@@ -194,7 +196,7 @@ def build_cgu_graph() -> StateGraph:
             "diverge": "diverge",
             "evaluate": "evaluate",
             "finalize": "finalize",
-        },
+        }
     )
 
     graph.add_conditional_edges(
@@ -205,7 +207,7 @@ def build_cgu_graph() -> StateGraph:
             "diverge": "diverge",
             "analyze": "analyze",
             "finalize": "finalize",
-        },
+        }
     )
 
     graph.add_conditional_edges(
@@ -216,7 +218,7 @@ def build_cgu_graph() -> StateGraph:
             "analyze": "analyze",
             "evaluate": "evaluate",
             "finalize": "finalize",
-        },
+        }
     )
 
     # Diverge 節點
@@ -230,7 +232,7 @@ def build_cgu_graph() -> StateGraph:
             "evaluate": "evaluate",
             "reset_cycle": "reset_cycle",
             "finalize": "finalize",
-        },
+        }
     )
 
     # Slow thinking 流程
@@ -241,7 +243,7 @@ def build_cgu_graph() -> StateGraph:
             "synthesize": "synthesize",
             "evaluate": "evaluate",
             "finalize": "finalize",
-        },
+        }
     )
 
     graph.add_conditional_edges(
@@ -251,7 +253,7 @@ def build_cgu_graph() -> StateGraph:
             "evaluate": "evaluate",
             "converge": "converge",
             "finalize": "finalize",
-        },
+        }
     )
 
     graph.add_conditional_edges(
@@ -262,7 +264,7 @@ def build_cgu_graph() -> StateGraph:
             "diverge": "diverge",
             "reset_cycle": "reset_cycle",
             "finalize": "finalize",
-        },
+        }
     )
 
     graph.add_conditional_edges(
@@ -272,7 +274,7 @@ def build_cgu_graph() -> StateGraph:
             "evaluate": "evaluate",
             "reset_cycle": "reset_cycle",
             "finalize": "finalize",
-        },
+        }
     )
 
     graph.add_conditional_edges(
@@ -282,7 +284,7 @@ def build_cgu_graph() -> StateGraph:
             "converge": "converge",
             "evaluate": "evaluate",
             "finalize": "finalize",
-        },
+        }
     )
 
     # Reset cycle 後繼續
@@ -291,7 +293,7 @@ def build_cgu_graph() -> StateGraph:
         lambda s: "diverge",  # 新週期從發散開始
         {
             "diverge": "diverge",
-        },
+        }
     )
 
     # Finalize 結束
@@ -318,7 +320,8 @@ def create_cgu_agent(pattern: str = "explore"):
 
     # 取得快慢配置
     fast_target, slow_target, description = FAST_SLOW_PATTERNS.get(
-        pattern, FAST_SLOW_PATTERNS["explore"]
+        pattern,
+        FAST_SLOW_PATTERNS["explore"]
     )
 
     # 編譯圖
@@ -385,12 +388,8 @@ async def run_cgu(
         "ideas": [
             {
                 "content": idea.content if hasattr(idea, "content") else idea.get("content"),
-                "score": idea.association_score
-                if hasattr(idea, "association_score")
-                else idea.get("association_score"),
-                "method": idea.source_method
-                if hasattr(idea, "source_method")
-                else idea.get("source_method"),
+                "score": idea.association_score if hasattr(idea, "association_score") else idea.get("association_score"),
+                "method": idea.source_method if hasattr(idea, "source_method") else idea.get("source_method"),
             }
             for idea in final_state.get("final_ideas", [])
         ],

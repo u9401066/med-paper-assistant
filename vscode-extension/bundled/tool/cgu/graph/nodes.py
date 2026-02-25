@@ -5,19 +5,19 @@ LangGraph 節點定義 - 實作快思慢想的各種思考模式
 整合 vLLM + Instructor 進行真實 LLM 呼叫
 """
 
-import logging
 import os
-from typing import Any, Optional
+import logging
+from typing import Optional, Any
 
 from cgu.core import (
-    METHOD_CONFIGS,
-    CreativityMethod,
     ThinkingMode,
     ThinkingSpeed,
     ThinkingStep,
+    CreativityMethod,
+    METHOD_CONFIGS,
     select_method_for_task,
 )
-from cgu.graph.state import CGUState, Idea
+from cgu.graph.state import CGUState, Idea, NodeOutput
 
 # LLM 整合（可選，fallback 到模擬模式）
 USE_LLM = os.getenv("CGU_USE_LLM", "false").lower() == "true"
@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 # 延遲載入 LLM 相關模組
 _llm_client: Optional[Any] = None
 _llm_available: bool = False
-
 
 def _init_llm():
     """延遲初始化 LLM 客戶端"""
@@ -40,7 +39,6 @@ def _init_llm():
 
     try:
         from cgu.llm import get_llm_client
-
         _llm_client = get_llm_client()
         _llm_available = True
         logger.info("LLM 客戶端已初始化")
@@ -49,7 +47,6 @@ def _init_llm():
         logger.warning(f"LLM 初始化失敗: {e}")
         _llm_available = False
         return False
-
 
 def _get_llm_client():
     """取得 LLM 客戶端"""
@@ -74,11 +71,8 @@ async def react_node(state: CGUState) -> dict:
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import SYSTEM_PROMPT_CREATIVITY, AssociationList
-
-            prompt = (
-                f"針對主題「{state.topic}」，快速列出 5 個直覺聯想的概念或詞彙，每個用一行表示。"
-            )
+            from cgu.llm import AssociationList, SYSTEM_PROMPT_CREATIVITY
+            prompt = f"針對主題「{state.topic}」，快速列出 5 個直覺聯想的概念或詞彙，每個用一行表示。"
             result = client.generate_structured(
                 prompt=prompt,
                 response_model=AssociationList,
@@ -131,8 +125,7 @@ async def associate_node(state: CGUState) -> dict:
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import PROMPT_ASSOCIATE_SIMPLE, SYSTEM_PROMPT_CREATIVITY, AssociationList
-
+            from cgu.llm import AssociationList, SYSTEM_PROMPT_CREATIVITY, PROMPT_ASSOCIATE_SIMPLE
             prompt = PROMPT_ASSOCIATE_SIMPLE.format(
                 topic=state.topic,
                 existing=", ".join(existing),
@@ -147,21 +140,17 @@ async def associate_node(state: CGUState) -> dict:
         except Exception as e:
             logger.warning(f"LLM 呼叫失敗: {e}，使用模擬模式")
             for concept in existing[:2]:
-                new_associations.extend(
-                    [
-                        f"{concept} 的延伸",
-                        f"{concept} 的變體",
-                    ]
-                )
+                new_associations.extend([
+                    f"{concept} 的延伸",
+                    f"{concept} 的變體",
+                ])
     else:
         # 模擬模式
         for concept in existing[:2]:
-            new_associations.extend(
-                [
-                    f"{concept} 的延伸",
-                    f"{concept} 的變體",
-                ]
-            )
+            new_associations.extend([
+                f"{concept} 的延伸",
+                f"{concept} 的變體",
+            ])
 
     step = ThinkingStep(
         mode=ThinkingMode.ASSOCIATE,
@@ -196,13 +185,11 @@ async def pattern_match_node(state: CGUState) -> dict:
     # 將聯想轉換為初步點子
     ideas = []
     for i, assoc in enumerate(state.raw_associations[-5:]):
-        ideas.append(
-            Idea(
-                content=f"基於 '{assoc}' 的創意點子",
-                association_score=0.6 - (i * 0.05),
-                source_method="pattern_match",
-            )
-        )
+        ideas.append(Idea(
+            content=f"基於 '{assoc}' 的創意點子",
+            association_score=0.6 - (i * 0.05),
+            source_method="pattern_match",
+        ))
 
     return {
         "thinking_steps": [step],
@@ -233,12 +220,7 @@ async def analyze_node(state: CGUState) -> dict:
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import (
-                PROMPT_ANALYZE,
-                SYSTEM_PROMPT_ANALYSIS,
-                AnalysisOutput,
-                format_ideas_list,
-            )
+            from cgu.llm import AnalysisOutput, SYSTEM_PROMPT_ANALYSIS, PROMPT_ANALYZE, format_ideas_list
 
             ideas_text = format_ideas_list([i.content for i in state.candidate_ideas[:10]])
             prompt = PROMPT_ANALYZE.format(
@@ -254,13 +236,11 @@ async def analyze_node(state: CGUState) -> dict:
             reasoning = f"""
 分析結果：
 - 主題理解：{result.topic_understanding}
-- 關鍵維度：{", ".join(result.key_dimensions)}
-- 缺口識別：{", ".join(result.gaps)}
-- 建議方向：{", ".join(result.suggestions)}
+- 關鍵維度：{', '.join(result.key_dimensions)}
+- 缺口識別：{', '.join(result.gaps)}
+- 建議方向：{', '.join(result.suggestions)}
 """
-            output_text = (
-                f"深度分析完成：識別 {len(result.key_dimensions)} 個維度，{len(result.gaps)} 個缺口"
-            )
+            output_text = f"深度分析完成：識別 {len(result.key_dimensions)} 個維度，{len(result.gaps)} 個缺口"
         except Exception as e:
             logger.warning(f"LLM 分析失敗: {e}，使用預設分析")
 
@@ -301,14 +281,12 @@ async def synthesize_node(state: CGUState) -> dict:
         for i in range(min(3, len(state.candidate_ideas) - 1)):
             idea_a = state.candidate_ideas[i]
             idea_b = state.candidate_ideas[i + 1]
-            synthesized_ideas.append(
-                Idea(
-                    content=f"整合: {idea_a.content} + {idea_b.content}",
-                    association_score=(idea_a.association_score + idea_b.association_score) / 2,
-                    source_method="synthesize",
-                    reasoning="結合兩個概念的優勢",
-                )
-            )
+            synthesized_ideas.append(Idea(
+                content=f"整合: {idea_a.content} + {idea_b.content}",
+                association_score=(idea_a.association_score + idea_b.association_score) / 2,
+                source_method="synthesize",
+                reasoning=f"結合兩個概念的優勢",
+            ))
 
     return {
         "thinking_steps": [step],
@@ -329,17 +307,16 @@ async def evaluate_node(state: CGUState) -> dict:
 
     # 預設根據創意層級篩選
     min_score, max_score = state.creativity_level.association_range
-    sorted_ideas = sorted(state.candidate_ideas, key=lambda x: x.association_score, reverse=True)
+    sorted_ideas = sorted(
+        state.candidate_ideas,
+        key=lambda x: x.association_score,
+        reverse=True
+    )
 
     client = _get_llm_client()
     if client is not None and len(state.candidate_ideas) > 0:
         try:
-            from cgu.llm import (
-                PROMPT_EVALUATE,
-                SYSTEM_PROMPT_EVALUATION,
-                EvaluationOutput,
-                format_ideas_list,
-            )
+            from cgu.llm import EvaluationOutput, SYSTEM_PROMPT_EVALUATION, PROMPT_EVALUATE, format_ideas_list
 
             ideas_text = format_ideas_list([i.content for i in state.candidate_ideas[:10]])
             prompt = PROMPT_EVALUATE.format(
@@ -409,8 +386,7 @@ async def diverge_node(state: CGUState) -> dict:
     if client is not None:
         try:
             if method == CreativityMethod.SCAMPER:
-                from cgu.llm import PROMPT_SCAMPER, SYSTEM_PROMPT_CREATIVITY, ScamperOutput
-
+                from cgu.llm import ScamperOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_SCAMPER
                 prompt = PROMPT_SCAMPER.format(topic=state.topic)
                 result = client.generate_structured(
                     prompt=prompt,
@@ -427,18 +403,15 @@ async def diverge_node(state: CGUState) -> dict:
                     ("重排", result.rearrange),
                 ]:
                     if content:
-                        new_ideas.append(
-                            Idea(
-                                content=f"SCAMPER-{op}: {content}",
-                                association_score=0.6,
-                                source_method="scamper",
-                            )
-                        )
+                        new_ideas.append(Idea(
+                            content=f"SCAMPER-{op}: {content}",
+                            association_score=0.6,
+                            source_method="scamper",
+                        ))
                 output_text = f"SCAMPER 發散完成：產生 {len(new_ideas)} 個點子"
 
             elif method == CreativityMethod.SIX_HATS:
-                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, SixHatsOutput
-
+                from cgu.llm import SixHatsOutput, SYSTEM_PROMPT_CREATIVITY
                 prompt = f"使用六頂思考帽方法分析主題「{state.topic}」，從白、紅、黑、黃、綠、藍六個角度思考。"
                 result = client.generate_structured(
                     prompt=prompt,
@@ -454,19 +427,16 @@ async def diverge_node(state: CGUState) -> dict:
                     ("藍帽-整合", result.blue),
                 ]:
                     if content:
-                        new_ideas.append(
-                            Idea(
-                                content=f"{hat}: {content}",
-                                association_score=0.65,
-                                source_method="six_hats",
-                            )
-                        )
+                        new_ideas.append(Idea(
+                            content=f"{hat}: {content}",
+                            association_score=0.65,
+                            source_method="six_hats",
+                        ))
                 output_text = f"六頂思考帽分析完成：產生 {len(new_ideas)} 個觀點"
 
             else:
                 # 通用創意產生
-                from cgu.llm import PROMPT_GENERATE_IDEAS, SYSTEM_PROMPT_CREATIVITY, IdeasOutput
-
+                from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_GENERATE_IDEAS
                 prompt = PROMPT_GENERATE_IDEAS.format(
                     topic=state.topic,
                     creativity_level=state.creativity_level.value,
@@ -479,13 +449,11 @@ async def diverge_node(state: CGUState) -> dict:
                     system_prompt=SYSTEM_PROMPT_CREATIVITY,
                 )
                 for idea_text in result.ideas:
-                    new_ideas.append(
-                        Idea(
-                            content=idea_text,
-                            association_score=0.55,
-                            source_method=method.value,
-                        )
-                    )
+                    new_ideas.append(Idea(
+                        content=idea_text,
+                        association_score=0.55,
+                        source_method=method.value,
+                    ))
                 output_text = f"{method.value} 發散完成：產生 {len(new_ideas)} 個點子"
 
         except Exception as e:
@@ -518,32 +486,26 @@ def _simulate_diverge(topic: str, method: CreativityMethod) -> list[Idea]:
     if method == CreativityMethod.SCAMPER:
         scamper_ops = ["替代", "結合", "調適", "修改", "他用", "消除", "重排"]
         for op in scamper_ops[:3]:
-            ideas.append(
-                Idea(
-                    content=f"SCAMPER-{op}: {topic} 的 {op} 變形",
-                    association_score=0.6,
-                    source_method="scamper",
-                )
-            )
+            ideas.append(Idea(
+                content=f"SCAMPER-{op}: {topic} 的 {op} 變形",
+                association_score=0.6,
+                source_method="scamper",
+            ))
     elif method == CreativityMethod.MIND_MAP:
         branches = ["功能", "用戶", "技術", "情感", "價值"]
         for branch in branches[:3]:
-            ideas.append(
-                Idea(
-                    content=f"心智圖-{branch}: {topic} 的 {branch} 面向",
-                    association_score=0.65,
-                    source_method="mind_map",
-                )
-            )
+            ideas.append(Idea(
+                content=f"心智圖-{branch}: {topic} 的 {branch} 面向",
+                association_score=0.65,
+                source_method="mind_map",
+            ))
     else:
         for i in range(3):
-            ideas.append(
-                Idea(
-                    content=f"發散點子 {i + 1}: {topic} 的創新變體",
-                    association_score=0.55,
-                    source_method=method.value,
-                )
-            )
+            ideas.append(Idea(
+                content=f"發散點子 {i+1}: {topic} 的創新變體",
+                association_score=0.55,
+                source_method=method.value,
+            ))
     return ideas
 
 
@@ -566,19 +528,20 @@ async def converge_node(state: CGUState) -> dict:
     min_score, max_score = state.creativity_level.association_range
 
     filtered_ideas = [
-        idea for idea in state.candidate_ideas if min_score <= idea.association_score <= max_score
+        idea for idea in state.candidate_ideas
+        if min_score <= idea.association_score <= max_score
     ]
 
     # 如果篩選後太少，放寬條件
     if len(filtered_ideas) < state.target_count:
         filtered_ideas = sorted(
             state.candidate_ideas,
-            key=lambda x: abs(x.association_score - (min_score + max_score) / 2),
-        )[: state.target_count]
+            key=lambda x: abs(x.association_score - (min_score + max_score) / 2)
+        )[:state.target_count]
 
     return {
         "thinking_steps": [step],
-        "final_ideas": filtered_ideas[: state.target_count],
+        "final_ideas": filtered_ideas[:state.target_count],
         "slow_steps_count": state.slow_steps_count + 1,
     }
 

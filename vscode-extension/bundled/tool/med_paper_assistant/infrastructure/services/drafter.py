@@ -1,11 +1,16 @@
+import logging
 import os
 import re
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
+from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import DraftSnapshotManager
+from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 
 if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
+
+logger = logging.getLogger(__name__)
 
 from enum import Enum
 
@@ -81,6 +86,8 @@ class Drafter:
         self._default_drafts_dir = drafts_dir
         self.citation_style = citation_style
         self._project_manager = project_manager
+        self._snapshot_manager: Optional[DraftSnapshotManager] = None
+        self._git_committer: Optional[GitAutoCommitter] = None
         # Note: Directory is created on-demand when writing drafts,
         # not at initialization to avoid polluting root directory
 
@@ -97,6 +104,23 @@ class Drafter:
             except (ValueError, KeyError):
                 pass
         return self._default_drafts_dir
+
+    @property
+    def snapshot_manager(self) -> DraftSnapshotManager:
+        """Lazy-initialized snapshot manager tied to current drafts_dir."""
+        drafts = self.drafts_dir
+        if self._snapshot_manager is None or str(self._snapshot_manager._drafts_dir) != drafts:
+            self._snapshot_manager = DraftSnapshotManager(drafts)
+        return self._snapshot_manager
+
+    @property
+    def git_committer(self) -> GitAutoCommitter:
+        """Lazy-initialized git auto-committer tied to project root."""
+        if self._git_committer is None:
+            # Use parent of drafts_dir (project root) as the repo dir
+            project_root = os.path.dirname(self.drafts_dir)
+            self._git_committer = GitAutoCommitter(project_root)
+        return self._git_committer
 
     def set_citation_style(self, style: str):
         """Set the citation style."""
@@ -124,8 +148,15 @@ class Drafter:
             filename += ".md"
 
         filepath = os.path.join(self.drafts_dir, filename)
+
+        # Auto-snapshot before overwrite
+        self.snapshot_manager.snapshot_before_write(filename, reason="create_draft")
+
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(final_content)
+
+        # Auto-commit after successful write
+        self.git_committer.commit_draft(filename, reason="create_draft")
 
         return filepath
 
@@ -197,8 +228,14 @@ class Drafter:
         # 4. Re-compile
         final_content = self._compile_draft(new_content)
 
+        # Auto-snapshot before overwrite
+        self.snapshot_manager.snapshot_before_write(filename, reason="insert_citation")
+
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(final_content)
+
+        # Auto-commit after successful write
+        self.git_committer.commit_draft(filename, reason="insert_citation")
 
         return filepath
 
@@ -462,6 +499,9 @@ class Drafter:
         # 7. Write back
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(final_content)
+
+        # Auto-commit after sync
+        self.git_committer.commit_draft(filename, reason="sync_references")
 
         return {
             "success": True,

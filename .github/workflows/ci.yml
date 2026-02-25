@@ -135,6 +135,11 @@ jobs:
           if [ -f "../.github/copilot-instructions.md" ]; then
             cp "../.github/copilot-instructions.md" "copilot-instructions.md"
           fi
+          # Sync templates
+          mkdir -p templates
+          if [ -f "../templates/journal-profile.template.yaml" ]; then
+            cp "../templates/journal-profile.template.yaml" "templates/"
+          fi
 
       - name: Compile TypeScript
         working-directory: vscode-extension

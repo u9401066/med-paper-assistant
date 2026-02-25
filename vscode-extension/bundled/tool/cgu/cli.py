@@ -10,8 +10,9 @@ import json
 import sys
 
 from cgu.core import (
-    METHOD_CONFIGS,
     CreativityLevel,
+    CreativityMethod,
+    METHOD_CONFIGS,
     select_method_for_task,
 )
 
@@ -20,14 +21,12 @@ def cmd_generate(args):
     """生成創意點子"""
     from cgu.server import generate_ideas
 
-    result = asyncio.run(
-        generate_ideas(
-            topic=args.topic,
-            creativity_level=args.level,
-            count=args.count,
-            constraints=args.constraints,
-        )
-    )
+    result = asyncio.run(generate_ideas(
+        topic=args.topic,
+        creativity_level=args.level,
+        count=args.count,
+        constraints=args.constraints,
+    ))
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
@@ -36,12 +35,10 @@ def cmd_spark(args):
     """概念碰撞"""
     from cgu.server import spark_collision
 
-    result = asyncio.run(
-        spark_collision(
-            concept_a=args.concept_a,
-            concept_b=args.concept_b,
-        )
-    )
+    result = asyncio.run(spark_collision(
+        concept_a=args.concept_a,
+        concept_b=args.concept_b,
+    ))
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
@@ -50,13 +47,11 @@ def cmd_expand(args):
     """聯想擴展"""
     from cgu.server import associative_expansion
 
-    result = asyncio.run(
-        associative_expansion(
-            seed=args.seed,
-            direction=args.direction,
-            depth=args.depth,
-        )
-    )
+    result = asyncio.run(associative_expansion(
+        seed=args.seed,
+        direction=args.direction,
+        depth=args.depth,
+    ))
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
@@ -65,13 +60,11 @@ def cmd_apply(args):
     """應用創意方法"""
     from cgu.server import apply_method
 
-    result = asyncio.run(
-        apply_method(
-            method=args.method,
-            input_concept=args.input,
-            options=None,
-        )
-    )
+    result = asyncio.run(apply_method(
+        method=args.method,
+        input_concept=args.input,
+        options=None,
+    ))
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
@@ -127,14 +120,8 @@ def main():
     # generate 命令
     p_generate = subparsers.add_parser("generate", help="生成創意點子")
     p_generate.add_argument("topic", help="發想主題")
-    p_generate.add_argument(
-        "-l",
-        "--level",
-        type=int,
-        default=1,
-        choices=[1, 2, 3],
-        help="創意層級 (1=組合, 2=探索, 3=變革)",
-    )
+    p_generate.add_argument("-l", "--level", type=int, default=1, choices=[1, 2, 3],
+                           help="創意層級 (1=組合, 2=探索, 3=變革)")
     p_generate.add_argument("-c", "--count", type=int, default=5, help="點子數量")
     p_generate.add_argument("--constraints", nargs="*", help="限制條件")
     p_generate.set_defaults(func=cmd_generate)
@@ -148,13 +135,9 @@ def main():
     # expand 命令
     p_expand = subparsers.add_parser("expand", help="聯想擴展")
     p_expand.add_argument("seed", help="種子概念")
-    p_expand.add_argument(
-        "-d",
-        "--direction",
-        default="similar",
-        choices=["similar", "opposite", "random", "cross-domain"],
-        help="擴展方向",
-    )
+    p_expand.add_argument("-d", "--direction", default="similar",
+                         choices=["similar", "opposite", "random", "cross-domain"],
+                         help="擴展方向")
     p_expand.add_argument("--depth", type=int, default=2, help="擴展深度")
     p_expand.set_defaults(func=cmd_expand)
 
@@ -170,12 +153,14 @@ def main():
 
     # recommend 命令
     p_recommend = subparsers.add_parser("recommend", help="推薦創意方法")
-    p_recommend.add_argument(
-        "-l", "--level", type=int, default=1, choices=[1, 2, 3], help="創意層級"
-    )
-    p_recommend.add_argument("--fast", action="store_true", default=True, help="偏好快速方法")
-    p_recommend.add_argument("--slow", action="store_true", help="偏好慢速方法")
-    p_recommend.add_argument("--stuck", action="store_true", help="卡關中")
+    p_recommend.add_argument("-l", "--level", type=int, default=1, choices=[1, 2, 3],
+                            help="創意層級")
+    p_recommend.add_argument("--fast", action="store_true", default=True,
+                            help="偏好快速方法")
+    p_recommend.add_argument("--slow", action="store_true",
+                            help="偏好慢速方法")
+    p_recommend.add_argument("--stuck", action="store_true",
+                            help="卡關中")
     p_recommend.add_argument("-p", "--purpose", help="目的")
     p_recommend.set_defaults(func=cmd_recommend)
 

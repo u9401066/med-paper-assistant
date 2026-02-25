@@ -232,6 +232,6 @@ def format_constraints(constraints: list[str] | None) -> str:
 def format_ideas_list(ideas: list) -> str:
     """格式化點子列表"""
     return "\n".join(
-        f"{i + 1}. {idea.content if hasattr(idea, 'content') else idea}"
+        f"{i+1}. {idea.content if hasattr(idea, 'content') else idea}"
         for i, idea in enumerate(ideas)
     )

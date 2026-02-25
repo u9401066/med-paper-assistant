@@ -11,6 +11,7 @@ CGU Thinking Engine
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -19,32 +20,29 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from cgu.agents.orchestrator import AgentOrchestrator
     from cgu.llm import CGULLMClient
+    from cgu.agents.orchestrator import AgentOrchestrator
 
 logger = logging.getLogger(__name__)
 
 
 class ThinkingMode(Enum):
     """思考模式"""
-
-    SIMPLE = "simple"  # 單次 LLM 呼叫（快）
-    DEEP = "deep"  # Multi-Agent 多步思考（深）
-    SPARK = "spark"  # 碰撞產生火花（創）
-    HYBRID = "hybrid"  # 快思 + 慢想結合（混合）
+    SIMPLE = "simple"       # 單次 LLM 呼叫（快）
+    DEEP = "deep"           # Multi-Agent 多步思考（深）
+    SPARK = "spark"         # 碰撞產生火花（創）
+    HYBRID = "hybrid"       # 快思 + 慢想結合（混合）
 
 
 class ThinkingDepth(Enum):
     """思考深度"""
-
-    SHALLOW = 1  # 1-2 步，快速出結果
-    MEDIUM = 2  # 3-5 步，適度深入
-    DEEP = 3  # 5+ 步，深度探索
+    SHALLOW = 1    # 1-2 步，快速出結果
+    MEDIUM = 2     # 3-5 步，適度深入
+    DEEP = 3       # 5+ 步，深度探索
 
 
 class ThinkingConfig(BaseModel):
     """思考配置"""
-
     mode: ThinkingMode = ThinkingMode.HYBRID
     depth: ThinkingDepth = ThinkingDepth.MEDIUM
 
@@ -71,7 +69,6 @@ class ThinkingConfig(BaseModel):
 @dataclass
 class ThinkingResult:
     """思考結果"""
-
     mode_used: ThinkingMode
     topic: str
 
@@ -93,9 +90,7 @@ class ThinkingResult:
 
     def to_dict(self) -> dict:
         return {
-            "mode_used": self.mode_used.value
-            if isinstance(self.mode_used, ThinkingMode)
-            else self.mode_used,
+            "mode_used": self.mode_used.value if isinstance(self.mode_used, ThinkingMode) else self.mode_used,
             "topic": self.topic,
             "ideas": self.ideas,
             "sparks": self.sparks,
@@ -137,7 +132,6 @@ class ThinkingEngine:
         if self._llm is None:
             try:
                 from cgu.llm import get_llm_client
-
                 self._llm = get_llm_client()
             except Exception as e:
                 logger.warning(f"LLM client not available: {e}")
@@ -148,7 +142,6 @@ class ThinkingEngine:
         """懶加載 Agent Orchestrator"""
         if self._orchestrator is None:
             from cgu.agents.orchestrator import AgentOrchestrator
-
             self._orchestrator = AgentOrchestrator(llm_client=self.llm)
         return self._orchestrator
 
@@ -174,7 +167,6 @@ class ThinkingEngine:
             ThinkingResult 包含所有思考結果
         """
         import time
-
         start_time = time.time()
 
         # 合併配置
@@ -248,16 +240,14 @@ class ThinkingEngine:
                 }
                 for i in range(5)
             ]
-            result.reasoning_chains = [
-                {
-                    "step": "framework",
-                    "content": f"為 {topic} 建立思考框架，請 Copilot 填充具體內容",
-                }
-            ]
+            result.reasoning_chains = [{
+                "step": "framework",
+                "content": f"為 {topic} 建立思考框架，請 Copilot 填充具體內容",
+            }]
         else:
             # LLM 模式：實際呼叫
             try:
-                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, IdeasOutput
+                from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY
 
                 prompt = f"""請為以下主題產生 5 個創意點子：
 
@@ -314,24 +304,20 @@ class ThinkingEngine:
             # 收集所有點子
             all_ideas = []
             for agent_result in session.agent_results:
-                result.agent_contributions.append(
-                    {
-                        "agent_id": agent_result["agent_id"],
-                        "personality": agent_result["personality"],
-                        "idea_count": len(agent_result["ideas"]),
-                    }
-                )
+                result.agent_contributions.append({
+                    "agent_id": agent_result["agent_id"],
+                    "personality": agent_result["personality"],
+                    "idea_count": len(agent_result["ideas"]),
+                })
 
                 for idea in agent_result["ideas"]:
-                    all_ideas.append(
-                        {
-                            "id": idea["id"],
-                            "content": idea["content"],
-                            "source": agent_result["personality"],
-                            "novelty": idea.get("novelty", 0.5),
-                            "association_score": idea.get("association", 0.5),
-                        }
-                    )
+                    all_ideas.append({
+                        "id": idea["id"],
+                        "content": idea["content"],
+                        "source": agent_result["personality"],
+                        "novelty": idea.get("novelty", 0.5),
+                        "association_score": idea.get("association", 0.5),
+                    })
 
             result.ideas = all_ideas
 
@@ -378,8 +364,8 @@ class ThinkingEngine:
         concepts = await self._extract_concepts(topic)
 
         try:
-            from cgu.agents.base import AgentIdea, AgentPersonality
             from cgu.agents.spark import SparkEngine
+            from cgu.agents.base import AgentIdea, AgentPersonality
 
             # 將概念轉為 AgentIdea 格式
             ideas = [
@@ -453,34 +439,28 @@ class ThinkingEngine:
         # Phase 1: 快思
         simple_result = await self._think_simple(topic, config)
         result.ideas.extend(simple_result.ideas)
-        result.reasoning_chains.append(
-            {
-                "phase": "fast_thinking",
-                "output": f"快速產生了 {len(simple_result.ideas)} 個初始想法",
-            }
-        )
+        result.reasoning_chains.append({
+            "phase": "fast_thinking",
+            "output": f"快速產生了 {len(simple_result.ideas)} 個初始想法",
+        })
 
         # Phase 2: 慢想（並發 Agent）
         deep_result = await self._think_deep(topic, config)
         result.ideas.extend(deep_result.ideas)
         result.agent_contributions = deep_result.agent_contributions
-        result.reasoning_chains.append(
-            {
-                "phase": "slow_thinking",
-                "output": f"深度探索產生了 {len(deep_result.ideas)} 個想法",
-            }
-        )
+        result.reasoning_chains.append({
+            "phase": "slow_thinking",
+            "output": f"深度探索產生了 {len(deep_result.ideas)} 個想法",
+        })
 
         # Phase 3: 碰撞
         if deep_result.sparks:
             result.sparks = deep_result.sparks
             result.best_spark = deep_result.best_spark
-            result.reasoning_chains.append(
-                {
-                    "phase": "spark_collision",
-                    "output": f"概念碰撞產生了 {len(deep_result.sparks)} 個火花",
-                }
-            )
+            result.reasoning_chains.append({
+                "phase": "spark_collision",
+                "output": f"概念碰撞產生了 {len(deep_result.sparks)} 個火花",
+            })
 
         # 整合最佳結果
         all_ideas = result.ideas
@@ -501,12 +481,11 @@ class ThinkingEngine:
         if self.llm is None:
             # 簡單分詞
             import re
-
-            words = re.split(r"[\s,，、。！？]+", topic)
+            words = re.split(r'[\s,，、。！？]+', topic)
             return [w for w in words if len(w) > 1][:5]
 
         try:
-            from cgu.llm import SYSTEM_PROMPT_CREATIVITY, AssociationList
+            from cgu.llm import AssociationList, SYSTEM_PROMPT_CREATIVITY
 
             prompt = f"""從以下主題中提取 5-8 個可以用於創意碰撞的關鍵概念：
 

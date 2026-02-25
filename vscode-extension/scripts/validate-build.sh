@@ -12,9 +12,9 @@ PASS=0
 FAIL=0
 WARN=0
 
-pass() { echo "  ✅ $1"; ((PASS++)); }
-fail() { echo "  ❌ $1"; ((FAIL++)); }
-warn() { echo "  ⚠️  $1"; ((WARN++)); }
+pass() { echo "  ✅ $1"; PASS=$((PASS + 1)); }
+fail() { echo "  ❌ $1"; FAIL=$((FAIL + 1)); }
+warn() { echo "  ⚠️  $1"; WARN=$((WARN + 1)); }
 
 echo "🔍 MedPaper VSX Extension Build Validation"
 echo "============================================"
@@ -124,6 +124,32 @@ fi
 
 echo ""
 
+# ─── V3b: Templates Sync ───
+echo "📄 V3b: Templates Sync"
+TEMPLATES_SRC="$ROOT_DIR/templates"
+TEMPLATES_DST="$EXT_DIR/templates"
+
+EXPECTED_TEMPLATES=(
+    journal-profile.template.yaml
+)
+
+for tmpl in "${EXPECTED_TEMPLATES[@]}"; do
+    src_file="$TEMPLATES_SRC/$tmpl"
+    dst_file="$TEMPLATES_DST/$tmpl"
+
+    if [ ! -f "$src_file" ]; then
+        fail "Source template missing: $tmpl"
+    elif [ ! -f "$dst_file" ]; then
+        fail "Bundled template missing: $tmpl — run build.sh"
+    elif ! diff -q "$src_file" "$dst_file" > /dev/null 2>&1; then
+        warn "Template outdated: $tmpl"
+    else
+        pass "Template synced: $tmpl"
+    fi
+done
+
+echo ""
+
 # ─── V4: Package.json Consistency ───
 echo "📄 V4: Package.json Consistency"
 PKG="$EXT_DIR/package.json"
@@ -176,8 +202,9 @@ echo ""
 echo "🧪 V6: Unit Tests"
 if command -v npx &> /dev/null && [ -f "$EXT_DIR/node_modules/.bin/vitest" ]; then
     cd "$EXT_DIR"
-    if npx vitest run --reporter=dot 2>&1 | tail -3 | grep -q "passed"; then
-        TEST_RESULT=$(npx vitest run --reporter=dot 2>&1 | tail -1)
+    TEST_OUTPUT=$(npx vitest run --reporter=dot 2>&1)
+    if echo "$TEST_OUTPUT" | grep -q "passed"; then
+        TEST_RESULT=$(echo "$TEST_OUTPUT" | grep "Tests" | head -1)
         pass "Unit tests: $TEST_RESULT"
     else
         fail "Unit tests failed"
