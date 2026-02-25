@@ -17,7 +17,7 @@ from .paper_types import (
     is_valid_paper_type,
     list_paper_types,
 )
-from .value_objects import CitationStyle, SearchCriteria
+from .value_objects import Author, CitationStyle, SearchCriteria, generate_author_block
 
 __all__ = [
     # Entities
@@ -32,6 +32,8 @@ __all__ = [
     "is_valid_paper_type",
     "list_paper_types",
     # Value objects
+    "Author",
+    "generate_author_block",
     "CitationStyle",
     "SearchCriteria",
 ]

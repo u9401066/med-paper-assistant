@@ -178,6 +178,28 @@ def _check_section_prerequisites(section_name: str) -> str:
     return result.get("warning", "")
 
 
+def _get_author_block() -> str:
+    """Get formatted author block from current project's project.json.
+
+    Returns:
+        Formatted author block markdown, or empty string if no authors.
+    """
+    from med_paper_assistant.domain.value_objects.author import Author, generate_author_block
+    from med_paper_assistant.infrastructure.persistence import get_project_manager
+
+    pm = get_project_manager()
+    current_info = pm.get_project_info()
+    if not current_info or not current_info.get("authors"):
+        return ""
+
+    authors_data = current_info["authors"]
+    author_objs = [Author.from_dict(a) for a in authors_data]
+    if not author_objs or not any(a.name for a in author_objs):
+        return ""
+
+    return generate_author_block(author_objs)
+
+
 def register_writing_tools(mcp: FastMCP, drafter: Drafter):
     """Register draft writing tools."""
 
@@ -349,6 +371,11 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         # 3. Get Writing Strategy
         strategy = SECTION_PROMPTS.get(topic.lower(), "Write a professional medical section.")
 
+        # 3.5 Get Author Block for Title Page
+        author_block = ""
+        if topic.lower() in ("title page", "title", "titlepage"):
+            author_block = _get_author_block()
+
         # 4. Construct Final Instructions for the Agent
         output = f"## 📝 Drafting Instructions for {topic}\n\n"
 
@@ -356,6 +383,10 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             output += f"{prereq_warning}\n\n---\n\n"
 
         output += f"### 🎯 Writing Strategy\n{strategy}\n\n"
+
+        if author_block:
+            output += f"### 👥 Author Information (from project.json)\n\n{author_block}\n\n"
+            output += "💡 Include this author block in the title page draft.\n\n"
 
         if protected.get("novelty_statement"):
             output += (

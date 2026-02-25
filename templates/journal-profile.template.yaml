@@ -17,6 +17,17 @@ journal:
   submission_url: ""                # optional, e.g. "https://mc.manuscriptcentral.com/bja"
   guidelines_url: ""                # for-authors page URL
 
+# ── 作者資訊 ──
+# 用 update_authors MCP tool 設定，或直接填寫
+authors:
+  - name: ""                        # e.g. "Tz-Ping Gau"
+    affiliations:                   # list of institutional affiliations
+      - ""                          # e.g. "Department of Anesthesiology, Kaohsiung Medical University Hospital, Kaohsiung, Taiwan"
+    orcid: ""                       # e.g. "0000-0001-2345-6789"
+    email: ""                       # contact email
+    is_corresponding: false         # true/false
+    order: 1                        # position in author list (1-based)
+
 # ── 論文類型與結構 ──
 paper:
   type: "original-research"         # original-research | systematic-review | meta-analysis | case-report | review-article | letter | other

@@ -4,11 +4,14 @@ Project Settings Tools
 Update settings, get paper types, update status, interactive setup.
 """
 
+import json
+
 from mcp.server.elicitation import AcceptedElicitation, CancelledElicitation, DeclinedElicitation
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from med_paper_assistant.domain.paper_types import get_paper_type_dict
+from med_paper_assistant.domain.value_objects.author import Author, generate_author_block
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 
 # ============================================
@@ -269,3 +272,43 @@ Please first select or create a project:
 2. Use `search_literature` to find relevant papers
 3. Use `write_draft` to start writing sections
 """
+
+    @mcp.tool()
+    def update_authors(authors_json: str) -> str:
+        """
+        Set or update the author list for the current project.
+
+        Each author entry can be a name string or a structured object.
+        Structured format supports affiliations, ORCID, email, and
+        corresponding author flag.
+
+        Args:
+            authors_json: JSON array of authors. Examples:
+                Simple: '["Author One", "Author Two"]'
+                Structured: '[{"name": "Tz-Ping Gau", "affiliations": ["Dept of Anesthesiology, Kaohsiung Medical University Hospital, Kaohsiung, Taiwan"], "orcid": "0000-0001-2345-6789", "email": "gau@example.com", "is_corresponding": true, "order": 1}]'
+        """
+        try:
+            authors = json.loads(authors_json)
+        except json.JSONDecodeError as e:
+            return f"❌ Error parsing authors_json: {e}"
+
+        if not isinstance(authors, list):
+            return "❌ Error: authors_json must be a JSON array."
+
+        result = project_manager.update_authors(authors)
+
+        if not result.get("success"):
+            return f"❌ Error: {result.get('error', 'Unknown error')}"
+
+        # Display formatted author info
+        stored = result.get("authors", [])
+        author_objs = [Author.from_dict(a) for a in stored]
+        block = generate_author_block(author_objs)
+
+        output = f"✅ Updated {len(stored)} author(s)!\n\n"
+        output += "### Author Block Preview\n\n"
+        output += block if block else "(No authors)\n"
+        output += "\n---\n"
+        output += "This info is stored in `project.json` and used for title page generation."
+
+        return output

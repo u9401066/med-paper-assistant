@@ -4,6 +4,7 @@ Project CRUD Tools
 Create, List, Switch, Get Current project operations.
 """
 
+import json
 import os
 
 from mcp.server.fastmcp import FastMCP
@@ -23,6 +24,7 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
         description: str = "",
         target_journal: str = "",
         paper_type: str = "",
+        authors_json: str = "",
         memo: str = "",
     ) -> str:
         """
@@ -33,16 +35,29 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
             description: Brief research description
             target_journal: Target journal (optional)
             paper_type: original-research|systematic-review|meta-analysis|case-report|review-article|letter|other
+            authors_json: JSON array of authors. Each entry can be a name string or structured object:
+                [{"name": "Jane Doe", "affiliations": ["Dept X, Uni Y"], "orcid": "0000-...", "email": "jane@example.com", "is_corresponding": true}]
             memo: Initial notes
         """
         log_tool_call(
             "create_project", {"name": name, "description": description, "paper_type": paper_type}
         )
 
+        # Parse authors
+        authors = []
+        if authors_json:
+            try:
+                authors = json.loads(authors_json)
+                if not isinstance(authors, list):
+                    return "❌ Error: authors_json must be a JSON array."
+            except json.JSONDecodeError as e:
+                return f"❌ Error parsing authors_json: {e}"
+
         try:
             result = project_manager.create_project(
                 name=name,
                 description=description,
+                authors=authors,
                 target_journal=target_journal,
                 paper_type=paper_type,
                 memo=memo,
@@ -217,6 +232,23 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 ## Target Journal
 {result.get("target_journal", "Not specified")}
 """
+            # Show authors if present
+            authors_data = result.get("authors", [])
+            if authors_data:
+                output += "\n## Authors\n"
+                for a in authors_data:
+                    if isinstance(a, dict):
+                        name = a.get("name", "")
+                        affs = a.get("affiliations", [])
+                        corr = " *(corresponding)*" if a.get("is_corresponding") else ""
+                        output += f"- **{name}**{corr}"
+                        if affs:
+                            output += f" — {'; '.join(affs)}"
+                        output += "\n"
+                    else:
+                        output += f"- {a}\n"
+            else:
+                output += "\n## Authors\nNot specified. Use `update_authors` to add.\n"
 
             if include_files:
                 project_path = paths.get("root", "") or paths.get("concept", "").rsplit("/", 1)[0]

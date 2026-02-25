@@ -69,11 +69,6 @@ class ProjectManager:
         # Initialize helpers
         self.template_reader = ConceptTemplateReader()
 
-        # Initialize workspace state manager
-        from .workspace_state_manager import get_workspace_state_manager
-
-        self._workspace_state = get_workspace_state_manager(str(self.base_path))
-
         # Ensure projects directory exists
         self.projects_dir.mkdir(parents=True, exist_ok=True)
 
@@ -85,7 +80,7 @@ class ProjectManager:
         self,
         name: str,
         description: str = "",
-        authors: Optional[List[str]] = None,
+        authors: Optional[List[Any]] = None,
         target_journal: str = "",
         paper_type: str = "",
         interaction_preferences: Optional[Dict[str, Any]] = None,
@@ -315,7 +310,6 @@ class ProjectManager:
             "success": True,
             "slug": slug,
             "is_current": slug == self.get_current_project(),
-            "project_path": str(project_path),
             **config,
             "project_path": str(project_path),
             "paths": self.get_project_paths(slug),
@@ -547,28 +541,34 @@ class ProjectManager:
         return slug or "untitled"
 
     def _save_current_project(self, slug: str) -> None:
-        """Save current project to state file and workspace state."""
+        """Save current project to .current_project file."""
         self.state_file.write_text(slug)
-        # Also update workspace state for cross-session persistence
-        self._workspace_state.set_current_project(slug)
 
     def _create_project_config(
         self,
         name: str,
         slug: str,
         description: str,
-        authors: Optional[List[str]],
+        authors: Optional[List[Any]],
         target_journal: str,
         paper_type: str,
         interaction_preferences: Optional[Dict[str, Any]],
         memo: str,
     ) -> Dict[str, Any]:
-        """Create project configuration dictionary."""
+        """Create project configuration dictionary.
+
+        Authors can be:
+        - List of strings (legacy): ["Name1", "Name2"]
+        - List of dicts (structured): [{"name": "...", "affiliations": [...], ...}]
+        """
+        # Normalize authors to structured format
+        normalized_authors = self._normalize_authors(authors or [])
+
         return {
             "name": name,
             "slug": slug,
             "description": description,
-            "authors": authors or [],
+            "authors": normalized_authors,
             "target_journal": target_journal,
             "paper_type": paper_type,
             "paper_type_info": get_paper_type_dict(paper_type) if paper_type else {},
@@ -577,6 +577,66 @@ class ProjectManager:
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
             "status": "concept",
+        }
+
+    @staticmethod
+    def _normalize_authors(authors: List[Any]) -> List[Dict[str, Any]]:
+        """Normalize authors to structured format.
+
+        Handles both legacy string entries and structured dicts.
+
+        Args:
+            authors: List of author names (str) or author dicts.
+
+        Returns:
+            List of structured author dicts.
+        """
+        from med_paper_assistant.domain.value_objects.author import Author
+
+        result = []
+        for i, entry in enumerate(authors):
+            author = Author.from_dict(entry)
+            # Assign order if not set
+            if author.order == 0:
+                author = Author(
+                    name=author.name,
+                    affiliations=list(author.affiliations),
+                    orcid=author.orcid,
+                    email=author.email,
+                    is_corresponding=author.is_corresponding,
+                    order=i + 1,
+                )
+            result.append(author.to_dict())
+        return result
+
+    def update_authors(self, authors: List[Any], slug: Optional[str] = None) -> Dict[str, Any]:
+        """Update the authors list for a project.
+
+        Args:
+            authors: List of author dicts or strings.
+            slug: Project slug (uses current if None).
+
+        Returns:
+            Success/error dict.
+        """
+        if slug is None:
+            slug = self.get_current_project()
+            if slug is None:
+                return {"success": False, "error": "No project selected."}
+
+        project_path = self.projects_dir / slug
+        config = self._load_config(project_path)
+        if config is None:
+            return {"success": False, "error": f"Project '{slug}' not found."}
+
+        config["authors"] = self._normalize_authors(authors)
+        config["updated_at"] = datetime.now().isoformat()
+        self._save_config(project_path, config)
+
+        return {
+            "success": True,
+            "authors": config["authors"],
+            "message": f"Updated {len(config['authors'])} author(s).",
         }
 
     def _save_config(self, project_path: Path, config: Dict[str, Any]) -> None:
