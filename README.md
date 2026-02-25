@@ -545,12 +545,12 @@ If you use Medical Paper Assistant in your research, please cite our paper:
              AI-Assisted Medical Paper Writing with Closed-Loop Quality Assurance},
   author  = {[Authors]},
   year    = {2025},
-  note    = {Preprint forthcoming},
+  note    = {Submitted to medRxiv},
   url     = {https://github.com/u9401066/med-paper-assistant}
 }
 ```
 
-> **Note:** This paper was produced entirely by the MedPaper Assistant's autonomous pipeline as a self-referential demonstration. The manuscript, audit trail, and all quality metrics are available in [`projects/self-evolving-ai-paper-writing-framework/`](projects/self-evolving-ai-paper-writing-framework/). The preprint will be uploaded soon — this section will be updated with the DOI once available.
+> **Note:** This paper was produced entirely by the MedPaper Assistant's autonomous pipeline as a self-referential demonstration. The manuscript, audit trail, and all quality metrics are available in [`projects/self-evolving-ai-paper-writing-framework/`](projects/self-evolving-ai-paper-writing-framework/). The preprint is being submitted to [medRxiv](https://submit.medrxiv.org/) — this section will be updated with the DOI once available.
 
 ---
 

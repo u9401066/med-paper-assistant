@@ -72,10 +72,21 @@ assets:
 references:
   style: "vancouver"                # vancouver | apa | harvard | numbered | author-year
   csl: ""                           # CSL 檔案名 (e.g. "vancouver") 或完整路徑; 空值則用 style 對應的內建 CSL
-  max_references: 40                # 參考文獻上限
+  max_references: 40                # 預設參考文獻上限（被 reference_limits 覆蓋）
   max_authors_before_etal: 6        # 超過幾位作者用 et al.
   doi_required: false
   pmid_preferred: true
+
+  # 依論文類型設定參考文獻上限（優先於 max_references）
+  # Agent 在 Phase 5 寫作 + Hook C 審計時依此限制
+  reference_limits:
+    original-research: 30
+    review-article: 50
+    systematic-review: 60
+    meta-analysis: 60
+    case-report: 15
+    letter: 10
+    # 若 paper.type 不在此列，fallback 到 max_references
 
 # ── 必要文件 ──
 required_documents:
@@ -152,6 +163,21 @@ pipeline:
     auto_generate_plots: true       # 自動生成圖表
     flow_diagram_tool: "drawio"     # drawio | mermaid | manual
     fallback_to_description: true   # 工具不可用時以文字描述替代
+
+    # Agent 寫作中自主發現需要圖表時的行為
+    # Phase 4 的 asset_plan 不一定能預見所有需求，
+    # 例如 Discussion 寫到一半發現需要「文獻比較表」、
+    # Introduction 需要「研究趨勢圖」等。
+    agent_initiated:
+      enabled: true                 # 允許 Agent 在寫作中自主新增圖表
+      allowed_types:                # 可自主生成的類型
+        - "literature_summary_table" # 文獻整理/比較表
+        - "comparison_table"         # 方法/結果比較表
+        - "timeline_figure"          # 研究時間軸圖
+        - "concept_diagram"          # 概念/架構圖
+      must_respect_limits: true     # 仍需遵守 assets.figures_max / tables_max
+      require_caption: true         # 必須附 caption
+      log_to_audit: true            # 記錄到 .audit/ 說明為何新增
 
 # ── 用戶自訂備註（Agent 不修改此區） ──
 notes: |

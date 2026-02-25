@@ -91,21 +91,22 @@ Agent 按優先順序取得期刊要求：
 
 #### journal-profile.yaml 對全 Pipeline 的約束
 
-| YAML 欄位                           | 影響的 Phase / Hook                    |
-| ----------------------------------- | -------------------------------------- |
-| `paper.type`                        | Phase 1 專案設定, Phase 4 寫作順序     |
-| `paper.sections`                    | Phase 4 大綱, Phase 5 寫作順序         |
-| `word_limits.*`                     | Hook A1 字數, Hook C6 總字數           |
-| `assets.figures_max/tables_max`     | Phase 4 Asset Plan, Phase 5 Asset 生成 |
-| `references.max_references`         | Phase 2 文獻數量, Phase 8 引用上限     |
-| `references.style`                  | Phase 8 引用格式                       |
-| `reporting_guidelines.checklist`    | Hook B5 方法學, Hook C2 投稿清單       |
-| `required_documents.*`              | Phase 9 匯出, Hook C2 投稿清單         |
-| `pipeline.hook_*_max_rounds`        | Hook A/B/C cascading 上限              |
-| `pipeline.review_max_rounds`        | Phase 7 Autonomous Review 輪數         |
-| `pipeline.writing.anti_ai_*`        | Hook A3 Anti-AI 嚴格度                 |
-| `pipeline.writing.citation_density` | Hook A2 引用密度標準                   |
-| `pipeline.assets.*`                 | Phase 5 Asset Sub-Pipeline 行為        |
+| YAML 欄位                           | 影響的 Phase / Hook                         |
+| ----------------------------------- | ------------------------------------------- |
+| `paper.type`                        | Phase 1 專案設定, Phase 4 寫作順序          |
+| `paper.sections`                    | Phase 4 大綱, Phase 5 寫作順序              |
+| `word_limits.*`                     | Hook A1 字數, Hook C6 總字數                |
+| `assets.figures_max/tables_max`     | Phase 4 Asset Plan, Phase 5 Asset 生成      |
+| `references.max_references`         | Phase 2 文獻數量, Phase 8 引用上限          |
+| `references.reference_limits`       | 按論文類型的引用上限（覆蓋 max_references） |
+| `references.style`                  | Phase 8 引用格式                            |
+| `reporting_guidelines.checklist`    | Hook B5 方法學, Hook C2 投稿清單            |
+| `required_documents.*`              | Phase 9 匯出, Hook C2 投稿清單              |
+| `pipeline.hook_*_max_rounds`        | Hook A/B/C cascading 上限                   |
+| `pipeline.review_max_rounds`        | Phase 7 Autonomous Review 輪數              |
+| `pipeline.writing.anti_ai_*`        | Hook A3 Anti-AI 嚴格度                      |
+| `pipeline.writing.citation_density` | Hook A2 引用密度標準                        |
+| `pipeline.assets.*`                 | Phase 5 Asset Sub-Pipeline 行為             |
 
 **Gate**: journal-profile.yaml 存在 + 用戶已確認關鍵欄位（字數、圖表上限）
 
@@ -312,6 +313,37 @@ FOR asset IN asset_plan[section]:
 | forest_plot      | ❌ 缺少                | `meta-analysis` 🔸 | R/Python script |
 | funnel_plot      | ❌ 缺少                | `meta-analysis` 🔸 | R/Python script |
 | PRISMA_diagram   | `save_diagram`         | `drawio` 🔸        | Mermaid 文字    |
+
+#### Agent-Initiated Asset Generation（寫作中自主新增圖表）
+
+Phase 4 的 asset_plan 無法預見所有需求。寫作過程中 Agent 可能發現需要 **文獻比較表**、**方法對照表** 等。
+
+```
+觸發條件（Phase 5 Step 3 寫作中）：
+  - 引用 ≥3 篇文獻做比較 → 考慮 literature_summary_table
+  - 描述多種方法/技術差異 → 考慮 comparison_table
+  - 概念或架構複雜 → 考慮 concept_diagram
+
+流程：
+  1. 檢查 journal-profile.yaml → pipeline.assets.agent_initiated.enabled
+  2. 檢查類型是否在 allowed_types 中
+  3. 檢查目前圖/表數量是否已達 assets.figures_max / tables_max
+  4. IF 可新增:
+     a. 用 Markdown 表格撰寫（文獻比較表、方法對照表等）
+     b. 或 create_plot / save_diagram（如需圖形）
+     c. 附 caption + 標記來源為 "agent-initiated"
+     d. insert_table() 或 insert_figure() → 插入草稿
+     e. 更新 asset_plan（追加到 plan.metadata.changelog）
+     f. 記錄到 .audit/: 為何新增、依據哪些文獻
+  5. IF 已達上限:
+     → 評估是否替換低優先級 asset
+     → 或以文字描述替代，不生成實際圖表
+
+常見 Agent-Initiated Assets：
+  - 「Table X. Comparison of [topic] across studies」 → 文獻整理表
+  - 「Table X. Characteristics of included studies」 → SR/Review 常見
+  - 「Figure X. Conceptual framework of [approach]」 → 架構圖
+```
 
 ---
 
@@ -536,7 +568,7 @@ FOR round = 1 TO N:
 1. `sync_references(filename=manuscript)` → 生成 References section
 2. 確認所有 `[[wikilinks]]` 已解析
 3. `format_references(style=journal-profile.references.style)`
-4. 驗證引用數量 ≤ `references.max_references`
+4. 驗證引用數量 ≤ `references.reference_limits[paper.type]`（fallback `max_references`）
 5. IF 超過上限 → 標記最少被引用的 refs → 建議刪除
 
 **Gate**: 0 broken links + 引用數量合規
@@ -875,13 +907,13 @@ Hook C 修正策略：
 
 原 C7 僅查圖表數量，擴展為五個子項的綜合數量/引用合規檢查。
 
-| 子項 | 檢查內容                       | MCP Tool                     | 失敗行為                         | 回溯層 | 閾值來源                        |
-| ---- | ------------------------------ | ---------------------------- | -------------------------------- | ------ | ------------------------------- |
-| C7a  | 圖表總數 ≤ 上限                | `list_assets`                | 合併或移至 supplementary         | —      | `assets.figures_max/tables_max` |
-| C7b  | 引用總數合理範圍               | `scan_draft_citations`       | 標記低引用 refs → 用戶決定       | —      | `references.max_references`     |
-| C7c  | 總字數 vs journal-profile      | `count_words`                | 精簡超長 section                 | → A1   | `word_limits.total_manuscript`  |
-| C7d  | 圖表交叉引用（orphan/phantom） | `list_assets` + `read_draft` | orphan=WARNING, phantom=CRITICAL | —      | —                               |
-| C7e  | Wikilink 引用一致性            | `validate_wikilinks`         | `save_reference_mcp` 補存        | → A4   | —                               |
+| 子項 | 檢查內容                       | MCP Tool                     | 失敗行為                         | 回溯層 | 閾值來源                                                            |
+| ---- | ------------------------------ | ---------------------------- | -------------------------------- | ------ | ------------------------------------------------------------------- |
+| C7a  | 圖表總數 ≤ 上限                | `list_assets`                | 合併或移至 supplementary         | —      | `assets.figures_max/tables_max`                                     |
+| C7b  | 引用總數合理範圍               | `scan_draft_citations`       | 標記低引用 refs → 用戶決定       | —      | `references.reference_limits[paper.type]` fallback `max_references` |
+| C7c  | 總字數 vs journal-profile      | `count_words`                | 精簡超長 section                 | → A1   | `word_limits.total_manuscript`                                      |
+| C7d  | 圖表交叉引用（orphan/phantom） | `list_assets` + `read_draft` | orphan=WARNING, phantom=CRITICAL | —      | —                                                                   |
+| C7e  | Wikilink 引用一致性            | `validate_wikilinks`         | `save_reference_mcp` 補存        | → A4   | —                                                                   |
 
 ```
 orphan = manifest 中有但 draft 沒引用 → WARNING（有圖沒用）

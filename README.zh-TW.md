@@ -539,12 +539,12 @@ med-paper-assistant/
              AI-Assisted Medical Paper Writing with Closed-Loop Quality Assurance},
   author  = {[Authors]},
   year    = {2025},
-  note    = {Preprint forthcoming},
+  note    = {Submitted to medRxiv},
   url     = {https://github.com/u9401066/med-paper-assistant}
 }
 ```
 
-> **說明：** 這篇論文完全由 MedPaper Assistant 的自主 Pipeline 產出，作為自我參照式驗證。稿件、審計軌跡和所有品質指標均可在 [`projects/self-evolving-ai-paper-writing-framework/`](projects/self-evolving-ai-paper-writing-framework/) 查看。預印本即將上傳 — DOI 可用後將更新此區塊。
+> **說明：** 這篇論文完全由 MedPaper Assistant 的自主 Pipeline 產出，作為自我參照式驗證。稿件、審計軌跡和所有品質指標均可在 [`projects/self-evolving-ai-paper-writing-framework/`](projects/self-evolving-ai-paper-writing-framework/) 查看。預印本正投稿至 [medRxiv](https://submit.medrxiv.org/) — DOI 可用後將更新此區塊。
 
 ---
 
