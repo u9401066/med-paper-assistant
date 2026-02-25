@@ -13,6 +13,7 @@ Tools:
 """
 
 import json
+from pathlib import Path
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -58,9 +59,8 @@ _ALL_PHASES = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10]
 _active_loops: dict[str, AutonomousAuditLoop] = {}
 
 
-def _get_or_create_loop(project_dir: str, config: dict | None = None) -> AutonomousAuditLoop:
+def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> AutonomousAuditLoop:
     """Get existing loop or create/restore from checkpoint."""
-    from pathlib import Path
 
     project_path = Path(project_dir)
     slug = project_path.name
@@ -182,7 +182,7 @@ def register_pipeline_tools(
                 return msg
             assert project_info is not None
             slug = project_info["slug"]
-            project_dir = project_manager.get_project_dir(slug)
+            project_dir = Path(project_info["project_path"])
 
             validator = PipelineGateValidator(project_dir)
             result = validator.validate_phase(phase)
@@ -246,7 +246,7 @@ def register_pipeline_tools(
                 return msg
             assert project_info is not None
             slug = project_info["slug"]
-            project_dir = project_manager.get_project_dir(slug)
+            project_dir = Path(project_info["project_path"])
 
             validator = PipelineGateValidator(project_dir)
             status = validator.get_pipeline_status()
@@ -339,7 +339,7 @@ def register_pipeline_tools(
                 return msg
             assert project_info is not None
             slug = project_info["slug"]
-            project_dir = project_manager.get_project_dir(slug)
+            project_dir = Path(project_info["project_path"])
 
             loop = _get_or_create_loop(
                 project_dir,
@@ -445,7 +445,7 @@ def register_pipeline_tools(
                 return msg
             assert project_info is not None
             slug = project_info["slug"]
-            project_dir = project_manager.get_project_dir(slug)
+            project_dir = Path(project_info["project_path"])
 
             loop = _get_or_create_loop(project_dir)
 
@@ -553,8 +553,7 @@ def register_pipeline_tools(
             if not is_valid:
                 return msg
             assert project_info is not None
-            slug = project_info["slug"]
-            project_dir = project_manager.get_project_dir(slug)
+            project_dir = Path(project_info["project_path"])
 
             validator = PipelineGateValidator(project_dir)
             result = validator.validate_project_structure()
