@@ -63,7 +63,7 @@ CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）�
 
 禁止自動修改：CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則。
 
-### Hook 架構（39 checks）
+### Hook 架構（40 checks）
 
 Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
 
@@ -71,7 +71,7 @@ Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit H
 | --------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------- |
 | **A** post-write      | 字數、引用密度、Anti-AI、Wikilink                                       | `count_words`, `patch_draft`, `validate_wikilinks`       |
 | **B** post-section    | 概念一致、🔒保護、方法學(B5)、寫作順序(B6)                              | `read_draft`, `patch_draft`, `check_writing_order`       |
-| **C** post-manuscript | 全稿一致性、投稿清單、時間一致性                                        | `check_formatting`, `scan_draft_citations`, `read_draft` |
+| **C** post-manuscript | 全稿一致性、投稿清單、圖表數量、時間一致性                              | `check_formatting`, `scan_draft_citations`, `read_draft` |
 | **D** meta-learning   | SKILL + Hook 自我改進                                                   | `read_file`, `replace_string_in_file`                    |
 | **P1-P8** pre-commit  | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                    | `scan_draft_citations`, `read_draft`, `count_words`      |
 | **G1-G8** general     | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX、文檔更新提醒 | `read_file`, `grep_search`, `list_dir`                   |

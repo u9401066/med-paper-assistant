@@ -10,19 +10,19 @@
 
 ### 近期完成的元件（v0.3.8 之後，尚未 commit）
 
-| 元件 | 檔案 | 測試 |
-|------|------|------|
-| CSL Formatter | `infrastructure/services/csl_formatter.py` | 31/31 ✅ |
-| Pandoc Exporter | `infrastructure/services/pandoc_exporter.py` | (同上) |
-| DraftSnapshotManager | `infrastructure/persistence/draft_snapshot_manager.py` | 28/28 ✅ |
-| CheckpointManager | `infrastructure/persistence/checkpoint_manager.py` | (同上) |
+| 元件                     | 檔案                                                       | 測試     |
+| ------------------------ | ---------------------------------------------------------- | -------- |
+| CSL Formatter            | `infrastructure/services/csl_formatter.py`                 | 31/31 ✅ |
+| Pandoc Exporter          | `infrastructure/services/pandoc_exporter.py`               | (同上)   |
+| DraftSnapshotManager     | `infrastructure/persistence/draft_snapshot_manager.py`     | 28/28 ✅ |
+| CheckpointManager        | `infrastructure/persistence/checkpoint_manager.py`         | (同上)   |
 | HookEffectivenessTracker | `infrastructure/persistence/hook_effectiveness_tracker.py` | 44/44 ✅ |
-| MetaLearningEngine | `infrastructure/persistence/meta_learning_engine.py` | (同上) |
-| QualityScorecard | `infrastructure/persistence/quality_scorecard.py` | (同上) |
-| CitationConverter | `domain/services/citation_converter.py` | 40/40 ✅ |
-| ExportPipeline | `application/export_pipeline.py` | 17/17 ✅ |
-| GitAutoCommitter | `infrastructure/persistence/git_auto_committer.py` | 11/11 ✅ |
-| pandoc_export MCP tool | `interfaces/mcp/tools/export/pandoc_export.py` | — |
+| MetaLearningEngine       | `infrastructure/persistence/meta_learning_engine.py`       | (同上)   |
+| QualityScorecard         | `infrastructure/persistence/quality_scorecard.py`          | (同上)   |
+| CitationConverter        | `domain/services/citation_converter.py`                    | 40/40 ✅ |
+| ExportPipeline           | `application/export_pipeline.py`                           | 17/17 ✅ |
+| GitAutoCommitter         | `infrastructure/persistence/git_auto_committer.py`         | 11/11 ✅ |
+| pandoc_export MCP tool   | `interfaces/mcp/tools/export/pandoc_export.py`             | —        |
 
 **新測試總計**: 171 個 (31+28+44+40+17+11)
 
@@ -30,7 +30,7 @@
 
 - MCP Tools: **54+** (新增 pandoc_export)
 - Skills: **26**
-- Hooks: **39 checks** (A1-4 + B1-6 + C1-7 + D1-6 + P1-8 + G1-8)
+- Hooks: **40 checks** (A1-4 + B1-6 + C1-8 + D1-6 + P1-8 + G1-8)
 - 新測試: **171** across 6 test files
 
 ### 已知問題
@@ -43,7 +43,7 @@
 - [ ] 完成分段 Git commit + push
 - [ ] Phase 5c: Full VSX Extension 升級
 - [ ] Citation Intelligence MVP
-- [ ] 修復 application/__init__.py import chain
+- [ ] 修復 application/**init**.py import chain
 
 ## 更新時間
 
