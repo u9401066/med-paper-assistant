@@ -72,19 +72,20 @@ def _get_or_create_loop(project_dir: str, config: dict | None = None) -> Autonom
     audit_dir = project_path / ".audit"
     loop_file = audit_dir / "audit-loop-review.json"
 
-    if loop_file.is_file():
-        loop = AutonomousAuditLoop.load(str(loop_file))
-        _active_loops[slug] = loop
-        return loop
-
-    # Create new loop with config
+    # Create loop config
     loop_config = AuditLoopConfig(
         max_rounds=config.get("max_rounds", 3) if config else 3,
         quality_threshold=config.get("quality_threshold", 7.0) if config else 7.0,
-        stagnation_window=config.get("stagnation_window", 2) if config else 2,
-        min_improvement=config.get("min_improvement", 0.3) if config else 0.3,
+        stagnation_rounds=config.get("stagnation_rounds", 2) if config else 2,
+        stagnation_delta=config.get("stagnation_delta", 0.3) if config else 0.3,
+        context="review",
     )
-    loop = AutonomousAuditLoop(loop_config)
+    loop = AutonomousAuditLoop(str(audit_dir), config=loop_config)
+
+    # Try to load from checkpoint
+    if loop_file.is_file():
+        loop.load()
+
     _active_loops[slug] = loop
     return loop
 
@@ -174,9 +175,13 @@ def register_pipeline_tools(
         Returns:
             Markdown report with PASS/FAIL and specific check results
         """
-        log_tool_call("validate_phase_gate", phase=phase, project=project)
+        log_tool_call("validate_phase_gate", {"phase": phase, "project": project})
         try:
-            slug = ensure_project_context(project, project_manager)
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
             project_dir = project_manager.get_project_dir(slug)
 
             validator = PipelineGateValidator(project_dir)
@@ -234,9 +239,13 @@ def register_pipeline_tools(
         Returns:
             Detailed pipeline status report in markdown
         """
-        log_tool_call("pipeline_heartbeat", project=project)
+        log_tool_call("pipeline_heartbeat", {"project": project})
         try:
-            slug = ensure_project_context(project, project_manager)
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
             project_dir = project_manager.get_project_dir(slug)
 
             validator = PipelineGateValidator(project_dir)
@@ -323,9 +332,13 @@ def register_pipeline_tools(
         Returns:
             Round context with round number, previous issues, and score trends
         """
-        log_tool_call("start_review_round", project=project, max_rounds=max_rounds)
+        log_tool_call("start_review_round", {"project": project, "max_rounds": max_rounds})
         try:
-            slug = ensure_project_context(project, project_manager)
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
             project_dir = project_manager.get_project_dir(slug)
 
             loop = _get_or_create_loop(
@@ -337,11 +350,7 @@ def register_pipeline_tools(
             round_num = context.get("round", 1)
 
             # Save state immediately
-            audit_dir = str(project_dir / ".audit")
-            import os
-
-            os.makedirs(audit_dir, exist_ok=True)
-            loop.save(f"{audit_dir}/audit-loop-review.json")
+            loop.save()
 
             # Auto-sync pipeline state (anti-compaction)
             _sync_to_workspace_state(
@@ -429,9 +438,13 @@ def register_pipeline_tools(
         Returns:
             Verdict and next steps
         """
-        log_tool_call("submit_review_round", scores=scores, issues_found=issues_found)
+        log_tool_call("submit_review_round", {"scores": scores, "issues_found": issues_found})
         try:
-            slug = ensure_project_context(project, project_manager)
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
             project_dir = project_manager.get_project_dir(slug)
 
             loop = _get_or_create_loop(project_dir)
@@ -448,6 +461,7 @@ def register_pipeline_tools(
                     hook_id="review_round",
                     severity=Severity.MEDIUM,
                     description=f"Issue {i + 1} from review round",
+                    suggested_fix="See author response for details",
                 )
             for i in range(min(issues_fixed, issues_found)):
                 loop.record_fix(
@@ -460,8 +474,7 @@ def register_pipeline_tools(
             verdict = loop.complete_round(score_dict)
 
             # Save state
-            audit_dir = str(project_dir / ".audit")
-            loop.save(f"{audit_dir}/audit-loop-review.json")
+            loop.save()
 
             # Log to evolution log
             _log_review_round_to_evolution(project_dir, loop, score_dict, verdict.value)
@@ -534,9 +547,13 @@ def register_pipeline_tools(
         Returns:
             Markdown report of structural checks
         """
-        log_tool_call("validate_project_structure", project=project)
+        log_tool_call("validate_project_structure", {"project": project})
         try:
-            slug = ensure_project_context(project, project_manager)
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
             project_dir = project_manager.get_project_dir(slug)
 
             validator = PipelineGateValidator(project_dir)

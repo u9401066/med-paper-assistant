@@ -144,12 +144,6 @@ module = [
 ]
 ignore_errors = true
 
-# pipeline_gate.py has pre-existing API mismatches (29 errors)
-# TODO: fix AutonomousAuditLoop/log_tool_call/ensure_project_context calls
-[[tool.mypy.overrides]]
-module = "med_paper_assistant.interfaces.mcp.tools.review.pipeline_gate"
-ignore_errors = true
-
 # ============================================
 # Bandit 安全性掃描
 # ============================================
