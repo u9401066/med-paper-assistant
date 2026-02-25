@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.10] - 2026-02-25
+
+### Added
+
+- **Author Info System**: `Author` frozen dataclass value object with structured affiliations, ORCID, corresponding author flag
+  - `generate_author_block()` produces markdown with superscript affiliations + corresponding author notation
+  - `update_authors` MCP tool for managing project author metadata
+  - `create_project` now accepts `authors_json` parameter for structured author input
+  - `get_current_project` displays formatted author information
+  - `draft_section` auto-injects author block for Title Page sections
+  - `journal-profile.template.yaml` updated with `authors:` section template
+- **Data Artifact Provenance**: `DataArtifactTracker` persistence class for tracing data analysis artifacts
+  - `validate_data_artifacts` MCP tool for cross-referencing data artifacts against drafts
+  - All 4 analysis MCP tools (`run_statistical_test`, `analyze_dataset`, `create_plot`, `generate_table_one`) record provenance automatically
+  - Phase 5/6 gate validators check data artifact completeness
+  - CONSTITUTION §23.2 數據產出物溯源與交叉驗證 (v1.5.0)
+- **Hook F1-F4**: Data artifact validation hooks (溯源追蹤、manifest↔檔案一致、draft↔manifest 交叉引用、統計宣稱驗證)
+
+### Fixed
+
+- **Full project ruff lint cleanup**: 60 errors → 0 (unused imports, f-string placeholders, ambiguous variable names, import ordering, unused assignments, duplicate dict keys)
+- **Pre-existing duplicate `project_path` key** in `get_project_info()` dict literal (F601)
+
+### Changed
+
+- Hook count: 48 → 52 checks (added F1-F4 data-artifacts)
+
 ## [0.3.9] - 2026-02-24
 
 ### Added

@@ -21,11 +21,12 @@ CONSTITUTION §23 Boundaries:
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from .hook_effectiveness_tracker import HookEffectivenessTracker
 from .quality_scorecard import QualityScorecard
@@ -126,7 +127,7 @@ class MetaLearningEngine:
         # result contains adjustments, lessons, suggestions, audit_trail
     """
 
-    AUDIT_FILE = "meta-learning-audit.json"
+    AUDIT_FILE = "meta-learning-audit.yaml"
 
     def __init__(
         self,
@@ -153,7 +154,7 @@ class MetaLearningEngine:
             }
         """
         adjustments = self._d1_d3_analyze_hooks()
-        quality_lessons = self._d1_analyze_quality()
+        quality_lessons = self._d2_analyze_quality()
         skill_suggestions = self._d4_d5_skill_suggestions()
 
         all_lessons = quality_lessons + [
@@ -171,7 +172,7 @@ class MetaLearningEngine:
 
         return {
             "adjustments": [a.to_dict() for a in adjustments],
-            "lessons": [l.to_dict() for l in all_lessons],
+            "lessons": [lesson.to_dict() for lesson in all_lessons],
             "suggestions": skill_suggestions,
             "audit_trail": audit_trail,
             "summary": summary,
@@ -189,79 +190,93 @@ class MetaLearningEngine:
 
             if rec["type"] == "loosen":
                 # Suggest loosening threshold by 15% (within 20% limit)
-                adjustments.append(ThresholdAdjustment(
-                    hook_id=hook_id,
-                    parameter="threshold",
-                    current_value=1.0,  # normalized
-                    suggested_value=1.15,
-                    reason=rec["reason"],
-                    auto_apply=True,
-                ))
+                adjustments.append(
+                    ThresholdAdjustment(
+                        hook_id=hook_id,
+                        parameter="threshold",
+                        current_value=1.0,  # normalized
+                        suggested_value=1.15,
+                        reason=rec["reason"],
+                        auto_apply=True,
+                    )
+                )
 
             elif rec["type"] == "tighten":
-                adjustments.append(ThresholdAdjustment(
-                    hook_id=hook_id,
-                    parameter="threshold",
-                    current_value=1.0,
-                    suggested_value=0.85,
-                    reason=rec["reason"],
-                    auto_apply=True,
-                ))
+                adjustments.append(
+                    ThresholdAdjustment(
+                        hook_id=hook_id,
+                        parameter="threshold",
+                        current_value=1.0,
+                        suggested_value=0.85,
+                        reason=rec["reason"],
+                        auto_apply=True,
+                    )
+                )
 
             elif rec["type"] == "fix_logic":
                 # Logic fixes need user confirmation
-                adjustments.append(ThresholdAdjustment(
-                    hook_id=hook_id,
-                    parameter="logic",
-                    current_value=stats.get("false_positive_rate", 0),
-                    suggested_value=0.0,
-                    reason=rec["reason"],
-                    auto_apply=False,  # Requires human review
-                ))
+                adjustments.append(
+                    ThresholdAdjustment(
+                        hook_id=hook_id,
+                        parameter="logic",
+                        current_value=stats.get("false_positive_rate", 0),
+                        suggested_value=0.0,
+                        reason=rec["reason"],
+                        auto_apply=False,  # Requires human review
+                    )
+                )
 
         return adjustments
 
-    def _d1_analyze_quality(self) -> list[LessonLearned]:
-        """D1: Derive lessons from quality scorecard patterns."""
+    def _d2_analyze_quality(self) -> list[LessonLearned]:
+        """D2: Derive lessons from quality scorecard patterns."""
         lessons = []
         sc = self._scorecard.get_scorecard()
 
         # Check for weak dimensions
         weak = self._scorecard.get_weak_dimensions(min_score=6.0)
         for w in weak:
-            lessons.append(LessonLearned(
-                category="quality_gap",
-                lesson=f"{w['dimension']} scored {w['score']}/10: {w['explanation']}",
-                source="D1 quality analysis",
-                severity="warning" if w["score"] < 5 else "info",
-            ))
+            lessons.append(
+                LessonLearned(
+                    category="quality_gap",
+                    lesson=f"{w['dimension']} scored {w['score']}/10: {w['explanation']}",
+                    source="D2 quality analysis",
+                    severity="warning" if w["score"] < 5 else "info",
+                )
+            )
 
         # Check if all standard dimensions are evaluated
         missing = sc.get("missing_dimensions", [])
         if missing:
-            lessons.append(LessonLearned(
-                category="process_gap",
-                lesson=f"Missing quality evaluations: {', '.join(missing)}",
-                source="D1 quality analysis",
-                severity="warning",
-            ))
+            lessons.append(
+                LessonLearned(
+                    category="process_gap",
+                    lesson=f"Missing quality evaluations: {', '.join(missing)}",
+                    source="D2 quality analysis",
+                    severity="warning",
+                )
+            )
 
         # Average score trend
         avg = sc.get("average_score", 0)
         if avg >= 8:
-            lessons.append(LessonLearned(
-                category="achievement",
-                lesson=f"Average quality score {avg}/10 — excellent quality",
-                source="D1 quality analysis",
-                severity="info",
-            ))
+            lessons.append(
+                LessonLearned(
+                    category="achievement",
+                    lesson=f"Average quality score {avg}/10 — excellent quality",
+                    source="D2 quality analysis",
+                    severity="info",
+                )
+            )
         elif avg < 6:
-            lessons.append(LessonLearned(
-                category="quality_gap",
-                lesson=f"Average quality score {avg}/10 — below threshold, review needed",
-                source="D1 quality analysis",
-                severity="critical",
-            ))
+            lessons.append(
+                LessonLearned(
+                    category="quality_gap",
+                    lesson=f"Average quality score {avg}/10 — below threshold, review needed",
+                    source="D2 quality analysis",
+                    severity="critical",
+                )
+            )
 
         return lessons
 
@@ -273,30 +288,36 @@ class MetaLearningEngine:
         # Check for recurring issues (same hook triggered > 2 times)
         for hook_id, stats in all_stats.items():
             if stats["trigger"] > 2 and stats["fix_rate"] < 0.5:
-                suggestions.append({
-                    "type": "add_pre_check",
-                    "target": f"Hook {hook_id}",
-                    "reason": f"Triggered {stats['trigger']} times with only {stats['fix_rate']:.0%} fix rate — consider adding a pre-check",
-                    "requires_confirmation": True,
-                })
+                suggestions.append(
+                    {
+                        "type": "add_pre_check",
+                        "target": f"Hook {hook_id}",
+                        "reason": f"Triggered {stats['trigger']} times with only {stats['fix_rate']:.0%} fix rate — consider adding a pre-check",
+                        "requires_confirmation": True,
+                    }
+                )
 
         # Check quality gaps that suggest skill improvements
         weak = self._scorecard.get_weak_dimensions(min_score=5.0)
         for w in weak:
             if w["dimension"] == "methodology_reproducibility":
-                suggestions.append({
-                    "type": "strengthen_skill",
-                    "target": "Hook B5 (methodology checklist)",
-                    "reason": f"Methodology score {w['score']}/10 — B5 checklist may need expansion",
-                    "requires_confirmation": True,
-                })
+                suggestions.append(
+                    {
+                        "type": "strengthen_skill",
+                        "target": "Hook B5 (methodology checklist)",
+                        "reason": f"Methodology score {w['score']}/10 — B5 checklist may need expansion",
+                        "requires_confirmation": True,
+                    }
+                )
             elif w["dimension"] == "text_quality":
-                suggestions.append({
-                    "type": "strengthen_skill",
-                    "target": "Hook A3 (Anti-AI detection)",
-                    "reason": f"Text quality {w['score']}/10 — Anti-AI patterns may need updating",
-                    "requires_confirmation": True,
-                })
+                suggestions.append(
+                    {
+                        "type": "strengthen_skill",
+                        "target": "Hook A3 (Anti-AI detection)",
+                        "reason": f"Text quality {w['score']}/10 — Anti-AI patterns may need updating",
+                        "requires_confirmation": True,
+                    }
+                )
 
         return suggestions
 
@@ -312,11 +333,13 @@ class MetaLearningEngine:
             "run_number": self._tracker.get_run_count(),
             "adjustments_count": len(adjustments),
             "auto_adjustments": sum(1 for a in adjustments if a.auto_apply and a.within_bounds),
-            "manual_adjustments": sum(1 for a in adjustments if not (a.auto_apply and a.within_bounds)),
+            "manual_adjustments": sum(
+                1 for a in adjustments if not (a.auto_apply and a.within_bounds)
+            ),
             "lessons_count": len(lessons),
             "suggestions_count": len(suggestions),
             "adjustments": [a.to_dict() for a in adjustments],
-            "lessons": [l.to_dict() for l in lessons],
+            "lessons": [lesson.to_dict() for lesson in lessons],
             "suggestions": suggestions,
         }
 
@@ -325,13 +348,15 @@ class MetaLearningEngine:
         existing = []
         if self._audit_path.is_file():
             try:
-                existing = json.loads(self._audit_path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
+                loaded = yaml.safe_load(self._audit_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, list):
+                    existing = loaded
+            except (yaml.YAMLError, OSError):
                 existing = []
 
         existing.append(trail)
         self._audit_path.write_text(
-            json.dumps(existing, indent=2, ensure_ascii=False),
+            yaml.dump(existing, default_flow_style=False, allow_unicode=True, sort_keys=False),
             encoding="utf-8",
         )
 
@@ -373,8 +398,8 @@ class MetaLearningEngine:
         if lessons:
             lines.append(f"### Lessons Learned ({len(lessons)})")
             lines.append("")
-            for l in lessons:
-                lines.append(l.to_markdown())
+            for lesson in lessons:
+                lines.append(lesson.to_markdown())
             lines.append("")
 
         # Suggestions
@@ -406,9 +431,9 @@ class MetaLearningEngine:
 
         lines = []
         by_category: dict[str, list[dict[str, Any]]] = {}
-        for l in lessons:
-            cat = l["category"]
-            by_category.setdefault(cat, []).append(l)
+        for lesson in lessons:
+            cat = lesson["category"]
+            by_category.setdefault(cat, []).append(lesson)
 
         for cat, items in sorted(by_category.items()):
             lines.append(f"### {cat}")

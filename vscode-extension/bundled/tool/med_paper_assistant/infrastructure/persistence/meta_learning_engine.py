@@ -153,7 +153,7 @@ class MetaLearningEngine:
             }
         """
         adjustments = self._d1_d3_analyze_hooks()
-        quality_lessons = self._d1_analyze_quality()
+        quality_lessons = self._d2_analyze_quality()
         skill_suggestions = self._d4_d5_skill_suggestions()
 
         all_lessons = quality_lessons + [
@@ -221,8 +221,8 @@ class MetaLearningEngine:
 
         return adjustments
 
-    def _d1_analyze_quality(self) -> list[LessonLearned]:
-        """D1: Derive lessons from quality scorecard patterns."""
+    def _d2_analyze_quality(self) -> list[LessonLearned]:
+        """D2: Derive lessons from quality scorecard patterns."""
         lessons = []
         sc = self._scorecard.get_scorecard()
 
@@ -232,7 +232,7 @@ class MetaLearningEngine:
             lessons.append(LessonLearned(
                 category="quality_gap",
                 lesson=f"{w['dimension']} scored {w['score']}/10: {w['explanation']}",
-                source="D1 quality analysis",
+                source="D2 quality analysis",
                 severity="warning" if w["score"] < 5 else "info",
             ))
 
@@ -242,7 +242,7 @@ class MetaLearningEngine:
             lessons.append(LessonLearned(
                 category="process_gap",
                 lesson=f"Missing quality evaluations: {', '.join(missing)}",
-                source="D1 quality analysis",
+                source="D2 quality analysis",
                 severity="warning",
             ))
 
@@ -252,14 +252,14 @@ class MetaLearningEngine:
             lessons.append(LessonLearned(
                 category="achievement",
                 lesson=f"Average quality score {avg}/10 — excellent quality",
-                source="D1 quality analysis",
+                source="D2 quality analysis",
                 severity="info",
             ))
         elif avg < 6:
             lessons.append(LessonLearned(
                 category="quality_gap",
                 lesson=f"Average quality score {avg}/10 — below threshold, review needed",
-                source="D1 quality analysis",
+                source="D2 quality analysis",
                 severity="critical",
             ))
 

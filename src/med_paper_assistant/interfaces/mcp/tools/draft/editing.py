@@ -19,7 +19,9 @@ from med_paper_assistant.domain.services.wikilink_validator import (
     find_citation_key_for_pmid,
     validate_wikilinks_in_content,
 )
-from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import DraftSnapshotManager
+from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
+    DraftSnapshotManager,
+)
 from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
 from med_paper_assistant.infrastructure.services import Drafter
 

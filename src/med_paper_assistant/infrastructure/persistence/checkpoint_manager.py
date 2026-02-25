@@ -121,12 +121,14 @@ class CheckpointManager:
             state["audit_stats"].update(audit_stats)
 
         # Append to history
-        state["history"].append({
-            "action": "phase_completed",
-            "phase": phase,
-            "phase_name": phase_name,
-            "timestamp": datetime.now().isoformat(),
-        })
+        state["history"].append(
+            {
+                "action": "phase_completed",
+                "phase": phase,
+                "phase_name": phase_name,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         self._write(state)
 
@@ -154,12 +156,14 @@ class CheckpointManager:
         if current_section:
             state["current_section"] = current_section
 
-        state["history"].append({
-            "action": "phase_started",
-            "phase": phase,
-            "phase_name": phase_name,
-            "timestamp": datetime.now().isoformat(),
-        })
+        state["history"].append(
+            {
+                "action": "phase_started",
+                "phase": phase,
+                "phase_name": phase_name,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         self._write(state)
 
@@ -181,11 +185,13 @@ class CheckpointManager:
     def add_flagged_issue(self, issue: str, severity: str = "minor") -> None:
         """Add a flagged issue for later phases to address."""
         state = self.load() or self._empty_state()
-        state["flagged_issues"].append({
-            "issue": issue,
-            "severity": severity,
-            "flagged_at": datetime.now().isoformat(),
-        })
+        state["flagged_issues"].append(
+            {
+                "issue": issue,
+                "severity": severity,
+                "flagged_at": datetime.now().isoformat(),
+            }
+        )
         self._write(state)
 
     def get_recovery_summary(self) -> str:
@@ -209,20 +215,20 @@ class CheckpointManager:
         issues = state.get("flagged_issues", [])
 
         lines = [
-            f"## Pipeline Checkpoint Recovery",
-            f"",
+            "## Pipeline Checkpoint Recovery",
+            "",
             f"- **Last completed**: Phase {last_phase} ({last_name})",
             f"- **Status**: {status}",
             f"- **Timestamp**: {ts}",
             f"- **Current section**: {section}",
             f"- **Phases with outputs**: {', '.join(phases_done) if phases_done else 'None'}",
             f"- **Flagged issues**: {len(issues)}",
-            f"",
-            f"### Options:",
+            "",
+            "### Options:",
             f"1. **Continue** from Phase {last_phase + 1}",
             f"2. **Redo** Phase {last_phase} ({last_name})",
-            f"3. **Restart** (keep concept + references)",
-            f"4. **Full restart**",
+            "3. **Restart** (keep concept + references)",
+            "4. **Full restart**",
         ]
 
         return "\n".join(lines)

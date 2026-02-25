@@ -1,16 +1,12 @@
 """Tests for CitationConverter — bidirectional wikilink ↔ Pandoc conversion."""
 
-import pytest
-
 from med_paper_assistant.domain.services.citation_converter import (
-    ConversionResult,
     _looks_like_citation_key,
     _strip_references_section,
     extract_citation_keys,
     pandoc_to_wikilinks,
     wikilinks_to_pandoc,
 )
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # wikilinks_to_pandoc

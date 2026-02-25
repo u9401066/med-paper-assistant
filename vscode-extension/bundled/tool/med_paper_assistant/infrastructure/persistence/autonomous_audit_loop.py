@@ -343,9 +343,7 @@ class AutonomousAuditLoop:
         unfixed_critical = [
             i
             for i in self._current_issues
-            if i.severity == Severity.CRITICAL.value
-            and not i.fixed
-            and i.persistent_rounds >= 2
+            if i.severity == Severity.CRITICAL.value and not i.fixed and i.persistent_rounds >= 2
         ]
         if unfixed_critical:
             return RoundVerdict.USER_NEEDED
@@ -366,11 +364,6 @@ class AutonomousAuditLoop:
         if total <= n:
             return False
 
-        # Get recent scores (including current round's weighted_avg from caller)
-        recent_avgs = [r.weighted_avg for r in self._rounds[-(n - 1) :]]
-        # The current round's score is the one being evaluated
-        # It hasn't been appended to self._rounds yet, so we need to compute it
-        # Actually, _determine_verdict is called before appending, but receives weighted_avg
         # We check the already-recorded rounds
         if len(self._rounds) < n:
             return False
@@ -432,11 +425,7 @@ class AutonomousAuditLoop:
         last_scores = self._rounds[-1].scores
         threshold = self._config.quality_threshold
 
-        weak = [
-            (dim, score)
-            for dim, score in last_scores.items()
-            if score < threshold
-        ]
+        weak = [(dim, score) for dim, score in last_scores.items() if score < threshold]
         # Sort by score ascending (weakest first)
         weak.sort(key=lambda x: x[1])
         return [dim for dim, _ in weak]
@@ -455,9 +444,7 @@ class AutonomousAuditLoop:
             "rounds": [asdict(r) for r in self._rounds],
             "saved_at": datetime.now().isoformat(),
         }
-        self._data_path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        self._data_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
     def load(self) -> bool:
         """Load loop state from disk. Returns True if state was loaded."""
@@ -525,7 +512,7 @@ class AutonomousAuditLoop:
             lines.append("")
 
             # Collect all dimension names
-            all_dims = set()
+            all_dims: set[str] = set()
             for r in self._rounds:
                 all_dims.update(r.scores.keys())
             dims_sorted = sorted(all_dims)
@@ -536,9 +523,7 @@ class AutonomousAuditLoop:
             lines.append(sep)
 
             for r in self._rounds:
-                scores_str = " | ".join(
-                    f"{r.scores.get(d, '-')}" for d in dims_sorted
-                )
+                scores_str = " | ".join(f"{r.scores.get(d, '-')}" for d in dims_sorted)
                 lines.append(
                     f"| {r.round_number} | {scores_str} | {r.weighted_avg} | {r.verdict} |"
                 )

@@ -15,7 +15,7 @@
 
 <p align="center">
   <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
-  <i>3 MCP Servers · ~107 Tools · 26 Skills · 14 Prompt Workflows — All in VS Code</i>
+  <i>3 MCP Servers · ~111 Tools · 26 Skills · 14 Prompt Workflows — All in VS Code</i>
 </p>
 
 > 📖 [繁體中文版](README.zh-TW.md)
@@ -55,8 +55,8 @@ flowchart LR
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers (~107 tools)"]
-        mdpaper["mdpaper<br/>57 tools<br/>Draft · Export · Validate"]
+    subgraph MCP["MCP Servers (~111 tools)"]
+        mdpaper["mdpaper<br/>59 tools<br/>Draft · Export · Validate"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -91,7 +91,7 @@ flowchart LR
 | Traditional Tools                   | Medical Paper Assistant                |
 | ----------------------------------- | -------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach         |
-| Separate apps for search/write/cite | All-in-one: ~107 tools in VS Code      |
+| Separate apps for search/write/cite | All-in-one: ~111 tools in VS Code      |
 | Manual reference management         | Auto-save with verified PubMed data    |
 | Export then format                  | Direct Word export with journal styles |
 | Learn complex UI                    | Natural language conversation          |
@@ -264,7 +264,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  57 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│  59 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
@@ -310,7 +310,7 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-**57 active tools** organized into 7 groups:
+**59 active tools** organized into 8 groups:
 
 ### 📁 Project Management (15 tools)
 
@@ -323,6 +323,7 @@ Projects, exploration mode, workspace state recovery, diagram management.
 | `get_workspace_state` / `sync_workspace_state`         | Cross-session recovery               |
 | `save_diagram` / `list_diagrams`                       | Draw.io integration                  |
 | `setup_project_interactive`                            | Interactive paper type configuration |
+| `update_authors`                                       | Manage structured author metadata    |
 
 ### 📚 Reference Management (10 tools)
 
@@ -368,6 +369,13 @@ Write, edit, cite — with built-in validation.
 | `insert_figure`        | Insert figure into draft with archive validation      |
 | `insert_table`         | Insert table into draft with archive validation       |
 | `list_assets`          | List figures and tables in project results            |
+
+### 🔍 Review & Audit (2 tools)
+
+| Tool                      | Description                                          |
+| ------------------------- | ---------------------------------------------------- |
+| `run_quality_audit`       | Phase 6 quality audit (scorecard + hooks + meta)     |
+| `validate_data_artifacts` | Cross-reference data artifacts vs drafts & manifests |
 
 ### 📄 Export & Submission (6 + 1 tools)
 
@@ -470,7 +478,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 57 tools in 7 groups
+│   └── interfaces/mcp/            #   MCP server, 59 tools in 8 groups
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)

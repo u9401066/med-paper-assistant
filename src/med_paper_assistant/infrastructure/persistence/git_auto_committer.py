@@ -18,18 +18,17 @@ Safety:
 from __future__ import annotations
 
 import logging
-import os
-import subprocess
+import subprocess  # nosec B404 - subprocess used only for git commands with hardcoded executable
 from pathlib import Path
 from typing import Literal
 
 logger = logging.getLogger(__name__)
 
 CommitType = Literal[
-    "draft",        # Draft write/patch/sync
-    "reference",    # Reference saved
-    "checkpoint",   # Pipeline phase completed
-    "snapshot",     # Manual checkpoint / session save
+    "draft",  # Draft write/patch/sync
+    "reference",  # Reference saved
+    "checkpoint",  # Pipeline phase completed
+    "snapshot",  # Manual checkpoint / session save
 ]
 
 # Structured commit message prefixes for git log --grep
@@ -159,7 +158,7 @@ class GitAutoCommitter:
         IMPORTANT: stdin=DEVNULL prevents git from inheriting MCP server's
         stdin (JSON-RPC channel), which would cause deadlocks in stdio transport.
         """
-        return subprocess.run(
+        return subprocess.run(  # nosec B603 - args are hardcoded git subcommands, not user input
             ["git"] + args,
             cwd=str(self._repo_dir),
             stdin=subprocess.DEVNULL,

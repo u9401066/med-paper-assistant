@@ -4,33 +4,28 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-02-24)
+## 當前焦點 (2026-02-25)
 
-Release v0.3.9 準備完成，所有修復已套用，等待最終測試驗證 + git push + tag + VSX publish。
+Release v0.3.10 準備完成。新功能：Data Artifact Provenance + Author Info。全專案 ruff lint 清零。
 
-### v0.3.9 變更摘要
+### v0.3.10 變更摘要
 
-| 變更                        | 狀態       |
-| --------------------------- | ---------- |
-| 42 Hooks 完整實作           | ✅         |
-| 11-Phase Pipeline           | ✅         |
-| Multi-Stage Review 設計文件 | ✅         |
-| VSX Template Bundling       | ✅ 44/44   |
-| VSX Unit Tests              | ✅ 32/32   |
-| Integration Tests 修復      | ✅ 6 files |
-| CI VSX Template Sync        | ✅         |
-| pytest addopts 預設排除     | ✅         |
-| CHANGELOG 更新              | ✅         |
-| Version 0.3.9               | ✅         |
+| 變更                                           | 狀態           |
+| ---------------------------------------------- | -------------- |
+| Data Artifact Provenance (DataArtifactTracker) | ✅             |
+| Author Info (Author VO + MCP tools)            | ✅             |
+| CONSTITUTION v1.5.0 §23.2                      | ✅             |
+| Hook F1-F4 data-artifacts                      | ✅ (52 checks) |
+| Full project ruff lint cleanup (60→0)          | ✅             |
+| Version 0.3.10                                 | ✅             |
 
 ### 關鍵數字
 
-- MCP Tools: **54+**
+- MCP Tools: **56+** (+2: update_authors, validate_data_artifacts)
 - Skills: **26**
-- Hooks: **42 checks** (A1-4 + B1-7 + C1-8 + D1-7 + P1-8 + G1-8)
-- Python unit tests: **234 passed** (integration tests excluded by default)
-- VSX unit tests: **32 passed**
-- VSX validation: **44/44 checks**
+- Hooks: **52 checks** (A1-4 + B1-7 + C1-8 + D1-8 + E1-5 + F1-4 + P1-8 + G1-8)
+- Python unit tests: **312 passed** (integration tests excluded by default)
+- Ruff errors: **0**
 
 ### 已知問題
 
@@ -38,12 +33,10 @@ Release v0.3.9 準備完成，所有修復已套用，等待最終測試驗證 +
 
 ## 下一步
 
-- [ ] 最終驗證: `pytest` + VSX tests
-- [ ] Git commit + push + tag v0.3.9
-- [ ] VSX publish to marketplace
+- [ ] CHANGELOG 更新 + Git commit + push + tag v0.3.10
 - [ ] Phase 5c: Full VSX Extension 升級
 - [ ] Citation Intelligence MVP
 
 ## 更新時間
 
-2026-02-24
+2026-02-25

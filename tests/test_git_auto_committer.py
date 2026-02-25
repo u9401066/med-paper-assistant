@@ -2,13 +2,12 @@
 
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from med_paper_assistant.infrastructure.persistence.git_auto_committer import (
     GitAutoCommitter,
-    _COMMIT_PREFIXES,
 )
 
 

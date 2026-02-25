@@ -4,7 +4,7 @@ import json
 import os
 import sys
 import types
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -20,10 +20,11 @@ for _mod_name in [
 sys.modules["med_paper_assistant.infrastructure.external.pubmed"].PubMedClient = MagicMock  # type: ignore[attr-defined]
 sys.modules["med_paper_assistant.infrastructure.external.pubmed.parser"].PubMedParser = MagicMock  # type: ignore[attr-defined]
 # Provide expected attribute for use_cases.__init__ import
-sys.modules["med_paper_assistant.application.use_cases.search_literature"].SearchLiteratureUseCase = MagicMock  # type: ignore[attr-defined]
+sys.modules[
+    "med_paper_assistant.application.use_cases.search_literature"
+].SearchLiteratureUseCase = MagicMock  # type: ignore[attr-defined]
 
-from med_paper_assistant.application.export_pipeline import ExportPipeline
-from med_paper_assistant.domain.entities.reference import Reference
+from med_paper_assistant.application.export_pipeline import ExportPipeline  # noqa: E402
 
 
 @pytest.fixture

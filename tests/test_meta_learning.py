@@ -11,10 +11,10 @@ Validates CONSTITUTION §23 self-improvement boundaries:
   - Protect forbidden modifications
 """
 
-import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from med_paper_assistant.infrastructure.persistence.hook_effectiveness_tracker import (
     HookEffectivenessTracker,
@@ -28,7 +28,6 @@ from med_paper_assistant.infrastructure.persistence.quality_scorecard import (
     DIMENSIONS,
     QualityScorecard,
 )
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # HookEffectivenessTracker Tests
@@ -170,10 +169,13 @@ class TestHookEffectivenessTracker:
     # --- record_run ---
 
     def test_record_run(self, tracker: HookEffectivenessTracker):
-        tracker.record_run("run-001", {
-            "A1": {"trigger": 3, "pass": 7, "fix": 2, "false_positive": 0},
-            "B1": {"trigger": 1, "pass": 4, "fix": 1, "false_positive": 0},
-        })
+        tracker.record_run(
+            "run-001",
+            {
+                "A1": {"trigger": 3, "pass": 7, "fix": 2, "false_positive": 0},
+                "B1": {"trigger": 1, "pass": 4, "fix": 1, "false_positive": 0},
+            },
+        )
 
         assert tracker.get_run_count() == 1
         stats = tracker.get_stats("A1")
@@ -405,9 +407,9 @@ class TestMetaLearningEngine:
         scorecard.set_score("text_quality", 3, "Full of AI patterns")
 
         result = engine.analyze()
-        quality_lessons = [l for l in result["lessons"] if l["category"] == "quality_gap"]
+        quality_lessons = [item for item in result["lessons"] if item["category"] == "quality_gap"]
         assert len(quality_lessons) >= 1
-        assert any("text_quality" in l["lesson"] for l in quality_lessons)
+        assert any("text_quality" in item["lesson"] for item in quality_lessons)
 
     def test_analyze_detects_missing_dimensions(
         self,
@@ -418,7 +420,7 @@ class TestMetaLearningEngine:
         # Only 1 of 6 standard dimensions scored
 
         result = engine.analyze()
-        process_gaps = [l for l in result["lessons"] if l["category"] == "process_gap"]
+        process_gaps = [item for item in result["lessons"] if item["category"] == "process_gap"]
         assert len(process_gaps) >= 1
 
     def test_analyze_suggests_methodology_improvement(
@@ -443,17 +445,15 @@ class TestMetaLearningEngine:
             scorecard.set_score(dim, 9)
 
         result = engine.analyze()
-        assert any(
-            l["category"] == "achievement" for l in result["lessons"]
-        )
+        assert any(item["category"] == "achievement" for item in result["lessons"])
 
     # --- audit trail ---
 
     def test_audit_trail_persisted(self, engine: MetaLearningEngine, audit_dir: Path):
         engine.analyze()
-        assert (audit_dir / "meta-learning-audit.json").is_file()
+        assert (audit_dir / "meta-learning-audit.yaml").is_file()
 
-        data = json.loads((audit_dir / "meta-learning-audit.json").read_text(encoding="utf-8"))
+        data = yaml.safe_load((audit_dir / "meta-learning-audit.yaml").read_text(encoding="utf-8"))
         assert len(data) == 1
         assert "timestamp" in data[0]
 
@@ -461,7 +461,7 @@ class TestMetaLearningEngine:
         engine.analyze()
         engine.analyze()
 
-        data = json.loads((audit_dir / "meta-learning-audit.json").read_text(encoding="utf-8"))
+        data = yaml.safe_load((audit_dir / "meta-learning-audit.yaml").read_text(encoding="utf-8"))
         assert len(data) == 2
 
     # --- summary generation ---

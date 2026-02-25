@@ -13,8 +13,9 @@ from pathlib import Path
 import pytest
 
 from med_paper_assistant.infrastructure.persistence.checkpoint_manager import CheckpointManager
-from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import DraftSnapshotManager
-
+from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
+    DraftSnapshotManager,
+)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # DraftSnapshotManager Tests

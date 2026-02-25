@@ -10,8 +10,6 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
-
 from .._shared import (
     ensure_project_context,
     log_tool_call,
@@ -25,9 +23,11 @@ def register_pandoc_export_tools(mcp: FastMCP):
 
     def _get_pipeline():
         """Lazy-initialize ExportPipeline with current project context."""
-        from med_paper_assistant.infrastructure.persistence import get_project_manager
-        from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
         from med_paper_assistant.application.export_pipeline import ExportPipeline
+        from med_paper_assistant.infrastructure.persistence import get_project_manager
+        from med_paper_assistant.infrastructure.persistence.reference_manager import (
+            ReferenceManager,
+        )
         from med_paper_assistant.infrastructure.services.pandoc_exporter import PandocExporter
 
         pm = get_project_manager()
@@ -56,14 +56,19 @@ def register_pandoc_export_tools(mcp: FastMCP):
             reference_doc: Optional Word template for styling
             project: Project slug (uses current project if omitted)
         """
-        log_tool_call("export_docx", {
-            "draft": draft_filename, "style": csl_style, "project": project,
-        })
+        log_tool_call(
+            "export_docx",
+            {
+                "draft": draft_filename,
+                "style": csl_style,
+                "project": project,
+            },
+        )
 
         # Ensure project context
-        context_error = ensure_project_context(project)
-        if context_error:
-            return context_error
+        is_valid, msg, _ = ensure_project_context(project)
+        if not is_valid:
+            return msg
 
         try:
             pipeline, pm = _get_pipeline()
@@ -142,9 +147,9 @@ def register_pandoc_export_tools(mcp: FastMCP):
         """
         log_tool_call("preview_citations", {"draft": draft_filename, "project": project})
 
-        context_error = ensure_project_context(project)
-        if context_error:
-            return context_error
+        is_valid, msg, _ = ensure_project_context(project)
+        if not is_valid:
+            return msg
 
         try:
             pipeline, pm = _get_pipeline()
@@ -188,7 +193,9 @@ def register_pandoc_export_tools(mcp: FastMCP):
                 for w in prepared["warnings"]:
                     output += f"- {w}\n"
 
-            log_tool_result("preview_citations", f"{len(prepared['citation_keys'])} citations", success=True)
+            log_tool_result(
+                "preview_citations", f"{len(prepared['citation_keys'])} citations", success=True
+            )
             return output
 
         except Exception as e:
@@ -215,9 +222,9 @@ def register_pandoc_export_tools(mcp: FastMCP):
         """
         log_tool_call("build_bibliography", {"draft": draft_filename, "project": project})
 
-        context_error = ensure_project_context(project)
-        if context_error:
-            return context_error
+        is_valid, msg, _ = ensure_project_context(project)
+        if not is_valid:
+            return msg
 
         try:
             pipeline, pm = _get_pipeline()

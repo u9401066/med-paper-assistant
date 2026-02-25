@@ -26,7 +26,6 @@ from pathlib import Path
 from typing import Any
 
 from med_paper_assistant.domain.services.citation_converter import (
-    ConversionResult,
     extract_citation_keys,
     wikilinks_to_pandoc,
 )

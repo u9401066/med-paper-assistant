@@ -91,21 +91,22 @@ Agent 按優先順序取得期刊要求：
 
 #### journal-profile.yaml 對全 Pipeline 的約束
 
-| YAML 欄位                           | 影響的 Phase / Hook                    |
-| ----------------------------------- | -------------------------------------- |
-| `paper.type`                        | Phase 1 專案設定, Phase 4 寫作順序     |
-| `paper.sections`                    | Phase 4 大綱, Phase 5 寫作順序         |
-| `word_limits.*`                     | Hook A1 字數, Hook C6 總字數           |
-| `assets.figures_max/tables_max`     | Phase 4 Asset Plan, Phase 5 Asset 生成 |
-| `references.max_references`         | Phase 2 文獻數量, Phase 8 引用上限     |
-| `references.style`                  | Phase 8 引用格式                       |
-| `reporting_guidelines.checklist`    | Hook B5 方法學, Hook C2 投稿清單       |
-| `required_documents.*`              | Phase 9 匯出, Hook C2 投稿清單         |
-| `pipeline.hook_*_max_rounds`        | Hook A/B/C cascading 上限              |
-| `pipeline.review_max_rounds`        | Phase 7 Autonomous Review 輪數         |
-| `pipeline.writing.anti_ai_*`        | Hook A3 Anti-AI 嚴格度                 |
-| `pipeline.writing.citation_density` | Hook A2 引用密度標準                   |
-| `pipeline.assets.*`                 | Phase 5 Asset Sub-Pipeline 行為        |
+| YAML 欄位                           | 影響的 Phase / Hook                         |
+| ----------------------------------- | ------------------------------------------- |
+| `paper.type`                        | Phase 1 專案設定, Phase 4 寫作順序          |
+| `paper.sections`                    | Phase 4 大綱, Phase 5 寫作順序              |
+| `word_limits.*`                     | Hook A1 字數, Hook C6 總字數                |
+| `assets.figures_max/tables_max`     | Phase 4 Asset Plan, Phase 5 Asset 生成      |
+| `references.max_references`         | Phase 2 文獻數量, Phase 8 引用上限          |
+| `references.reference_limits`       | 按論文類型的引用上限（覆蓋 max_references） |
+| `references.style`                  | Phase 8 引用格式                            |
+| `reporting_guidelines.checklist`    | Hook B5 方法學, Hook C2 投稿清單            |
+| `required_documents.*`              | Phase 9 匯出, Hook C2 投稿清單              |
+| `pipeline.hook_*_max_rounds`        | Hook A/B/C cascading 上限                   |
+| `pipeline.review_max_rounds`        | Phase 7 Autonomous Review 輪數              |
+| `pipeline.writing.anti_ai_*`        | Hook A3 Anti-AI 嚴格度                      |
+| `pipeline.writing.citation_density` | Hook A2 引用密度標準                        |
+| `pipeline.assets.*`                 | Phase 5 Asset Sub-Pipeline 行為             |
 
 **Gate**: journal-profile.yaml 存在 + 用戶已確認關鍵欄位（字數、圖表上限）
 
@@ -313,6 +314,37 @@ FOR asset IN asset_plan[section]:
 | funnel_plot      | ❌ 缺少                | `meta-analysis` 🔸 | R/Python script |
 | PRISMA_diagram   | `save_diagram`         | `drawio` 🔸        | Mermaid 文字    |
 
+#### Agent-Initiated Asset Generation（寫作中自主新增圖表）
+
+Phase 4 的 asset_plan 無法預見所有需求。寫作過程中 Agent 可能發現需要 **文獻比較表**、**方法對照表** 等。
+
+```
+觸發條件（Phase 5 Step 3 寫作中）：
+  - 引用 ≥3 篇文獻做比較 → 考慮 literature_summary_table
+  - 描述多種方法/技術差異 → 考慮 comparison_table
+  - 概念或架構複雜 → 考慮 concept_diagram
+
+流程：
+  1. 檢查 journal-profile.yaml → pipeline.assets.agent_initiated.enabled
+  2. 檢查類型是否在 allowed_types 中
+  3. 檢查目前圖/表數量是否已達 assets.figures_max / tables_max
+  4. IF 可新增:
+     a. 用 Markdown 表格撰寫（文獻比較表、方法對照表等）
+     b. 或 create_plot / save_diagram（如需圖形）
+     c. 附 caption + 標記來源為 "agent-initiated"
+     d. insert_table() 或 insert_figure() → 插入草稿
+     e. 更新 asset_plan（追加到 plan.metadata.changelog）
+     f. 記錄到 .audit/: 為何新增、依據哪些文獻
+  5. IF 已達上限:
+     → 評估是否替換低優先級 asset
+     → 或以文字描述替代，不生成實際圖表
+
+常見 Agent-Initiated Assets：
+  - 「Table X. Comparison of [topic] across studies」 → 文獻整理表
+  - 「Table X. Characteristics of included studies」 → SR/Review 常見
+  - 「Figure X. Conceptual framework of [approach]」 → 架構圖
+```
+
 ---
 
 ### Phase 6: CROSS-SECTION CASCADING AUDIT
@@ -370,10 +402,37 @@ Round 3 (IF still CRITICAL):
 
 ---
 
-### Phase 7: AUTONOMOUS REVIEW（結構化 Review Loop）🆕
+### Phase 6.5: EVOLUTION GATE（強制進入 Review）🆕
+
+**目的**：建立 revision baseline，確保 Phase 7 Review **永遠執行**（不因 Hook A-C 全過而跳過）。
+**觸發**：Phase 6 完成後 **MANDATORY**（無跳過條件）。
+
+```
+── Step 1: Snapshot Baseline ──
+1. DraftSnapshotManager.snapshot_all(reason="pre-review-baseline")
+   → 快照所有 section 的當前版本
+2. 記錄 quality-scorecard Round 0 分數
+3. 記錄到 .audit/evolution-log.jsonl:
+   {"event": "baseline", "round": 0, "timestamp": "...",
+    "scorecard": {6 維度分數}, "word_count": N,
+    "instruction_version": git_short_hash()}
+
+── Step 2: Force Review Entry ──
+4. 無論 Hook C 結果如何 → 設定 review_required = true
+5. 載入 journal-profile.yaml → reviewer_perspectives + quality_threshold
+6. IF journal-profile.yaml 不存在:
+   → 從 templates/ 生成預設值 → 存入專案
+   → LOG: "Auto-generated journal-profile.yaml with defaults"
+```
+
+**Gate**: baseline snapshot 完成 → 進入 Phase 7
+
+---
+
+### Phase 7: AUTONOMOUS REVIEW（結構化 Review Loop — MANDATORY）🆕
 
 **目的**：模擬同行審查，產出結構化 Review Report + Author Response，確保每個 issue 都被回應。
-**觸發**：Phase 6 通過後自動進入（`pipeline.autonomous_review.enabled = true`）。
+**觸發**：**ALWAYS**（Phase 6.5 強制進入，不可跳過）。即使 Hook A-C 全過、quality 已達標，仍必須至少執行 1 round。
 **上限**：`pipeline.review_max_rounds`（預設 3）。
 
 ```
@@ -502,32 +561,209 @@ FOR round = 1 TO N:
       a) 接受當前品質（記錄風險）
       b) 繼續 N 輪（用戶延長 loop）
       c) 手動修改後重新 review
+
+  ── Stage E: Evolution Tracing（每輪結束後） ──
+  追加到 .audit/evolution-log.jsonl：
+  {"event": "review_round", "round": N,
+   "timestamp": "...",
+   "scorecard": {6 維度分數},
+   "scorecard_delta": {與 Round N-1 的差異},
+   "review_issues": {"major": M, "minor": m, "accepted": A, "declined": D},
+   "draft_snapshots": ["snapshot_path_1", ...],
+   "patches_applied": [{"section": "...", "issue_id": "R1-M1", "words_changed": N}],
+   "instruction_version": git_short_hash()}
+```
+
+#### Hook E: EQUATOR Reporting Guidelines Compliance（Phase 7 Stage A 附加）🆕
+
+Phase 7 的每輪 Review 中，額外執行 **EQUATOR 報告指引合規檢查**。這是系統的核心賣點之一：AI 能**逐條、不遺漏**地執行人類 reviewer 經常忽略的 checklist 項目。
+
+**觸發**：Phase 7 每輪 Review 的 Stage A（與 4 角色審查並行）
+
+##### E1: 自動偵測適用指引
+
+```
+1. 讀取 journal-profile.yaml → reporting_guidelines.checklist
+2. IF checklist 已指定 → 使用指定指引
+3. IF checklist 為空 → 依據 paper.type + Methods 內容自動偵測：
+
+   paper.type × 內容特徵 → 適用指引：
+   ┌─────────────────────────┬───────────────────────────────────┐
+   │ Paper Type / 特徵       │ 主要指引          │ AI 擴展指引   │
+   ├─────────────────────────┼───────────────────────────────────┤
+   │ RCT                     │ CONSORT 2010      │ CONSORT-AI    │
+   │ RCT + AI intervention   │ CONSORT-AI        │ SPIRIT-AI     │
+   │ Observational cohort    │ STROBE            │ RECORD        │
+   │ Observational + routine │ RECORD            │ STROBE        │
+   │ Systematic review       │ PRISMA 2020       │ PRISMA-S      │
+   │ Meta-analysis           │ PRISMA 2020       │ MOOSE         │
+   │ MA of observational     │ MOOSE             │ PRISMA 2020   │
+   │ Diagnostic accuracy     │ STARD 2015        │ STARD-AI      │
+   │ Diagnostic + AI         │ STARD-AI          │ CLAIM         │
+   │ Prediction model        │ TRIPOD 2015       │ PROBAST       │
+   │ Prediction + AI/ML      │ TRIPOD+AI         │ MI-CLAIM      │
+   │ AI clinical decision    │ DECIDE-AI         │ TRIPOD+AI     │
+   │ AI clinical trial       │ SPIRIT-AI         │ CONSORT-AI    │
+   │ Medical imaging AI      │ CLAIM             │ STARD-AI      │
+   │ Case report             │ CARE 2013         │ —             │
+   │ Qualitative research    │ SRQR / COREQ      │ —             │
+   │ Quality improvement     │ SQUIRE 2.0        │ —             │
+   │ Economic evaluation     │ CHEERS 2022       │ —             │
+   │ Animal research         │ ARRIVE 2.0        │ —             │
+   │ Protocol (trial)        │ SPIRIT 2013       │ SPIRIT-AI     │
+   │ Protocol (SR)           │ PRISMA-P 2015     │ —             │
+   │ Software/Methods paper  │ —                 │ see Note      │
+   └─────────────────────────┴───────────────────────────────────┘
+
+   Note: Software/Methods papers 無專屬 EQUATOR 指引，
+         但若涉及 AI/ML → 適用 TRIPOD+AI 相關項目（選擇性）
+```
+
+##### E2: Checklist 逐條驗證
+
+```
+FOR guideline IN detected_guidelines:
+  checklist = load_checklist(guideline)  # 內建 checklist 資料庫
+
+  FOR item IN checklist.items:
+    # 定位：該項目應出現在哪個 section
+    target_section = item.expected_section  # e.g. "Methods", "Results"
+    content = read_draft(target_section)
+
+    # 三級判定
+    IF item clearly addressed in content:
+      → ✅ REPORTED (記錄: section + paragraph + 摘要)
+    ELIF item partially addressed:
+      → ⚠️ PARTIAL (記錄: 缺什麼、建議補充)
+    ELSE:
+      → ❌ NOT REPORTED (記錄: 建議加入的位置和內容)
+
+  # 合規率計算
+  compliance_rate = REPORTED / total_applicable_items
+  partial_rate = PARTIAL / total_applicable_items
+
+  # 閾值判定（依 item 重要性分級）
+  IF any ESSENTIAL item is NOT REPORTED → MAJOR issue
+  IF compliance_rate < 80% → WARNING
+  IF compliance_rate ≥ 80% AND all ESSENTIAL reported → PASS
+```
+
+##### E3: EQUATOR 指引內建資料庫
+
+| 指引             | 全稱                                             | 適用範圍              | 項目數    | 來源                        |
+| ---------------- | ------------------------------------------------ | --------------------- | --------- | --------------------------- |
+| **CONSORT 2010** | Consolidated Standards of Reporting Trials       | RCT                   | 25 項     | equator-network.org         |
+| **CONSORT-AI**   | CONSORT Extension for AI                         | AI 介入的 RCT         | 14 擴展項 | Lancet Digital Health 2020  |
+| **STROBE**       | Strengthening Reporting of Observational Studies | 觀察性研究            | 22 項     | equator-network.org         |
+| **PRISMA 2020**  | Preferred Reporting Items for SR and MA          | 系統性回顧            | 27 項     | BMJ 2021                    |
+| **PRISMA-S**     | PRISMA Search Extension                          | 搜尋策略報告          | 16 項     | Systematic Reviews 2021     |
+| **PRISMA-P**     | PRISMA for Protocols                             | SR 計畫書             | 17 項     | BMJ 2015                    |
+| **MOOSE**        | Meta-analysis of Observational Studies           | 觀察性研究 MA         | 35 項     | JAMA 2000                   |
+| **STARD 2015**   | Standards for Reporting Diagnostic Accuracy      | 診斷準確度            | 30 項     | BMJ 2015                    |
+| **STARD-AI**     | STARD for AI Diagnostic                          | AI 診斷研究           | 擴展項    | Nature Medicine 2021        |
+| **TRIPOD 2015**  | Transparent Reporting of Prediction Models       | 預測模型              | 22 項     | BMJ 2015                    |
+| **TRIPOD+AI**    | TRIPOD for AI/ML Prediction                      | AI/ML 預測模型        | 27+擴展   | BMJ 2024                    |
+| **PROBAST**      | Prediction Model Risk of Bias Assessment         | 預測模型偏差          | 20 項     | Annals Int Med 2019         |
+| **DECIDE-AI**    | AI Decision Support Early Evaluation             | AI 決策支援           | 17 項     | Nature Medicine 2022        |
+| **SPIRIT 2013**  | Standard Protocol Items for Trials               | 試驗計畫書            | 33 項     | equator-network.org         |
+| **SPIRIT-AI**    | SPIRIT Extension for AI                          | AI 試驗計畫書         | 15 擴展項 | Nature Medicine 2020        |
+| **CLAIM**        | Checklist for AI in Medical Imaging              | 醫學影像 AI           | 42 項     | Radiology 2020              |
+| **MI-CLAIM**     | Minimum Information about Clinical AI Modeling   | AI 建模最低資訊       | 15 項     | Nature Medicine 2020        |
+| **CARE 2013**    | Case Report Guidelines                           | 病例報告              | 13 項     | equator-network.org         |
+| **ARRIVE 2.0**   | Animal Research Reporting                        | 動物研究              | 21 項     | PLOS Biology 2020           |
+| **SQUIRE 2.0**   | Standards for Quality Improvement                | 品質改善              | 18 項     | BMJ Quality Safety 2015     |
+| **SRQR**         | Standards for Reporting Qualitative Research     | 質性研究              | 21 項     | Academic Medicine 2014      |
+| **COREQ**        | Consolidated Criteria for Qualitative Research   | 質性（訪談/焦點團體） | 32 項     | Int J Qual Health Care 2007 |
+| **CHEERS 2022**  | Consolidated Health Economic Evaluation          | 衛生經濟評估          | 28 項     | BMJ 2022                    |
+| **RECORD**       | Reporting of Studies Using Routine Data          | 常規資料研究          | 13+擴展   | PLOS Medicine 2015          |
+| **AGREE II**     | Appraisal of Guidelines Research and Evaluation  | 臨床指引              | 23 項     | CMAJ 2010                   |
+
+##### E4: Compliance Report 產出
+
+每輪 Review 產出 `.audit/equator-compliance-{round}.md`：
+
+```markdown
+# EQUATOR Compliance Report — Round {round}
+
+## Detected Guidelines: TRIPOD+AI (primary), MI-CLAIM (secondary)
+
+## Detection Basis: paper.type=prediction-model, Methods mentions "deep learning"
+
+### TRIPOD+AI Compliance: 85% (23/27 items)
+
+| #   | Item                                 | Section      | Status          | Notes            |
+| --- | ------------------------------------ | ------------ | --------------- | ---------------- |
+| 1   | Title identifies as prediction model | Title        | ✅ REPORTED     |                  |
+| 2   | Abstract: structured summary         | Abstract     | ✅ REPORTED     |                  |
+| 3a  | Background and objectives            | Introduction | ✅ REPORTED     |                  |
+| 4a  | Source of data                       | Methods      | ✅ REPORTED     |                  |
+| 4b  | Data collection dates                | Methods      | ⚠️ PARTIAL      | Missing end date |
+| ... |                                      |              |                 |                  |
+| 10d | Handling of missing data             | Methods      | ❌ NOT REPORTED | → Add to Methods |
+| 15a | Model performance metrics            | Results      | ✅ REPORTED     |                  |
+
+### MI-CLAIM Compliance: 73% (11/15 items)
+
+...
+
+### Summary
+
+| Guideline | Compliance | ESSENTIAL items | Status                 |
+| --------- | ---------- | --------------- | ---------------------- |
+| TRIPOD+AI | 85%        | 20/22 ✅        | ⚠️ 2 ESSENTIAL missing |
+| MI-CLAIM  | 73%        | 9/10 ✅         | ⚠️ 1 ESSENTIAL missing |
+
+### Action Items (for Author Response)
+
+- [E-M1] TRIPOD+AI Item 10d: Add missing data handling to Methods
+- [E-M2] TRIPOD+AI Item 4b: Add data collection end date
+- [E-m1] MI-CLAIM Item 12: Add model interpretability discussion
+```
+
+##### E5: Integration with Phase 7 Review Loop
+
+```
+Phase 7, Stage A（每輪）:
+  1. 執行 4 角色 Reviewer 審查 → review-report-{round}.md
+  2. 執行 Hook E → equator-compliance-{round}.md
+  3. 合併 issues: Review issues + EQUATOR issues → 統一編號
+     - Review issues: R1-M1, R2-m1, ...
+     - EQUATOR issues: E-M1, E-m1, ... (E = EQUATOR)
+  4. Author Response 必須回應兩種 issue
+
+Phase 7, Stage D（品質重評）:
+  quality-scorecard 新增維度：
+  | 維度 | 評分標準 | 權重 |
+  | EQUATOR 合規 | checklist compliance rate + ESSENTIAL 完整度 | 15% |
+  → 原有 6 維度權重等比調降，總和仍 = 100%
 ```
 
 #### Review 品質維度（quality-scorecard）
 
-| 維度         | 評分標準 (0-10)                        | 權重 |
-| ------------ | -------------------------------------- | ---- |
-| 引用品質     | 引用充分、最新、高影響力、格式正確     | 15%  |
-| 方法學再現性 | 研究設計、統計、可再現、EQUATOR 合規   | 25%  |
-| 文字品質     | 清晰度、邏輯流、無 AI 痕跡、語法       | 20%  |
-| 概念一致性   | NOVELTY 體現、SELLING POINTS、全稿一致 | 20%  |
-| 格式合規     | 字數、圖表、引用數、期刊要求           | 10%  |
-| 圖表品質     | 圖表必要性、清晰度、caption、數據呈現  | 10%  |
+| 維度         | 評分標準 (0-10)                         | 權重 |
+| ------------ | --------------------------------------- | ---- |
+| 引用品質     | 引用充分、最新、高影響力、格式正確      | 12%  |
+| 方法學再現性 | 研究設計、統計、可再現                  | 20%  |
+| 文字品質     | 清晰度、邏輯流、無 AI 痕跡、語法        | 18%  |
+| 概念一致性   | NOVELTY 體現、SELLING POINTS、全稿一致  | 18%  |
+| 格式合規     | 字數、圖表、引用數、期刊要求            | 8%   |
+| 圖表品質     | 圖表必要性、清晰度、caption、數據呈現   | 9%   |
+| EQUATOR 合規 | checklist compliance + ESSENTIAL 項完整 | 15%  |
 
 總分 = Σ(維度分數 × 權重)
 
 #### Review vs Hook 的分工
 
-| 面向     | Hook A-C（Phase 5-6）    | Autonomous Review（Phase 7）    |
-| -------- | ------------------------ | ------------------------------- |
-| 觸發時機 | 寫作過程中 / 全稿完成後  | 所有 Hook 通過後                |
-| 關注點   | 格式、引用、字數、一致性 | 內容品質、邏輯、學術說服力      |
-| 修正方式 | patch_draft（局部修正）  | 可能 rewrite 段落或重組論證     |
-| 角色     | 程式化檢查器             | 模擬人類審稿者                  |
-| 停止條件 | 0 CRITICAL               | quality_threshold 達標          |
-| 產出     | audit log                | review-report + author-response |
-| 粒度     | pass/fail                | MAJOR/MINOR/OPTIONAL            |
+| 面向     | Hook A-C（Phase 5-6）    | Autonomous Review（Phase 7）            |
+| -------- | ------------------------ | --------------------------------------- |
+| 目的     | 技術合規                 | 學術品質 + 報告指引合規                 |
+| 觸發時機 | 寫作過程中 / 全稿完成後  | Phase 6.5 強制進入（MANDATORY）         |
+| 關注點   | 格式、引用、字數、一致性 | 內容品質、邏輯、學術說服力 + EQUATOR    |
+| 修正方式 | patch_draft（局部修正）  | 可能 rewrite 段落或重組論證             |
+| 角色     | 自動化 linter            | 模擬 Reviewer + EQUATOR compliance      |
+| 停止條件 | 0 CRITICAL               | quality_threshold 達標 + ESSENTIAL 完整 |
+| 產出     | audit log                | review-report + equator-compliance      |
+| 粒度     | pass/fail                | MAJOR/MINOR/OPTIONAL + checklist 逐條   |
 
 ---
 
@@ -536,7 +772,7 @@ FOR round = 1 TO N:
 1. `sync_references(filename=manuscript)` → 生成 References section
 2. 確認所有 `[[wikilinks]]` 已解析
 3. `format_references(style=journal-profile.references.style)`
-4. 驗證引用數量 ≤ `references.max_references`
+4. 驗證引用數量 ≤ `references.reference_limits[paper.type]`（fallback `max_references`）
 5. IF 超過上限 → 標記最少被引用的 refs → 建議刪除
 
 **Gate**: 0 broken links + 引用數量合規
@@ -561,7 +797,7 @@ FOR round = 1 TO N:
 
 ### Phase 10: RETROSPECTIVE（閉環核心）
 
-🔔 HOOK D: meta-learning（見下方定義，含 D7 Review Retrospective）
+🔔 HOOK D: meta-learning（見下方定義，含 D7 Review Retrospective、D8 EQUATOR Retrospective）
 
 1. 回顧執行紀錄 + Hook 觸發統計 + Review 輪次統計
 2. 更新 SKILL.md Lessons Learned
@@ -569,6 +805,7 @@ FOR round = 1 TO N:
 4. 更新 .memory/ 完整紀錄
 5. 分析 journal-profile 設定是否合理 → 建議微調
 6. 🆕 D7: 分析 review-report + author-response → 演化 Reviewer 指令
+7. 🆕 D8: 分析 equator-compliance → 演化 EQUATOR 偵測與分類邏輯
 
 ---
 
@@ -632,6 +869,53 @@ Phase 完成 → 更新以下檔案：
    ## Quality Score Trend
    | 維度 | Round 0 | Round 1 | Round 2 | ... | 變化趨勢 |
    | 總分 | 6.2 | 7.1 | 7.8 | ... | ↑ |
+
+6. equator-compliance-{N}.md  🆕
+   ## EQUATOR Compliance Report — Round {N}
+   ## Detected Guidelines: {auto-detected or specified}
+   | # | Item | Section | Status | Notes |
+   → 見 Hook E4 格式定義
+```
+
+### Evolution Tracing（Phase 6.5 → 7 → 10）🆕
+
+```
+7. evolution-log.jsonl（append-only，每事件一行 JSON）
+
+   ## 事件類型：
+   - baseline: Phase 6.5 建立的基線快照
+   - review_round: Phase 7 每輪 review 結果
+   - equator_check: Hook E 每輪 compliance 結果
+   - hook_correction: Hook A-C 修正事件
+   - meta_learning: Phase 10 自我改進事件
+
+   ## Schema:
+   {"event": "baseline", "round": 0, "timestamp": "ISO-8601",
+    "scorecard": {"citation": 7, "methodology": 8, "text": 6, ...},
+    "word_count": 3200,
+    "instruction_version": "abc1234"}
+
+   {"event": "review_round", "round": 1, "timestamp": "...",
+    "scorecard": {"citation": 7.5, "methodology": 8, "text": 7, ...},
+    "scorecard_delta": {"text": +1, "total": +0.8},
+    "review_issues": {"major": 3, "minor": 5, "accepted": 7, "declined": 1},
+    "patches_applied": [{"section": "Methods", "issue_id": "R1-M1", "words_changed": 45}],
+    "instruction_version": "abc1234"}
+
+   {"event": "equator_check", "round": 1, "timestamp": "...",
+    "guideline": "TRIPOD+AI", "compliance_rate": 0.85,
+    "essential_complete": false, "missing_essential": ["Item 10d", "Item 4b"],
+    "action_items": 3}
+
+   {"event": "meta_learning", "phase": 10, "timestamp": "...",
+    "skill_updates": ["Lessons Learned +1"],
+    "hook_adjustments": [{"hook": "B5", "param": "threshold", "old": 5, "new": 6}],
+    "total_rounds": 2, "final_score": 7.8}
+
+   ## 用途：
+   - Phase 10 D1-D7 分析 → 產出 evolution summary
+   - 跨 run 比較（如有多次執行）
+   - 論文自身的 Fig 1 / Table 2（框架效果量化證據）
 ```
 
 ### Phase 2 完成後生成
@@ -769,17 +1053,36 @@ IF ADVISORY only:
 
 #### B5 方法學 Checklist
 
-| 檢查項        |    Original    | Case | Systematic |
-| ------------- | :------------: | :--: | :--------: |
-| 研究設計描述  |       ✅       |  ✅  |     ✅     |
-| 主要/次要結局 |       ✅       |  ⬜  |     ✅     |
-| 樣本量/power  |       ✅       |  ⬜  |     ⬜     |
-| 納入/排除標準 |       ✅       |  ⬜  |     ✅     |
-| 統計方法匹配  |       ✅       |  ⬜  |     ✅     |
-| 變項定義      |       ✅       |  ✅  |     ⬜     |
-| 倫理聲明      |       ✅       |  ✅  |     ⬜     |
-| 收集期間      |       ✅       |  ✅  |     ✅     |
-| EQUATOR       | CONSORT/STROBE | CARE |   PRISMA   |
+**基礎方法學檢查**（所有 paper type）：
+
+| 檢查項        |    Original    | Case | Systematic | AI/ML Prediction | AI Clinical |
+| ------------- | :------------: | :--: | :--------: | :--------------: | :---------: |
+| 研究設計描述  |       ✅       |  ✅  |     ✅     |        ✅        |     ✅      |
+| 主要/次要結局 |       ✅       |  ⬜  |     ✅     |        ✅        |     ✅      |
+| 樣本量/power  |       ✅       |  ⬜  |     ⬜     |        ✅        |     ✅      |
+| 納入/排除標準 |       ✅       |  ⬜  |     ✅     |        ✅        |     ✅      |
+| 統計方法匹配  |       ✅       |  ⬜  |     ✅     |        ✅        |     ✅      |
+| 變項定義      |       ✅       |  ✅  |     ⬜     |        ✅        |     ✅      |
+| 倫理聲明      |       ✅       |  ✅  |     ⬜     |        ✅        |     ✅      |
+| 收集期間      |       ✅       |  ✅  |     ✅     |        ✅        |     ✅      |
+| EQUATOR       | CONSORT/STROBE | CARE |   PRISMA   |    TRIPOD+AI     |  DECIDE-AI  |
+
+**AI/ML 特定檢查項**（僅 AI/ML paper types）：
+
+| 檢查項                 | Prediction | Diagnostic | Imaging | Decision  |
+| ---------------------- | :--------: | :--------: | :-----: | :-------: |
+| Data split 策略        |     ✅     |     ✅     |   ✅    |    ✅     |
+| 模型架構/超參數        |     ✅     |     ✅     |   ✅    |    ✅     |
+| 訓練/驗證/測試集比例   |     ✅     |     ✅     |   ✅    |    ⬜     |
+| 外部驗證               |     ✅     |     ✅     |   ✅    |    ✅     |
+| 缺失值處理             |     ✅     |     ✅     |   ⬜    |    ✅     |
+| 校準 (calibration)     |     ✅     |     ⬜     |   ⬜    |    ⬜     |
+| Bias/Fairness 分析     |     ✅     |     ✅     |   ✅    |    ✅     |
+| 可解釋性/可解讀性      |     ⬜     |     ⬜     |   ✅    |    ✅     |
+| 人機比較 (human vs AI) |     ⬜     |     ✅     |   ✅    |    ✅     |
+| 適用指引               | TRIPOD+AI  |  STARD-AI  |  CLAIM  | DECIDE-AI |
+
+**B5 ↔ Hook E 的分工**：B5 在 Phase 5-6 做「快速方法學掃描」（10 項以內），Hook E 在 Phase 7 做「完整 EQUATOR checklist 逐條驗證」（20-42 項）。兩者互補不重複。
 
 任何必選項 < 5 分 → patch_draft → 2 rounds 後仍 < 5 → 人工介入。
 
@@ -875,13 +1178,13 @@ Hook C 修正策略：
 
 原 C7 僅查圖表數量，擴展為五個子項的綜合數量/引用合規檢查。
 
-| 子項 | 檢查內容                       | MCP Tool                     | 失敗行為                         | 回溯層 | 閾值來源                        |
-| ---- | ------------------------------ | ---------------------------- | -------------------------------- | ------ | ------------------------------- |
-| C7a  | 圖表總數 ≤ 上限                | `list_assets`                | 合併或移至 supplementary         | —      | `assets.figures_max/tables_max` |
-| C7b  | 引用總數合理範圍               | `scan_draft_citations`       | 標記低引用 refs → 用戶決定       | —      | `references.max_references`     |
-| C7c  | 總字數 vs journal-profile      | `count_words`                | 精簡超長 section                 | → A1   | `word_limits.total_manuscript`  |
-| C7d  | 圖表交叉引用（orphan/phantom） | `list_assets` + `read_draft` | orphan=WARNING, phantom=CRITICAL | —      | —                               |
-| C7e  | Wikilink 引用一致性            | `validate_wikilinks`         | `save_reference_mcp` 補存        | → A4   | —                               |
+| 子項 | 檢查內容                       | MCP Tool                     | 失敗行為                         | 回溯層 | 閾值來源                                                            |
+| ---- | ------------------------------ | ---------------------------- | -------------------------------- | ------ | ------------------------------------------------------------------- |
+| C7a  | 圖表總數 ≤ 上限                | `list_assets`                | 合併或移至 supplementary         | —      | `assets.figures_max/tables_max`                                     |
+| C7b  | 引用總數合理範圍               | `scan_draft_citations`       | 標記低引用 refs → 用戶決定       | —      | `references.reference_limits[paper.type]` fallback `max_references` |
+| C7c  | 總字數 vs journal-profile      | `count_words`                | 精簡超長 section                 | → A1   | `word_limits.total_manuscript`                                      |
+| C7d  | 圖表交叉引用（orphan/phantom） | `list_assets` + `read_draft` | orphan=WARNING, phantom=CRITICAL | —      | —                                                                   |
+| C7e  | Wikilink 引用一致性            | `validate_wikilinks`         | `save_reference_mcp` 補存        | → A4   | —                                                                   |
 
 ```
 orphan = manifest 中有但 draft 沒引用 → WARNING（有圖沒用）
@@ -937,7 +1240,7 @@ Hook D 不只改進 SKILL — 它改進 Hook 自身（CONSTITUTION §23）。
 | -------------------------- | ------------------------------- | ----------------------------------------------------------- |
 | `HookEffectivenessTracker` | `hook_effectiveness_tracker.py` | 記錄 hook 事件、計算觸發率/修正率/誤報率、產出推薦          |
 | `QualityScorecard`         | `quality_scorecard.py`          | 6 維品質評分 (0-10)、閾值檢查、弱項偵測                     |
-| `MetaLearningEngine`       | `meta_learning_engine.py`       | D1-D6 編排器、`ThresholdAdjustment` (±20%)、`LessonLearned` |
+| `MetaLearningEngine`       | `meta_learning_engine.py`       | D1-D8 編排器、`ThresholdAdjustment` (±20%)、`LessonLearned` |
 
 **使用方式**：
 
@@ -962,7 +1265,18 @@ result = engine.analyze()  # → {adjustments, lessons, suggestions, audit_trail
 - 觸發率 < 5%（超過 5 次執行）→ Hook 太鬆/過時，考慮移除
 - 誤報率 > 30% → 判斷標準需修正
 
-`QualityScorecard` 追蹤 6 個標準維度的品質分數，持久化至 `.audit/quality-scorecard.json`。
+`QualityScorecard` 追蹤 7 個標準維度的品質分數，持久化至 `.audit/quality-scorecard.json`。
+
+#### D2: 品質維度分析
+
+`MetaLearningEngine._d2_analyze_quality()` 對 QualityScorecard 的 7 維品質分數做深度分析：
+
+- 弱項偵測：score < 6.0 的維度 → 產出 `quality_gap` lesson
+- 缺項偵測：未評估的維度 → 產出 `process_gap` lesson
+- 趨勢判斷：平均分 ≥ 8 → achievement，< 6 → critical review needed
+- 維度 → Hook 映射：methodology → B5, text_quality → A3, equator_compliance → E1-E5
+
+D2 的 lessons 輸入 D3（調閾值）和 D4-D5（改 SKILL），形成分析鏈。
 
 #### D3: Hook 自我改進
 
@@ -1048,6 +1362,28 @@ detailed_definition: |
 4. 禁止：修改 CONSTITUTION 原則、修改 Hook D 自身邏輯
 ```
 
+#### D8: EQUATOR Compliance Retrospective 🆕
+
+分析 Hook E 在 Phase 7 的執行效果，持續改善 checklist 準確性。
+
+**觸發**：Phase 10，D7 之後
+
+**流程**：
+
+```
+1. 讀取 equator-compliance-*.md
+2. 統計分析：
+   - 哪些 checklist items 被標為 N/A 最多？→ 可能不適用該 paper type
+   - 哪些 items 反覆 PARTIAL？→ 可能定義不清楚
+   - compliance rate 趨勢（Round 0 → N）
+   - ESSENTIAL items 的修補成功率
+3. 產出建議：
+   - 調整 E1 偵測邏輯的 paper_type 映射
+   - 記錄到 SKILL.md Lessons Learned
+   - 建議新的 ESSENTIAL 分類（若某非 ESSENTIAL 項反覆 miss）
+4. 更新 evolution-log.jsonl with meta_learning event
+```
+
 ---
 
 ## 自動決策邏輯
@@ -1125,7 +1461,7 @@ detailed_definition: |
 
 ## Skill 依賴
 
-auto-paper → Phase 0(pre-plan) → project-management(P1) → literature-review + parallel-search(P2) → concept-development(P3) → draft-writing(P4,5) → autonomous-review(P7) → reference-management(P8) → word-export(P9) → submission-preparation(P9)
+auto-paper → Phase 0(pre-plan) → project-management(P1) → literature-review + parallel-search(P2) → concept-development(P3) → draft-writing(P4,5) → evolution-gate(P6.5) → autonomous-review+equator(P7) → reference-management(P8) → word-export(P9) → submission-preparation(P9)
 
 ---
 
@@ -1136,9 +1472,13 @@ auto-paper → Phase 0(pre-plan) → project-management(P1) → literature-revie
 - [ ] 所有 section 通過 Hook B（含回溯修正）
 - [ ] 所有 Phase 5 FLAG 已在 Phase 6 處理
 - [ ] 全稿通過 Hook C（cascading fix）
-- [ ] Phase 7: Autonomous Review 達到 quality_threshold
-- [ ] quality-scorecard.md 已生成（所有維度 ≥ 6 分）
+- [ ] Phase 6.5: Evolution Gate baseline snapshot 已建立
+- [ ] Phase 7: Autonomous Review 達到 quality_threshold（MANDATORY，至少 1 round）
+- [ ] Hook E: EQUATOR compliance rate ≥ 80% + 所有 ESSENTIAL items reported
+- [ ] quality-scorecard.md 已生成（所有維度 ≥ 6 分，含 EQUATOR 維度）
 - [ ] review-round-\*.md 已生成（每輪完整記錄）
+- [ ] equator-compliance-\*.md 已生成（每輪 checklist 報告）
+- [ ] evolution-log.jsonl 包含 baseline + 所有 round 事件
 - [ ] hook-effectiveness.md 已生成
 - [ ] pipeline-run-{ts}.md 涵蓋所有 Phase
 - [ ] checkpoint.json 標記完成
@@ -1147,7 +1487,7 @@ auto-paper → Phase 0(pre-plan) → project-management(P1) → literature-revie
 - [ ] 圖表數量 ≤ journal-profile.assets limits
 - [ ] 必要文件清單（required_documents）完成
 - [ ] .memory/ 已更新
-- [ ] Hook D meta-learning 已執行
+- [ ] Hook D meta-learning 已執行（含 D7 Review + D8 EQUATOR Retrospective）
 - [ ] SKILL.md Lessons Learned 已更新
 - [ ] Word 已匯出
 

@@ -8,9 +8,9 @@ Validates that:
 5. Scores are consistent (reviewer avg vs overall are not wildly divergent)
 """
 
-import re
-import pytest
 import sys
+
+import pytest
 
 sys.path.insert(0, "src")
 
@@ -74,9 +74,7 @@ class TestHeuristicScoring:
     def test_novelty_keywords_add_score(self, validator):
         """Presence of 'first', 'novel' etc. should increase score."""
         base = validator._heuristic_novelty_score("Some generic text about methods", 0)
-        with_keywords = validator._heuristic_novelty_score(
-            "This is the first novel approach", 0
-        )
+        with_keywords = validator._heuristic_novelty_score("This is the first novel approach", 0)
         assert with_keywords > base
 
     def test_score_clamped_0_100(self, validator):
@@ -131,9 +129,9 @@ class TestCombinedScoring:
             fb["reviewers"]["clinical_expert"]["score"],
         ]
         r_avg = sum(r_scores) / len(r_scores)
-        h_avg = sum(
-            validator._heuristic_novelty_score(strong_novelty_content, i) for i in range(3)
-        ) / 3
+        h_avg = (
+            sum(validator._heuristic_novelty_score(strong_novelty_content, i) for i in range(3)) / 3
+        )
 
         combined = 0.4 * h_avg + 0.6 * r_avg
 
@@ -143,9 +141,7 @@ class TestCombinedScoring:
             f"when reviewer avg is {r_avg:.1f}"
         )
 
-    def test_overall_not_wildly_divergent_from_reviewers(
-        self, validator, strong_novelty_content
-    ):
+    def test_overall_not_wildly_divergent_from_reviewers(self, validator, strong_novelty_content):
         """Overall score should not differ from reviewer avg by more than 30 points."""
         fb = validator._generate_novelty_feedback(strong_novelty_content, [70, 70, 70])
         r_scores = [
@@ -154,9 +150,9 @@ class TestCombinedScoring:
             fb["reviewers"]["clinical_expert"]["score"],
         ]
         r_avg = sum(r_scores) / len(r_scores)
-        h_avg = sum(
-            validator._heuristic_novelty_score(strong_novelty_content, i) for i in range(3)
-        ) / 3
+        h_avg = (
+            sum(validator._heuristic_novelty_score(strong_novelty_content, i) for i in range(3)) / 3
+        )
         combined = 0.4 * h_avg + 0.6 * r_avg
 
         assert abs(combined - r_avg) <= 30, (

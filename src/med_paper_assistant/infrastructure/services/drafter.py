@@ -1,9 +1,12 @@
 import logging
 import os
 import re
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import DraftSnapshotManager
+from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
+    DraftSnapshotManager,
+)
 from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 
@@ -11,8 +14,6 @@ if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 
 logger = logging.getLogger(__name__)
-
-from enum import Enum
 
 
 class CitationStyle(Enum):
