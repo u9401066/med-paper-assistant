@@ -275,7 +275,7 @@ class PipelineGateValidator:
         # Phase 3+ needs references
         if phase >= 3:
             refs_dir = self._project_dir / "references"
-            ref_count = len(list(refs_dir.glob("*.md"))) if refs_dir.is_dir() else 0
+            ref_count = self._count_references(refs_dir)
             checks.append(
                 GateCheck(
                     name="prereq:references",
@@ -396,6 +396,20 @@ class PipelineGateValidator:
             "timestamp": datetime.now().isoformat(),
         }
 
+    # ── Helpers ─────────────────────────────────────────────────────
+
+    @staticmethod
+    def _count_references(refs_dir: Path) -> int:
+        """Count references: PMID subdirs with metadata.json, or flat .md files."""
+        if not refs_dir.is_dir():
+            return 0
+        # Primary: count subdirs containing metadata.json (PMID-based storage)
+        count = len(list(refs_dir.glob("*/metadata.json")))
+        if count > 0:
+            return count
+        # Fallback: count flat .md files (legacy format)
+        return len(list(refs_dir.glob("*.md")))
+
     # ── Phase Validators ───────────────────────────────────────────
 
     def _validate_phase_0(self) -> GateResult:
@@ -431,9 +445,7 @@ class PipelineGateValidator:
         """Phase 2: ≥10 references saved."""
         checks = []
         refs_dir = self._project_dir / "references"
-        ref_count = 0
-        if refs_dir.is_dir():
-            ref_count = len(list(refs_dir.glob("*.md")))
+        ref_count = self._count_references(refs_dir)
 
         checks.append(
             GateCheck(
