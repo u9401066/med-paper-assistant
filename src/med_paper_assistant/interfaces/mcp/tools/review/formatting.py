@@ -66,7 +66,7 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
 
         Args:
             draft_filename: Draft file to check (or comma-separated for multiple)
-            journal: Journal code (bja, anesthesiology, jama, nejm, lancet, ccm, generic)
+            journal: Journal code (bja, anesthesiology, jama, nejm, lancet, ccm, medrxiv, jamia, jbi, generic)
             check_submission: Also check submission readiness (required documents/statements)
             has_cover_letter: Cover letter prepared? (used when check_submission=True)
             has_ethics: Ethics approval included?
