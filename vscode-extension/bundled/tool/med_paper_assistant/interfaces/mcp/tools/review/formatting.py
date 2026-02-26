@@ -7,6 +7,7 @@ Comprehensive manuscript checking tool combining:
 - Submission checklist (required documents and statements)
 """
 
+import os
 import re
 from typing import Optional
 
@@ -104,7 +105,14 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
 
         for fname in filenames:
             try:
-                content = drafter.read_draft(fname)
+                if not fname.endswith(".md"):
+                    fname += ".md"
+                drafts_dir = drafter.drafts_dir
+                fpath = os.path.join(drafts_dir, fname) if not os.path.isabs(fname) else fname
+                if not os.path.exists(fpath):
+                    raise FileNotFoundError(f"Draft file {fname} not found in {drafts_dir}.")
+                with open(fpath, "r", encoding="utf-8") as f:
+                    content = f.read()
                 all_content += content + "\n\n"
                 file_contents[fname] = content
             except FileNotFoundError:
