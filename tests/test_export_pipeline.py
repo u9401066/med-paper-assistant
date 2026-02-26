@@ -197,6 +197,131 @@ class TestExportDocx:
         with pytest.raises(RuntimeError, match="Pandoc"):
             pipe.export_docx(str(draft), str(tmp_path / "test.docx"))
 
+    def test_export_with_metadata_injects_frontmatter(self, pipeline, mock_pandoc, tmp_path):
+        draft = tmp_path / "manuscript.md"
+        draft.write_text("# My Paper\n\n## Abstract\n\nSome text.", encoding="utf-8")
+        output = tmp_path / "manuscript.docx"
+
+        metadata = {
+            "title": "My Paper",
+            "authors": [
+                {
+                    "name": "Alice",
+                    "affiliations": ["MIT"],
+                    "is_corresponding": True,
+                    "email": "a@mit.edu",
+                    "order": 1,
+                },
+                {"name": "Bob", "affiliations": ["Stanford"], "order": 2},
+            ],
+            "date": "2026-02-25",
+        }
+        result = pipeline.export_docx(str(draft), str(output), metadata=metadata)
+
+        assert result["success"] is True
+        # Verify the source passed to Pandoc contains YAML frontmatter
+        call_args = mock_pandoc.markdown_to_docx.call_args
+        source = call_args.kwargs.get("source") or call_args.args[0]
+        assert source.startswith("---\n")
+        assert "title: My Paper" in source
+        assert "Alice" in source
+        assert "Bob" in source
+        # Original H1 should be stripped (no duplication)
+        assert "# My Paper" not in source
+
+    def test_export_without_metadata_no_frontmatter(self, pipeline, mock_pandoc, tmp_path):
+        draft = tmp_path / "test.md"
+        draft.write_text("# Title\n\nBody.", encoding="utf-8")
+        output = tmp_path / "test.docx"
+
+        pipeline.export_docx(str(draft), str(output))
+
+        call_args = mock_pandoc.markdown_to_docx.call_args
+        source = call_args.kwargs.get("source") or call_args.args[0]
+        # Without metadata, no YAML frontmatter injected
+        assert not source.startswith("---\n")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Metadata injection helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestBuildYamlFrontmatter:
+    def test_basic(self):
+        fm = ExportPipeline._build_yaml_frontmatter("Test Title", [], "2026-01-01")
+        assert "---" in fm
+        assert "title: Test Title" in fm
+        assert "date: '2026-01-01'" in fm or "date: 2026-01-01" in fm
+
+    def test_with_authors(self):
+        authors = [
+            {
+                "name": "Alice Smith",
+                "affiliations": ["MIT", "Harvard"],
+                "orcid": "0000-0001",
+                "email": "a@mit.edu",
+                "is_corresponding": True,
+            },
+            {"name": "Bob", "affiliations": ["Stanford"]},
+        ]
+        fm = ExportPipeline._build_yaml_frontmatter("Title", authors)
+        assert "Alice Smith" in fm
+        assert "Bob" in fm
+        # Author YAML now stores only names (detail in content block)
+        assert "MIT; Harvard" not in fm
+        assert "orcid" not in fm
+
+    def test_empty_returns_empty(self):
+        assert ExportPipeline._build_yaml_frontmatter("", None) == ""
+
+    def test_skips_empty_author_names(self):
+        authors = [{"name": ""}, {"name": "Valid"}]
+        fm = ExportPipeline._build_yaml_frontmatter("T", authors)
+        assert "Valid" in fm
+        # Now authors are plain strings, no "name:" key
+        assert "- Valid" in fm
+
+
+class TestStripTitleHeading:
+    def test_strips_h1(self):
+        title, body = ExportPipeline._strip_title_heading("# My Title\n\n## Section\n")
+        assert title == "My Title"
+        assert body.startswith("\n## Section")
+
+    def test_no_h1(self):
+        title, body = ExportPipeline._strip_title_heading("## Not H1\n\nContent.")
+        assert title == ""
+        assert "## Not H1" in body
+
+    def test_h1_only(self):
+        title, body = ExportPipeline._strip_title_heading("# Alone")
+        assert title == "Alone"
+        assert body == ""
+
+
+class TestBuildAuthorContentBlock:
+    def test_with_authors(self):
+        authors = [
+            {
+                "name": "Alice",
+                "affiliations": ["MIT"],
+                "is_corresponding": True,
+                "email": "a@mit.edu",
+                "order": 1,
+            },
+        ]
+        block = ExportPipeline._build_author_content_block(authors)
+        assert "Alice" in block
+        assert "MIT" in block
+        assert "Corresponding" in block
+
+    def test_empty_authors(self):
+        assert ExportPipeline._build_author_content_block([]) == ""
+
+    def test_authors_without_names(self):
+        assert ExportPipeline._build_author_content_block([{"name": ""}]) == ""
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # build_bibliography_json

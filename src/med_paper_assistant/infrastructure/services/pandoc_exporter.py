@@ -207,9 +207,10 @@ class PandocExporter:
             os.makedirs(out_dir, exist_ok=True)
 
         args = list(extra_args or [])
-        # Use xelatex for CJK support if no engine specified
+        # Auto-detect LaTeX engine if none specified
         if not any(a.startswith("--pdf-engine") for a in args):
-            args.append("--pdf-engine=xelatex")
+            engine = self._detect_pdf_engine()
+            args.append(f"--pdf-engine={engine}")
 
         return self.convert(
             source,
@@ -217,6 +218,16 @@ class PandocExporter:
             output_file=output_path,
             extra_args=args,
         )
+
+    @staticmethod
+    def _detect_pdf_engine() -> str:
+        """Detect available LaTeX engine, preferring xelatex > lualatex > pdflatex."""
+        import shutil
+
+        for engine in ("xelatex", "lualatex", "pdflatex"):
+            if shutil.which(engine):
+                return engine
+        return "pdflatex"  # fallback, will error at Pandoc level if missing
 
     def markdown_to_html(
         self,

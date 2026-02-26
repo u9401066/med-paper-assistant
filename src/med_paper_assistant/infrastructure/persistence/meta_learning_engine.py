@@ -21,6 +21,7 @@ CONSTITUTION §23 Boundaries:
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -140,9 +141,49 @@ class MetaLearningEngine:
         self._scorecard = scorecard
         self._audit_path = self._audit_dir / self.AUDIT_FILE
 
+    # All expected hooks in the framework (A/B/C/E/F/P layers)
+    EXPECTED_HOOKS = [
+        "A1",
+        "A2",
+        "A3",
+        "A4",
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C6",
+        "C7",
+        "C8",
+        "E1",
+        "E2",
+        "E3",
+        "E4",
+        "E5",
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
+        "P8",
+    ]
+
     def analyze(self) -> dict[str, Any]:
         """
-        Run full meta-learning analysis (D1 through D6).
+        Run full meta-learning analysis (D1 through D8).
 
         Returns:
             {
@@ -155,17 +196,28 @@ class MetaLearningEngine:
         """
         adjustments = self._d1_d3_analyze_hooks()
         quality_lessons = self._d2_analyze_quality()
+        coverage_lessons = self._d1_check_hook_coverage()
+        completeness_lessons = self._d5_check_project_completeness()
+        review_lessons = self._d7_review_retrospective()
+        equator_lessons = self._d8_equator_retrospective()
         skill_suggestions = self._d4_d5_skill_suggestions()
 
-        all_lessons = quality_lessons + [
-            LessonLearned(
-                category="hook_tuning",
-                lesson=f"{a.hook_id}.{a.parameter}: {a.current_value} → {a.suggested_value} ({a.reason})",
-                source="D3 threshold adjustment",
-                severity="info" if a.within_bounds else "warning",
-            )
-            for a in adjustments
-        ]
+        all_lessons = (
+            quality_lessons
+            + coverage_lessons
+            + completeness_lessons
+            + review_lessons
+            + equator_lessons
+            + [
+                LessonLearned(
+                    category="hook_tuning",
+                    lesson=f"{a.hook_id}.{a.parameter}: {a.current_value} → {a.suggested_value} ({a.reason})",
+                    source="D3 threshold adjustment",
+                    severity="info" if a.within_bounds else "warning",
+                )
+                for a in adjustments
+            ]
+        )
 
         audit_trail = self._d6_build_audit_trail(adjustments, all_lessons, skill_suggestions)
         summary = self._build_summary(adjustments, all_lessons, skill_suggestions)
@@ -233,7 +285,7 @@ class MetaLearningEngine:
         lessons = []
         sc = self._scorecard.get_scorecard()
 
-        # Check for weak dimensions
+        # Check for weak dimensions (absolute threshold)
         weak = self._scorecard.get_weak_dimensions(min_score=6.0)
         for w in weak:
             lessons.append(
@@ -278,6 +330,26 @@ class MetaLearningEngine:
                 )
             )
 
+        # Relative weakness: even if all pass, flag the lowest-scoring dimension
+        # This ensures there is ALWAYS something to improve
+        dimensions = sc.get("dimensions", {})
+        if dimensions and not weak:
+            sorted_dims = sorted(dimensions.items(), key=lambda x: x[1].get("score", 10))
+            lowest_name, lowest_data = sorted_dims[0]
+            lowest_score = lowest_data.get("score", 0)
+            if lowest_score < 10:  # Perfect 10 needs no improvement
+                lessons.append(
+                    LessonLearned(
+                        category="improvement_opportunity",
+                        lesson=(
+                            f"{lowest_name} is the weakest dimension at {lowest_score}/10 "
+                            f"— prioritize for next iteration"
+                        ),
+                        source="D2 relative weakness analysis",
+                        severity="info",
+                    )
+                )
+
         return lessons
 
     def _d4_d5_skill_suggestions(self) -> list[dict[str, Any]]:
@@ -296,6 +368,24 @@ class MetaLearningEngine:
                         "requires_confirmation": True,
                     }
                 )
+
+        # First-run awareness: lower threshold for suggestions
+        # If hooks only have 1-2 evaluations, still flag notable patterns
+        for hook_id, stats in all_stats.items():
+            total = stats["trigger"] + stats["pass"]
+            if 1 <= total <= 4:  # Early data
+                if stats["trigger"] > 0 and stats["fix"] == 0:
+                    suggestions.append(
+                        {
+                            "type": "verify_fix_mechanism",
+                            "target": f"Hook {hook_id}",
+                            "reason": (
+                                f"Triggered {stats['trigger']} time(s) with 0 fixes "
+                                f"in first run — verify auto-fix mechanism works"
+                            ),
+                            "requires_confirmation": False,
+                        }
+                    )
 
         # Check quality gaps that suggest skill improvements
         weak = self._scorecard.get_weak_dimensions(min_score=5.0)
@@ -414,6 +504,270 @@ class MetaLearningEngine:
             lines.append("_No issues detected. All hooks performing within expected parameters._")
 
         return "\n".join(lines) + "\n"
+
+    def _d1_check_hook_coverage(self) -> list[LessonLearned]:
+        """D1 extension: Check which expected hooks were never recorded."""
+        lessons = []
+        all_stats = self._tracker.get_stats()
+        recorded_hooks = set(all_stats.keys())
+        expected = set(self.EXPECTED_HOOKS)
+        missing_hooks = sorted(expected - recorded_hooks)
+
+        if missing_hooks:
+            # Group by layer
+            by_layer: dict[str, list[str]] = {}
+            for h in missing_hooks:
+                layer = h[0] if h else "?"
+                by_layer.setdefault(layer, []).append(h)
+
+            for layer, hooks in sorted(by_layer.items()):
+                lessons.append(
+                    LessonLearned(
+                        category="hook_coverage_gap",
+                        lesson=(
+                            f"Layer {layer} hooks never evaluated: {', '.join(hooks)} "
+                            f"— verify these hooks are being triggered during pipeline"
+                        ),
+                        source="D1 coverage analysis",
+                        severity="warning",
+                    )
+                )
+
+        # Summary stat
+        coverage_pct = len(recorded_hooks & expected) / len(expected) * 100 if expected else 100
+        if coverage_pct < 80:
+            lessons.append(
+                LessonLearned(
+                    category="process_gap",
+                    lesson=(
+                        f"Hook coverage {coverage_pct:.0f}% ({len(recorded_hooks & expected)}/{len(expected)} hooks) "
+                        f"— significant blind spots in quality assurance"
+                    ),
+                    source="D1 coverage analysis",
+                    severity="warning" if coverage_pct >= 50 else "critical",
+                )
+            )
+
+        return lessons
+
+    def _d5_check_project_completeness(self) -> list[LessonLearned]:
+        """D5 extension: Check project-level file completeness and configuration."""
+        lessons = []
+
+        # Check journal-profile.yaml
+        profile_path = self._audit_dir.parent / "journal-profile.yaml"
+        if profile_path.is_file():
+            try:
+                profile = yaml.safe_load(profile_path.read_text(encoding="utf-8")) or {}
+                journal_name = profile.get("journal", {}).get("name", "")
+                if not journal_name:
+                    lessons.append(
+                        LessonLearned(
+                            category="configuration_gap",
+                            lesson="journal-profile.yaml: journal name is blank — export and formatting cannot enforce journal style",
+                            source="D5 completeness check",
+                            severity="warning",
+                        )
+                    )
+                ref_style = profile.get("references", {}).get("style", "")
+                if not ref_style:
+                    lessons.append(
+                        LessonLearned(
+                            category="configuration_gap",
+                            lesson="journal-profile.yaml: references.style not set — bibliography format unknown",
+                            source="D5 completeness check",
+                            severity="warning",
+                        )
+                    )
+            except (yaml.YAMLError, OSError):
+                lessons.append(
+                    LessonLearned(
+                        category="configuration_gap",
+                        lesson="journal-profile.yaml exists but cannot be parsed",
+                        source="D5 completeness check",
+                        severity="warning",
+                    )
+                )
+        else:
+            lessons.append(
+                LessonLearned(
+                    category="configuration_gap",
+                    lesson="journal-profile.yaml missing — no journal-specific formatting rules",
+                    source="D5 completeness check",
+                    severity="warning",
+                )
+            )
+
+        # Check .memory/ files
+        memory_dir = self._audit_dir.parent / ".memory"
+        for mf in ["activeContext.md", "progress.md"]:
+            mpath = memory_dir / mf
+            if not mpath.is_file():
+                lessons.append(
+                    LessonLearned(
+                        category="documentation_gap",
+                        lesson=f".memory/{mf} missing — project memory not initialized",
+                        source="D5 completeness check",
+                        severity="info",
+                    )
+                )
+
+        # Check concept.md exists
+        concept = self._audit_dir.parent / "concept.md"
+        if not concept.is_file():
+            lessons.append(
+                LessonLearned(
+                    category="documentation_gap",
+                    lesson="concept.md missing or not created — paper lacks concept foundation",
+                    source="D5 completeness check",
+                    severity="warning",
+                )
+            )
+
+        return lessons
+
+    def _d7_review_retrospective(self) -> list[LessonLearned]:
+        """D7: Analyze review-report + author-response to evolve reviewer instructions."""
+        lessons = []
+        audit_dir = self._audit_dir
+
+        # Find review round artifacts
+        review_reports = sorted(audit_dir.glob("review-report-*.md"))
+        author_responses = sorted(audit_dir.glob("author-response-*.md"))
+
+        if not review_reports:
+            lessons.append(
+                LessonLearned(
+                    category="review_gap",
+                    lesson="No review-report artifacts found — review stage may not have executed",
+                    source="D7 review retrospective",
+                    severity="warning",
+                )
+            )
+            return lessons
+
+        # Check review loop data for hash integrity
+        loop_file = audit_dir / "audit-loop-review.json"
+        if loop_file.is_file():
+            try:
+                loop_data = json.loads(loop_file.read_text(encoding="utf-8"))
+                rounds = loop_data.get("rounds", [])
+                for r in rounds:
+                    h_start = r.get("artifact_hash_start", "")
+                    h_end = r.get("artifact_hash_end", "")
+                    rnum = r.get("round_number", "?")
+
+                    if h_start and h_end and h_start == h_end:
+                        lessons.append(
+                            LessonLearned(
+                                category="review_integrity",
+                                lesson=(
+                                    f"Round {rnum}: manuscript hash unchanged — "
+                                    f"review round did NOT modify the manuscript"
+                                ),
+                                source="D7 review retrospective",
+                                severity="critical",
+                            )
+                        )
+                    elif not h_start and not h_end:
+                        lessons.append(
+                            LessonLearned(
+                                category="review_integrity",
+                                lesson=(
+                                    f"Round {rnum}: no artifact hash recorded — "
+                                    f"cannot verify manuscript was modified"
+                                ),
+                                source="D7 review retrospective",
+                                severity="warning",
+                            )
+                        )
+
+                    # Check if issues were found but none fixed
+                    issues = r.get("issues", [])
+                    fixes = r.get("fixes", [])
+                    if len(issues) > 0 and len(fixes) == 0:
+                        lessons.append(
+                            LessonLearned(
+                                category="review_integrity",
+                                lesson=(
+                                    f"Round {rnum}: {len(issues)} issues found but 0 fixes applied — "
+                                    f"review feedback was not acted upon"
+                                ),
+                                source="D7 review retrospective",
+                                severity="warning",
+                            )
+                        )
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        # Analyze response patterns
+        if len(review_reports) != len(author_responses):
+            lessons.append(
+                LessonLearned(
+                    category="review_gap",
+                    lesson=(
+                        f"Mismatch: {len(review_reports)} review-report(s) vs "
+                        f"{len(author_responses)} author-response(s)"
+                    ),
+                    source="D7 review retrospective",
+                    severity="warning",
+                )
+            )
+
+        return lessons
+
+    def _d8_equator_retrospective(self) -> list[LessonLearned]:
+        """D8: Analyze EQUATOR compliance reports to evolve detection logic."""
+        lessons = []
+        audit_dir = self._audit_dir
+
+        equator_reports = sorted(audit_dir.glob("equator-compliance-*.md"))
+        if not equator_reports:
+            lessons.append(
+                LessonLearned(
+                    category="equator_gap",
+                    lesson="No EQUATOR compliance reports found — reporting guideline check may not have run",
+                    source="D8 EQUATOR retrospective",
+                    severity="info",
+                )
+            )
+            return lessons
+
+        # Read latest EQUATOR compliance and check for gaps
+        try:
+            latest = equator_reports[-1]
+            content = latest.read_text(encoding="utf-8")
+            # Look for non-compliant items
+            non_compliant_count = content.lower().count("non-compliant") + content.lower().count(
+                "not reported"
+            )
+            partial_count = content.lower().count("partial")
+
+            if non_compliant_count > 0:
+                lessons.append(
+                    LessonLearned(
+                        category="equator_finding",
+                        lesson=(
+                            f"{non_compliant_count} non-compliant EQUATOR items found — "
+                            f"review checklist and strengthen weak sections"
+                        ),
+                        source="D8 EQUATOR retrospective",
+                        severity="warning" if non_compliant_count > 3 else "info",
+                    )
+                )
+            if partial_count > 0:
+                lessons.append(
+                    LessonLearned(
+                        category="equator_finding",
+                        lesson=f"{partial_count} partially compliant EQUATOR items — can be improved",
+                        source="D8 EQUATOR retrospective",
+                        severity="info",
+                    )
+                )
+        except OSError:
+            pass
+
+        return lessons
 
     def format_lessons_for_skill(self, lessons: list[dict[str, Any]] | None = None) -> str:
         """

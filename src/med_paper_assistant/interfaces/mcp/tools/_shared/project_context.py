@@ -5,6 +5,7 @@ Provides utilities to validate project context before MCP tool execution.
 This ensures Agent always operates on the correct project.
 """
 
+import os
 from typing import Any, Dict, Optional, Tuple
 
 from med_paper_assistant.infrastructure.persistence import get_project_manager
@@ -149,3 +150,43 @@ def get_project_list_for_prompt() -> str:
         lines.append(f"{marker}`{p.get('slug')}` - {p.get('name')} {status_emoji}")
 
     return "\n".join(lines)
+
+
+# ─── Shared path helpers (used by draft/writing, draft/editing, draft/templates) ───
+
+
+def get_project_path() -> Optional[str]:
+    """Get the current project's root directory path."""
+    pm = get_project_manager()
+    current_info = pm.get_project_info()
+    if current_info and current_info.get("project_path"):
+        return str(current_info["project_path"])
+    return None
+
+
+def get_drafts_dir() -> Optional[str]:
+    """Get the current project's drafts directory."""
+    project_path = get_project_path()
+    if project_path:
+        return os.path.join(project_path, "drafts")
+    return None
+
+
+def get_concept_path() -> Optional[str]:
+    """Get the path to the current project's concept.md file."""
+    project_path = get_project_path()
+    if project_path:
+        return os.path.join(project_path, "concept.md")
+    return None
+
+
+def validate_project_for_tool(project: Optional[str] = None) -> tuple[bool, str]:
+    """Validate project context before tool operations.
+
+    Returns:
+        (is_valid, error_message) — error_message is empty string when valid.
+    """
+    is_valid, msg, _project_info = ensure_project_context(project)
+    if not is_valid:
+        return False, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+    return True, ""

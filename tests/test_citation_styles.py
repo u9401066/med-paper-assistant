@@ -29,7 +29,7 @@ def test_citation_styles(mock_ref_manager, tmp_path):
     with open(path, "r") as f:
         text = f.read()
     assert "This is a claim [1]." in text
-    assert "[1] Smith J, Doe A. Test Paper. J Test (2023). PMID:12345." in text
+    assert "[1] Smith J, Doe A. Test Paper. J Test. 2023." in text
 
     # 2. Test APA
     drafter.set_citation_style("apa")
@@ -37,7 +37,7 @@ def test_citation_styles(mock_ref_manager, tmp_path):
     with open(path, "r") as f:
         text = f.read()
     assert "This is a claim (Smith & Doe, 2023)." in text
-    assert "Smith J, Doe A (2023). Test Paper. J Test. PMID:12345." in text
+    assert "Smith J, Doe A (2023). Test Paper. J Test." in text
 
     # 3. Test Harvard
     drafter.set_citation_style("harvard")
@@ -45,7 +45,7 @@ def test_citation_styles(mock_ref_manager, tmp_path):
     with open(path, "r") as f:
         text = f.read()
     assert "This is a claim (Smith and Doe 2023)." in text
-    assert "Smith J, Doe A (2023) 'Test Paper', J Test. PMID:12345." in text
+    assert "Smith J, Doe A (2023) 'Test Paper', J Test." in text
 
     # 4. Test Nature
     drafter.set_citation_style("nature")
@@ -53,7 +53,7 @@ def test_citation_styles(mock_ref_manager, tmp_path):
     with open(path, "r") as f:
         text = f.read()
     assert "This is a claim ^1^." in text
-    assert "1. Smith J, Doe A. Test Paper. J Test (2023). PMID:12345." in text
+    assert "1. Smith J, Doe A. Test Paper. J Test 2023." in text
 
 
 def test_invalid_style(mock_ref_manager, tmp_path):

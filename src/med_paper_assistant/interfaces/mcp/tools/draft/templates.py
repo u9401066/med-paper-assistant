@@ -12,15 +12,10 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import Drafter
 
-from .._shared import ensure_project_context, get_project_list_for_prompt
-
-
-def _validate_project_context(project: Optional[str]) -> tuple:
-    """Validate project context before draft operations."""
-    is_valid, msg, project_info = ensure_project_context(project)
-    if not is_valid:
-        return False, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-    return True, None
+from .._shared import (
+    get_drafts_dir,
+    validate_project_for_tool,
+)
 
 
 def register_template_tools(mcp: FastMCP, drafter: Drafter):
@@ -39,7 +34,7 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
             pmid: PubMed ID to cite
             project: Project slug (uses current if omitted)
         """
-        is_valid, error_msg = _validate_project_context(project)
+        is_valid, error_msg = validate_project_for_tool(project)
         if not is_valid:
             return error_msg
 
@@ -58,7 +53,7 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
             filename: Markdown file (e.g., "concept.md")
             project: Project slug (uses current if omitted)
         """
-        is_valid, error_msg = _validate_project_context(project)
+        is_valid, error_msg = validate_project_for_tool(project)
         if not is_valid:
             return error_msg
 
@@ -94,16 +89,26 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
             return f"❌ Error syncing references: {str(e)}"
 
     @mcp.tool()
-    def count_words(filename: str, section: Optional[str] = None) -> str:
+    def count_words(
+        filename: str, section: Optional[str] = None, project: Optional[str] = None
+    ) -> str:
         """
         Count words by section. Essential for journal word limits.
 
         Args:
             filename: Draft filename (e.g., "draft.md")
             section: Specific section to count (optional, counts all if omitted)
+            project: Project slug (uses current if omitted)
         """
+        is_valid, error_msg = validate_project_for_tool(project)
+        if not is_valid:
+            return error_msg
+
         if not os.path.isabs(filename):
-            filename = os.path.join("drafts", filename)
+            drafts_dir = get_drafts_dir()
+            if not drafts_dir:
+                drafts_dir = "drafts"
+            filename = os.path.join(drafts_dir, filename)
 
         if not os.path.exists(filename):
             return f"Error: File not found: {filename}"

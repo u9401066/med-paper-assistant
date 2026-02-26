@@ -4,9 +4,9 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-02-25)
+## 當前焦點 (2026-02-26)
 
-Release v0.3.10 準備完成。新功能：Data Artifact Provenance + Author Info。全專案 ruff lint 清零。
+DRY 重構完成 + PDF 修復 + Review Loop Round 1 通過。準備提交。
 
 ### v0.3.10 變更摘要
 
@@ -24,7 +24,7 @@ Release v0.3.10 準備完成。新功能：Data Artifact Provenance + Author Inf
 - MCP Tools: **56+** (+2: update_authors, validate_data_artifacts)
 - Skills: **26**
 - Hooks: **52 checks** (A1-4 + B1-7 + C1-8 + D1-8 + E1-5 + F1-4 + P1-8 + G1-8)
-- Python unit tests: **312 passed** (integration tests excluded by default)
+- Python unit tests: **366 passed** (integration tests excluded by default)
 - Ruff errors: **0**
 
 ### 已知問題
@@ -33,10 +33,10 @@ Release v0.3.10 準備完成。新功能：Data Artifact Provenance + Author Inf
 
 ## 下一步
 
-- [ ] CHANGELOG 更新 + Git commit + push + tag v0.3.10
+- [ ] Git commit (refactor + fixes + review loop)
 - [ ] Phase 5c: Full VSX Extension 升級
 - [ ] Citation Intelligence MVP
 
 ## 更新時間
 
-2026-02-25
+2026-02-26

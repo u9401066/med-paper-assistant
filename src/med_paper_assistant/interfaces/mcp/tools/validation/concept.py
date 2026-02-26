@@ -15,24 +15,15 @@ from med_paper_assistant.domain.services.wikilink_validator import (
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
 
 from .._shared import (
-    ensure_project_context,
-    get_project_list_for_prompt,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    validate_project_for_tool,
 )
 
 # Global validator instance
 _concept_validator = ConceptValidator()
-
-
-def _validate_project_context(project: Optional[str]) -> tuple:
-    """Validate project context."""
-    is_valid, msg, project_info = ensure_project_context(project)
-    if not is_valid:
-        return False, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-    return True, None
 
 
 def register_concept_validation_tools(mcp: FastMCP):
@@ -67,7 +58,7 @@ def register_concept_validation_tools(mcp: FastMCP):
             },
         )
 
-        is_valid, error_msg = _validate_project_context(project)
+        is_valid, error_msg = validate_project_for_tool(project)
         if not is_valid:
             log_agent_misuse(
                 "validate_concept",
@@ -183,7 +174,7 @@ def register_concept_validation_tools(mcp: FastMCP):
         # Get project context
         references_dir = None
         if project:
-            is_valid, error_msg = _validate_project_context(project)
+            is_valid, error_msg = validate_project_for_tool(project)
             if not is_valid:
                 log_agent_misuse(
                     "validate_wikilinks",

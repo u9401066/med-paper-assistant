@@ -579,7 +579,10 @@ FOR round = 1 TO N:
     IF issue.id NOT IN author_response → FAIL（禁止忽略 issue）
   → 未回應的 issue 必須標記 DECLINE + 理由
 
-  ── Stage C: 執行修正 ──
+  ── Stage C: 執行修正（MANDATORY — 稿件必須被修改） ──
+  ⚠️ HARD ENFORCEMENT: submit_review_round() 會比對稿件 hash。
+  若稿件未修改 → 提交會被 REJECT。
+
   FOR each ACCEPTED issue:
     1. 定位 paragraph ID（from manuscript-plan.yaml）
     2. patch_draft() 修正
@@ -591,6 +594,18 @@ FOR round = 1 TO N:
     2. 快速 Hook A 驗證
 
   OPTIONAL + DECLINED issues → LOG only（不自動修正）
+
+  ── Stage C2: 敘事強化（MANDATORY — 即使無結構問題） ──
+  人類 reviewer 即使不要求結構修改，也會提升敘事品質。
+  AI reviewer 必須做到至少同等標準：
+    1. 選擇至少 3 段落進行「敘事強化」（tighten prose, improve transitions,
+       strengthen claims, eliminate redundancy, improve word economy）
+    2. 每段 patch_draft() 修正，附帶改善理由
+    3. 記錄到 author-response 的 "Narrative Enhancements" section
+
+  IF 沒有結構性 issue（全部 DECLINE 或 OPTIONAL only）：
+    → Stage C2 仍然 MANDATORY（最低改 3 段落）
+    → 目標：人類讀者應能看到「review 前」vs「review 後」有明顯差異
 
   ── Stage D: 品質重評 ──
   更新 quality-scorecard.md：

@@ -27,7 +27,9 @@ from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
     ensure_project_context,
+    get_drafts_dir,
     get_project_list_for_prompt,
+    get_project_path,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
@@ -37,23 +39,9 @@ from .._shared import (
 
 def _get_references_dir() -> Optional[str]:
     """Get the current project's references directory."""
-    from med_paper_assistant.infrastructure.persistence import get_project_manager
-
-    pm = get_project_manager()
-    current_info = pm.get_project_info()
-    if current_info and current_info.get("project_path"):
-        return os.path.join(str(current_info["project_path"]), "references")
-    return None
-
-
-def _get_drafts_dir() -> Optional[str]:
-    """Get the current project's drafts directory."""
-    from med_paper_assistant.infrastructure.persistence import get_project_manager
-
-    pm = get_project_manager()
-    current_info = pm.get_project_info()
-    if current_info and current_info.get("project_path"):
-        return os.path.join(str(current_info["project_path"]), "drafts")
+    project_path = get_project_path()
+    if project_path:
+        return os.path.join(project_path, "references")
     return None
 
 
@@ -193,7 +181,7 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
                 return error_msg
 
         # 1. Resolve file path
-        drafts_dir = _get_drafts_dir()
+        drafts_dir = get_drafts_dir()
         if not drafts_dir:
             drafts_dir = "drafts"
 

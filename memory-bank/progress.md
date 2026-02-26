@@ -29,10 +29,16 @@
 - Author Info: Author value object + generate_author_block + update_authors MCP tool
 - Full project ruff lint cleanup (60→0 errors)
 - Version 0.3.10 release preparation
+- PDF export fixes: author YAML, date removal, Unicode/emoji handling
+- DRY refactor: centralized shared helpers (\_shared/project_context.py)
+- Review loop fixes: \_active_loops cache invalidation, Severity enum
+- count_words path resolution fix
+- Review Loop Round 1 completed (quality 8.87/10)
+- validation/concept.py refactored to use shared helpers
 
 ## Doing
 
-- Release v0.3.10: CHANGELOG + Git commit + push + tag
+- (none)
 
 ## Next
 

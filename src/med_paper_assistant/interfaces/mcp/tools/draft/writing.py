@@ -17,39 +17,17 @@ from med_paper_assistant.infrastructure.services.concept_validator import Concep
 from med_paper_assistant.infrastructure.services.prompts import SECTION_PROMPTS
 
 from .._shared import (
-    ensure_project_context,
-    get_project_list_for_prompt,
+    get_concept_path,
+    get_drafts_dir,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    validate_project_for_tool,
 )
 
 # Global validator instance
 _concept_validator = ConceptValidator()
-
-
-def _get_drafts_dir() -> Optional[str]:
-    """Get the current project's drafts directory."""
-    from med_paper_assistant.infrastructure.persistence import get_project_manager
-
-    pm = get_project_manager()
-    current_info = pm.get_project_info()
-    if current_info and current_info.get("project_path"):
-        return os.path.join(str(current_info["project_path"]), "drafts")
-    return None
-
-
-def _get_concept_path() -> Optional[str]:
-    """Get the path to the current project's concept.md file."""
-    from med_paper_assistant.infrastructure.persistence import get_project_manager
-
-    pm = get_project_manager()
-    current_info = pm.get_project_info()
-
-    if current_info and current_info.get("project_path"):
-        return os.path.join(str(current_info["project_path"]), "concept.md")
-    return None
 
 
 def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
@@ -61,7 +39,7 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
 
     Note: Novelty score is advisory. Low score returns warning, not block.
     """
-    concept_path = _get_concept_path()
+    concept_path = get_concept_path()
 
     if not concept_path or not os.path.exists(concept_path):
         return (
@@ -149,14 +127,6 @@ def _validate_wikilinks_in_content(content: str, references_dir: Optional[str] =
     return fixed_content, report
 
 
-def _validate_project_context(project: Optional[str]) -> tuple:
-    """Validate project context before draft operations."""
-    is_valid, msg, project_info = ensure_project_context(project)
-    if not is_valid:
-        return False, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-    return True, None
-
-
 def _check_section_prerequisites(section_name: str) -> str:
     """
     Check writing order prerequisites for a section (advisory).
@@ -216,7 +186,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         """
         log_tool_call("check_writing_order", {"project": project})
 
-        is_valid, error_msg = _validate_project_context(project)
+        is_valid, error_msg = validate_project_for_tool(project)
         if not is_valid:
             return error_msg
 
@@ -315,7 +285,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             },
         )
 
-        is_valid, error_msg = _validate_project_context(project)
+        is_valid, error_msg = validate_project_for_tool(project)
         if not is_valid:
             log_agent_misuse(
                 "draft_section", "valid project context required", {"project": project}, error_msg
@@ -336,7 +306,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
 
         # 2. Gather Reference Context
         ref_context = ""
-        concept_path = _get_concept_path()
+        concept_path = get_concept_path()
         if concept_path and os.path.exists(concept_path):
             with open(concept_path, "r", encoding="utf-8") as f:
                 concept_content = f.read()
@@ -434,7 +404,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             },
         )
 
-        is_valid, error_msg = _validate_project_context(project)
+        is_valid, error_msg = validate_project_for_tool(project)
         if not is_valid:
             log_agent_misuse(
                 "write_draft", "valid project context required", {"project": project}, error_msg
@@ -509,14 +479,14 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         log_tool_call("list_drafts", {"project": project})
 
         if project:
-            is_valid, error_msg = _validate_project_context(project)
+            is_valid, error_msg = validate_project_for_tool(project)
             if not is_valid:
                 log_agent_misuse(
                     "list_drafts", "valid project context required", {"project": project}, error_msg
                 )
                 return error_msg
 
-        drafts_dir = _get_drafts_dir()
+        drafts_dir = get_drafts_dir()
         if not drafts_dir:
             drafts_dir = "drafts"
         if not os.path.exists(drafts_dir):
@@ -563,7 +533,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         log_tool_call("read_draft", {"filename": filename, "project": project})
 
         if project:
-            is_valid, error_msg = _validate_project_context(project)
+            is_valid, error_msg = validate_project_for_tool(project)
             if not is_valid:
                 log_agent_misuse(
                     "read_draft", "valid project context required", {"project": project}, error_msg
@@ -571,7 +541,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 return error_msg
 
         if not os.path.isabs(filename):
-            drafts_dir = _get_drafts_dir() or "drafts"
+            drafts_dir = get_drafts_dir() or "drafts"
             filename = os.path.join(drafts_dir, filename)
 
         if not os.path.exists(filename):
@@ -642,7 +612,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         )
 
         if project:
-            is_valid, error_msg = _validate_project_context(project)
+            is_valid, error_msg = validate_project_for_tool(project)
             if not is_valid:
                 log_agent_misuse(
                     "delete_draft",
@@ -654,7 +624,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
 
         # Resolve the full path
         if not os.path.isabs(filename):
-            drafts_dir = _get_drafts_dir() or "drafts"
+            drafts_dir = get_drafts_dir() or "drafts"
             filename = os.path.join(drafts_dir, filename)
 
         if not os.path.exists(filename):

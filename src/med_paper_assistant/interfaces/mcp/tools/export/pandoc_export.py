@@ -99,12 +99,24 @@ def register_pandoc_export_tools(mcp: FastMCP):
             os.makedirs(exports_dir, exist_ok=True)
             output_path = os.path.join(exports_dir, output_filename)
 
+            # Extract project metadata for title/author injection
+            project_info = pm.get_project_info()
+            metadata = None
+            if project_info.get("success"):
+                authors = project_info.get("authors", [])
+                metadata = {
+                    "title": project_info.get("name", ""),
+                    "authors": authors if authors else [],
+                    "date": project_info.get("created_at", "")[:10],  # YYYY-MM-DD
+                }
+
             # Run the export pipeline
             result = pipeline.export_docx(
                 draft_path=draft_path,
                 output_path=output_path,
                 csl_style=csl_style,
                 reference_doc=reference_doc,
+                metadata=metadata,
             )
 
             # Build report
@@ -129,6 +141,99 @@ def register_pandoc_export_tools(mcp: FastMCP):
         except Exception as e:
             log_tool_error("export_docx", e, {"draft": draft_filename})
             return f"❌ Export failed: {e}"
+
+    @mcp.tool()
+    def export_pdf(
+        draft_filename: str,
+        output_filename: Optional[str] = None,
+        csl_style: str = "vancouver",
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        Export a draft to PDF with properly formatted citations.
+
+        Requires a LaTeX engine (pdflatex, xelatex, or lualatex).
+        Converts [[wikilink]] citations → [@key] → formatted citations via Pandoc citeproc.
+
+        Args:
+            draft_filename: Draft file name (e.g., "manuscript.md")
+            output_filename: Output file name (default: same name with .pdf extension)
+            csl_style: Citation style (vancouver, apa, nature, etc.)
+            project: Project slug (uses current project if omitted)
+        """
+        log_tool_call(
+            "export_pdf",
+            {"draft": draft_filename, "style": csl_style, "project": project},
+        )
+
+        is_valid, msg, _ = ensure_project_context(project)
+        if not is_valid:
+            return msg
+
+        try:
+            pipeline, pm = _get_pipeline()
+
+            if not pipeline._pandoc or not pipeline._pandoc.available:
+                return (
+                    "❌ **Pandoc not available**\n\n"
+                    "Install Pandoc:\n"
+                    "- `sudo apt install pandoc texlive-latex-base`\n"
+                    "- macOS: `brew install pandoc basictex`"
+                )
+
+            paths = pm.get_project_paths()
+            drafts_dir = paths.get("drafts", "drafts")
+            draft_path = os.path.join(drafts_dir, draft_filename)
+
+            if not os.path.exists(draft_path):
+                return f"❌ Draft file not found: `{draft_filename}`"
+
+            if not output_filename:
+                base = os.path.splitext(draft_filename)[0]
+                output_filename = f"{base}.pdf"
+
+            exports_dir = os.path.join(os.path.dirname(drafts_dir), "exports")
+            os.makedirs(exports_dir, exist_ok=True)
+            output_path = os.path.join(exports_dir, output_filename)
+
+            # Extract project metadata for title/author injection
+            project_info = pm.get_project_info()
+            metadata = None
+            if project_info.get("success"):
+                authors = project_info.get("authors", [])
+                metadata = {
+                    "title": project_info.get("name", ""),
+                    "authors": authors if authors else [],
+                }
+
+            result = pipeline.export_pdf(
+                draft_path=draft_path,
+                output_path=output_path,
+                csl_style=csl_style,
+                metadata=metadata,
+            )
+
+            output = "✅ **PDF exported successfully**\n\n"
+            output += f"📄 Output: `{result['output_path']}`\n"
+            output += f"📚 Citations converted: {result['citations_converted']}\n"
+            output += f"🎨 Citation style: {csl_style}\n"
+
+            if result.get("citation_keys"):
+                output += f"\n**Citation keys** ({len(result['citation_keys'])}):\n"
+                for key in result["citation_keys"]:
+                    output += f"- `{key}`\n"
+
+            if result.get("warnings"):
+                output += "\n⚠️ **Warnings:**\n"
+                for w in result["warnings"]:
+                    output += f"- {w}\n"
+
+            log_tool_result("export_pdf", output_path, success=True)
+            return output
+
+        except Exception as e:
+            log_tool_error("export_pdf", e, {"draft": draft_filename})
+            return f"❌ PDF export failed: {e}"
 
     @mcp.tool()
     def preview_citations(

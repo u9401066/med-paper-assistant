@@ -12,7 +12,9 @@ Tools:
 - submit_review_round: Complete a review round with scores + verdict
 """
 
+import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -65,12 +67,16 @@ def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> 
     project_path = Path(project_dir)
     slug = project_path.name
 
-    if slug in _active_loops:
-        return _active_loops[slug]
-
-    # Try to load from checkpoint
     audit_dir = project_path / ".audit"
     loop_file = audit_dir / "audit-loop-review.json"
+
+    # If cached loop is completed and checkpoint file is gone, evict stale cache
+    if slug in _active_loops:
+        cached = _active_loops[slug]
+        if cached.is_completed and not loop_file.is_file():
+            del _active_loops[slug]
+        else:
+            return cached
 
     # Create loop config
     loop_config = AuditLoopConfig(
@@ -131,6 +137,30 @@ def _sync_to_workspace_state(
     except Exception:
         # Non-fatal: don't let state sync failure break the gate tool
         pass  # nosec B110 - intentional: state sync is best-effort
+
+
+def _compute_manuscript_hash(project_dir: str | Path) -> str:
+    """Compute SHA-256 hash of the manuscript file for change detection."""
+    manuscript = Path(project_dir) / "drafts" / "manuscript.md"
+    if not manuscript.is_file():
+        return ""
+    content = manuscript.read_bytes()
+    return hashlib.sha256(content).hexdigest()
+
+
+def _count_review_report_issues(audit_dir: Path, round_num: int) -> dict[str, int]:
+    """Parse review-report YAML frontmatter to count reported issues."""
+    report_path = audit_dir / f"review-report-{round_num}.md"
+    if not report_path.is_file():
+        return {"major": 0, "minor": 0, "optional": 0}
+    content = report_path.read_text(encoding="utf-8")
+    # Parse YAML frontmatter totals
+    counts: dict[str, int] = {"major": 0, "minor": 0, "optional": 0}
+    for key in counts:
+        match = re.search(rf"^\s*{key}:\s*(\d+)", content, re.MULTILINE)
+        if match:
+            counts[key] = int(match.group(1))
+    return counts
 
 
 def register_pipeline_tools(
@@ -346,7 +376,10 @@ def register_pipeline_tools(
                 config={"max_rounds": max_rounds, "quality_threshold": quality_threshold},
             )
 
-            context = loop.start_round()
+            # Compute manuscript hash BEFORE the round starts
+            ms_hash = _compute_manuscript_hash(project_dir)
+
+            context = loop.start_round(artifact_hash=ms_hash)
             round_num = context.get("round", 1)
 
             # Save state immediately
@@ -374,7 +407,9 @@ def register_pipeline_tools(
                 f"3. Write `.audit/review-report-{round_num}.md` with YAML front matter",
                 f"4. Write `.audit/author-response-{round_num}.md` (ACCEPT/DECLINE each issue)",
                 f"5. Write `.audit/equator-compliance-{round_num}.md` (or equator-na-{round_num}.md)",
-                "6. Apply fixes to the manuscript",
+                "6. **MANDATORY**: Apply fixes to the manuscript using `patch_draft()`",
+                "   - Even if no structural issues, MUST strengthen narrative (tighten prose, improve transitions)",
+                "   - Manuscript MUST be modified — hash is checked at submit time",
                 "7. Call `submit_review_round()` with updated quality scores",
                 "",
             ]
@@ -423,8 +458,14 @@ def register_pipeline_tools(
         """
         ✅ Submit a completed review round with quality scores.
 
-        Call this AFTER writing review-report and author-response files.
-        Returns the verdict: CONTINUE, QUALITY_MET, MAX_ROUNDS, or STAGNATED.
+        Call this AFTER writing review-report and author-response files,
+        AND after applying fixes to the manuscript.
+
+        ENFORCEMENT:
+        - review-report-{N}.md MUST exist
+        - author-response-{N}.md MUST exist
+        - Manuscript MUST have been modified (hash comparison)
+        - issues_found MUST be > 0 (a real review always finds something)
 
         Args:
             scores: JSON string of dimension scores, e.g.:
@@ -448,6 +489,74 @@ def register_pipeline_tools(
             project_dir = Path(project_info["project_path"])
 
             loop = _get_or_create_loop(project_dir)
+            audit_dir = project_dir / ".audit"
+
+            # ── Enforcement: Artifact verification ──
+            round_num = loop.current_round_number
+            enforcement_failures: list[str] = []
+
+            # Check review-report exists
+            review_report = audit_dir / f"review-report-{round_num}.md"
+            if not review_report.is_file():
+                enforcement_failures.append(
+                    f"❌ Missing `.audit/review-report-{round_num}.md` — "
+                    "write the review report before submitting"
+                )
+
+            # Check author-response exists
+            author_response = audit_dir / f"author-response-{round_num}.md"
+            if not author_response.is_file():
+                enforcement_failures.append(
+                    f"❌ Missing `.audit/author-response-{round_num}.md` — "
+                    "write the author response before submitting"
+                )
+
+            # Check manuscript was actually modified (hash comparison)
+            current_hash = _compute_manuscript_hash(project_dir)
+            start_hash = getattr(loop, "_artifact_hash_start", "")
+            # Also check round records for start hash
+            if not start_hash and loop._rounds:
+                # Fallback: check if we stored it in last incomplete round tracking
+                pass
+
+            if start_hash and current_hash and start_hash == current_hash:
+                enforcement_failures.append(
+                    "❌ Manuscript NOT modified — hash unchanged since round start. "
+                    "A review MUST produce actual changes (use `patch_draft()` to apply fixes). "
+                    "Even if no structural issues exist, strengthen narrative, tighten prose, "
+                    "or improve transitions."
+                )
+
+            # Check issues_found is realistic
+            if issues_found == 0:
+                # Cross-check with review-report if it exists
+                if review_report.is_file():
+                    report_counts = _count_review_report_issues(audit_dir, round_num)
+                    total_in_report = sum(report_counts.values())
+                    if total_in_report > 0:
+                        enforcement_failures.append(
+                            f"❌ issues_found=0 but review-report-{round_num}.md contains "
+                            f"{total_in_report} issues ({report_counts}). "
+                            f"Set issues_found={total_in_report} and fix the accepted ones."
+                        )
+                else:
+                    enforcement_failures.append(
+                        "⚠️ issues_found=0 is suspicious — a thorough review almost always "
+                        "finds at least narrative improvements. Ensure you reviewed carefully."
+                    )
+
+            # If enforcement failures, REJECT the submission
+            if enforcement_failures:
+                failure_report = (
+                    f"# 🚫 Review Round {round_num} Submission REJECTED\n\n"
+                    + "The following enforcement checks failed:\n\n"
+                    + "\n".join(f"- {f}" for f in enforcement_failures)
+                    + "\n\nFix these issues and call `submit_review_round()` again."
+                )
+                log_tool_result("submit_review_round", "REJECTED: enforcement failures")
+                return failure_report
+
+            # ── Enforcement passed — proceed with normal submission ──
 
             # Parse scores
             try:
@@ -455,11 +564,11 @@ def register_pipeline_tools(
             except json.JSONDecodeError:
                 return '❌ Invalid scores JSON. Expected format: {"citation_quality": 8, ...}'
 
-            # Record issues and fixes (simplified — agent already wrote the files)
+            # Record issues and fixes
             for i in range(issues_found):
                 loop.record_issue(
                     hook_id="review_round",
-                    severity=Severity.MEDIUM,
+                    severity=Severity.MAJOR,
                     description=f"Issue {i + 1} from review round",
                     suggested_fix="See author response for details",
                 )
@@ -470,8 +579,8 @@ def register_pipeline_tools(
                     success=True,
                 )
 
-            # Complete the round
-            verdict = loop.complete_round(score_dict)
+            # Complete the round with manuscript hash
+            verdict = loop.complete_round(score_dict, artifact_hash=current_hash)
 
             # Save state
             loop.save()
@@ -513,6 +622,7 @@ def register_pipeline_tools(
                 "",
                 f"**Rounds Completed**: {status['current_round']}/{status['max_rounds']}",
                 f"**Weighted Score**: {status.get('latest_weighted_score', 'N/A')}",
+                "**Manuscript Modified**: ✅ (hash changed)",
                 "",
                 "## Scores This Round",
                 "",

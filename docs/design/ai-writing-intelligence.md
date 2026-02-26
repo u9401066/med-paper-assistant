@@ -472,15 +472,18 @@ src/med_paper_assistant/
 ## 📝 開放問題
 
 1. **Embedding 模型選擇**
+
    - `all-MiniLM-L6-v2`：快速、輕量
    - `all-mpnet-base-v2`：更準確但較慢
    - 是否需要 fine-tune 醫學領域？
 
 2. **引用驗證的深度**
+
    - 只看 abstract 夠嗎？
    - 如果有 fulltext PDF，如何處理？
 
 3. **與 Agent 的互動模式**
+
    - 主動模式：寫作時自動呼叫
    - 被動模式：用戶/Agent 明確請求
    - 混合模式：關鍵步驟強制檢查

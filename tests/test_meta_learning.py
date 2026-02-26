@@ -526,3 +526,290 @@ class TestMetaLearningEngine:
             if adj["auto_apply"]:
                 # If auto_apply is True, it must be within bounds
                 assert adj["within_bounds"] is True
+
+    # --- D1 Hook Coverage Gap ---
+
+    def test_hook_coverage_detects_missing_hooks(
+        self,
+        engine: MetaLearningEngine,
+        tracker: HookEffectivenessTracker,
+    ):
+        """Engine should detect hooks that were never evaluated."""
+        # Only record A1 — all others are missing
+        tracker.record_event("A1", "trigger")
+        tracker.record_event("A1", "fix")
+
+        result = engine.analyze()
+        coverage_lessons = [ls for ls in result["lessons"] if ls["category"] == "hook_coverage_gap"]
+        assert len(coverage_lessons) > 0
+        # Should flag missing layers
+        all_text = " ".join(ls["lesson"] for ls in coverage_lessons)
+        assert "never evaluated" in all_text
+
+    def test_hook_coverage_reports_low_percentage(
+        self,
+        engine: MetaLearningEngine,
+        tracker: HookEffectivenessTracker,
+    ):
+        """Low coverage percentage should produce a process_gap lesson."""
+        # Record only 2 hooks out of ~35 expected
+        tracker.record_event("A1", "pass")
+        tracker.record_event("B1", "pass")
+
+        result = engine.analyze()
+        gap_lessons = [
+            ls
+            for ls in result["lessons"]
+            if ls["category"] == "process_gap" and "coverage" in ls["lesson"].lower()
+        ]
+        assert len(gap_lessons) > 0
+
+    # --- D2 Relative Weakness ---
+
+    def test_relative_weakness_always_found(
+        self,
+        engine: MetaLearningEngine,
+        scorecard: QualityScorecard,
+    ):
+        """Even with all scores >= 7, the lowest dimension should be flagged."""
+        for dim in DIMENSIONS:
+            scorecard.set_score(dim, 8, "Good")
+        # Set one to 7 (still passes absolute threshold)
+        scorecard.set_score("figure_table_quality", 7, "Adequate")
+
+        result = engine.analyze()
+        improvement_lessons = [
+            ls for ls in result["lessons"] if ls["category"] == "improvement_opportunity"
+        ]
+        assert len(improvement_lessons) == 1
+        assert "figure_table_quality" in improvement_lessons[0]["lesson"]
+        assert "weakest dimension" in improvement_lessons[0]["lesson"]
+
+    def test_no_relative_weakness_when_absolute_gap_exists(
+        self,
+        engine: MetaLearningEngine,
+        scorecard: QualityScorecard,
+    ):
+        """If there's already an absolute weak dimension, don't double-flag."""
+        for dim in DIMENSIONS:
+            scorecard.set_score(dim, 8, "Good")
+        scorecard.set_score("text_quality", 4, "Poor")  # Below 6.0 threshold
+
+        result = engine.analyze()
+        # Should have quality_gap but NOT improvement_opportunity
+        has_gap = any(ls["category"] == "quality_gap" for ls in result["lessons"])
+        has_improvement = any(
+            ls["category"] == "improvement_opportunity" for ls in result["lessons"]
+        )
+        assert has_gap
+        assert not has_improvement
+
+    # --- D5 Project Completeness ---
+
+    def test_missing_journal_profile(
+        self,
+        engine: MetaLearningEngine,
+    ):
+        """Missing journal-profile.yaml should be flagged."""
+        result = engine.analyze()
+        config_lessons = [ls for ls in result["lessons"] if ls["category"] == "configuration_gap"]
+        # audit_dir.parent has no journal-profile.yaml in tmp
+        assert len(config_lessons) > 0
+
+    def test_blank_journal_name_detected(
+        self,
+        audit_dir: Path,
+        engine: MetaLearningEngine,
+    ):
+        """Blank journal name in profile should produce a warning."""
+        profile = audit_dir.parent / "journal-profile.yaml"
+        profile.write_text(
+            yaml.dump({"journal": {"name": ""}, "references": {"style": "vancouver"}}),
+            encoding="utf-8",
+        )
+        result = engine.analyze()
+        config_lessons = [
+            ls
+            for ls in result["lessons"]
+            if ls["category"] == "configuration_gap" and "journal name" in ls["lesson"]
+        ]
+        assert len(config_lessons) == 1
+
+    def test_missing_concept_md(
+        self,
+        engine: MetaLearningEngine,
+    ):
+        """Missing concept.md should be flagged."""
+        result = engine.analyze()
+        doc_lessons = [
+            ls
+            for ls in result["lessons"]
+            if ls["category"] == "documentation_gap" and "concept.md" in ls["lesson"]
+        ]
+        assert len(doc_lessons) == 1
+
+    def test_completeness_passes_with_all_files(
+        self,
+        audit_dir: Path,
+        engine: MetaLearningEngine,
+    ):
+        """With all files present and configured, no completeness gaps."""
+        project_dir = audit_dir.parent
+        # Create journal-profile.yaml
+        (project_dir / "journal-profile.yaml").write_text(
+            yaml.dump({"journal": {"name": "JAMIA"}, "references": {"style": "vancouver"}}),
+            encoding="utf-8",
+        )
+        # Create concept.md
+        (project_dir / "concept.md").write_text("# Concept\nTest", encoding="utf-8")
+        # Create .memory/
+        mem_dir = project_dir / ".memory"
+        mem_dir.mkdir(exist_ok=True)
+        (mem_dir / "activeContext.md").write_text("# Context", encoding="utf-8")
+        (mem_dir / "progress.md").write_text("# Progress", encoding="utf-8")
+
+        result = engine.analyze()
+        gap_lessons = [
+            ls
+            for ls in result["lessons"]
+            if ls["category"] in ("configuration_gap", "documentation_gap")
+        ]
+        assert len(gap_lessons) == 0
+
+    # --- D7 Review Retrospective ---
+
+    def test_d7_no_review_reports(
+        self,
+        engine: MetaLearningEngine,
+    ):
+        """Without review-report files, D7 should flag the gap."""
+        result = engine.analyze()
+        review_lessons = [
+            ls
+            for ls in result["lessons"]
+            if ls["category"] == "review_gap" and "No review-report" in ls["lesson"]
+        ]
+        assert len(review_lessons) == 1
+
+    def test_d7_detects_unchanged_hash(
+        self,
+        audit_dir: Path,
+        engine: MetaLearningEngine,
+    ):
+        """D7 should flag when manuscript hash didn't change during review."""
+        import json
+
+        # Create review artifacts
+        (audit_dir / "review-report-1.md").write_text("# Review", encoding="utf-8")
+        (audit_dir / "author-response-1.md").write_text("# Response", encoding="utf-8")
+        # Create audit-loop-review.json with same start/end hash
+        loop_data = {
+            "rounds": [
+                {
+                    "round_number": 1,
+                    "artifact_hash_start": "abc123",
+                    "artifact_hash_end": "abc123",  # SAME = not modified
+                    "issues": [],
+                    "fixes": [],
+                }
+            ]
+        }
+        (audit_dir / "audit-loop-review.json").write_text(json.dumps(loop_data), encoding="utf-8")
+
+        result = engine.analyze()
+        integrity_lessons = [
+            ls
+            for ls in result["lessons"]
+            if ls["category"] == "review_integrity" and "unchanged" in ls["lesson"]
+        ]
+        assert len(integrity_lessons) == 1
+        assert integrity_lessons[0]["severity"] == "critical"
+
+    def test_d7_detects_issues_without_fixes(
+        self,
+        audit_dir: Path,
+        engine: MetaLearningEngine,
+    ):
+        """D7 should flag when issues were found but none fixed."""
+        import json
+
+        (audit_dir / "review-report-1.md").write_text("# Review", encoding="utf-8")
+        (audit_dir / "author-response-1.md").write_text("# Response", encoding="utf-8")
+        loop_data = {
+            "rounds": [
+                {
+                    "round_number": 1,
+                    "artifact_hash_start": "abc",
+                    "artifact_hash_end": "def",
+                    "issues": [{"desc": "issue1"}, {"desc": "issue2"}],
+                    "fixes": [],
+                }
+            ]
+        }
+        (audit_dir / "audit-loop-review.json").write_text(json.dumps(loop_data), encoding="utf-8")
+
+        result = engine.analyze()
+        fix_lessons = [
+            ls
+            for ls in result["lessons"]
+            if ls["category"] == "review_integrity" and "0 fixes" in ls["lesson"]
+        ]
+        assert len(fix_lessons) == 1
+
+    # --- D8 EQUATOR Retrospective ---
+
+    def test_d8_no_equator_reports(
+        self,
+        engine: MetaLearningEngine,
+    ):
+        """Without EQUATOR reports, D8 should note the gap."""
+        result = engine.analyze()
+        equator_lessons = [ls for ls in result["lessons"] if ls["category"] == "equator_gap"]
+        assert len(equator_lessons) == 1
+
+    def test_d8_detects_non_compliant_items(
+        self,
+        audit_dir: Path,
+        engine: MetaLearningEngine,
+    ):
+        """D8 should flag non-compliant EQUATOR items."""
+        (audit_dir / "equator-compliance-1.md").write_text(
+            "# EQUATOR\n- Item 1: Compliant\n- Item 2: Non-Compliant\n"
+            "- Item 3: Not Reported\n- Item 4: Partial\n",
+            encoding="utf-8",
+        )
+
+        result = engine.analyze()
+        eq_lessons = [ls for ls in result["lessons"] if ls["category"] == "equator_finding"]
+        assert len(eq_lessons) >= 1
+        all_text = " ".join(ls["lesson"] for ls in eq_lessons)
+        assert "non-compliant" in all_text.lower() or "Non-Compliant" in all_text
+
+    # --- First-run awareness in D4-D5 ---
+
+    def test_first_run_flags_trigger_without_fix(
+        self,
+        engine: MetaLearningEngine,
+        tracker: HookEffectivenessTracker,
+    ):
+        """First run with trigger but no fix should suggest verification."""
+        tracker.record_event("C7", "trigger")
+        tracker.record_event("C7", "pass")
+
+        result = engine.analyze()
+        verify_suggestions = [
+            s
+            for s in result["suggestions"]
+            if s["type"] == "verify_fix_mechanism" and "C7" in s["target"]
+        ]
+        assert len(verify_suggestions) == 1
+
+    # --- Integration: analyze() produces non-empty output ---
+
+    def test_analyze_always_produces_lessons(
+        self,
+        engine: MetaLearningEngine,
+    ):
+        """Even with no hook data, analyze must still produce lessons (completeness checks)."""
+        result = engine.analyze()
+        assert len(result["lessons"]) > 0, "analyze() must always find SOMETHING to improve"

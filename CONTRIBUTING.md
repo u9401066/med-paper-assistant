@@ -182,6 +182,7 @@ git push origin feature/your-feature-name
 When opening an issue, please include:
 
 - **Bug reports:**
+
   - Steps to reproduce
   - Expected behavior
   - Actual behavior
@@ -378,6 +379,7 @@ git push origin feature/您的功能名稱
 開啟 Issue 時，請包含：
 
 - **錯誤回報：**
+
   - 重現步驟
   - 預期行為
   - 實際行為

@@ -117,10 +117,12 @@ async def create_study_flowchart(concept_file: str):
 ### 短期 (現在可做): Option B + D
 
 1. **修改 next-ai-draw-io**:
+
    - 確保 `/api/mcp` 可以接收圖表並即時顯示
    - 加入 WebSocket 即時更新
 
 2. **修改 drawio MCP**:
+
    - `create_diagram` 成功後自動發送到瀏覽器
    - 返回 `browser_url` 提示用戶/Copilot 開啟
 
@@ -138,10 +140,12 @@ async def create_study_flowchart(concept_file: str):
 ## 實作優先順序
 
 1. **Phase 1**: 修改 drawio MCP 的 `create_diagram`
+
    - 確保圖表發送到 Next.js 即時顯示
    - 這部分 **已經在做** (`send_to_browser=true`)
 
 2. **Phase 2**: 修改 Copilot Agent 行為
+
    - 在 `instructions.py` 中加入指引
    - 當生成圖表後自動開啟瀏覽器
 
@@ -186,10 +190,12 @@ src/med_paper_assistant/interfaces/mcp/
 ### 新需求分析
 
 1. **MCP 啟動時自動啟動 Draw.io Web**
+
    - Draw.io MCP 啟動時 → 自動執行 `npm run dev`
    - 確保 Next.js 服務在 MCP 工具可用前就緒
 
 2. **Web 頁面一次只顯示一張圖**
+
    - 多張圖需要「分頁管理」
    - 每個分頁 = 一個獨立的圖表會話
 
@@ -389,11 +395,13 @@ export function TabBar({ tabs, activeTabId, onSwitch, onClose, onCreate }) {
 ### 實作優先順序
 
 1. **Phase 1: MCP 啟動自動啟動 Web** (最重要)
+
    - [ ] 修改 `server.py` 加入 `start_web_server()`
    - [ ] 加入健康檢查 API `/api/health`
    - [ ] 測試 MCP 啟動時 Web 自動啟動
 
 2. **Phase 2: 基本分頁管理**
+
    - [ ] 新增 `/api/tabs` API
    - [ ] 前端 TabBar 組件
    - [ ] MCP `list_tabs`, `switch_tab` 工具

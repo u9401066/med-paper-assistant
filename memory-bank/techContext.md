@@ -52,7 +52,7 @@ med-paper-assistant/
 - **OS**: Windows (primary), Linux (CI)
 - **Agent**: Claude Opus 4.6 (via GitHub Copilot)
 - **Python**: 3.12+ required (uv managed)
-- **Known Issue**: application/__init__.py import chain broken (missing pubmed, search_literature)
+- **Known Issue**: application/**init**.py import chain broken (missing pubmed, search_literature)
 
 ## Installation
 

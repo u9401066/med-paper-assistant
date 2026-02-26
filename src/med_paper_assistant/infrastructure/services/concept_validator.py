@@ -724,9 +724,7 @@ class ConceptValidator:
                 "Some differentiation provided, but could be more systematic."
             )
             methodologist["score"] = 75
-            methodologist["questions"].append(
-                "Can you provide a structured comparison table?"
-            )
+            methodologist["questions"].append("Can you provide a structured comparison table?")
         else:
             methodologist["comment"] = "Methodological differentiation is well-articulated."
             methodologist["score"] = 85

@@ -25,10 +25,12 @@
 ### 現況問題
 
 1. **強制線性流程**
+
    - 目前架構假設：建立專案 → 寫 concept → 搜尋文獻 → 撰寫
    - 實際研究者可能：先搜尋 → 找到好論文 → 才決定研究方向
 
 2. **阻力過高**
+
    - 使用者只是想「先找找看」，卻被要求先建立專案
    - 導致使用者放棄或在專案外操作（遺失追蹤）
 
@@ -351,6 +353,7 @@ Agent: 要將這些文獻連結到 remimazolam-review 嗎？
 ### Phase 1: Foundation (Week 1-2)
 
 1. **建立 Staging Infrastructure**
+
    - [ ] 建立 `_workspace/` 目錄結構
    - [ ] 實作 `ArtifactRegistry` 類別
    - [ ] 實作 registry CRUD 操作
@@ -362,6 +365,7 @@ Agent: 要將這些文獻連結到 remimazolam-review 嗎？
 ### Phase 2: Exploration Tools (Week 3-4)
 
 3. **新工具開發**
+
    - [ ] `start_exploration`
    - [ ] `get_exploration_status`
    - [ ] `list_staged_artifacts`
@@ -377,6 +381,7 @@ Agent: 要將這些文獻連結到 remimazolam-review 嗎？
 ### Phase 3: Integration (Week 5-6)
 
 5. **Agent 指引更新**
+
    - [ ] 更新 skill files 支援新流程
    - [ ] 新增探索模式 prompt templates
 
@@ -421,10 +426,12 @@ Agent: 要將這些文獻連結到 remimazolam-review 嗎？
 ## ❓ Open Questions
 
 1. **Staging 清理策略**
+
    - 多久未使用的成品應該歸檔/刪除？
    - 是否需要「垃圾桶」機制？
 
 2. **跨 Workspace 共享**
+
    - 是否支援多個 workspace 共享成品庫？
    - 如何處理團隊協作場景？
 

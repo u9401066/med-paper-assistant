@@ -2,14 +2,19 @@
 Save Reference Use Case.
 
 Handles saving a reference to the local library.
+
+Note: PubMed search functionality is now provided by pubmed-search MCP server.
+This use case is kept for backward compatibility but is not used in MCP workflows.
+The actual save_reference_mcp tool bypasses this class entirely.
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
 
-from med_paper_assistant.infrastructure.external.pubmed import PubMedClient
-from med_paper_assistant.infrastructure.external.pubmed.parser import PubMedParser
-from med_paper_assistant.infrastructure.persistence import ReferenceRepository
-from med_paper_assistant.shared.exceptions import ReferenceNotFoundError
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    pass
 
 
 @dataclass
@@ -35,53 +40,22 @@ class SaveReferenceUseCase:
     """
     Use case for saving a reference to the local library.
 
-    This use case:
-    1. Fetches reference details from PubMed
-    2. Saves metadata and abstract to disk
-    3. Optionally downloads PDF from PMC
+    DEPRECATED: This use case relied on the removed PubMed client.
+    The actual workflow now uses ``save_reference_mcp`` MCP tool which
+    bypasses this class entirely.  Kept as a stub for import compatibility.
     """
 
-    def __init__(self, repository: ReferenceRepository, pubmed_client: PubMedClient):
+    def __init__(self, repository: Any, pubmed_client: Any = None):
         self.repository = repository
         self.client = pubmed_client
 
     def execute(self, input_data: SaveReferenceInput) -> SaveReferenceOutput:
-        """
-        Execute the save reference use case.
-
-        Args:
-            input_data: Input containing PMID and options.
-
-        Returns:
-            SaveReferenceOutput with details.
+        """Execute the save reference use case.
 
         Raises:
-            ReferenceNotFoundError: If PMID not found on PubMed.
+            NotImplementedError: Always. Use save_reference_mcp instead.
         """
-        # Fetch from PubMed
-        result = self.client.fetch_by_pmid(input_data.pmid)
-        if result is None:
-            raise ReferenceNotFoundError(f"PMID {input_data.pmid} not found on PubMed.")
-
-        # Convert to Reference entity
-        reference = PubMedParser.to_reference(result.to_dict())
-
-        # Save to repository
-        saved = self.repository.save(reference)
-
-        # Download PDF if requested
-        pdf_downloaded = False
-        if input_data.download_pdf and result.pmc_id:
-            pdf_content = self.client.download_pdf(input_data.pmid)
-            if pdf_content:
-                self.repository.save_pdf(input_data.pmid, pdf_content)
-                pdf_downloaded = True
-
-        return SaveReferenceOutput(
-            pmid=saved.pmid or saved.unique_id,
-            title=saved.title,
-            has_pdf=pdf_downloaded,
-            path=str(self.repository.base_dir / saved.unique_id),
-            message=f"Reference {saved.unique_id} saved successfully."
-            + (" PDF downloaded." if pdf_downloaded else ""),
+        raise NotImplementedError(
+            "SaveReferenceUseCase is deprecated. "
+            "Use save_reference_mcp (MCP-to-MCP verified) instead."
         )

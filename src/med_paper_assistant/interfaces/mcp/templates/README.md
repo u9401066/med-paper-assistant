@@ -38,12 +38,14 @@ templates/
 ### How it works | 運作方式
 
 1. **`concept_base.md`** contains:
+
    - Project header with variables (`{{PROJECT_NAME}}`, `{{PAPER_TYPE}}`, etc.)
    - 🔒 Protected sections (NOVELTY STATEMENT, KEY SELLING POINTS, Author Notes)
    - 📝 Common editable sections (Background, Research Gap, Expected Outcomes)
    - `{{PAPER_TYPE_SECTIONS}}` placeholder for paper-type specific content
 
 2. **Paper-type templates** (e.g., `concept_meta_analysis.md`) contain:
+
    - Sections specific to that paper type
    - Required fields for that methodology
 
