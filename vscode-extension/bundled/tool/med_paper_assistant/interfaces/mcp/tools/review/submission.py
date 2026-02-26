@@ -146,10 +146,20 @@ JOURNAL_REQUIREMENTS: dict[str, JournalReqs] = {
         "graphical_abstract": False,
         "author_contributions": False,
         "conflict_of_interest": True,
-        "ethics_statement": False,
+        "ethics_statement": True,
         "data_availability": False,
         "orcid": "optional",
-        "notes": "Preprint server — no peer review. Max file size 30MB. Accepts Word/PDF.",
+        "notes": (
+            "Preprint server — no peer review. Max file size 30MB. "
+            "Two-stage screening: (1) in-house staff check scope, ethics, "
+            "patient privacy, clinical trial registration, plagiarism; "
+            "(2) volunteer Affiliates assess clinical relevance and public harm. "
+            "Requires: ethics declaration, clinical trial ID (if interventional), "
+            "competing interests statement, methods and data sections. "
+            "Not accepted: narrative reviews, commentaries, opinions, "
+            "case reports/series, editorials. "
+            "Screening typically takes 2-4 days."
+        ),
     },
     "jamia": {
         "name": "Journal of the American Medical Informatics Association",

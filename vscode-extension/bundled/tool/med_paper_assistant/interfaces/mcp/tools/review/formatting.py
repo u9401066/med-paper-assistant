@@ -37,6 +37,9 @@ from .consistency import (
     _check_table_figure_refs,
 )
 
+# Import medRxiv screening checks
+from .medrxiv_screening import run_medrxiv_screening
+
 # Import journal requirements from submission module
 from .submission import JOURNAL_REQUIREMENTS
 
@@ -300,6 +303,19 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
                 }
             )
 
+        # ── Part 2.5: medRxiv screening (when journal is medRxiv) ────────
+        medrxiv_report = None
+        if journal_key == "medrxiv":
+            medrxiv_report = run_medrxiv_screening(all_content)
+            for si in medrxiv_report.issues:
+                issues.append(
+                    {
+                        "severity": si.severity,
+                        "item": f"[medRxiv] {si.category}",
+                        "detail": si.description + (f" — {si.suggestion}" if si.suggestion else ""),
+                    }
+                )
+
         # ── Part 3: Submission checklist (optional) ──────────────────────
         submission_items: list[dict[str, str]] = []
         if check_submission:
@@ -408,11 +424,35 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
         if submission_items:
             output += "## 📋 Submission Checklist\n\n"
             sub_icons = {"pass": "✅", "fail": "❌", "warning": "⚠️"}
-            for si in submission_items:
-                icon = sub_icons.get(si["status"], "❓")
-                detail = f" — {si['detail']}" if si["detail"] else ""
-                output += f"- {icon} {si['item']}{detail}\n"
+            for item in submission_items:
+                icon = sub_icons.get(item["status"], "❓")
+                detail = f" — {item['detail']}" if item["detail"] else ""
+                output += f"- {icon} {item['item']}{detail}\n"
             output += "\n"
+
+        # medRxiv screening summary
+        if medrxiv_report is not None:
+            output += "## 🏥 medRxiv Pre-Submission Screening\n\n"
+            output += (
+                "Automated checks mirroring medRxiv's two-stage screening process "
+                "(in-house + affiliate review).\n\n"
+            )
+            screening_errors = medrxiv_report.error_count
+            screening_warnings = medrxiv_report.warning_count
+            screening_total = len(medrxiv_report.issues)
+            if screening_total == 0:
+                output += "✅ **All medRxiv screening checks passed.**\n\n"
+            else:
+                output += (
+                    f"- ❌ Errors: {screening_errors}\n"
+                    f"- ⚠️ Warnings: {screening_warnings}\n"
+                    f"- ℹ️ Info: {screening_total - screening_errors - screening_warnings}\n\n"
+                )
+                if screening_errors > 0:
+                    output += (
+                        "⚠️ **Fix errors before submitting to medRxiv — "
+                        "these will likely cause rejection during screening.**\n\n"
+                    )
 
         # Journal-specific notes
         output += "## Journal Requirements Overview\n\n"
