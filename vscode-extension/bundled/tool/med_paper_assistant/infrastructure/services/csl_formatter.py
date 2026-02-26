@@ -59,10 +59,12 @@ def reference_to_csl_json(ref: Reference, ref_id: str | None = None) -> dict[str
     if ref.authors_full:
         for au in ref.authors_full:
             if isinstance(au, dict):
-                authors.append({
-                    "family": au.get("last_name", ""),
-                    "given": au.get("first_name", au.get("initials", "")),
-                })
+                authors.append(
+                    {
+                        "family": au.get("last_name", ""),
+                        "given": au.get("first_name", au.get("initials", "")),
+                    }
+                )
     elif ref.authors:
         for name in ref.authors:
             parts = name.strip().split()

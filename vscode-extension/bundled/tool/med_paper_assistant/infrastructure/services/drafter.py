@@ -1,9 +1,12 @@
 import logging
 import os
 import re
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import DraftSnapshotManager
+from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
+    DraftSnapshotManager,
+)
 from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 
@@ -11,8 +14,6 @@ if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 
 logger = logging.getLogger(__name__)
-
-from enum import Enum
 
 
 class CitationStyle(Enum):
@@ -280,28 +281,92 @@ class Drafter:
             return f"^{number}^"
         return f"[{number}]"
 
+    def _format_authors_vancouver(self, metadata: Dict[str, Any], max_authors: int = 6) -> str:
+        """Format author list in Vancouver style (Last AB, Next CD).
+
+        Uses authors_full (structured) when available, falls back to authors (flat strings).
+        Truncates with 'et al.' when exceeding max_authors.
+
+        Args:
+            metadata: Reference metadata dict.
+            max_authors: Maximum authors before truncation to 'et al.'.
+
+        Returns:
+            Formatted author string.
+        """
+        authors_full = metadata.get("authors_full", [])
+        if authors_full:
+            formatted = []
+            for a in authors_full:
+                last = a.get("last_name", "")
+                initials = a.get("initials", "")
+                formatted.append(f"{last} {initials}" if initials else last)
+            if len(formatted) > max_authors:
+                return ", ".join(formatted[:max_authors]) + ", et al."
+            return ", ".join(formatted)
+        # Fallback: flat author strings
+        authors = metadata.get("authors", [])
+        if len(authors) > max_authors:
+            return ", ".join(authors[:max_authors]) + ", et al."
+        return ", ".join(authors) if authors else "Unknown"
+
     def _format_bibliography_entry(self, number: int, metadata: Dict[str, Any], pmid: str) -> str:
-        """Format the bibliography entry."""
-        authors = ", ".join(metadata.get("authors", []))
+        """Format a single bibliography entry.
+
+        Uses pre-formatted citation strings from metadata when available
+        (verified data from PubMed). Falls back to manual formatting with
+        volume/issue/pages/DOI.
+
+        Args:
+            number: Citation number.
+            metadata: Reference metadata dict (from metadata.json).
+            pmid: PubMed ID.
+
+        Returns:
+            Formatted bibliography entry string ending with newline.
+        """
+        # Try pre-formatted citation from verified metadata
+        citation_data = metadata.get("citation", {})
+        if self.citation_style == CitationStyle.VANCOUVER.value and citation_data.get("vancouver"):
+            return f"[{number}] {citation_data['vancouver']}\n"
+        if self.citation_style == CitationStyle.APA.value and citation_data.get("apa"):
+            return f"{citation_data['apa']}\n"
+        if self.citation_style == CitationStyle.NATURE.value and citation_data.get("nature"):
+            return f"{number}. {citation_data['nature']}\n"
+
+        # Manual formatting fallback
+        max_authors = 6  # default, can be overridden by journal-profile
+        authors = self._format_authors_vancouver(metadata, max_authors)
         title = metadata.get("title", "Unknown Title")
         journal = metadata.get("journal", "Unknown Journal")
         year = metadata.get("year", "Unknown Year")
+        volume = metadata.get("volume", "")
+        issue = metadata.get("issue", "")
+        pages = metadata.get("pages", "")
+        doi = metadata.get("doi", "")
+
+        # Build volume;issue:pages segment
+        vol_part = ""
+        if volume:
+            vol_part = f";{volume}"
+            if issue:
+                vol_part += f"({issue})"
+            if pages:
+                vol_part += f":{pages}"
+
+        doi_part = f" doi:{doi}" if doi else ""
 
         if self.citation_style == CitationStyle.VANCOUVER.value:
-            return f"[{number}] {authors}. {title}. {journal} ({year}). PMID:{pmid}.\n"
+            return f"[{number}] {authors}. {title}. {journal}. {year}{vol_part}.{doi_part}\n"
         elif self.citation_style == CitationStyle.APA.value:
-            # Author (Year). Title. Journal.
-            return f"{authors} ({year}). {title}. {journal}. PMID:{pmid}.\n"
+            return f"{authors} ({year}). {title}. {journal}{vol_part}.{doi_part}\n"
         elif self.citation_style == CitationStyle.HARVARD.value:
-            # Author (Year) 'Title', Journal.
-            return f"{authors} ({year}) '{title}', {journal}. PMID:{pmid}.\n"
+            return f"{authors} ({year}) '{title}', {journal}{vol_part}.{doi_part}\n"
         elif self.citation_style == CitationStyle.NATURE.value:
-            # Number. Author. Title. Journal Year;Volume:Page.
-            return f"{number}. {authors}. {title}. {journal} ({year}). PMID:{pmid}.\n"
+            return f"{number}. {authors}. {title}. {journal} {year}{vol_part}.{doi_part}\n"
         elif self.citation_style == CitationStyle.AMA.value:
-            # Number. Author. Title. Journal. Year.
-            return f"{number}. {authors}. {title}. {journal}. {year}. PMID:{pmid}.\n"
-        return f"[{number}] {authors}. {title}. {journal} ({year}). PMID:{pmid}.\n"
+            return f"{number}. {authors}. {title}. {journal}. {year}{vol_part}.{doi_part}\n"
+        return f"[{number}] {authors}. {title}. {journal}. {year}{vol_part}.{doi_part}\n"
 
     def _compile_draft(self, content: str) -> str:
         """
@@ -490,8 +555,8 @@ class Drafter:
             number = citation_map[pmid]
             entry = self._format_bibliography_entry(number, metadata, pmid)
             # Add wikilink back as invisible anchor for bidirectional linking
-            # Format: entry text <!-- [[citation_key]] -->
-            references_section += f"{entry.rstrip()} <!-- [[{wikilink}]] -->\n"
+            # Blank line between entries for readability
+            references_section += f"{entry.rstrip()} <!-- [[{wikilink}]] -->\n\n"
 
         # 6. Assemble final content
         final_content = new_body + references_section

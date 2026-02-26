@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
+from med_paper_assistant.domain.value_objects.author import Author
 from med_paper_assistant.shared.constants import PAPER_TYPES
 
 
@@ -36,7 +37,7 @@ class Project:
 
     # Metadata
     description: str = ""
-    authors: List[str] = field(default_factory=list)
+    authors: List[Union[str, Author]] = field(default_factory=list)
     target_journal: str = ""
     paper_type: str = ""
 

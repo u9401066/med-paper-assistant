@@ -97,6 +97,8 @@ class RoundRecord:
     verdict: str = ""
     started_at: str = ""
     completed_at: str = ""
+    artifact_hash_start: str = ""
+    artifact_hash_end: str = ""
 
 
 @dataclass
@@ -176,8 +178,13 @@ class AutonomousAuditLoop:
 
     # ── Round Lifecycle ────────────────────────────────────────────
 
-    def start_round(self) -> dict[str, Any]:
-        """Start a new audit round. Returns context for the Agent."""
+    def start_round(self, artifact_hash: str = "") -> dict[str, Any]:
+        """Start a new audit round. Returns context for the Agent.
+
+        Args:
+            artifact_hash: Hash of the primary artifact (e.g. manuscript) at round start.
+                          Used to verify the artifact was actually modified during the round.
+        """
         if self._completed:
             raise RuntimeError("Audit loop already completed")
         if self._in_round:
@@ -188,6 +195,7 @@ class AutonomousAuditLoop:
         self._current_fixes = []
         self._in_round = True
         self._round_start_time = datetime.now().isoformat()
+        self._artifact_hash_start = artifact_hash
 
         # Carry forward persistent critical issues from previous round
         persistent = self._get_persistent_issues()
@@ -252,8 +260,14 @@ class AutonomousAuditLoop:
         if success:
             self._current_issues[issue_index].fixed = True
 
-    def complete_round(self, scores: dict[str, float]) -> RoundVerdict:
-        """Complete the current round with quality scores. Returns verdict."""
+    def complete_round(self, scores: dict[str, float], artifact_hash: str = "") -> RoundVerdict:
+        """Complete the current round with quality scores. Returns verdict.
+
+        Args:
+            scores: Quality dimension scores.
+            artifact_hash: Hash of the primary artifact at round end.
+                          Compared with start hash to verify modification.
+        """
         if not self._in_round:
             raise RuntimeError("No active round — call start_round() first")
 
@@ -267,6 +281,8 @@ class AutonomousAuditLoop:
             weighted_avg=round(weighted_avg, 2),
             started_at=self._round_start_time,
             completed_at=datetime.now().isoformat(),
+            artifact_hash_start=getattr(self, "_artifact_hash_start", ""),
+            artifact_hash_end=artifact_hash,
         )
 
         verdict = self._determine_verdict(weighted_avg)
@@ -472,6 +488,8 @@ class AutonomousAuditLoop:
                     verdict=r.get("verdict", ""),
                     started_at=r.get("started_at", ""),
                     completed_at=r.get("completed_at", ""),
+                    artifact_hash_start=r.get("artifact_hash_start", ""),
+                    artifact_hash_end=r.get("artifact_hash_end", ""),
                 )
             )
         return True

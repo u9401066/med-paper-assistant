@@ -2,7 +2,9 @@
 Persistence Layer - Data storage and retrieval.
 """
 
+from .data_artifact_tracker import DataArtifactTracker
 from .file_storage import FileStorage
+from .pipeline_gate_validator import GateResult, PipelineGateValidator
 from .project_manager import ProjectManager, get_project_manager
 from .project_memory_manager import ProjectMemoryManager
 from .project_repository import ProjectRepository
@@ -15,6 +17,7 @@ from .workspace_state_manager import (
 )
 
 __all__ = [
+    "DataArtifactTracker",
     "ProjectRepository",
     "ReferenceRepository",
     "FileStorage",
@@ -25,4 +28,6 @@ __all__ = [
     "WorkspaceStateManager",
     "get_workspace_state_manager",
     "reset_workspace_state_manager",
+    "PipelineGateValidator",
+    "GateResult",
 ]

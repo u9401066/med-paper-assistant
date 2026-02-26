@@ -18,6 +18,7 @@ from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
     ensure_project_context,
+    get_drafts_dir,
     get_project_list_for_prompt,
     log_tool_call,
     log_tool_error,
@@ -67,7 +68,7 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
 
         Args:
             draft_filename: Draft file to check (or comma-separated for multiple)
-            journal: Journal code (bja, anesthesiology, jama, nejm, lancet, ccm, generic)
+            journal: Journal code (bja, anesthesiology, jama, nejm, lancet, ccm, medrxiv, jamia, jbi, generic)
             check_submission: Also check submission readiness (required documents/statements)
             has_cover_letter: Cover letter prepared? (used when check_submission=True)
             has_ethics: Ethics approval included?
@@ -107,7 +108,7 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
             try:
                 if not fname.endswith(".md"):
                     fname += ".md"
-                drafts_dir = drafter.drafts_dir
+                drafts_dir = get_drafts_dir() or drafter.drafts_dir
                 fpath = os.path.join(drafts_dir, fname) if not os.path.isabs(fname) else fname
                 if not os.path.exists(fpath):
                     raise FileNotFoundError(f"Draft file {fname} not found in {drafts_dir}.")

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.11] - 2026-02-26
+
+### Added
+
+- **Journal Support**: medRxiv, JAMIA, JBI added to `JOURNAL_REQUIREMENTS` (total: 11 journals)
+- **Pipeline Gate Validator**: `pipeline_gate_validator.py` for phase-gate validation with reference counting fix (PMID subdirs)
+- **Audit Hooks MCP Tool**: `audit_hooks.py` for Hook D meta-learning integration
+
+### Fixed
+
+- **`check_formatting` crash**: `'Drafter' object has no attribute 'read_draft'` — replaced with direct file reading via `get_drafts_dir()`
+- **Pipeline gate**: Added `Path` import, fixed `_get_or_create_loop` signature, removed unused variables
+- **Pipeline gate**: 29 API mismatches resolved in `pipeline_gate.py`
+- **Gate validator**: Count PMID subdirs instead of flat `.md` for reference counting
+
+### Changed
+
+- **DRY refactor**: Extracted 7 duplicate helper functions into `_shared/project_context.py` (`get_project_path`, `get_drafts_dir`, `get_concept_path`, `validate_project_for_tool`)
+- **VSX bundled code**: Full rsync from `src/` — 38 files updated, 5 new files added
+- **Auto-paper SKILL.md**: Synced to VSX extension
+
 ## [0.3.10] - 2026-02-25
 
 ### Added

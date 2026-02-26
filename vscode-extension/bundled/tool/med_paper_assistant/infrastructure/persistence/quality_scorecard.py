@@ -19,11 +19,12 @@ Dimensions (from auto-paper SKILL.md):
 
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class QualityScorecard:
         ok = sc.meets_threshold(7)
     """
 
-    DATA_FILE = "quality-scorecard.json"
+    DATA_FILE = "quality-scorecard.yaml"
     REPORT_FILE = "quality-scorecard.md"
 
     def __init__(self, audit_dir: str | Path) -> None:
@@ -64,10 +65,12 @@ class QualityScorecard:
 
         if self._data_path.is_file():
             try:
-                loaded = json.loads(self._data_path.read_text(encoding="utf-8"))
+                loaded = yaml.safe_load(self._data_path.read_text(encoding="utf-8"))
+                if loaded is None:
+                    loaded = {}
                 self._data = loaded
                 return loaded
-            except (json.JSONDecodeError, OSError) as e:
+            except (yaml.YAMLError, OSError) as e:
                 logger.warning("Failed to load quality scorecard: %s", e)
 
         self._data = {
@@ -83,7 +86,7 @@ class QualityScorecard:
         data = self._load()
         data["updated_at"] = datetime.now().isoformat()
         self._data_path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False),
+            yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False),
             encoding="utf-8",
         )
 
@@ -109,13 +112,15 @@ class QualityScorecard:
         }
 
         # Track score changes in history
-        data["history"].append({
-            "dimension": dimension,
-            "old_score": old_score,
-            "new_score": score,
-            "explanation": explanation,
-            "timestamp": datetime.now().isoformat(),
-        })
+        data["history"].append(
+            {
+                "dimension": dimension,
+                "old_score": old_score,
+                "new_score": score,
+                "explanation": explanation,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         self._save()
 
@@ -154,11 +159,13 @@ class QualityScorecard:
         weak = []
         for dim, entry in data["scores"].items():
             if entry["score"] < min_score:
-                weak.append({
-                    "dimension": dim,
-                    "score": entry["score"],
-                    "explanation": entry.get("explanation", ""),
-                })
+                weak.append(
+                    {
+                        "dimension": dim,
+                        "score": entry["score"],
+                        "explanation": entry.get("explanation", ""),
+                    }
+                )
         return sorted(weak, key=lambda x: x["score"])
 
     def generate_report(self) -> str:
@@ -199,14 +206,16 @@ class QualityScorecard:
                 score_str = f"{entry['score']}"
                 lines.append(f"| {dim} (custom) | {score_str} | {entry.get('explanation', '')} |")
 
-        lines.extend([
-            "",
-            "## Summary",
-            "",
-            f"- **Average Score**: {sc['average_score']}",
-            f"- **Min / Max**: {sc['min_score']} / {sc['max_score']}",
-            f"- **Scored**: {sc['scored_count']} / {sc['total_dimensions']} dimensions",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Summary",
+                "",
+                f"- **Average Score**: {sc['average_score']}",
+                f"- **Min / Max**: {sc['min_score']} / {sc['max_score']}",
+                f"- **Scored**: {sc['scored_count']} / {sc['total_dimensions']} dimensions",
+            ]
+        )
 
         if sc["missing_dimensions"]:
             lines.append(f"- **Missing**: {', '.join(sc['missing_dimensions'])}")

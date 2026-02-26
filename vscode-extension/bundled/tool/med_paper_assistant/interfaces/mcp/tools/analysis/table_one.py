@@ -2,13 +2,16 @@
 Table 1 Generation Tools
 
 Generate baseline characteristics tables for medical papers.
+Every tool call records provenance to data-artifacts.yaml for reproducibility.
 """
 
 import os
+from pathlib import Path
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
+from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.services.analyzer import Analyzer
 
 from .._shared import (
@@ -18,6 +21,14 @@ from .._shared import (
     log_tool_error,
     log_tool_result,
 )
+
+
+def _get_tracker(project_info: dict) -> DataArtifactTracker | None:
+    """Create a DataArtifactTracker for the current project, or None if no project."""
+    if not project_info or not project_info.get("project_path"):
+        return None
+    project_dir = Path(project_info["project_path"])
+    return DataArtifactTracker(project_dir / ".audit", project_dir)
 
 
 def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
@@ -54,10 +65,13 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
             },
         )
 
+        project_info = None
         if project:
-            is_valid, msg, _ = ensure_project_context(project)
+            is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+        else:
+            is_valid, _, project_info = ensure_project_context()
 
         # Parse column lists
         continuous_list = [c.strip() for c in continuous_cols.split(",") if c.strip()]
@@ -74,6 +88,45 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
                 categorical_cols=categorical_list,
                 output_name=output_name,
             )
+
+            # Record provenance
+            tracker = _get_tracker(project_info) if project_info else None
+            if tracker:
+                params = {
+                    "filename": filename,
+                    "group_col": group_col,
+                    "continuous_cols": continuous_list,
+                    "categorical_cols": categorical_list,
+                    "output_name": output_name,
+                }
+                # Compute output path if saved to file
+                output_rel = None
+                if output_name:
+                    oname = output_name if output_name.endswith(".md") else output_name + ".md"
+                    output_rel = f"results/tables/{oname}"
+
+                cont_str = ", ".join(f"'{c}'" for c in continuous_list)
+                cat_str = ", ".join(f"'{c}'" for c in categorical_list)
+                out_arg = f", output_name='{output_name}'" if output_name else ""
+                tracker.record_artifact(
+                    tool_name="generate_table_one",
+                    artifact_type="table",
+                    parameters=params,
+                    output_path=output_rel,
+                    data_source=filename,
+                    result_summary=result[:200] if result else None,
+                    provenance_code=(
+                        f"from med_paper_assistant.infrastructure.services.analyzer import Analyzer\n"
+                        f"analyzer = Analyzer()\n"
+                        f"result = analyzer.generate_table_one(\n"
+                        f"    filename='{filename}',\n"
+                        f"    group_col='{group_col}',\n"
+                        f"    continuous_cols=[{cont_str}],\n"
+                        f"    categorical_cols=[{cat_str}]{out_arg},\n"
+                        f")\n"
+                        f"print(result)"
+                    ),
+                )
 
             # Add usage tips
             tips = "\n\n---\n"

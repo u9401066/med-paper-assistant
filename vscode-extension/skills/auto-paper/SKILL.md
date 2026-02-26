@@ -51,6 +51,56 @@ Pre-Commit Hooks（P1-P8 + G1-G7）定義於 `git-precommit/SKILL.md`。
 
 ---
 
+## 🚧 Hard Gate Enforcement（Code-Level，不可跳過）
+
+> SKILL.md 是 soft constraint（Agent 可能忽略）。以下 MCP Tools 是 **code-enforced hard limits**。
+
+### 必要 MCP Tool 呼叫
+
+| 時機                      | MCP Tool                                 | 說明                                                                                     |
+| ------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 每個 Phase 完成後         | `validate_phase_gate(phase)`             | 返回 PASS/FAIL + 缺少的 artifact，FAIL 則禁止進入下一 Phase                              |
+| Phase 7 每輪開始          | `start_review_round()`                   | 啟動 AutonomousAuditLoop 狀態機，返回 round context                                      |
+| Phase 7 每輪結束          | `submit_review_round(scores)`            | 提交分數，返回 verdict (CONTINUE/QUALITY_MET/MAX_ROUNDS)                                 |
+| Pipeline 中途任意時刻     | `pipeline_heartbeat()`                   | 返回全 Phase 狀態 + 剩餘工作項，Agent 無法自稱 "done"                                    |
+| Phase 5 每次 Hook 評估後  | `record_hook_event(hook_id, event_type)` | 記錄 A/B/C/E Hook 的 trigger/pass/fix/false_positive，Phase 6 gate 會驗證有實際記錄      |
+| Phase 6 之前（審計階段）  | `run_quality_audit(scores)`              | 設定 ≥4 維度品質分數 + 產生 scorecard/hook-effectiveness 報告，Phase 6 gate 驗證分數數據 |
+| Phase 10 之前（自我改進） | `run_meta_learning()`                    | 執行 D1-D6 分析 + 寫入 meta-learning-audit.json，Phase 10 gate 驗證分析數據              |
+
+### 強制執行規則
+
+1. **Phase 轉換**：Agent MUST call `validate_phase_gate(N)` 且收到 PASS，才能開始 Phase N+1
+2. **Phase 7 Review Loop**：Agent MUST call `start_review_round()` 開始、`submit_review_round()` 結束。不可跳過輪次
+3. **Pipeline 完成**：Agent MUST call `pipeline_heartbeat()` 確認 completion = 100% 才能宣稱完成
+4. **所有 gate 結果自動記錄**到 `.audit/gate-validations.jsonl`，可供 Phase 10 D-Hook 分析
+5. **專案結構驗證**：`validate_project_structure()` 可獨立於 pipeline 呼叫，用於檢查新/既存專案結構完整性
+6. **Phase > 1 自動前提檢查**：`validate_phase_gate()` 在 Phase > 1 時會自動檢查前置 Phase 的關鍵 artifacts（WARNING 級別）
+7. **審計數據強制**：Phase 6 gate 不只檢查報告檔案存在，還驗證 quality-scorecard.json（≥4 維度、avg > 0）和 hook-effectiveness.json（≥1 hook 有事件記錄）
+8. **自我改進數據強制**：Phase 10 gate 驗證 meta-learning-audit.json 有完整分析記錄（adjustments_count、lessons_count、suggestions_count）
+
+### 🛡️ Anti-Compaction 恢復協議
+
+Context compaction 會導致 Agent 遺失 pipeline 進度。以下三層防線自動保護：
+
+**第一層：自動寫入**
+
+- 所有 gate tools（validate_phase_gate, pipeline_heartbeat, start_review_round, submit_review_round）
+  完成後自動寫入 `projects/{slug}/.mdpaper-state.json` 的 `pipeline_state` 欄位
+- 不需要 Agent 額外操作
+
+**第二層：自動恢復**
+
+- `get_workspace_state()` 讀取 per-project state → `get_recovery_summary()` 產出 pipeline banner
+- Banner 包含：current phase, round, gate result, next action, failures
+
+**第三層：Agent 強制規則**
+
+- **對話開始**（或 context compaction 後首次回應）→ MUST call `get_workspace_state()`
+- 如果 pipeline_state.is_active == true → 直接從 recovery summary 指示的 Phase/Round 繼續
+- 禁止從頭重跑已 PASS 的 Phase
+
+---
+
 ## 11-Phase Pipeline（Phase 0-10）
 
 ### Phase 0: PRE-PLANNING（Journal Profile + Pipeline Config）🆕
@@ -425,7 +475,7 @@ Round 3 (IF still CRITICAL):
    → LOG: "Auto-generated journal-profile.yaml with defaults"
 ```
 
-**Gate**: baseline snapshot 完成 → 進入 Phase 7
+**Gate**: baseline snapshot 完成 → `validate_phase_gate(65)` 必須 PASS → 進入 Phase 7
 
 ---
 
@@ -434,6 +484,7 @@ Round 3 (IF still CRITICAL):
 **目的**：模擬同行審查，產出結構化 Review Report + Author Response，確保每個 issue 都被回應。
 **觸發**：**ALWAYS**（Phase 6.5 強制進入，不可跳過）。即使 Hook A-C 全過、quality 已達標，仍必須至少執行 1 round。
 **上限**：`pipeline.review_max_rounds`（預設 3）。
+**Hard Gate**：每輪 MUST call `start_review_round()` 開始 + `submit_review_round(scores)` 結束。Loop 結束後 `validate_phase_gate(7)` 必須 PASS。
 
 ```
 載入 journal-profile.yaml → 取得 reviewer_perspectives + quality_threshold
@@ -528,7 +579,10 @@ FOR round = 1 TO N:
     IF issue.id NOT IN author_response → FAIL（禁止忽略 issue）
   → 未回應的 issue 必須標記 DECLINE + 理由
 
-  ── Stage C: 執行修正 ──
+  ── Stage C: 執行修正（MANDATORY — 稿件必須被修改） ──
+  ⚠️ HARD ENFORCEMENT: submit_review_round() 會比對稿件 hash。
+  若稿件未修改 → 提交會被 REJECT。
+
   FOR each ACCEPTED issue:
     1. 定位 paragraph ID（from manuscript-plan.yaml）
     2. patch_draft() 修正
@@ -540,6 +594,18 @@ FOR round = 1 TO N:
     2. 快速 Hook A 驗證
 
   OPTIONAL + DECLINED issues → LOG only（不自動修正）
+
+  ── Stage C2: 敘事強化（MANDATORY — 即使無結構問題） ──
+  人類 reviewer 即使不要求結構修改，也會提升敘事品質。
+  AI reviewer 必須做到至少同等標準：
+    1. 選擇至少 3 段落進行「敘事強化」（tighten prose, improve transitions,
+       strengthen claims, eliminate redundancy, improve word economy）
+    2. 每段 patch_draft() 修正，附帶改善理由
+    3. 記錄到 author-response 的 "Narrative Enhancements" section
+
+  IF 沒有結構性 issue（全部 DECLINE 或 OPTIONAL only）：
+    → Stage C2 仍然 MANDATORY（最低改 3 段落）
+    → 目標：人類讀者應能看到「review 前」vs「review 後」有明顯差異
 
   ── Stage D: 品質重評 ──
   更新 quality-scorecard.md：

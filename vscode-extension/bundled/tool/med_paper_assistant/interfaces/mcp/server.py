@@ -109,8 +109,8 @@ def create_server() -> FastMCP:
     logger.info("Registering analysis tools...")
     register_analysis_tools(mcp, analyzer, drafter)
 
-    logger.info("Registering review tools...")
-    register_review_tools(mcp, drafter, ref_manager, project_manager)
+    logger.info("Registering review tools (incl. pipeline gates)...")
+    register_review_tools(mcp, drafter, ref_manager, project_manager=project_manager)
 
     logger.info("Registering export tools...")
     register_export_tools(mcp, formatter, template_reader, word_writer)

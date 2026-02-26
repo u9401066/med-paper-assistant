@@ -119,10 +119,12 @@ class Reference:
         if self.authors_full:
             for au in self.authors_full:
                 if isinstance(au, dict):
-                    authors.append({
-                        "family": au.get("last_name", ""),
-                        "given": au.get("first_name", au.get("initials", "")),
-                    })
+                    authors.append(
+                        {
+                            "family": au.get("last_name", ""),
+                            "given": au.get("first_name", au.get("initials", "")),
+                        }
+                    )
         elif self.authors:
             for name in self.authors:
                 parts = name.strip().split()

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Literal
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Patterns
@@ -32,9 +31,7 @@ _WIKILINK_RE = re.compile(r"\[\[([^\]\[]+?)\]\]")
 # Reversible format from sync_references_from_wikilinks():
 #   [1]<!-- [[citation_key]] -->
 #   (Author et al., 2024)<!-- [[citation_key]] -->
-_REVERSIBLE_RE = re.compile(
-    r"(?:\[\d+\]|\([^)]+,\s*\d{4}\))<!-- \[\[([^\]]+)\]\] -->"
-)
+_REVERSIBLE_RE = re.compile(r"(?:\[\d+\]|\([^)]+,\s*\d{4}\))<!-- \[\[([^\]]+)\]\] -->")
 
 # Pandoc citation: [@key] or [@key1; @key2; ...]
 _PANDOC_SINGLE_RE = re.compile(r"\[@([^\];]+)\]")
@@ -186,7 +183,7 @@ def _strip_references_section(content: str) -> str:
     # Also handle "---\n\n## References" pattern
     patterns = [
         r"\n---\s*\n+## References\b.*",  # With horizontal rule
-        r"\n## References\b.*",            # Without horizontal rule
+        r"\n## References\b.*",  # Without horizontal rule
     ]
     for pattern in patterns:
         content = re.sub(pattern, "", content, flags=re.DOTALL)

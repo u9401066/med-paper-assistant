@@ -2,7 +2,7 @@
 Hook Effectiveness Tracker — Track and analyze Copilot Hook performance.
 
 Records hook trigger/pass/fix/false-positive events across pipeline runs.
-Persists to `.audit/hook-effectiveness.json` and generates `.md` reports.
+Persists to `.audit/hook-effectiveness.yaml` and generates `.md` reports.
 
 Architecture:
   Infrastructure layer service. Called after each hook evaluation.
@@ -10,17 +10,17 @@ Architecture:
 
 Design rationale (CONSTITUTION §23):
   - Hook self-improvement requires objective effectiveness metrics
-  - Metrics survive across pipeline runs via persistent JSON storage
+  - Metrics survive across pipeline runs via persistent YAML storage
 """
 
 from __future__ import annotations
 
-import json
 import logging
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class HookEffectivenessTracker:
         report = tracker.generate_report()
     """
 
-    DATA_FILE = "hook-effectiveness.json"
+    DATA_FILE = "hook-effectiveness.yaml"
     REPORT_FILE = "hook-effectiveness.md"
 
     def __init__(self, audit_dir: str | Path) -> None:
@@ -63,10 +63,12 @@ class HookEffectivenessTracker:
 
         if self._data_path.is_file():
             try:
-                loaded = json.loads(self._data_path.read_text(encoding="utf-8"))
+                loaded = yaml.safe_load(self._data_path.read_text(encoding="utf-8"))
+                if loaded is None:
+                    loaded = {}
                 self._data = loaded
                 return loaded
-            except (json.JSONDecodeError, OSError) as e:
+            except (yaml.YAMLError, OSError) as e:
                 logger.warning("Failed to load hook effectiveness data: %s", e)
 
         self._data = {
@@ -83,7 +85,7 @@ class HookEffectivenessTracker:
         data = self._load()
         data["updated_at"] = datetime.now().isoformat()
         self._data_path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False),
+            yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False),
             encoding="utf-8",
         )
 
@@ -115,11 +117,13 @@ class HookEffectivenessTracker:
             hook_results: {hook_id: {trigger: N, pass: N, fix: N, false_positive: N}}
         """
         data = self._load()
-        data["runs"].append({
-            "run_id": run_id,
-            "timestamp": datetime.now().isoformat(),
-            "results": hook_results,
-        })
+        data["runs"].append(
+            {
+                "run_id": run_id,
+                "timestamp": datetime.now().isoformat(),
+                "results": hook_results,
+            }
+        )
 
         # Also accumulate into aggregate stats
         for hook_id, counts in hook_results.items():
@@ -182,39 +186,47 @@ class HookEffectivenessTracker:
 
             # §23: trigger_rate > 80% → too strict
             if total_evals >= 5 and stats["trigger_rate"] > 0.80:
-                recommendations.append({
-                    "hook_id": hook_id,
-                    "type": "loosen",
-                    "reason": f"Trigger rate {stats['trigger_rate']:.0%} > 80% — threshold too strict",
-                    "confidence": "high" if total_evals >= 10 else "medium",
-                })
+                recommendations.append(
+                    {
+                        "hook_id": hook_id,
+                        "type": "loosen",
+                        "reason": f"Trigger rate {stats['trigger_rate']:.0%} > 80% — threshold too strict",
+                        "confidence": "high" if total_evals >= 10 else "medium",
+                    }
+                )
 
             # §23: trigger_rate < 5% over 5+ evaluations → too loose or redundant
             if total_evals >= 5 and stats["trigger_rate"] < 0.05:
-                recommendations.append({
-                    "hook_id": hook_id,
-                    "type": "tighten",
-                    "reason": f"Trigger rate {stats['trigger_rate']:.0%} < 5% over {total_evals} evaluations — may be too loose or redundant",
-                    "confidence": "medium",
-                })
+                recommendations.append(
+                    {
+                        "hook_id": hook_id,
+                        "type": "tighten",
+                        "reason": f"Trigger rate {stats['trigger_rate']:.0%} < 5% over {total_evals} evaluations — may be too loose or redundant",
+                        "confidence": "medium",
+                    }
+                )
 
             # §23: false_positive_rate > 30% → needs logic fix
             if stats["trigger"] >= 3 and stats["false_positive_rate"] > 0.30:
-                recommendations.append({
-                    "hook_id": hook_id,
-                    "type": "fix_logic",
-                    "reason": f"False positive rate {stats['false_positive_rate']:.0%} > 30% — judgment criteria need correction",
-                    "confidence": "high",
-                })
+                recommendations.append(
+                    {
+                        "hook_id": hook_id,
+                        "type": "fix_logic",
+                        "reason": f"False positive rate {stats['false_positive_rate']:.0%} > 30% — judgment criteria need correction",
+                        "confidence": "high",
+                    }
+                )
 
             # Fix rate 0% with multiple triggers → fix logic isn't working
             if stats["trigger"] >= 3 and stats["fix_rate"] == 0.0:
-                recommendations.append({
-                    "hook_id": hook_id,
-                    "type": "fix_logic",
-                    "reason": f"0% fix rate after {stats['trigger']} triggers — auto-fix mechanism may be broken",
-                    "confidence": "medium",
-                })
+                recommendations.append(
+                    {
+                        "hook_id": hook_id,
+                        "type": "fix_logic",
+                        "reason": f"0% fix rate after {stats['trigger']} triggers — auto-fix mechanism may be broken",
+                        "confidence": "medium",
+                    }
+                )
 
         return recommendations
 
@@ -249,11 +261,13 @@ class HookEffectivenessTracker:
             )
 
         if recommendations:
-            lines.extend([
-                "",
-                "## Recommendations (CONSTITUTION §23)",
-                "",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Recommendations (CONSTITUTION §23)",
+                    "",
+                ]
+            )
             for rec in recommendations:
                 icon = {"loosen": "⬇️", "tighten": "⬆️", "fix_logic": "🔧", "remove": "🗑️"}.get(
                     rec["type"], "❓"
