@@ -251,13 +251,17 @@ class Drafter:
             if not authors:
                 author_text = "Unknown"
             elif len(authors) == 1:
-                author_text = authors[0].split()[0]
+                parts = authors[0].split()
+                author_text = parts[0] if parts else "Unknown"
             elif len(authors) == 2:
-                author1 = authors[0].split()[0]
-                author2 = authors[1].split()[0]
+                p1 = authors[0].split()
+                p2 = authors[1].split()
+                author1 = p1[0] if p1 else "Unknown"
+                author2 = p2[0] if p2 else "Unknown"
                 author_text = f"{author1} & {author2}"
             else:
-                author_text = f"{authors[0].split()[0]} et al."
+                p0 = authors[0].split()
+                author_text = f"{p0[0]} et al." if p0 else "Unknown et al."
 
             year = metadata.get("year", "n.d.")
             return f"({author_text}, {year})"
@@ -267,13 +271,17 @@ class Drafter:
             if not authors:
                 author_text = "Unknown"
             elif len(authors) == 1:
-                author_text = authors[0].split()[0]
+                parts = authors[0].split()
+                author_text = parts[0] if parts else "Unknown"
             elif len(authors) == 2:
-                author1 = authors[0].split()[0]
-                author2 = authors[1].split()[0]
+                p1 = authors[0].split()
+                p2 = authors[1].split()
+                author1 = p1[0] if p1 else "Unknown"
+                author2 = p2[0] if p2 else "Unknown"
                 author_text = f"{author1} and {author2}"
             else:
-                author_text = f"{authors[0].split()[0]} et al."
+                p0 = authors[0].split()
+                author_text = f"{p0[0]} et al." if p0 else "Unknown et al."
 
             year = metadata.get("year", "n.d.")
             return f"({author_text} {year})"

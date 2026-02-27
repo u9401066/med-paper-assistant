@@ -97,9 +97,8 @@ def register_audit_hook_tools(mcp: FastMCP):
                 return f"❌ Invalid hook_id '{hook_id}'. Must be a letter + 1-2 digits (e.g., 'A1', 'B5', 'C3')"
 
             is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid:
+            if not is_valid or project_info is None:
                 return f"❌ {msg}"
-            assert project_info is not None
 
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -196,9 +195,8 @@ def register_audit_hook_tools(mcp: FastMCP):
                 )
 
             is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid:
+            if not is_valid or project_info is None:
                 return f"❌ {msg}"
-            assert project_info is not None
 
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
@@ -319,9 +317,8 @@ def register_audit_hook_tools(mcp: FastMCP):
         log_tool_call("run_meta_learning", {"project": project})
         try:
             is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid:
+            if not is_valid or project_info is None:
                 return f"❌ {msg}"
-            assert project_info is not None
 
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
@@ -438,9 +435,8 @@ def register_audit_hook_tools(mcp: FastMCP):
         log_tool_call("validate_data_artifacts", {"project": project})
         try:
             is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid:
+            if not is_valid or project_info is None:
                 return f"❌ {msg}"
-            assert project_info is not None
 
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
@@ -532,9 +528,8 @@ def register_audit_hook_tools(mcp: FastMCP):
         log_tool_call("run_writing_hooks", {"hooks": hooks, "project": project})
         try:
             is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid:
+            if not is_valid or project_info is None:
                 return f"❌ {msg}"
-            assert project_info is not None
 
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
