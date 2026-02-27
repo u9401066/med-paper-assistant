@@ -600,6 +600,33 @@ class PipelineGateValidator:
                     )
                 )
 
+        # Section approval check: all sections must be user-approved
+        checkpoint_path = self._audit_dir / "checkpoint.json"
+        if checkpoint_path.is_file():
+            try:
+                ckpt = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+                section_progress = ckpt.get("section_progress", {})
+                if section_progress:
+                    unapproved = [
+                        name
+                        for name, data in section_progress.items()
+                        if data.get("approval_status", "pending") != "approved"
+                    ]
+                    checks.append(
+                        GateCheck(
+                            name="section_approval",
+                            description="All sections must be user-approved",
+                            passed=len(unapproved) == 0,
+                            details=(
+                                "all sections approved"
+                                if len(unapproved) == 0
+                                else f"unapproved: {', '.join(unapproved)}"
+                            ),
+                        )
+                    )
+            except (json.JSONDecodeError, OSError):
+                pass
+
         return GateResult(phase=5, phase_name="Writing", checks=checks, passed=False)
 
     def _validate_phase_6(self) -> GateResult:

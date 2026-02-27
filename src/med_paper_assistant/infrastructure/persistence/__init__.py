@@ -14,6 +14,7 @@ from .evolution_verifier import EvolutionVerifier
 from .file_storage import FileStorage
 from .hook_effectiveness_tracker import HookEffectivenessTracker
 from .meta_learning_engine import MetaLearningEngine
+from .pending_evolution_store import EvolutionItem, PendingEvolutionStore
 from .pipeline_gate_validator import GateResult, PipelineGateValidator
 from .project_manager import ProjectManager, get_project_manager
 from .project_memory_manager import ProjectMemoryManager
@@ -21,6 +22,7 @@ from .project_repository import ProjectRepository
 from .quality_scorecard import QualityScorecard
 from .reference_manager import ReferenceManager
 from .reference_repository import ReferenceRepository
+from .tool_invocation_store import ToolInvocationStore
 from .workspace_state_manager import (
     WorkspaceStateManager,
     get_workspace_state_manager,
@@ -42,6 +44,8 @@ __all__ = [
     "HookIssue",
     "HookResult",
     "MetaLearningEngine",
+    "EvolutionItem",
+    "PendingEvolutionStore",
     "PipelineGateValidator",
     "ProjectManager",
     "ProjectMemoryManager",
@@ -49,6 +53,7 @@ __all__ = [
     "QualityScorecard",
     "ReferenceManager",
     "ReferenceRepository",
+    "ToolInvocationStore",
     "WorkspaceStateManager",
     "WritingHooksEngine",
     "get_project_manager",

@@ -1,12 +1,16 @@
 """
-Writing Hooks Engine — Code-enforced implementations for Hook A5, A6, B8, C9, F1-F4.
+Writing Hooks Engine — Code-enforced writing quality hooks.
 
-These hooks were identified as gaps in the auto-paper pipeline:
-  - A5: Language Consistency (British vs American English)
-  - A6: Self-Plagiarism / Overlap Detection (internal paragraph similarity)
-  - B8: Data-Claim Alignment (statistical claims ↔ methods consistency)
-  - C9: Supplementary Cross-Reference (main text ↔ supplementary material)
-  - F1-F4: Data Artifact Validation (formal pipeline integration)
+29 Code-Enforced hooks (was 14, expanded from Agent-Driven):
+  Post-Write:     A1 Word Count, A2 Citation Density, A3 Anti-AI,
+                  A4 Wikilink Format, A5 Language, A6 Overlap
+  Post-Section:   B8 Data-Claim Alignment
+  Post-Manuscript: C3 N-value Consistency, C4 Abbreviation First-Use,
+                  C5 Wikilink Resolvable, C6 Total Word Count,
+                  C7a Figure/Table Counts, C7d Cross-References,
+                  C9 Supplementary Cross-Ref, F1-F4 Data Artifacts
+  Pre-Commit:     P1 Citation Integrity, P2 Anti-AI, P4 Word Count,
+                  P5 Protected Content, P7 Reference Integrity
 
 Architecture:
   Infrastructure layer service. Called by the auto-paper pipeline at
@@ -20,14 +24,133 @@ Design rationale (CONSTITUTION §22):
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import structlog
+import yaml
+
+from med_paper_assistant.shared.constants import DEFAULT_WORD_LIMITS
 
 logger = structlog.get_logger()
+
+
+# ── Anti-AI phrase list (A3 / P2) ──────────────────────────────────
+# Union of: auto-paper SKILL.md A3 (7), git-precommit SKILL.md P2 (10),
+# DomainConstraintEngine V002 (16). Deduplicated.
+
+ANTI_AI_PHRASES: list[str] = [
+    "in recent years",
+    "it is worth noting",
+    "it is important to note",
+    "it should be noted",
+    "plays a crucial role",
+    "has garnered significant attention",
+    "a comprehensive understanding",
+    "this groundbreaking",
+    "groundbreaking",
+    "delve into",
+    "shed light on",
+    "pave the way",
+    "a myriad of",
+    "in the realm of",
+    "a testament to",
+    "multifaceted",
+    "underscores the importance",
+    "notably",
+    "comprehensive overview",
+    "leveraging",
+    "pivotal role",
+    "in conclusion, our study",
+    "it is widely recognized",
+]
+
+# These phrases are only flagged at paragraph start (not mid-sentence).
+ANTI_AI_PARAGRAPH_START_ONLY: list[str] = [
+    "furthermore",
+]
+
+# Common abbreviations that should NOT require first-use definition.
+COMMON_ABBREVIATIONS: set[str] = {
+    "DNA",
+    "RNA",
+    "ICU",
+    "OR",
+    "CI",
+    "SD",
+    "IQR",
+    "HR",
+    "RR",
+    "BMI",
+    "CT",
+    "MRI",
+    "ECG",
+    "EEG",
+    "EMG",
+    "IV",
+    "IM",
+    "SC",
+    "PO",
+    "ICU",
+    "ED",
+    "ER",
+    "WHO",
+    "FDA",
+    "NIH",
+    "CDC",
+    "IRB",
+    "GCP",
+    "ITT",
+    "PP",
+    "CONSORT",
+    "STROBE",
+    "PRISMA",
+    "CARE",
+    "STARD",
+    "TRIPOD",
+    "ANOVA",
+    "GEE",
+    "ROC",
+    "AUC",
+    "NNT",
+    "NNH",
+    "RCT",
+    "CPR",
+    "INR",
+    "PT",
+    "APTT",
+    "VAS",
+    "GCS",
+    "ASA",
+    "NYHA",
+    "APACHE",
+    "SOFA",
+    "MELD",
+    "CRP",
+    "WBC",
+    "RBC",
+    "HB",
+    "PLT",
+    "ALT",
+    "AST",
+    "BUN",
+    "II",
+    "III",
+    "IV",
+}
+
+# Default citation density thresholds (citations per N words).
+# A section needing >= 1 citation per 100 words has threshold 100.
+# 0 means no minimum requirement for that section.
+DEFAULT_CITATION_DENSITY: dict[str, int] = {
+    "introduction": 100,
+    "discussion": 150,
+    "methods": 0,
+    "results": 0,
+}
 
 
 # ── British vs American English dictionary (A5) ────────────────────
@@ -253,15 +376,7 @@ class WritingHooksEngine:
     """
     Code-enforced writing hooks for the auto-paper pipeline.
 
-    Implements Hooks A5, A6, B8, C9, F1-F4.
-
-    Usage:
-        engine = WritingHooksEngine(project_dir)
-        r = engine.check_language_consistency(draft_content, prefer="american")
-        r = engine.check_overlap(draft_content)
-        r = engine.check_data_claim_alignment(methods_content, results_content)
-        r = engine.check_supplementary_crossref(draft_content, project_dir)
-        r = engine.validate_data_artifacts(draft_content)
+    Implements 29 hooks: A1-A6, B8, C3-C7d, C9, F1-F4, P1/P2/P4/P5/P7.
 
     Args:
         project_dir: Path to the project directory (e.g., projects/{slug}/)
@@ -270,6 +385,376 @@ class WritingHooksEngine:
     def __init__(self, project_dir: str | Path) -> None:
         self._project_dir = Path(project_dir)
         self._audit_dir = self._project_dir / ".audit"
+        self._journal_profile: dict[str, Any] | None = None
+        self._load_journal_profile()
+
+    def _load_journal_profile(self) -> None:
+        """Load journal-profile.yaml if it exists."""
+        profile_path = self._project_dir / "journal-profile.yaml"
+        if profile_path.is_file():
+            try:
+                with open(profile_path) as f:
+                    self._journal_profile = yaml.safe_load(f) or {}
+            except Exception:
+                logger.warning("Failed to load journal-profile.yaml", path=str(profile_path))
+                self._journal_profile = None
+
+    def _get_section_word_limit(self, section_name: str) -> int | None:
+        """Get word limit for a section (journal-profile -> DEFAULT_WORD_LIMITS fallback)."""
+        if self._journal_profile:
+            paper = self._journal_profile.get("paper", {})
+            for sec in paper.get("sections", []):
+                if sec.get("name", "").lower() == section_name.lower():
+                    limit = sec.get("word_limit")
+                    if limit is not None:
+                        return int(limit)
+        # Fallback to default — try exact then case-insensitive
+        for key, val in DEFAULT_WORD_LIMITS.items():
+            if key.lower() == section_name.lower():
+                return val
+        return None
+
+    def _get_word_tolerance_pct(self) -> int:
+        """Get word tolerance percentage (default 20)."""
+        if self._journal_profile:
+            pipeline = self._journal_profile.get("pipeline", {})
+            tolerance = pipeline.get("tolerance", {})
+            pct = tolerance.get("word_percent")
+            if pct is not None:
+                return int(pct)
+        return 20
+
+    def _get_citation_density_threshold(self, section_name: str) -> int:
+        """Get citation density threshold (citations per N words, 0 = no check)."""
+        if self._journal_profile:
+            pipeline = self._journal_profile.get("pipeline", {})
+            writing = pipeline.get("writing", {})
+            density = writing.get("citation_density", {})
+            val = density.get(section_name.lower())
+            if val is not None:
+                return int(val)
+        return DEFAULT_CITATION_DENSITY.get(section_name.lower(), 0)
+
+    def _get_total_word_limit(self) -> int | None:
+        """Get total manuscript word limit."""
+        if self._journal_profile:
+            wl = self._journal_profile.get("word_limits", {})
+            total = wl.get("total_manuscript")
+            if total is not None:
+                return int(total)
+        return None
+
+    def _get_figure_table_limits(self) -> tuple[int | None, int | None]:
+        """Get (figures_max, tables_max) from journal profile."""
+        if self._journal_profile:
+            assets = self._journal_profile.get("assets", {})
+            fig = assets.get("figures_max")
+            tbl = assets.get("tables_max")
+            return (int(fig) if fig is not None else None, int(tbl) if tbl is not None else None)
+        return (None, None)
+
+    # ── Shared helpers ─────────────────────────────────────────────
+
+    @staticmethod
+    def _count_words(text: str) -> int:
+        """Count words in text, stripping markdown formatting."""
+        # Strip wikilinks
+        cleaned = re.sub(r"\[\[[^\]]*\]\]", "CITE", text)
+        # Strip markdown links [text](url)
+        cleaned = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", cleaned)
+        # Strip bold/italic markers
+        cleaned = re.sub(r"[*_]{1,3}", "", cleaned)
+        # Strip headings markers
+        cleaned = re.sub(r"^#{1,6}\s+", "", cleaned, flags=re.MULTILINE)
+        return len(re.findall(r"\b\w+\b", cleaned))
+
+    @staticmethod
+    def _parse_sections(content: str) -> dict[str, str]:
+        """Parse markdown content into {section_name: section_text} dict."""
+        sections: dict[str, str] = {}
+        current_name: str | None = None
+        current_lines: list[str] = []
+
+        for line in content.split("\n"):
+            heading_match = re.match(r"^#{1,3}\s+(.+)", line)
+            if heading_match:
+                if current_name is not None:
+                    sections[current_name] = "\n".join(current_lines).strip()
+                current_name = heading_match.group(1).strip()
+                current_lines = []
+            elif current_name is not None:
+                current_lines.append(line)
+
+        if current_name is not None:
+            sections[current_name] = "\n".join(current_lines).strip()
+
+        return sections
+
+    # ── Hook A1: Word Count Compliance ─────────────────────────────
+
+    def check_word_count_compliance(
+        self,
+        content: str,
+        section_name: str | None = None,
+        critical_threshold_pct: int = 50,
+    ) -> HookResult:
+        """
+        Hook A1: Check section word counts against targets.
+
+        If section_name is provided, checks that single section.
+        If None, parses content into sections and checks each.
+
+        Args:
+            content: Section text or full manuscript.
+            section_name: If provided, treat content as a single section.
+            critical_threshold_pct: Deviation % that triggers CRITICAL (default 50).
+        """
+        issues: list[HookIssue] = []
+        tolerance_pct = self._get_word_tolerance_pct()
+
+        if section_name:
+            sections_to_check = {section_name: content}
+        else:
+            sections_to_check = self._parse_sections(content)
+
+        checked: list[dict[str, Any]] = []
+
+        for sec_name, sec_text in sections_to_check.items():
+            target = self._get_section_word_limit(sec_name)
+            if target is None:
+                continue
+            word_count = self._count_words(sec_text)
+            deviation_pct = ((word_count - target) / target) * 100 if target > 0 else 0
+
+            if abs(deviation_pct) > critical_threshold_pct:
+                severity = "CRITICAL"
+            elif abs(deviation_pct) > tolerance_pct:
+                severity = "WARNING"
+            else:
+                severity = None
+
+            if severity:
+                direction = "over" if deviation_pct > 0 else "under"
+                issues.append(
+                    HookIssue(
+                        hook_id="A1",
+                        severity=severity,
+                        section=sec_name,
+                        message=(
+                            f"{sec_name}: {word_count} words ({deviation_pct:+.0f}% {direction} "
+                            f"target {target}, tolerance ±{tolerance_pct}%)"
+                        ),
+                        suggestion=f"{'Trim' if deviation_pct > 0 else 'Expand'} the {sec_name} section",
+                    )
+                )
+
+            checked.append(
+                {
+                    "section": sec_name,
+                    "word_count": word_count,
+                    "target": target,
+                    "deviation_pct": round(deviation_pct, 1),
+                }
+            )
+
+        passed = not any(i.severity == "CRITICAL" for i in issues)
+        stats = {"sections_checked": checked, "tolerance_pct": tolerance_pct}
+
+        logger.info("Hook A1 complete", passed=passed, sections=len(checked))
+        return HookResult(hook_id="A1", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook A2: Citation Density ──────────────────────────────────
+
+    def check_citation_density(
+        self,
+        content: str,
+        section_name: str = "manuscript",
+    ) -> HookResult:
+        """
+        Hook A2: Check citation density (wikilinks per N words).
+
+        Args:
+            content: Section text.
+            section_name: Section name for threshold lookup.
+        """
+        issues: list[HookIssue] = []
+
+        threshold = self._get_citation_density_threshold(section_name)
+        if threshold == 0:
+            # No citation density requirement for this section
+            return HookResult(
+                hook_id="A2",
+                passed=True,
+                stats={"section": section_name, "threshold": 0, "skipped": True},
+            )
+
+        citation_count = len(re.findall(r"\[\[[^\]]+\]\]", content))
+        word_count = self._count_words(content)
+
+        if word_count == 0:
+            return HookResult(
+                hook_id="A2",
+                passed=True,
+                stats={"section": section_name, "word_count": 0},
+            )
+
+        # threshold = N means "at least 1 citation per N words"
+        # So required citations = word_count / threshold
+        required = word_count / threshold
+        density_per_100w = (citation_count / word_count) * 100 if word_count else 0
+
+        if citation_count < required:
+            issues.append(
+                HookIssue(
+                    hook_id="A2",
+                    severity="WARNING",
+                    section=section_name,
+                    message=(
+                        f"{section_name}: {citation_count} citations in {word_count} words "
+                        f"(density {density_per_100w:.1f}/100w, need ≥1/{threshold}w = {required:.0f} citations)"
+                    ),
+                    suggestion=f"Add more citations to {section_name} (need ≥{required:.0f})",
+                )
+            )
+
+        passed = len(issues) == 0
+        stats = {
+            "section": section_name,
+            "citation_count": citation_count,
+            "word_count": word_count,
+            "density_per_100w": round(density_per_100w, 2),
+            "threshold_per_nw": threshold,
+        }
+
+        logger.info("Hook A2 complete", passed=passed, density=density_per_100w)
+        return HookResult(hook_id="A2", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook A3: Anti-AI Pattern Detection ─────────────────────────
+
+    def check_anti_ai_patterns(
+        self,
+        content: str,
+        section: str = "manuscript",
+        warn_threshold: int = 1,
+        critical_threshold: int = 3,
+    ) -> HookResult:
+        """
+        Hook A3: Detect AI-characteristic phrasing.
+
+        Scans for forbidden phrases from the unified ANTI_AI_PHRASES list.
+        "Furthermore" is only flagged at paragraph start.
+
+        Args:
+            content: Text to scan.
+            section: Section name for reporting.
+            warn_threshold: Total matches to trigger WARNING (default 1).
+            critical_threshold: Total matches to trigger CRITICAL (default 3).
+        """
+        issues: list[HookIssue] = []
+        content_lower = content.lower()
+        phrase_counts: dict[str, int] = {}
+        total_matches = 0
+
+        for phrase in ANTI_AI_PHRASES:
+            count = len(re.findall(rf"\b{re.escape(phrase)}\b", content_lower))
+            if count > 0:
+                phrase_counts[phrase] = count
+                total_matches += count
+
+        # Paragraph-start-only phrases
+        for phrase in ANTI_AI_PARAGRAPH_START_ONLY:
+            count = len(re.findall(rf"(?:^|\n\n)\s*{re.escape(phrase)}\b", content, re.IGNORECASE))
+            if count > 0:
+                phrase_counts[f"{phrase} (paragraph start)"] = count
+                total_matches += count
+
+        for phrase, count in phrase_counts.items():
+            severity = "CRITICAL" if total_matches >= critical_threshold else "WARNING"
+            issues.append(
+                HookIssue(
+                    hook_id="A3",
+                    severity=severity,
+                    section=section,
+                    message=f"AI-characteristic phrase '{phrase}' found ({count}x)",
+                    suggestion="Replace with specific, concrete language",
+                )
+            )
+
+        passed = total_matches < warn_threshold
+        stats = {
+            "total_matches": total_matches,
+            "unique_phrases_found": len(phrase_counts),
+            "phrase_counts": phrase_counts,
+        }
+
+        logger.info("Hook A3 complete", passed=passed, total_matches=total_matches)
+        return HookResult(hook_id="A3", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook A4: Wikilink Format Validation ────────────────────────
+
+    def check_wikilink_format(
+        self,
+        content: str,
+        section: str = "manuscript",
+    ) -> HookResult:
+        """
+        Hook A4: Validate wikilink format in draft text.
+
+        Checks that all [[wikilinks]] follow the correct format:
+        [[author2024_12345678]] (lowercase author + year + underscore + PMID).
+
+        Args:
+            content: Text to check.
+            section: Section name for reporting.
+        """
+        issues: list[HookIssue] = []
+
+        # Find all wikilinks
+        all_wikilinks = re.findall(r"\[\[([^\]]+)\]\]", content)
+        if not all_wikilinks:
+            return HookResult(
+                hook_id="A4",
+                passed=True,
+                stats={"total_wikilinks": 0, "valid_count": 0, "issue_count": 0},
+            )
+
+        valid_pattern = re.compile(r"^[a-z]+\d{4}_\d{7,8}$")
+        valid_count = 0
+
+        for wl in all_wikilinks:
+            if valid_pattern.match(wl):
+                valid_count += 1
+            else:
+                # Determine issue type
+                if re.match(r"^\d{7,8}$", wl):
+                    issue_type = "PMID-only (missing author prefix)"
+                    severity = "WARNING"
+                elif re.match(r"^PMID:\s*\d+$", wl, re.IGNORECASE):
+                    issue_type = "PMID: prefix format"
+                    severity = "WARNING"
+                else:
+                    issue_type = "non-standard format"
+                    severity = "WARNING"
+
+                issues.append(
+                    HookIssue(
+                        hook_id="A4",
+                        severity=severity,
+                        section=section,
+                        message=f"Wikilink [[{wl}]] has {issue_type}",
+                        suggestion=f"Use format [[author2024_12345678]] for '{wl}'",
+                    )
+                )
+
+        passed = len(issues) == 0
+        stats = {
+            "total_wikilinks": len(all_wikilinks),
+            "valid_count": valid_count,
+            "issue_count": len(issues),
+        }
+
+        logger.info("Hook A4 complete", passed=passed, total=len(all_wikilinks), valid=valid_count)
+        return HookResult(hook_id="A4", passed=passed, issues=issues, stats=stats)
 
     # ── Hook A5: Language Consistency ──────────────────────────────
 
@@ -793,7 +1278,641 @@ class WritingHooksEngine:
         )
         return HookResult(hook_id="F", passed=passed, issues=issues, stats=stats)
 
-    # ── Batch runner (convenience) ────────────────────────────────
+    # ── Hook C3: N-value Cross-Section Consistency ─────────────────
+
+    def check_n_value_consistency(
+        self,
+        content: str,
+    ) -> HookResult:
+        """
+        Hook C3: Verify N-values (sample sizes) are consistent across sections.
+
+        Methods section is the source of truth. Any N-value appearing in
+        other sections that differs from Methods is flagged.
+        """
+        issues: list[HookIssue] = []
+        sections = self._parse_sections(content)
+
+        # Patterns to extract N-values with context
+        n_patterns = [
+            (r"\b[Nn]\s*=\s*(\d+)\b", "N="),
+            (
+                r"(\d+)\s+(?:patients|subjects|participants|individuals|cases|controls|samples|enrolled)",
+                "count of",
+            ),
+        ]
+
+        def _extract_n_values(text: str) -> dict[str, set[str]]:
+            """Extract N-values grouped by pattern type."""
+            result: dict[str, set[str]] = {}
+            for pattern, label in n_patterns:
+                values = set(re.findall(pattern, text, re.IGNORECASE))
+                if values:
+                    result[label] = values
+            return result
+
+        # Find Methods section (source of truth)
+        methods_key = None
+        for key in sections:
+            if re.match(r"(?:materials?\s+and\s+)?methods", key, re.IGNORECASE):
+                methods_key = key
+                break
+
+        if methods_key is None:
+            return HookResult(
+                hook_id="C3",
+                passed=True,
+                stats={"note": "No Methods section found, skipping N-value check"},
+            )
+
+        methods_n = _extract_n_values(sections[methods_key])
+        all_methods_values: set[str] = set()
+        for vals in methods_n.values():
+            all_methods_values |= vals
+
+        if not all_methods_values:
+            return HookResult(
+                hook_id="C3",
+                passed=True,
+                stats={"note": "No N-values found in Methods"},
+            )
+
+        inconsistencies = 0
+        for sec_name, sec_text in sections.items():
+            if sec_name == methods_key:
+                continue
+            sec_n = _extract_n_values(sec_text)
+            for label, values in sec_n.items():
+                for val in values:
+                    if val not in all_methods_values and int(val) > 1:
+                        inconsistencies += 1
+                        issues.append(
+                            HookIssue(
+                                hook_id="C3",
+                                severity="CRITICAL",
+                                section=sec_name,
+                                message=(
+                                    f"N-value {label}{val} in {sec_name} "
+                                    f"not found in Methods (Methods has: {sorted(all_methods_values)})"
+                                ),
+                                suggestion=f"Verify {label}{val} is correct or add to Methods",
+                            )
+                        )
+
+        passed = not any(i.severity == "CRITICAL" for i in issues)
+        stats = {
+            "methods_n_values": sorted(all_methods_values),
+            "sections_checked": len(sections) - 1,
+            "inconsistencies": inconsistencies,
+        }
+
+        logger.info("Hook C3 complete", passed=passed, inconsistencies=inconsistencies)
+        return HookResult(hook_id="C3", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook C4: Abbreviation First-Use Definition ─────────────────
+
+    def check_abbreviation_first_use(
+        self,
+        content: str,
+    ) -> HookResult:
+        """
+        Hook C4: Verify abbreviations are defined at first use.
+
+        Scans for uppercase abbreviations (2+ letters) and checks that each
+        is defined with its full form before or at first occurrence.
+        Common medical/statistical abbreviations are excluded.
+        """
+        issues: list[HookIssue] = []
+
+        # Find all abbreviations (2+ uppercase letters)
+        all_abbrs = re.findall(r"\b([A-Z]{2,})\b", content)
+        if not all_abbrs:
+            return HookResult(
+                hook_id="C4",
+                passed=True,
+                stats={"abbreviations_found": 0},
+            )
+
+        # Deduplicate, preserving order of first appearance
+        seen: set[str] = set()
+        unique_abbrs: list[str] = []
+        for abbr in all_abbrs:
+            if abbr not in seen and abbr not in COMMON_ABBREVIATIONS:
+                seen.add(abbr)
+                unique_abbrs.append(abbr)
+
+        defined: list[str] = []
+        undefined: list[str] = []
+
+        for abbr in unique_abbrs:
+            # Check for definition pattern: "Full Name (ABBR)" before or at first use
+            # Pattern: any words followed by (ABBR) — within 200 chars before first occurrence
+            first_pos = content.find(abbr)
+            if first_pos == -1:
+                continue
+
+            # Look for "(ABBR)" near the first occurrence — the definition pattern
+            definition_pattern = rf"\b[\w\s]{{3,}}\({re.escape(abbr)}\)"
+            context_start = max(0, first_pos - 200)
+            context_end = min(len(content), first_pos + len(abbr) + 50)
+            context = content[context_start:context_end]
+
+            if re.search(definition_pattern, context):
+                defined.append(abbr)
+            else:
+                undefined.append(abbr)
+                issues.append(
+                    HookIssue(
+                        hook_id="C4",
+                        severity="WARNING",
+                        section="manuscript",
+                        message=f"Abbreviation '{abbr}' used without definition at first occurrence",
+                        suggestion=f"Add 'Full Name ({abbr})' at first use",
+                    )
+                )
+
+        passed = len(issues) == 0
+        stats = {
+            "abbreviations_found": len(unique_abbrs),
+            "defined_count": len(defined),
+            "undefined_count": len(undefined),
+            "undefined": undefined[:10],  # Cap for readability
+        }
+
+        logger.info("Hook C4 complete", passed=passed, undefined=len(undefined))
+        return HookResult(hook_id="C4", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook C5: Wikilink Resolvable ───────────────────────────────
+
+    def check_wikilink_resolvable(
+        self,
+        content: str,
+    ) -> HookResult:
+        """
+        Hook C5: Verify all wikilinks resolve to saved references.
+
+        Checks that every [[wikilink]] in the draft has a corresponding
+        reference directory under references/.
+        """
+        issues: list[HookIssue] = []
+
+        all_wikilinks = re.findall(r"\[\[([^\]]+)\]\]", content)
+        if not all_wikilinks:
+            return HookResult(
+                hook_id="C5",
+                passed=True,
+                stats={"total_wikilinks": 0, "resolved": 0, "unresolved": 0},
+            )
+
+        refs_dir = self._project_dir / "references"
+        existing_refs: set[str] = set()
+        if refs_dir.is_dir():
+            for d in refs_dir.iterdir():
+                if d.is_dir():
+                    existing_refs.add(d.name)
+
+        resolved = 0
+        unresolved = 0
+
+        for wl in all_wikilinks:
+            # Try to match against reference directory names
+            if wl in existing_refs:
+                resolved += 1
+            else:
+                # Try extracting PMID and matching
+                pmid_match = re.search(r"(\d{7,8})", wl)
+                if pmid_match:
+                    pmid = pmid_match.group(1)
+                    if any(pmid in ref_name for ref_name in existing_refs):
+                        resolved += 1
+                        continue
+                unresolved += 1
+                issues.append(
+                    HookIssue(
+                        hook_id="C5",
+                        severity="CRITICAL",
+                        section="manuscript",
+                        message=f"Wikilink [[{wl}]] cannot be resolved to a saved reference",
+                        suggestion="Save this reference with save_reference_mcp or fix the wikilink",
+                    )
+                )
+
+        passed = unresolved == 0
+        stats = {
+            "total_wikilinks": len(all_wikilinks),
+            "resolved": resolved,
+            "unresolved": unresolved,
+        }
+
+        logger.info("Hook C5 complete", passed=passed, unresolved=unresolved)
+        return HookResult(hook_id="C5", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook C6: Total Word Count ──────────────────────────────────
+
+    def check_total_word_count(
+        self,
+        content: str,
+    ) -> HookResult:
+        """
+        Hook C6: Check total manuscript word count against journal limit.
+
+        Excludes the References section from the count.
+        """
+        issues: list[HookIssue] = []
+
+        limit = self._get_total_word_limit()
+        if limit is None:
+            return HookResult(
+                hook_id="C6",
+                passed=True,
+                stats={"note": "No total word limit configured"},
+            )
+
+        # Strip References section
+        stripped = re.split(r"\n#{1,2}\s+References\b", content, flags=re.IGNORECASE)[0]
+        total_words = self._count_words(stripped)
+
+        deviation_pct = ((total_words - limit) / limit) * 100 if limit > 0 else 0
+
+        if deviation_pct > 20:
+            severity = "CRITICAL"
+        elif deviation_pct > 10:
+            severity = "WARNING"
+        else:
+            severity = None
+
+        if severity:
+            issues.append(
+                HookIssue(
+                    hook_id="C6",
+                    severity=severity,
+                    section="manuscript",
+                    message=f"Total word count {total_words} exceeds limit {limit} by {deviation_pct:.0f}%",
+                    suggestion="Trim the longest section(s) to meet the word limit",
+                )
+            )
+
+        passed = not any(i.severity == "CRITICAL" for i in issues)
+        stats = {
+            "total_words": total_words,
+            "limit": limit,
+            "deviation_pct": round(deviation_pct, 1),
+            "excludes_references": True,
+        }
+
+        logger.info("Hook C6 complete", passed=passed, total_words=total_words, limit=limit)
+        return HookResult(hook_id="C6", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook C7a: Figure/Table Count Limits ────────────────────────
+
+    def check_figure_table_counts(
+        self,
+        content: str,
+    ) -> HookResult:
+        """
+        Hook C7a: Check figure and table counts against journal limits.
+        """
+        issues: list[HookIssue] = []
+
+        fig_limit, tbl_limit = self._get_figure_table_limits()
+        if fig_limit is None and tbl_limit is None:
+            return HookResult(
+                hook_id="C7a",
+                passed=True,
+                stats={"note": "No figure/table limits configured"},
+            )
+
+        # Count distinct references in text
+        fig_refs = set(re.findall(r"Figure\s+(\d+)", content, re.IGNORECASE))
+        tbl_refs = set(re.findall(r"Table\s+(\d+)", content, re.IGNORECASE))
+
+        # Also check manifest if it exists
+        manifest_path = self._project_dir / "results" / "manifest.json"
+        if manifest_path.is_file():
+            try:
+                with open(manifest_path) as f:
+                    manifest = json.load(f)
+                manifest_figs = {
+                    a["id"] for a in manifest.get("assets", []) if a.get("type") == "figure"
+                }
+                manifest_tbls = {
+                    a["id"] for a in manifest.get("assets", []) if a.get("type") == "table"
+                }
+                fig_count = max(len(fig_refs), len(manifest_figs))
+                tbl_count = max(len(tbl_refs), len(manifest_tbls))
+            except Exception:
+                fig_count = len(fig_refs)
+                tbl_count = len(tbl_refs)
+        else:
+            fig_count = len(fig_refs)
+            tbl_count = len(tbl_refs)
+
+        if fig_limit is not None and fig_count > fig_limit:
+            issues.append(
+                HookIssue(
+                    hook_id="C7a",
+                    severity="WARNING",
+                    section="manuscript",
+                    message=f"Figure count ({fig_count}) exceeds limit ({fig_limit})",
+                    suggestion="Move excess figures to supplementary materials",
+                )
+            )
+
+        if tbl_limit is not None and tbl_count > tbl_limit:
+            issues.append(
+                HookIssue(
+                    hook_id="C7a",
+                    severity="WARNING",
+                    section="manuscript",
+                    message=f"Table count ({tbl_count}) exceeds limit ({tbl_limit})",
+                    suggestion="Move excess tables to supplementary materials",
+                )
+            )
+
+        passed = len(issues) == 0
+        stats = {
+            "figure_count": fig_count,
+            "table_count": tbl_count,
+            "figure_limit": fig_limit,
+            "table_limit": tbl_limit,
+        }
+
+        logger.info("Hook C7a complete", passed=passed, figs=fig_count, tbls=tbl_count)
+        return HookResult(hook_id="C7a", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook C7d: Orphan/Phantom Cross-References ──────────────────
+
+    def check_cross_references(
+        self,
+        content: str,
+    ) -> HookResult:
+        """
+        Hook C7d: Detect orphan and phantom figure/table cross-references.
+
+        - Phantom: referenced in text but not in manifest (CRITICAL)
+        - Orphan: in manifest but not referenced in text (WARNING)
+        """
+        issues: list[HookIssue] = []
+
+        # Extract references from text
+        fig_refs = set(re.findall(r"Figure\s+(\d+)", content, re.IGNORECASE))
+        tbl_refs = set(re.findall(r"Table\s+(\d+)", content, re.IGNORECASE))
+
+        manifest_path = self._project_dir / "results" / "manifest.json"
+        if not manifest_path.is_file():
+            # Without manifest, we can only report what's in the text
+            return HookResult(
+                hook_id="C7d",
+                passed=True,
+                stats={
+                    "note": "No manifest.json found",
+                    "text_figure_refs": sorted(fig_refs),
+                    "text_table_refs": sorted(tbl_refs),
+                },
+            )
+
+        try:
+            with open(manifest_path) as f:
+                manifest = json.load(f)
+        except Exception:
+            return HookResult(
+                hook_id="C7d",
+                passed=True,
+                stats={"note": "Failed to read manifest.json"},
+            )
+
+        manifest_figs = {
+            str(a.get("number", a.get("id", "")))
+            for a in manifest.get("assets", [])
+            if a.get("type") == "figure"
+        }
+        manifest_tbls = {
+            str(a.get("number", a.get("id", "")))
+            for a in manifest.get("assets", [])
+            if a.get("type") == "table"
+        }
+
+        # Phantom: in text but not in manifest
+        phantom_figs = fig_refs - manifest_figs
+        phantom_tbls = tbl_refs - manifest_tbls
+
+        for f in phantom_figs:
+            issues.append(
+                HookIssue(
+                    hook_id="C7d",
+                    severity="CRITICAL",
+                    section="manuscript",
+                    message=f"Phantom: Figure {f} referenced in text but not in manifest",
+                    suggestion=f"Add Figure {f} to manifest or remove from text",
+                )
+            )
+        for t in phantom_tbls:
+            issues.append(
+                HookIssue(
+                    hook_id="C7d",
+                    severity="CRITICAL",
+                    section="manuscript",
+                    message=f"Phantom: Table {t} referenced in text but not in manifest",
+                    suggestion=f"Add Table {t} to manifest or remove from text",
+                )
+            )
+
+        # Orphan: in manifest but not in text
+        orphan_figs = manifest_figs - fig_refs
+        orphan_tbls = manifest_tbls - tbl_refs
+
+        for fig in orphan_figs:
+            issues.append(
+                HookIssue(
+                    hook_id="C7d",
+                    severity="WARNING",
+                    section="manifest",
+                    message=f"Orphan: Figure {fig} in manifest but not referenced in text",
+                    suggestion=f"Add Figure {fig} reference to text or remove from manifest",
+                )
+            )
+        for t in orphan_tbls:
+            issues.append(
+                HookIssue(
+                    hook_id="C7d",
+                    severity="WARNING",
+                    section="manifest",
+                    message=f"Orphan: Table {t} in manifest but not referenced in text",
+                    suggestion=f"Add Table {t} reference to text or remove from manifest",
+                )
+            )
+
+        passed = not any(i.severity == "CRITICAL" for i in issues)
+        stats = {
+            "phantom_count": len(phantom_figs) + len(phantom_tbls),
+            "orphan_count": len(orphan_figs) + len(orphan_tbls),
+            "text_figure_refs": sorted(fig_refs),
+            "text_table_refs": sorted(tbl_refs),
+            "manifest_figures": sorted(manifest_figs),
+            "manifest_tables": sorted(manifest_tbls),
+        }
+
+        logger.info(
+            "Hook C7d complete",
+            passed=passed,
+            phantoms=stats["phantom_count"],
+            orphans=stats["orphan_count"],
+        )
+        return HookResult(hook_id="C7d", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook P5: Protected Content ─────────────────────────────────
+
+    def check_protected_content(
+        self,
+        concept_path: Path | None = None,
+    ) -> HookResult:
+        """
+        Hook P5: Verify 🔒-marked blocks in concept.md are non-empty.
+        """
+        issues: list[HookIssue] = []
+
+        if concept_path is None:
+            concept_path = self._project_dir / "concept.md"
+
+        if not concept_path.is_file():
+            return HookResult(
+                hook_id="P5",
+                passed=True,
+                stats={"note": "No concept.md found"},
+            )
+
+        try:
+            concept_text = concept_path.read_text(encoding="utf-8")
+        except Exception:
+            return HookResult(
+                hook_id="P5",
+                passed=True,
+                stats={"note": "Failed to read concept.md"},
+            )
+
+        # Find 🔒-marked headings
+        protected_blocks: list[tuple[str, str]] = []
+        lines = concept_text.split("\n")
+        current_heading: str | None = None
+        current_content: list[str] = []
+
+        for line in lines:
+            heading_match = re.match(r"^#{1,3}\s+(.+)", line)
+            if heading_match:
+                if current_heading is not None:
+                    protected_blocks.append((current_heading, "\n".join(current_content).strip()))
+                heading_text = heading_match.group(1).strip()
+                if "\U0001f512" in heading_text:  # 🔒
+                    current_heading = heading_text
+                    current_content = []
+                else:
+                    current_heading = None
+                    current_content = []
+            elif current_heading is not None:
+                current_content.append(line)
+
+        # Don't forget last block
+        if current_heading is not None:
+            protected_blocks.append((current_heading, "\n".join(current_content).strip()))
+
+        empty_blocks: list[str] = []
+        for heading, block_content in protected_blocks:
+            # Check if content is empty or just placeholder text
+            stripped = re.sub(r"\[.*?\]", "", block_content).strip()
+            stripped = re.sub(r">\s*\[.*?\]", "", stripped).strip()
+            stripped = re.sub(r"^[-*]\s*$", "", stripped, flags=re.MULTILINE).strip()
+
+            if not stripped:
+                empty_blocks.append(heading)
+                issues.append(
+                    HookIssue(
+                        hook_id="P5",
+                        severity="CRITICAL",
+                        section="concept.md",
+                        message=f"Protected block '{heading}' is empty or only has placeholder text",
+                        suggestion=f"Fill in the content for '{heading}' before proceeding",
+                    )
+                )
+
+        passed = len(empty_blocks) == 0
+        stats = {
+            "protected_blocks_found": len(protected_blocks),
+            "non_empty_count": len(protected_blocks) - len(empty_blocks),
+            "empty_blocks": empty_blocks,
+        }
+
+        logger.info(
+            "Hook P5 complete", passed=passed, blocks=len(protected_blocks), empty=len(empty_blocks)
+        )
+        return HookResult(hook_id="P5", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook P7: Reference Integrity ───────────────────────────────
+
+    def check_reference_integrity(
+        self,
+        content: str | None = None,
+    ) -> HookResult:
+        """
+        Hook P7: Verify saved references have VERIFIED status.
+
+        Optionally checks that wikilinks in content map to reference dirs.
+        """
+        issues: list[HookIssue] = []
+
+        refs_dir = self._project_dir / "references"
+        if not refs_dir.is_dir():
+            return HookResult(
+                hook_id="P7",
+                passed=True,
+                stats={"note": "No references directory found"},
+            )
+
+        total_refs = 0
+        verified_count = 0
+        unverified_refs: list[str] = []
+
+        for ref_dir in sorted(refs_dir.iterdir()):
+            if not ref_dir.is_dir():
+                continue
+            total_refs += 1
+            metadata_path = ref_dir / "metadata.json"
+            if not metadata_path.is_file():
+                unverified_refs.append(ref_dir.name)
+                continue
+            try:
+                with open(metadata_path) as f:
+                    meta = json.load(f)
+                data_source = meta.get("_data_source", "")
+                if data_source == "pubmed_api" or meta.get("verified", False):
+                    verified_count += 1
+                else:
+                    unverified_refs.append(ref_dir.name)
+            except Exception:
+                unverified_refs.append(ref_dir.name)
+
+        for ref_name in unverified_refs:
+            issues.append(
+                HookIssue(
+                    hook_id="P7",
+                    severity="WARNING",
+                    section="references",
+                    message=f"Reference '{ref_name}' is not verified (not from PubMed API)",
+                    suggestion="Re-save with save_reference_mcp for verified metadata",
+                )
+            )
+
+        passed = len(issues) == 0
+        stats = {
+            "total_refs": total_refs,
+            "verified_count": verified_count,
+            "unverified_count": len(unverified_refs),
+            "unverified_refs": unverified_refs[:10],
+        }
+
+        logger.info("Hook P7 complete", passed=passed, verified=verified_count, total=total_refs)
+        return HookResult(hook_id="P7", passed=passed, issues=issues, stats=stats)
+
+    # ── Batch runners (convenience) ───────────────────────────────
 
     def run_post_write_hooks(
         self,
@@ -802,12 +1921,16 @@ class WritingHooksEngine:
         prefer_language: str = "american",
     ) -> dict[str, HookResult]:
         """
-        Run all post-write hooks (A5, A6) on a section.
+        Run all post-write hooks (A1-A6) on a section.
 
         Returns:
-            Dict mapping hook_id → HookResult.
+            Dict mapping hook_id -> HookResult.
         """
         return {
+            "A1": self.check_word_count_compliance(content, section_name=section),
+            "A2": self.check_citation_density(content, section_name=section),
+            "A3": self.check_anti_ai_patterns(content, section=section),
+            "A4": self.check_wikilink_format(content, section=section),
             "A5": self.check_language_consistency(content, prefer=prefer_language, section=section),
             "A6": self.check_overlap(content),
         }
@@ -821,7 +1944,7 @@ class WritingHooksEngine:
         Run post-section hooks (B8) — only applies when both Methods and Results exist.
 
         Returns:
-            Dict mapping hook_id → HookResult.
+            Dict mapping hook_id -> HookResult.
         """
         return {
             "B8": self.check_data_claim_alignment(methods_content, results_content),
@@ -832,12 +1955,64 @@ class WritingHooksEngine:
         content: str,
     ) -> dict[str, HookResult]:
         """
-        Run all post-manuscript hooks (C9, F) on the full manuscript.
+        Run all post-manuscript hooks (C3, C4, C5, C6, C7a, C7d, C9, F) on the full manuscript.
 
         Returns:
-            Dict mapping hook_id → HookResult.
+            Dict mapping hook_id -> HookResult.
         """
         return {
+            "C3": self.check_n_value_consistency(content),
+            "C4": self.check_abbreviation_first_use(content),
+            "C5": self.check_wikilink_resolvable(content),
+            "C6": self.check_total_word_count(content),
+            "C7a": self.check_figure_table_counts(content),
+            "C7d": self.check_cross_references(content),
             "C9": self.check_supplementary_crossref(content),
             "F": self.validate_data_artifacts(content),
+        }
+
+    def run_precommit_hooks(
+        self,
+        content: str,
+        prefer_language: str = "american",
+    ) -> dict[str, HookResult]:
+        """
+        Run all pre-commit hooks (P1, P2, P4, P5, P7).
+
+        P1 delegates to C5 (wikilink resolvable).
+        P2 delegates to A3 (anti-AI, with P2 thresholds).
+        P4 delegates to A1 (word count, with 50% critical threshold).
+
+        Returns:
+            Dict mapping hook_id -> HookResult.
+        """
+        # P1: Citation integrity — delegate to C5 with hook_id remap
+        p1_result = self.check_wikilink_resolvable(content)
+        p1_result.hook_id = "P1"
+        for issue in p1_result.issues:
+            issue.hook_id = "P1"
+
+        # P2: Anti-AI scan — delegate to A3 with P2 thresholds
+        p2_result = self.check_anti_ai_patterns(
+            content,
+            section="precommit",
+            warn_threshold=1,
+            critical_threshold=3,
+        )
+        p2_result.hook_id = "P2"
+        for issue in p2_result.issues:
+            issue.hook_id = "P2"
+
+        # P4: Word count — delegate to A1 with 50% critical threshold
+        p4_result = self.check_word_count_compliance(content, critical_threshold_pct=50)
+        p4_result.hook_id = "P4"
+        for issue in p4_result.issues:
+            issue.hook_id = "P4"
+
+        return {
+            "P1": p1_result,
+            "P2": p2_result,
+            "P4": p4_result,
+            "P5": self.check_protected_content(),
+            "P7": self.check_reference_integrity(content),
         }

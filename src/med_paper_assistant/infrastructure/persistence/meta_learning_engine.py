@@ -135,11 +135,13 @@ class MetaLearningEngine:
         audit_dir: str | Path,
         tracker: HookEffectivenessTracker,
         scorecard: QualityScorecard,
+        workspace_root: str | Path | None = None,
     ) -> None:
         self._audit_dir = Path(audit_dir)
         self._tracker = tracker
         self._scorecard = scorecard
         self._audit_path = self._audit_dir / self.AUDIT_FILE
+        self._workspace_root = Path(workspace_root) if workspace_root else None
 
     # All expected hooks in the framework (A/B/C/E/F/P layers)
     EXPECTED_HOOKS = [
@@ -205,6 +207,8 @@ class MetaLearningEngine:
         review_lessons = self._d7_review_retrospective()
         equator_lessons = self._d8_equator_retrospective()
         skill_suggestions = self._d4_d5_skill_suggestions()
+        d9_suggestions = self._d9_tool_description_suggestions()
+        all_suggestions = skill_suggestions + d9_suggestions
 
         all_lessons = (
             quality_lessons
@@ -223,13 +227,13 @@ class MetaLearningEngine:
             ]
         )
 
-        audit_trail = self._d6_build_audit_trail(adjustments, all_lessons, skill_suggestions)
-        summary = self._build_summary(adjustments, all_lessons, skill_suggestions)
+        audit_trail = self._d6_build_audit_trail(adjustments, all_lessons, all_suggestions)
+        summary = self._build_summary(adjustments, all_lessons, all_suggestions)
 
         return {
             "adjustments": [a.to_dict() for a in adjustments],
             "lessons": [lesson.to_dict() for lesson in all_lessons],
-            "suggestions": skill_suggestions,
+            "suggestions": all_suggestions,
             "audit_trail": audit_trail,
             "summary": summary,
         }
@@ -804,6 +808,82 @@ class MetaLearningEngine:
             lines.append("")
 
         return "\n".join(lines)
+
+    def _d9_tool_description_suggestions(self) -> list[dict[str, Any]]:
+        """
+        D9: Analyze MCP tool invocation telemetry to suggest description improvements.
+
+        Reads ToolInvocationStore from workspace_root (if set).
+        Returns L3 suggestions (requires_confirmation=True) for:
+        - Tools with misuse_rate > 20% (≥2 misuse events): description confuses agents
+        - Tools with error_count >= 3: parameters may need clarifying examples
+
+        Returns:
+            List of suggestion dicts with type="improve_tool_description".
+            Empty list if workspace_root is not set or store has no data.
+
+        CONSTITUTION §23 compliance:
+            All D9 suggestions are L3 (requires_confirmation=True).
+            D9 is additive — does not modify D1-D8 behavior.
+            D9 failure never blocks D1-D8 (wrapped in try/except).
+        """
+        if self._workspace_root is None:
+            return []
+
+        try:
+            from .tool_invocation_store import ToolInvocationStore
+
+            store = ToolInvocationStore(self._workspace_root)
+            all_stats = store.get_all_stats()
+        except Exception as e:
+            logger.warning("meta_learning.d9_store_read_failed", error=str(e))
+            return []
+
+        if not all_stats:
+            return []
+
+        suggestions: list[dict[str, Any]] = []
+
+        for tool_name, stats in all_stats.items():
+            invocation_count = stats.get("invocation_count", 0)
+            misuse_count = stats.get("misuse_count", 0)
+            error_count = stats.get("error_count", 0)
+            error_types = stats.get("error_types", [])
+
+            if invocation_count <= 0:
+                continue
+
+            # High misuse rate: agent is confused by tool description
+            misuse_rate = misuse_count / invocation_count
+            if misuse_count >= 2 and misuse_rate > 0.20:
+                suggestions.append(
+                    {
+                        "type": "improve_tool_description",
+                        "target": tool_name,
+                        "reason": (
+                            f"Misuse rate {misuse_rate:.0%} ({misuse_count}/{invocation_count} calls) "
+                            f"— tool description may be ambiguous to agents"
+                        ),
+                        "requires_confirmation": True,
+                    }
+                )
+
+            # Recurring errors: parameter examples or edge case docs needed
+            if error_count >= 3:
+                error_summary = f"; error_types: [{', '.join(error_types)}]" if error_types else ""
+                suggestions.append(
+                    {
+                        "type": "improve_tool_description",
+                        "target": tool_name,
+                        "reason": (
+                            f"{error_count} errors recorded — consider adding parameter examples "
+                            f"or clarifying edge cases{error_summary}"
+                        ),
+                        "requires_confirmation": True,
+                    }
+                )
+
+        return suggestions
 
     def suggest_constraint_evolutions(
         self,

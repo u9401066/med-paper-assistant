@@ -3,6 +3,8 @@ Pipeline Checkpoint Manager — Save/restore auto-paper pipeline state.
 
 Implements the checkpoint.json spec from auto-paper SKILL.md.
 Enables interrupted pipelines to resume from the last completed phase.
+Supports phase regression, pause/resume with edit detection, and
+per-section user approval tracking.
 
 Architecture:
   Infrastructure layer service. Called by auto-paper pipeline at phase transitions.
@@ -15,6 +17,7 @@ Design rationale (CONSTITUTION §22):
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -50,9 +53,15 @@ class CheckpointManager:
 
     CHECKPOINT_FILE = "checkpoint.json"
 
-    def __init__(self, audit_dir: str | Path) -> None:
+    def __init__(self, audit_dir: str | Path, project_dir: str | Path | None = None) -> None:
         self._audit_dir = Path(audit_dir)
         self._checkpoint_path = self._audit_dir / self.CHECKPOINT_FILE
+        # project_dir is used for draft hash computation; inferred from audit_dir if not given
+        if project_dir is not None:
+            self._project_dir = Path(project_dir)
+        else:
+            # audit_dir is typically projects/{slug}/.audit
+            self._project_dir = self._audit_dir.parent
 
     @property
     def checkpoint_path(self) -> Path:
@@ -168,17 +177,39 @@ class CheckpointManager:
 
         self._write(state)
 
-    def save_section_progress(self, section: str, word_count: int = 0) -> None:
-        """Record progress within a phase (e.g., during Phase 5 writing)."""
+    def save_section_progress(
+        self,
+        section: str,
+        word_count: int = 0,
+        approval_status: str = "pending",
+        user_feedback: str = "",
+    ) -> None:
+        """Record progress within a phase (e.g., during Phase 5 writing).
+
+        Args:
+            section: Section name (e.g., "Methods", "Results").
+            word_count: Current word count for the section.
+            approval_status: One of "pending", "approved", "revision_requested".
+            user_feedback: User's feedback when requesting revision.
+        """
         state = self.load() or self._empty_state()
         state["current_section"] = section
         state["timestamp"] = datetime.now().isoformat()
 
         if "section_progress" not in state:
             state["section_progress"] = {}
+
+        existing = state["section_progress"].get(section, {})
+        revision_count = existing.get("revision_count", 0)
+        if approval_status == "revision_requested":
+            revision_count += 1
+
         state["section_progress"][section] = {
             "word_count": word_count,
             "completed_at": datetime.now().isoformat(),
+            "approval_status": approval_status,
+            "user_feedback": user_feedback,
+            "revision_count": revision_count,
         }
 
         self._write(state)
@@ -224,15 +255,244 @@ class CheckpointManager:
             f"- **Current section**: {section}",
             f"- **Phases with outputs**: {', '.join(phases_done) if phases_done else 'None'}",
             f"- **Flagged issues**: {len(issues)}",
-            "",
-            "### Options:",
-            f"1. **Continue** from Phase {last_phase + 1}",
-            f"2. **Redo** Phase {last_phase} ({last_name})",
-            "3. **Restart** (keep concept + references)",
-            "4. **Full restart**",
         ]
 
+        # Show regression context if present
+        regression = state.get("regression_context")
+        if regression:
+            lines.extend(
+                [
+                    "",
+                    "### Regression Active",
+                    f"- From Phase {regression.get('from_phase')} → Phase {regression.get('to_phase')}",
+                    f"- Reason: {regression.get('reason', 'N/A')}",
+                    f"- Sections to rewrite: {', '.join(regression.get('sections_to_rewrite', []))}",
+                    f"- Regression count: {regression.get('regression_count', 1)}",
+                ]
+            )
+
+        # Show pause state if present
+        pause = state.get("pause_state")
+        if pause and status == "paused":
+            lines.extend(
+                [
+                    "",
+                    "### Pipeline Paused",
+                    f"- Paused at: {pause.get('paused_at', 'N/A')}",
+                    f"- Phase at pause: {pause.get('phase_at_pause', 'N/A')}",
+                    f"- Reason: {pause.get('reason', 'user_requested')}",
+                ]
+            )
+
+        # Show section approval status
+        section_progress = state.get("section_progress", {})
+        has_approvals = any("approval_status" in s for s in section_progress.values())
+        if has_approvals:
+            lines.extend(["", "### Section Approval Status"])
+            for sec_name, sec_data in section_progress.items():
+                approval = sec_data.get("approval_status", "N/A")
+                lines.append(f"- {sec_name}: {approval}")
+
+        lines.extend(
+            [
+                "",
+                "### Options:",
+                f"1. **Continue** from Phase {last_phase + 1}",
+                f"2. **Redo** Phase {last_phase} ({last_name})",
+                "3. **Restart** (keep concept + references)",
+                "4. **Full restart**",
+            ]
+        )
+
         return "\n".join(lines)
+
+    # ── Phase Regression ──────────────────────────────────────────
+
+    def save_phase_regression(
+        self,
+        from_phase: int,
+        to_phase: int,
+        reason: str,
+        sections_to_rewrite: list[str] | None = None,
+        original_scores: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Record a pipeline regression (e.g., Phase 7 → Phase 5).
+
+        Moves the pipeline back to an earlier phase, preserving context
+        about why the regression happened and what needs to be redone.
+
+        Args:
+            from_phase: Phase we are regressing from.
+            to_phase: Phase we are regressing to.
+            reason: Human-readable explanation.
+            sections_to_rewrite: Specific sections that need rewriting (Phase 5).
+            original_scores: Quality scores before regression.
+        """
+        state = self.load() or self._empty_state()
+
+        existing_regression = state.get("regression_context", {})
+        regression_count = existing_regression.get("regression_count", 0) + 1
+
+        state["regression_context"] = {
+            "from_phase": from_phase,
+            "to_phase": to_phase,
+            "reason": reason,
+            "sections_to_rewrite": sections_to_rewrite or [],
+            "original_scores": original_scores or {},
+            "regression_count": regression_count,
+            "regressed_at": datetime.now().isoformat(),
+        }
+
+        state["last_completed_phase"] = to_phase - 1
+        state["current_phase"] = to_phase
+        state["current_phase_name"] = f"REGRESSION_TO_P{to_phase}"
+        state["status"] = "regression"
+        state["timestamp"] = datetime.now().isoformat()
+
+        # Clear section approval for sections that need rewriting
+        if sections_to_rewrite:
+            section_progress = state.get("section_progress", {})
+            for section in sections_to_rewrite:
+                if section in section_progress:
+                    section_progress[section]["approval_status"] = "pending"
+                    section_progress[section]["user_feedback"] = ""
+
+        state["history"].append(
+            {
+                "action": "phase_regression",
+                "from_phase": from_phase,
+                "to_phase": to_phase,
+                "reason": reason,
+                "sections_to_rewrite": sections_to_rewrite or [],
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
+        self._write(state)
+        logger.info(
+            "Phase regression saved",
+            from_phase=from_phase,
+            to_phase=to_phase,
+            reason=reason,
+            sections=sections_to_rewrite,
+        )
+
+    def clear_regression_context(self) -> None:
+        """Clear regression context after successful re-execution."""
+        state = self.load()
+        if state and "regression_context" in state:
+            state.pop("regression_context", None)
+            self._write(state)
+
+    # ── Pause / Resume ────────────────────────────────────────────
+
+    def save_pause(self, reason: str = "user_requested") -> None:
+        """
+        Pause the pipeline, recording current state and draft hashes.
+
+        The draft hashes are used to detect user edits during the pause.
+        """
+        state = self.load() or self._empty_state()
+
+        state["pause_state"] = {
+            "paused_at": datetime.now().isoformat(),
+            "reason": reason,
+            "phase_at_pause": state.get("current_phase", state.get("last_completed_phase", -1)),
+            "draft_hashes": self._compute_draft_hashes(),
+        }
+        state["status"] = "paused"
+        state["timestamp"] = datetime.now().isoformat()
+
+        state["history"].append(
+            {
+                "action": "pipeline_paused",
+                "reason": reason,
+                "phase": state["pause_state"]["phase_at_pause"],
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
+        self._write(state)
+        logger.info("Pipeline paused", reason=reason)
+
+    def resume_from_pause(self) -> dict[str, Any]:
+        """
+        Resume the pipeline from a paused state.
+
+        Compares current draft hashes with those at pause time to detect
+        user edits made while the pipeline was paused.
+
+        Returns:
+            Dict with:
+              - changed: bool — whether drafts were modified
+              - changed_files: list[str] — filenames that changed
+              - phase_at_pause: int — which phase was active
+        """
+        state = self.load()
+        if not state or state.get("status") != "paused":
+            return {"changed": False, "changed_files": [], "phase_at_pause": -1}
+
+        pause_state = state.get("pause_state", {})
+        old_hashes = pause_state.get("draft_hashes", {})
+        current_hashes = self._compute_draft_hashes()
+
+        changed_files = []
+        for filename, old_hash in old_hashes.items():
+            new_hash = current_hashes.get(filename)
+            if new_hash != old_hash:
+                changed_files.append(filename)
+        # Files that are new since pause
+        for filename in current_hashes:
+            if filename not in old_hashes:
+                changed_files.append(filename)
+
+        state["status"] = "in_progress"
+        state["timestamp"] = datetime.now().isoformat()
+
+        state["history"].append(
+            {
+                "action": "pipeline_resumed",
+                "changed_files": changed_files,
+                "phase": pause_state.get("phase_at_pause", -1),
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
+        # Keep pause_state for reference but mark as resumed
+        state["pause_state"]["resumed_at"] = datetime.now().isoformat()
+
+        self._write(state)
+        logger.info("Pipeline resumed", changed_files=changed_files)
+
+        return {
+            "changed": len(changed_files) > 0,
+            "changed_files": changed_files,
+            "phase_at_pause": pause_state.get("phase_at_pause", -1),
+        }
+
+    # ── Section Approval ──────────────────────────────────────────
+
+    def get_section_approval_status(self) -> dict[str, str]:
+        """Get approval status for all tracked sections.
+
+        Returns:
+            Dict mapping section name → approval_status.
+        """
+        state = self.load()
+        if not state:
+            return {}
+        return {
+            section: data.get("approval_status", "pending")
+            for section, data in state.get("section_progress", {}).items()
+        }
+
+    def all_sections_approved(self) -> bool:
+        """Check if all tracked sections have been approved."""
+        statuses = self.get_section_approval_status()
+        if not statuses:
+            return False
+        return all(s == "approved" for s in statuses.values())
 
     def clear(self) -> None:
         """Remove the checkpoint file (for full restart)."""
@@ -243,7 +503,7 @@ class CheckpointManager:
     def _empty_state(self) -> dict[str, Any]:
         """Create an empty checkpoint state."""
         return {
-            "version": 1,
+            "version": 2,
             "last_completed_phase": -1,
             "last_phase_name": "",
             "current_phase": -1,
@@ -258,6 +518,30 @@ class CheckpointManager:
             "created_at": datetime.now().isoformat(),
             "timestamp": datetime.now().isoformat(),
         }
+
+    def _compute_draft_hashes(self) -> dict[str, str]:
+        """Compute MD5 hashes for all draft files in the project.
+
+        Returns:
+            Dict mapping filename → MD5 hex digest.
+        """
+        drafts_dir = self._project_dir / "drafts"
+        hashes: dict[str, str] = {}
+
+        if not drafts_dir.is_dir():
+            return hashes
+
+        for draft_file in sorted(drafts_dir.iterdir()):
+            if draft_file.is_file() and draft_file.suffix == ".md":
+                try:
+                    content = draft_file.read_bytes()
+                    hashes[draft_file.name] = hashlib.md5(
+                        content, usedforsecurity=False
+                    ).hexdigest()  # noqa: S324
+                except OSError:
+                    continue
+
+        return hashes
 
     def _write(self, state: dict[str, Any]) -> None:
         """Write state to disk."""
