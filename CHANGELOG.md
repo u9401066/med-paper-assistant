@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.12] - 2026-02-27
+
+### Added
+
+- **Self-Evolution Infrastructure (L2 complete)**:
+  - `ToolInvocationStore` — tool telemetry persistence to `.audit/tool-telemetry.yaml`
+  - `PendingEvolutionStore` — cross-conversation evolution persistence to `.audit/pending-evolutions.yaml`
+  - `guidance.py` — `build_guidance_hint` + `build_startup_guidance` (auto-prompt pending evolutions on new conversations)
+  - `tool_health.py` — `diagnose_tool_health` + flush health alerts to PendingEvolutionStore
+- **Pipeline Flexibility (4 new MCP tools)**:
+  - `request_section_rewrite` — Phase rollback with regression count guard
+  - `pause_pipeline` / `resume_pipeline` — Pipeline suspend/resume with draft hash tracking
+  - `approve_section` — Section-level approval gate (autopilot or manual)
+- **Autonomous Audit Loop**: `autonomous_audit_loop.py` — structured audit loop execution
+- **CheckpointManager enhancements**: Section approval tracking, pause/resume state, rollback history
+- **WritingHooksEngine expansion**: +1120 lines — Anti-AI pattern detection, data claim alignment, supplementary crossref, language consistency, overlap detection, data artifact validation
+- **MetaLearningEngine**: pending evolution flush (`_flush_meta_learning_evolutions`) for cross-conversation persistence
+- **GitHub Actions**: `evolution-health.yml` weekly health check workflow
+- **Tool Logging**: `tool_logging.py` — automatic tool invocation telemetry via decorator
+- **New MCP tools**: `apply_pending_evolutions`, `diagnose_tool_health`, `run_autonomous_audit`, `get_tool_telemetry` + 5 pipeline flexibility tools
+- **CONSTITUTION v1.6.0**: 新增第九章「核心哲學 — 逐步多輪演進」(§25-26)
+- **Tests**: +163 tests (test_writing_hooks +636 lines, test_meta_learning +191 lines, test_guidance, test_pending_evolution_store, test_pipeline_flexibility, test_tool_health, test_tool_invocation_store)
+
+### Fixed
+
+- **Deep review round 2**: Defensive guards, assert removal, input validation
+- **Code review**: Input validation, regex robustness, safety guards across 6 files
+- **Writing hooks**: Word boundary regex for supplementary file matching, `rglob` for dir traversal, code block state tracking, wikilink stripping
+- **Pipeline gate validator**: Reference counting by PMID subdirs
+
+### Changed
+
+- MCP tools: 77 → **81** (pipeline flexibility + self-evolution tools)
+- Hook architecture: 14 Code-Enforced / 42 Agent-Driven (56 total)
+- Three-tier evolution: L1 Event-Driven Hooks ⚠️ / L2 Code-Level Enforcement ✅ / L3 Autonomous Self-Evolution ⚠️
+- Test count: 525 → **694 passed** (42 test files)
+- AGENTS.md, copilot-instructions.md: complete rewrite reflecting actual implementation status
+
 ## [0.3.11] - 2026-02-26
 
 ### Added

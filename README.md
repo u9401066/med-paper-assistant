@@ -15,7 +15,7 @@
 
 <p align="center">
   <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
-  <i>3 MCP Servers · ~111 Tools · 26 Skills · 14 Prompt Workflows — All in VS Code</i>
+  <i>3 MCP Servers · ~131 Tools · 26 Skills · 14 Prompt Workflows — All in VS Code</i>
 </p>
 
 > 📖 [繁體中文版](README.zh-TW.md)
@@ -28,16 +28,16 @@
 
 This is a **monorepo toolkit** that bundles everything a medical researcher needs — from literature search to Word/LaTeX export — into one integrated VS Code environment.
 
-| Component                                                          | Type                   | Tools  | Description                                                               |
-| ------------------------------------------------------------------ | ---------------------- | ------ | ------------------------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 57     | Paper writing: projects, references, drafts, analysis, validation, export |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37     | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt       |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13     | Creative generation: brainstorm, deep think, spark collision              |
-| **[VS Code Extension](vscode-extension/)**                         | Extension              | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant                         |
-| **[Dashboard](dashboard/)**                                        | Next.js Web App        | —      | Project management UI, diagram editor                                     |
-| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —      | `[[wikilink]]` citation linking, hover preview, graph view                |
-| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26     | Guided multi-tool workflows (literature review, draft writing...)         |
-| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 14     | `/mdpaper.search`, `/mdpaper.draft`, etc.                                 |
+| Component                                                          | Type                   | Tools  | Description                                                                       |
+| ------------------------------------------------------------------ | ---------------------- | ------ | --------------------------------------------------------------------------------- |
+| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 81     | Paper writing: projects, references, drafts, analysis, validation, review, export |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37     | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt               |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13     | Creative generation: brainstorm, deep think, spark collision                      |
+| **[VS Code Extension](vscode-extension/)**                         | Extension              | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant                                 |
+| **[Dashboard](dashboard/)**                                        | Next.js Web App        | —      | Project management UI, diagram editor                                             |
+| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —      | `[[wikilink]]` citation linking, hover preview, graph view                        |
+| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26     | Guided multi-tool workflows (literature review, draft writing...)                 |
+| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 14     | `/mdpaper.search`, `/mdpaper.draft`, etc.                                         |
 
 **External MCP Servers** (optional, installed via uvx):
 
@@ -55,8 +55,8 @@ flowchart LR
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers (~111 tools)"]
-        mdpaper["mdpaper<br/>59 tools<br/>Draft · Export · Validate"]
+    subgraph MCP["MCP Servers (~131 tools)"]
+        mdpaper["mdpaper<br/>81 tools<br/>Draft · Export · Validate · Review"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -91,7 +91,7 @@ flowchart LR
 | Traditional Tools                   | Medical Paper Assistant                |
 | ----------------------------------- | -------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach         |
-| Separate apps for search/write/cite | All-in-one: ~111 tools in VS Code      |
+| Separate apps for search/write/cite | All-in-one: ~131 tools in VS Code      |
 | Manual reference management         | Auto-save with verified PubMed data    |
 | Export then format                  | Direct Word export with journal styles |
 | Learn complex UI                    | Natural language conversation          |
@@ -264,7 +264,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  59 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│  81 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
@@ -310,9 +310,9 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-**59 active tools** organized into 8 groups:
+**81 active tools** organized into 8 groups:
 
-### 📁 Project Management (15 tools)
+### 📁 Project Management (16 tools)
 
 Projects, exploration mode, workspace state recovery, diagram management.
 
@@ -370,20 +370,25 @@ Write, edit, cite — with built-in validation.
 | `insert_table`         | Insert table into draft with archive validation       |
 | `list_assets`          | List figures and tables in project results            |
 
-### 🔍 Review & Audit (2 tools)
+### 🔍 Review & Audit (20 tools)
 
-| Tool                      | Description                                          |
-| ------------------------- | ---------------------------------------------------- |
-| `run_quality_audit`       | Phase 6 quality audit (scorecard + hooks + meta)     |
-| `validate_data_artifacts` | Cross-reference data artifacts vs drafts & manifests |
+| Category               | Key Tools                                                                 |
+| ---------------------- | ------------------------------------------------------------------------- |
+| **Pipeline Gates**     | `validate_phase_gate`, `pipeline_heartbeat`, `validate_project_structure` |
+| **Review Loop**        | `start_review_round`, `submit_review_round`, `request_section_rewrite`    |
+| **Pipeline Control**   | `pause_pipeline`, `resume_pipeline`, `approve_section`                    |
+| **Audit & Hooks**      | `run_quality_audit`, `run_writing_hooks`, `record_hook_event`             |
+| **Self-Evolution**     | `run_meta_learning`, `verify_evolution`, `apply_pending_evolutions`       |
+| **Domain Constraints** | `check_domain_constraints`, `evolve_constraint`                           |
+| **Data & Health**      | `validate_data_artifacts`, `diagnose_tool_health`, `check_formatting`     |
 
-### 📄 Export & Submission (6 + 1 tools)
+### 📄 Export & Submission (10 tools)
 
-| Category        | Key Tools                                                                    |
-| --------------- | ---------------------------------------------------------------------------- |
-| **Word Export** | `export_word`, `list_templates`, `start_document_session`, `verify_document` |
-| **Submission**  | `generate_cover_letter`, `check_formatting`, `generate_highlights`           |
-| **Review**      | `create_reviewer_response`, `format_revision_changes`                        |
+| Category          | Key Tools                                                                    |
+| ----------------- | ---------------------------------------------------------------------------- |
+| **Word Export**   | `export_word`, `list_templates`, `start_document_session`, `verify_document` |
+| **Pandoc Export** | `export_docx`, `export_pdf`, `preview_citations`, `build_bibliography`       |
+| **Submission**    | `generate_cover_letter`, `generate_highlights`                               |
 
 ### 🔍 pubmed-search MCP Tools (37 tools)
 
@@ -478,7 +483,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 59 tools in 8 groups
+│   └── interfaces/mcp/            #   MCP server, 81 tools in 8 groups
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
@@ -513,7 +518,7 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                            |
 | ------ | --------------------------- | ------------------------------------------------------ |
-| ✅     | **3 MCP Servers**           | mdpaper (57) + pubmed-search (37) + CGU (13)           |
+| ✅     | **3 MCP Servers**           | mdpaper (81) + pubmed-search (37) + CGU (13)           |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, project isolation |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                 |
