@@ -15,14 +15,14 @@ Design rationale (CONSTITUTION §23):
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
+import structlog
 import yaml
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 EventType = Literal["trigger", "pass", "fix", "false_positive"]
 
@@ -31,6 +31,8 @@ HOOK_CATEGORIES = {
     "B": "post-section",
     "C": "post-manuscript",
     "D": "meta-learning",
+    "E": "equator-compliance",
+    "F": "data-artifacts",
 }
 
 

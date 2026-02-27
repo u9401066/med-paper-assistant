@@ -42,7 +42,7 @@ class Author:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Author":
+    def from_dict(cls, data: Dict[str, Any] | str) -> "Author":
         """Deserialize from dictionary.
 
         Handles both structured dicts and legacy plain-string entries.

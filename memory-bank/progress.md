@@ -1,47 +1,38 @@
-# Progress (Updated: 2026-02-25)
+# Progress (Updated: 2026-02-27)
 
 ## Done
 
-- Token-efficient documentation compression (a2c7f51)
-- User-perspective audit: identified README inconsistencies, setup.sh bugs
-- Foam alias lifecycle investigation
-- G6 consistency audit: fixed 20+ number inconsistencies across README/ARCHITECTURE/setup scripts
-- Auto-Paper 11-Phase Pipeline + 閉環自我改進 (SKILL.md rewrite)
-- Dual-Hook Architecture (Copilot A-D + Pre-Commit P1-8 + General G1-8 = 42 checks)
-- VSX Extension v0.3.9 (14 skills, 12 prompts, 1 template)
-- CONSTITUTION v1.3.0 Ch.8 (§20-§23)
-- CSL formatter + Pandoc exporter (31/31 tests)
-- DraftSnapshotManager + CheckpointManager (28/28 tests)
-- Hook D meta-learning infrastructure (44/44 tests)
-- CitationConverter + ExportPipeline + GitAutoCommitter (68/68 tests)
-- pandoc_export.py MCP tool
-- GitAutoCommitter integrated into drafter.py + editing.py
-- Windows cp950 encoding bug fixed
-- Self-referential paper: full 9-phase autonomous execution
-- Hook C7-C8 + Hook Propagation Procedure (D3)
-- Multi-Stage Review Architecture design doc
-- VSX Template Bundling + CI/CD sync
-- pytest addopts default exclusion
-- v0.3.9 release
-- Data Artifact Provenance + DataArtifactTracker (validate_data_artifacts MCP tool)
-- CONSTITUTION v1.5.0 §23.2 數據產出物溯源
-- Hook F1-F4 data-artifacts (52 checks total)
-- Author Info: Author value object + generate_author_block + update_authors MCP tool
-- Full project ruff lint cleanup (60→0 errors)
-- Version 0.3.10 release preparation
-- PDF export fixes: author YAML, date removal, Unicode/emoji handling
-- DRY refactor: centralized shared helpers (\_shared/project_context.py)
-- Review loop fixes: \_active_loops cache invalidation, Severity enum
-- count_words path resolution fix
-- Review Loop Round 1 completed (quality 8.87/10)
-- validation/concept.py refactored to use shared helpers
+- v0.3.11 release (DRY refactor, mypy fixes, 366→402 tests)
+- DOCX/PDF export with 3+ authors, medRxiv/JAMIA/JBI journals
+- Code review I1 (silent exception) + I2 (deprecated SaveReferenceUseCase) fixed
+- structlog migration: 25+ files migrated to structlog==25.5.0
+- Full SKILL.md 9-gap audit: 3 new phases + 5 new hooks + scorecard
+- WritingHooksEngine (A5/A6/B8/C9/F): implementation + 42 tests
+- QualityScorecard DIMENSIONS 6→8 (+equator_compliance, +reproducibility_data_availability)
+- MetaLearningEngine EXPECTED_HOOKS updated (40 hooks)
+- HookEffectivenessTracker HOOK_CATEGORIES +E/+F (6 categories)
+- AGENTS.md + copilot-instructions.md: 52→56 checks
+- SKILL.md synced (both copies): Phase 2.5/4.5/9.5 + A5/A6/B8/C9 hooks
+- Fix 3 broken tests (DIMENSIONS 6→8) + hardcoded '6' in audit_hooks.py
+- EvolutionVerifier: cross-project self-evolution evidence collector + 15 tests
+- verify_evolution MCP tool registered in audit_hooks.py
+- ARCHITECTURE.md: Self-Evolution section + Hook Architecture + tool count 54→73
+- DomainConstraintEngine: Triad-inspired JSON domain constraints + 34 tests
+- check_domain_constraints + evolve_constraint MCP tools
+- Integration pipeline tests: 32 tests covering all 8 infrastructure classes
+- scripts/check_consistency.py: automated consistency checker
+- Fix 11 integration test API mismatches
+- Fix ruff import sorting (2 files)
+- Fix mypy errors: author.py type hint, diagrams.py/project_context.py null checks, template_reader.py style access
+- Fix EvolutionVerifier.\_read_project_snapshot: handle list-format meta-learning audit file
 
 ## Doing
 
-- (none)
+- Deep code review → fix → git commit (~50 files)
 
 ## Next
 
-- Phase 5c: Full VSX Extension upgrade (TreeView, CodeLens, Diagnostics)
-- Citation Intelligence MVP
-- Fix broken import chain: application/**init**.py
+- Run full pipeline with actual project to generate evolution data
+- vscode-extension sync with new MCP tools
+- Dashboard integration for evolution reports
+- Consider temporal tracking within EvolutionVerifier

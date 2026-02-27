@@ -192,7 +192,7 @@ class TestRunQualityAuditTool:
     """Test the run_quality_audit MCP tool function directly."""
 
     def test_full_audit(self, tool_funcs, project_dir, audit_dir):
-        """Full 6-dimension audit → success report + files created."""
+        """Full audit → success report + files created (provides 6 of 8 dims)."""
         fn = tool_funcs["run_quality_audit"]
         scores = json.dumps(
             {
@@ -209,7 +209,7 @@ class TestRunQualityAuditTool:
 
         assert "status: ok" in result
         assert "average_score:" in result
-        assert "scored: 6/6" in result
+        assert f"scored: 6/{len(DIMENSIONS)}" in result
 
         # Files created (YAML format)
         assert (audit_dir / "quality-scorecard.yaml").exists()
@@ -270,7 +270,7 @@ class TestRunQualityAuditTool:
     def test_audit_feeds_phase6_gate(self, tool_funcs, project_dir, audit_dir, validator):
         """run_quality_audit output → Phase 6 quality-scorecard:data check passes."""
         fn = tool_funcs["run_quality_audit"]
-        scores = json.dumps({dim: 7 + i * 0.5 for i, dim in enumerate(DIMENSIONS)})
+        scores = json.dumps({dim: 7 + i * 0.3 for i, dim in enumerate(DIMENSIONS)})
         with _mock_project_context(project_dir):
             fn(scores=scores)
 
@@ -628,7 +628,7 @@ class TestPhase6Enhanced:
         assert r.passed
         qs_data = next(c for c in r.checks if c.name == "quality-scorecard:data")
         assert qs_data.passed
-        assert "6 dimensions scored" in qs_data.details
+        assert f"{len(DIMENSIONS)} dimensions scored" in qs_data.details
 
         he_data_check = next(c for c in r.checks if c.name == "hook-effectiveness:data")
         assert he_data_check.passed

@@ -63,20 +63,20 @@ CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）�
 
 禁止自動修改：CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則。
 
-### Hook 架構（52 checks）
+### Hook 架構（56 checks）
 
 Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
 
-| 類型                  | 檢查內容                                                                | MCP Tools                                                |
-| --------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------- |
-| **A** post-write      | 字數、引用密度、Anti-AI、Wikilink                                       | `count_words`, `patch_draft`, `validate_wikilinks`       |
-| **B** post-section    | 概念一致、🔒保護、方法學(B5)、寫作順序(B6)、Section Brief(B7)           | `read_draft`, `patch_draft`, `check_writing_order`       |
-| **C** post-manuscript | 全稿一致性、投稿清單、數量與交叉引用(C7)、時間一致性(C8)                | `check_formatting`, `scan_draft_citations`, `read_draft` |
-| **D** meta-learning   | SKILL + Hook 改進 + Review Retro(D7) + EQUATOR Retro(D8)                | `read_file`, `replace_string_in_file`                    |
-| **E** EQUATOR 合規    | 報告指引自動偵測、checklist 逐條驗證、compliance report                 | `read_draft`, `patch_draft`                              |
-| **F** data-artifacts  | 溯源追蹤、manifest↔檔案一致、draft↔manifest 交叉引用、統計宣稱驗證    | `validate_data_artifacts`, `list_assets`                 |
-| **P1-P8** pre-commit  | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                    | `scan_draft_citations`, `read_draft`, `count_words`      |
-| **G1-G8** general     | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX、文檔更新提醒 | `read_file`, `grep_search`, `list_dir`                   |
+| 類型                  | 檢查內容                                                                       | MCP Tools                                                                     |
+| --------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| **A** post-write      | 字數、引用密度、Anti-AI、Wikilink、語言一致性(A5)、段落重複(A6)                | `count_words`, `patch_draft`, `validate_wikilinks`, `run_writing_hooks`       |
+| **B** post-section    | 概念一致、🔒保護、方法學(B5)、寫作順序(B6)、Section Brief(B7)、統計對齊(B8)    | `read_draft`, `patch_draft`, `check_writing_order`, `run_writing_hooks`       |
+| **C** post-manuscript | 全稿一致性、投稿清單、數量與交叉引用(C7)、時間一致性(C8)、補充材料交叉引用(C9) | `check_formatting`, `scan_draft_citations`, `read_draft`, `run_writing_hooks` |
+| **D** meta-learning   | SKILL + Hook 改進 + Review Retro(D7) + EQUATOR Retro(D8)                       | `read_file`, `replace_string_in_file`                                         |
+| **E** EQUATOR 合規    | 報告指引自動偵測、checklist 逐條驗證、compliance report                        | `read_draft`, `patch_draft`                                                   |
+| **F** data-artifacts  | 溯源追蹤、manifest↔檔案一致、draft↔manifest 交叉引用、統計宣稱驗證           | `validate_data_artifacts`, `list_assets`                                      |
+| **P1-P8** pre-commit  | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                           | `scan_draft_citations`, `read_draft`, `count_words`                           |
+| **G1-G8** general     | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX、文檔更新提醒        | `read_file`, `grep_search`, `list_dir`                                        |
 
 ### Python 環境
 

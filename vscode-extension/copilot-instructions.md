@@ -39,17 +39,18 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | 3 概念 | cgu🔸（novelty < 75）          |
 | 5 撰寫 | drawio🔸, cgu🔸, data tools    |
 
-## Hook 架構（48 checks）
+## Hook 架構（56 checks）
 
-| 類型            | 時機            | 重點                                               |
-| --------------- | --------------- | -------------------------------------------------- |
-| Copilot A1-4    | post-write      | 字數、引用、Anti-AI、Wikilink                      |
-| Copilot B1-7    | post-section    | 概念一致、🔒保護、方法學、寫作順序、Brief合規      |
-| Copilot C1-8    | post-manuscript | 全稿一致、投稿清單、數量與交叉引用、時間一致性     |
-| Copilot D1-8    | Phase 10        | SKILL/Hook 自我改進 + Review Retro + EQUATOR Retro |
-| Copilot E1-5    | Phase 7 每輪    | EQUATOR 報告指引偵測、逐條驗證、合規報告           |
-| Pre-Commit P1-8 | git commit 前   | 最終品質把關                                       |
-| General G1-8    | git commit 前   | Memory、文檔、架構、VSX、文檔更新提醒              |
+| 類型            | 時機            | 重點                                                             |
+| --------------- | --------------- | ---------------------------------------------------------------- |
+| Copilot A1-6    | post-write      | 字數、引用、Anti-AI、Wikilink、語言一致性、段落重複              |
+| Copilot B1-8    | post-section    | 概念一致、🔒保護、方法學、寫作順序、Brief合規、統計對齊          |
+| Copilot C1-9    | post-manuscript | 全稿一致、投稿清單、數量與交叉引用、時間一致性、補充材料交叉引用 |
+| Copilot D1-8    | Phase 10        | SKILL/Hook 自我改進 + Review Retro + EQUATOR Retro               |
+| Copilot E1-5    | Phase 7 每輪    | EQUATOR 報告指引偵測、逐條驗證、合規報告                         |
+| Copilot F1-4    | post-manuscript | 溯源追蹤、manifest一致、draft交叉引用、統計驗證                  |
+| Pre-Commit P1-8 | git commit 前   | 最終品質把關                                                     |
+| General G1-8    | git commit 前   | Memory、文檔、架構、VSX、文檔更新提醒                            |
 
 ## 回應風格
 

@@ -6,8 +6,12 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
+import structlog
+
 from med_paper_assistant.domain.entities.reference import Reference
 from med_paper_assistant.shared.exceptions import ReferenceNotFoundError
+
+logger = structlog.get_logger()
 
 
 class ReferenceRepository:
@@ -100,7 +104,7 @@ class ReferenceRepository:
                 try:
                     references.append(self.get(ref_dir.name))
                 except Exception:  # nosec B110 - skip corrupted references
-                    pass
+                    logger.debug("Skipping corrupted reference: %s", ref_dir.name, exc_info=True)
 
         return references
 
@@ -185,4 +189,5 @@ class ReferenceRepository:
             full_text = "\n".join(text)
             return full_text[:max_chars] if len(full_text) > max_chars else full_text
         except Exception:
+            logger.debug("Failed to extract PDF text from %s", pdf_path, exc_info=True)
             return None

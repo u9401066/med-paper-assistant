@@ -29,16 +29,32 @@ med-paper-assistant/
 └── scripts/                       # 跨平台腳本
 ```
 
-### MCP Server 架構 (72 tools, 2025-01-22)
+### MCP Server 架構 (73 tools, 2026-02-26)
 
 ```
 .vscode/mcp.json
-├── mdpaper        # 主要 MCP (~72 tools) - 專案/草稿/參考/匯出/Workspace State
+├── mdpaper        # 主要 MCP (~73 tools) - 專案/草稿/參考/匯出/Workspace State/Self-Evolution
 ├── pubmed-search  # PubMed 搜尋 (submodule)
 ├── cgu            # Creativity Generation (submodule)
 ├── zotero-keeper  # 書目管理 (uvx)
 └── drawio         # Draw.io 圖表 (uvx)
 ```
+
+### Self-Evolution 架構 (2026-02-26)
+
+```
+Pipeline Run (Phase 1-9)
+    │ Hook A/B/C/E/F 即時觸發 → record_hook_event()
+    ▼
+Phase 6: run_quality_audit() → 8 維度計分
+    ▼
+Phase 10: run_meta_learning() → D1-D8 分析
+    ▼
+verify_evolution() → 跨專案 E1-E5 演化證據
+```
+
+元件：QualityScorecard(8 dims), HookEffectivenessTracker(56 hooks),
+MetaLearningEngine(D1-D8), WritingHooksEngine(A5/A6/B8/C9/F), EvolutionVerifier(E1-E5)
 
 ### 狀態管理架構 (2025-01-22 新增)
 

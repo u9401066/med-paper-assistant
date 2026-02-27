@@ -2,8 +2,11 @@ import os
 import re
 from typing import Optional
 
+import structlog
 from docx import Document
 from docx.shared import Inches
+
+logger = structlog.get_logger()
 
 
 class WordExporter:
@@ -168,6 +171,7 @@ class WordExporter:
                     try:
                         doc.add_picture(img_path, width=Inches(6))
                     except Exception:
+                        logger.debug("Failed to insert image %s", img_path, exc_info=True)
                         doc.add_paragraph(line)
                 else:
                     doc.add_paragraph(line)

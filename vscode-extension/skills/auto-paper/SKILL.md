@@ -194,6 +194,33 @@ Agent 按優先順序取得期刊要求：
 
 ---
 
+### Phase 2.5: CRITICAL APPRAISAL
+
+**輸入**: Phase 2 儲存的 ≥10 篇文獻
+**輸出**: `references/appraisal-matrix.md`
+
+目的：在進入概念階段前，對核心文獻做品質評估，避免在低品質證據上建構研究。
+
+1. 對每篇核心文獻（≥5 篇）評估：
+
+   - 研究設計品質（RCT > cohort > case series > case report > expert opinion）
+   - 偏差風險（selection, performance, detection, attrition, reporting）
+   - 樣本量適足性
+   - 統計方法適當性
+   - 結論是否有資料支持
+
+2. 產出品質矩陣（appraisal-matrix.md）：
+
+| PMID | 1st Author | Design | Quality | Bias Risk | Key Limitation |
+| ---- | ---------- | ------ | ------- | --------- | -------------- |
+| ...  | ...        | RCT    | High    | Low       | ...            |
+
+3. 標記低品質文獻（Quality = Low），概念階段不應過度依賴
+
+**Gate**: appraisal-matrix.md 已建立，至少 5 篇已評估
+
+---
+
 ### Phase 3: CONCEPT DEVELOPMENT
 
 **Skill**: `concept-development`
@@ -253,6 +280,42 @@ CGU 工具對應：
 | original-research | Methods → Results → Introduction → Discussion → Abstract |
 | systematic-review | Methods → Results → Discussion → Introduction → Abstract |
 | case-report       | Case Presentation → Discussion → Introduction → Abstract |
+
+---
+
+### Phase 4.5: SUPPLEMENTARY PLANNING
+
+**輸入**: `manuscript-plan.yaml`（Phase 4 產出）
+**輸出**: `manuscript-plan.yaml` 更新（新增 `supplementary` 區段）
+
+目的：在撰寫前規劃補充材料（Supplementary Materials），避免主稿完成後才回頭補。
+
+1. 根據期刊 profile 判斷是否需要補充材料
+2. 規劃補充內容：
+
+   - Supplementary Tables（大型數據表、子群分析）
+   - Supplementary Figures（額外結果圖）
+   - Supplementary Methods（詳細方法學、程式碼）
+   - 敏感度分析結果
+   - EQUATOR checklist 完整版（如 CONSORT flow diagram）
+
+3. 在 `manuscript-plan.yaml` 加入 `supplementary` 區段：
+
+```yaml
+supplementary:
+  - id: S1
+    type: table
+    title: "Baseline characteristics by subgroup"
+    linked_section: Results
+  - id: S2
+    type: figure
+    title: "Sensitivity analysis forest plot"
+    linked_section: Results
+```
+
+4. 建立 `supplementary/` 目錄結構
+
+**Gate**: manuscript-plan.yaml 含 supplementary 區段（可為空 = 無需補充材料）
 
 ---
 
@@ -806,15 +869,16 @@ Phase 7, Stage D（品質重評）:
 
 #### Review 品質維度（quality-scorecard）
 
-| 維度         | 評分標準 (0-10)                         | 權重 |
-| ------------ | --------------------------------------- | ---- |
-| 引用品質     | 引用充分、最新、高影響力、格式正確      | 12%  |
-| 方法學再現性 | 研究設計、統計、可再現                  | 20%  |
-| 文字品質     | 清晰度、邏輯流、無 AI 痕跡、語法        | 18%  |
-| 概念一致性   | NOVELTY 體現、SELLING POINTS、全稿一致  | 18%  |
-| 格式合規     | 字數、圖表、引用數、期刊要求            | 8%   |
-| 圖表品質     | 圖表必要性、清晰度、caption、數據呈現   | 9%   |
-| EQUATOR 合規 | checklist compliance + ESSENTIAL 項完整 | 15%  |
+| 維度            | 評分標準 (0-10)                         | 權重 |
+| --------------- | --------------------------------------- | ---- |
+| 引用品質        | 引用充分、最新、高影響力、格式正確      | 10%  |
+| 方法學再現性    | 研究設計、統計、可再現                  | 18%  |
+| 文字品質        | 清晰度、邏輯流、無 AI 痕跡、語法        | 16%  |
+| 概念一致性      | NOVELTY 體現、SELLING POINTS、全稿一致  | 16%  |
+| 格式合規        | 字數、圖表、引用數、期刊要求            | 7%   |
+| 圖表品質        | 圖表必要性、清晰度、caption、數據呈現   | 8%   |
+| EQUATOR 合規    | checklist compliance + ESSENTIAL 項完整 | 13%  |
+| 再現性/資料可用 | 資料分享聲明、程式碼公開、protocol 註冊 | 12%  |
 
 總分 = Σ(維度分數 × 權重)
 
@@ -858,6 +922,48 @@ Phase 7, Stage D（品質重評）:
 4. `verify_document()` → `save_document()`
 
 **Gate**: Word 已匯出 + 必要文件清單完成
+
+---
+
+### Phase 9.5: SUBMISSION READINESS
+
+**輸入**: Phase 9 匯出的文件
+**外部 MCP**: —
+
+目的：投稿前的最終系統性檢查，確保所有投稿要件齊全。
+
+1. **檔案清單核對**（依期刊 profile）：
+
+   - [ ] Title page（含 author info、ORCID、corresponding author）
+   - [ ] Manuscript（blinded if required）
+   - [ ] Abstract（structured / unstructured）
+   - [ ] Cover letter
+   - [ ] Conflict of interest declarations
+   - [ ] Funding statement
+   - [ ] Ethics approval statement
+   - [ ] Data availability statement
+   - [ ] Supplementary files（if any）
+   - [ ] Figure files（high-res, correct format）
+   - [ ] Table files（if separate）
+   - [ ] EQUATOR checklist（if required）
+   - [ ] Author contributions (CRediT if applicable)
+
+2. **格式最終確認**：
+
+   - 字數限制（abstract + main text）
+   - 圖表數量限制
+   - Reference 格式（期刊 CSL style）
+   - 檔案命名慣例
+
+3. **內容一致性**：
+
+   - Title page 作者 == manuscript 作者
+   - Abstract numbers == main text numbers
+   - Cover letter 提及正確期刊名
+
+4. 產出 `exports/submission-checklist.md`（✅/❌ 清單）
+
+**Gate**: submission-checklist.md 全部 ✅ 或用戶確認接受列外
 
 ---
 
@@ -1041,12 +1147,14 @@ Phase 轉換時：
 
 ### Hook A: post-write（每次寫完立即，最多 N rounds，N = `pipeline.hook_a_max_rounds`）
 
-| #   | 檢查項             | MCP Tool                  | 失敗行為                            | 閾值來源                              |
-| --- | ------------------ | ------------------------- | ----------------------------------- | ------------------------------------- |
-| A1  | 字數在 target ±20% | `count_words`             | `patch_draft` 精簡/擴充             | `paper.sections[].word_limit`         |
-| A2  | 引用密度達標       | `get_available_citations` | `suggest_citations` + `patch_draft` | `pipeline.writing.citation_density.*` |
-| A3  | 無 Anti-AI 模式    | `read_draft` + Agent 掃描 | `patch_draft` 改寫                  | `pipeline.writing.anti_ai_strictness` |
-| A4  | Wikilink 格式正確  | `validate_wikilinks`      | 自動修復                            | —                                     |
+| #   | 檢查項                | MCP Tool                        | 失敗行為                            | 閾值來源                              |
+| --- | --------------------- | ------------------------------- | ----------------------------------- | ------------------------------------- |
+| A1  | 字數在 target ±20%    | `count_words`                   | `patch_draft` 精簡/擴充             | `paper.sections[].word_limit`         |
+| A2  | 引用密度達標          | `get_available_citations`       | `suggest_citations` + `patch_draft` | `pipeline.writing.citation_density.*` |
+| A3  | 無 Anti-AI 模式       | `read_draft` + Agent 掃描       | `patch_draft` 改寫                  | `pipeline.writing.anti_ai_strictness` |
+| A4  | Wikilink 格式正確     | `validate_wikilinks`            | 自動修復                            | —                                     |
+| A5  | 語言一致性（BrE/AmE） | `run_writing_hooks(hooks="A5")` | `patch_draft` 統一拼法              | `pipeline.writing.prefer_language`    |
+| A6  | 段落重複偵測          | `run_writing_hooks(hooks="A6")` | `patch_draft` 改寫重複段            | `pipeline.writing.overlap_threshold`  |
 
 #### Hook A Cascading Protocol
 
@@ -1191,6 +1299,19 @@ FOR asset IN plan.asset_plan WHERE asset.section == section:
 B7a/B7b 遺漏為 WARNING（1 round `patch_draft` 修正），B7d 為 WARNING，B7e 為 WARNING。
 B7c 為 ADVISORY（順序偏離可接受）。
 
+#### Hook B8: Data-Claim Alignment
+
+在 Results 完成後觸發。驗證統計宣稱與 Methods 一致：
+
+- 統計方法：Results 中使用的檢定必須在 Methods 中宣告
+- P-value 閾值：Results 的 p < X 須與 Methods 宣告的 α 一致
+- CI 寬度：Results 的 95% CI 須與 Methods 一致
+- 軟體：Results 提及的統計軟體須在 Methods 中宣告
+
+| #   | 檢查項             | MCP Tool                        | 失敗行為                           | 閾值來源                          |
+| --- | ------------------ | ------------------------------- | ---------------------------------- | --------------------------------- |
+| B8  | 統計宣稱↔方法對齊 | `run_writing_hooks(hooks="B8")` | `patch_draft` Methods/Results 補齊 | `pipeline.writing.stat_alignment` |
+
 ---
 
 ### Hook C: post-manuscript（全稿完成後，含分層回溯，最多 N rounds，N = `pipeline.hook_c_max_rounds`）
@@ -1293,6 +1414,18 @@ FOR section IN reverse(writing_order):
 ```
 
 **失敗行為**：`patch_draft` 更新過時描述。最多 2 rounds。
+
+#### Hook C9: Supplementary Cross-Reference
+
+在全稿完成後觸發。驗證主稿與補充材料之間的雙向引用：
+
+- 主稿中每個 "Supplementary Table/Figure N" 引用在補充材料中有對應
+- 補充材料中的每個項目至少被主稿引用一次（孤兒偵測）
+- e-prefix 引用（eTable, eFigure）也被追蹤
+
+| #   | 檢查項               | MCP Tool                        | 失敗行為                            | 閾值來源 |
+| --- | -------------------- | ------------------------------- | ----------------------------------- | -------- |
+| C9  | 補充材料交叉引用驗證 | `run_writing_hooks(hooks="C9")` | `patch_draft` 補引用 / 刪除孤兒引用 | —        |
 
 ---
 

@@ -14,6 +14,7 @@ Tools:
 """
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Literal, Optional, cast
@@ -22,6 +23,12 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import (
     DataArtifactTracker,
+)
+from med_paper_assistant.infrastructure.persistence.domain_constraint_engine import (
+    DomainConstraintEngine,
+)
+from med_paper_assistant.infrastructure.persistence.evolution_verifier import (
+    EvolutionVerifier,
 )
 from med_paper_assistant.infrastructure.persistence.hook_effectiveness_tracker import (
     HookEffectivenessTracker,
@@ -32,6 +39,9 @@ from med_paper_assistant.infrastructure.persistence.meta_learning_engine import 
 from med_paper_assistant.infrastructure.persistence.quality_scorecard import (
     DIMENSIONS,
     QualityScorecard,
+)
+from med_paper_assistant.infrastructure.persistence.writing_hooks import (
+    WritingHooksEngine,
 )
 
 from .._shared import (
@@ -175,7 +185,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             standard_scored = [d for d in DIMENSIONS if d in score_dict]
             if len(standard_scored) < MIN_SCORED_DIMENSIONS:
                 return (
-                    f"❌ At least {MIN_SCORED_DIMENSIONS} of the 6 standard dimensions must be scored.\n"
+                    f"❌ At least {MIN_SCORED_DIMENSIONS} of the {len(DIMENSIONS)} standard dimensions must be scored.\n"
                     f"Scored: {len(standard_scored)} ({', '.join(standard_scored)})\n"
                     f"Missing: {', '.join(d for d in DIMENSIONS if d not in score_dict)}\n\n"
                     f"Standard dimensions: {', '.join(DIMENSIONS)}"
@@ -485,11 +495,411 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("validate_data_artifacts", e)
             return f"❌ Error validating data artifacts: {e}"
 
+    @mcp.tool()
+    def run_writing_hooks(
+        hooks: str = "all",
+        prefer_language: str = "american",
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        ✍️ Run code-enforced writing hooks (A5, A6, B8, C9, F).
+
+        Call this after writing or editing a section. Runs the specified hooks
+        and records events for each via HookEffectivenessTracker.
+
+        Available hooks:
+        - A5: Language Consistency (British vs American English mixing)
+        - A6: Self-Plagiarism / Overlap Detection (repeated n-grams)
+        - B8: Data-Claim Alignment (statistical tests in Results ↔ Methods)
+        - C9: Supplementary Cross-Reference (main text ↔ supplementary files)
+        - F:  Data Artifact Validation (provenance, manifest, draft)
+
+        Args:
+            hooks: Comma-separated hook IDs (e.g., "A5,A6") or "all".
+                   Use "post-write" for A5+A6, "post-section" for B8,
+                   "post-manuscript" for C9+F.
+            prefer_language: "american" or "british" (default: american).
+                             Only affects A5.
+            project: Project slug (optional, uses current project).
+
+        Returns:
+            TOON-formatted report with issues from each hook.
+        """
+        log_tool_call("run_writing_hooks", {"hooks": hooks, "project": project})
+        try:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return f"❌ {msg}"
+            assert project_info is not None
+
+            slug = project_info["slug"]
+            project_dir = Path(project_info["project_path"])
+            audit_dir = project_dir / ".audit"
+
+            # Read draft content
+            manuscript = project_dir / "drafts" / "manuscript.md"
+            if not manuscript.is_file():
+                return "❌ No manuscript found at drafts/manuscript.md"
+            full_content = manuscript.read_text(encoding="utf-8")
+
+            # Parse section contents
+            def _extract_section(title: str) -> str:
+                pattern = rf"(?:^|\n)##?\s+{title}\b.*?\n(.*?)(?=\n##?\s|\Z)"
+                m = re.search(pattern, full_content, re.DOTALL | re.IGNORECASE)
+                return m.group(1).strip() if m else ""
+
+            methods = _extract_section("Methods")
+            results = _extract_section("Results")
+
+            # Determine which hooks to run
+            requested: set[str] = set()
+            for token in hooks.split(","):
+                t = token.strip().upper()
+                if t == "ALL":
+                    requested = {"A5", "A6", "B8", "C9", "F"}
+                    break
+                elif t == "POST-WRITE":
+                    requested |= {"A5", "A6"}
+                elif t == "POST-SECTION":
+                    requested.add("B8")
+                elif t == "POST-MANUSCRIPT":
+                    requested |= {"C9", "F"}
+                else:
+                    requested.add(t)
+
+            engine = WritingHooksEngine(project_dir)
+            tracker = HookEffectivenessTracker(audit_dir)
+
+            all_results: dict[str, dict] = {}
+            total_critical = 0
+            total_warning = 0
+
+            if "A5" in requested:
+                r = engine.check_language_consistency(full_content, prefer=prefer_language)
+                all_results["A5"] = r.to_dict()
+                tracker.record_event("A5", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "A6" in requested:
+                r = engine.check_overlap(full_content)
+                all_results["A6"] = r.to_dict()
+                tracker.record_event("A6", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "B8" in requested:
+                if methods and results:
+                    r = engine.check_data_claim_alignment(methods, results)
+                    all_results["B8"] = r.to_dict()
+                    tracker.record_event("B8", "pass" if r.passed else "trigger")
+                    total_critical += r.critical_count
+                    total_warning += r.warning_count
+                else:
+                    all_results["B8"] = {
+                        "hook_id": "B8",
+                        "passed": True,
+                        "issues": [],
+                        "stats": {"skipped": "Methods or Results section not found"},
+                    }
+
+            if "C9" in requested:
+                r = engine.check_supplementary_crossref(full_content)
+                all_results["C9"] = r.to_dict()
+                tracker.record_event("C9", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "F" in requested:
+                r = engine.validate_data_artifacts(full_content)
+                all_results["F"] = r.to_dict()
+                tracker.record_event("F1", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            # Build TOON response
+            overall_pass = total_critical == 0
+            lines = [
+                f"status: {'PASS' if overall_pass else 'FAIL'}",
+                f"project: {slug}",
+                f"hooks_run: {','.join(sorted(all_results.keys()))}",
+                f"critical: {total_critical}",
+                f"warnings: {total_warning}",
+            ]
+
+            for hook_id in sorted(all_results.keys()):
+                hr = all_results[hook_id]
+                lines.append(f"\n--- {hook_id} ---")
+                lines.append(f"passed: {hr['passed']}")
+                if hr.get("stats"):
+                    for k, v in hr["stats"].items():
+                        lines.append(f"  {k}: {v}")
+                for issue in hr.get("issues", []):
+                    sev = issue["severity"]
+                    lines.append(f"  [{sev}] {issue['message']}")
+                    if issue.get("suggestion"):
+                        lines.append(f"    → {issue['suggestion']}")
+
+            result = "\n".join(lines)
+            log_tool_result(
+                "run_writing_hooks",
+                f"hooks={','.join(sorted(all_results.keys()))}, critical={total_critical}",
+            )
+            return result
+
+        except Exception as e:
+            log_tool_error("run_writing_hooks", e)
+            return f"❌ Error running writing hooks: {e}"
+
+    @mcp.tool()
+    def verify_evolution() -> str:
+        """
+        📈 Verify self-evolution across all projects.
+
+        Scans all project `.audit/` directories and aggregates:
+        - Quality score trends across projects
+        - Hook effectiveness improvement patterns
+        - Threshold adjustment history
+        - Lessons learned accumulation
+
+        Returns an evidence-based report of whether the self-improvement
+        system (Hook D / MetaLearningEngine) is producing measurable results.
+
+        No arguments needed — reads from the projects/ directory automatically.
+        """
+        log_tool_call("verify_evolution", {})
+        try:
+            from med_paper_assistant.infrastructure.persistence.project_manager import (
+                get_project_manager,
+            )
+
+            pm = get_project_manager()
+            projects_dir = Path(pm.base_dir)
+
+            verifier = EvolutionVerifier(projects_dir)
+            report = verifier.verify()
+
+            # TOON format output
+            lines = [
+                "status: ok",
+                f"projects_analyzed: {report['cross_project'].get('project_count', 0)}",
+                f"global_avg_score: {report['cross_project'].get('global_average_score', 0)}",
+            ]
+
+            evidence = report.get("evidence", [])
+            passed_count = sum(1 for e in evidence if e["passed"])
+            lines.append(f"evidence: {passed_count}/{len(evidence)} passed")
+
+            for e in evidence:
+                icon = "✅" if e["passed"] else "❌"
+                lines.append(f"  {icon} {e['id']}: {e['detail']}")
+
+            if report.get("cross_project", {}).get("weakest_dimension"):
+                lines.append(
+                    f"weakest_dimension: {report['cross_project']['weakest_dimension']} "
+                    f"({report['cross_project']['weakest_score']}/10)"
+                )
+
+            lines.append("")
+            lines.append(report.get("summary", "No summary available."))
+
+            result = "\n".join(lines)
+            log_tool_result("verify_evolution", f"evidence={passed_count}/{len(evidence)}")
+            return result
+
+        except Exception as e:
+            log_tool_error("verify_evolution", e)
+            return f"❌ Error verifying evolution: {e}"
+
+    @mcp.tool()
+    def check_domain_constraints(
+        content: str,
+        section: str = "manuscript",
+        paper_type: str = "",
+    ) -> str:
+        """
+        🔒 Validate content against domain constraints (Sand Spreader).
+
+        Checks content against structured JSON constraints for the paper type.
+        Detects: AI vocabulary, missing sections, word count violations,
+        and any learned constraints from meta-learning evolution.
+
+        Args:
+            content: Text content to validate.
+            section: Section name (e.g., "manuscript", "introduction").
+            paper_type: Override paper type. Defaults to project's type.
+
+        Returns:
+            Constraint validation report with violations.
+        """
+        log_tool_call(
+            "check_domain_constraints",
+            {"section": section, "paper_type": paper_type},
+        )
+        try:
+            is_valid, msg, project_info = ensure_project_context()
+            if not is_valid or project_info is None:
+                return f"❌ {msg}"
+            project_dir = str(project_info["project_path"])
+
+            # Determine paper type
+            pt = paper_type
+            if not pt:
+                settings_path = Path(project_dir) / ".paper-settings.yaml"
+                if settings_path.is_file():
+                    settings_text = settings_path.read_text(encoding="utf-8")
+                    for line in settings_text.splitlines():
+                        if line.strip().startswith("paper_type:"):
+                            pt = line.split(":", 1)[1].strip().strip("'\"")
+                            break
+                if not pt:
+                    pt = "original-research"
+
+            engine = DomainConstraintEngine(project_dir, paper_type=pt)
+            result = engine.validate_against_constraints(content, section=section)
+            summary = engine.get_constraint_summary()
+
+            # Format output
+            lines = [
+                f"🔒 Domain Constraint Check ({pt})",
+                f"Section: {section}",
+                f"Constraints: {summary['total_constraints']} "
+                f"(base: {result['base_constraints']}, learned: {result['learned_constraints']})",
+                "",
+            ]
+
+            if result["passed"]:
+                lines.append(f"✅ PASSED — {result['violation_count']} warnings, 0 critical")
+            else:
+                lines.append(
+                    f"❌ FAILED — {result['violation_count']} violations "
+                    f"({result['critical_count']} critical)"
+                )
+
+            if result["violations"]:
+                lines.append("")
+                lines.append("Violations:")
+                for v in result["violations"]:
+                    icon = "🔴" if v["severity"] == "CRITICAL" else "🟡"
+                    lines.append(f"  {icon} [{v['constraint_id']}] {v['message']}")
+                    if v.get("suggestion"):
+                        lines.append(f"     → {v['suggestion']}")
+
+            if summary.get("evolution_events", 0) > 0:
+                lines.append("")
+                lines.append(f"📈 Evolution: {summary['evolution_events']} constraints learned")
+
+            output = "\n".join(lines)
+            log_tool_result(
+                "check_domain_constraints",
+                f"passed={result['passed']}, violations={result['violation_count']}",
+            )
+            return output
+
+        except Exception as e:
+            log_tool_error("check_domain_constraints", e)
+            return f"❌ Error checking constraints: {e}"
+
+    @mcp.tool()
+    def evolve_constraint(
+        constraint_id: str,
+        rule: str,
+        category: str,
+        description: str,
+        severity: str = "WARNING",
+        reason: str = "",
+        source_hook: str = "",
+    ) -> str:
+        """
+        📈 Add a learned constraint from recurring hook pattern.
+
+        Called when MetaLearningEngine detects a pattern that should become
+        a permanent structured constraint. This converts ephemeral hook
+        feedback into permanent JSON knowledge.
+
+        Args:
+            constraint_id: Unique ID (e.g., "L001").
+            rule: Rule name (e.g., "no_passive_in_results").
+            category: Category (statistical, structural, vocabulary,
+                      evidential, temporal, reporting, boundary).
+            description: What this constraint enforces.
+            severity: INFO, WARNING, or CRITICAL.
+            reason: Why this constraint was added.
+            source_hook: Which hook triggered this (e.g., "A5").
+
+        Returns:
+            Confirmation of constraint evolution.
+        """
+        log_tool_call(
+            "evolve_constraint",
+            {"constraint_id": constraint_id, "rule": rule},
+        )
+        try:
+            is_valid, msg, project_info = ensure_project_context()
+            if not is_valid or project_info is None:
+                return f"❌ {msg}"
+            project_dir = str(project_info["project_path"])
+
+            # Validate category
+            valid_categories = {
+                "statistical",
+                "structural",
+                "vocabulary",
+                "evidential",
+                "temporal",
+                "reporting",
+                "boundary",
+            }
+            if category not in valid_categories:
+                return f"❌ Invalid category '{category}'. Valid: {sorted(valid_categories)}"
+
+            if severity not in ("INFO", "WARNING", "CRITICAL"):
+                return f"❌ Invalid severity '{severity}'. Valid: INFO, WARNING, CRITICAL"
+
+            engine = DomainConstraintEngine(project_dir)
+            result = engine.evolve(
+                constraint_id=constraint_id,
+                rule=rule,
+                category=category,
+                description=description,
+                severity=severity,
+                reason=reason,
+                source_hook=source_hook,
+            )
+
+            lines = [
+                f"📈 Constraint Evolved: {constraint_id}",
+                f"Rule: {rule}",
+                f"Category: {category}",
+                f"Severity: {severity}",
+                f"Reason: {reason or 'not specified'}",
+                f"Source hook: {source_hook or 'none'}",
+                f"Learned at: {result.get('learned_at', 'unknown')}",
+            ]
+
+            summary = engine.get_constraint_summary()
+            lines.append(
+                f"\nTotal constraints: {summary['total_constraints']} "
+                f"(learned: {summary['by_provenance'].get('learned', 0)})"
+            )
+
+            output = "\n".join(lines)
+            log_tool_result("evolve_constraint", f"id={constraint_id}")
+            return output
+
+        except Exception as e:
+            log_tool_error("evolve_constraint", e)
+            return f"❌ Error evolving constraint: {e}"
+
     return {
         "record_hook_event": record_hook_event,
         "run_quality_audit": run_quality_audit,
         "run_meta_learning": run_meta_learning,
         "validate_data_artifacts": validate_data_artifacts,
+        "run_writing_hooks": run_writing_hooks,
+        "verify_evolution": verify_evolution,
+        "check_domain_constraints": check_domain_constraints,
+        "evolve_constraint": evolve_constraint,
     }
 
 

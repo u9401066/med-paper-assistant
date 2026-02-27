@@ -16,12 +16,13 @@ Design rationale (CONSTITUTION §22):
 from __future__ import annotations
 
 import json
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 
 class CheckpointManager:

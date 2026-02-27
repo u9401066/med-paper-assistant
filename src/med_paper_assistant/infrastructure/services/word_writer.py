@@ -11,7 +11,10 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
+import structlog
 from docx import Document
+
+logger = structlog.get_logger()
 
 
 @dataclass
@@ -189,6 +192,7 @@ class WordWriter:
                 results[instr.section_name] = count
 
             except Exception as e:
+                logger.warning("Section insert failed: %s", instr.section_name, exc_info=True)
                 results[instr.section_name] = f"Error: {str(e)}"
 
         return results

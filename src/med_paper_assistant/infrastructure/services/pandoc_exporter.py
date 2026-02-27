@@ -19,15 +19,15 @@ Key advantages over pure python-docx:
 
 from __future__ import annotations
 
-import logging
 import os
 import tempfile
 from pathlib import Path
 from typing import Any
 
 import pypandoc
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _TEMPLATES_CSL_DIR = Path(__file__).parents[4] / "templates" / "csl"
 

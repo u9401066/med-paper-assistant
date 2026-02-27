@@ -1,8 +1,9 @@
-import logging
 import os
 import re
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional
+
+import structlog
 
 from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
     DraftSnapshotManager,
@@ -13,7 +14,7 @@ from med_paper_assistant.infrastructure.persistence.reference_manager import Ref
 if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class CitationStyle(Enum):
@@ -103,7 +104,7 @@ class Drafter:
                 paths = self._project_manager.get_project_paths()
                 return paths.get("drafts", self._default_drafts_dir)
             except (ValueError, KeyError):
-                pass
+                logger.debug("Project paths unavailable, using default drafts dir")
         return self._default_drafts_dir
 
     @property
@@ -445,7 +446,7 @@ class Drafter:
                 paths = self._project_manager.get_project_paths()
                 project_root = paths.get("root")
             except (ValueError, KeyError):
-                pass
+                logger.debug("Project paths unavailable, skipping project root")
 
         # Search order: drafts dir, project root, current dir
         search_paths = [self.drafts_dir]

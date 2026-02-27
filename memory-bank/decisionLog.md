@@ -1,5 +1,28 @@
 # Decision Log
 
+## [2026-02-26] EvolutionVerifier — 跨專案演化驗證
+
+### 背景
+
+MetaLearningEngine 只在單一專案內運作，無法證明「系統真的有自我演進」。需要跨專案收集證據，產生可審計的演化報告。
+
+### 決定
+
+建立 `EvolutionVerifier` 類別 + `verify_evolution` MCP tool，五維度驗證：
+
+- E1: 閾值自我調整證據（audit 中的 threshold adjustments）
+- E2: 經驗累積（Lessons Learned 收集）
+- E3: Hook 覆蓋廣度（56 hooks 的使用率）
+- E4: 品質量測存在性（scorecard 數據）
+- E5: 跨專案比較可能性（≥2 projects 才能比較）
+
+### 設計考量
+
+- 不修改 MetaLearningEngine，而是作為上層彙整
+- 掃描 `projects/*/` 的 `.audit/` 目錄
+- 回傳結構化 JSON + TOON 格式人類可讀報告
+- 對應 CONSTITUTION §22「可審計」原則
+
 ## [2026-02-21] Comprehensive Tool Consolidation (76→53 tools)
 
 ### 背景

@@ -15,18 +15,20 @@ Dimensions (from auto-paper SKILL.md):
   - concept_consistency: Alignment with concept.md and 🔒 protected content
   - format_compliance: Journal-profile conformance
   - figure_table_quality: Informative, correctly labeled, referenced in text
+  - equator_compliance: CONSORT/STROBE/PRISMA/CARE checklist adherence
+  - reproducibility_data_availability: Data/code sharing, protocol registration
 """
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import structlog
 import yaml
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 DIMENSIONS = [
     "citation_quality",
@@ -35,6 +37,8 @@ DIMENSIONS = [
     "concept_consistency",
     "format_compliance",
     "figure_table_quality",
+    "equator_compliance",
+    "reproducibility_data_availability",
 ]
 
 

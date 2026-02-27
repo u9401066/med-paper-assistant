@@ -14,6 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import structlog
+
 from ...domain.paper_types import (
     PAPER_TYPES,
     get_paper_type_dict,
@@ -22,6 +24,8 @@ from ...domain.paper_types import (
 )
 from ..services.concept_template_reader import ConceptTemplateReader
 from .project_memory_manager import ProjectMemoryManager
+
+logger = structlog.get_logger()
 
 
 class ProjectManager:
@@ -227,9 +231,7 @@ class ProjectManager:
             return foam_manager.update_for_project(slug)
         except Exception as e:
             # Non-fatal: log but don't fail the switch
-            import logging
-
-            logging.getLogger(__name__).warning(f"Foam settings update failed: {e}")
+            logger.warning("Foam settings update failed", error=str(e))
             return {"success": False, "error": str(e)}
 
     def delete_project(self, slug: str, confirm: bool = False) -> Dict[str, Any]:
@@ -277,6 +279,7 @@ class ProjectManager:
         try:
             return self.state_file.read_text().strip() or None
         except Exception:
+            logger.debug("Failed to read current project state", exc_info=True)
             return None
 
     def get_project_info(self, slug: Optional[str] = None) -> Dict[str, Any]:
@@ -655,6 +658,7 @@ class ProjectManager:
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
+            logger.debug("Failed to load config: %s", config_path, exc_info=True)
             return None
 
     def _get_project_stats(self, project_path: Path) -> Dict[str, int]:

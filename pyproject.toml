@@ -19,6 +19,7 @@ dependencies = [
     "python-docx>=1.0.0",
     "requests>=2.28.0",
     "pyyaml>=6.0.0",
+    "structlog>=25.5.0",
 ]
 
 # ============================================
@@ -124,14 +125,14 @@ markers = [
 # ============================================
 [tool.mypy]
 python_version = "3.12"
-warn_return_any = false  # Too many false positives with JSON responses
+warn_return_any = true
 warn_unused_configs = true
+warn_unreachable = true
 ignore_missing_imports = true
-# Disable some strict checks that don't affect runtime
+# Disable checks that conflict with python-docx / loosely-typed JSON APIs
 disable_error_code = [
     "no-any-return",      # JSON/dict returns often Any
     "attr-defined",       # python-docx types not fully annotated
-    "union-attr",         # Optional attribute access
     "valid-type",         # python-docx Document type issues
 ]
 

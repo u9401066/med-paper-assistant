@@ -18,6 +18,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
+import structlog
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
@@ -136,7 +137,7 @@ def _sync_to_workspace_state(
         )
     except Exception:
         # Non-fatal: don't let state sync failure break the gate tool
-        pass  # nosec B110 - intentional: state sync is best-effort
+        structlog.get_logger().debug("State sync failed (best-effort)", exc_info=True)  # nosec B110
 
 
 def _compute_manuscript_hash(project_dir: str | Path) -> str:

@@ -1,9 +1,14 @@
 """
-Logging Configuration.
+Logging Configuration — structlog + stdlib hybrid.
+
+structlog 包裝 stdlib logging，讓每個模組的 logger 都是 structured logger，
+同時保留現有的 file handler（每日一個 log 檔）與 console handler。
 
 日誌存放位置（跨平台）:
 - 專案目錄: {project_root}/logs/
 - 每日一個檔案: YYYYMMDD.log
+- 檔案格式: JSON Lines（方便 grep/jq 分析）
+- Console 格式: 彩色 key=value（開發友善）
 """
 
 import logging
@@ -11,6 +16,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+import structlog
 
 
 def _get_project_log_dir() -> Path:
@@ -36,13 +43,54 @@ def _get_project_log_dir() -> Path:
     return log_dir
 
 
+_configured = False
+
+
+def configure_structlog() -> None:
+    """
+    Configure structlog to wrap stdlib logging.
+
+    Call once at application startup (idempotent).
+    After this, ``structlog.get_logger()`` returns a bound logger that
+    ultimately delegates to the stdlib root logger named *med_paper_assistant*.
+    """
+    global _configured
+    if _configured:
+        return
+
+    # Shared processors for both structlog-originated and stdlib-originated events
+    shared_processors: list[structlog.types.Processor] = [
+        structlog.contextvars.merge_contextvars,
+        structlog.processors.add_log_level,
+        structlog.processors.StackInfoRenderer(),
+        structlog.dev.set_exc_info,
+        structlog.processors.TimeStamper(fmt="iso"),
+    ]
+
+    # Configure structlog to route through stdlib
+    structlog.configure(
+        processors=[
+            *shared_processors,
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.UnicodeDecoder(),
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+
+    _configured = True
+
+
 def setup_logger(
     name: str = "med_paper_assistant", log_dir: Optional[str] = None, level: int = logging.DEBUG
 ) -> logging.Logger:
     """
-    Setup a logger with file and console handlers.
-
-    日誌存放在專案目錄的 logs/ 資料夾中（支援 Windows/Linux/macOS）。
+    Setup stdlib root logger with file and console handlers,
+    then configure structlog on top.
 
     Args:
         name: Logger name.
@@ -50,7 +98,7 @@ def setup_logger(
         level: Logging level.
 
     Returns:
-        Configured logger instance.
+        Configured stdlib logger instance (for backward compatibility).
     """
     # 使用專案內的 logs 目錄
     if log_dir is None:
@@ -59,47 +107,73 @@ def setup_logger(
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
+    stdlib_logger = logging.getLogger(name)
+    stdlib_logger.setLevel(level)
 
     # Prevent adding handlers multiple times
-    if logger.hasHandlers():
-        return logger
+    if not stdlib_logger.hasHandlers():
+        # File Handler - JSON Lines for machine parsing
+        filename = f"{datetime.now().strftime('%Y%m%d')}.log"
+        filepath = os.path.join(log_dir, filename)
+        fh = logging.FileHandler(filepath, encoding="utf-8")
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(
+            structlog.stdlib.ProcessorFormatter(
+                processor=structlog.processors.JSONRenderer(),
+                foreign_pre_chain=[
+                    structlog.contextvars.merge_contextvars,
+                    structlog.processors.add_log_level,
+                    structlog.stdlib.add_logger_name,
+                    structlog.processors.TimeStamper(fmt="iso"),
+                ],
+            )
+        )
 
-    # File Handler - DEBUG level (記錄所有詳細資訊)
-    filename = f"{datetime.now().strftime('%Y%m%d')}.log"
-    filepath = os.path.join(log_dir, filename)
-    fh = logging.FileHandler(filepath, encoding="utf-8")
-    fh.setLevel(logging.DEBUG)
+        # Console Handler - coloured key=value for humans
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        ch.setFormatter(
+            structlog.stdlib.ProcessorFormatter(
+                processor=structlog.dev.ConsoleRenderer(),
+                foreign_pre_chain=[
+                    structlog.contextvars.merge_contextvars,
+                    structlog.processors.add_log_level,
+                    structlog.stdlib.add_logger_name,
+                    structlog.processors.TimeStamper(fmt="iso"),
+                ],
+            )
+        )
 
-    # Console Handler - INFO level (只顯示重要訊息)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+        stdlib_logger.addHandler(fh)
+        stdlib_logger.addHandler(ch)
 
-    # Formatter with more context
-    file_formatter = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    console_formatter = logging.Formatter("%(levelname)s - %(message)s")
-    fh.setFormatter(file_formatter)
-    ch.setFormatter(console_formatter)
+        stdlib_logger.info("Log file: %s", filepath)
 
-    logger.addHandler(fh)
-    logger.addHandler(ch)
+    # Ensure structlog is wired up
+    configure_structlog()
 
-    # Log the log file location on first setup
-    logger.info(f"Log file: {filepath}")
-
-    return logger
+    return stdlib_logger
 
 
 # Global logger instance
 _logger: Optional[logging.Logger] = None
 
 
-def get_logger() -> logging.Logger:
-    """Get the global logger instance."""
+def get_logger(name: Optional[str] = None) -> structlog.stdlib.BoundLogger:
+    """
+    Get a structlog bound logger.
+
+    Args:
+        name: Logger name. If None, uses caller's module name via structlog default.
+
+    Returns:
+        A structlog BoundLogger that routes through stdlib handlers.
+    """
+    # Ensure handlers are set up at least once
     global _logger
     if _logger is None:
         _logger = setup_logger()
-    return _logger
+
+    if name:
+        return structlog.get_logger(name)
+    return structlog.get_logger()

@@ -19,11 +19,12 @@ Architecture:
 from __future__ import annotations
 
 import json
-import logging
 import os
 import tempfile
 from pathlib import Path
 from typing import Any
+
+import structlog
 
 from med_paper_assistant.domain.services.citation_converter import (
     extract_citation_keys,
@@ -33,7 +34,7 @@ from med_paper_assistant.infrastructure.persistence.reference_manager import Ref
 from med_paper_assistant.infrastructure.services.csl_formatter import reference_to_csl_json
 from med_paper_assistant.infrastructure.services.pandoc_exporter import PandocExporter
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class ExportPipeline:

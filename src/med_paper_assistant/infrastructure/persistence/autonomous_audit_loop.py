@@ -31,14 +31,15 @@ Stop conditions (Ralph Wiggum–proof):
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 
 # ── Enums ──────────────────────────────────────────────────────────────

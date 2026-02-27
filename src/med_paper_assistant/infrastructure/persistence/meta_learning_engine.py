@@ -22,17 +22,17 @@ CONSTITUTION §23 Boundaries:
 from __future__ import annotations
 
 import json
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import structlog
 import yaml
 
 from .hook_effectiveness_tracker import HookEffectivenessTracker
 from .quality_scorecard import QualityScorecard
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 # Threshold adjustment limits (CONSTITUTION §23)
 MAX_THRESHOLD_ADJUSTMENT = 0.20  # ±20%
@@ -147,6 +147,8 @@ class MetaLearningEngine:
         "A2",
         "A3",
         "A4",
+        "A5",
+        "A6",
         "B1",
         "B2",
         "B3",
@@ -154,6 +156,7 @@ class MetaLearningEngine:
         "B5",
         "B6",
         "B7",
+        "B8",
         "C1",
         "C2",
         "C3",
@@ -162,6 +165,7 @@ class MetaLearningEngine:
         "C6",
         "C7",
         "C8",
+        "C9",
         "E1",
         "E2",
         "E3",
@@ -800,3 +804,90 @@ class MetaLearningEngine:
             lines.append("")
 
         return "\n".join(lines)
+
+    def suggest_constraint_evolutions(
+        self,
+        analysis_result: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Extract recurring patterns from meta-learning analysis and suggest constraints.
+
+        Bridge between MetaLearningEngine and DomainConstraintEngine.
+        Scans analysis results for patterns that should become JSON constraints.
+
+        Args:
+            analysis_result: Result from analyze(). If None, runs analyze() first.
+
+        Returns:
+            List of constraint suggestion dicts ready for DomainConstraintEngine.evolve().
+        """
+        if analysis_result is None:
+            analysis_result = self.analyze()
+
+        suggestions: list[dict[str, Any]] = []
+        lessons = analysis_result.get("lessons", [])
+        adjustments = analysis_result.get("adjustments", [])
+
+        # Pattern 1: Hook with high trigger rate → add matching constraint
+        for adj in adjustments:
+            hook_id = adj.get("hook_id", "")
+            reason = adj.get("reason", "")
+            if "high trigger" in reason.lower() or "frequent" in reason.lower():
+                suggestions.append(
+                    {
+                        "constraint_id": f"ML-{hook_id}",
+                        "rule": f"pattern_from_{hook_id.lower()}",
+                        "category": _hook_to_constraint_category(hook_id),
+                        "description": f"Auto-constraint from recurring {hook_id} triggers: {reason}",
+                        "severity": "WARNING",
+                        "reason": f"MetaLearning detected recurring pattern in {hook_id}",
+                        "source_hook": hook_id,
+                    }
+                )
+
+        # Pattern 2: Critical lessons → potential constraints
+        critical_lessons = [ls for ls in lessons if ls.get("severity") == "critical"]
+        for i, lesson in enumerate(critical_lessons):
+            cat = lesson.get("category", "unknown")
+            suggestions.append(
+                {
+                    "constraint_id": f"ML-CRT-{i:03d}",
+                    "rule": f"critical_{cat}",
+                    "category": _lesson_to_constraint_category(cat),
+                    "description": lesson.get("lesson", ""),
+                    "severity": "WARNING",
+                    "reason": f"Critical lesson from {lesson.get('source', 'unknown')}",
+                    "source_hook": "",
+                }
+            )
+
+        logger.info(
+            "constraint_suggestions_generated",
+            count=len(suggestions),
+        )
+        return suggestions
+
+
+def _hook_to_constraint_category(hook_id: str) -> str:
+    """Map hook ID prefix to constraint category."""
+    prefix = hook_id[0] if hook_id else ""
+    return {
+        "A": "vocabulary",  # A hooks: text-level
+        "B": "structural",  # B hooks: section-level
+        "C": "structural",  # C hooks: manuscript-level
+        "E": "reporting",  # E hooks: EQUATOR
+        "F": "evidential",  # F hooks: data artifacts
+        "P": "boundary",  # P hooks: pre-commit
+    }.get(prefix, "vocabulary")
+
+
+def _lesson_to_constraint_category(lesson_category: str) -> str:
+    """Map lesson category to constraint category."""
+    return {
+        "hook_tuning": "statistical",
+        "writing_pattern": "vocabulary",
+        "tool_usage": "boundary",
+        "quality": "structural",
+        "equator": "reporting",
+        "data": "evidential",
+    }.get(lesson_category, "vocabulary")

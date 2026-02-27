@@ -11,11 +11,11 @@ Architecture:
 
 from __future__ import annotations
 
-import logging
 import os
 from pathlib import Path
 from typing import Any
 
+import structlog
 from citeproc import (
     Citation,
     CitationItem,
@@ -28,7 +28,7 @@ from citeproc.source.json import CiteProcJSON
 from med_paper_assistant.domain.entities.reference import Reference
 from med_paper_assistant.domain.value_objects.citation import CitationStyle
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 # CSL style directory: templates/csl/ (user-provided) or citeproc built-in
 _TEMPLATES_CSL_DIR = Path(__file__).parents[4] / "templates" / "csl"

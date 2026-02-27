@@ -6,6 +6,7 @@ Update settings, get paper types, update status, interactive setup.
 
 import json
 
+import structlog
 from mcp.server.elicitation import AcceptedElicitation, CancelledElicitation, DeclinedElicitation
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
@@ -103,7 +104,9 @@ def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
                 drafter = get_drafter()
                 drafter.set_citation_style(citation_style)
             except Exception:  # nosec B110 - Citation style is best-effort
-                pass
+                structlog.get_logger().debug(
+                    "Citation style update failed (best-effort)", exc_info=True
+                )
             # Also save to project settings
             if not interaction_preferences:
                 interaction_preferences = {}

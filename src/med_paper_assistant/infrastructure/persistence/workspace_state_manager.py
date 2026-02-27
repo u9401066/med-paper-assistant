@@ -13,12 +13,13 @@ Current project tracking is handled by ProjectManager (.current_project file).
 """
 
 import json
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 
 class WorkspaceStateManager:

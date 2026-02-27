@@ -111,7 +111,7 @@ To associate with a project, use `save_diagram` with a project parameter."""
         """
         is_valid, msg, project_info = ensure_project_context(project)
 
-        if not is_valid:
+        if not is_valid or project_info is None:
             return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
 
         project_path = project_info.get("project_path")

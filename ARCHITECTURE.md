@@ -37,7 +37,7 @@ MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫
 
 ## MCP Server（DDD Architecture）
 
-主要的 Python MCP Server，提供 54 個 tools。
+主要的 Python MCP Server，提供 73 個 tools。
 
 ### 層級結構
 
@@ -73,7 +73,14 @@ src/med_paper_assistant/
 │   │   ├── reference_repository.py #   文獻 Repository
 │   │   ├── file_storage.py         #   檔案儲存抽象
 │   │   ├── workspace_state_manager.py  # 跨 Session 狀態
-│   │   └── project_memory_manager.py   # AI 記憶管理
+│   │   ├── project_memory_manager.py   # AI 記憶管理
+│   │   ├── pipeline_gate_validator.py  # Phase Gate 驗證器
+│   │   ├── quality_scorecard.py        # 品質計分卡（8 維度）
+│   │   ├── hook_effectiveness_tracker.py # Hook 效能追蹤
+│   │   ├── meta_learning_engine.py     # D1-D8 自我學習引擎
+│   │   ├── evolution_verifier.py       # 跨專案演化驗證
+│   │   ├── writing_hooks.py            # A5/A6/B8/C9/F 寫作 Hooks
+│   │   └── data_artifact_tracker.py    # 資料溯源追蹤
 │   ├── services/                    # 外部服務
 │   │   ├── drafter.py              #   草稿撰寫 + wikilink 引用
 │   │   ├── formatter.py            #   引用格式化（Vancouver/APA/...）
@@ -104,7 +111,7 @@ src/med_paper_assistant/
 │           ├── draft/              #     write, read, cite, templates
 │           ├── validation/         #     concept validation, novelty
 │           ├── analysis/           #     stats, Table 1, plots
-│           ├── review/             #     reviewer response, consistency
+│           ├── review/             #     audit hooks, pipeline gates, writing hooks
 │           ├── export/             #     Word document pipeline
 │           ├── discussion/         #     debate/discussion tools
 │           └── _shared/            #     共用 helpers
@@ -130,13 +137,122 @@ interfaces → application → domain ← infrastructure
 
 ---
 
+## Self-Evolution Architecture（CONSTITUTION §22-23）
+
+系統具備**可審計的閉環自我改進能力**，透過 Hook D（Meta-Learning）在每次 pipeline 完成後分析品質數據，自動調整閾值和累積經驗。
+
+### 循環架構
+
+```
+Pipeline Run（Phase 1-9）
+    │
+    │  Hook A/B/C/E/F 在寫作過程中即時觸發
+    │  record_hook_event() 記錄每次 hook 的 trigger/pass/fix/false_positive
+    │
+    ▼
+Phase 6: Quality Audit
+    │  run_quality_audit() → 8 維度品質計分（0-10）
+    │  generate_report() → quality-scorecard.yaml + .md
+    │
+    ▼
+Phase 10: Meta-Learning（Hook D1-D8）
+    │  run_meta_learning() → 分析 hook 效能 + 品質數據
+    │  D1: Hook 效能統計分析
+    │  D2: 品質計分卡趨勢
+    │  D3: 閾值自動調整（±20%，CONSTITUTION §23）
+    │  D4-D5: SKILL.md / AGENTS.md 改進建議
+    │  D6: Audit trail 生成
+    │  D7: Review 回顧性分析
+    │  D8: EQUATOR 合規回顧
+    │
+    ▼
+verify_evolution() → 跨專案演化驗證
+    E1: 閾值自我調整證據
+    E2: 經驗累積（Lessons Learned）
+    E3: Hook 覆蓋廣度
+    E4: 品質量測存在性
+    E5: 跨專案比較可能性
+```
+
+### 元件責任
+
+| 元件                         | 檔案                            | 職責                                                                                                   |
+| ---------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **QualityScorecard**         | `quality_scorecard.py`          | 8 維度品質評分持久化（citation, methodology, text, concept, format, figure, equator, reproducibility） |
+| **HookEffectivenessTracker** | `hook_effectiveness_tracker.py` | 追蹤 56 個 Hook 的 trigger/pass/fix/FP 事件，計算效能指標                                              |
+| **MetaLearningEngine**       | `meta_learning_engine.py`       | D1-D8 分析引擎：統計分析 → 閾值建議 → 經驗萃取 → 審計紀錄                                              |
+| **WritingHooksEngine**       | `writing_hooks.py`              | Code-enforced hooks：A5 語言一致性、A6 段落重複、B8 統計對齊、C9 補充材料交叉引用、F 資料溯源          |
+| **EvolutionVerifier**        | `evolution_verifier.py`         | 跨專案演化驗證：收集所有專案 `.audit/` 數據，產生演化證據報告                                          |
+| **DomainConstraintEngine**   | `domain_constraint_engine.py`   | Triad-inspired JSON 約束系統：per paper type 結構化約束、Sand Spreader 驗證、約束演化                  |
+| **PipelineGateValidator**    | `pipeline_gate_validator.py`    | Phase Gate 驗證器：確保每個 Phase 完成必要的品質檢查才能進入下一階段                                   |
+
+### 自我改進邊界（CONSTITUTION §23）
+
+| 層級           | 行為                                                                              | 限制                   |
+| -------------- | --------------------------------------------------------------------------------- | ---------------------- |
+| L1 Skill       | 更新 SKILL.md Lessons Learned                                                     | 自動，無需確認         |
+| L2 Hook        | 調整 Hook 閾值                                                                    | ±20%，記錄 audit trail |
+| L3 Instruction | 事實性內容修改                                                                    | 記錄 decisionLog       |
+| **禁止**       | 修改 CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則、Hook D 本身 | —                      |
+
+### Hook 架構（56 checks）
+
+| 類型                  | 時機            | 數量 | 重點                                                                 |
+| --------------------- | --------------- | ---- | -------------------------------------------------------------------- |
+| **A** post-write      | 每次寫入後      | 6    | 字數、引用密度、Anti-AI、Wikilink、語言一致性(A5)、段落重複(A6)      |
+| **B** post-section    | section 完成後  | 8    | 概念一致、🔒保護、方法學、寫作順序、Brief 合規、統計對齊(B8)         |
+| **C** post-manuscript | 全稿完成後      | 9    | 全稿一致性、投稿清單、數量交叉引用、時間一致性、補充材料交叉引用(C9) |
+| **D** meta-learning   | Phase 10        | 8    | SKILL/Hook 自我改進、Review Retro、EQUATOR Retro                     |
+| **E** EQUATOR 合規    | Phase 7 每輪    | 5    | 報告指引偵測、checklist 驗證、合規報告                               |
+| **F** data-artifacts  | post-manuscript | 4    | 溯源追蹤、manifest 一致、交叉引用、統計驗證                          |
+| **P** pre-commit      | git commit 前   | 8    | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                 |
+| **G** general         | git commit 前   | 8    | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性                 |
+
+### Domain Constraint Engine（Triad-inspired）
+
+受 Triad Engine 啟發的結構化 JSON 約束系統。將「自然語言 SKILL.md 指令」轉為「可演化的 JSON Domain Guide」。
+
+**核心概念對應**：
+
+| Triad Engine      | MedPaper 對應                                        |
+| ----------------- | ---------------------------------------------------- |
+| JSON Domain Guide | `DomainConstraintEngine` 約束模板                    |
+| Multi-Agent 議事  | Hook 層級 A/B/C/E/F（已有）                          |
+| Sand Spreader     | `validate_against_constraints()`                     |
+| 約束演化          | `MetaLearningEngine.suggest_constraint_evolutions()` |
+
+**演化流程**：
+
+```
+Hook A/B/C 在寫作中偵測到重複模式
+    │
+    ▼
+Phase 10: MetaLearningEngine.analyze()
+    │  suggest_constraint_evolutions() 萃取結構化約束建議
+    │
+    ▼
+DomainConstraintEngine.evolve()
+    │  新增 learned constraint 到 .constraints/learned-constraints.json
+    │  記錄 evolution log 到 .constraints/constraint-evolution.json
+    │
+    ▼
+下次 Pipeline: validate_against_constraints()
+    自動應用 base + learned 約束
+```
+
+**約束類別**：`statistical` · `structural` · `vocabulary` · `evidential` · `temporal` · `reporting` · `boundary`
+
+**安全邊界**：Learned constraint 僅能**提升** severity（WARNING→CRITICAL），不能弱化。Base constraint 不可移除。
+
+---
+
 ## External MCP Servers
 
 Copilot Agent Mode 同時連接多個 MCP Server：
 
 | Server            | 來源                                          | 用途                       | Tools 數量 |
 | ----------------- | --------------------------------------------- | -------------------------- | ---------- |
-| **mdpaper**       | 本專案                                        | 專案管理、草稿、引用、匯出 | 54         |
+| **mdpaper**       | 本專案                                        | 專案管理、草稿、引用、匯出 | 73         |
 | **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule) | PubMed 文獻搜尋            | 37         |
 | **cgu**           | `integrations/cgu/` (submodule)               | 創意發想（快思慢想）       | 13         |
 | **drawio**        | `uvx drawio-mcp-server`                       | CONSORT/PRISMA 圖表        | ~5         |
@@ -304,6 +420,7 @@ mdpaper: validate_concept(concept.md)
 | `scipy`                  | 統計檢定                   |
 | `matplotlib` / `seaborn` | 繪圖                       |
 | `pydantic`               | 資料驗證                   |
+| `structlog`              | 結構化日誌                 |
 | `tabulate`               | 表格格式化                 |
 | `httpx`                  | MCP-to-MCP HTTP 通訊       |
 
