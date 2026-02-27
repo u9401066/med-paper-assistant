@@ -13,6 +13,7 @@ from .project_context import (
 )
 from .tool_logging import (
     get_tool_logger,
+    initialize_tool_tracking,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
@@ -31,6 +32,7 @@ __all__ = [
     "validate_project_for_tool",
     # Logging utilities
     "get_tool_logger",
+    "initialize_tool_tracking",
     "log_tool_call",
     "log_tool_result",
     "log_tool_error",

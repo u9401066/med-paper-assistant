@@ -28,9 +28,24 @@ def register_workspace_state_tools(mcp: FastMCP):
         """
         Get workspace state for context recovery. Call at conversation START.
         Returns: current project, last activity, suggested next action.
+        Also surfaces any pending evolution items from previous conversations.
         """
         state_manager = get_workspace_state_manager()
-        return state_manager.get_recovery_summary()
+        summary = state_manager.get_recovery_summary()
+
+        # Append pending evolutions guidance if any exist
+        from pathlib import Path
+
+        from med_paper_assistant.interfaces.mcp.tools._shared.guidance import (
+            build_startup_guidance,
+        )
+
+        workspace_root = Path(state_manager.base_path)
+        evolution_guidance = build_startup_guidance(workspace_root)
+        if evolution_guidance:
+            summary += "\n" + evolution_guidance
+
+        return summary
 
     @mcp.tool()
     def sync_workspace_state(

@@ -22,17 +22,17 @@ CONSTITUTION §23 Boundaries:
 from __future__ import annotations
 
 import json
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import structlog
 import yaml
 
 from .hook_effectiveness_tracker import HookEffectivenessTracker
 from .quality_scorecard import QualityScorecard
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 # Threshold adjustment limits (CONSTITUTION §23)
 MAX_THRESHOLD_ADJUSTMENT = 0.20  # ±20%
@@ -135,11 +135,13 @@ class MetaLearningEngine:
         audit_dir: str | Path,
         tracker: HookEffectivenessTracker,
         scorecard: QualityScorecard,
+        workspace_root: str | Path | None = None,
     ) -> None:
         self._audit_dir = Path(audit_dir)
         self._tracker = tracker
         self._scorecard = scorecard
         self._audit_path = self._audit_dir / self.AUDIT_FILE
+        self._workspace_root = Path(workspace_root) if workspace_root else None
 
     # All expected hooks in the framework (A/B/C/E/F/P layers)
     EXPECTED_HOOKS = [
@@ -147,6 +149,8 @@ class MetaLearningEngine:
         "A2",
         "A3",
         "A4",
+        "A5",
+        "A6",
         "B1",
         "B2",
         "B3",
@@ -154,6 +158,7 @@ class MetaLearningEngine:
         "B5",
         "B6",
         "B7",
+        "B8",
         "C1",
         "C2",
         "C3",
@@ -162,6 +167,7 @@ class MetaLearningEngine:
         "C6",
         "C7",
         "C8",
+        "C9",
         "E1",
         "E2",
         "E3",
@@ -201,6 +207,8 @@ class MetaLearningEngine:
         review_lessons = self._d7_review_retrospective()
         equator_lessons = self._d8_equator_retrospective()
         skill_suggestions = self._d4_d5_skill_suggestions()
+        d9_suggestions = self._d9_tool_description_suggestions()
+        all_suggestions = skill_suggestions + d9_suggestions
 
         all_lessons = (
             quality_lessons
@@ -219,13 +227,13 @@ class MetaLearningEngine:
             ]
         )
 
-        audit_trail = self._d6_build_audit_trail(adjustments, all_lessons, skill_suggestions)
-        summary = self._build_summary(adjustments, all_lessons, skill_suggestions)
+        audit_trail = self._d6_build_audit_trail(adjustments, all_lessons, all_suggestions)
+        summary = self._build_summary(adjustments, all_lessons, all_suggestions)
 
         return {
             "adjustments": [a.to_dict() for a in adjustments],
             "lessons": [lesson.to_dict() for lesson in all_lessons],
-            "suggestions": skill_suggestions,
+            "suggestions": all_suggestions,
             "audit_trail": audit_trail,
             "summary": summary,
         }
@@ -800,3 +808,166 @@ class MetaLearningEngine:
             lines.append("")
 
         return "\n".join(lines)
+
+    def _d9_tool_description_suggestions(self) -> list[dict[str, Any]]:
+        """
+        D9: Analyze MCP tool invocation telemetry to suggest description improvements.
+
+        Reads ToolInvocationStore from workspace_root (if set).
+        Returns L3 suggestions (requires_confirmation=True) for:
+        - Tools with misuse_rate > 20% (≥2 misuse events): description confuses agents
+        - Tools with error_count >= 3: parameters may need clarifying examples
+
+        Returns:
+            List of suggestion dicts with type="improve_tool_description".
+            Empty list if workspace_root is not set or store has no data.
+
+        CONSTITUTION §23 compliance:
+            All D9 suggestions are L3 (requires_confirmation=True).
+            D9 is additive — does not modify D1-D8 behavior.
+            D9 failure never blocks D1-D8 (wrapped in try/except).
+        """
+        if self._workspace_root is None:
+            return []
+
+        try:
+            from .tool_invocation_store import ToolInvocationStore
+
+            store = ToolInvocationStore(self._workspace_root)
+            all_stats = store.get_all_stats()
+        except Exception as e:
+            logger.warning("meta_learning.d9_store_read_failed", error=str(e))
+            return []
+
+        if not all_stats:
+            return []
+
+        suggestions: list[dict[str, Any]] = []
+
+        for tool_name, stats in all_stats.items():
+            invocation_count = stats.get("invocation_count", 0)
+            misuse_count = stats.get("misuse_count", 0)
+            error_count = stats.get("error_count", 0)
+            error_types = stats.get("error_types", [])
+
+            if invocation_count <= 0:
+                continue
+
+            # High misuse rate: agent is confused by tool description
+            misuse_rate = misuse_count / invocation_count
+            if misuse_count >= 2 and misuse_rate > 0.20:
+                suggestions.append(
+                    {
+                        "type": "improve_tool_description",
+                        "target": tool_name,
+                        "reason": (
+                            f"Misuse rate {misuse_rate:.0%} ({misuse_count}/{invocation_count} calls) "
+                            f"— tool description may be ambiguous to agents"
+                        ),
+                        "requires_confirmation": True,
+                    }
+                )
+
+            # Recurring errors: parameter examples or edge case docs needed
+            if error_count >= 3:
+                error_summary = f"; error_types: [{', '.join(error_types)}]" if error_types else ""
+                suggestions.append(
+                    {
+                        "type": "improve_tool_description",
+                        "target": tool_name,
+                        "reason": (
+                            f"{error_count} errors recorded — consider adding parameter examples "
+                            f"or clarifying edge cases{error_summary}"
+                        ),
+                        "requires_confirmation": True,
+                    }
+                )
+
+        return suggestions
+
+    def suggest_constraint_evolutions(
+        self,
+        analysis_result: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Extract recurring patterns from meta-learning analysis and suggest constraints.
+
+        Bridge between MetaLearningEngine and DomainConstraintEngine.
+        Scans analysis results for patterns that should become JSON constraints.
+
+        Args:
+            analysis_result: Result from analyze(). If None, runs analyze() first.
+
+        Returns:
+            List of constraint suggestion dicts ready for DomainConstraintEngine.evolve().
+        """
+        if analysis_result is None:
+            analysis_result = self.analyze()
+
+        suggestions: list[dict[str, Any]] = []
+        lessons = analysis_result.get("lessons", [])
+        adjustments = analysis_result.get("adjustments", [])
+
+        # Pattern 1: Hook with high trigger rate → add matching constraint
+        for adj in adjustments:
+            hook_id = adj.get("hook_id", "")
+            reason = adj.get("reason", "")
+            if "high trigger" in reason.lower() or "frequent" in reason.lower():
+                suggestions.append(
+                    {
+                        "constraint_id": f"ML-{hook_id}",
+                        "rule": f"pattern_from_{hook_id.lower()}",
+                        "category": _hook_to_constraint_category(hook_id),
+                        "description": f"Auto-constraint from recurring {hook_id} triggers: {reason}",
+                        "severity": "WARNING",
+                        "reason": f"MetaLearning detected recurring pattern in {hook_id}",
+                        "source_hook": hook_id,
+                    }
+                )
+
+        # Pattern 2: Critical lessons → potential constraints
+        critical_lessons = [ls for ls in lessons if ls.get("severity") == "critical"]
+        for i, lesson in enumerate(critical_lessons):
+            cat = lesson.get("category", "unknown")
+            suggestions.append(
+                {
+                    "constraint_id": f"ML-CRT-{i:03d}",
+                    "rule": f"critical_{cat}",
+                    "category": _lesson_to_constraint_category(cat),
+                    "description": lesson.get("lesson", ""),
+                    "severity": "WARNING",
+                    "reason": f"Critical lesson from {lesson.get('source', 'unknown')}",
+                    "source_hook": "",
+                }
+            )
+
+        logger.info(
+            "constraint_suggestions_generated",
+            count=len(suggestions),
+        )
+        return suggestions
+
+
+def _hook_to_constraint_category(hook_id: str) -> str:
+    """Map hook ID prefix to constraint category."""
+    prefix = hook_id[0] if hook_id else ""
+    return {
+        "A": "vocabulary",  # A hooks: text-level
+        "B": "structural",  # B hooks: section-level
+        "C": "structural",  # C hooks: manuscript-level
+        "E": "reporting",  # E hooks: EQUATOR
+        "F": "evidential",  # F hooks: data artifacts
+        "P": "boundary",  # P hooks: pre-commit
+    }.get(prefix, "vocabulary")
+
+
+def _lesson_to_constraint_category(lesson_category: str) -> str:
+    """Map lesson category to constraint category."""
+    return {
+        "hook_tuning": "statistical",
+        "writing_pattern": "vocabulary",
+        "tool_usage": "boundary",
+        "quality": "structural",
+        "equator": "reporting",
+        "data": "evidential",
+    }.get(lesson_category, "vocabulary")

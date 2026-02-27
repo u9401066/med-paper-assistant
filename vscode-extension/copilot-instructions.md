@@ -2,6 +2,10 @@
 
 > 完整指引：[AGENTS.md](../AGENTS.md)。本檔每次對話都載入，務求精簡。
 
+## 核心價值
+
+**逐步多輪演進**：寫論文是人類多年累積、多輪訓練的結果。Agent + MCP 框架必須實現類似的螺旋式進步。三層架構：L1 Hook（即時品質）→ L2 Code（結構約束）→ L3 CI（長期演進）。每輪可審計，每輪更好。（CONSTITUTION §25-26）
+
 ## 模式（操作前必查 `.copilot-mode.json`）
 
 | 模式          | 可修改檔案          | 技能範圍            |
@@ -39,18 +43,33 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | 3 概念 | cgu🔸（novelty < 75）          |
 | 5 撰寫 | drawio🔸, cgu🔸, data tools    |
 
-## Hook 架構（56 checks）
+## Hook 架構（56 checks — 14 Code-Enforced / 42 Agent-Driven）
 
-| 類型            | 時機            | 重點                                                             |
-| --------------- | --------------- | ---------------------------------------------------------------- |
-| Copilot A1-6    | post-write      | 字數、引用、Anti-AI、Wikilink、語言一致性、段落重複              |
-| Copilot B1-8    | post-section    | 概念一致、🔒保護、方法學、寫作順序、Brief合規、統計對齊          |
-| Copilot C1-9    | post-manuscript | 全稿一致、投稿清單、數量與交叉引用、時間一致性、補充材料交叉引用 |
-| Copilot D1-8    | Phase 10        | SKILL/Hook 自我改進 + Review Retro + EQUATOR Retro               |
-| Copilot E1-5    | Phase 7 每輪    | EQUATOR 報告指引偵測、逐條驗證、合規報告                         |
-| Copilot F1-4    | post-manuscript | 溯源追蹤、manifest一致、draft交叉引用、統計驗證                  |
-| Pre-Commit P1-8 | git commit 前   | 最終品質把關                                                     |
-| General G1-8    | git commit 前   | Memory、文檔、架構、VSX、文檔更新提醒                            |
+| 類型            | 時機            | Code-Enforced                     | Agent-Driven                                 |
+| --------------- | --------------- | --------------------------------- | -------------------------------------------- |
+| Copilot A1-6    | post-write      | A5 語言一致、A6 段落重複          | A1 字數、A2 引用、A3 Anti-AI、A4 Wikilink    |
+| Copilot B1-8    | post-section    | B8 統計對齊                       | B1-B7 概念一致、🔒保護、方法學、順序、Brief  |
+| Copilot C1-9    | post-manuscript | C9 補充材料交叉引用               | C1-C8 全稿一致、投稿清單、數量交叉引用、時間 |
+| Copilot D1-D9   | Phase 10        | D1-D9 全部（MetaLearningEngine）  | —                                            |
+| Copilot E1-5    | Phase 7 每輪    | —                                 | E1-E5 EQUATOR 報告指引（純 Agent 評估）      |
+| Copilot F1-4    | post-manuscript | F1-F4 全部（DataArtifactTracker） | —                                            |
+| Pre-Commit P1-8 | git commit 前   | —                                 | P1-P8（Agent 遵循 git-precommit SKILL.md）   |
+| General G1-8    | git commit 前   | —                                 | G1-G8（Agent 遵循 git-precommit SKILL.md）   |
+
+**Code-Enforced** = `run_writing_hooks` / `run_meta_learning` 內有確定性程式碼邏輯。
+**Agent-Driven** = 僅靠 Agent 閱讀 SKILL.md 並自行執行，無程式碼強制。
+
+## MCP Server（81 tools, 2026-02-27）
+
+| 模組        | 工具數 | 重點                                                        |
+| ----------- | ------ | ----------------------------------------------------------- |
+| project/    | 16     | CRUD + exploration + workspace state                        |
+| reference/  | 10     | save_reference_mcp 優先                                     |
+| draft/      | 13     | writing + citation + editing (patch_draft)                  |
+| validation/ | 3      | validate_concept + wikilinks                                |
+| analysis/   | 9      | table_one + stats + figures                                 |
+| review/     | 20     | formatting + pipeline + audit + meta-learning + flexibility |
+| export/     | 10     | word + pandoc (docx/pdf/bib)                                |
 
 ## 回應風格
 

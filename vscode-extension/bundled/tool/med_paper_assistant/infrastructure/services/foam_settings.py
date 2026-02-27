@@ -7,11 +7,12 @@ other projects' references directories.
 """
 
 import json
-import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 
 class FoamSettingsManager:
@@ -190,4 +191,5 @@ class FoamSettingsManager:
             settings = self._parse_jsonc(settings_text)
             return settings.get("foam.files.ignore", [])
         except Exception:
+            logger.debug("Failed to read foam ignore list", exc_info=True)
             return []

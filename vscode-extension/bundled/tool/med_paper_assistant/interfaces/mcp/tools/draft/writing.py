@@ -25,6 +25,7 @@ from .._shared import (
     log_tool_result,
     validate_project_for_tool,
 )
+from .._shared.guidance import build_guidance_hint
 
 # Global validator instance
 _concept_validator = ConceptValidator()
@@ -462,6 +463,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 reminder += f"\n\n{prereq_warning}"
 
             result = f"Draft created successfully at: {path}{reminder}"
+            result = build_guidance_hint(result, next_tool="run_writing_hooks")
             log_tool_result("write_draft", result, success=True)
             return result
         except Exception as e:

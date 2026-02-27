@@ -31,12 +31,16 @@ MCP Tool Logging Utilities
 import functools
 import json
 import traceback
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from med_paper_assistant.infrastructure.logging import get_logger
 
 # Module-level logger for MCP tools
 _tool_logger = None
+
+# Module-level ToolInvocationStore singleton (None until initialize_tool_tracking is called)
+_tool_store: Optional[Any] = None
 
 
 def get_tool_logger():
@@ -45,6 +49,35 @@ def get_tool_logger():
     if _tool_logger is None:
         _tool_logger = get_logger()
     return _tool_logger
+
+
+def initialize_tool_tracking(workspace_root: Path) -> None:
+    """
+    Initialize workspace-level MCP tool invocation tracking.
+
+    Must be called once from create_server() before tools are registered.
+    After initialization, log_tool_call/result/error/misuse will also persist
+    structured telemetry to workspace_root/.audit/tool-telemetry.yaml.
+
+    Non-fatal: if initialization fails, telemetry is silently skipped and
+    all tool executions continue normally.
+
+    Args:
+        workspace_root: Workspace root directory (parent of projects/).
+    """
+    global _tool_store
+    try:
+        from med_paper_assistant.infrastructure.persistence.tool_invocation_store import (
+            ToolInvocationStore,
+        )
+
+        _tool_store = ToolInvocationStore(workspace_root)
+        get_tool_logger().info(
+            "tool_tracking_initialized",
+            path=str(workspace_root / ".audit" / ToolInvocationStore.DATA_FILE),
+        )
+    except Exception as e:
+        get_tool_logger().warning("tool_tracking_init_failed", error=str(e))
 
 
 def _safe_serialize(obj: Any, max_length: int = 500) -> str:
@@ -88,6 +121,12 @@ def log_tool_call(tool_name: str, params: Dict[str, Any], caller_hint: str = "")
     caller_info = f" | caller={caller_hint}" if caller_hint else ""
     logger.debug(f"🔧 TOOL_CALL: {tool_name}{caller_info} | params={safe_params}")
 
+    if _tool_store is not None:
+        try:
+            _tool_store.record_invocation(tool_name)
+        except Exception:
+            pass
+
 
 def log_tool_result(tool_name: str, result: Any, success: bool = True) -> None:
     """
@@ -104,6 +143,15 @@ def log_tool_result(tool_name: str, result: Any, success: bool = True) -> None:
     status = "✅" if success else "⚠️"
 
     logger.debug(f"{status} TOOL_RESULT: {tool_name} | success={success} | result={result_preview}")
+
+    if _tool_store is not None:
+        try:
+            if success:
+                _tool_store.record_success(tool_name)
+            else:
+                _tool_store.record_error(tool_name)
+        except Exception:
+            pass
 
 
 def log_tool_error(
@@ -138,6 +186,12 @@ def log_tool_error(
     logger.error(f"❌ TOOL_ERROR: {tool_name} | {type(error).__name__}: {error}{context_info}")
     logger.debug(f"❌ TOOL_ERROR_DETAIL: {tool_name} | params={safe_params} | traceback:\n{tb}")
 
+    if _tool_store is not None:
+        try:
+            _tool_store.record_error(tool_name, type(error).__name__)
+        except Exception:
+            pass
+
 
 def log_agent_misuse(
     tool_name: str, expected_usage: str, actual_params: Dict[str, Any], hint: str = ""
@@ -163,6 +217,12 @@ def log_agent_misuse(
         f"actual_params={safe_params} | "
         f"hint={hint[:200] if hint else 'N/A'}"
     )
+
+    if _tool_store is not None:
+        try:
+            _tool_store.record_misuse(tool_name)
+        except Exception:
+            pass
 
 
 def with_tool_logging(tool_name: str):

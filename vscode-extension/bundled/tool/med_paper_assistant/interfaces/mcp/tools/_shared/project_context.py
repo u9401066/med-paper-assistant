@@ -74,7 +74,7 @@ def ensure_project_context(project_slug: Optional[str] = None) -> Tuple[bool, st
     if project_slug:
         # Validate the specified project
         is_valid, msg, project_info = validate_project_slug(project_slug)
-        if not is_valid:
+        if not is_valid or project_info is None:
             return False, msg, None
 
         # Switch to the project if not already active

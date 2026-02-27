@@ -19,15 +19,15 @@ Design rationale (CONSTITUTION §22):
 from __future__ import annotations
 
 import json
-import logging
 import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
+import structlog
 import yaml
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 ArtifactType = Literal["figure", "table", "statistics", "descriptive"]
 

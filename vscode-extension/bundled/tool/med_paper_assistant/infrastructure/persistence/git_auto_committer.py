@@ -17,12 +17,13 @@ Safety:
 
 from __future__ import annotations
 
-import logging
 import subprocess  # nosec B404 - subprocess used only for git commands with hardcoded executable
 from pathlib import Path
 from typing import Literal
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 CommitType = Literal[
     "draft",  # Draft write/patch/sync

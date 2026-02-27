@@ -26,19 +26,21 @@ Stop conditions (Ralph Wiggum–proof):
   - MAX_ROUNDS:   reached max_rounds limit
   - STAGNATED:    score improved < stagnation_delta for N consecutive rounds
   - USER_NEEDED:  critical issues failed to fix across 2+ rounds
+  - REWRITE_NEEDED: section(s) need major rewrite → regress to Phase 5
 """
 
 from __future__ import annotations
 
 import json
-import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+import structlog
+
+logger = structlog.get_logger()
 
 
 # ── Enums ──────────────────────────────────────────────────────────────
@@ -57,6 +59,7 @@ class RoundVerdict(str, Enum):
     STAGNATED = "stagnated"
     MAX_ROUNDS = "max_rounds"
     USER_NEEDED = "user_needed"
+    REWRITE_NEEDED = "rewrite_needed"
 
 
 # ── Data Classes ───────────────────────────────────────────────────────
@@ -175,6 +178,8 @@ class AutonomousAuditLoop:
         self._in_round: bool = False
         self._round_start_time: str = ""
         self._completed: bool = False
+        self._rewrite_sections: list[str] = []
+        self._rewrite_reason: str = ""
 
     # ── Round Lifecycle ────────────────────────────────────────────
 
@@ -295,6 +300,56 @@ class AutonomousAuditLoop:
 
         self.save()
         return verdict
+
+    def request_rewrite(self, sections: list[str], reason: str) -> None:
+        """Mark sections for rewrite regression to Phase 5.
+
+        Called when review determines that patch_draft fixes are insufficient
+        and a section needs a full rewrite. Sets the verdict to REWRITE_NEEDED
+        and records which sections need rewriting.
+
+        Args:
+            sections: List of section names that need rewriting.
+            reason: Explanation of why rewrite is needed.
+        """
+        if not sections:
+            raise ValueError("Must specify at least one section to rewrite")
+        self._rewrite_sections = list(sections)
+        self._rewrite_reason = reason
+        self._completed = True
+
+        # Record a synthetic round record if we're mid-round
+        if self._in_round:
+            record = RoundRecord(
+                round_number=self._current_round,
+                issues=[asdict(i) for i in self._current_issues],
+                fixes=[asdict(f) for f in self._current_fixes],
+                scores={},
+                weighted_avg=0.0,
+                verdict=RoundVerdict.REWRITE_NEEDED.value,
+                started_at=self._round_start_time,
+                completed_at=datetime.now().isoformat(),
+            )
+            self._rounds.append(record)
+            self._in_round = False
+
+        self.save()
+        logger.info(
+            "Rewrite requested",
+            sections=sections,
+            reason=reason,
+            round=self._current_round,
+        )
+
+    @property
+    def rewrite_sections(self) -> list[str]:
+        """Sections that need rewriting (set by request_rewrite)."""
+        return self._rewrite_sections
+
+    @property
+    def rewrite_reason(self) -> str:
+        """Reason for rewrite request."""
+        return self._rewrite_reason
 
     # ── Query Methods ──────────────────────────────────────────────
 
@@ -458,6 +513,8 @@ class AutonomousAuditLoop:
             "current_round": self._current_round,
             "completed": self._completed,
             "rounds": [asdict(r) for r in self._rounds],
+            "rewrite_sections": self._rewrite_sections,
+            "rewrite_reason": self._rewrite_reason,
             "saved_at": datetime.now().isoformat(),
         }
         self._data_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -475,6 +532,8 @@ class AutonomousAuditLoop:
 
         self._current_round = data.get("current_round", 0)
         self._completed = data.get("completed", False)
+        self._rewrite_sections = data.get("rewrite_sections", [])
+        self._rewrite_reason = data.get("rewrite_reason", "")
 
         self._rounds = []
         for r in data.get("rounds", []):
@@ -502,6 +561,8 @@ class AutonomousAuditLoop:
         self._current_round = 0
         self._in_round = False
         self._completed = False
+        self._rewrite_sections = []
+        self._rewrite_reason = ""
         if self._data_path.is_file():
             self._data_path.unlink()
 

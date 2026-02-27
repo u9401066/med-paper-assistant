@@ -15,14 +15,14 @@ Design rationale (CONSTITUTION §23):
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
+import structlog
 import yaml
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 EventType = Literal["trigger", "pass", "fix", "false_positive"]
 
@@ -31,6 +31,8 @@ HOOK_CATEGORIES = {
     "B": "post-section",
     "C": "post-manuscript",
     "D": "meta-learning",
+    "E": "equator-compliance",
+    "F": "data-artifacts",
 }
 
 
@@ -117,6 +119,13 @@ class HookEffectivenessTracker:
             hook_results: {hook_id: {trigger: N, pass: N, fix: N, false_positive: N}}
         """
         data = self._load()
+
+        # Guard against duplicate run_id — skip silently if already recorded
+        existing_ids = {r.get("run_id") for r in data.get("runs", [])}
+        if run_id in existing_ids:
+            logger.warning("hook_tracker.duplicate_run", run_id=run_id)
+            return
+
         data["runs"].append(
             {
                 "run_id": run_id,

@@ -2,6 +2,9 @@ import os
 from typing import List, Optional
 
 import pandas as pd
+import structlog
+
+logger = structlog.get_logger()
 
 
 class Analyzer:
@@ -310,12 +313,14 @@ class Analyzer:
                     _, p_val = stats.ttest_ind(group_data[0], group_data[1])
                     row.append(self._format_pvalue(p_val))
                 except Exception:
+                    logger.debug("t-test failed for %s", col, exc_info=True)
                     row.append("N/A")
             elif n_groups > 2:
                 try:
                     _, p_val = stats.f_oneway(*group_data)
                     row.append(self._format_pvalue(p_val))
                 except Exception:
+                    logger.debug("ANOVA failed for %s", col, exc_info=True)
                     row.append("N/A")
             else:
                 row.append("-")
@@ -354,6 +359,7 @@ class Analyzer:
                         chi2, p_val, _, _ = stats.chi2_contingency(contingency)
                         row.append(self._format_pvalue(p_val))
                     except Exception:
+                        logger.debug("Chi-square test failed for %s", col, exc_info=True)
                         row.append("N/A")
                 else:
                     row.append("")

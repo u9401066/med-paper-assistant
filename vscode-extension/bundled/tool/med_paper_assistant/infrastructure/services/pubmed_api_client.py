@@ -7,13 +7,13 @@ with pubmed-search MCP via HTTP API, bypassing the Agent.
 Author: u9401066@gap.kmu.edu.tw
 """
 
-import logging
 import os
 from typing import Any, Dict, List, Optional
 
 import httpx
+import structlog
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 # Default configuration
 DEFAULT_PUBMED_API_URL = "http://127.0.0.1:8765"
@@ -144,6 +144,7 @@ class PubMedAPIClient:
                 response = client.get(url)
                 return response.status_code == 200
         except Exception:
+            logger.debug("PubMed API health check failed", exc_info=True)
             return False
 
     def get_session_summary(self) -> Optional[Dict[str, Any]]:
@@ -161,6 +162,7 @@ class PubMedAPIClient:
                     return response.json()
                 return None
         except Exception:
+            logger.debug("Failed to get session summary", exc_info=True)
             return None
 
 

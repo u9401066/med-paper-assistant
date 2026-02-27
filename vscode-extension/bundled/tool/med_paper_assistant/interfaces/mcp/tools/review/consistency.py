@@ -11,7 +11,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
+import structlog
+
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
+
+logger = structlog.get_logger()
 
 
 @dataclass
@@ -104,6 +108,7 @@ def _check_citations(content: str, ref_manager: ReferenceManager, report: Consis
         saved_refs = ref_manager.list_references()
         saved_pmids = {str(r.get("pmid", "")) for r in saved_refs if r.get("pmid")}
     except Exception:
+        logger.debug("Failed to list saved references", exc_info=True)
         saved_pmids = set()
 
     # Check PMID citations

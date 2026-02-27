@@ -74,6 +74,7 @@ description: |
 3. `read_draft("concept.md")` → 提取 🔒 NOVELTY + 🔒 SELLING POINTS
 4. 參考下方 Section 指南撰寫
 5. `count_words()`
+6. `approve_section(section, action)` → 用戶審閱 approve/revise（Phase 5 時 MANDATORY）
 
 ## Flow B: Citation-Aware 編輯
 

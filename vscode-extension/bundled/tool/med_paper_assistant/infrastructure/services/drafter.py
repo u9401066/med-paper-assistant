@@ -1,8 +1,9 @@
-import logging
 import os
 import re
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional
+
+import structlog
 
 from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
     DraftSnapshotManager,
@@ -13,7 +14,7 @@ from med_paper_assistant.infrastructure.persistence.reference_manager import Ref
 if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class CitationStyle(Enum):
@@ -103,7 +104,7 @@ class Drafter:
                 paths = self._project_manager.get_project_paths()
                 return paths.get("drafts", self._default_drafts_dir)
             except (ValueError, KeyError):
-                pass
+                logger.debug("Project paths unavailable, using default drafts dir")
         return self._default_drafts_dir
 
     @property
@@ -250,13 +251,17 @@ class Drafter:
             if not authors:
                 author_text = "Unknown"
             elif len(authors) == 1:
-                author_text = authors[0].split()[0]
+                parts = authors[0].split()
+                author_text = parts[0] if parts else "Unknown"
             elif len(authors) == 2:
-                author1 = authors[0].split()[0]
-                author2 = authors[1].split()[0]
+                p1 = authors[0].split()
+                p2 = authors[1].split()
+                author1 = p1[0] if p1 else "Unknown"
+                author2 = p2[0] if p2 else "Unknown"
                 author_text = f"{author1} & {author2}"
             else:
-                author_text = f"{authors[0].split()[0]} et al."
+                p0 = authors[0].split()
+                author_text = f"{p0[0]} et al." if p0 else "Unknown et al."
 
             year = metadata.get("year", "n.d.")
             return f"({author_text}, {year})"
@@ -266,13 +271,17 @@ class Drafter:
             if not authors:
                 author_text = "Unknown"
             elif len(authors) == 1:
-                author_text = authors[0].split()[0]
+                parts = authors[0].split()
+                author_text = parts[0] if parts else "Unknown"
             elif len(authors) == 2:
-                author1 = authors[0].split()[0]
-                author2 = authors[1].split()[0]
+                p1 = authors[0].split()
+                p2 = authors[1].split()
+                author1 = p1[0] if p1 else "Unknown"
+                author2 = p2[0] if p2 else "Unknown"
                 author_text = f"{author1} and {author2}"
             else:
-                author_text = f"{authors[0].split()[0]} et al."
+                p0 = authors[0].split()
+                author_text = f"{p0[0]} et al." if p0 else "Unknown et al."
 
             year = metadata.get("year", "n.d.")
             return f"({author_text} {year})"
@@ -445,7 +454,7 @@ class Drafter:
                 paths = self._project_manager.get_project_paths()
                 project_root = paths.get("root")
             except (ValueError, KeyError):
-                pass
+                logger.debug("Project paths unavailable, skipping project root")
 
         # Search order: drafts dir, project root, current dir
         search_paths = [self.drafts_dir]

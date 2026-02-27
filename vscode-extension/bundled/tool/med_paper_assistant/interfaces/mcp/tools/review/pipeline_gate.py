@@ -10,6 +10,10 @@ Tools:
 - pipeline_heartbeat: Get full pipeline status across all phases
 - start_review_round: Begin a review round (exposes AutonomousAuditLoop)
 - submit_review_round: Complete a review round with scores + verdict
+- request_section_rewrite: Regress from Phase 7 to Phase 5 for section rewrite
+- pause_pipeline: Pause pipeline for user manual editing
+- resume_pipeline: Resume pipeline after pause, detecting user edits
+- approve_section: Approve or request revision for a written section
 """
 
 import hashlib
@@ -18,13 +22,18 @@ import re
 from pathlib import Path
 from typing import Optional
 
+import structlog
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import (
     AuditLoopConfig,
     AutonomousAuditLoop,
+    RoundVerdict,
     Severity,
+)
+from med_paper_assistant.infrastructure.persistence.checkpoint_manager import (
+    CheckpointManager,
 )
 from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
     PipelineGateValidator,
@@ -136,7 +145,7 @@ def _sync_to_workspace_state(
         )
     except Exception:
         # Non-fatal: don't let state sync failure break the gate tool
-        pass  # nosec B110 - intentional: state sync is best-effort
+        structlog.get_logger().debug("State sync failed (best-effort)", exc_info=True)  # nosec B110
 
 
 def _compute_manuscript_hash(project_dir: str | Path) -> str:
@@ -592,7 +601,13 @@ def register_pipeline_tools(
             status = loop.get_status()
 
             # Auto-sync pipeline state (anti-compaction)
-            is_done = verdict.value in ("quality_met", "max_rounds", "stagnated", "user_needed")
+            is_done = verdict.value in (
+                "quality_met",
+                "max_rounds",
+                "stagnated",
+                "user_needed",
+                "rewrite_needed",
+            )
             next_act = (
                 "Phase 7 complete. Run validate_phase_gate(7), then proceed to Phase 8."
                 if is_done
@@ -614,6 +629,7 @@ def register_pipeline_tools(
                 "max_rounds": "⚠️ **MAX_ROUNDS** — Maximum rounds reached. Proceed to Phase 8 with current quality.",
                 "stagnated": "⚠️ **STAGNATED** — No improvement detected. Consider user intervention or proceed.",
                 "user_needed": "🛑 **USER_NEEDED** — Critical unresolved issues. Escalate to user.",
+                "rewrite_needed": "🔁 **REWRITE_NEEDED** — Section(s) need major rewrite. Call `request_section_rewrite()` to regress to Phase 5.",
             }
             lines = [
                 f"# Review Round {status['current_round']} Complete",
@@ -678,12 +694,423 @@ def register_pipeline_tools(
             log_tool_error("validate_project_structure", e)
             return f"❌ Error validating project structure: {e}"
 
+    # ── New Flexibility Tools ─────────────────────────────────────
+
+    @mcp.tool()
+    def request_section_rewrite(
+        sections: str,
+        reason: str,
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        🔁 Request a pipeline regression from Phase 7 to Phase 5 for section rewrite.
+
+        When review discovers that a section needs a fundamental rewrite (not just
+        patching), call this to regress the pipeline back to Phase 5. Only the
+        specified sections will be rewritten; other approved sections are preserved.
+
+        ENFORCEMENT:
+        - Only callable during Phase 7 (review phase)
+        - Maximum 2 regressions per pipeline run (prevent infinite loops)
+        - Creates a pre-regression snapshot of all drafts
+
+        After calling this:
+        1. Rewrite the specified sections using write_draft/draft_section
+        2. Run Hook A/B on rewritten sections
+        3. Call approve_section() for each rewritten section
+        4. Proceed through Phase 6 → Phase 7 again
+
+        Args:
+            sections: Comma-separated section names to rewrite (e.g., "Methods,Results")
+            reason: Why these sections need rewriting
+            project: Project slug (optional, uses current project)
+
+        Returns:
+            Regression confirmation with instructions
+        """
+        log_tool_call("request_section_rewrite", {"sections": sections, "reason": reason})
+        try:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
+            project_dir = Path(project_info["project_path"])
+            audit_dir = project_dir / ".audit"
+
+            section_list = [s.strip() for s in sections.split(",") if s.strip()]
+            if not section_list:
+                return "❌ Must specify at least one section to rewrite."
+
+            # Verify sections exist in manuscript
+            manuscript = project_dir / "drafts" / "manuscript.md"
+            if manuscript.is_file():
+                content = manuscript.read_text(encoding="utf-8")
+                missing = [
+                    s for s in section_list if f"## {s}" not in content and f"# {s}" not in content
+                ]
+                if missing:
+                    return f"❌ Sections not found in manuscript: {', '.join(missing)}"
+
+            # Check regression count limit
+            ckpt = CheckpointManager(audit_dir, project_dir=project_dir)
+            state = ckpt.load() or {}
+            regression_ctx = state.get("regression_context", {})
+            regression_count = regression_ctx.get("regression_count", 0)
+            if regression_count >= 2:
+                return (
+                    "❌ Maximum regression count (2) reached. "
+                    "Further regressions require user approval. "
+                    "Ask the user whether to continue or accept current quality."
+                )
+
+            # Check we're in Phase 7
+            current_phase = state.get("current_phase", state.get("last_completed_phase", -1))
+            if current_phase != 7 and current_phase < 6:
+                return (
+                    f"❌ Regression only allowed from Phase 7. "
+                    f"Current phase: {current_phase}. "
+                    f"Use patch_draft() for in-phase fixes."
+                )
+
+            # Mark the review loop as needing rewrite
+            loop = _get_or_create_loop(project_dir)
+            if not loop.is_completed:
+                loop.request_rewrite(section_list, reason)
+            # Evict cached loop so next review starts fresh
+            if slug in _active_loops:
+                del _active_loops[slug]
+
+            # Save regression to checkpoint
+            ckpt.save_phase_regression(
+                from_phase=7,
+                to_phase=5,
+                reason=reason,
+                sections_to_rewrite=section_list,
+            )
+
+            # Auto-sync workspace state
+            _sync_to_workspace_state(
+                slug=slug,
+                phase=5,
+                gate_passed=False,
+                next_action=f"Rewrite sections: {', '.join(section_list)}. Then re-audit (Phase 6) and re-review (Phase 7).",
+                review_verdict=RoundVerdict.REWRITE_NEEDED.value,
+            )
+
+            lines = [
+                "# 🔁 Pipeline Regression: Phase 7 → Phase 5",
+                "",
+                f"**Reason**: {reason}",
+                f"**Sections to rewrite**: {', '.join(section_list)}",
+                f"**Regression count**: {regression_count + 1}/2",
+                "",
+                "## Next Steps",
+                "",
+                "1. Rewrite the specified sections using `draft_section()` + `write_draft()`",
+                "2. Run Hook A/B cascading audit on each rewritten section",
+                "3. Call `approve_section(section, action='approve')` for each section",
+                "4. Validate Phase 5 gate: `validate_phase_gate(5)`",
+                "5. Proceed through Phase 6 (cross-section audit)",
+                "6. Phase 7 review will restart with a fresh review loop",
+                "",
+                "**Other sections are preserved** — only rewrite the specified sections.",
+            ]
+
+            report = "\n".join(lines)
+            log_tool_result("request_section_rewrite", f"regression to Phase 5: {section_list}")
+            return report
+
+        except Exception as e:
+            log_tool_error("request_section_rewrite", e)
+            return f"❌ Error requesting section rewrite: {e}"
+
+    @mcp.tool()
+    def pause_pipeline(
+        reason: str = "user_requested",
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        ⏸️ Pause the pipeline for manual editing.
+
+        Call this when the user wants to pause the auto-paper pipeline to
+        manually edit drafts, review content, or take a break. The system
+        records current draft hashes so it can detect changes when resumed.
+
+        After pausing:
+        - User can freely edit any draft files
+        - User can edit concept.md, manuscript-plan.yaml, etc.
+        - When ready, call resume_pipeline() to continue
+
+        Args:
+            reason: Why the pipeline is being paused (e.g., "user wants to edit Methods")
+            project: Project slug (optional, uses current project)
+
+        Returns:
+            Pause confirmation with resume instructions
+        """
+        log_tool_call("pause_pipeline", {"reason": reason})
+        try:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
+            project_dir = Path(project_info["project_path"])
+            audit_dir = project_dir / ".audit"
+
+            ckpt = CheckpointManager(audit_dir, project_dir=project_dir)
+            ckpt.save_pause(reason=reason)
+
+            state = ckpt.load() or {}
+            current_phase = state.get("pause_state", {}).get("phase_at_pause", "N/A")
+
+            _sync_to_workspace_state(
+                slug=slug,
+                phase=current_phase if isinstance(current_phase, int) else 0,
+                gate_passed=False,
+                next_action="Pipeline paused. User editing. Call resume_pipeline() when ready.",
+            )
+
+            lines = [
+                "# ⏸️ Pipeline Paused",
+                "",
+                f"**Phase at pause**: {current_phase}",
+                f"**Reason**: {reason}",
+                "",
+                "## What You Can Do",
+                "",
+                "- Edit any draft files in `drafts/`",
+                "- Modify `concept.md` or `manuscript-plan.yaml`",
+                "- Add or update references",
+                "- Take notes in `.memory/`",
+                "",
+                "## When Ready to Resume",
+                "",
+                "Call `resume_pipeline()` — the system will:",
+                "1. Detect which files changed during the pause",
+                "2. Recommend which audits to re-run",
+                "3. Continue from the current phase",
+            ]
+
+            report = "\n".join(lines)
+            log_tool_result("pause_pipeline", f"paused at phase {current_phase}")
+            return report
+
+        except Exception as e:
+            log_tool_error("pause_pipeline", e)
+            return f"❌ Error pausing pipeline: {e}"
+
+    @mcp.tool()
+    def resume_pipeline(
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        ▶️ Resume the pipeline after a pause.
+
+        Detects which draft files were modified during the pause and
+        recommends appropriate re-validation steps.
+
+        Args:
+            project: Project slug (optional, uses current project)
+
+        Returns:
+            Resume report with detected changes and recommended actions
+        """
+        log_tool_call("resume_pipeline", {"project": project})
+        try:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
+            project_dir = Path(project_info["project_path"])
+            audit_dir = project_dir / ".audit"
+
+            ckpt = CheckpointManager(audit_dir, project_dir=project_dir)
+            resume_result = ckpt.resume_from_pause()
+
+            changed = resume_result["changed"]
+            changed_files = resume_result["changed_files"]
+            phase_at_pause = resume_result["phase_at_pause"]
+
+            _sync_to_workspace_state(
+                slug=slug,
+                phase=phase_at_pause if phase_at_pause >= 0 else 0,
+                gate_passed=False,
+                next_action=(
+                    f"Re-run audits for changed files: {', '.join(changed_files)}"
+                    if changed
+                    else f"Continue from Phase {phase_at_pause}"
+                ),
+            )
+
+            lines = [
+                "# ▶️ Pipeline Resumed",
+                "",
+                f"**Phase**: {phase_at_pause}",
+                f"**Drafts modified during pause**: {'Yes' if changed else 'No'}",
+            ]
+
+            if changed:
+                lines.extend(
+                    [
+                        "",
+                        "## Modified Files",
+                        "",
+                    ]
+                )
+                for f in changed_files:
+                    lines.append(f"- `{f}`")
+                lines.extend(
+                    [
+                        "",
+                        "## Recommended Actions",
+                        "",
+                    ]
+                )
+                if phase_at_pause >= 5:
+                    lines.append("1. Re-run `run_writing_hooks()` on modified sections (Hook A/B)")
+                if phase_at_pause >= 6:
+                    lines.append("2. Re-run Phase 6 cross-section audit (Hook C)")
+                if phase_at_pause >= 7:
+                    lines.append("3. Consider restarting Phase 7 review loop")
+                lines.append("")
+                lines.append("These are recommendations — proceed based on the scope of changes.")
+            else:
+                lines.extend(
+                    [
+                        "",
+                        "No changes detected. Continuing from where we left off.",
+                    ]
+                )
+
+            report = "\n".join(lines)
+            log_tool_result("resume_pipeline", f"resumed, changed={changed}")
+            return report
+
+        except Exception as e:
+            log_tool_error("resume_pipeline", e)
+            return f"❌ Error resuming pipeline: {e}"
+
+    @mcp.tool()
+    def approve_section(
+        section: str,
+        action: str = "approve",
+        feedback: str = "",
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        ✅ Approve or request revision for a written section.
+
+        During Phase 5, call this after each section is written and audited.
+        The Phase 5 gate REQUIRES all sections to be approved before proceeding.
+
+        **Autopilot mode (default)**: Agent self-reviews the section using Hook A/B
+        results, then calls this with action="approve" to auto-approve and continue.
+        No user confirmation needed unless the user explicitly requests review.
+
+        **Manual mode**: User reviews each section and provides approve/revise.
+
+        Actions:
+        - "approve": Mark section as approved. Pipeline can continue to next section.
+        - "revise": Mark section as needing revision. Agent must apply the feedback
+                    using patch_draft/write_draft, re-run hooks, then call this again.
+
+        Args:
+            section: Section name (e.g., "Methods", "Results", "Introduction")
+            action: "approve" or "revise"
+            feedback: User feedback for revision (required when action="revise")
+            project: Project slug (optional, uses current project)
+
+        Returns:
+            Confirmation with next steps
+        """
+        log_tool_call("approve_section", {"section": section, "action": action})
+        try:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            project_dir = Path(project_info["project_path"])
+            audit_dir = project_dir / ".audit"
+
+            if action not in ("approve", "revise"):
+                return "❌ Action must be 'approve' or 'revise'."
+
+            if action == "revise" and not feedback.strip():
+                return "❌ Feedback is required when requesting revision. What should be changed?"
+
+            # Verify section exists in manuscript
+            manuscript = project_dir / "drafts" / "manuscript.md"
+            if manuscript.is_file():
+                content = manuscript.read_text(encoding="utf-8")
+                if f"## {section}" not in content and f"# {section}" not in content:
+                    return f"❌ Section '{section}' not found in manuscript."
+
+            ckpt = CheckpointManager(audit_dir, project_dir=project_dir)
+
+            if action == "approve":
+                ckpt.save_section_progress(
+                    section=section,
+                    approval_status="approved",
+                )
+                lines = [
+                    f"# ✅ Section Approved: {section}",
+                    "",
+                    "The section has been marked as approved.",
+                    "You can proceed to the next section in the writing order.",
+                    "",
+                    "## Current Approval Status",
+                    "",
+                ]
+            else:
+                ckpt.save_section_progress(
+                    section=section,
+                    approval_status="revision_requested",
+                    user_feedback=feedback,
+                )
+                lines = [
+                    f"# ✏️ Revision Requested: {section}",
+                    "",
+                    f"**Feedback**: {feedback}",
+                    "",
+                    "## Next Steps",
+                    "",
+                    f"1. Apply the feedback to the {section} section using `patch_draft()` or `write_draft()`",
+                    "2. Re-run `run_writing_hooks()` on the modified section",
+                    f"3. Call `approve_section(section='{section}', action='approve')` when satisfied",
+                    "",
+                    "## Current Approval Status",
+                    "",
+                ]
+
+            # Show all section statuses
+            statuses = ckpt.get_section_approval_status()
+            for sec_name, sec_status in statuses.items():
+                icon = {"approved": "✅", "revision_requested": "✏️", "pending": "⏳"}.get(
+                    sec_status, "❓"
+                )
+                lines.append(f"- {icon} {sec_name}: {sec_status}")
+
+            report = "\n".join(lines)
+            log_tool_result("approve_section", f"{section}: {action}")
+            return report
+
+        except Exception as e:
+            log_tool_error("approve_section", e)
+            return f"❌ Error processing section approval: {e}"
+
     return {
         "validate_phase_gate": validate_phase_gate,
         "pipeline_heartbeat": pipeline_heartbeat,
         "start_review_round": start_review_round,
         "submit_review_round": submit_review_round,
         "validate_project_structure": validate_project_structure,
+        "request_section_rewrite": request_section_rewrite,
+        "pause_pipeline": pause_pipeline,
+        "resume_pipeline": resume_pipeline,
+        "approve_section": approve_section,
     }
 
 

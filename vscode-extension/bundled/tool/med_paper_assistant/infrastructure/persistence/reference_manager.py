@@ -1,7 +1,8 @@
 import json
-import logging
 import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+import structlog
 
 if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
@@ -10,7 +11,7 @@ from med_paper_assistant.domain.services.reference_converter import (
     ReferenceConverter,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class ReferenceManager:

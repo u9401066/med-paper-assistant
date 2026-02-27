@@ -78,7 +78,8 @@ class TemplateReader:
 
         for i, para in enumerate(doc.paragraphs):
             # Detect headers/sections
-            style_name = para.style.name.lower()
+            style = para.style
+            style_name = style.name.lower() if style else ""
             is_heading = (
                 style_name.startswith("heading") or "heading" in style_name or "title" in style_name
             )
@@ -101,7 +102,7 @@ class TemplateReader:
                     TemplateSection(
                         index=i,
                         name=section_name,
-                        style=para.style.name,
+                        style=style.name if style else "",
                         placeholder_text=para.text.strip(),
                         word_limit=word_limit,
                         is_required=self._is_required_section(section_name),
