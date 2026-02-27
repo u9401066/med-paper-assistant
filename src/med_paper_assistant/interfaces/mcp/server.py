@@ -60,6 +60,7 @@ from med_paper_assistant.interfaces.mcp.tools import (
     register_review_tools,
     register_validation_tools,
 )
+from med_paper_assistant.interfaces.mcp.tools._shared import initialize_tool_tracking
 
 
 def create_server() -> FastMCP:
@@ -89,6 +90,10 @@ def create_server() -> FastMCP:
     template_reader = TemplateReader()
     word_writer = WordWriter()
     analyzer = Analyzer()
+
+    # Initialize workspace-level tool invocation telemetry
+    # workspace_root = projects_dir.parent (= project_manager.base_path)
+    initialize_tool_tracking(project_manager.projects_dir.parent)
 
     # Create MCP server
     mcp = FastMCP("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)

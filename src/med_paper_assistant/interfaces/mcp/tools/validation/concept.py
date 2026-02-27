@@ -21,6 +21,7 @@ from .._shared import (
     log_tool_result,
     validate_project_for_tool,
 )
+from .._shared.guidance import build_guidance_hint
 
 # Global validator instance
 _concept_validator = ConceptValidator()
@@ -143,6 +144,15 @@ def register_concept_validation_tools(mcp: FastMCP):
                 report += f"已自動修復 {wikilink_result.auto_fixed} 個格式錯誤\n"
             elif wikilink_result.issues:
                 report += f"\n\n---\n\n{wikilink_result.to_report()}"
+
+            _warnings: list[str] = []
+            if validation_result.novelty_average < 75:
+                _warnings.append(
+                    f"novelty {validation_result.novelty_average:.0f}/100 below 75 threshold"
+                )
+            report = build_guidance_hint(
+                report, next_tool="write_draft", warnings=_warnings or None
+            )
 
             log_tool_result(
                 "validate_concept",
