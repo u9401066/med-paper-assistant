@@ -64,9 +64,12 @@ tools/
 三層演進架構（2026-02-27 深度審查結果）
 ═══════════════════════════════════════════════════
 
-L1: Event-Driven Hooks（即時品質）⚠️ 14/56 Code-Enforced
+L1: Event-Driven Hooks（即時品質）⚠️ 23/65 Code-Enforced
     Code-Enforced (run_writing_hooks):
-      A5 語言一致、A6 段落重複、B8 統計對齊、C9 補充材料
+      A5 語言一致、A6 段落重複、B8 統計對齊、B9 時態、B10 段落品質
+      B11 Results客觀性、B12 Intro結構、B13 Discussion結構
+      B14 倫理聲明、B15 Hedging密度、B16 效果量報告
+      C6 ICMJE字數(body-only)、C9 補充材料
       F1-F4 數據產出物（DataArtifactTracker）
     Code-Enforced (run_meta_learning):
       D1-D9 全部（MetaLearningEngine）

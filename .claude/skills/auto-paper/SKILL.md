@@ -613,36 +613,75 @@ Round 3 (IF still CRITICAL):
 ### Phase 7: AUTONOMOUS REVIEW（結構化 Review Loop — MANDATORY）🆕
 
 **目的**：模擬同行審查，產出結構化 Review Report + Author Response，確保每個 issue 都被回應。
-**觸發**：**ALWAYS**（Phase 6.5 強制進入，不可跳過）。即使 Hook A-C 全過、quality 已達標，仍必須至少執行 1 round。
+**觸發**：**ALWAYS**（Phase 6.5 強制進入，不可跳過）。即使 Hook A-C 全過、quality 已達標，仍必須至少執行 2 rounds（code-enforced `min_rounds=2`）。
 **上限**：`pipeline.review_max_rounds`（預設 3）。
-**Hard Gate**：每輪 MUST call `start_review_round()` 開始 + `submit_review_round(scores)` 結束。Loop 結束後 `validate_phase_gate(7)` 必須 PASS。
+**最低輪數**：`min_rounds=2`（**Code-Enforced**：`AutonomousAuditLoop._determine_verdict()` 在 round < min_rounds 時強制返回 CONTINUE，不允許提前結束）。
+**Hard Gate**：每輪 MUST call `start_review_round(min_rounds=2)` 開始 + `submit_review_round(scores)` 結束。Loop 結束後 `validate_phase_gate(7)` 必須 PASS（驗證 rounds_completed >= min_rounds）。
+
+#### Multi-Reviewer 設計（模擬 2-3 位獨立審稿人）🆕
+
+人類同行審查通常由 2-3 位獨立審稿人進行，每位審稿人有不同的知識背景和思考模式。為模擬此過程：
+
+**每輪 Review 啟動 2-3 個 subagent**，每個 subagent 使用**不同的 top-tier 模型**（避免思考模式雷同）：
+
+| Reviewer | 模型             | 角色                              |
+| -------- | ---------------- | --------------------------------- |
+| R1       | Claude Opus 4.6  | Methodology Expert + Statistician |
+| R2       | OpenAI Codex 5.3 | Domain Specialist + Editor        |
+| R3       | Gemini Pro 3.1   | Independent Critical Reviewer     |
+
+**每位 Reviewer 必須**：
+
+1. **搜尋文獻驗證**：使用 `unified_search` / `find_related_articles` 搜尋相關文獻，比對稿件引用是否充分、結論是否與現有證據一致
+2. **獨立閱讀全稿**：不參考其他 Reviewer 的意見
+3. **提出 5-10 個結構化問題**：每個問題必須包含 section、paragraph、category、issue、suggestion
+4. **文獻比對**：至少引用 2-3 篇搜尋到的文獻來支持或挑戰稿件觀點
+5. **給出獨立評分**：6 個品質維度各自評分
+
+**合併流程**：
+
+- 所有 Reviewer 獨立完成後，合併為統一的 `review-report-{round}.md`
+- 重複 issue 去重，保留最嚴格的 severity
+- Author Response 必須回應所有 Reviewer 的所有 issue
 
 ```
 載入 journal-profile.yaml → 取得 reviewer_perspectives + quality_threshold
 
-── Review Loop（最多 N rounds，N = review_max_rounds）──
+── Review Loop（最少 min_rounds 輪，最多 max_rounds 輪）──
 
 FOR round = 1 TO N:
 
-  ── Stage A: Review Report（結構化 YAML front matter） ──
-  FOR perspective IN reviewer_perspectives:
-    Agent 切換角色 → 以該角色審查全稿 → 結構化意見
+  ── Stage A: Multi-Reviewer Review（獨立 subagent） ──
+  LAUNCH 2-3 subagents in parallel (each using different model):
 
+  FOR each reviewer subagent:
+    1. 搜尋文獻：unified_search() 搜尋與稿件主題相關的最新文獻（至少 5 篇）
+    2. 比對文獻：find_related_articles() / find_citing_articles() 驗證稿件引用
+    3. 獨立審查全稿，提出 5-10 個結構化問題
+    4. 以搜尋到的文獻為依據，標記稿件中的不足或錯誤
+    5. 獨立評分（6 維度）
+
+    Reviewer 角色覆蓋：
     "methodology_expert":
       - 研究設計是否嚴謹？統計方法是否恰當？
       - 方法是否可再現？偏差控制是否充分？
+      - 搜尋同類方法學文獻 → 比對是否有遺漏的 best practice
 
     "domain_specialist":
       - 文獻引用是否全面且最新？
       - 對領域 gap 的理解是否準確？臨床意義是否明確？
+      - 搜尋最新系統性回顧 → 驗證稿件是否與當前共識一致
 
     "statistician":
       - 統計假設是否合理？結果呈現是否清晰？
       - 圖表是否有效傳達數據？
+      - 搜尋統計方法指引 → 驗證分析方法的恰當性
 
     "editor":
       - 寫作品質（清晰度、邏輯流、語法）
       - 是否符合期刊風格？圖表品質與必要性
+
+  MERGE all reviewer outputs → 統一 review-report-{round}.md
 
   產出 .audit/review-report-{round}.md：
   ┌─────────────────────────────────────────────────┐
@@ -991,19 +1030,23 @@ Phase 7, Stage D（品質重評）:
 
 ---
 
-### Phase 9: EXPORT
+### Phase 9: EXPORT（Code-Enforced — CRITICAL Gate）
 
 **Skill**: `word-export`
 
-1. `list_templates()` → 選擇 template（優先匹配 journal-profile.journal.name）
-2. `start_document_session()` → `insert_section()` × N
-3. 驗證必要文件清單（from `required_documents.*`）：
+⚠️ **Code-Enforced**: `validate_phase_gate(9)` 對 docx 和 pdf 的檢查為 CRITICAL severity。必須同時產出 docx 和 pdf，否則 Gate 不會通過。
+
+1. `export_docx()` → 產出 DOCX
+2. `export_pdf()` → 產出 PDF
+3. `list_templates()` → 選擇 template（優先匹配 journal-profile.journal.name）
+4. `start_document_session()` → `insert_section()` × N
+5. 驗證必要文件清單（from `required_documents.*`）：
    - cover_letter → 如尚未產生，提示用戶或自動草擬
    - author_contributions → 提示用戶填寫
    - ethics_statement → 提示用戶提供
-4. `verify_document()` → `save_document()`
+6. `verify_document()` → `save_document()`
 
-**Gate**: Word 已匯出 + 必要文件清單完成
+**Gate**: `validate_phase_gate(9)` — docx + pdf 必須存在（CRITICAL）+ 必要文件清單完成
 
 ---
 
@@ -1060,6 +1103,28 @@ Phase 7, Stage D（品質重評）:
 5. 分析 journal-profile 設定是否合理 → 建議微調
 6. 🆕 D7: 分析 review-report + author-response → 演化 Reviewer 指令
 7. 🆕 D8: 分析 equator-compliance → 演化 EQUATOR 偵測與分類邏輯
+
+---
+
+### Phase 11: COMMIT & PUSH（Code-Enforced — CRITICAL Gate）🆕
+
+**目的**：確保所有成果已提交到版本控制並推送到遠端。
+**觸發**：Phase 10 完成後自動進入。
+
+⚠️ **Code-Enforced**: `validate_phase_gate(11)` 驗證以下 CRITICAL 項目：
+
+- Git 工作目錄乾淨（無未提交變更）
+- 最新 commit 包含專案檔案
+- 已推送到遠端（local 與 remote 同步）
+
+**流程**：
+
+1. `git add -A` → Stage 所有變更
+2. `git commit -m "feat(paper): {project_slug} pipeline complete"` → 提交
+3. `git push` → 推送到遠端
+4. `validate_phase_gate(11)` → 驗證 PASS
+
+**Gate**: `validate_phase_gate(11)` — 工作目錄乾淨 + 已推送
 
 ---
 

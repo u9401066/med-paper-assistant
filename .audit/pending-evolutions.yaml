@@ -52,6 +52,169 @@ items:
     critical_count: 1
     issues:
     - Draft references 'Table 3' but no such entry in manifest
-next_id: 5
+- id: PE-0005
+  type: writing_hook_alert
+  source: run_writing_hooks_A1
+  created_at: '2026-02-27T18:28:29.011582+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: A1
+    critical_count: 4
+    issues:
+    - 'Abstract: 379 words (+52% over target 250, tolerance ±20%)'
+    - 'Methods: 0 words (-100% under target 2000, tolerance ±20%)'
+    - 'Results: 0 words (-100% under target 1500, tolerance ±20%)'
+- id: PE-0006
+  type: writing_hook_alert
+  source: run_writing_hooks_A3
+  created_at: '2026-02-27T18:28:29.014576+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: A3
+    critical_count: 5
+    issues:
+    - AI-characteristic phrase 'it is worth noting' found (1x)
+    - AI-characteristic phrase 'plays a crucial role' found (1x)
+    - AI-characteristic phrase 'has garnered significant attention' found (1x)
+- id: PE-0007
+  type: writing_hook_alert
+  source: run_writing_hooks_A6
+  created_at: '2026-02-27T18:28:29.016442+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: A6
+    critical_count: 2
+    issues:
+    - 6 shared 6-grams between paragraphs
+    - 6 shared 6-grams between paragraphs
+- id: PE-0008
+  type: writing_hook_alert
+  source: run_writing_hooks_F
+  created_at: '2026-02-27T18:28:29.018554+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: F
+    critical_count: 2
+    issues:
+    - Draft references 'Table 3' but no such entry in manifest
+    - Draft contains statistical claims but no statistical test artifacts recorded
+- id: PE-0009
+  type: writing_hook_alert
+  source: run_writing_hooks_C5
+  created_at: '2026-02-27T18:28:29.021318+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: C5
+    critical_count: 1
+    issues:
+    - Wikilink [[author_year_pmid]] cannot be resolved to a saved reference
+- id: PE-0010
+  type: writing_hook_alert
+  source: run_writing_hooks_C7d
+  created_at: '2026-02-27T18:28:29.023619+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: C7d
+    critical_count: 3
+    issues:
+    - 'Phantom: Table 1 referenced in text but not in manifest'
+    - 'Phantom: Table 3 referenced in text but not in manifest'
+    - 'Phantom: Table 2 referenced in text but not in manifest'
+- id: PE-0011
+  type: writing_hook_alert
+  source: run_writing_hooks_A1
+  created_at: '2026-02-27T18:33:20.226780+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: A1
+    critical_count: 3
+    issues:
+    - 'Methods: 0 words (-100% under target 2000, tolerance ±20%)'
+    - 'Results: 0 words (-100% under target 1500, tolerance ±20%)'
+    - 'Discussion: 0 words (-100% under target 1500, tolerance ±20%)'
+- id: PE-0012
+  type: writing_hook_alert
+  source: run_writing_hooks_A3
+  created_at: '2026-02-27T18:33:20.232457+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: A3
+    critical_count: 4
+    issues:
+    - AI-characteristic phrase 'it is worth noting' found (1x)
+    - AI-characteristic phrase 'plays a crucial role' found (1x)
+    - AI-characteristic phrase 'has garnered significant attention' found (1x)
+- id: PE-0013
+  type: writing_hook_alert
+  source: run_writing_hooks_F
+  created_at: '2026-02-27T18:33:20.235547+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: F
+    critical_count: 2
+    issues:
+    - Draft references 'Table 3' but no such entry in manifest
+    - Draft contains statistical claims but no statistical test artifacts recorded
+- id: PE-0014
+  type: writing_hook_alert
+  source: run_writing_hooks_C7d
+  created_at: '2026-02-27T18:33:20.239512+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: C7d
+    critical_count: 3
+    issues:
+    - 'Phantom: Table 1 referenced in text but not in manifest'
+    - 'Phantom: Table 3 referenced in text but not in manifest'
+    - 'Phantom: Table 2 referenced in text but not in manifest'
+- id: PE-0015
+  type: writing_hook_alert
+  source: run_writing_hooks_A1
+  created_at: '2026-02-27T18:53:56.856004+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: A1
+    critical_count: 3
+    issues:
+    - 'Methods: 0 words (-100% under target 2000, tolerance ±20%)'
+    - 'Results: 0 words (-100% under target 1500, tolerance ±20%)'
+    - 'Discussion: 0 words (-100% under target 1500, tolerance ±20%)'
+- id: PE-0016
+  type: writing_hook_alert
+  source: run_writing_hooks_C7d
+  created_at: '2026-02-27T18:53:56.863102+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: C7d
+    critical_count: 3
+    issues:
+    - 'Phantom: Table 1 referenced in text but not in manifest'
+    - 'Phantom: Table 3 referenced in text but not in manifest'
+    - 'Phantom: Table 2 referenced in text but not in manifest'
+next_id: 17
 created_at: '2026-02-27T12:25:35.678947+00:00'
-updated_at: '2026-02-27T12:30:43.294317+00:00'
+updated_at: '2026-02-27T18:53:56.863116+00:00'

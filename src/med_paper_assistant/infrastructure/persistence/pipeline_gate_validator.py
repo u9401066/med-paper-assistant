@@ -138,6 +138,7 @@ class PipelineGateValidator:
             8: self._validate_phase_8,
             9: self._validate_phase_9,
             10: self._validate_phase_10,
+            11: self._validate_phase_11,
         }
 
         validator = validators.get(phase)
@@ -824,11 +825,13 @@ class PipelineGateValidator:
         rounds_completed = 0
         loop_verdict = "unknown"
         max_rounds = 3
+        min_rounds = 2
         if loop_state.is_file():
             try:
                 state = json.loads(loop_state.read_text(encoding="utf-8"))
                 rounds_completed = len(state.get("rounds", []))
                 max_rounds = state.get("config", {}).get("max_rounds", 3)
+                min_rounds = state.get("config", {}).get("min_rounds", 2)
                 if state.get("rounds"):
                     loop_verdict = state["rounds"][-1].get("verdict", "unknown")
             except (json.JSONDecodeError, OSError):
@@ -837,9 +840,9 @@ class PipelineGateValidator:
         checks.append(
             GateCheck(
                 name="review:rounds_completed",
-                description="At least 1 review round completed",
-                passed=rounds_completed >= 1,
-                details=f"{rounds_completed}/{max_rounds} rounds completed, verdict={loop_verdict}",
+                description=f"At least {min_rounds} review rounds completed (code-enforced)",
+                passed=rounds_completed >= min_rounds,
+                details=f"{rounds_completed}/{max_rounds} rounds completed (min={min_rounds}), verdict={loop_verdict}",
             )
         )
 
@@ -965,7 +968,7 @@ class PipelineGateValidator:
         return GateResult(phase=8, phase_name="Reference Sync", checks=checks, passed=False)
 
     def _validate_phase_9(self) -> GateResult:
-        """Phase 9: Export files exist."""
+        """Phase 9: Export files exist (CRITICAL — mandatory deliverables)."""
         checks = []
 
         for ext in ["docx", "pdf"]:
@@ -975,10 +978,9 @@ class PipelineGateValidator:
             checks.append(
                 GateCheck(
                     name=f"export:{ext}",
-                    description=f"Exported {ext.upper()} file",
+                    description=f"Exported {ext.upper()} file (mandatory)",
                     passed=len(candidates) > 0,
                     details=f"{len(candidates)} {ext} file(s)" if candidates else "MISSING",
-                    severity="WARNING",  # Export can fail due to tooling
                 )
             )
 
@@ -1118,6 +1120,117 @@ class PipelineGateValidator:
             )
 
         return GateResult(phase=10, phase_name="Retrospective", checks=checks, passed=False)
+
+    def _validate_phase_11(self) -> GateResult:
+        """
+        Phase 11: Commit & Push — code-level enforced final delivery.
+
+        Checks:
+        - Git repository exists and is clean (no uncommitted changes)
+        - Latest commit includes project files
+        - Push has been executed (remote tracking branch is up to date)
+        """
+        import subprocess  # nosec B404 — only runs git commands
+
+        checks = []
+
+        # 1. Check .git exists
+        git_dir = self._project_dir.parents[1] / ".git"  # workspace root
+        if not git_dir.is_dir():
+            # Try project_dir itself
+            git_dir = self._project_dir / ".git"
+        has_git = git_dir.is_dir()
+        checks.append(
+            GateCheck(
+                name="git:repository",
+                description="Git repository exists",
+                passed=has_git,
+                details="found" if has_git else "No .git directory found",
+            )
+        )
+
+        if has_git:
+            workspace_root = git_dir.parent
+            try:
+                # 2. Check working tree is clean
+                result = subprocess.run(  # nosec B603 B607
+                    ["git", "status", "--porcelain"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(workspace_root),
+                    timeout=10,
+                )
+                dirty_files = result.stdout.strip()
+                is_clean = len(dirty_files) == 0
+                checks.append(
+                    GateCheck(
+                        name="git:clean",
+                        description="Working tree is clean (all changes committed)",
+                        passed=is_clean,
+                        details="clean"
+                        if is_clean
+                        else f"Uncommitted changes:\n{dirty_files[:500]}",
+                    )
+                )
+
+                # 3. Check latest commit contains project files
+                result = subprocess.run(  # nosec B603 B607
+                    ["git", "log", "-1", "--name-only", "--format=%H %s"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(workspace_root),
+                    timeout=10,
+                )
+                commit_output = result.stdout.strip()
+                has_project_files = "projects/" in commit_output
+                checks.append(
+                    GateCheck(
+                        name="git:commit_includes_project",
+                        description="Latest commit includes project files",
+                        passed=has_project_files,
+                        details=commit_output[:300] if commit_output else "No commits found",
+                        severity="WARNING",
+                    )
+                )
+
+                # 4. Check push status
+                result = subprocess.run(  # nosec B603 B607
+                    ["git", "status", "--branch", "--porcelain=v2"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(workspace_root),
+                    timeout=10,
+                )
+                branch_info = result.stdout
+                is_pushed = "branch.ab +0" in branch_info
+                # Also check if there's no upstream at all
+                has_upstream = "branch.upstream" in branch_info
+                checks.append(
+                    GateCheck(
+                        name="git:pushed",
+                        description="All commits pushed to remote",
+                        passed=is_pushed,
+                        details="up to date with remote"
+                        if is_pushed
+                        else (
+                            "No upstream configured"
+                            if not has_upstream
+                            else "Unpushed commits exist"
+                        ),
+                    )
+                )
+
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+                checks.append(
+                    GateCheck(
+                        name="git:error",
+                        description="Git command execution",
+                        passed=False,
+                        details=f"Git command failed: {e}",
+                    )
+                )
+
+        return GateResult(phase=11, phase_name="Commit & Push", checks=checks, passed=False)
 
     # ── Logging ────────────────────────────────────────────────────
 

@@ -46,6 +46,7 @@ def loop(audit_dir):
     """Create an AutonomousAuditLoop with review context."""
     config = AuditLoopConfig(
         max_rounds=3,
+        min_rounds=1,  # Allow QUALITY_MET on round 1 for hash-tracking tests
         quality_threshold=7.0,
         context="review",
     )
@@ -243,3 +244,62 @@ class TestMultiRoundHashTracking:
         assert data["rounds"][0]["artifact_hash_end"] == "v1_modified_hash"
         assert data["rounds"][1]["artifact_hash_start"] == "v2_hash"
         assert data["rounds"][1]["artifact_hash_end"] == "v2_modified_hash"
+
+
+# ── min_rounds enforcement ────────────────────────────────────────────
+
+
+class TestMinRoundsEnforcement:
+    """Test that min_rounds prevents early QUALITY_MET."""
+
+    def test_default_min_rounds_is_2(self):
+        config = AuditLoopConfig()
+        assert config.min_rounds == 2
+
+    def test_round1_cannot_return_quality_met(self, audit_dir):
+        """Even with perfect scores, round 1 must return CONTINUE when min_rounds=2."""
+        config = AuditLoopConfig(
+            max_rounds=5,
+            min_rounds=2,
+            quality_threshold=7.0,
+            context="review",
+        )
+        loop = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop.start_round(artifact_hash="h1")
+        verdict = loop.complete_round(
+            {"text_quality": 10, "citation_quality": 10},
+            artifact_hash="h2",
+        )
+        assert verdict == RoundVerdict.CONTINUE
+
+    def test_round2_can_return_quality_met(self, audit_dir):
+        """After min_rounds reached, QUALITY_MET is allowed."""
+        config = AuditLoopConfig(
+            max_rounds=5,
+            min_rounds=2,
+            quality_threshold=7.0,
+            context="review",
+        )
+        loop = AutonomousAuditLoop(str(audit_dir), config=config)
+
+        # Round 1: forced CONTINUE
+        loop.start_round(artifact_hash="h1")
+        v1 = loop.complete_round({"text_quality": 9}, artifact_hash="h2")
+        assert v1 == RoundVerdict.CONTINUE
+
+        # Round 2: now QUALITY_MET allowed
+        loop.start_round(artifact_hash="h3")
+        v2 = loop.complete_round({"text_quality": 9}, artifact_hash="h4")
+        assert v2 == RoundVerdict.QUALITY_MET
+
+    def test_min_rounds_persists_through_save_load(self, audit_dir):
+        """min_rounds must survive save/load cycle."""
+        config = AuditLoopConfig(min_rounds=3, context="review")
+        loop = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop.start_round()
+        loop.complete_round({"text_quality": 5})
+        loop.save()
+
+        data_path = audit_dir / "audit-loop-review.json"
+        data = json.loads(data_path.read_text(encoding="utf-8"))
+        assert data["config"]["min_rounds"] == 3

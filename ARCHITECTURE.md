@@ -195,18 +195,18 @@ verify_evolution() → 跨專案演化驗證
 | L3 Instruction | 事實性內容修改                                                                    | 記錄 decisionLog       |
 | **禁止**       | 修改 CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則、Hook D 本身 | —                      |
 
-### Hook 架構（56 checks）
+### Hook 架構（65 checks — 23 Code-Enforced / 42 Agent-Driven）
 
-| 類型                  | 時機            | 數量 | 重點                                                                 |
-| --------------------- | --------------- | ---- | -------------------------------------------------------------------- |
-| **A** post-write      | 每次寫入後      | 6    | 字數、引用密度、Anti-AI、Wikilink、語言一致性(A5)、段落重複(A6)      |
-| **B** post-section    | section 完成後  | 8    | 概念一致、🔒保護、方法學、寫作順序、Brief 合規、統計對齊(B8)         |
-| **C** post-manuscript | 全稿完成後      | 9    | 全稿一致性、投稿清單、數量交叉引用、時間一致性、補充材料交叉引用(C9) |
-| **D** meta-learning   | Phase 10        | 8    | SKILL/Hook 自我改進、Review Retro、EQUATOR Retro                     |
-| **E** EQUATOR 合規    | Phase 7 每輪    | 5    | 報告指引偵測、checklist 驗證、合規報告                               |
-| **F** data-artifacts  | post-manuscript | 4    | 溯源追蹤、manifest 一致、交叉引用、統計驗證                          |
-| **P** pre-commit      | git commit 前   | 8    | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                 |
-| **G** general         | git commit 前   | 8    | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性                 |
+| 類型                  | 時機            | 數量 | 重點                                                                                                                                                                                     |
+| --------------------- | --------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** post-write      | 每次寫入後      | 6    | 字數、引用密度、Anti-AI、Wikilink、語言一致性(A5)、段落重複(A6)                                                                                                                          |
+| **B** post-section    | section 完成後  | 16   | 概念一致、🔒保護、方法學、寫作順序、Brief 合規、統計對齊(B8)、時態(B9)、段落品質(B10)、Results客觀性(B11)、Intro結構(B12)、Discussion結構(B13)、倫理聲明(B14)、Hedging(B15)、效果量(B16) |
+| **C** post-manuscript | 全稿完成後      | 9    | 全稿一致性、投稿清單、數量交叉引用、時間一致性、補充材料交叉引用(C9)                                                                                                                     |
+| **D** meta-learning   | Phase 10        | 8    | SKILL/Hook 自我改進、Review Retro、EQUATOR Retro                                                                                                                                         |
+| **E** EQUATOR 合規    | Phase 7 每輪    | 5    | 報告指引偵測、checklist 驗證、合規報告                                                                                                                                                   |
+| **F** data-artifacts  | post-manuscript | 4    | 溯源追蹤、manifest 一致、交叉引用、統計驗證                                                                                                                                              |
+| **P** pre-commit      | git commit 前   | 8    | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                                                                                                                                     |
+| **G** general         | git commit 前   | 8    | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性                                                                                                                                     |
 
 ### Domain Constraint Engine（Triad-inspired）
 

@@ -109,6 +109,7 @@ class AuditLoopConfig:
     """Configuration for the audit loop."""
 
     max_rounds: int = 5
+    min_rounds: int = 2  # Minimum rounds before QUALITY_MET allowed
     quality_threshold: float = 7.0
     stagnation_rounds: int = 2
     stagnation_delta: float = 0.3
@@ -402,7 +403,11 @@ class AutonomousAuditLoop:
         """Determine whether to continue, stop, or escalate."""
         cfg = self._config
 
-        # 1. Quality threshold met
+        # 0. Minimum rounds not yet reached → must continue
+        if self._current_round < cfg.min_rounds:
+            return RoundVerdict.CONTINUE
+
+        # 1. Quality threshold met (only after min_rounds)
         if weighted_avg >= cfg.quality_threshold:
             return RoundVerdict.QUALITY_MET
 

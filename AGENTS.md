@@ -12,7 +12,7 @@
 
 | 層級                             | 機制                                                                                          | 觸發       | 實作狀態                                           |
 | -------------------------------- | --------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------- |
-| **L1** Event-Driven Hooks        | 56 個品質檢查（14 Code-Enforced / 42 Agent-Driven）                                           | Agent 操作 | ✅ 部分                                            |
+| **L1** Event-Driven Hooks        | 65 個品質檢查（23 Code-Enforced / 42 Agent-Driven）                                           | Agent 操作 | ✅ 部分                                            |
 | **L2** Code-Level Enforcement    | DomainConstraintEngine + ToolInvocationStore + PendingEvolutionStore + guidance + tool_health | 工具呼叫   | ✅ 完整                                            |
 | **L3** Autonomous Self-Evolution | MetaLearningEngine (D1-D9) + GitHub Actions CI + PendingEvolution 跨對話                      | 外部排程   | ⚠️ 大部分（缺 git post-commit、EvolutionVerifier） |
 
@@ -105,20 +105,29 @@ CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）�
 | 恢復 Pipeline | `resume_pipeline()`                          | No                 | 偵測用戶編輯，建議重新驗證                                                            |
 | Section 審閱  | `approve_section(section, action, feedback)` | Yes — Phase 5 gate | Autopilot（預設）: Agent 自我審閱後自動 approve。手動: 逐 section 用戶 approve/revise |
 
-### Hook 架構（56 checks — 14 Code-Enforced / 42 Agent-Driven）
+### Hook 架構（65 checks — 23 Code-Enforced / 42 Agent-Driven）
 
 Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
 
 **Code-Enforced**（`run_writing_hooks` / `run_meta_learning` 有確定性程式碼邏輯）：
 
-| Hook                | 引擎                                            | 位置                                |
-| ------------------- | ----------------------------------------------- | ----------------------------------- |
-| A5 語言一致性       | WritingHooksEngine.check_language_consistency   | persistence/writing_hooks.py        |
-| A6 段落重複         | WritingHooksEngine.check_overlap                | persistence/writing_hooks.py        |
-| B8 統計對齊         | WritingHooksEngine.check_data_claim_alignment   | persistence/writing_hooks.py        |
-| C9 補充材料交叉引用 | WritingHooksEngine.check_supplementary_crossref | persistence/writing_hooks.py        |
-| D1-D9 Meta-Learning | MetaLearningEngine.analyze()                    | persistence/meta_learning_engine.py |
-| F1-F4 數據產出物    | WritingHooksEngine.validate_data_artifacts      | persistence/writing_hooks.py        |
+| Hook                  | 引擎                                            | 位置                                |
+| --------------------- | ----------------------------------------------- | ----------------------------------- |
+| A5 語言一致性         | WritingHooksEngine.check_language_consistency   | persistence/writing_hooks.py        |
+| A6 段落重複           | WritingHooksEngine.check_overlap                | persistence/writing_hooks.py        |
+| B8 統計對齊           | WritingHooksEngine.check_data_claim_alignment   | persistence/writing_hooks.py        |
+| B9 時態一致性         | WritingHooksEngine.check_section_tense          | persistence/writing_hooks.py        |
+| B10 段落品質          | WritingHooksEngine.check_paragraph_quality      | persistence/writing_hooks.py        |
+| B11 Results 客觀性    | WritingHooksEngine.check_results_interpretation | persistence/writing_hooks.py        |
+| B12 Introduction 結構 | WritingHooksEngine.check_intro_structure        | persistence/writing_hooks.py        |
+| B13 Discussion 結構   | WritingHooksEngine.check_discussion_structure   | persistence/writing_hooks.py        |
+| B14 倫理聲明          | WritingHooksEngine.check_ethical_statements     | persistence/writing_hooks.py        |
+| B15 Hedging 密度      | WritingHooksEngine.check_hedging_density        | persistence/writing_hooks.py        |
+| B16 效果量報告        | WritingHooksEngine.check_effect_size_reporting  | persistence/writing_hooks.py        |
+| C9 補充材料交叉引用   | WritingHooksEngine.check_supplementary_crossref | persistence/writing_hooks.py        |
+| D1-D9 Meta-Learning   | MetaLearningEngine.analyze()                    | persistence/meta_learning_engine.py |
+| F1-F4 數據產出物      | WritingHooksEngine.validate_data_artifacts      | persistence/writing_hooks.py        |
+| G9 Git 狀態           | WritingHooksEngine.check_git_status             | persistence/writing_hooks.py        |
 
 **Agent-Driven**（僅靠 Agent 遵循 SKILL.md 指示，無 Code 強制）：
 
@@ -130,6 +139,8 @@ Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit H
 | **E1-E5** EQUATOR      | 報告指引自動偵測、checklist 逐條驗證、合規報告                          | `read_draft`, `patch_draft`                              |
 | **P1-P8** pre-commit   | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                    | `scan_draft_citations`, `read_draft`, `count_words`      |
 | **G1-G8** general      | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX、文檔更新提醒 | `read_file`, `grep_search`, `list_dir`                   |
+
+> **G9** 已從 Agent-Driven 提升為 **Code-Enforced**（`run_writing_hooks G9` / PRE-COMMIT 自動包含）。
 
 ### Python 環境
 

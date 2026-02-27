@@ -90,6 +90,7 @@ def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> 
     # Create loop config
     loop_config = AuditLoopConfig(
         max_rounds=config.get("max_rounds", 3) if config else 3,
+        min_rounds=config.get("min_rounds", 2) if config else 2,
         quality_threshold=config.get("quality_threshold", 7.0) if config else 7.0,
         stagnation_rounds=config.get("stagnation_rounds", 2) if config else 2,
         stagnation_delta=config.get("stagnation_delta", 0.3) if config else 0.3,
@@ -346,6 +347,7 @@ def register_pipeline_tools(
     def start_review_round(
         project: Optional[str] = None,
         max_rounds: int = 3,
+        min_rounds: int = 2,
         quality_threshold: float = 7.0,
     ) -> str:
         """
@@ -366,12 +368,16 @@ def register_pipeline_tools(
         Args:
             project: Project slug (optional, uses current project)
             max_rounds: Maximum review rounds (default: 3)
+            min_rounds: Minimum review rounds before QUALITY_MET allowed (default: 2)
             quality_threshold: Minimum quality score to pass (default: 7.0)
 
         Returns:
             Round context with round number, previous issues, and score trends
         """
-        log_tool_call("start_review_round", {"project": project, "max_rounds": max_rounds})
+        log_tool_call(
+            "start_review_round",
+            {"project": project, "max_rounds": max_rounds, "min_rounds": min_rounds},
+        )
         try:
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
@@ -382,7 +388,11 @@ def register_pipeline_tools(
 
             loop = _get_or_create_loop(
                 project_dir,
-                config={"max_rounds": max_rounds, "quality_threshold": quality_threshold},
+                config={
+                    "max_rounds": max_rounds,
+                    "min_rounds": min_rounds,
+                    "quality_threshold": quality_threshold,
+                },
             )
 
             # Compute manuscript hash BEFORE the round starts
@@ -406,6 +416,7 @@ def register_pipeline_tools(
             lines = [
                 f"# 🔄 Review Round {round_num} Started",
                 "",
+                f"**Min Rounds**: {min_rounds} (mandatory before QUALITY_MET)",
                 f"**Max Rounds**: {max_rounds}",
                 f"**Quality Threshold**: {quality_threshold}",
                 "",

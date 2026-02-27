@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **B9-B16 Section-Specific Writing Quality Hooks** (8 new Code-Enforced):
+  - B9 Tense consistency — validates verb tense per section (past for Methods/Results, present for Discussion)
+  - B10 Paragraph quality — minimum sentences, max length, transition word density
+  - B11 Results objectivity — flags interpretive language in Results section
+  - B12 Introduction structure — validates funnel structure (broad → specific → gap → aim)
+  - B13 Discussion structure — validates interpretation → comparison → limitations → implications
+  - B14 Ethical statements — checks for IRB/ethics approval and consent statements
+  - B15 Hedging density — flags over-hedging (>15%) or under-hedging (<3%)
+  - B16 Effect size reporting — checks for effect sizes alongside p-values
 - **Self-Evolution Infrastructure (L2 complete)**:
   - `ToolInvocationStore` — tool telemetry persistence to `.audit/tool-telemetry.yaml`
   - `PendingEvolutionStore` — cross-conversation evolution persistence to `.audit/pending-evolutions.yaml`
@@ -30,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **C6 Word Count (ICMJE Convention)**: Body-only counting — excludes Abstract, References, Tables (markdown `| |` rows), Figure legends, Acknowledgments, Author info. New helpers: `BODY_SECTIONS` constant (12 sections), `_strip_markdown_tables()`, `_extract_body_word_count()`. Journal profile override via `counts_toward_total` flag.
+- **count_words MCP tool**: Rewritten to show Body? column (✅/—), ICMJE-labeled manuscript total
 - **Deep review round 2**: Defensive guards, assert removal, input validation
 - **Code review**: Input validation, regex robustness, safety guards across 6 files
 - **Writing hooks**: Word boundary regex for supplementary file matching, `rglob` for dir traversal, code block state tracking, wikilink stripping
@@ -38,9 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - MCP tools: 77 → **81** (pipeline flexibility + self-evolution tools)
-- Hook architecture: 14 Code-Enforced / 42 Agent-Driven (56 total)
+- Hook architecture: 23 Code-Enforced / 42 Agent-Driven (65 total)
 - Three-tier evolution: L1 Event-Driven Hooks ⚠️ / L2 Code-Level Enforcement ✅ / L3 Autonomous Self-Evolution ⚠️
-- Test count: 525 → **694 passed** (42 test files)
+- Test count: 525 → **738 passed** (42 test files)
 - AGENTS.md, copilot-instructions.md: complete rewrite reflecting actual implementation status
 
 ## [0.3.11] - 2026-02-26

@@ -10,6 +10,7 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
+from med_paper_assistant.infrastructure.persistence.writing_hooks import BODY_SECTIONS
 from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
@@ -95,6 +96,10 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
         """
         Count words by section. Essential for journal word limits.
 
+        Per ICMJE convention, total manuscript word count includes only body
+        sections (Introduction through Conclusion). Abstract, References,
+        Tables, Acknowledgments, etc. are reported separately.
+
         Args:
             filename: Draft filename (e.g., "draft.md")
             section: Specific section to count (optional, counts all if omitted)
@@ -126,7 +131,7 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
                 if line.startswith("#"):
                     if current_content:
                         sections[current_section] = "\n".join(current_content)
-                    section_name = re.sub(r"^#+\s*\d*\.?\s*", "", line).strip()
+                    section_name = re.sub(r"^#+\\s*\\d*\\.?\\s*", "", line).strip()
                     current_section = section_name if section_name else "Untitled"
                     current_content = []
                 else:
@@ -136,6 +141,9 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
                 sections[current_section] = "\n".join(current_content)
 
             def count_text_words(text: str) -> int:
+                # Strip markdown tables (display items)
+                lines = text.split("\n")
+                text = "\n".join(line for line in lines if not re.match(r"^\s*\|.*\|\s*$", line))
                 text = re.sub(r"\[.*?\]\(.*?\)", "", text)
                 text = re.sub(r"[*_`#\[\]()]", "", text)
                 text = re.sub(r"\s+", " ", text)
@@ -152,32 +160,39 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
                 if matched:
                     word_count = count_text_words(sections[matched])
                     char_count = len(sections[matched].replace("\n", "").replace(" ", ""))
+                    is_body = matched.lower() in BODY_SECTIONS
                     return (
                         f"📊 Word Count for '{matched}':\n"
                         f"  Words: {word_count}\n"
-                        f"  Characters (no spaces): {char_count}"
+                        f"  Characters (no spaces): {char_count}\n"
+                        f"  Counts toward total: {'Yes (body section)' if is_body else 'No'}"
                     )
                 else:
                     return f"Section '{section}' not found. Available sections: {', '.join(sections.keys())}"
             else:
                 output = "📊 **Word Count Summary**\n\n"
-                output += "| Section | Words | Characters |\n"
-                output += "|---------|-------|------------|\n"
+                output += "| Section | Words | Body? |\n"
+                output += "|---------|-------|-------|\n"
 
-                total_words = 0
-                total_chars = 0
+                body_words = 0
+                other_words = 0
 
                 for sec_name, sec_content in sections.items():
-                    if sec_name == "References":
-                        continue
                     words = count_text_words(sec_content)
-                    chars = len(sec_content.replace("\n", "").replace(" ", ""))
-                    total_words += words
-                    total_chars += chars
-                    output += f"| {sec_name[:30]} | {words} | {chars} |\n"
+                    is_body = sec_name.lower() in BODY_SECTIONS
 
-                output += f"| **Total** | **{total_words}** | **{total_chars}** |\n\n"
-                output += f"📝 Total word count (excluding References): **{total_words}** words"
+                    if is_body:
+                        body_words += words
+                        output += f"| {sec_name[:30]} | {words} | ✅ |\n"
+                    else:
+                        other_words += words
+                        output += f"| {sec_name[:30]} | {words} | — |\n"
+
+                output += f"| **Body total** | **{body_words}** | |\n\n"
+                output += f"📝 **Manuscript word count (ICMJE): {body_words}** words\n"
+                output += "   (Body sections only — excludes Abstract, References, Tables, etc.)\n"
+                if other_words:
+                    output += f"   Non-body sections: {other_words} words"
 
                 return output
 
