@@ -4,6 +4,22 @@
 
 ---
 
+## 核心價值：逐步多輪演進
+
+> **寫論文是人類高度專業化、多年累積、多輪訓練的結果，而且是在科學方法下可重現的思考與整合步驟。Agent + MCP 框架應該有能力實現類似的逐步多輪演進。**（CONSTITUTION §25-26）
+
+三層架構實現此價值：
+
+| 層級                             | 機制                                                                                          | 觸發       | 實作狀態                                           |
+| -------------------------------- | --------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------- |
+| **L1** Event-Driven Hooks        | 56 個品質檢查（14 Code-Enforced / 42 Agent-Driven）                                           | Agent 操作 | ✅ 部分                                            |
+| **L2** Code-Level Enforcement    | DomainConstraintEngine + ToolInvocationStore + PendingEvolutionStore + guidance + tool_health | 工具呼叫   | ✅ 完整                                            |
+| **L3** Autonomous Self-Evolution | MetaLearningEngine (D1-D9) + GitHub Actions CI + PendingEvolution 跨對話                      | 外部排程   | ⚠️ 大部分（缺 git post-commit、EvolutionVerifier） |
+
+每一輪都產出可審計紀錄，每一輪都比前一輪更好。三層缺一不可。
+
+---
+
 ## 運行模式
 
 | 模式          | 啟用技能 | Memory Bank | 靜態分析 |
@@ -47,7 +63,7 @@ DDD，DAL 獨立。依賴方向：`Presentation → Application → Domain ← I
 犀利回饋 + 給選項（直接寫？修正？用 CGU？）。禁止：討好式回饋、自動改 NOVELTY、反覆追分。
 CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）、`generate_ideas`（廣泛發想）。
 
-### 核心設計（CONSTITUTION §22-23）
+### 核心設計（CONSTITUTION §22-23, §25-26）
 
 | §22 原則 | 實作                                      |
 | -------- | ----------------------------------------- |
@@ -61,22 +77,59 @@ CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）�
 | L2 Hook — 調整閾值              | ±20%             |
 | L3 Instruction — 事實性內容     | 記錄 decisionLog |
 
+| §25-26 核心哲學                           | 要點                               |
+| ----------------------------------------- | ---------------------------------- |
+| 逐步多輪演進                              | 類比人類學術訓練的螺旋式進步       |
+| 三層演進架構（L1 Hook / L2 Code / L3 CI） | 三層缺一不可                       |
+| 演進的紀律                                | 要有證據、可回溯、有邊界、服務人類 |
+
+### L2 Code-Level Enforcement 元件
+
+| 元件                   | 位置                                      | 狀態 | 說明                                                                              |
+| ---------------------- | ----------------------------------------- | ---- | --------------------------------------------------------------------------------- |
+| DomainConstraintEngine | `persistence/domain_constraint_engine.py` | ✅   | Sand Spreader — 3 紙類 26 個約束、JSON 演化、驗證 anti-AI / 字數 / 必要章節       |
+| ToolInvocationStore    | `persistence/tool_invocation_store.py`    | ✅   | 遙測持久化至 `.audit/tool-telemetry.yaml`，自動 via tool_logging.py               |
+| PendingEvolutionStore  | `persistence/pending_evolution_store.py`  | ✅   | 跨對話演化項目持久化至 `.audit/pending-evolutions.yaml`                           |
+| guidance.py            | `tools/_shared/guidance.py`               | ✅   | `build_guidance_hint` + `build_startup_guidance`（啟動時檢查 pending evolutions） |
+| tool_health.py         | `tools/review/tool_health.py`             | ✅   | `diagnose_tool_health` + `_flush_health_alerts` 寫入 PendingEvolutionStore        |
+| CheckpointManager      | `persistence/checkpoint_manager.py`       | ✅   | Pipeline 狀態持久化 + 回退 + 暫停/恢復 + Section Approval                         |
+
 禁止自動修改：CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則。
 
-### Hook 架構（56 checks）
+### Pipeline 彈性機制（NEW）
+
+| 功能          | MCP Tool                                     | Hard Gate?         | 說明                                                                                  |
+| ------------- | -------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------- |
+| Phase 回退    | `request_section_rewrite(sections, reason)`  | Yes — 僅 Phase 7   | Autopilot: Agent 自主決定回退。手動: 詢問用戶。regression_count > 2 強制詢問          |
+| 暫停 Pipeline | `pause_pipeline(reason)`                     | No                 | 用戶隨時暫停，記錄 draft hash                                                         |
+| 恢復 Pipeline | `resume_pipeline()`                          | No                 | 偵測用戶編輯，建議重新驗證                                                            |
+| Section 審閱  | `approve_section(section, action, feedback)` | Yes — Phase 5 gate | Autopilot（預設）: Agent 自我審閱後自動 approve。手動: 逐 section 用戶 approve/revise |
+
+### Hook 架構（56 checks — 14 Code-Enforced / 42 Agent-Driven）
 
 Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
 
-| 類型                  | 檢查內容                                                                       | MCP Tools                                                                     |
-| --------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| **A** post-write      | 字數、引用密度、Anti-AI、Wikilink、語言一致性(A5)、段落重複(A6)                | `count_words`, `patch_draft`, `validate_wikilinks`, `run_writing_hooks`       |
-| **B** post-section    | 概念一致、🔒保護、方法學(B5)、寫作順序(B6)、Section Brief(B7)、統計對齊(B8)    | `read_draft`, `patch_draft`, `check_writing_order`, `run_writing_hooks`       |
-| **C** post-manuscript | 全稿一致性、投稿清單、數量與交叉引用(C7)、時間一致性(C8)、補充材料交叉引用(C9) | `check_formatting`, `scan_draft_citations`, `read_draft`, `run_writing_hooks` |
-| **D** meta-learning   | SKILL + Hook 改進 + Review Retro(D7) + EQUATOR Retro(D8)                       | `read_file`, `replace_string_in_file`                                         |
-| **E** EQUATOR 合規    | 報告指引自動偵測、checklist 逐條驗證、compliance report                        | `read_draft`, `patch_draft`                                                   |
-| **F** data-artifacts  | 溯源追蹤、manifest↔檔案一致、draft↔manifest 交叉引用、統計宣稱驗證           | `validate_data_artifacts`, `list_assets`                                      |
-| **P1-P8** pre-commit  | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                           | `scan_draft_citations`, `read_draft`, `count_words`                           |
-| **G1-G8** general     | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX、文檔更新提醒        | `read_file`, `grep_search`, `list_dir`                                        |
+**Code-Enforced**（`run_writing_hooks` / `run_meta_learning` 有確定性程式碼邏輯）：
+
+| Hook                | 引擎                                            | 位置                                |
+| ------------------- | ----------------------------------------------- | ----------------------------------- |
+| A5 語言一致性       | WritingHooksEngine.check_language_consistency   | persistence/writing_hooks.py        |
+| A6 段落重複         | WritingHooksEngine.check_overlap                | persistence/writing_hooks.py        |
+| B8 統計對齊         | WritingHooksEngine.check_data_claim_alignment   | persistence/writing_hooks.py        |
+| C9 補充材料交叉引用 | WritingHooksEngine.check_supplementary_crossref | persistence/writing_hooks.py        |
+| D1-D9 Meta-Learning | MetaLearningEngine.analyze()                    | persistence/meta_learning_engine.py |
+| F1-F4 數據產出物    | WritingHooksEngine.validate_data_artifacts      | persistence/writing_hooks.py        |
+
+**Agent-Driven**（僅靠 Agent 遵循 SKILL.md 指示，無 Code 強制）：
+
+| 類型                   | 檢查內容                                                                | MCP Tools                                                |
+| ---------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------- |
+| **A1-A4** post-write   | 字數、引用密度、Anti-AI、Wikilink                                       | `count_words`, `patch_draft`, `validate_wikilinks`       |
+| **B1-B7** post-section | 概念一致、🔒保護、方法學、寫作順序、Section Brief                       | `read_draft`, `patch_draft`, `check_writing_order`       |
+| **C1-C8** post-ms      | 全稿一致性、投稿清單、數量與交叉引用、時間一致性                        | `check_formatting`, `scan_draft_citations`, `read_draft` |
+| **E1-E5** EQUATOR      | 報告指引自動偵測、checklist 逐條驗證、合規報告                          | `read_draft`, `patch_draft`                              |
+| **P1-P8** pre-commit   | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                    | `scan_draft_citations`, `read_draft`, `count_words`      |
+| **G1-G8** general      | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性、VSX、文檔更新提醒 | `read_file`, `grep_search`, `list_dir`                   |
 
 ### Python 環境
 
@@ -96,7 +149,7 @@ uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/
 
 `EMPTY → EXPLORATION → PROJECT`。設計文件：`docs/design/artifact-centric-architecture.md`
 
-已上線：`start_exploration` `get_exploration_status` `convert_exploration_to_project`
+已上線：`start_exploration` `convert_exploration_to_project`（`get_exploration_status` 已合併至 `get_current_project(include_files=true)`）
 未實作：`list_staged_artifacts` `tag_artifact` `link_artifact_to_project`
 
 ---

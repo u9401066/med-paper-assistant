@@ -57,15 +57,19 @@ Pre-Commit Hooks（P1-P8 + G1-G7）定義於 `git-precommit/SKILL.md`。
 
 ### 必要 MCP Tool 呼叫
 
-| 時機                      | MCP Tool                                 | 說明                                                                                     |
-| ------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 每個 Phase 完成後         | `validate_phase_gate(phase)`             | 返回 PASS/FAIL + 缺少的 artifact，FAIL 則禁止進入下一 Phase                              |
-| Phase 7 每輪開始          | `start_review_round()`                   | 啟動 AutonomousAuditLoop 狀態機，返回 round context                                      |
-| Phase 7 每輪結束          | `submit_review_round(scores)`            | 提交分數，返回 verdict (CONTINUE/QUALITY_MET/MAX_ROUNDS)                                 |
-| Pipeline 中途任意時刻     | `pipeline_heartbeat()`                   | 返回全 Phase 狀態 + 剩餘工作項，Agent 無法自稱 "done"                                    |
-| Phase 5 每次 Hook 評估後  | `record_hook_event(hook_id, event_type)` | 記錄 A/B/C/E Hook 的 trigger/pass/fix/false_positive，Phase 6 gate 會驗證有實際記錄      |
-| Phase 6 之前（審計階段）  | `run_quality_audit(scores)`              | 設定 ≥4 維度品質分數 + 產生 scorecard/hook-effectiveness 報告，Phase 6 gate 驗證分數數據 |
-| Phase 10 之前（自我改進） | `run_meta_learning()`                    | 執行 D1-D6 分析 + 寫入 meta-learning-audit.json，Phase 10 gate 驗證分析數據              |
+| 時機                      | MCP Tool                                    | 說明                                                                                                        |
+| ------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 每個 Phase 完成後         | `validate_phase_gate(phase)`                | 返回 PASS/FAIL + 缺少的 artifact，FAIL 則禁止進入下一 Phase                                                 |
+| Phase 7 每輪開始          | `start_review_round()`                      | 啟動 AutonomousAuditLoop 狀態機，返回 round context                                                         |
+| Phase 7 每輪結束          | `submit_review_round(scores)`               | 提交分數，返回 verdict (CONTINUE/QUALITY_MET/MAX_ROUNDS/REWRITE_NEEDED)                                     |
+| Phase 7 需要大幅重寫      | `request_section_rewrite(sections, reason)` | 回退到 Phase 5 重寫指定 section，最多 2 次回退                                                              |
+| Phase 5 每 section 完成後 | `approve_section(section, action)`          | Autopilot: Agent 自我審閱後自動 approve。手動: 用戶審閱 → approve 或 revise。Phase 5 gate 要求全部 approved |
+| 用戶要求暫停時            | `pause_pipeline(reason)`                    | 暫停 pipeline，記錄 draft hash 以偵測用戶編輯                                                               |
+| 暫停後恢復                | `resume_pipeline()`                         | 恢復 pipeline，偵測用戶修改並建議重新驗證                                                                   |
+| Pipeline 中途任意時刻     | `pipeline_heartbeat()`                      | 返回全 Phase 狀態 + 剩餘工作項，Agent 無法自稱 "done"                                                       |
+| Phase 5 每次 Hook 評估後  | `record_hook_event(hook_id, event_type)`    | 記錄 A/B/C/E Hook 的 trigger/pass/fix/false_positive，Phase 6 gate 會驗證有實際記錄                         |
+| Phase 6 之前（審計階段）  | `run_quality_audit(scores)`                 | 設定 ≥4 維度品質分數 + 產生 scorecard/hook-effectiveness 報告，Phase 6 gate 驗證分數數據                    |
+| Phase 10 之前（自我改進） | `run_meta_learning()`                       | 執行 D1-D6 分析 + 寫入 meta-learning-audit.json，Phase 10 gate 驗證分析數據                                 |
 
 ### 強制執行規則
 
@@ -157,6 +161,28 @@ Agent 按優先順序取得期刊要求：
 | `pipeline.writing.anti_ai_*`        | Hook A3 Anti-AI 嚴格度                      |
 | `pipeline.writing.citation_density` | Hook A2 引用密度標準                        |
 | `pipeline.assets.*`                 | Phase 5 Asset Sub-Pipeline 行為             |
+| `pipeline.autopilot`                | 全自動模式（預設 true）                     |
+
+#### Autopilot 模式（預設開啟）
+
+```yaml
+pipeline:
+  autopilot: true # 預設全自動，用戶可設 false 啟用逐步審閱
+  autopilot_pause_at: [] # 用戶可指定暫停點，例如 ["phase4", "phase5_section", "phase7_rewrite"]
+```
+
+| autopilot 設定       | 行為                                                                  |
+| -------------------- | --------------------------------------------------------------------- |
+| `true`（預設）       | Agent 全程自主決策、自我審閱、自我修正，僅在安全閥觸發時詢問用戶      |
+| `false`              | 每個 Phase 確認點都詢問用戶（傳統模式）                               |
+| `autopilot_pause_at` | 指定特定暫停點（精細控制），例如 Phase 4 確認大綱、Phase 5 逐 section |
+
+安全閥（即使 autopilot=true 也會詢問用戶）：
+
+- concept score < 75 且自動修正 2 次仍未達標
+- Phase 6 cascading fix 3 rounds 後仍有 CRITICAL
+- Phase 7 達 max_rounds 且品質未達標
+- regression_count > 2（防止無限循環）
 
 **Gate**: journal-profile.yaml 存在 + 用戶已確認關鍵欄位（字數、圖表上限）
 
@@ -248,7 +274,7 @@ CGU 工具對應：
 
 ---
 
-### Phase 4: MANUSCRIPT PLANNING（唯一人工確認點）
+### Phase 4: MANUSCRIPT PLANNING
 
 **產出物：`manuscript-plan.yaml`**（存在 `projects/{slug}/` 下）
 
@@ -268,10 +294,16 @@ CGU 工具對應：
    - Agent 可新增段落 / 修改 claims / 調字數 → **需寫入 `metadata.changelog`**
    - Agent **禁止**刪除 `protected: true` 段落
    - 用戶自由修改，changelog 自動追蹤
-4. 🗣️ 呈現 manuscript-plan.yaml 摘要給用戶確認
-5. 用戶調整 → 確認 → 存入 `projects/{slug}/manuscript-plan.yaml`
+4. **Autopilot 模式**（`pipeline.autopilot: true`，預設）：
+   - Agent 自行驗證 plan 的完整性（圖表數量、字數預算、section 涵蓋度）
+   - 驗證通過 → 直接存入 `projects/{slug}/manuscript-plan.yaml` → 繼續 Phase 5
+   - 驗證失敗 → Agent 自行修正 → 重新驗證（最多 2 輪）→ 仍失敗才詢問用戶
+   - Plan 摘要記入 `.audit/pipeline-run-{ts}.md`，用戶可事後查閱
+5. **手動模式**（`pipeline.autopilot: false` 或 `autopilot_pause_at` 含 `"phase4"`）：
+   - 🗣️ 呈現 manuscript-plan.yaml 摘要給用戶確認
+   - 用戶調整 → 確認 → 存入
 
-**Gate**: manuscript-plan.yaml 已確認 + 圖表數量不超限
+**Gate**: manuscript-plan.yaml 存在 + 圖表數量不超限
 
 寫作順序（依 journal-profile.paper.sections，fallback 到 paper type 預設）：
 
@@ -370,11 +402,47 @@ FOR section IN plan.writing_order:
         → re-run Hook B → IF still critical → FLAG for Phase 6
       → IF advisory only → LOG + continue
 
-  ── Step 5: 記錄 ──
-  5a. Log section audit results 到 .audit/pipeline-run-{ts}.md
-  5b. Log 到 .memory/progress.md
-  5c. 更新 checkpoint.json: { last_section: section, audit_status }
-  5d. IF plan 需修改 → 寫入 plan.metadata.changelog + 存檔
+  ── Step 5: Agent 自主審閱 + 即時修正（Autopilot 預設行為）──
+
+  **核心原則**：Agent 在寫完 section 後立即自我評估，發現問題就地修正，
+  不需等到 Phase 7 Review 才回頭改。這才是真正的 autopilot。
+
+  5a. Agent 自行評估 section 品質：
+      - Hook A/B 結果 → 有無未解 CRITICAL/WARNING
+      - 與 concept.md 的一致性
+      - 與已完成 sections 的邏輯連貫性
+      - 段落是否完整涵蓋 manuscript-plan.yaml 的 key_claims
+  5b. IF 發現問題 → Agent 立即修正：
+      - 針對性 patch_draft() → re-run 相關 Hook
+      - 修正直到 0 CRITICAL，或達 cascading 上限後 FLAG for Phase 6
+      - 決策和修正記入 `.audit/pipeline-run-{ts}.md`
+  5c. 自我評估通過 → Agent 呼叫 approve_section(section, action="approve")
+      → 自動標記 approved → 繼續下一個 section
+  5d. **用戶可隨時介入**：
+      - 用戶說「我要看一下」→ Agent 暫停，呈現 section 摘要
+      - 用戶說「每個 section 都讓我看」→ Agent 對後續 section 切換為手動審閱模式
+
+  **手動審閱模式**（`pipeline.autopilot: false` 或 `autopilot_pause_at` 含 `"phase5_section"`）：
+  5e. 呈現 section 內容摘要（字數、主要論點、Hook A/B 結果）
+  5f. 🗣️ 詢問用戶：「approve / 請修改（附具體意見）」
+  5g. Agent 呼叫 approve_section(section, action, feedback)
+  5h. IF action == "revise":
+      → 根據 feedback 執行 patch_draft / write_draft 修正
+      → re-run Hook A/B on modified content
+      → 回到 5e 再次呈現（最多 3 輪修改）
+  5i. IF action == "approve":
+      → 繼續到下一個 section
+
+  ⏸️ 暫停點：用戶可隨時說「暫停」→ Agent 呼叫 pause_pipeline()
+     → 用戶自由編輯草稿
+     → 用戶說「繼續」→ Agent 呼叫 resume_pipeline()
+     → 根據修改偵測結果重新跑相關 Hook
+
+  ── Step 6: 記錄 ──
+  6a. Log section audit results 到 .audit/pipeline-run-{ts}.md
+  6b. Log 到 .memory/progress.md
+  6c. 更新 checkpoint.json: { last_section: section, audit_status }
+  6d. IF plan 需修改 → 寫入 plan.metadata.changelog + 存檔
 ```
 
 #### Asset Generation Sub-Pipeline（Phase 5 Step 2）
@@ -690,6 +758,20 @@ FOR round = 1 TO N:
       a) 接受當前品質（記錄風險）
       b) 繼續 N 輪（用戶延長 loop）
       c) 手動修改後重新 review
+      d) 🔁 回退到 Phase 5 重寫特定 section → call request_section_rewrite()
+
+  ── Stage D2: 回退決策（Agent 自主判斷 + 自主執行） ──
+  IF Agent 判斷某些 section 的問題無法透過 patch_draft 修正，需要整個 section 重寫：
+    1. 識別需要重寫的 section（通常是 persistent critical issues 集中的 section）
+    2. **Autopilot 模式**（預設）：
+       → Agent 直接呼叫 request_section_rewrite(sections="Methods,Results", reason="...")
+       → 決策和理由記入 `.audit/pipeline-run-{ts}.md`
+       → Pipeline 回退到 Phase 5 → 僅重寫指定 sections
+    3. **手動模式**（`autopilot: false` 或 `autopilot_pause_at` 含 `"phase7_rewrite"`）：
+       → 🗣️ 詢問用戶確認：「建議重寫 [section]，是否同意？」
+       → 用戶確認後執行 request_section_rewrite
+    4. 重寫後走 Phase 5 → 6 → 7 完整流程
+    5. ⚠️ regression_count > 2 → **安全閥：強制停下詢問用戶**（防止無限循環）
 
   ── Stage E: Evolution Tracing（每輪結束後） ──
   追加到 .audit/evolution-log.jsonl：
