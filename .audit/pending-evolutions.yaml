@@ -1,0 +1,57 @@
+version: 1
+items:
+- id: PE-0001
+  type: writing_hook_alert
+  source: run_writing_hooks_A6
+  created_at: '2026-02-27T12:25:35.678931+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: A6
+    critical_count: 4
+    issues:
+    - 7 shared 6-grams between paragraphs
+    - 6 shared 6-grams between paragraphs
+    - 6 shared 6-grams between paragraphs
+- id: PE-0002
+  type: writing_hook_alert
+  source: run_writing_hooks_F
+  created_at: '2026-02-27T12:25:35.679986+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: F
+    critical_count: 1
+    issues:
+    - Draft references 'Table 3' but no such entry in manifest
+- id: PE-0003
+  type: writing_hook_alert
+  source: run_writing_hooks_A6
+  created_at: '2026-02-27T12:30:43.292222+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: A6
+    critical_count: 4
+    issues:
+    - 7 shared 6-grams between paragraphs
+    - 6 shared 6-grams between paragraphs
+    - 6 shared 6-grams between paragraphs
+- id: PE-0004
+  type: writing_hook_alert
+  source: run_writing_hooks_F
+  created_at: '2026-02-27T12:30:43.294302+00:00'
+  project: self-evolving-ai-paper-writing-framework
+  status: pending
+  auto_apply: false
+  payload:
+    hook_id: F
+    critical_count: 1
+    issues:
+    - Draft references 'Table 3' but no such entry in manifest
+next_id: 5
+created_at: '2026-02-27T12:25:35.678947+00:00'
+updated_at: '2026-02-27T12:30:43.294317+00:00'

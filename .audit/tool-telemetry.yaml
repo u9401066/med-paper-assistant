@@ -1,0 +1,72 @@
+version: 1
+tools:
+  diagnose_tool_health:
+    invocation_count: 187
+    success_count: 187
+    error_count: 0
+    misuse_count: 0
+    error_types: []
+  list_drafts:
+    invocation_count: 1
+    success_count: 1
+    error_count: 0
+    misuse_count: 0
+    error_types: []
+  scan_draft_citations:
+    invocation_count: 1
+    success_count: 0
+    error_count: 0
+    misuse_count: 0
+    error_types: []
+  run_writing_hooks:
+    invocation_count: 2
+    success_count: 2
+    error_count: 0
+    misuse_count: 0
+    error_types: []
+  check_formatting:
+    invocation_count: 1
+    success_count: 0
+    error_count: 1
+    misuse_count: 0
+    error_types: []
+  start_review_round:
+    invocation_count: 4
+    success_count: 3
+    error_count: 1
+    misuse_count: 0
+    error_types:
+    - RuntimeError
+  validate_concept:
+    invocation_count: 2
+    success_count: 1
+    error_count: 1
+    misuse_count: 0
+    error_types: []
+  patch_draft:
+    invocation_count: 3
+    success_count: 3
+    error_count: 0
+    misuse_count: 0
+    error_types: []
+  record_hook_event:
+    invocation_count: 3
+    success_count: 1
+    error_count: 0
+    misuse_count: 0
+    error_types: []
+  submit_review_round:
+    invocation_count: 3
+    success_count: 2
+    error_count: 1
+    misuse_count: 0
+    error_types:
+    - RuntimeError
+  validate_phase_gate:
+    invocation_count: 2
+    success_count: 2
+    error_count: 0
+    misuse_count: 0
+    error_types: []
+created_at: '2026-02-27T10:08:05.736943'
+updated_at: '2026-02-27T17:26:39.471934'

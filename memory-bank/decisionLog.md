@@ -1,5 +1,69 @@
 # Decision Log
 
+## [2026-02-27] 深度審查：框架實作完整性盤點
+
+### 背景
+
+文件（CONSTITUTION §25-26, AGENTS.md, ROADMAP.md）宣稱三層演進架構完整運作。需要驗證實際程式碼與文件宣稱之間的差距。
+
+### 審查結果
+
+| 層級           | 宣稱                  | 實際                         | 差距                                             |
+| -------------- | --------------------- | ---------------------------- | ------------------------------------------------ |
+| L1 Hooks       | 56 個品質檢查         | 14 個 Code-Enforced (25%)    | 42 個僅靠 Agent 遵循 SKILL.md                    |
+| L2 Enforcement | 5 個元件              | 5 個完整實作 (100%)          | 無重大差距                                       |
+| L3 Evolution   | D1-D9 + CI + Git Hook | D1-D9 完整 + CI health check | Git post-commit 未實作、EvolutionVerifier 未實作 |
+| MCP Tools      | 文件宣稱 ~53          | 實際註冊 77 個               | 工具數量文件過時（Self-Evolution 新工具未計入）  |
+
+### 關鍵發現
+
+1. **L1 75% Agent-Only**：A1-A4, B1-B7, C1-C8, E1-E5, P1-P8, G1-G8 完全依賴 Agent 閱讀 SKILL.md 自行執行，無程式碼強制機制。品質取決於 Agent 是否「聽話」。
+2. **L2 完整且整合良好**：DomainConstraintEngine, ToolInvocationStore, PendingEvolutionStore, guidance.py, tool_health.py 五元件完整實作且端到端串聯。
+3. **L3 Phase C 完成但 A/B 部分**：PendingEvolution 跨對話機制已完整運作。Git post-commit 和自動 PR 未實作。EvolutionVerifier 被 check-evolution-health.py 引用但類別不存在。
+4. **MetaLearningEngine known hooks 清單不完整**：已知 hooks 清單漏掉 A5/A6/B8/C9/F（Code-Enforced hooks）和 G1-G8（General hooks），導致 D1 效能統計無法追蹤這些 hooks。
+5. **discussion/ 模組殘留**：已標記 DEPRECATED 但檔案仍存在，可清理。
+
+### 決定
+
+1. 更新所有文件（AGENTS.md, copilot-instructions.md, ROADMAP.md, CONSTITUTION.md, architect.md）如實標記實作狀態
+2. 不美化差距 — 明確區分 Code-Enforced vs Agent-Driven hooks
+3. 已知缺失項目記錄為 ROADMAP 待辦事項
+
+### 後續建議（不在此次範圍）
+
+- 優先實作 EvolutionVerifier（已被引用但不存在）
+- 將 MetaLearningEngine known hooks 清單補齊 A5/A6/B8/C9/F/G1-G8
+- 考慮將高頻 Agent-Driven hooks（如 A1 字數、A3 Anti-AI）提升為 Code-Enforced
+
+---
+
+## [2026-02-27] 核心價值確立：逐步多輪演進（Iterative Multi-Round Evolution）
+
+### 背景
+
+系統已發展出三層架構：L1 Event-Driven Hook 體系（Agent 操作時觸發）、L2 Code-Level Enforcement（DomainConstraintEngine）、L3 Autonomous Self-Evolution（外部排程 + GitHub Actions）。用戶指出：這三層之所以必要，是因為「寫論文是人類高度專業化、多年累積、多輪訓練的結果，而且是在科學方法下可重現的思考與整合步驟」。Agent + MCP 框架應該能實現類似的逐步多輪演進。
+
+### 決定
+
+將「逐步多輪演進」正式確立為**專案核心價值**，寫入 CONSTITUTION.md 第九章（§25-26）。同步更新所有文件。
+
+### 核心論述
+
+1. 學術論文撰寫不是一次性生成，而是螺旋式進步：搜尋 → 批判 → 修正 → 再搜尋
+2. 三層架構（L1/L2/L3）各解決不同層面的問題，缺一不可
+3. 這是系統存在的根本理由 — 不是「AI 自動寫論文」，而是「用科學方法實現逐步改善」
+4. 演進必須有紀律：有證據、可回溯、有邊界、服務人類
+
+### 影響
+
+- CONSTITUTION.md v1.5.0 → v1.6.0，新增第九章（§25-26）
+- ROADMAP.md Vision 加入核心價值描述，Phase 7.4 加入哲學說明
+- AGENTS.md 頂部加入核心價值段落，§22-23 擴展為 §22-23 + §25-26
+- copilot-instructions.md 加入核心價值摘要
+- memory-bank/architect.md 更新三層架構說明
+
+---
+
 ## [2026-02-26] EvolutionVerifier — 跨專案演化驗證
 
 ### 背景

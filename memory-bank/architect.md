@@ -29,32 +29,77 @@ med-paper-assistant/
 └── scripts/                       # 跨平台腳本
 ```
 
-### MCP Server 架構 (73 tools, 2026-02-26)
+### MCP Server 架構 (81 tools, 2026-02-27)
 
 ```
 .vscode/mcp.json
-├── mdpaper        # 主要 MCP (~73 tools) - 專案/草稿/參考/匯出/Workspace State/Self-Evolution
+├── mdpaper        # 主要 MCP (81 tools) - 專案/草稿/參考/匯出/Workspace State/Self-Evolution
 ├── pubmed-search  # PubMed 搜尋 (submodule)
 ├── cgu            # Creativity Generation (submodule)
 ├── zotero-keeper  # 書目管理 (uvx)
 └── drawio         # Draw.io 圖表 (uvx)
 ```
 
-### Self-Evolution 架構 (2026-02-26)
+### MCP Tool 模組分布 (2026-02-27)
 
 ```
-Pipeline Run (Phase 1-9)
-    │ Hook A/B/C/E/F 即時觸發 → record_hook_event()
-    ▼
-Phase 6: run_quality_audit() → 8 維度計分
-    ▼
-Phase 10: run_meta_learning() → D1-D8 分析
-    ▼
-verify_evolution() → 跨專案 E1-E5 演化證據
+tools/
+├── project/       16 tools  CRUD + exploration + workspace state
+├── reference/     10 tools  save_reference_mcp 優先
+├── draft/         13 tools  writing + citation + editing (patch_draft)
+├── validation/     3 tools  validate_concept + wikilinks
+├── analysis/       9 tools  table_one + stats + figures
+├── review/        20 tools  formatting + pipeline + audit + meta-learning + flexibility + tool_health
+├── export/        10 tools  word + pandoc (docx/pdf/bib)
+├── _shared/       — (非 MCP tool) guidance + tool_logging + project_context
+└── discussion/    — (DEPRECATED — 已遷移至 Skills)
+```
+
+### Self-Evolution 架構 (2026-02-27)
+
+> **核心價值：逐步多輪演進（CONSTITUTION §25-26）**
+> 寫論文 = 人類多年累積的螺旋式進步。本系統用三層架構重現此過程。
+
+```
+三層演進架構（2026-02-27 深度審查結果）
+═══════════════════════════════════════════════════
+
+L1: Event-Driven Hooks（即時品質）⚠️ 14/56 Code-Enforced
+    Code-Enforced (run_writing_hooks):
+      A5 語言一致、A6 段落重複、B8 統計對齊、C9 補充材料
+      F1-F4 數據產出物（DataArtifactTracker）
+    Code-Enforced (run_meta_learning):
+      D1-D9 全部（MetaLearningEngine）
+    Agent-Driven (42 hooks):
+      A1-A4, B1-B7, C1-C8, E1-E5, P1-P8, G1-G8
+      僅靠 Agent 閱讀 SKILL.md 自行執行
+
+L2: Code-Level Enforcement（結構約束）✅ 完整
+    DomainConstraintEngine → .constraints/*.json per project
+    ToolInvocationStore → .audit/tool-telemetry.yaml
+    PendingEvolutionStore → .audit/pending-evolutions.yaml
+    guidance.py → build_startup_guidance (新對話提示)
+    tool_health.py → diagnose_tool_health + flush to PE store
+
+L3: Autonomous Self-Evolution（長期演進）⚠️ 部分
+    ✅ MetaLearningEngine D1-D9 + flush to PendingEvolutionStore
+    ✅ GitHub Actions weekly health check (evolution-health.yml)
+    ✅ PendingEvolution 跨對話機制 (Phase C 完成)
+    ❌ Git post-commit hook (Phase A 未開始)
+    ❌ EvolutionVerifier 類別 (被引用但未實作)
+    ❌ L3 建議自動產生 PR (Phase B 未完成)
+
+整合流程：
+    tool call → tool_logging → ToolInvocationStore
+    → MetaLearningEngine D9 → PendingEvolutionStore
+    → build_startup_guidance → 下次對話提示
+    → apply_pending_evolutions → 套用/駁回
 ```
 
 元件：QualityScorecard(8 dims), HookEffectivenessTracker(56 hooks),
-MetaLearningEngine(D1-D8), WritingHooksEngine(A5/A6/B8/C9/F), EvolutionVerifier(E1-E5)
+MetaLearningEngine(D1-D9), WritingHooksEngine(A5/A6/B8/C9/F),
+DomainConstraintEngine(3 paper types, 26 constraints),
+ToolInvocationStore, PendingEvolutionStore, tool_health
 
 ### 狀態管理架構 (2025-01-22 新增)
 
