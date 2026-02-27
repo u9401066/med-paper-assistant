@@ -28,6 +28,9 @@ from med_paper_assistant.infrastructure.persistence.quality_scorecard import (
     DIMENSIONS,
     QualityScorecard,
 )
+from med_paper_assistant.infrastructure.persistence.tool_invocation_store import (
+    ToolInvocationStore,
+)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # HookEffectivenessTracker Tests
@@ -813,3 +816,193 @@ class TestMetaLearningEngine:
         """Even with no hook data, analyze must still produce lessons (completeness checks)."""
         result = engine.analyze()
         assert len(result["lessons"]) > 0, "analyze() must always find SOMETHING to improve"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MetaLearningEngine D9 — Tool Description Evolution Tests
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestMetaLearningEngineD9:
+    """Tests for the D9 tool description evolution analysis step."""
+
+    @pytest.fixture()
+    def audit_dir(self, tmp_path: Path) -> Path:
+        d = tmp_path / ".audit"
+        d.mkdir()
+        return d
+
+    @pytest.fixture()
+    def workspace(self, tmp_path: Path) -> Path:
+        ws = tmp_path / "workspace"
+        ws.mkdir()
+        return ws
+
+    @pytest.fixture()
+    def engine_no_workspace(self, audit_dir: Path) -> MetaLearningEngine:
+        """Engine without workspace_root — D9 must be skipped."""
+        return MetaLearningEngine(
+            audit_dir, HookEffectivenessTracker(audit_dir), QualityScorecard(audit_dir)
+        )
+
+    @pytest.fixture()
+    def engine_with_workspace(self, audit_dir: Path, workspace: Path) -> MetaLearningEngine:
+        return MetaLearningEngine(
+            audit_dir,
+            HookEffectivenessTracker(audit_dir),
+            QualityScorecard(audit_dir),
+            workspace_root=workspace,
+        )
+
+    # ── Backward compatibility ─────────────────────────────────────────
+
+    def test_d9_skipped_when_no_workspace_root(self, engine_no_workspace: MetaLearningEngine):
+        """D9 returns [] when workspace_root=None — preserves backward compat."""
+        assert engine_no_workspace._d9_tool_description_suggestions() == []
+
+    def test_analyze_still_works_without_workspace_root(
+        self, engine_no_workspace: MetaLearningEngine
+    ):
+        """analyze() must succeed with no workspace_root (D9 simply empty)."""
+        result = engine_no_workspace.analyze()
+        assert "suggestions" in result
+        assert "lessons" in result
+
+    # ── D9 with empty store ────────────────────────────────────────────
+
+    def test_d9_empty_store_returns_no_suggestions(self, engine_with_workspace: MetaLearningEngine):
+        """Empty ToolInvocationStore → no D9 suggestions."""
+        assert engine_with_workspace._d9_tool_description_suggestions() == []
+
+    # ── High misuse rate detection ────────────────────────────────────
+
+    def test_d9_high_misuse_rate_generates_suggestion(
+        self, engine_with_workspace: MetaLearningEngine, workspace: Path
+    ):
+        store = ToolInvocationStore(workspace)
+        for _ in range(5):
+            store.record_invocation("confusing_tool")
+        for _ in range(2):
+            store.record_misuse("confusing_tool")
+
+        suggestions = engine_with_workspace._d9_tool_description_suggestions()
+        matching = [
+            s
+            for s in suggestions
+            if s["type"] == "improve_tool_description" and s["target"] == "confusing_tool"
+        ]
+        assert len(matching) == 1
+
+    def test_d9_misuse_below_threshold_no_suggestion(
+        self, engine_with_workspace: MetaLearningEngine, workspace: Path
+    ):
+        """misuse_count=1 (< 2 minimum) → no suggestion."""
+        store = ToolInvocationStore(workspace)
+        for _ in range(10):
+            store.record_invocation("tool_a")
+        store.record_misuse("tool_a")  # only 1, threshold requires >= 2
+
+        suggestions = engine_with_workspace._d9_tool_description_suggestions()
+        assert not any(s["target"] == "tool_a" for s in suggestions)
+
+    def test_d9_misuse_rate_below_threshold_no_suggestion(
+        self, engine_with_workspace: MetaLearningEngine, workspace: Path
+    ):
+        """High count but low rate (10%) → no suggestion."""
+        store = ToolInvocationStore(workspace)
+        for _ in range(100):
+            store.record_invocation("popular_tool")
+        for _ in range(10):
+            store.record_misuse("popular_tool")  # 10% rate, below 20% threshold
+
+        suggestions = engine_with_workspace._d9_tool_description_suggestions()
+        assert not any(s["target"] == "popular_tool" for s in suggestions)
+
+    # ── High error count detection ────────────────────────────────────
+
+    def test_d9_high_errors_generates_suggestion(
+        self, engine_with_workspace: MetaLearningEngine, workspace: Path
+    ):
+        store = ToolInvocationStore(workspace)
+        for _ in range(4):
+            store.record_invocation("broken_tool")
+        for _ in range(3):
+            store.record_error("broken_tool", "TypeError")
+
+        suggestions = engine_with_workspace._d9_tool_description_suggestions()
+        assert any(s["target"] == "broken_tool" for s in suggestions)
+
+    def test_d9_error_count_below_threshold_no_suggestion(
+        self, engine_with_workspace: MetaLearningEngine, workspace: Path
+    ):
+        """error_count=2 (< 3 threshold) → no error-based suggestion."""
+        store = ToolInvocationStore(workspace)
+        for _ in range(5):
+            store.record_invocation("tool_b")
+        for _ in range(2):
+            store.record_error("tool_b", "ValueError")
+
+        suggestions = engine_with_workspace._d9_tool_description_suggestions()
+        assert not any(s["target"] == "tool_b" for s in suggestions)
+
+    # ── All D9 suggestions must be L3 ─────────────────────────────────
+
+    def test_d9_suggestions_all_require_confirmation(
+        self, engine_with_workspace: MetaLearningEngine, workspace: Path
+    ):
+        """CONSTITUTION §23: D9 suggestions must be L3 (requires_confirmation=True)."""
+        store = ToolInvocationStore(workspace)
+        for _ in range(5):
+            store.record_invocation("t")
+        for _ in range(3):
+            store.record_error("t", "ValueError")
+
+        for s in engine_with_workspace._d9_tool_description_suggestions():
+            assert s["requires_confirmation"] is True
+
+    def test_d9_suggestion_has_required_keys(
+        self, engine_with_workspace: MetaLearningEngine, workspace: Path
+    ):
+        store = ToolInvocationStore(workspace)
+        for _ in range(5):
+            store.record_invocation("t2")
+        for _ in range(3):
+            store.record_error("t2", "KeyError")
+
+        suggestions = engine_with_workspace._d9_tool_description_suggestions()
+        d9_s = [s for s in suggestions if s["target"] == "t2"]
+        assert len(d9_s) >= 1
+        for s in d9_s:
+            assert "type" in s
+            assert "target" in s
+            assert "reason" in s
+            assert "requires_confirmation" in s
+
+    # ── Integration with analyze() ────────────────────────────────────
+
+    def test_d9_suggestions_included_in_analyze_output(
+        self, engine_with_workspace: MetaLearningEngine, workspace: Path
+    ):
+        """analyze() result must include D9 suggestions in 'suggestions' key."""
+        store = ToolInvocationStore(workspace)
+        for _ in range(5):
+            store.record_invocation("overused_tool")
+        for _ in range(3):
+            store.record_error("overused_tool", "KeyError")
+
+        result = engine_with_workspace.analyze()
+        all_types = [s.get("type") for s in result.get("suggestions", [])]
+        assert "improve_tool_description" in all_types
+
+    def test_d9_failure_does_not_break_analyze(self, audit_dir: Path):
+        """If ToolInvocationStore cannot be instantiated, analyze() must not raise."""
+        # Pass a workspace_root that points to a read-only or otherwise problematic path
+        engine = MetaLearningEngine(
+            audit_dir,
+            HookEffectivenessTracker(audit_dir),
+            QualityScorecard(audit_dir),
+            workspace_root="/nonexistent_path_that_wont_fail_read",
+        )
+        # Should not raise — D9 returns [] and analyze() proceeds
+        result = engine.analyze()
+        assert "suggestions" in result

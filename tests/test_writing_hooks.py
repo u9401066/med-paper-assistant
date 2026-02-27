@@ -1,21 +1,37 @@
 """
-Tests for WritingHooksEngine — Hooks A5, A6, B8, C9, F.
+Tests for WritingHooksEngine — 29 Code-Enforced Hooks.
 
 Validates:
+  - A1: Word count compliance (section word count vs target)
+  - A2: Citation density (wikilinks per N words)
+  - A3: Anti-AI pattern detection (forbidden phrases)
+  - A4: Wikilink format validation
   - A5: Language consistency (British vs American English detection)
   - A6: Overlap detection (internal paragraph similarity via n-grams)
   - B8: Data-claim alignment (statistical tests, p-values, CI, software)
+  - C3: N-value consistency (sample sizes across sections)
+  - C4: Abbreviation first-use (defined at first occurrence)
+  - C5: Wikilink resolvable (mapped to saved references)
+  - C6: Total word count (manuscript total vs journal limit)
+  - C7a: Figure/table count limits
+  - C7d: Cross-reference orphan/phantom detection
   - C9: Supplementary cross-reference (text refs ↔ supplementary files)
   - F:  Data artifact validation (wrapper around DataArtifactTracker)
-  - Batch runners: run_post_write_hooks, run_post_section_hooks, run_post_manuscript_hooks
+  - P5: Protected content (🔒 blocks in concept.md)
+  - P7: Reference integrity (verified metadata)
+  - Batch runners: run_post_write_hooks, run_post_section_hooks,
+                   run_post_manuscript_hooks, run_precommit_hooks
 """
 
+import json
 from pathlib import Path
 
 import pytest
+import yaml
 
 from med_paper_assistant.infrastructure.persistence.writing_hooks import (
     AMER_VS_BRIT,
+    ANTI_AI_PHRASES,
     BRIT_VS_AMER,
     HookIssue,
     HookResult,
@@ -38,8 +54,46 @@ def project_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
+def project_with_profile(tmp_path: Path) -> Path:
+    """Create a project directory with journal-profile.yaml."""
+    d = tmp_path / "test-project-profile"
+    d.mkdir()
+    (d / ".audit").mkdir()
+    (d / "drafts").mkdir()
+    profile = {
+        "word_limits": {"total_manuscript": 5000},
+        "paper": {
+            "sections": [
+                {"name": "Introduction", "word_limit": 800},
+                {"name": "Methods", "word_limit": 1500},
+                {"name": "Results", "word_limit": 1500},
+                {"name": "Discussion", "word_limit": 1500},
+            ],
+        },
+        "pipeline": {
+            "tolerance": {"word_percent": 20},
+            "writing": {
+                "citation_density": {
+                    "introduction": 100,
+                    "discussion": 150,
+                },
+            },
+        },
+        "assets": {"figures_max": 6, "tables_max": 5},
+    }
+    with open(d / "journal-profile.yaml", "w") as f:
+        yaml.dump(profile, f)
+    return d
+
+
+@pytest.fixture()
 def engine(project_dir: Path) -> WritingHooksEngine:
     return WritingHooksEngine(project_dir)
+
+
+@pytest.fixture()
+def engine_with_profile(project_with_profile: Path) -> WritingHooksEngine:
+    return WritingHooksEngine(project_with_profile)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -424,3 +478,580 @@ class TestBatchRunners:
         assert "F" in results
         assert results["C9"].hook_id == "C9"
         assert results["F"].hook_id == "F"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook A1: Word Count Compliance
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookA1:
+    def test_within_limits_passes(self, engine_with_profile: WritingHooksEngine):
+        # Introduction target is 800 words; generate ~800 words
+        words = " ".join(["word"] * 800)
+        r = engine_with_profile.check_word_count_compliance(words, section_name="Introduction")
+        assert r.passed is True
+        assert r.hook_id == "A1"
+
+    def test_over_limit_warning(self, engine_with_profile: WritingHooksEngine):
+        # 800 * 1.25 = 1000 words → 25% over → WARNING
+        words = " ".join(["word"] * 1000)
+        r = engine_with_profile.check_word_count_compliance(words, section_name="Introduction")
+        assert r.passed is True  # WARNING doesn't fail
+        assert len(r.issues) >= 1
+        assert r.issues[0].severity == "WARNING"
+
+    def test_way_over_limit_critical(self, engine_with_profile: WritingHooksEngine):
+        # 800 * 1.55 = 1240 words → >50% over → CRITICAL
+        words = " ".join(["word"] * 1300)
+        r = engine_with_profile.check_word_count_compliance(words, section_name="Introduction")
+        assert r.passed is False
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+
+    def test_no_profile_uses_defaults(self, engine: WritingHooksEngine):
+        # DEFAULT_WORD_LIMITS has Introduction=800
+        words = " ".join(["word"] * 800)
+        r = engine.check_word_count_compliance(words, section_name="Introduction")
+        assert r.passed is True
+
+    def test_unknown_section_skips(self, engine: WritingHooksEngine):
+        r = engine.check_word_count_compliance("some text", section_name="UnknownSection")
+        assert r.passed is True
+        assert len(r.issues) == 0
+
+    def test_multi_section_parsing(self, engine_with_profile: WritingHooksEngine):
+        intro_words = " ".join(["word"] * 800)
+        methods_words = " ".join(["word"] * 1500)
+        text = f"## Introduction\n\n{intro_words}\n\n## Methods\n\n{methods_words}"
+        r = engine_with_profile.check_word_count_compliance(text)
+        assert r.passed is True
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook A2: Citation Density
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookA2:
+    def test_sufficient_citations_passes(self, engine_with_profile: WritingHooksEngine):
+        # ~90 words + 2 citations → density well above 1/100w for Introduction
+        words = " ".join(["word"] * 90)
+        text = f"{words} [[smith2024_12345678]] [[jones2023_87654321]]"
+        r = engine_with_profile.check_citation_density(text, section_name="Introduction")
+        assert r.passed is True
+        assert r.hook_id == "A2"
+
+    def test_low_density_warning(self, engine_with_profile: WritingHooksEngine):
+        # 300 words, need >=3 citations for Introduction (1/100w)
+        words = " ".join(["word"] * 300)
+        text = f"{words} [[smith2024_12345678]]"
+        r = engine_with_profile.check_citation_density(text, section_name="Introduction")
+        assert r.passed is False
+        assert len(r.issues) >= 1
+        assert r.issues[0].severity == "WARNING"
+
+    def test_methods_section_skipped(self, engine_with_profile: WritingHooksEngine):
+        # Methods has threshold 0, so no check needed
+        r = engine_with_profile.check_citation_density("no citations here", section_name="Methods")
+        assert r.passed is True
+        assert r.stats.get("skipped") is True
+
+    def test_empty_content(self, engine: WritingHooksEngine):
+        r = engine.check_citation_density("", section_name="Introduction")
+        assert r.passed is True
+
+    def test_stats_contain_density(self, engine_with_profile: WritingHooksEngine):
+        words = " ".join(["word"] * 100)
+        text = f"{words} [[a2024_12345678]] [[b2024_23456789]]"
+        r = engine_with_profile.check_citation_density(text, section_name="Introduction")
+        assert "density_per_100w" in r.stats
+        assert r.stats["citation_count"] == 2
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook A3: Anti-AI Pattern Detection
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookA3:
+    def test_clean_text_passes(self, engine: WritingHooksEngine):
+        text = "The trial demonstrated a significant reduction in mortality rates."
+        r = engine.check_anti_ai_patterns(text)
+        assert r.passed is True
+        assert r.hook_id == "A3"
+        assert r.stats["total_matches"] == 0
+
+    def test_single_ai_phrase_warning(self, engine: WritingHooksEngine):
+        text = "It is worth noting that the results were significant."
+        r = engine.check_anti_ai_patterns(text)
+        assert r.passed is False
+        assert r.stats["total_matches"] >= 1
+        assert any(i.severity == "WARNING" for i in r.issues)
+
+    def test_multiple_ai_phrases_critical(self, engine: WritingHooksEngine):
+        text = (
+            "In recent years, it is worth noting that this groundbreaking "
+            "study has shed light on important findings."
+        )
+        r = engine.check_anti_ai_patterns(text, critical_threshold=3)
+        assert r.passed is False
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+
+    def test_furthermore_at_paragraph_start_flagged(self, engine: WritingHooksEngine):
+        text = "First paragraph about methods.\n\nFurthermore, the results showed improvement."
+        r = engine.check_anti_ai_patterns(text)
+        assert r.stats["total_matches"] >= 1
+        assert any("furthermore" in key.lower() for key in r.stats.get("phrase_counts", {}))
+
+    def test_furthermore_mid_sentence_ok(self, engine: WritingHooksEngine):
+        text = "The study provided evidence that furthermore supports the hypothesis."
+        r = engine.check_anti_ai_patterns(text)
+        # "furthermore" mid-sentence should not be flagged (only paragraph start)
+        furthermore_matches = [
+            k for k in r.stats.get("phrase_counts", {}) if "furthermore" in k.lower()
+        ]
+        assert len(furthermore_matches) == 0
+
+    def test_case_insensitive(self, engine: WritingHooksEngine):
+        text = "IN RECENT YEARS the field has evolved."
+        r = engine.check_anti_ai_patterns(text)
+        assert r.stats["total_matches"] >= 1
+
+    def test_anti_ai_list_populated(self):
+        assert len(ANTI_AI_PHRASES) >= 20
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook A4: Wikilink Format Validation
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookA4:
+    def test_valid_wikilinks_pass(self, engine: WritingHooksEngine):
+        text = "The study [[smith2024_12345678]] showed results [[jones2023_87654321]]."
+        r = engine.check_wikilink_format(text)
+        assert r.passed is True
+        assert r.hook_id == "A4"
+        assert r.stats["valid_count"] == 2
+
+    def test_pmid_only_warning(self, engine: WritingHooksEngine):
+        text = "The study [[12345678]] showed results."
+        r = engine.check_wikilink_format(text)
+        assert r.passed is False
+        assert any("PMID-only" in i.message for i in r.issues)
+
+    def test_no_wikilinks_passes(self, engine: WritingHooksEngine):
+        text = "This text has no citations at all."
+        r = engine.check_wikilink_format(text)
+        assert r.passed is True
+        assert r.stats["total_wikilinks"] == 0
+
+    def test_mixed_format(self, engine: WritingHooksEngine):
+        text = "Valid [[smith2024_12345678]] and invalid [[PMID: 87654321]]."
+        r = engine.check_wikilink_format(text)
+        assert r.passed is False
+        assert r.stats["valid_count"] == 1
+        assert r.stats["issue_count"] == 1
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook C3: N-value Consistency
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookC3:
+    def test_consistent_n_values_passes(self, engine: WritingHooksEngine):
+        text = (
+            "## Methods\n\nWe enrolled N=150 patients in the study.\n\n"
+            "## Results\n\nOf the N=150 patients, 75 were in the intervention group."
+        )
+        r = engine.check_n_value_consistency(text)
+        assert r.passed is True
+        assert r.hook_id == "C3"
+
+    def test_inconsistent_n_values_critical(self, engine: WritingHooksEngine):
+        text = (
+            "## Methods\n\nWe enrolled N=150 patients in the study.\n\n"
+            "## Results\n\nOf the N=200 patients, outcomes were measured."
+        )
+        r = engine.check_n_value_consistency(text)
+        assert r.passed is False
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+        assert "200" in r.issues[0].message
+
+    def test_no_methods_section_skips(self, engine: WritingHooksEngine):
+        text = "## Results\n\nN=150 patients completed the study."
+        r = engine.check_n_value_consistency(text)
+        assert r.passed is True
+
+    def test_participant_pattern_detected(self, engine: WritingHooksEngine):
+        text = (
+            "## Methods\n\n120 patients were enrolled.\n\n"
+            "## Results\n\n120 patients completed follow-up."
+        )
+        r = engine.check_n_value_consistency(text)
+        assert r.passed is True
+
+    def test_stats_contain_n_values(self, engine: WritingHooksEngine):
+        text = (
+            "## Methods\n\nWe enrolled N=150 patients and N=75 controls.\n\n"
+            "## Results\n\nN=150 patients completed the study."
+        )
+        r = engine.check_n_value_consistency(text)
+        assert "methods_n_values" in r.stats
+        assert "150" in r.stats["methods_n_values"]
+        assert "75" in r.stats["methods_n_values"]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook C4: Abbreviation First-Use
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookC4:
+    def test_all_defined_passes(self, engine: WritingHooksEngine):
+        text = (
+            "Acute Respiratory Distress Syndrome (ARDS) is a condition. "
+            "ARDS was treated with mechanical ventilation."
+        )
+        r = engine.check_abbreviation_first_use(text)
+        assert r.passed is True
+        assert r.hook_id == "C4"
+
+    def test_undefined_abbreviation_warning(self, engine: WritingHooksEngine):
+        text = "The CABG procedure was performed successfully. CABG outcomes were favorable."
+        r = engine.check_abbreviation_first_use(text)
+        assert r.passed is False
+        assert any("CABG" in i.message for i in r.issues)
+
+    def test_common_exclusions_skipped(self, engine: WritingHooksEngine):
+        # Common abbreviations like DNA, RNA, ICU should not be flagged
+        text = "The DNA analysis was performed in the ICU using standard OR protocols."
+        r = engine.check_abbreviation_first_use(text)
+        # None of these should be flagged
+        flagged = {i.message.split("'")[1] for i in r.issues}
+        assert "DNA" not in flagged
+        assert "ICU" not in flagged
+
+    def test_no_abbreviations_passes(self, engine: WritingHooksEngine):
+        text = "This text has no uppercase abbreviations at all."
+        r = engine.check_abbreviation_first_use(text)
+        assert r.passed is True
+
+    def test_stats_counts(self, engine: WritingHooksEngine):
+        text = "International Normalized Ratio (INR) was measured. The CRRT protocol was started."
+        r = engine.check_abbreviation_first_use(text)
+        assert "defined_count" in r.stats
+        assert "undefined_count" in r.stats
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook C5: Wikilink Resolvable
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookC5:
+    def test_no_wikilinks_passes(self, engine: WritingHooksEngine):
+        r = engine.check_wikilink_resolvable("No citations here.")
+        assert r.passed is True
+        assert r.hook_id == "C5"
+
+    def test_resolved_wikilinks_pass(self, engine: WritingHooksEngine, project_dir: Path):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        (refs_dir / "smith2024_12345678").mkdir()
+        r = engine.check_wikilink_resolvable("See [[smith2024_12345678]] for details.")
+        assert r.passed is True
+        assert r.stats["resolved"] == 1
+
+    def test_unresolved_wikilink_critical(self, engine: WritingHooksEngine, project_dir: Path):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        r = engine.check_wikilink_resolvable("See [[nonexistent2024_99999999]] for details.")
+        assert r.passed is False
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+        assert r.stats["unresolved"] == 1
+
+    def test_pmid_partial_match(self, engine: WritingHooksEngine, project_dir: Path):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        (refs_dir / "smith2024_12345678").mkdir()
+        r = engine.check_wikilink_resolvable("See [[12345678]] for details.")
+        assert r.passed is True
+        assert r.stats["resolved"] == 1
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook C6: Total Word Count
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookC6:
+    def test_under_limit_passes(self, engine_with_profile: WritingHooksEngine):
+        words = " ".join(["word"] * 4000)
+        r = engine_with_profile.check_total_word_count(words)
+        assert r.passed is True
+        assert r.hook_id == "C6"
+
+    def test_over_limit_warning(self, engine_with_profile: WritingHooksEngine):
+        # Limit is 5000, 15% over → WARNING
+        words = " ".join(["word"] * 5800)
+        r = engine_with_profile.check_total_word_count(words)
+        assert r.passed is True  # WARNING-only
+        assert any(i.severity == "WARNING" for i in r.issues)
+
+    def test_way_over_limit_critical(self, engine_with_profile: WritingHooksEngine):
+        # Limit is 5000, >20% over → CRITICAL
+        words = " ".join(["word"] * 6200)
+        r = engine_with_profile.check_total_word_count(words)
+        assert r.passed is False
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+
+    def test_excludes_references(self, engine_with_profile: WritingHooksEngine):
+        body = " ".join(["word"] * 4000)
+        refs = " ".join(["reference"] * 5000)
+        text = f"{body}\n\n## References\n\n{refs}"
+        r = engine_with_profile.check_total_word_count(text)
+        assert r.passed is True  # Only body counted
+        assert r.stats["excludes_references"] is True
+
+    def test_no_limit_configured(self, engine: WritingHooksEngine):
+        r = engine.check_total_word_count("some text")
+        assert r.passed is True
+        assert "note" in r.stats
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook C7a: Figure/Table Count Limits
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookC7a:
+    def test_within_limits_passes(self, engine_with_profile: WritingHooksEngine):
+        text = "See Figure 1 and Table 1 for results."
+        r = engine_with_profile.check_figure_table_counts(text)
+        assert r.passed is True
+        assert r.hook_id == "C7a"
+
+    def test_exceeds_figure_limit_warning(self, engine_with_profile: WritingHooksEngine):
+        # limits: figures_max=6, tables_max=5
+        figs = " ".join([f"Figure {i}" for i in range(1, 9)])  # 8 figures
+        r = engine_with_profile.check_figure_table_counts(figs)
+        assert r.passed is False
+        assert any("Figure count" in i.message for i in r.issues)
+
+    def test_no_limits_configured(self, engine: WritingHooksEngine):
+        r = engine.check_figure_table_counts("Figure 1 and Table 1")
+        assert r.passed is True
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook C7d: Cross-References
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookC7d:
+    def test_all_refs_match_passes(self, engine: WritingHooksEngine, project_dir: Path):
+        results_dir = project_dir / "results"
+        results_dir.mkdir()
+        manifest = {
+            "assets": [
+                {"id": "fig1", "type": "figure", "number": "1"},
+                {"id": "tbl1", "type": "table", "number": "1"},
+            ]
+        }
+        with open(results_dir / "manifest.json", "w") as f:
+            json.dump(manifest, f)
+        text = "See Figure 1 and Table 1 for details."
+        r = engine.check_cross_references(text)
+        assert r.passed is True
+        assert r.hook_id == "C7d"
+
+    def test_phantom_ref_critical(self, engine: WritingHooksEngine, project_dir: Path):
+        results_dir = project_dir / "results"
+        results_dir.mkdir()
+        manifest = {"assets": [{"id": "fig1", "type": "figure", "number": "1"}]}
+        with open(results_dir / "manifest.json", "w") as f:
+            json.dump(manifest, f)
+        r = engine.check_cross_references("See Figure 1 and Figure 3.")
+        assert r.passed is False
+        phantom = [i for i in r.issues if "Phantom" in i.message]
+        assert len(phantom) >= 1
+        assert phantom[0].severity == "CRITICAL"
+
+    def test_orphan_asset_warning(self, engine: WritingHooksEngine, project_dir: Path):
+        results_dir = project_dir / "results"
+        results_dir.mkdir()
+        manifest = {
+            "assets": [
+                {"id": "fig1", "type": "figure", "number": "1"},
+                {"id": "fig2", "type": "figure", "number": "2"},
+            ]
+        }
+        with open(results_dir / "manifest.json", "w") as f:
+            json.dump(manifest, f)
+        r = engine.check_cross_references("See Figure 1 for details.")
+        orphan = [i for i in r.issues if "Orphan" in i.message]
+        assert len(orphan) >= 1
+        assert orphan[0].severity == "WARNING"
+
+    def test_no_manifest_passes(self, engine: WritingHooksEngine):
+        r = engine.check_cross_references("Figure 1 and Table 1")
+        assert r.passed is True
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook P5: Protected Content
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookP5:
+    def test_filled_protected_blocks_pass(self, engine: WritingHooksEngine, project_dir: Path):
+        concept = (
+            "# Concept\n\n"
+            "## NOVELTY STATEMENT \U0001f512\n\n"
+            "This study is the first to examine the effect of remimazolam.\n\n"
+            "## KEY SELLING POINTS \U0001f512\n\n"
+            "1. Novel sedation approach\n"
+            "2. Better hemodynamic stability\n"
+        )
+        (project_dir / "concept.md").write_text(concept)
+        r = engine.check_protected_content()
+        assert r.passed is True
+        assert r.hook_id == "P5"
+        assert r.stats["protected_blocks_found"] == 2
+
+    def test_empty_protected_block_critical(self, engine: WritingHooksEngine, project_dir: Path):
+        concept = (
+            "# Concept\n\n"
+            "## NOVELTY STATEMENT \U0001f512\n\n"
+            "This has content.\n\n"
+            "## KEY SELLING POINTS \U0001f512\n\n"
+            "[placeholder]\n"
+        )
+        (project_dir / "concept.md").write_text(concept)
+        r = engine.check_protected_content()
+        assert r.passed is False
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+        assert "KEY SELLING POINTS" in r.issues[0].message
+
+    def test_no_concept_file_passes(self, engine: WritingHooksEngine):
+        r = engine.check_protected_content()
+        assert r.passed is True
+
+    def test_no_protected_blocks_passes(self, engine: WritingHooksEngine, project_dir: Path):
+        concept = "# Concept\n\n## Background\n\nSome background text.\n"
+        (project_dir / "concept.md").write_text(concept)
+        r = engine.check_protected_content()
+        assert r.passed is True
+        assert r.stats["protected_blocks_found"] == 0
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook P7: Reference Integrity
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookP7:
+    def test_all_verified_passes(self, engine: WritingHooksEngine, project_dir: Path):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        ref1 = refs_dir / "smith2024_12345678"
+        ref1.mkdir()
+        meta = {"_data_source": "pubmed_api", "title": "Test"}
+        with open(ref1 / "metadata.json", "w") as f:
+            json.dump(meta, f)
+        r = engine.check_reference_integrity()
+        assert r.passed is True
+        assert r.hook_id == "P7"
+        assert r.stats["verified_count"] == 1
+
+    def test_unverified_warning(self, engine: WritingHooksEngine, project_dir: Path):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        ref1 = refs_dir / "smith2024_12345678"
+        ref1.mkdir()
+        meta = {"_data_source": "agent_input", "title": "Test"}
+        with open(ref1 / "metadata.json", "w") as f:
+            json.dump(meta, f)
+        r = engine.check_reference_integrity()
+        assert r.passed is False
+        assert any(i.severity == "WARNING" for i in r.issues)
+        assert r.stats["unverified_count"] == 1
+
+    def test_no_references_dir_passes(self, engine: WritingHooksEngine):
+        r = engine.check_reference_integrity()
+        assert r.passed is True
+
+    def test_missing_metadata_unverified(self, engine: WritingHooksEngine, project_dir: Path):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        ref1 = refs_dir / "smith2024_12345678"
+        ref1.mkdir()
+        # No metadata.json file
+        r = engine.check_reference_integrity()
+        assert r.passed is False
+        assert r.stats["unverified_count"] == 1
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pre-commit Batch Runner
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestPrecommitBatchRunner:
+    def test_runs_all_p_hooks(self, engine: WritingHooksEngine, project_dir: Path):
+        # Create minimal references dir
+        (project_dir / "references").mkdir()
+        text = "Some manuscript text."
+        results = engine.run_precommit_hooks(text)
+        assert "P1" in results
+        assert "P2" in results
+        assert "P4" in results
+        assert "P5" in results
+        assert "P7" in results
+
+    def test_hook_id_correctly_remapped(self, engine: WritingHooksEngine, project_dir: Path):
+        (project_dir / "references").mkdir()
+        text = "Some manuscript text."
+        results = engine.run_precommit_hooks(text)
+        assert results["P1"].hook_id == "P1"
+        assert results["P2"].hook_id == "P2"
+        assert results["P4"].hook_id == "P4"
+        assert results["P5"].hook_id == "P5"
+        assert results["P7"].hook_id == "P7"
+
+    def test_p2_uses_anti_ai(self, engine: WritingHooksEngine, project_dir: Path):
+        (project_dir / "references").mkdir()
+        text = "In recent years, it is worth noting that this groundbreaking study was important."
+        results = engine.run_precommit_hooks(text)
+        assert results["P2"].passed is False  # 3+ AI phrases → CRITICAL
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Updated Batch Runners
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestUpdatedBatchRunners:
+    def test_post_write_includes_new_hooks(self, engine: WritingHooksEngine):
+        text = "Some text for testing."
+        results = engine.run_post_write_hooks(text)
+        assert "A1" in results
+        assert "A2" in results
+        assert "A3" in results
+        assert "A4" in results
+        assert "A5" in results
+        assert "A6" in results
+
+    def test_post_manuscript_includes_new_hooks(self, engine: WritingHooksEngine):
+        text = "## Methods\n\nSome methods.\n\n## Results\n\nSome results."
+        results = engine.run_post_manuscript_hooks(text)
+        assert "C3" in results
+        assert "C4" in results
+        assert "C5" in results
+        assert "C6" in results
+        assert "C7a" in results
+        assert "C7d" in results
+        assert "C9" in results
+        assert "F" in results
