@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { DrawIoEmbed, DrawIoEmbedRef, EventExport } from 'react-drawio';
 
 interface DrawioEditorProps {

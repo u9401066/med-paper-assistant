@@ -21,12 +21,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    // 從 localStorage 讀取，預設 dark
+    // 從 localStorage 讀取，預設 dark — hydration-safe init
     const stored = localStorage.getItem('theme') as Theme;
     if (stored) {
       setTheme(stored);
     }
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect -- hydration mount tracking
   }, []);
 
   useEffect(() => {

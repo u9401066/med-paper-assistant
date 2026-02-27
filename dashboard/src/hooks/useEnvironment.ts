@@ -28,6 +28,7 @@ export function useEnvironment(): Environment {
       // Check if in iframe and parent might be VS Code
       (isIframe && document.referrer.includes('vscode'));
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only API detection, must run in effect
     setEnv({
       isVSCodeBrowser,
       isIframe,

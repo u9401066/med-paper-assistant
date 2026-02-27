@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useProjects } from '@/hooks/useProjects';
-import { useEnvironment } from '@/hooks/useEnvironment';
+import { useState, useCallback } from 'react';
 import { useDiagrams } from '@/hooks/useDiagrams';
 import { DrawioEditor } from '@/components/DrawioEditor';
 import { Diagram } from '@/types/diagram';
@@ -77,7 +75,6 @@ export function DiagramsPanel({ projectSlug, isVSCodeBrowser }: DiagramsPanelPro
     deleteDiagram,
     createNewDiagram,
     closeDiagram,
-    fetchDiagrams,
   } = useDiagrams(projectSlug);
 
   const [newDiagramName, setNewDiagramName] = useState('');

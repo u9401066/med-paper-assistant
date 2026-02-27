@@ -28,3 +28,11 @@ def tmp_workspace(tmp_path):
 def isolate_env(monkeypatch, tmp_path):
     """Ensure tests don't accidentally write to real project directories."""
     monkeypatch.setenv("MDPAPER_TEST_MODE", "1")
+    # Prevent telemetry writes to real .audit/tool-telemetry.yaml
+    # (create_server() in some tests sets the module-level _tool_store singleton,
+    # which then persists across the entire test session and causes pre-commit
+    # to fail with "files were modified by this hook")
+    monkeypatch.setattr(
+        "med_paper_assistant.interfaces.mcp.tools._shared.tool_logging._tool_store",
+        None,
+    )

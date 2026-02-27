@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile, writeFile, mkdir } from 'fs/promises';
-import { join, dirname } from 'path';
+import { join } from 'path';
 import { existsSync } from 'fs';
 
 const PROJECTS_DIR = join(process.cwd(), '..', 'projects');

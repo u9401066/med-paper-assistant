@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readdir, stat, readFile } from 'fs/promises';
+import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
