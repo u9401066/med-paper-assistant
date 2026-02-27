@@ -33,6 +33,7 @@ CONSTITUTION §23 Boundaries:
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -550,7 +551,21 @@ class DomainConstraintEngine:
 
         Returns:
             The new constraint dict.
+
+        Raises:
+            ValueError: If constraint_id format or severity is invalid.
         """
+        # Validate inputs
+        VALID_SEVERITIES = ("INFO", "WARNING", "CRITICAL")
+        if severity not in VALID_SEVERITIES:
+            raise ValueError(
+                f"Invalid severity '{severity}'. Must be one of: {', '.join(VALID_SEVERITIES)}"
+            )
+        if not re.match(r"^[A-Z]\d{3}$", constraint_id):
+            raise ValueError(
+                f"Invalid constraint_id '{constraint_id}'. Must match pattern [A-Z]NNN (e.g., L001)"
+            )
+
         self._constraints_dir.mkdir(parents=True, exist_ok=True)
 
         new_constraint: dict[str, Any] = {
@@ -659,7 +674,7 @@ class DomainConstraintEngine:
 
         for c in constraints:
             rule = c.get("rule", "")
-            params = c.get("params", {})
+            params = c.get("params") or {}
             severity = c.get("severity", "WARNING")
             cid = c.get("id", "")
             category = c.get("category", "")
@@ -668,7 +683,7 @@ class DomainConstraintEngine:
             if rule == "anti_ai_vocabulary":
                 forbidden = params.get("forbidden_patterns", [])
                 for pattern in forbidden:
-                    if pattern.lower() in content_lower:
+                    if re.search(rf"\b{re.escape(pattern.lower())}\b", content_lower):
                         violations.append(
                             ConstraintViolation(
                                 constraint_id=cid,
@@ -714,13 +729,9 @@ class DomainConstraintEngine:
             elif rule == "required_sections" and section == "manuscript":
                 required = params.get("sections", [])
                 for req_section in required:
-                    # Check if section heading exists in content
-                    patterns = [
-                        f"# {req_section}",
-                        f"## {req_section}",
-                        f"### {req_section}",
-                    ]
-                    found = any(p.lower() in content_lower for p in patterns)
+                    # Check if section heading exists via regex (any heading level)
+                    heading_pattern = rf"^\s*#{{1,4}}\s+{re.escape(req_section)}\s*$"
+                    found = bool(re.search(heading_pattern, content, re.IGNORECASE | re.MULTILINE))
                     if not found:
                         violations.append(
                             ConstraintViolation(

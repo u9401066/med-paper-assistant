@@ -119,6 +119,13 @@ class HookEffectivenessTracker:
             hook_results: {hook_id: {trigger: N, pass: N, fix: N, false_positive: N}}
         """
         data = self._load()
+
+        # Guard against duplicate run_id — skip silently if already recorded
+        existing_ids = {r.get("run_id") for r in data.get("runs", [])}
+        if run_id in existing_ids:
+            logger.warning("hook_tracker.duplicate_run", run_id=run_id)
+            return
+
         data["runs"].append(
             {
                 "run_id": run_id,

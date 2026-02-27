@@ -92,6 +92,10 @@ def register_audit_hook_tools(mcp: FastMCP):
             if event_type not in valid_events:
                 return f"❌ Invalid event_type '{event_type}'. Must be one of: {', '.join(valid_events)}"
 
+            # Validate hook_id format: letter prefix + number (e.g., A1, B5, C3, P8)
+            if not re.match(r"^[A-Z]\d{1,2}$", hook_id):
+                return f"❌ Invalid hook_id '{hook_id}'. Must be a letter + 1-2 digits (e.g., 'A1', 'B5', 'C3')"
+
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return f"❌ {msg}"

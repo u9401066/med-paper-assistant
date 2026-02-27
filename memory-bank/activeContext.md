@@ -6,7 +6,28 @@
 
 ## 當前焦點 (2026-02-27)
 
-全部 infrastructure 完成：WritingHooksEngine + EvolutionVerifier + DomainConstraintEngine + 驗證基礎設施。準備深度 code review 後提交。
+深度 code review 完成，所有 CRITICAL/HIGH 修正已提交。
+
+### 最近提交
+
+- `db5ea87` feat: self-evolution infrastructure + writing hooks + domain constraints (54 files, +5292/-318)
+- 本次: fix: code review findings — input validation, regex robustness, safety guards
+
+### Code Review 修正摘要
+
+| 修正                                              | 嚴重度   | 檔案                          |
+| ------------------------------------------------- | -------- | ----------------------------- |
+| hook_id format validation                         | CRITICAL | audit_hooks.py                |
+| Anti-AI word boundary regex                       | CRITICAL | domain_constraint_engine.py   |
+| constraint_id + severity input validation         | CRITICAL | domain_constraint_engine.py   |
+| params null guard (`or {}`)                       | CRITICAL | domain_constraint_engine.py   |
+| Supplementary file matching (word boundary regex) | HIGH     | writing_hooks.py              |
+| Supplementary dir traversal (`rglob`)             | HIGH     | writing_hooks.py              |
+| Dict inverse mapping assertion                    | HIGH     | writing_hooks.py              |
+| R software regex more specific                    | HIGH     | writing_hooks.py              |
+| Code block state tracking + wikilink stripping    | HIGH     | writing_hooks.py              |
+| Duplicate run_id guard                            | MEDIUM   | hook_effectiveness_tracker.py |
+| Required sections heading regex                   | MEDIUM   | domain_constraint_engine.py   |
 
 ### v0.3.11→master 變更摘要
 
@@ -46,12 +67,10 @@
 
 ## 下一步
 
-- 深度 code review → 修正 → git commit
 - Run full pipeline with actual project to generate evolution data
 - vscode-extension sync with new MCP tools
 - Dashboard integration for evolution reports
 
-- [ ] Git commit (~43 files: structlog + writing hooks + self-evolution + docs)
 - [ ] Run actual project pipeline to generate evolution data
 - [ ] Dashboard integration for evolution reports
 - [ ] Consider grammar checker (language-tool-python as A7)
@@ -59,4 +78,4 @@
 
 ## 更新時間
 
-2026-02-26
+2026-02-27

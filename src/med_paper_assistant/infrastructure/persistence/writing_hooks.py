@@ -193,6 +193,11 @@ BRIT_VS_AMER: dict[str, str] = {
 # Build reverse dictionary (American → British)
 AMER_VS_BRIT: dict[str, str] = {v: k for k, v in BRIT_VS_AMER.items()}
 
+# Sanity check: mapping must be bijective (no ambiguous reversals)
+assert len(AMER_VS_BRIT) == len(BRIT_VS_AMER), (
+    f"BRIT_VS_AMER has duplicate values — reverse map lost {len(BRIT_VS_AMER) - len(AMER_VS_BRIT)} entries"
+)
+
 
 @dataclass
 class HookIssue:
@@ -308,11 +313,18 @@ class WritingHooksEngine:
         found_words: dict[str, list[int]] = {}
 
         lines = content.split("\n")
+        in_code_block = False
         for line_num, line in enumerate(lines, 1):
-            # Skip headings, code blocks, wikilinks
             stripped = line.strip()
-            if stripped.startswith("#") or stripped.startswith("```") or stripped.startswith("[["):
+            # Toggle code block state
+            if stripped.startswith("```"):
+                in_code_block = not in_code_block
                 continue
+            # Skip headings, code block content, and full-line wikilinks
+            if in_code_block or stripped.startswith("#") or stripped.startswith("[["):
+                continue
+            # Strip inline wikilinks before word extraction
+            line = re.sub(r"\[\[[^\]]*\]\]", "", line)
             words = re.findall(r"\b[a-zA-Z]+\b", line.lower())
             for word in words:
                 if word in target_dict:
@@ -565,7 +577,7 @@ class WritingHooksEngine:
             "SPSS": r"\bspss\b",
             "SAS": r"\bsas\b",
             "Stata": r"\bstata\b",
-            "R": r"\bR\s+(?:version|software|package|v\d)",
+            "R": r"\bR\s+(?:version|software|package|v\d|\(v\d|Foundation|Core\s+Team)",
             "Python": r"\bpython\b",
             "MATLAB": r"\bmatlab\b",
             "GraphPad": r"graphpad",
@@ -650,14 +662,14 @@ class WritingHooksEngine:
         supp_dir = self._project_dir / "supplementary"
         supp_files: set[str] = set()
         if supp_dir.is_dir():
-            for f in supp_dir.iterdir():
+            for f in supp_dir.rglob("*"):
                 if f.is_file():
                     supp_files.add(f.name)
 
         # Also check exports/supplementary
         exports_supp = self._project_dir / "exports" / "supplementary"
         if exports_supp.is_dir():
-            for f in exports_supp.iterdir():
+            for f in exports_supp.rglob("*"):
                 if f.is_file():
                     supp_files.add(f.name)
 
@@ -686,7 +698,11 @@ class WritingHooksEngine:
             for ref_type, ids in text_refs.items():
                 for ref_id in ids:
                     # Check if any file matches this ref (e.g., "table_s1.docx" for "S1")
-                    has_match = any(ref_id.lower() in fname.lower() for fname in supp_files)
+                    ref_escaped = re.escape(ref_id.lower())
+                    has_match = any(
+                        re.search(rf"(?:^|[_\-.]){ref_escaped}(?:[_\-.]|$)", fname.lower())
+                        for fname in supp_files
+                    )
                     if not has_match:
                         issues.append(
                             HookIssue(
