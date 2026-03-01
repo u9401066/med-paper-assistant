@@ -1,6 +1,6 @@
 [project]
 name = "med-paper-assistant"
-version = "0.3.12"
+version = "0.4.0"
 description = "A medical paper writing assistant using MCP support"
 readme = "README.md"
 requires-python = ">=3.12"
