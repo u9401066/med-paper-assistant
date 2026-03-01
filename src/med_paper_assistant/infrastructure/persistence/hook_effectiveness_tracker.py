@@ -33,6 +33,7 @@ HOOK_CATEGORIES = {
     "D": "meta-learning",
     "E": "equator-compliance",
     "F": "data-artifacts",
+    "R": "review-hooks",
 }
 
 

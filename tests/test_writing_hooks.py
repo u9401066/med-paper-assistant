@@ -1030,7 +1030,7 @@ class TestHookP5:
             "1. Novel sedation approach\n"
             "2. Better hemodynamic stability\n"
         )
-        (project_dir / "concept.md").write_text(concept)
+        (project_dir / "concept.md").write_text(concept, encoding="utf-8")
         r = engine.check_protected_content()
         assert r.passed is True
         assert r.hook_id == "P5"
@@ -1044,7 +1044,7 @@ class TestHookP5:
             "## KEY SELLING POINTS \U0001f512\n\n"
             "[placeholder]\n"
         )
-        (project_dir / "concept.md").write_text(concept)
+        (project_dir / "concept.md").write_text(concept, encoding="utf-8")
         r = engine.check_protected_content()
         assert r.passed is False
         assert any(i.severity == "CRITICAL" for i in r.issues)

@@ -303,3 +303,83 @@ class TestMinRoundsEnforcement:
         data_path = audit_dir / "audit-loop-review.json"
         data = json.loads(data_path.read_text(encoding="utf-8"))
         assert data["config"]["min_rounds"] == 3
+
+
+# ── Cross-session hash persistence (Fix #1 regression test) ───────────
+
+
+class TestCrossSessionHashPersistence:
+    """Test that _artifact_hash_start and _in_round survive save/load cycle.
+
+    This is the CRITICAL fix: previously, save() did not persist
+    _artifact_hash_start, so restarting mid-round lost the hash baseline
+    and made the modification check impossible to enforce.
+    """
+
+    def test_hash_start_persisted_mid_round(self, audit_dir):
+        """_artifact_hash_start must survive save/load while in_round=True."""
+        config = AuditLoopConfig(context="review")
+        loop = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop.start_round(artifact_hash="mid_round_hash_abc")
+        loop.save()
+
+        # Simulate restart: new instance, load from disk
+        loop2 = AutonomousAuditLoop(str(audit_dir), config=config)
+        loaded = loop2.load()
+        assert loaded is True
+        assert loop2._in_round is True
+        assert loop2._artifact_hash_start == "mid_round_hash_abc"
+
+    def test_in_round_flag_persisted(self, audit_dir):
+        """_in_round flag must survive save/load so we know a round is active."""
+        config = AuditLoopConfig(context="review")
+        loop = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop.start_round(artifact_hash="hash1")
+        loop.save()
+
+        loop2 = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop2.load()
+        assert loop2._in_round is True
+        assert loop2._current_round == 1
+
+    def test_round_start_time_persisted(self, audit_dir):
+        """_round_start_time must survive save/load for audit trail."""
+        config = AuditLoopConfig(context="review")
+        loop = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop.start_round(artifact_hash="hash1")
+        original_time = loop._round_start_time
+        loop.save()
+
+        loop2 = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop2.load()
+        assert loop2._round_start_time == original_time
+
+    def test_completed_round_hash_not_in_transient(self, audit_dir):
+        """After complete_round, hash moves to RoundRecord, transient cleared."""
+        config = AuditLoopConfig(context="review", min_rounds=1)
+        loop = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop.start_round(artifact_hash="start_h")
+        loop.complete_round({"text_quality": 9}, artifact_hash="end_h")
+        loop.save()
+
+        loop2 = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop2.load()
+        # After complete_round, _in_round is False
+        assert loop2._in_round is False
+        # But hashes are preserved in round records
+        assert len(loop2._rounds) == 1
+        assert loop2._rounds[0].artifact_hash_start == "start_h"
+        assert loop2._rounds[0].artifact_hash_end == "end_h"
+
+    def test_json_contains_new_fields(self, audit_dir):
+        """Verify the JSON file actually contains in_round and artifact_hash_start."""
+        config = AuditLoopConfig(context="review")
+        loop = AutonomousAuditLoop(str(audit_dir), config=config)
+        loop.start_round(artifact_hash="persist_test_hash")
+        loop.save()
+
+        data_path = audit_dir / "audit-loop-review.json"
+        data = json.loads(data_path.read_text(encoding="utf-8"))
+        assert data["in_round"] is True
+        assert data["artifact_hash_start"] == "persist_test_hash"
+        assert "round_start_time" in data

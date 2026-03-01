@@ -80,7 +80,8 @@ def project_dir(tmp_path: Path) -> Path:
     # concept.md
     (p / "concept.md").write_text(
         "# Concept\n\n## 🔒 NOVELTY STATEMENT\nFirst study to xyz.\n\n"
-        "## 🔒 KEY SELLING POINTS\n- Point A\n- Point B\n"
+        "## 🔒 KEY SELLING POINTS\n- Point A\n- Point B\n",
+        encoding="utf-8",
     )
 
     # Sample references (YAML stubs)
@@ -275,8 +276,8 @@ class TestMetaLearningEngineIntegration:
         assert "summary" in result
 
     def test_expected_hooks_count(self) -> None:
-        """EXPECTED_HOOKS should contain exactly 40 entries."""
-        assert len(MetaLearningEngine.EXPECTED_HOOKS) == 40
+        """EXPECTED_HOOKS should contain exactly 58 entries."""
+        assert len(MetaLearningEngine.EXPECTED_HOOKS) == 58
 
 
 # ── 6. EvolutionVerifier ─────────────────────────────────────────────
