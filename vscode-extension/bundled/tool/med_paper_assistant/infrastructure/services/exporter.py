@@ -19,7 +19,7 @@ class WordExporter:
         current_section: Optional[str] = None
         current_content: list[str] = []
 
-        with open(draft_path, "r") as f:
+        with open(draft_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
         for line in lines:
@@ -190,12 +190,12 @@ class WordExporter:
                 self.fill_template(doc, sections)
             else:
                 # Fallback to appending if no sections found
-                with open(draft_path, "r") as f:
+                with open(draft_path, "r", encoding="utf-8") as f:
                     for line in f:
                         self._add_line_to_doc(doc, line)
         else:
             doc = Document()
-            with open(draft_path, "r") as f:
+            with open(draft_path, "r", encoding="utf-8") as f:
                 for line in f:
                     self._add_line_to_doc(doc, line)
 

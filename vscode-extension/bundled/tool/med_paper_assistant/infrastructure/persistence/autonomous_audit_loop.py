@@ -109,6 +109,7 @@ class AuditLoopConfig:
     """Configuration for the audit loop."""
 
     max_rounds: int = 5
+    min_rounds: int = 2  # Minimum rounds before QUALITY_MET allowed
     quality_threshold: float = 7.0
     stagnation_rounds: int = 2
     stagnation_delta: float = 0.3
@@ -402,7 +403,11 @@ class AutonomousAuditLoop:
         """Determine whether to continue, stop, or escalate."""
         cfg = self._config
 
-        # 1. Quality threshold met
+        # 0. Minimum rounds not yet reached → must continue
+        if self._current_round < cfg.min_rounds:
+            return RoundVerdict.CONTINUE
+
+        # 1. Quality threshold met (only after min_rounds)
         if weighted_avg >= cfg.quality_threshold:
             return RoundVerdict.QUALITY_MET
 
@@ -512,6 +517,9 @@ class AutonomousAuditLoop:
             "config": asdict(self._config),
             "current_round": self._current_round,
             "completed": self._completed,
+            "in_round": self._in_round,
+            "artifact_hash_start": getattr(self, "_artifact_hash_start", ""),
+            "round_start_time": self._round_start_time,
             "rounds": [asdict(r) for r in self._rounds],
             "rewrite_sections": self._rewrite_sections,
             "rewrite_reason": self._rewrite_reason,
@@ -532,6 +540,9 @@ class AutonomousAuditLoop:
 
         self._current_round = data.get("current_round", 0)
         self._completed = data.get("completed", False)
+        self._in_round = data.get("in_round", False)
+        self._artifact_hash_start = data.get("artifact_hash_start", "")
+        self._round_start_time = data.get("round_start_time", "")
         self._rewrite_sections = data.get("rewrite_sections", [])
         self._rewrite_reason = data.get("rewrite_reason", "")
 

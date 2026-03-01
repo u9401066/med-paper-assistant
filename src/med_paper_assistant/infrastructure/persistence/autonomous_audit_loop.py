@@ -517,6 +517,9 @@ class AutonomousAuditLoop:
             "config": asdict(self._config),
             "current_round": self._current_round,
             "completed": self._completed,
+            "in_round": self._in_round,
+            "artifact_hash_start": getattr(self, "_artifact_hash_start", ""),
+            "round_start_time": self._round_start_time,
             "rounds": [asdict(r) for r in self._rounds],
             "rewrite_sections": self._rewrite_sections,
             "rewrite_reason": self._rewrite_reason,
@@ -537,6 +540,9 @@ class AutonomousAuditLoop:
 
         self._current_round = data.get("current_round", 0)
         self._completed = data.get("completed", False)
+        self._in_round = data.get("in_round", False)
+        self._artifact_hash_start = data.get("artifact_hash_start", "")
+        self._round_start_time = data.get("round_start_time", "")
         self._rewrite_sections = data.get("rewrite_sections", [])
         self._rewrite_reason = data.get("rewrite_reason", "")
 

@@ -1,7 +1,15 @@
 ---
 description: Read-only paper reviewer mode. Reviews drafts without modifying them, producing structured review reports.
+model: ["Claude Opus 4.6 (copilot)", "GPT-5.3-Codex (copilot)"]
 tools:
-  ["codebase", "search", "searchResults", "problems", "extensions", "fetch"]
+  - readFile
+  - textSearch
+  - fileSearch
+  - listDirectory
+  - problems
+  - fetch
+  - mdpaper/*
+  - pubmed-search/*
 ---
 
 # Paper Reviewer（唯讀審稿模式）

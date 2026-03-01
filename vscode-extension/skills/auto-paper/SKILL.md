@@ -738,6 +738,29 @@ FOR round = 1 TO N:
     → Stage C2 仍然 MANDATORY（最低改 3 段落）
     → 目標：人類讀者應能看到「review 前」vs「review 後」有明顯差異
 
+  ── Stage C3: Anti-AI 自然度審查（MANDATORY — Code-Enforced Gate） ──
+  AI 生成文字常被偵測器（Gemini 3.1 等）秒辨。Stage C3 強制 Agent 自我檢測並修正。
+
+  Step 1: Code-Enforced Hook Gate
+    → run_writing_hooks(hooks="A3,A3B")
+    → A3: 禁止詞掃描（~75 個 AI 特徵用語）
+    → A3b: 結構信號偵測（句長均勻度、轉折詞密度、句首多樣性、三連列舉、段落均勻度）
+    → 任何 CRITICAL → 必須 patch_draft 修正後重跑，直到 PASS
+
+  Step 2: Agent 自我審閱（Anti-AI Naturalness Check）
+    Agent 以下列視角重新閱讀全文：
+    a) 是否有「四平八穩」的語調？（每段都同一節奏 → 改）
+    b) 是否過度使用被動語態或名詞化？（nominalization → 改為動詞）
+    c) 是否有 AI 特有的「禮貌性冗餘」？（"It is important to note that" → 刪）
+    d) 段落是否缺乏個人學術觀點？（全是 hedging → 加 assertive claim）
+    e) 是否有「假平衡」？（on the one hand... on the other hand → 取立場）
+    → 每項至少修正 2 處 → patch_draft()
+
+  Step 3: 修正後驗證
+    → 重跑 run_writing_hooks(hooks="A3,A3B")
+    → 必須全部 PASS 或僅 WARNING（無 CRITICAL）才能進入 Stage D
+    → IF 仍有 CRITICAL → 回到 Step 2 再修，最多 3 輪
+
   ── Stage D: 品質重評 ──
   更新 quality-scorecard.md：
     | 維度 | Round N-1 分數 | Round N 分數 | 變化 |

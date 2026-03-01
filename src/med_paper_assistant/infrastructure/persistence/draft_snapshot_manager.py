@@ -84,6 +84,13 @@ class DraftSnapshotManager:
         snap_name = f"{Path(filename).stem}_{ts}{Path(filename).suffix}"
         snap_path = file_snap_dir / snap_name
 
+        # Handle rare same-microsecond collision by appending a counter
+        counter = 1
+        while snap_path.is_file():
+            snap_name = f"{Path(filename).stem}_{ts}_{counter}{Path(filename).suffix}"
+            snap_path = file_snap_dir / snap_name
+            counter += 1
+
         # Copy the file
         shutil.copy2(str(source), str(snap_path))
 

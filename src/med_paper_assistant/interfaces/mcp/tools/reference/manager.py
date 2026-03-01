@@ -1,11 +1,12 @@
 """
 Reference Manager Tools
 
-save_reference, list, search, format, citation management
+save_reference, list, search, format, citation management, analysis
 """
 
 import json
 import os
+from pathlib import Path
 from typing import Optional, Union
 
 from mcp.server.fastmcp import FastMCP
@@ -487,3 +488,183 @@ def register_reference_manager_tools(
         else:
             # Error
             return f"❌ {result.get('error', '未知錯誤')}"
+
+    @mcp.tool()
+    def get_reference_for_analysis(
+        pmid: str, project: Optional[str] = None
+    ) -> str:
+        """
+        📖 Get reference content for subagent analysis (Phase 2.1).
+
+        Returns structured reference data (abstract + fulltext if available)
+        for a subagent to read and produce analysis. Use this to extract
+        material before calling save_reference_analysis().
+
+        Design: Each reference should be analyzed by a SEPARATE subagent
+        to prevent context pollution across papers.
+
+        Args:
+            pmid: PubMed ID of saved reference
+            project: Project slug (uses current if omitted)
+        """
+        log_tool_call("get_reference_for_analysis", {"pmid": pmid, "project": project})
+
+        if project:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return f"❌ {msg}"
+
+        # Get reference metadata
+        detail = ref_manager.get_reference_details(pmid)
+        if not detail:
+            return f"❌ Reference PMID:{pmid} not found in saved references."
+
+        meta = detail.get("metadata", {})
+        ref_dir = Path(detail.get("ref_dir", ""))
+
+        lines = [
+            f"# Reference Analysis Package: PMID {pmid}",
+            f"**Title**: {meta.get('title', 'N/A')}",
+            f"**Authors**: {', '.join(meta.get('authors', [])[:5])}",
+            f"**Journal**: {meta.get('journal', 'N/A')} ({meta.get('year', 'N/A')})",
+            f"**DOI**: {meta.get('doi', 'N/A')}",
+            "",
+            "## Abstract",
+            meta.get("abstract", "(No abstract available)"),
+            "",
+        ]
+
+        # Check for fulltext
+        fulltext_available = False
+        if ref_manager.has_fulltext(pmid):
+            text = ref_manager.read_fulltext(pmid)
+            if text and not text.startswith("Error"):
+                fulltext_available = True
+                lines.append("## Fulltext (from PDF)")
+                # Limit to reasonable size for subagent context
+                if len(text) > 30000:
+                    lines.append(text[:30000])
+                    lines.append(f"\n... [Truncated at 30000 chars. Total: {len(text)}]")
+                else:
+                    lines.append(text)
+                lines.append("")
+
+        # Check for asset-aware parsed sections
+        analysis_sections_dir = ref_dir / "sections"
+        if analysis_sections_dir.is_dir():
+            for section_file in sorted(analysis_sections_dir.iterdir()):
+                if section_file.suffix == ".md":
+                    section_name = section_file.stem
+                    content = section_file.read_text(encoding="utf-8")
+                    lines.append(f"## Section: {section_name} (asset-aware parsed)")
+                    lines.append(content[:10000])
+                    lines.append("")
+                    fulltext_available = True
+
+        lines.append("---")
+        lines.append(f"**Fulltext available**: {'Yes' if fulltext_available else 'No (abstract only)'}")
+        lines.append(f"**Analysis status**: {'Completed' if meta.get('analysis_completed') else 'PENDING'}")
+
+        if not fulltext_available:
+            lines.append("")
+            lines.append(
+                "⚠️ **Abstract-only reference**: Analysis will be limited. "
+                "This reference can only support general background claims, "
+                "NOT specific methodological or quantitative citations."
+            )
+
+        result = "\n".join(lines)
+        log_tool_result("get_reference_for_analysis", f"pmid={pmid}, fulltext={fulltext_available}")
+        return result
+
+    @mcp.tool()
+    def save_reference_analysis(
+        pmid: str,
+        summary: str,
+        methodology: str = "",
+        key_findings: str = "",
+        limitations: str = "",
+        usage_sections: str = "",
+        relevance_score: int = 0,
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        💾 Save subagent's analysis result for a reference (Phase 2.1).
+
+        After a subagent reads and analyzes a reference (via get_reference_for_analysis),
+        save the structured analysis back. This creates an analysis.json file in the
+        reference directory and updates metadata.
+
+        Args:
+            pmid: PubMed ID of the reference
+            summary: 2-3 sentence summary of what this paper contributes
+            methodology: Study design, sample size, key methods (1-2 sentences)
+            key_findings: Main results and conclusions (2-3 bullet points as text)
+            limitations: Noted limitations or bias concerns
+            usage_sections: Comma-separated sections where this ref is useful
+                           (e.g., "Introduction,Discussion" or "Methods,Results")
+            relevance_score: 1-5 relevance to current project (5=essential)
+            project: Project slug (uses current if omitted)
+        """
+        log_tool_call("save_reference_analysis", {"pmid": pmid, "project": project})
+
+        if project:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return f"❌ {msg}"
+
+        # Find reference directory
+        detail = ref_manager.get_reference_details(pmid)
+        if not detail:
+            return f"❌ Reference PMID:{pmid} not found."
+
+        ref_dir = Path(detail.get("ref_dir", ""))
+        meta_path = ref_dir / "metadata.json"
+
+        if not meta_path.is_file():
+            return f"❌ metadata.json not found for PMID:{pmid}"
+
+        # Parse usage sections
+        sections_list = [s.strip() for s in usage_sections.split(",") if s.strip()] if usage_sections else []
+
+        # Build analysis data
+        analysis = {
+            "pmid": pmid,
+            "summary": summary,
+            "methodology": methodology,
+            "key_findings": key_findings,
+            "limitations": limitations,
+            "usage_sections": sections_list,
+            "relevance_score": max(1, min(5, relevance_score)),
+            "analyzed_at": __import__("datetime").datetime.now().isoformat(),
+        }
+
+        # Save analysis.json
+        analysis_path = ref_dir / "analysis.json"
+        analysis_path.write_text(
+            json.dumps(analysis, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+        # Update metadata.json with analysis status
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            meta["analysis_completed"] = True
+            meta["analysis_summary"] = summary
+            meta["usage_sections"] = sections_list
+            meta_path.write_text(
+                json.dumps(meta, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except (json.JSONDecodeError, OSError) as e:
+            return f"⚠️ Analysis saved but metadata update failed: {e}"
+
+        result = (
+            f"✅ Analysis saved for PMID:{pmid}\n"
+            f"**Summary**: {summary[:100]}...\n"
+            f"**Usage sections**: {', '.join(sections_list) or 'Not specified'}\n"
+            f"**Relevance**: {'⭐' * relevance_score}\n"
+            f"📁 Saved to: {analysis_path}"
+        )
+        log_tool_result("save_reference_analysis", f"pmid={pmid}, sections={sections_list}")
+        return result
