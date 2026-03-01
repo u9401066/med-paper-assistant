@@ -5,7 +5,7 @@ items:
   source: run_writing_hooks_A6
   created_at: '2026-02-27T12:25:35.678931+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: A6
@@ -14,24 +14,28 @@ items:
     - 7 shared 6-grams between paragraphs
     - 6 shared 6-grams between paragraphs
     - 6 shared 6-grams between paragraphs
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:11.932967+00:00'
 - id: PE-0002
   type: writing_hook_alert
   source: run_writing_hooks_F
   created_at: '2026-02-27T12:25:35.679986+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: F
     critical_count: 1
     issues:
     - Draft references 'Table 3' but no such entry in manifest
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:11.942588+00:00'
 - id: PE-0003
   type: writing_hook_alert
   source: run_writing_hooks_A6
   created_at: '2026-02-27T12:30:43.292222+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: A6
@@ -40,24 +44,28 @@ items:
     - 7 shared 6-grams between paragraphs
     - 6 shared 6-grams between paragraphs
     - 6 shared 6-grams between paragraphs
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:11.942588+00:00'
 - id: PE-0004
   type: writing_hook_alert
   source: run_writing_hooks_F
   created_at: '2026-02-27T12:30:43.294302+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: F
     critical_count: 1
     issues:
     - Draft references 'Table 3' but no such entry in manifest
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:11.958221+00:00'
 - id: PE-0005
   type: writing_hook_alert
   source: run_writing_hooks_A1
   created_at: '2026-02-27T18:28:29.011582+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: A1
@@ -66,12 +74,14 @@ items:
     - 'Abstract: 379 words (+52% over target 250, tolerance ±20%)'
     - 'Methods: 0 words (-100% under target 2000, tolerance ±20%)'
     - 'Results: 0 words (-100% under target 1500, tolerance ±20%)'
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:11.973847+00:00'
 - id: PE-0006
   type: writing_hook_alert
   source: run_writing_hooks_A3
   created_at: '2026-02-27T18:28:29.014576+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: A3
@@ -80,12 +90,14 @@ items:
     - AI-characteristic phrase 'it is worth noting' found (1x)
     - AI-characteristic phrase 'plays a crucial role' found (1x)
     - AI-characteristic phrase 'has garnered significant attention' found (1x)
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:11.973847+00:00'
 - id: PE-0007
   type: writing_hook_alert
   source: run_writing_hooks_A6
   created_at: '2026-02-27T18:28:29.016442+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: A6
@@ -93,12 +105,14 @@ items:
     issues:
     - 6 shared 6-grams between paragraphs
     - 6 shared 6-grams between paragraphs
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:11.989473+00:00'
 - id: PE-0008
   type: writing_hook_alert
   source: run_writing_hooks_F
   created_at: '2026-02-27T18:28:29.018554+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: F
@@ -106,24 +120,28 @@ items:
     issues:
     - Draft references 'Table 3' but no such entry in manifest
     - Draft contains statistical claims but no statistical test artifacts recorded
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.005097+00:00'
 - id: PE-0009
   type: writing_hook_alert
   source: run_writing_hooks_C5
   created_at: '2026-02-27T18:28:29.021318+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: C5
     critical_count: 1
     issues:
     - Wikilink [[author_year_pmid]] cannot be resolved to a saved reference
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.005097+00:00'
 - id: PE-0010
   type: writing_hook_alert
   source: run_writing_hooks_C7d
   created_at: '2026-02-27T18:28:29.023619+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: C7d
@@ -132,12 +150,14 @@ items:
     - 'Phantom: Table 1 referenced in text but not in manifest'
     - 'Phantom: Table 3 referenced in text but not in manifest'
     - 'Phantom: Table 2 referenced in text but not in manifest'
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.020723+00:00'
 - id: PE-0011
   type: writing_hook_alert
   source: run_writing_hooks_A1
   created_at: '2026-02-27T18:33:20.226780+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: A1
@@ -146,12 +166,14 @@ items:
     - 'Methods: 0 words (-100% under target 2000, tolerance ±20%)'
     - 'Results: 0 words (-100% under target 1500, tolerance ±20%)'
     - 'Discussion: 0 words (-100% under target 1500, tolerance ±20%)'
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.036348+00:00'
 - id: PE-0012
   type: writing_hook_alert
   source: run_writing_hooks_A3
   created_at: '2026-02-27T18:33:20.232457+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: A3
@@ -160,12 +182,14 @@ items:
     - AI-characteristic phrase 'it is worth noting' found (1x)
     - AI-characteristic phrase 'plays a crucial role' found (1x)
     - AI-characteristic phrase 'has garnered significant attention' found (1x)
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.052970+00:00'
 - id: PE-0013
   type: writing_hook_alert
   source: run_writing_hooks_F
   created_at: '2026-02-27T18:33:20.235547+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: F
@@ -173,12 +197,14 @@ items:
     issues:
     - Draft references 'Table 3' but no such entry in manifest
     - Draft contains statistical claims but no statistical test artifacts recorded
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.065047+00:00'
 - id: PE-0014
   type: writing_hook_alert
   source: run_writing_hooks_C7d
   created_at: '2026-02-27T18:33:20.239512+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: C7d
@@ -187,12 +213,14 @@ items:
     - 'Phantom: Table 1 referenced in text but not in manifest'
     - 'Phantom: Table 3 referenced in text but not in manifest'
     - 'Phantom: Table 2 referenced in text but not in manifest'
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.075199+00:00'
 - id: PE-0015
   type: writing_hook_alert
   source: run_writing_hooks_A1
   created_at: '2026-02-27T18:53:56.856004+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: A1
@@ -201,12 +229,14 @@ items:
     - 'Methods: 0 words (-100% under target 2000, tolerance ±20%)'
     - 'Results: 0 words (-100% under target 1500, tolerance ±20%)'
     - 'Discussion: 0 words (-100% under target 1500, tolerance ±20%)'
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.085266+00:00'
 - id: PE-0016
   type: writing_hook_alert
   source: run_writing_hooks_C7d
   created_at: '2026-02-27T18:53:56.863102+00:00'
   project: self-evolving-ai-paper-writing-framework
-  status: pending
+  status: dismissed
   auto_apply: false
   payload:
     hook_id: C7d
@@ -215,6 +245,8 @@ items:
     - 'Phantom: Table 1 referenced in text but not in manifest'
     - 'Phantom: Table 3 referenced in text but not in manifest'
     - 'Phantom: Table 2 referenced in text but not in manifest'
+  dismissed_reason: agent_dismissed
+  applied_at: '2026-02-28T19:02:12.095377+00:00'
 next_id: 17
 created_at: '2026-02-27T12:25:35.678947+00:00'
-updated_at: '2026-02-27T18:53:56.863116+00:00'
+updated_at: '2026-02-28T19:02:12.095377+00:00'

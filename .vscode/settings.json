@@ -89,5 +89,6 @@
         "projects/self-evolving-ai-paper-writing-framework/data/**",
         "projects/self-evolving-ai-paper-writing-framework/results/**",
         "projects/temp-exploration/**"
-    ]
+    ],
+    "lineCountExplorer.enabled": false
 }

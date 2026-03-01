@@ -1,5 +1,40 @@
 # Decision Log
 
+## [2026-02-28] v0.4.0 文件計數動態同步與 Hook 架構完善
+
+### 背景
+
+深度審查（2026-02-27）後發現文件中的數量宣稱（工具數、hook 數、prompt 數等）散佈於 7+ 個檔案中，長期手動維護導致嚴重不一致：README 寫 131 tools、ARCHITECTURE 寫 89、copilot-instructions 寫 87/81，實際 AST 計數為 85。Hook 數也從 42/56/65 不等，實際為 76。
+
+### 決定
+
+1. **建立動態計數同步腳本** (`scripts/sync_repo_counts.py`)，以 AST 解析取代 regex 計數，支援 `--check`（CI gate）/`--fix`（自動更新）/`--json`（程式化輸出）三種模式
+2. **補齊 Hook 架構缺失**：EXPECTED_HOOKS 40→58、HOOK_CATEGORIES 加入 "R"、ReviewHooksEngine 加入 `__init__.py` exports
+3. **auto-paper-guide "42" 保持不變** — 確認這是 Agent-Driven 子集（A-D hooks），非總數 76
+
+### 關鍵技術決定
+
+| 問題 | 選項 | 決定 | 理由 |
+| --- | --- | --- | --- |
+| 計數方法 | A. Regex / B. AST | **B. AST** | `tool_logging.py` docstring 有 `@mcp.tool()` 示例，regex 會誤計為 89（實際 85） |
+| auto-paper-guide "42" | A. 同步到 76 / B. 保持 42 | **B. 保持 42** | 該數字指 Agent-Driven 子集，非總數。加註釋說明 |
+| 文件表格對齊 | A. format string / B. regex group capture | **B. `\g<1>`** | 保留原始 markdown 格式，避免空格錯亂 |
+| EXPECTED_HOOKS 排除 D/G | A. 全部加入 / B. 排除 | **B. 排除** | D1-D9 是 meta-learning 引擎本身（自引用），G1-G9 在 pre-commit 獨立追蹤 |
+
+### 成果
+
+- `sync_repo_counts.py` 自動修復 43 個過時計數，覆蓋 7 個文件
+- `check_consistency.py` 6/6 checks passed
+- 698 tests passed, 0 failed
+- VSX extension 同步更新（copilot-instructions.md, README.md, package.json）
+
+### 影響
+
+- 未來任何新增/移除 MCP tool 或 hook，只需 `uv run python scripts/sync_repo_counts.py --fix` 即可全面同步
+- CI 可加入 `--check` 作為 gate，防止文件數量漂移
+
+---
+
 ## [2026-02-27] 深度審查：框架實作完整性盤點
 
 ### 背景
