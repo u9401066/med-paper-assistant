@@ -17,6 +17,7 @@ from med_paper_assistant.infrastructure.services.concept_validator import Concep
 from med_paper_assistant.infrastructure.services.prompts import SECTION_PROMPTS
 
 from .._shared import (
+    auto_checkpoint_writing,
     get_concept_path,
     get_drafts_dir,
     log_agent_misuse,
@@ -444,6 +445,9 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
 
         try:
             path = drafter.create_draft(filename, fixed_content)
+
+            # Auto-checkpoint writing session for compaction recovery
+            auto_checkpoint_writing(filename, fixed_content, "write")
 
             reminder = ""
             if not is_concept_file:

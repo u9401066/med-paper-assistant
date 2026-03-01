@@ -255,7 +255,15 @@ class PipelineGateValidator:
         Check prerequisite artifacts for a given phase.
 
         Each phase depends on artifacts from earlier phases.
-        Returns WARNING-level checks for missing prerequisites.
+        Returns CRITICAL-level checks for missing prerequisites to enforce
+        sequential execution — the agent cannot skip phases.
+
+        Note: Phase 65 (Evolution Gate) is numerically 65 but logically sits
+        between Phase 6 and Phase 7.  The numeric comparisons (>=) happen to be
+        correct for Phase 65 in all cases except exports — ``65 >= 7`` (manuscript)
+        and ``65 >= 9`` (scorecard) are both True, which is desired because
+        Phase 65 comes after Phase 5 (Writing) and Phase 6 (Audit).
+        Only exports uses ``== 11`` to avoid Phase 65 triggering it.
         """
         checks = []
 
@@ -267,8 +275,8 @@ class PipelineGateValidator:
                     name="prereq:project.json",
                     description="Project config required",
                     passed=pj.is_file(),
-                    details="exists" if pj.is_file() else "MISSING — Phase 0 incomplete?",
-                    severity="WARNING",
+                    details="exists" if pj.is_file() else "MISSING — complete Phase 0 first",
+                    severity="CRITICAL",
                 )
             )
 
@@ -283,8 +291,8 @@ class PipelineGateValidator:
                     passed=ref_count >= 5,
                     details=f"{ref_count} references"
                     if ref_count > 0
-                    else "No references — Phase 2 incomplete?",
-                    severity="WARNING",
+                    else "No references — complete Phase 2 first",
+                    severity="CRITICAL",
                 )
             )
 
@@ -298,8 +306,8 @@ class PipelineGateValidator:
                     name="prereq:concept.md",
                     description="Concept from Phase 3",
                     passed=has_concept,
-                    details="exists" if has_concept else "MISSING — Phase 3 incomplete?",
-                    severity="WARNING",
+                    details="exists" if has_concept else "MISSING — complete Phase 3 first",
+                    severity="CRITICAL",
                 )
             )
 
@@ -311,8 +319,8 @@ class PipelineGateValidator:
                     name="prereq:manuscript.md",
                     description="Manuscript from Phase 5",
                     passed=ms.is_file(),
-                    details="exists" if ms.is_file() else "MISSING — Phase 5 incomplete?",
-                    severity="WARNING",
+                    details="exists" if ms.is_file() else "MISSING — complete Phase 5 first",
+                    severity="CRITICAL",
                 )
             )
 
@@ -324,8 +332,26 @@ class PipelineGateValidator:
                     name="prereq:quality-scorecard",
                     description="Quality scorecard from Phase 6",
                     passed=scorecard.is_file(),
-                    details="exists" if scorecard.is_file() else "MISSING — Phase 6 incomplete?",
-                    severity="WARNING",
+                    details="exists" if scorecard.is_file() else "MISSING — complete Phase 6 first",
+                    severity="CRITICAL",
+                )
+            )
+
+        # Phase 11 needs exports (docx + pdf) — use == because Phase 65 (6.5)
+        # is numerically > 11 but logically before Phase 9
+        if phase == 11:
+            export_dir = self._project_dir / "exports"
+            has_docx = bool(list(export_dir.glob("*.docx"))) if export_dir.is_dir() else False
+            has_pdf = bool(list(export_dir.glob("*.pdf"))) if export_dir.is_dir() else False
+            checks.append(
+                GateCheck(
+                    name="prereq:exports",
+                    description="Export files from Phase 9 (docx + pdf)",
+                    passed=has_docx and has_pdf,
+                    details="docx+pdf exist" if (has_docx and has_pdf) else
+                            f"MISSING — {'no docx' if not has_docx else ''}"
+                            f"{'no pdf' if not has_pdf else ''} — complete Phase 9 first",
+                    severity="CRITICAL",
                 )
             )
 
@@ -344,7 +370,7 @@ class PipelineGateValidator:
         This is the "heartbeat" — the agent calls this to see
         remaining work. Cannot lie about completion.
         """
-        phases = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10]
+        phases = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
         phase_names = {
             0: "Configuration",
             1: "Setup",
@@ -358,6 +384,7 @@ class PipelineGateValidator:
             8: "Reference Sync",
             9: "Export",
             10: "Retrospective",
+            11: "Commit & Push",
         }
 
         results = []

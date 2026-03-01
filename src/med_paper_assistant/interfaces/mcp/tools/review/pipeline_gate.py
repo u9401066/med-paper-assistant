@@ -19,6 +19,7 @@ Tools:
 import hashlib
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -63,8 +64,9 @@ _PHASE_NAMES = {
     8: "Reference Sync",
     9: "Export",
     10: "Retrospective",
+    11: "Commit & Push",
 }
-_ALL_PHASES = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10]
+_ALL_PHASES = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
 
 # Module-level cache: slug → AutonomousAuditLoop instance
 _active_loops: dict[str, AutonomousAuditLoop] = {}
@@ -124,13 +126,18 @@ def _sync_to_workspace_state(
     """
     try:
         wsm = get_workspace_state_manager()
-        # Calculate phases passed/remaining from heartbeat
-        phases_passed = []
-        phases_remaining = []
+        # Read existing state to merge phases cumulatively
+        existing_state = wsm.get_state()
+        existing_pipeline = existing_state.get("pipeline_state", {})
+        existing_passed = set(existing_pipeline.get("phases_passed", []))
+        existing_remaining = set(existing_pipeline.get("phases_remaining", []))
+
+        # Update cumulatively
         if gate_passed:
-            phases_passed.append(phase)
+            existing_passed.add(phase)
+            existing_remaining.discard(phase)
         else:
-            phases_remaining.append(phase)
+            existing_remaining.add(phase)
 
         wsm.sync_pipeline_state(
             project=slug,
@@ -139,8 +146,8 @@ def _sync_to_workspace_state(
             gate_passed=gate_passed,
             gate_failures=gate_failures,
             next_action=next_action,
-            phases_passed=phases_passed,
-            phases_remaining=phases_remaining,
+            phases_passed=sorted(existing_passed),
+            phases_remaining=sorted(existing_remaining),
             current_round=current_round,
             review_verdict=review_verdict,
         )
@@ -156,6 +163,21 @@ def _compute_manuscript_hash(project_dir: str | Path) -> str:
         return ""
     content = manuscript.read_bytes()
     return hashlib.sha256(content).hexdigest()
+
+
+def _write_pipeline_completed(project_dir: Path, slug: str) -> None:
+    """Write pipeline-completed.json marker when Phase 11 gate passes."""
+    audit_dir = project_dir / ".audit"
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    marker = {
+        "project": slug,
+        "status": "COMPLETED",
+        "completed_at": datetime.now().isoformat(),
+        "phases_completed": [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11],
+    }
+    marker_path = audit_dir / "pipeline-completed.json"
+    marker_path.write_text(json.dumps(marker, indent=2, ensure_ascii=False), encoding="utf-8")
+    structlog.get_logger().info("Pipeline completed", project=slug, marker=str(marker_path))
 
 
 def _count_review_report_issues(audit_dir: Path, round_num: int) -> dict[str, int]:
@@ -226,6 +248,10 @@ def register_pipeline_tools(
 
             validator = PipelineGateValidator(project_dir)
             result = validator.validate_phase(phase)
+
+            # Write pipeline-completed marker when Phase 11 passes
+            if phase == 11 and result.passed:
+                _write_pipeline_completed(project_dir, slug)
 
             # Auto-sync pipeline state (anti-compaction defense)
             failure_names = [c.name for c in result.critical_failures]
@@ -536,8 +562,10 @@ def register_pipeline_tools(
             start_hash = getattr(loop, "_artifact_hash_start", "")
             # Also check round records for start hash
             if not start_hash and loop._rounds:
-                # Fallback: check if we stored it in last incomplete round tracking
-                pass
+                # Fallback: recover from last completed round's end hash
+                last_round = loop._rounds[-1]
+                if last_round.artifact_hash_end:
+                    start_hash = last_round.artifact_hash_end
 
             if start_hash and current_hash and start_hash == current_hash:
                 enforcement_failures.append(
@@ -565,14 +593,86 @@ def register_pipeline_tools(
                         "finds at least narrative improvements. Ensure you reviewed carefully."
                     )
 
+            # ── R-series: Content-quality enforcement (Code-Enforced) ──
+            from med_paper_assistant.infrastructure.persistence.review_hooks import (
+                ReviewHooksEngine,
+            )
+
+            review_engine = ReviewHooksEngine(project_dir)
+            manuscript_content = ""
+            draft_dir = project_dir / "drafts"
+            if draft_dir.is_dir():
+                manuscript_path = draft_dir / "manuscript.md"
+                if manuscript_path.is_file():
+                    try:
+                        manuscript_content = manuscript_path.read_text(encoding="utf-8")
+                    except OSError:
+                        pass
+                else:
+                    # Fallback: pick the largest .md file
+                    for md_file in sorted(
+                        draft_dir.glob("*.md"),
+                        key=lambda p: p.stat().st_size,
+                        reverse=True,
+                    ):
+                        try:
+                            manuscript_content = md_file.read_text(encoding="utf-8")
+                            break
+                        except OSError:
+                            pass
+
+            # Determine actual manuscript modification status
+            if start_hash and current_hash:
+                manuscript_modified = start_hash != current_hash
+                mod_label = "✅ (hash changed)" if manuscript_modified else "❌ (hash unchanged)"
+            else:
+                manuscript_modified = True  # assume modified if hashes unavailable
+                mod_label = "⚠️ (hash unavailable — assumed modified)"
+
+            r_results = review_engine.run_all(
+                round_num=round_num,
+                issues_fixed=issues_fixed,
+                manuscript_changed=manuscript_modified,
+                manuscript_content=manuscript_content,
+            )
+
+            r_warnings: list[str] = []
+            for hook_id, result in r_results.items():
+                if not result.passed:
+                    for issue in result.issues:
+                        if issue.severity == "CRITICAL":
+                            enforcement_failures.append(
+                                f"❌ [{hook_id}] {issue.message}"
+                                + (f" — {issue.suggestion}" if issue.suggestion else "")
+                            )
+                        elif issue.severity == "WARNING":
+                            r_warnings.append(
+                                f"⚠️ [{hook_id}] {issue.message}"
+                                + (f" — {issue.suggestion}" if issue.suggestion else "")
+                            )
+                else:
+                    # Even passing hooks may have warnings
+                    for issue in result.issues:
+                        if issue.severity == "WARNING":
+                            r_warnings.append(
+                                f"⚠️ [{hook_id}] {issue.message}"
+                                + (f" — {issue.suggestion}" if issue.suggestion else "")
+                            )
+
             # If enforcement failures, REJECT the submission
             if enforcement_failures:
-                failure_report = (
-                    f"# 🚫 Review Round {round_num} Submission REJECTED\n\n"
-                    + "The following enforcement checks failed:\n\n"
-                    + "\n".join(f"- {f}" for f in enforcement_failures)
-                    + "\n\nFix these issues and call `submit_review_round()` again."
-                )
+                failure_lines = [
+                    f"# 🚫 Review Round {round_num} Submission REJECTED\n",
+                    "The following enforcement checks failed:\n",
+                    *[f"- {f}" for f in enforcement_failures],
+                ]
+                if r_warnings:
+                    failure_lines.extend([
+                        "\n## Warnings (address if possible)\n",
+                        *[f"- {w}" for w in r_warnings],
+                    ])
+                failure_lines.append("\nFix these issues and call `submit_review_round()` again.")
+                failure_report = "\n".join(failure_lines)
                 log_tool_result("submit_review_round", "REJECTED: enforcement failures")
                 return failure_report
 
@@ -649,7 +749,7 @@ def register_pipeline_tools(
                 "",
                 f"**Rounds Completed**: {status['current_round']}/{status['max_rounds']}",
                 f"**Weighted Score**: {status.get('latest_weighted_score', 'N/A')}",
-                "**Manuscript Modified**: ✅ (hash changed)",
+                "**Manuscript Modified**: " + mod_label,
                 "",
                 "## Scores This Round",
                 "",
@@ -658,6 +758,17 @@ def register_pipeline_tools(
             ]
             for dim, score in score_dict.items():
                 lines.append(f"| {dim} | {score} |")
+
+            # Append R-hook summary
+            lines.extend(["", "## Review Hook Results (R-series)", ""])
+            for hook_id, result in r_results.items():
+                status_icon = "✅" if result.passed else "❌"
+                lines.append(f"- {status_icon} **{hook_id}**: {'PASS' if result.passed else 'FAIL'}")
+
+            if r_warnings:
+                lines.extend(["", "## Warnings", ""])
+                for w in r_warnings:
+                    lines.append(f"- {w}")
 
             report = "\n".join(lines)
             log_tool_result("submit_review_round", f"verdict={verdict.value}")
@@ -1149,7 +1260,7 @@ def _log_review_round_to_evolution(
         with open(elog, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except OSError:
-        pass
+        structlog.get_logger().warning("Failed to write evolution log entry", path=str(elog))
 
 
 __all__ = ["register_pipeline_tools"]

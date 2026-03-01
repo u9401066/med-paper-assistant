@@ -129,6 +129,7 @@ class PipelineGateValidator:
             0: self._validate_phase_0,
             1: self._validate_phase_1,
             2: self._validate_phase_2,
+            21: self._validate_phase_2_1,
             3: self._validate_phase_3,
             4: self._validate_phase_4,
             5: self._validate_phase_5,
@@ -256,7 +257,15 @@ class PipelineGateValidator:
         Check prerequisite artifacts for a given phase.
 
         Each phase depends on artifacts from earlier phases.
-        Returns WARNING-level checks for missing prerequisites.
+        Returns CRITICAL-level checks for missing prerequisites to enforce
+        sequential execution — the agent cannot skip phases.
+
+        Note: Phase 65 (Evolution Gate) is numerically 65 but logically sits
+        between Phase 6 and Phase 7.  The numeric comparisons (>=) happen to be
+        correct for Phase 65 in all cases except exports — ``65 >= 7`` (manuscript)
+        and ``65 >= 9`` (scorecard) are both True, which is desired because
+        Phase 65 comes after Phase 5 (Writing) and Phase 6 (Audit).
+        Only exports uses ``== 11`` to avoid Phase 65 triggering it.
         """
         checks = []
 
@@ -268,8 +277,8 @@ class PipelineGateValidator:
                     name="prereq:project.json",
                     description="Project config required",
                     passed=pj.is_file(),
-                    details="exists" if pj.is_file() else "MISSING — Phase 0 incomplete?",
-                    severity="WARNING",
+                    details="exists" if pj.is_file() else "MISSING — complete Phase 0 first",
+                    severity="CRITICAL",
                 )
             )
 
@@ -284,8 +293,8 @@ class PipelineGateValidator:
                     passed=ref_count >= 5,
                     details=f"{ref_count} references"
                     if ref_count > 0
-                    else "No references — Phase 2 incomplete?",
-                    severity="WARNING",
+                    else "No references — complete Phase 2 first",
+                    severity="CRITICAL",
                 )
             )
 
@@ -299,12 +308,12 @@ class PipelineGateValidator:
                     name="prereq:concept.md",
                     description="Concept from Phase 3",
                     passed=has_concept,
-                    details="exists" if has_concept else "MISSING — Phase 3 incomplete?",
-                    severity="WARNING",
+                    details="exists" if has_concept else "MISSING — complete Phase 3 first",
+                    severity="CRITICAL",
                 )
             )
 
-        # Phase 7+ needs manuscript
+        # Phase 7+ needs manuscript (65 >= 7 is True — correct, Phase 65 is after Writing)
         if phase >= 7:
             ms = self._drafts_dir / "manuscript.md"
             checks.append(
@@ -312,12 +321,12 @@ class PipelineGateValidator:
                     name="prereq:manuscript.md",
                     description="Manuscript from Phase 5",
                     passed=ms.is_file(),
-                    details="exists" if ms.is_file() else "MISSING — Phase 5 incomplete?",
-                    severity="WARNING",
+                    details="exists" if ms.is_file() else "MISSING — complete Phase 5 first",
+                    severity="CRITICAL",
                 )
             )
 
-        # Phase 9+ needs .audit directory with audit artifacts
+        # Phase 9+ needs quality-scorecard (65 >= 9 is True — correct, Phase 65 is after Audit)
         if phase >= 9:
             scorecard = self._audit_dir / "quality-scorecard.md"
             checks.append(
@@ -325,8 +334,25 @@ class PipelineGateValidator:
                     name="prereq:quality-scorecard",
                     description="Quality scorecard from Phase 6",
                     passed=scorecard.is_file(),
-                    details="exists" if scorecard.is_file() else "MISSING — Phase 6 incomplete?",
-                    severity="WARNING",
+                    details="exists" if scorecard.is_file() else "MISSING — complete Phase 6 first",
+                    severity="CRITICAL",
+                )
+            )
+
+        # Phase 11 only — exports (docx + pdf).  Uses == to exclude Phase 65.
+        if phase == 11:
+            export_dir = self._project_dir / "exports"
+            has_docx = bool(list(export_dir.glob("*.docx"))) if export_dir.is_dir() else False
+            has_pdf = bool(list(export_dir.glob("*.pdf"))) if export_dir.is_dir() else False
+            checks.append(
+                GateCheck(
+                    name="prereq:exports",
+                    description="Export files from Phase 9 (docx + pdf)",
+                    passed=has_docx and has_pdf,
+                    details="docx+pdf exist" if (has_docx and has_pdf) else
+                            f"MISSING — {'no docx' if not has_docx else ''}"
+                            f"{'no pdf' if not has_pdf else ''} — complete Phase 9 first",
+                    severity="CRITICAL",
                 )
             )
 
@@ -345,7 +371,7 @@ class PipelineGateValidator:
         This is the "heartbeat" — the agent calls this to see
         remaining work. Cannot lie about completion.
         """
-        phases = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10]
+        phases = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
         phase_names = {
             0: "Configuration",
             1: "Setup",
@@ -359,6 +385,7 @@ class PipelineGateValidator:
             8: "Reference Sync",
             9: "Export",
             10: "Retrospective",
+            11: "Commit & Push",
         }
 
         results = []
@@ -471,6 +498,88 @@ class PipelineGateValidator:
             )
 
         return GateResult(phase=2, phase_name="Literature", checks=checks, passed=False)
+
+    def _validate_phase_2_1(self) -> GateResult:
+        """Phase 2.1: Fulltext ingestion + per-reference analysis."""
+        checks = []
+        refs_dir = self._project_dir / "references"
+
+        # Check fulltext-ingestion-status.md exists
+        status_file = refs_dir / "fulltext-ingestion-status.md"
+        checks.append(
+            GateCheck(
+                name="fulltext_ingestion_status",
+                description="Fulltext ingestion status file created",
+                passed=status_file.is_file(),
+                details="exists" if status_file.is_file() else "MISSING",
+            )
+        )
+
+        # Check individual reference metadata for fulltext and analysis status
+        ingested_count = 0
+        not_ingested_count = 0
+        analyzed_count = 0
+        not_analyzed_count = 0
+        total_refs = 0
+
+        if refs_dir.is_dir():
+            for ref_dir in refs_dir.iterdir():
+                if not ref_dir.is_dir() or ref_dir.name.startswith("."):
+                    continue
+                meta_path = ref_dir / "metadata.json"
+                if not meta_path.is_file():
+                    continue
+                total_refs += 1
+                try:
+                    import json
+
+                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    if meta.get("fulltext_ingested", False):
+                        ingested_count += 1
+                    else:
+                        not_ingested_count += 1
+                    if meta.get("analysis_completed", False):
+                        analyzed_count += 1
+                    else:
+                        not_analyzed_count += 1
+                except Exception:
+                    not_ingested_count += 1
+                    not_analyzed_count += 1
+
+        checks.append(
+            GateCheck(
+                name="fulltext_coverage",
+                description="References with fulltext ingested",
+                passed=total_refs == 0 or ingested_count > 0,
+                details=f"{ingested_count}/{total_refs} ingested, {not_ingested_count} metadata-only",
+                severity="WARNING",
+            )
+        )
+
+        # Analysis coverage check (CRITICAL — every ref must be analyzed)
+        checks.append(
+            GateCheck(
+                name="analysis_coverage",
+                description="References with subagent analysis completed",
+                passed=total_refs == 0 or not_analyzed_count == 0,
+                details=f"{analyzed_count}/{total_refs} analyzed, {not_analyzed_count} pending",
+                severity="CRITICAL",
+            )
+        )
+
+        # Warning if majority lacks fulltext
+        if total_refs > 0 and not_ingested_count > total_refs * 0.5:
+            checks.append(
+                GateCheck(
+                    name="fulltext_coverage_warning",
+                    description="Majority of references should have fulltext",
+                    passed=False,
+                    details=f">50% references ({not_ingested_count}/{total_refs}) lack fulltext. Consider adding Open Access references.",
+                    severity="WARNING",
+                )
+            )
+
+        return GateResult(phase=21, phase_name="Fulltext Ingestion", checks=checks, passed=False)
 
     def _validate_phase_3(self) -> GateResult:
         """Phase 3: concept.md exists with required sections."""

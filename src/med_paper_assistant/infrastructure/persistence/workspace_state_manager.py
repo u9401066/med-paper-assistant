@@ -227,6 +227,16 @@ class WorkspaceStateManager:
                 "review_verdict": None,
                 "last_heartbeat": None,
             },
+            "writing_session": {
+                "active": False,
+                "current_section": None,
+                "last_file_modified": None,
+                "last_operation": None,
+                "word_count": 0,
+                "sections_on_disk": [],
+                "timestamp": None,
+                "agent_context": None,
+            },
         }
 
     # =========================================================================
@@ -266,6 +276,60 @@ class WorkspaceStateManager:
             state["recovery_hints"]["next_suggested_action"] = next_action
         if context:
             state["recovery_hints"]["important_context"] = context
+
+        return self.save_state(state)
+
+    def sync_writing_session(
+        self,
+        section: str,
+        filename: str,
+        operation: str,
+        word_count: int = 0,
+        agent_context: str | None = None,
+    ) -> bool:
+        """
+        Auto-checkpoint writing session state.
+
+        Called automatically by write_draft/patch_draft after successful writes.
+        Survives context compaction so the agent can recover writing progress.
+
+        Args:
+            section: Section name being written (e.g., "Introduction").
+            filename: Draft filename modified.
+            operation: "write" or "patch".
+            word_count: Current word count of the file.
+            agent_context: Optional agent notes about current writing intent.
+        """
+        state = self.get_state()
+
+        # Scan drafts/ to capture all sections on disk
+        sections_on_disk = []
+        slug = self._get_current_project_slug()
+        if slug:
+            drafts_dir = self.projects_dir / slug / "drafts"
+            if drafts_dir.is_dir():
+                for f in sorted(drafts_dir.iterdir()):
+                    if f.suffix == ".md":
+                        name = f.stem.replace("-", " ").replace("_", " ").title()
+                        wc = len(f.read_text(encoding="utf-8").split())
+                        sections_on_disk.append(f"{name} ({wc}w)")
+
+        state["writing_session"] = {
+            "active": True,
+            "current_section": section,
+            "last_file_modified": filename,
+            "last_operation": operation,
+            "word_count": word_count,
+            "sections_on_disk": sections_on_disk,
+            "timestamp": datetime.now().isoformat(),
+            "agent_context": agent_context,
+        }
+
+        # Also update recovery hints as double-safety
+        state["recovery_hints"]["agent_was_doing"] = (
+            f"Writing {section} ({operation} → {filename})"
+        )
+        state["last_activity"] = datetime.now().isoformat()
 
         return self.save_state(state)
 
@@ -424,6 +488,27 @@ class WorkspaceStateManager:
 
         if ws_state.get("pending_validations"):
             lines.append(f"**Pending Validations:** {len(ws_state['pending_validations'])}")
+
+        # ── WRITING SESSION BANNER ──
+        ws = state.get("writing_session", {})
+        if ws.get("active"):
+            lines.append("")
+            lines.append("### ✍️ WRITING SESSION IN PROGRESS")
+            lines.append("")
+            lines.append(f"**Last Section**: {ws.get('current_section')}")
+            lines.append(f"**Last File**: `{ws.get('last_file_modified')}`")
+            lines.append(f"**Last Operation**: {ws.get('last_operation')}")
+            lines.append(f"**Word Count**: {ws.get('word_count', 0)}")
+            lines.append(f"**Timestamp**: {ws.get('timestamp')}")
+            if ws.get("agent_context"):
+                lines.append(f"\n📋 **Agent Context**: {ws['agent_context']}")
+            if ws.get("sections_on_disk"):
+                lines.append("\n**Sections on Disk:**")
+                for sec in ws["sections_on_disk"]:
+                    lines.append(f"  - {sec}")
+            lines.append(
+                "\n💡 Use `read_draft` to review current content before continuing."
+            )
 
         return "\n".join(lines)
 

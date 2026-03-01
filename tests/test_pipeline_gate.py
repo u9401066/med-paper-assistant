@@ -25,6 +25,43 @@ def validator(project_dir):
     return PipelineGateValidator(project_dir)
 
 
+def _add_prerequisites(project_dir, up_to_phase: int):
+    """Add prerequisite artifacts needed so that validate_phase(up_to_phase) won't
+    fail on prerequisite checks.
+
+    Uses the same numeric comparison as _check_prerequisites in production code.
+    Phase 65 (Evolution Gate) works correctly because 65 >= 7 (manuscript) and
+    65 >= 9 (scorecard) are both True, while 65 == 11 (exports) is False.
+    """
+    if up_to_phase >= 2:
+        pj = project_dir / "project.json"
+        if not pj.is_file():
+            pj.write_text('{"slug": "test"}')
+    if up_to_phase >= 3:
+        refs = project_dir / "references"
+        for i in range(5):
+            f = refs / f"ref-{i}.md"
+            if not f.is_file():
+                f.write_text(f"# Ref {i}")
+    if up_to_phase >= 5:
+        concept = project_dir / "concept.md"
+        if not concept.is_file():
+            concept.write_text("# Concept")
+    if up_to_phase >= 7:
+        ms = project_dir / "drafts" / "manuscript.md"
+        if not ms.is_file():
+            ms.write_text("# Manuscript")
+    if up_to_phase >= 9:
+        sc = project_dir / ".audit" / "quality-scorecard.md"
+        if not sc.is_file():
+            sc.write_text("# Scorecard")
+    if up_to_phase == 11:
+        exports = project_dir / "exports"
+        exports.mkdir(parents=True, exist_ok=True)
+        (exports / "paper.docx").write_bytes(b"PK")
+        (exports / "paper.pdf").write_bytes(b"%PDF")
+
+
 class TestGateResult:
     def test_critical_failures(self):
         result = GateResult(
@@ -105,6 +142,7 @@ class TestPhase5:
         assert not r.passed  # missing Methods, Results, Discussion
 
     def test_pass_full_manuscript(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=5)
         content = "\n".join(
             [
                 "# Title",
@@ -153,6 +191,7 @@ class TestPhase7:
 
     def test_pass_complete_review(self, validator, project_dir):
         """Full review loop with all artifacts should PASS."""
+        _add_prerequisites(project_dir, up_to_phase=7)
         audit = project_dir / ".audit"
         state = {
             "config": {"max_rounds": 3},
@@ -184,6 +223,7 @@ class TestPhase65:
         assert not r.passed
 
     def test_pass_with_baseline(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=65)
         audit = project_dir / ".audit"
         entries = [json.dumps({"event": "baseline", "round": 0})]
         (audit / "evolution-log.jsonl").write_text("\n".join(entries) + "\n")
@@ -197,7 +237,7 @@ class TestHeartbeat:
         status = validator.get_pipeline_status()
         assert "completion_pct" in status
         assert "phases" in status
-        assert len(status["phases"]) == 12
+        assert len(status["phases"]) == 13
 
     def test_heartbeat_reflects_progress(self, validator, project_dir):
         # Add journal-profile → Phase 0 passes
@@ -273,7 +313,7 @@ class TestPrerequisiteChecks:
         prereq_checks = [c for c in r.checks if c.name.startswith("prereq:")]
         assert len(prereq_checks) == 1
         assert prereq_checks[0].name == "prereq:project.json"
-        assert prereq_checks[0].severity == "WARNING"
+        assert prereq_checks[0].severity == "CRITICAL"
 
     def test_phase_5_has_concept_prereq(self, validator, project_dir):
         """Phase 5 should check concept.md prerequisite."""
@@ -289,9 +329,10 @@ class TestPrerequisiteChecks:
         prereq_names = [c.name for c in r.checks if c.name.startswith("prereq:")]
         assert "prereq:manuscript.md" in prereq_names
 
-    def test_prereqs_are_warnings_not_blocking(self, validator, project_dir):
-        """Prerequisite failures should be WARNING, not CRITICAL."""
+    def test_prereqs_are_critical_blocking(self, validator, project_dir):
+        """Prerequisite failures should be CRITICAL — blocking phase progression."""
         r = validator.validate_phase(5)
         prereq_fails = [c for c in r.checks if c.name.startswith("prereq:") and not c.passed]
+        assert len(prereq_fails) > 0
         for c in prereq_fails:
-            assert c.severity == "WARNING"
+            assert c.severity == "CRITICAL"

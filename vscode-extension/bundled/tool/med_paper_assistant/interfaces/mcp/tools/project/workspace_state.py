@@ -95,3 +95,55 @@ def register_workspace_state_tools(mcp: FastMCP):
 💡 This state will be available in future sessions via `get_workspace_state`."""
         else:
             return "❌ Failed to sync workspace state. Check file permissions."
+
+    @mcp.tool()
+    def checkpoint_writing_context(
+        section: str,
+        plan: str = "",
+        notes: str = "",
+        references_in_use: str = "",
+    ) -> str:
+        """
+        Save detailed writing context to survive context compaction.
+        Call PROACTIVELY during long writing sessions to prevent losing
+        reasoning, plans, and style decisions when context is compacted.
+
+        Best called:
+        - Before starting each new paragraph
+        - After completing a significant portion of a section
+        - When switching between sections or references
+        - Before any operation that may trigger compaction
+
+        Args:
+            section: Current section being written (e.g., "Introduction")
+            plan: Writing plan/outline for the section (e.g., "P1: background, P2: gap, P3: aim")
+            notes: Agent's reasoning/approach notes (e.g., "formal tone, avoiding first person")
+            references_in_use: Key references currently being used (comma-separated citation keys)
+        """
+        state_manager = get_workspace_state_manager()
+
+        # Build rich agent context
+        context_parts = []
+        if plan:
+            context_parts.append(f"Plan: {plan}")
+        if notes:
+            context_parts.append(f"Notes: {notes}")
+        if references_in_use:
+            context_parts.append(f"Refs: {references_in_use}")
+        agent_context = " | ".join(context_parts) if context_parts else None
+
+        success = state_manager.sync_writing_session(
+            section=section,
+            filename=f"{section.lower().replace(' ', '-')}.md",
+            operation="checkpoint",
+            agent_context=agent_context,
+        )
+
+        if success:
+            return (
+                f"✅ Writing context checkpointed for **{section}**\n\n"
+                "This context will survive context compaction and appear in "
+                "`get_workspace_state()` recovery summary."
+            )
+        else:
+            return "❌ Failed to checkpoint writing context."

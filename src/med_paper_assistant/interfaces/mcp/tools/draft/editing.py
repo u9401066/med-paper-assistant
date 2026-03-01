@@ -26,6 +26,7 @@ from med_paper_assistant.infrastructure.persistence.git_auto_committer import Gi
 from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
+    auto_checkpoint_writing,
     ensure_project_context,
     get_drafts_dir,
     get_project_list_for_prompt,
@@ -289,6 +290,11 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
         except Exception as e:
             log_tool_error("patch_draft", e, {"filepath": filepath})
             return f"❌ Error writing draft: {e}"
+
+        # Auto-checkpoint writing session for compaction recovery
+        auto_checkpoint_writing(
+            os.path.basename(filepath), new_content, "patch"
+        )
 
         # Auto-commit after successful write
         if drafts_dir:

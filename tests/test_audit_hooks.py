@@ -409,6 +409,13 @@ class TestEndToEndAuditPipeline:
         2. run_quality_audit (before Phase 6 gate)
         3. validate_phase_gate(6) → PASS
         """
+        # Prerequisites for Phase 6 (CRITICAL since pipeline enforcement)
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(5):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+        (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+
         rec = tool_funcs["record_hook_event"]
         audit = tool_funcs["run_quality_audit"]
 
@@ -446,6 +453,14 @@ class TestEndToEndAuditPipeline:
         3. run_meta_learning (Phase 10 D-hooks)
         4. validate_phase_gate(10) → PASS
         """
+        # Prerequisites for Phase 10 (CRITICAL since pipeline enforcement)
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(5):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+        (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+
         rec = tool_funcs["record_hook_event"]
         audit = tool_funcs["run_quality_audit"]
         meta = tool_funcs["run_meta_learning"]
@@ -596,8 +611,14 @@ class TestPhase6Enhanced:
         assert not qs_data.passed
         assert "3 dimensions scored" in qs_data.details
 
-    def test_pass_full_data(self, validator, audit_dir):
+    def test_pass_full_data(self, validator, audit_dir, project_dir):
         """All dimensions scored + hook events → PASS."""
+        # Prerequisites for Phase 6 (CRITICAL)
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(5):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+
         scores_data = {
             "version": 1,
             "scores": {
@@ -634,8 +655,14 @@ class TestPhase6Enhanced:
         assert he_data_check.passed
         assert "2 hooks with events" in he_data_check.details
 
-    def test_pass_with_4_dimensions(self, validator, audit_dir):
+    def test_pass_with_4_dimensions(self, validator, audit_dir, project_dir):
         """Exactly 4 dimensions scored → PASS (minimum threshold)."""
+        # Prerequisites for Phase 6 (CRITICAL)
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(5):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+
         scores_data = {
             "version": 1,
             "scores": {
@@ -726,6 +753,14 @@ class TestPhase10Enhanced:
 
     def test_pass_full_phase_10(self, validator, project_dir, audit_dir):
         """Complete Phase 10 with valid meta-learning data → PASS."""
+        # Prerequisites for Phase 10 (CRITICAL)
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(5):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+        (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+
         (audit_dir / "pipeline-run-20260101.md").write_text(
             "# Pipeline Run\n## D7\nReview retro\n## D8\nEQUATOR retro\n"
         )
@@ -797,6 +832,13 @@ class TestMetaLearningEngineIntegration:
         self, engine, tracker, scorecard, audit_dir, project_dir
     ):
         """End-to-end: engine analyze → evolution log → Phase 10 passes."""
+        # Prerequisites for Phase 10 (CRITICAL since pipeline enforcement)
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(5):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+        (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+
         tracker.record_event("A1", "trigger")
         tracker.record_event("A1", "pass")
         tracker.generate_report()
@@ -832,6 +874,12 @@ class TestQualityScorecardIntegration:
 
     def test_scorecard_set_scores_passes_phase6(self, scorecard, tracker, audit_dir, project_dir):
         """Setting ≥4 scores + recording hook events → Phase 6 passes."""
+        # Prerequisites for Phase 6 (CRITICAL)
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(5):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+
         for dim in DIMENSIONS:
             scorecard.set_score(dim, 7.5, f"Score for {dim}")
         scorecard.generate_report()

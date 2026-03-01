@@ -522,7 +522,7 @@ def register_audit_hook_tools(mcp: FastMCP):
         project: Optional[str] = None,
     ) -> str:
         """
-        ✍️ Run code-enforced writing hooks (29 checks).
+        ✍️ Run code-enforced writing hooks (37 checks).
 
         Call this after writing or editing a section. Runs the specified hooks
         and records events for each via HookEffectivenessTracker.
@@ -535,6 +535,14 @@ def register_audit_hook_tools(mcp: FastMCP):
         - A5: Language Consistency (British vs American English mixing)
         - A6: Self-Plagiarism / Overlap Detection (repeated n-grams)
         - B8: Data-Claim Alignment (statistical tests in Results ↔ Methods)
+        - B9: Section Tense Consistency (Methods/Results → past tense)
+        - B10: Paragraph Quality (length, structure, single-sentence detection)
+        - B11: Results Interpretive Language Guard (no speculation in Results)
+        - B12: Introduction Funnel Structure (context → gap → objective)
+        - B13: Discussion Structure (findings, limitations, implications)
+        - B14: Ethical & Registration Statements (IRB, consent, trial reg.)
+        - B15: Hedging Language Density (excessive may/might/could)
+        - B16: Effect Size & Statistical Reporting (p-values, CIs, effect sizes)
         - C3: N-value Consistency (sample sizes across sections)
         - C4: Abbreviation First-Use (defined at first occurrence)
         - C5: Wikilink Resolvable (wikilinks map to saved references)
@@ -542,18 +550,21 @@ def register_audit_hook_tools(mcp: FastMCP):
         - C7a: Figure/Table Count Limits
         - C7d: Cross-Reference Orphan/Phantom Detection
         - C9: Supplementary Cross-Reference (main text ↔ supplementary files)
+        - C10: Reference Fulltext Status (cited refs have fulltext ingested)
         - F:  Data Artifact Validation (provenance, manifest, draft)
         - P1: Citation Integrity (pre-commit, delegates to C5)
         - P2: Anti-AI Scan (pre-commit, delegates to A3)
         - P4: Word Count (pre-commit, delegates to A1 with stricter threshold)
         - P5: Protected Content (🔒 blocks in concept.md)
         - P7: Reference Integrity (verified metadata)
+        - G9: Git Status (uncommitted/unpushed changes)
 
         Args:
-            hooks: Comma-separated hook IDs (e.g., "A5,A6") or aliases:
-                   "all", "post-write" (A1-A6), "post-section" (B8),
+            hooks: Comma-separated hook IDs (e.g., "A5,A6,B11") or aliases:
+                   "all", "post-write" (A1-A6,B9,B10,B15),
+                   "post-section" (B8-B16),
                    "post-manuscript" (C3,C4,C5,C6,C7a,C7d,C9,F),
-                   "pre-commit" (P1,P2,P4,P5,P7).
+                   "pre-commit" (P1,P2,P4,P5,P7,G9).
             prefer_language: "american" or "british" (default: american).
                              Only affects A5.
             project: Project slug (optional, uses current project).
@@ -595,10 +606,19 @@ def register_audit_hook_tools(mcp: FastMCP):
                         "A1",
                         "A2",
                         "A3",
+                        "A3B",
                         "A4",
                         "A5",
                         "A6",
                         "B8",
+                        "B9",
+                        "B10",
+                        "B11",
+                        "B12",
+                        "B13",
+                        "B14",
+                        "B15",
+                        "B16",
                         "C3",
                         "C4",
                         "C5",
@@ -606,17 +626,21 @@ def register_audit_hook_tools(mcp: FastMCP):
                         "C7A",
                         "C7D",
                         "C9",
+                        "C10",
+                        "C11",
+                        "C12",
+                        "C13",
                         "F",
                     }
                     break
                 elif t == "POST-WRITE":
-                    requested |= {"A1", "A2", "A3", "A4", "A5", "A6"}
+                    requested |= {"A1", "A2", "A3", "A3B", "A4", "A5", "A6", "B9", "B10", "B15"}
                 elif t == "POST-SECTION":
-                    requested.add("B8")
+                    requested |= {"B8", "B9", "B10", "B11", "B12", "B13", "B14", "B15", "B16"}
                 elif t == "POST-MANUSCRIPT":
-                    requested |= {"C3", "C4", "C5", "C6", "C7A", "C7D", "C9", "F"}
+                    requested |= {"C3", "C4", "C5", "C6", "C7A", "C7D", "C9", "C10", "C11", "C12", "C13", "F"}
                 elif t == "PRE-COMMIT":
-                    requested |= {"P1", "P2", "P4", "P5", "P7"}
+                    requested |= {"P1", "P2", "P4", "P5", "P7", "G9"}
                 else:
                     requested.add(t)
 
@@ -652,6 +676,13 @@ def register_audit_hook_tools(mcp: FastMCP):
                 r = engine.check_anti_ai_patterns(full_content)
                 all_results["A3"] = r.to_dict()
                 tracker.record_event("A3", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "A3B" in requested:
+                r = engine.check_ai_writing_signals(full_content)
+                all_results["A3B"] = r.to_dict()
+                tracker.record_event("A3B", "pass" if r.passed else "trigger")
                 total_critical += r.critical_count
                 total_warning += r.warning_count
 
@@ -702,6 +733,34 @@ def register_audit_hook_tools(mcp: FastMCP):
                 r = engine.validate_data_artifacts(full_content)
                 all_results["F"] = r.to_dict()
                 tracker.record_event("F1", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "C10" in requested:
+                r = engine.check_reference_fulltext_status(full_content)
+                all_results["C10"] = r.to_dict()
+                tracker.record_event("C10", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "C11" in requested:
+                r = engine.check_citation_distribution(full_content)
+                all_results["C11"] = r.to_dict()
+                tracker.record_event("C11", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "C12" in requested:
+                r = engine.check_citation_relevance_audit(full_content)
+                all_results["C12"] = r.to_dict()
+                tracker.record_event("C12", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "C13" in requested:
+                r = engine.check_figure_table_quality(full_content)
+                all_results["C13"] = r.to_dict()
+                tracker.record_event("C13", "pass" if r.passed else "trigger")
                 total_critical += r.critical_count
                 total_warning += r.warning_count
 
@@ -800,6 +859,81 @@ def register_audit_hook_tools(mcp: FastMCP):
                 r = engine.check_reference_integrity(full_content)
                 all_results["P7"] = r.to_dict()
                 tracker.record_event("P7", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            # --- Git status hook (G9) ---
+
+            if "G9" in requested:
+                r = engine.check_git_status()
+                all_results["G9"] = r.to_dict()
+                tracker.record_event("G9", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            # --- Section writing quality hooks (B9-B16) ---
+
+            if "B9" in requested:
+                for sec_name in ("Methods", "Results"):
+                    sec_text = _extract_section(sec_name)
+                    if sec_text:
+                        r = engine.check_section_tense(sec_text, section=sec_name)
+                        key = f"B9:{sec_name}"
+                        all_results[key] = r.to_dict()
+                        tracker.record_event("B9", "pass" if r.passed else "trigger")
+                        total_critical += r.critical_count
+                        total_warning += r.warning_count
+
+            if "B10" in requested:
+                for sec_name in ("Introduction", "Methods", "Results", "Discussion"):
+                    sec_text = _extract_section(sec_name)
+                    if sec_text:
+                        r = engine.check_paragraph_quality(sec_text, section=sec_name)
+                        key = f"B10:{sec_name}"
+                        all_results[key] = r.to_dict()
+                        tracker.record_event("B10", "pass" if r.passed else "trigger")
+                        total_critical += r.critical_count
+                        total_warning += r.warning_count
+
+            if "B11" in requested:
+                r = engine.check_results_interpretation(full_content)
+                all_results["B11"] = r.to_dict()
+                tracker.record_event("B11", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "B12" in requested:
+                r = engine.check_intro_structure(full_content)
+                all_results["B12"] = r.to_dict()
+                tracker.record_event("B12", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "B13" in requested:
+                r = engine.check_discussion_structure(full_content)
+                all_results["B13"] = r.to_dict()
+                tracker.record_event("B13", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "B14" in requested:
+                r = engine.check_ethical_statements(full_content)
+                all_results["B14"] = r.to_dict()
+                tracker.record_event("B14", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "B15" in requested:
+                r = engine.check_hedging_density(full_content)
+                all_results["B15"] = r.to_dict()
+                tracker.record_event("B15", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "B16" in requested:
+                r = engine.check_effect_size_reporting(full_content)
+                all_results["B16"] = r.to_dict()
+                tracker.record_event("B16", "pass" if r.passed else "trigger")
                 total_critical += r.critical_count
                 total_warning += r.warning_count
 
@@ -1200,12 +1334,166 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("apply_pending_evolutions", e)
             return f"❌ Error processing pending evolutions: {e}"
 
+    @mcp.tool()
+    def run_review_hooks(
+        round_num: int = 0,
+        hooks: str = "all",
+        issues_fixed: int = 0,
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        🔍 Run code-enforced review quality hooks (R1-R6).
+
+        Call this during Phase 7 to verify review CONTENT quality,
+        not just process compliance. Can be run standalone or as part
+        of submit_review_round() (which calls these automatically).
+
+        Available hooks:
+        - R1: Review Report Depth (word count, perspectives, severity breakdown)
+        - R2: Author Response Completeness (ACCEPT/DECLINE, ratio, evidence)
+        - R3: EQUATOR Compliance Gate (checklist items ≥ 5)
+        - R4: Review-Fix Traceability (ACCEPT'd issues → manuscript changes)
+        - R5: Post-Review Anti-AI Gate (re-run A3/A3b after edits)
+        - R6: Citation Budget Gate (refs ≤ journal limit, prioritisation)
+
+        Args:
+            round_num: Review round number (0 = auto-detect latest)
+            hooks: Comma-separated hook IDs (e.g., "R1,R5,R6") or "all"
+            issues_fixed: Number of issues fixed (for R4 traceability)
+            project: Project slug (optional, uses current project)
+
+        Returns:
+            TOON-formatted report with issues from each hook.
+        """
+        log_tool_call("run_review_hooks", {"round_num": round_num, "hooks": hooks})
+        try:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid or project_info is None:
+                return f"❌ {msg}"
+
+            slug = project_info["slug"]
+            project_dir = Path(project_info["project_path"])
+
+            from med_paper_assistant.infrastructure.persistence.review_hooks import (
+                ReviewHooksEngine,
+            )
+
+            engine = ReviewHooksEngine(project_dir)
+
+            # Auto-detect round number if not specified
+            if round_num <= 0:
+                audit_dir = project_dir / ".audit"
+                for i in range(20, 0, -1):
+                    if (audit_dir / f"review-report-{i}.md").is_file():
+                        round_num = i
+                        break
+                if round_num <= 0:
+                    return "❌ No review reports found. Start a review round first."
+
+            # Read manuscript for R5/R6
+            manuscript_content = ""
+            manuscript_path = project_dir / "drafts" / "manuscript.md"
+            if manuscript_path.is_file():
+                manuscript_content = manuscript_path.read_text(encoding="utf-8")
+
+            # Determine which hooks to run
+            requested: set[str] = set()
+            for token in hooks.split(","):
+                t = token.strip().upper()
+                if t == "ALL":
+                    requested = {"R1", "R2", "R3", "R4", "R5", "R6"}
+                    break
+                else:
+                    requested.add(t)
+
+            results: dict[str, dict] = {}
+            total_critical = 0
+            total_warning = 0
+
+            if "R1" in requested:
+                r = engine.check_review_report_depth(round_num)
+                results["R1"] = r.to_dict()
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "R2" in requested:
+                r = engine.check_author_response_completeness(round_num)
+                results["R2"] = r.to_dict()
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "R3" in requested:
+                r = engine.check_equator_compliance(round_num)
+                results["R3"] = r.to_dict()
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "R4" in requested:
+                r = engine.check_review_fix_traceability(
+                    round_num, issues_fixed=issues_fixed, manuscript_changed=True,
+                )
+                results["R4"] = r.to_dict()
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "R5" in requested:
+                if manuscript_content:
+                    r = engine.check_post_review_anti_ai(manuscript_content)
+                    results["R5"] = r.to_dict()
+                    total_critical += r.critical_count
+                    total_warning += r.warning_count
+                else:
+                    results["R5"] = {"hook_id": "R5", "passed": True, "issues": [],
+                                     "stats": {"skipped": "no manuscript found"}}
+
+            if "R6" in requested:
+                if manuscript_content:
+                    r = engine.check_citation_budget(manuscript_content)
+                    results["R6"] = r.to_dict()
+                    total_critical += r.critical_count
+                    total_warning += r.warning_count
+                else:
+                    results["R6"] = {"hook_id": "R6", "passed": True, "issues": [],
+                                     "stats": {"skipped": "no manuscript found"}}
+
+            # Build TOON response
+            overall_pass = total_critical == 0
+            lines = [
+                f"status: {'PASS' if overall_pass else 'FAIL'}",
+                f"project: {slug}",
+                f"round: {round_num}",
+                f"hooks_run: {','.join(sorted(results.keys()))}",
+                f"critical: {total_critical}",
+                f"warnings: {total_warning}",
+            ]
+            for hook_id in sorted(results.keys()):
+                hr = results[hook_id]
+                lines.append(f"\n--- {hook_id} ---")
+                lines.append(f"passed: {hr['passed']}")
+                if hr.get("stats"):
+                    for k, v in hr["stats"].items():
+                        lines.append(f"  {k}: {v}")
+                for issue in hr.get("issues", []):
+                    sev = issue["severity"]
+                    lines.append(f"  [{sev}] {issue['message']}")
+                    if issue.get("suggestion"):
+                        lines.append(f"    → {issue['suggestion']}")
+
+            result = "\n".join(lines)
+            log_tool_result("run_review_hooks", f"critical={total_critical}")
+            return result
+
+        except Exception as e:
+            log_tool_error("run_review_hooks", e)
+            return f"❌ Error running review hooks: {e}"
+
     return {
         "record_hook_event": record_hook_event,
         "run_quality_audit": run_quality_audit,
         "run_meta_learning": run_meta_learning,
         "validate_data_artifacts": validate_data_artifacts,
         "run_writing_hooks": run_writing_hooks,
+        "run_review_hooks": run_review_hooks,
         "verify_evolution": verify_evolution,
         "check_domain_constraints": check_domain_constraints,
         "evolve_constraint": evolve_constraint,
