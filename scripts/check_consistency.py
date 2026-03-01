@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Structural Consistency Checker — verifies code ↔ docs ↔ tests alignment.
 
@@ -33,17 +33,19 @@ SRC = ROOT / "src" / "med_paper_assistant"
 TESTS = ROOT / "tests"
 
 # Declared hook groups (source of truth from AGENTS.md)
+# A3b is a sub-check of A3, counted within A's total of 6
 DECLARED_HOOKS = {
-    "A": 6,
-    "B": 8,
-    "C": 9,
-    "D": 8,
-    "E": 5,
-    "F": 4,
-    "P": 8,
-    "G": 8,
+    "A": 6,   # A1-A6 (A3b counted within A3)
+    "B": 16,  # B1-B16
+    "C": 13,  # C1-C13
+    "D": 9,   # D1-D9
+    "E": 5,   # E1-E5
+    "F": 4,   # F1-F4
+    "G": 9,   # G1-G9
+    "P": 8,   # P1-P8
+    "R": 6,   # R1-R6
 }
-TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 56
+TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 76
 
 # Files to check for hook count
 HOOK_COUNT_FILES = [
@@ -100,8 +102,8 @@ def check_hook_counts() -> CheckResult:
         if not fpath.exists():
             errors.append(f"File not found: {fpath.relative_to(ROOT)}")
             continue
-        content = fpath.read_text()
-        found = _extract_number(content, r"Hook 架構[（(](\d+)\s*checks[）)]")
+        content = fpath.read_text(encoding="utf-8")
+        found = _extract_number(content, r"Hook 架構[（(](\d+)\s*checks")
         if found is None:
             errors.append(f"{fpath.relative_to(ROOT)}: no 'Hook 架構(N checks)' found")
         elif found != TOTAL_HOOKS:
@@ -122,7 +124,7 @@ def check_hook_counts() -> CheckResult:
 def check_expected_hooks() -> CheckResult:
     """Verify MetaLearningEngine.EXPECTED_HOOKS covers all declared hooks."""
     engine_path = SRC / "infrastructure" / "persistence" / "meta_learning_engine.py"
-    content = engine_path.read_text()
+    content = engine_path.read_text(encoding="utf-8")
 
     m = re.search(r"EXPECTED_HOOKS\s*=\s*\[(.*?)\]", content, re.DOTALL)
     if not m:
@@ -138,7 +140,8 @@ def check_expected_hooks() -> CheckResult:
         for i in range(1, count + 1):
             full_expected.add(f"{letter}{i}")
 
-    # D1-D8 and G1-G8 are agent-behavioral (not code-enforced) → intentionally excluded
+    # D1-D9: meta-learning engine itself (self-referential, excluded)
+    # G1-G9: pre-commit/general hooks tracked separately (excluded)
     agent_behavioral = set()
     for letter in ["D", "G"]:
         for i in range(1, DECLARED_HOOKS.get(letter, 0) + 1):
@@ -174,7 +177,7 @@ def check_mcp_tool_coverage() -> CheckResult:
     for py_file in tools_dir.rglob("*.py"):
         if "__pycache__" in str(py_file) or py_file.name.startswith("_"):
             continue
-        content = py_file.read_text()
+        content = py_file.read_text(encoding="utf-8")
         # Find function names after @mcp.tool()
         lines = content.split("\n")
         for i, line in enumerate(lines):
@@ -189,7 +192,7 @@ def check_mcp_tool_coverage() -> CheckResult:
     # Check test coverage
     all_test_content = ""
     for tf in TESTS.glob("test_*.py"):
-        all_test_content += tf.read_text()
+        all_test_content += tf.read_text(encoding="utf-8")
 
     uncovered: list[str] = []
     for func_name, source_file in sorted(tool_functions.items()):
@@ -221,7 +224,7 @@ def check_infrastructure_coverage() -> CheckResult:
     """Check that every infrastructure class has at least one test file."""
     all_test_content = ""
     for tf in TESTS.glob("test_*.py"):
-        all_test_content += tf.read_text()
+        all_test_content += tf.read_text(encoding="utf-8")
 
     uncovered: list[str] = []
     for class_name, module_name in INFRASTRUCTURE_CLASSES:
@@ -249,7 +252,7 @@ def check_infrastructure_coverage() -> CheckResult:
 def check_init_exports() -> CheckResult:
     """Check that persistence/__init__.py exports match actual class definitions."""
     init_path = SRC / "infrastructure" / "persistence" / "__init__.py"
-    content = init_path.read_text()
+    content = init_path.read_text(encoding="utf-8")
 
     # Extract __all__ entries
     all_match = re.search(r"__all__\s*=\s*\[(.*?)\]", content, re.DOTALL)
@@ -271,7 +274,7 @@ def check_init_exports() -> CheckResult:
     for py_file in persistence_dir.glob("*.py"):
         if py_file.name.startswith("_"):
             continue
-        file_content = py_file.read_text()
+        file_content = py_file.read_text(encoding="utf-8")
         classes = re.findall(r"^class\s+(\w+)", file_content, re.MULTILINE)
         for cls in classes:
             if cls not in exported and not cls.startswith("_"):
@@ -300,7 +303,7 @@ def check_init_exports() -> CheckResult:
 def check_hook_categories() -> CheckResult:
     """Verify HOOK_CATEGORIES matches the declared hook groups."""
     tracker_path = SRC / "infrastructure" / "persistence" / "hook_effectiveness_tracker.py"
-    content = tracker_path.read_text()
+    content = tracker_path.read_text(encoding="utf-8")
 
     m = re.search(r"HOOK_CATEGORIES\s*=\s*\{(.*?)\}", content, re.DOTALL)
     if not m:
@@ -370,4 +373,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    import io
+    if sys.stdout.encoding and sys.stdout.encoding.lower().replace("-", "") != "utf8":
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     sys.exit(main())
