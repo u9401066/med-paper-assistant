@@ -423,7 +423,7 @@ projects/{slug}/.memory/
 
    | 層級                                   | 機制                                                                                                        | 類比人類                                         | 觸發方式             | 實作狀態                  |
    | -------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | -------------------- | ------------------------- |
-   | **Level 1: Agent-in-the-Loop**         | Event-Driven Hook 體系 — Agent 操作時即時觸發 56 個品質檢查                                                 | 寫作時的即時自我檢查（像是「這句話有引用嗎？」） | Agent 操作時自動觸發 | ⚠️ 14/56 Code-Enforced    |
+   | **Level 1: Agent-in-the-Loop**         | Event-Driven Hook 體系 — Agent 操作時即時觸發 76 個品質檢查                                                 | 寫作時的即時自我檢查（像是「這句話有引用嗎？」） | Agent 操作時自動觸發 | ⚠️ 34/76 Code-Enforced    |
    | **Level 2: Code-Level Enforcement**    | DomainConstraintEngine + ToolInvocationStore + PendingEvolutionStore — 程式碼層面的約束、遙測與跨對話持久化 | 內化的學術規範（像是「統計方法要匹配研究設計」） | 工具呼叫時被動防禦   | ✅ 完整                   |
    | **Level 3: Autonomous Self-Evolution** | 外部排程巡邏 + GitHub Actions CI/CD — 跨對話、跨專案的系統性演化                                            | 多年累積的研究直覺與跨領域整合能力               | 外部排程 / CI 觸發   | ⚠️ Phase C 完成, A/B 部分 |
 

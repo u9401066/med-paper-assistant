@@ -37,7 +37,7 @@ MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫
 
 ## MCP Server（DDD Architecture）
 
-主要的 Python MCP Server，提供 73 個 tools。
+主要的 Python MCP Server，提供 85 個 tools。
 
 ### 層級結構
 
@@ -79,8 +79,20 @@ src/med_paper_assistant/
 │   │   ├── hook_effectiveness_tracker.py # Hook 效能追蹤
 │   │   ├── meta_learning_engine.py     # D1-D8 自我學習引擎
 │   │   ├── evolution_verifier.py       # 跨專案演化驗證
-│   │   ├── writing_hooks.py            # A5/A6/B8/C9/F 寫作 Hooks
+│   │   ├── writing_hooks/              # 寫作 Hooks 套件
+│   │   │   ├── _constants.py           #   常數 + Anti-AI 詞庫
+│   │   │   ├── _models.py              #   HookIssue / HookResult
+│   │   │   ├── _text_utils.py          #   文字處理 Mixin
+│   │   │   ├── _journal_config.py      #   期刊設定 Mixin
+│   │   │   ├── _post_write.py          #   A 系列 Hooks (A1-A6, A3b)
+│   │   │   ├── _section_quality.py     #   B 系列 Hooks (B8-B16)
+│   │   │   ├── _manuscript.py          #   C 系列 Hooks (C3-C13)
+│   │   │   ├── _data_artifacts.py      #   F 系列 Hooks (F1-F4)
+│   │   │   ├── _precommit.py           #   P 系列 Hooks (P5, P7)
+│   │   │   ├── _git.py                 #   G 系列 Hooks (G9)
+│   │   │   └── _engine.py              #   WritingHooksEngine 組合類
 │   │   └── data_artifact_tracker.py    # 資料溯源追蹤
+│   │   └── review_hooks.py             # R1-R6 審查品質 Hook（Phase 7 HARD GATE）
 │   ├── services/                    # 外部服務
 │   │   ├── drafter.py              #   草稿撰寫 + wikilink 引用
 │   │   ├── formatter.py            #   引用格式化（Vancouver/APA/...）
@@ -155,7 +167,7 @@ Phase 6: Quality Audit
     │  generate_report() → quality-scorecard.yaml + .md
     │
     ▼
-Phase 10: Meta-Learning（Hook D1-D8）
+Phase 10: Meta-Learning（Hook D1-D9）
     │  run_meta_learning() → 分析 hook 效能 + 品質數據
     │  D1: Hook 效能統計分析
     │  D2: 品質計分卡趨勢
@@ -164,6 +176,7 @@ Phase 10: Meta-Learning（Hook D1-D8）
     │  D6: Audit trail 生成
     │  D7: Review 回顧性分析
     │  D8: EQUATOR 合規回顧
+    │  D9: 品質趨勢分析
     │
     ▼
 verify_evolution() → 跨專案演化驗證
@@ -179,12 +192,14 @@ verify_evolution() → 跨專案演化驗證
 | 元件                         | 檔案                            | 職責                                                                                                   |
 | ---------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | **QualityScorecard**         | `quality_scorecard.py`          | 8 維度品質評分持久化（citation, methodology, text, concept, format, figure, equator, reproducibility） |
-| **HookEffectivenessTracker** | `hook_effectiveness_tracker.py` | 追蹤 56 個 Hook 的 trigger/pass/fix/FP 事件，計算效能指標                                              |
-| **MetaLearningEngine**       | `meta_learning_engine.py`       | D1-D8 分析引擎：統計分析 → 閾值建議 → 經驗萃取 → 審計紀錄                                              |
-| **WritingHooksEngine**       | `writing_hooks.py`              | Code-enforced hooks：A5 語言一致性、A6 段落重複、B8 統計對齊、C9 補充材料交叉引用、F 資料溯源          |
+| **HookEffectivenessTracker** | `hook_effectiveness_tracker.py` | 追蹤 76 個 Hook 的 trigger/pass/fix/FP 事件，計算效能指標                                              |
+| **MetaLearningEngine**       | `meta_learning_engine.py`       | D1-D9 分析引擎：統計分析 → 閾值建議 → 經驗萃取 → 審計紀錄 → 品質趨勢                                   |
+| **WritingHooksEngine**       | `writing_hooks/` (package)      | Code-enforced hooks：A/B/C/F/G/P 系列，Mixin 架構；12 子模組                                          |
+| **ReviewHooksEngine**        | `review_hooks.py`               | R1-R6 審查品質 Hook：報告深度、回應完整、EQUATOR、追蹤性、Anti-AI、引用預算（Phase 7 HARD GATE） |
 | **EvolutionVerifier**        | `evolution_verifier.py`         | 跨專案演化驗證：收集所有專案 `.audit/` 數據，產生演化證據報告                                          |
 | **DomainConstraintEngine**   | `domain_constraint_engine.py`   | Triad-inspired JSON 約束系統：per paper type 結構化約束、Sand Spreader 驗證、約束演化                  |
 | **PipelineGateValidator**    | `pipeline_gate_validator.py`    | Phase Gate 驗證器：確保每個 Phase 完成必要的品質檢查才能進入下一階段                                   |
+| **WorkspaceStateManager**    | `workspace_state_manager.py`    | 跨 Session 狀態管理：writing_session 自動存檔、recovery summary、checkpoint_writing_context            |
 
 ### 自我改進邊界（CONSTITUTION §23）
 
@@ -195,16 +210,17 @@ verify_evolution() → 跨專案演化驗證
 | L3 Instruction | 事實性內容修改                                                                    | 記錄 decisionLog       |
 | **禁止**       | 修改 CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則、Hook D 本身 | —                      |
 
-### Hook 架構（65 checks — 23 Code-Enforced / 42 Agent-Driven）
+### Hook 架構（76 checks — 34 Code-Enforced / 42 Agent-Driven）
 
 | 類型                  | 時機            | 數量 | 重點                                                                                                                                                                                     |
 | --------------------- | --------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A** post-write      | 每次寫入後      | 6    | 字數、引用密度、Anti-AI、Wikilink、語言一致性(A5)、段落重複(A6)                                                                                                                          |
+| **A** post-write      | 每次寫入後      | 7    | 字數、引用密度、Anti-AI、Wikilink、語言一致性(A5)、段落重複(A6)、AI結構信號(A3b)                                                                                                          |
 | **B** post-section    | section 完成後  | 16   | 概念一致、🔒保護、方法學、寫作順序、Brief 合規、統計對齊(B8)、時態(B9)、段落品質(B10)、Results客觀性(B11)、Intro結構(B12)、Discussion結構(B13)、倫理聲明(B14)、Hedging(B15)、效果量(B16) |
-| **C** post-manuscript | 全稿完成後      | 9    | 全稿一致性、投稿清單、數量交叉引用、時間一致性、補充材料交叉引用(C9)                                                                                                                     |
-| **D** meta-learning   | Phase 10        | 8    | SKILL/Hook 自我改進、Review Retro、EQUATOR Retro                                                                                                                                         |
+| **C** post-manuscript | 全稿完成後      | 13   | 全稿一致性、投稿清單、數量交叉引用、時間一致性、補充材料交叉引用(C9)、全文驗證(C10)、引用分布(C11)、引用決策審計(C12)、圖表品質(C13)                                                      |
+| **D** meta-learning   | Phase 10        | 9    | SKILL/Hook 自我改進、Review Retro、EQUATOR Retro、D9 品質趨勢                                                                                                                            |
 | **E** EQUATOR 合規    | Phase 7 每輪    | 5    | 報告指引偵測、checklist 驗證、合規報告                                                                                                                                                   |
 | **F** data-artifacts  | post-manuscript | 4    | 溯源追蹤、manifest 一致、交叉引用、統計驗證                                                                                                                                              |
+| **R** review-hooks    | Phase 7 submit  | 6    | R1 報告深度、R2 回應完整、R3 EQUATOR、R4 追蹤性、R5 Anti-AI、R6 引用預算（Phase 7 HARD GATE）                                                                                            |
 | **P** pre-commit      | git commit 前   | 8    | 引用、Anti-AI、概念、字數、🔒、.memory、文獻、方法學                                                                                                                                     |
 | **G** general         | git commit 前   | 8    | Memory、README、CHANGELOG、ROADMAP、架構、專案一致性                                                                                                                                     |
 
@@ -252,7 +268,7 @@ Copilot Agent Mode 同時連接多個 MCP Server：
 
 | Server            | 來源                                          | 用途                       | Tools 數量 |
 | ----------------- | --------------------------------------------- | -------------------------- | ---------- |
-| **mdpaper**       | 本專案                                        | 專案管理、草稿、引用、匯出 | 73         |
+| **mdpaper**       | 本專案                                        | 專案管理、草稿、引用、匯出 | 89         |
 | **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule) | PubMed 文獻搜尋            | 37         |
 | **cgu**           | `integrations/cgu/` (submodule)               | 創意發想（快思慢想）       | 13         |
 | **drawio**        | `uvx drawio-mcp-server`                       | CONSORT/PRISMA 圖表        | ~5         |
@@ -454,7 +470,7 @@ med-paper-assistant/
 ├── docs/                       # 設計文件
 ├── memory-bank/                # 全域 AI 記憶
 ├── .claude/skills/             # Copilot Skills（26 個）
-├── .github/prompts/            # Copilot Prompts（14 個）
+├── .github/prompts/            # Copilot Prompts（15 個）
 ├── .github/bylaws/             # 規範（4 個）
 └── .pre-commit-config.yaml     # Git hooks
 ```

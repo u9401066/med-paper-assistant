@@ -15,12 +15,12 @@
 
 <p align="center">
   <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
-  <i>3 MCP Servers · ~131 Tools · 26 Skills · 14 Prompt Workflows — All in VS Code</i>
+  <i>3 MCP Servers · ~135 Tools · 26 Skills · 15 Prompts Workflows — All in VS Code</i>
 </p>
 
 > 📖 [繁體中文版](README.zh-TW.md)
 
-> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 42 Quality Hooks, Structured Review Loop
+> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 76 Quality Hooks, Structured Review Loop
 
 ---
 
@@ -30,14 +30,14 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 | Component                                                          | Type                   | Tools  | Description                                                                       |
 | ------------------------------------------------------------------ | ---------------------- | ------ | --------------------------------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 81     | Paper writing: projects, references, drafts, analysis, validation, review, export |
+| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 85     | Paper writing: projects, references, drafts, analysis, validation, review, export |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37     | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt               |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13     | Creative generation: brainstorm, deep think, spark collision                      |
 | **[VS Code Extension](vscode-extension/)**                         | Extension              | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant                                 |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App        | —      | Project management UI, diagram editor                                             |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —      | `[[wikilink]]` citation linking, hover preview, graph view                        |
 | **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26     | Guided multi-tool workflows (literature review, draft writing...)                 |
-| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 14     | `/mdpaper.search`, `/mdpaper.draft`, etc.                                         |
+| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 15     | `/mdpaper.search`, `/mdpaper.draft`, etc.                                         |
 
 **External MCP Servers** (optional, installed via uvx):
 
@@ -49,14 +49,14 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 ```mermaid
 flowchart LR
     subgraph IDE["VS Code"]
-        Agent["Copilot Agent<br/>26 Skills · 14 Prompts"]
+        Agent["Copilot Agent<br/>26 Skills · 15 Prompts"]
         Foam[Foam Plugin]
         Ext[MedPaper Extension]
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers (~131 tools)"]
-        mdpaper["mdpaper<br/>81 tools<br/>Draft · Export · Validate · Review"]
+    subgraph MCP["MCP Servers (~135 tools)"]
+        mdpaper["mdpaper<br/>85 tools<br/>Draft · Export · Validate · Review"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -91,7 +91,7 @@ flowchart LR
 | Traditional Tools                   | Medical Paper Assistant                |
 | ----------------------------------- | -------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach         |
-| Separate apps for search/write/cite | All-in-one: ~131 tools in VS Code      |
+| Separate apps for search/write/cite | All-in-one: ~135 tools in VS Code      |
 | Manual reference management         | Auto-save with verified PubMed data    |
 | Export then format                  | Direct Word export with journal styles |
 | Learn complex UI                    | Natural language conversation          |
@@ -257,14 +257,14 @@ projects/{slug}/
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │               🤖 Copilot Agent (Orchestrator)                             │
-│      26 Skills + 14 Prompt Workflows + Agent Customization               │
+│      26 Skills + 15 Prompt Workflows + Agent Customization               │
 │   /mdpaper.search → /mdpaper.concept → /mdpaper.draft → export          │
 └───────┬──────────────────┬──────────────────┬──────────────────┬─────────┘
         │                  │                  │                  │
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  81 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│  85 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
@@ -312,7 +312,7 @@ Saved with layered trust:
 
 **81 active tools** organized into 8 groups:
 
-### 📁 Project Management (16 tools)
+### 📁 Project Management (17 tools)
 
 Projects, exploration mode, workspace state recovery, diagram management.
 
@@ -325,7 +325,7 @@ Projects, exploration mode, workspace state recovery, diagram management.
 | `setup_project_interactive`                            | Interactive paper type configuration |
 | `update_authors`                                       | Manage structured author metadata    |
 
-### 📚 Reference Management (10 tools)
+### 📚 Reference Management (12 tools)
 
 Save, search, format, and manage references with Foam integration.
 
@@ -370,7 +370,7 @@ Write, edit, cite — with built-in validation.
 | `insert_table`         | Insert table into draft with archive validation       |
 | `list_assets`          | List figures and tables in project results            |
 
-### 🔍 Review & Audit (20 tools)
+### 🔍 Review & Audit (21 tools)
 
 | Category               | Key Tools                                                                 |
 | ---------------------- | ------------------------------------------------------------------------- |
@@ -483,7 +483,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 81 tools in 8 groups
+│   └── interfaces/mcp/            #   MCP server, 85 tools in 7 groups
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
@@ -506,7 +506,7 @@ med-paper-assistant/
 │       └── results/               #   Figures, exports
 │
 ├── .claude/skills/                # 26 Agent skill definitions
-├── .github/prompts/               # 14 Prompt workflow files
+├── .github/prompts/               # 15 Prompt workflow files
 ├── templates/                     # Journal Word templates
 ├── memory-bank/                   # Global project memory
 └── tests/                         # pytest test suite
@@ -518,7 +518,7 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                            |
 | ------ | --------------------------- | ------------------------------------------------------ |
-| ✅     | **3 MCP Servers**           | mdpaper (81) + pubmed-search (37) + CGU (13)           |
+| ✅     | **3 MCP Servers**           | mdpaper (85) + pubmed-search (37) + CGU (13)           |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, project isolation |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                 |
