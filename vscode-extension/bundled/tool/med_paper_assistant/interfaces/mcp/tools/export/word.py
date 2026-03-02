@@ -255,8 +255,7 @@ def register_word_export_tools(
                 for wl in unique:
                     warning_msg += f"  - `[[{wl}]]`\n"
                 warning_msg += (
-                    "\nConsider using `sync_references()` to convert "
-                    "wikilinks before export."
+                    "\nConsider using `sync_references()` to convert wikilinks before export."
                 )
 
             path = word_writer.save_document(doc, output_filename)

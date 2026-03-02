@@ -209,6 +209,30 @@ class TestStripReferencesSection:
         assert "## Introduction" in result
         assert "Body." in result
 
+    def test_preserves_sections_after_references(self):
+        """Regression: greedy .* previously ate everything after ## References."""
+        content = (
+            "## Introduction\n\nBody.\n\n"
+            "## References\n\n[1] Author. Title.\n\n"
+            "## Appendix\n\nAppendix content."
+        )
+        result = _strip_references_section(content)
+        assert "## References" not in result
+        assert "## Introduction" in result
+        assert "Body." in result
+        assert "## Appendix" in result
+        assert "Appendix content." in result
+
+    def test_preserves_sections_after_references_with_hr(self):
+        content = (
+            "Body.\n\n---\n\n## References\n\n[1] Ref.\n\n"
+            "## Supplementary Materials\n\nSupp content."
+        )
+        result = _strip_references_section(content)
+        assert "## References" not in result
+        assert "## Supplementary Materials" in result
+        assert "Supp content." in result
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # extract_citation_keys

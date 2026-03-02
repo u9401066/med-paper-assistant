@@ -178,12 +178,15 @@ def _strip_references_section(content: str) -> str:
 
     Pandoc --citeproc will generate its own reference list.
     We need to strip the hand-generated one to avoid duplication.
+
+    Only strips up to the next same-or-higher-level heading (``## ``)
+    or end-of-string, so sections after References are preserved.
     """
-    # Find "## References" and everything after it
-    # Also handle "---\n\n## References" pattern
+    # Match from "## References" to the next "\n## " heading or end-of-string.
+    # Non-greedy .*? with lookahead prevents swallowing subsequent sections.
     patterns = [
-        r"\n---\s*\n+## References\b.*",  # With horizontal rule
-        r"\n## References\b.*",  # Without horizontal rule
+        r"\n---\s*\n+## References\b.*?(?=\n## |\Z)",  # With horizontal rule
+        r"\n## References\b.*?(?=\n## |\Z)",  # Without horizontal rule
     ]
     for pattern in patterns:
         content = re.sub(pattern, "", content, flags=re.DOTALL)

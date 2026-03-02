@@ -6,7 +6,6 @@ Generates CSL-JSON bibliography automatically from local references.
 """
 
 import os
-import re
 from pathlib import Path
 from typing import Optional
 
@@ -58,9 +57,7 @@ def register_pandoc_export_tools(mcp: FastMCP):
             return None
 
         # Build a clear error message listing every unresolved wikilink
-        unresolved = [
-            iss.message for iss in c5_result.issues if iss.severity == "CRITICAL"
-        ]
+        unresolved = [iss.message for iss in c5_result.issues if iss.severity == "CRITICAL"]
         detail = "\n".join(f"  - {msg}" for msg in unresolved)
         return (
             f"❌ **Export blocked — {c5_result.stats.get('unresolved', '?')} "
@@ -133,7 +130,9 @@ def register_pandoc_export_tools(mcp: FastMCP):
             project_dir = str(Path(drafts_dir).parent)
             gate_error = _run_pre_export_citation_gate(draft_content, project_dir)
             if gate_error:
-                log_tool_error("export_docx", Exception("C5 gate failed"), {"draft": draft_filename})
+                log_tool_error(
+                    "export_docx", Exception("C5 gate failed"), {"draft": draft_filename}
+                )
                 return gate_error
 
             # Determine output path
