@@ -10,7 +10,6 @@ Validates:
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -88,16 +87,10 @@ class TestSyncWritingSession:
             "Plan: P1 study design, P2 participants | Refs: smith2024"
         )
 
-    def test_sections_on_disk_scanned(
-        self, wsm: WorkspaceStateManager, drafts_dir: Path
-    ):
+    def test_sections_on_disk_scanned(self, wsm: WorkspaceStateManager, drafts_dir: Path):
         """Should scan drafts/ and list all .md files with word counts."""
-        (drafts_dir / "introduction.md").write_text(
-            "word " * 100, encoding="utf-8"
-        )
-        (drafts_dir / "methods.md").write_text(
-            "word " * 200, encoding="utf-8"
-        )
+        (drafts_dir / "introduction.md").write_text("word " * 100, encoding="utf-8")
+        (drafts_dir / "methods.md").write_text("word " * 200, encoding="utf-8")
         # Non-md files should be ignored
         (drafts_dir / "notes.txt").write_text("ignored", encoding="utf-8")
 
@@ -156,9 +149,7 @@ class TestSyncWritingSession:
         assert ws["current_section"] == "Methods"
         assert ws["word_count"] == 800
 
-    def test_state_persisted_to_disk(
-        self, wsm: WorkspaceStateManager, project_dir: Path
-    ):
+    def test_state_persisted_to_disk(self, wsm: WorkspaceStateManager, project_dir: Path):
         """State should be written to .mdpaper-state.json on disk."""
         wsm.sync_writing_session(
             section="Abstract",
@@ -245,9 +236,7 @@ class TestRecoverySummaryWritingSession:
         assert "Agent Context" in summary
         assert "P1 summary" in summary
 
-    def test_banner_shows_sections_on_disk(
-        self, wsm: WorkspaceStateManager, drafts_dir: Path
-    ):
+    def test_banner_shows_sections_on_disk(self, wsm: WorkspaceStateManager, drafts_dir: Path):
         """Should list all sections on disk in banner."""
         (drafts_dir / "introduction.md").write_text("content " * 50, encoding="utf-8")
         (drafts_dir / "methods.md").write_text("content " * 100, encoding="utf-8")
@@ -293,9 +282,7 @@ class TestCheckpointWritingContext:
         state = wsm.get_state()
         assert "P1 background" in state["writing_session"]["agent_context"]
 
-    def test_builds_agent_context_from_multiple_fields(
-        self, wsm: WorkspaceStateManager
-    ):
+    def test_builds_agent_context_from_multiple_fields(self, wsm: WorkspaceStateManager):
         """Should combine plan, notes, and refs into one context string."""
         ctx = "Plan: outline | Notes: formal | Refs: smith2024, jones2023"
         wsm.sync_writing_session(
@@ -340,9 +327,7 @@ class TestEdgeCases:
         state = wsm.get_state()
         assert state["writing_session"]["sections_on_disk"] == []
 
-    def test_empty_drafts_dir(
-        self, wsm: WorkspaceStateManager, drafts_dir: Path
-    ):
+    def test_empty_drafts_dir(self, wsm: WorkspaceStateManager, drafts_dir: Path):
         """Should work with empty drafts directory."""
         wsm.sync_writing_session(
             section="Methods",
@@ -388,9 +373,7 @@ class TestEdgeCases:
             "cross_mcp_state": {},
             "pipeline_state": {"active": False},
         }
-        state_file.write_text(
-            json.dumps(old_state), encoding="utf-8"
-        )
+        state_file.write_text(json.dumps(old_state), encoding="utf-8")
 
         state = wsm.get_state()
         assert "writing_session" in state

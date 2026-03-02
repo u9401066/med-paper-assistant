@@ -916,7 +916,9 @@ class ManuscriptHooksMixin:
         sections = self._parse_sections(content)
 
         # Check 1: Sequential ordering
-        fig_order = [int(n) for n in re.findall(r"(?:Figure|Fig\.?)\s+(\d+)", content, re.IGNORECASE)]
+        fig_order = [
+            int(n) for n in re.findall(r"(?:Figure|Fig\.?)\s+(\d+)", content, re.IGNORECASE)
+        ]
         tbl_order = [int(n) for n in re.findall(r"Table\s+(\d+)", content, re.IGNORECASE)]
 
         seen_figs: list[int] = []
@@ -930,7 +932,7 @@ class ManuscriptHooksMixin:
                         hook_id="C13",
                         severity="WARNING",
                         section="manuscript",
-                        message=f"Figure {seen_figs[i]} appears before Figure {seen_figs[i-1]} in text — should be sequential",
+                        message=f"Figure {seen_figs[i]} appears before Figure {seen_figs[i - 1]} in text — should be sequential",
                         suggestion="Renumber figures so they appear in the order they are first mentioned",
                     )
                 )
@@ -946,7 +948,7 @@ class ManuscriptHooksMixin:
                         hook_id="C13",
                         severity="WARNING",
                         section="manuscript",
-                        message=f"Table {seen_tbls[i]} appears before Table {seen_tbls[i-1]} in text — should be sequential",
+                        message=f"Table {seen_tbls[i]} appears before Table {seen_tbls[i - 1]} in text — should be sequential",
                         suggestion="Renumber tables so they appear in the order they are first mentioned",
                     )
                 )
@@ -1013,12 +1015,16 @@ class ManuscriptHooksMixin:
                 break
 
         if results_text:
-            has_data = bool(re.search(
-                r"\b(?:p\s*[<>=]\s*0\.\d|mean|median|OR|HR|RR|CI|SD|IQR|\d+\.\d+%|\d+/\d+)\b",
-                results_text,
-                re.IGNORECASE,
-            ))
-            has_fig_ref = bool(re.search(r"(?:Figure|Fig\.?|Table)\s+\d+", results_text, re.IGNORECASE))
+            has_data = bool(
+                re.search(
+                    r"\b(?:p\s*[<>=]\s*0\.\d|mean|median|OR|HR|RR|CI|SD|IQR|\d+\.\d+%|\d+/\d+)\b",
+                    results_text,
+                    re.IGNORECASE,
+                )
+            )
+            has_fig_ref = bool(
+                re.search(r"(?:Figure|Fig\.?|Table)\s+\d+", results_text, re.IGNORECASE)
+            )
 
             if has_data and not has_fig_ref:
                 issues.append(

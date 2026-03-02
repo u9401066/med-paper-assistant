@@ -33,8 +33,6 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
-
 
 # ── Config ────────────────────────────────────────────────────────────
 
@@ -206,165 +204,205 @@ def build_replace_rules(c: RepoCounts) -> list[ReplaceRule]:
 
         # Tagline: "3 MCP Servers · ~131 Tools · 26 Skills · 14 Prompt Workflows"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"(\d+)\s*個\s*MCP\s*Server\s*·\s*~?(\d+)\s*個工具\s*·\s*(\d+)\s*個技能\s*·\s*(\d+)\s*個\s*Prompt\s*工作流",
-                f"{c.mcp_servers} 個 MCP Server · ~{c.total_tools} 個工具 · {c.skills} 個技能 · {c.prompts} 個 Prompt 工作流",
-                "zh tagline counts",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"(\d+)\s*個\s*MCP\s*Server\s*·\s*~?(\d+)\s*個工具\s*·\s*(\d+)\s*個技能\s*·\s*(\d+)\s*個\s*Prompt\s*工作流",
+                    f"{c.mcp_servers} 個 MCP Server · ~{c.total_tools} 個工具 · {c.skills} 個技能 · {c.prompts} 個 Prompt 工作流",
+                    "zh tagline counts",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"(\d+)\s*MCP\s*Servers?\s*·\s*~?(\d+)\s*Tools?\s*·\s*(\d+)\s*Skills?\s*·\s*(\d+)\s*Prompt\s*Workflows?",
-                f"{c.mcp_servers} MCP Servers · ~{c.total_tools} Tools · {c.skills} Skills · {c.prompts} Prompt Workflows",
-                "en tagline counts",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"(\d+)\s*MCP\s*Servers?\s*·\s*~?(\d+)\s*Tools?\s*·\s*(\d+)\s*Skills?\s*·\s*(\d+)\s*Prompt\s*Workflows?",
+                    f"{c.mcp_servers} MCP Servers · ~{c.total_tools} Tools · {c.skills} Skills · {c.prompts} Prompt Workflows",
+                    "en tagline counts",
+                )
+            )
 
         # Quality hooks line: "42 Quality Hooks" / "42 項品質檢查"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"(\d+)\s*項品質檢查",
-                f"{c.quality_hooks} 項品質檢查",
-                "zh quality hook count",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"(\d+)\s*項品質檢查",
+                    f"{c.quality_hooks} 項品質檢查",
+                    "zh quality hook count",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"(\d+)\s*Quality\s*Hooks?",
-                f"{c.quality_hooks} Quality Hooks",
-                "en quality hook count",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"(\d+)\s*Quality\s*Hooks?",
+                    f"{c.quality_hooks} Quality Hooks",
+                    "en quality hook count",
+                )
+            )
 
         # Mermaid MCP subgraph: "MCP Servers (~131 tools)" / "MCP Server（~131 工具）"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r'MCP\s*Server[（(]~?\d+\s*工具[）)]',
-                f'MCP Server（~{c.total_tools} 工具）',
-                "zh mermaid MCP subgraph label",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"MCP\s*Server[（(]~?\d+\s*工具[）)]",
+                    f"MCP Server（~{c.total_tools} 工具）",
+                    "zh mermaid MCP subgraph label",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r'MCP\s*Servers?\s*\(~?\d+\s*tools?\)',
-                f'MCP Servers (~{c.total_tools} tools)',
-                "en mermaid MCP subgraph label",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"MCP\s*Servers?\s*\(~?\d+\s*tools?\)",
+                    f"MCP Servers (~{c.total_tools} tools)",
+                    "en mermaid MCP subgraph label",
+                )
+            )
 
         # mdpaper node in mermaid: 'mdpaper["mdpaper<br/>81 tools<br/>'
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r'mdpaper\["mdpaper<br/>\d+\s*工具',
-                f'mdpaper["mdpaper<br/>{c.mdpaper_total} 工具',
-                "zh mermaid mdpaper node",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r'mdpaper\["mdpaper<br/>\d+\s*工具',
+                    f'mdpaper["mdpaper<br/>{c.mdpaper_total} 工具',
+                    "zh mermaid mdpaper node",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r'mdpaper\["mdpaper<br/>\d+\s*tools',
-                f'mdpaper["mdpaper<br/>{c.mdpaper_total} tools',
-                "en mermaid mdpaper node",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r'mdpaper\["mdpaper<br/>\d+\s*tools',
+                    f'mdpaper["mdpaper<br/>{c.mdpaper_total} tools',
+                    "en mermaid mdpaper node",
+                )
+            )
 
         # pubmed node in mermaid
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r'pubmed\["pubmed-search<br/>\d+\s*工具',
-                f'pubmed["pubmed-search<br/>{c.pubmed_tools} 工具',
-                "zh mermaid pubmed node",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r'pubmed\["pubmed-search<br/>\d+\s*工具',
+                    f'pubmed["pubmed-search<br/>{c.pubmed_tools} 工具',
+                    "zh mermaid pubmed node",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r'pubmed\["pubmed-search<br/>\d+\s*tools',
-                f'pubmed["pubmed-search<br/>{c.pubmed_tools} tools',
-                "en mermaid pubmed node",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r'pubmed\["pubmed-search<br/>\d+\s*tools',
+                    f'pubmed["pubmed-search<br/>{c.pubmed_tools} tools',
+                    "en mermaid pubmed node",
+                )
+            )
 
         # CGU node in mermaid
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r'cgu\["CGU<br/>\d+\s*工具',
-                f'cgu["CGU<br/>{c.cgu_tools} 工具',
-                "zh mermaid CGU node",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r'cgu\["CGU<br/>\d+\s*工具',
+                    f'cgu["CGU<br/>{c.cgu_tools} 工具',
+                    "zh mermaid CGU node",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r'cgu\["CGU<br/>\d+\s*tools',
-                f'cgu["CGU<br/>{c.cgu_tools} tools',
-                "en mermaid CGU node",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r'cgu\["CGU<br/>\d+\s*tools',
+                    f'cgu["CGU<br/>{c.cgu_tools} tools',
+                    "en mermaid CGU node",
+                )
+            )
 
         # ASCII art box: "│  81 tools" / "│  81 工具" for mdpaper
         word = "工具" if is_zh else "tools"
-        rules.append(ReplaceRule(
-            readme,
-            rf"(│\s*📝\s*mdpaper\s*│.*\n│)\s*\d+\s*{word}",
-            rf"\g<1>  {c.mdpaper_total} {word}",
-            f"{'zh' if is_zh else 'en'} ASCII mdpaper tools",
-        ))
+        rules.append(
+            ReplaceRule(
+                readme,
+                rf"(│\s*📝\s*mdpaper\s*│.*\n│)\s*\d+\s*{word}",
+                rf"\g<1>  {c.mdpaper_total} {word}",
+                f"{'zh' if is_zh else 'en'} ASCII mdpaper tools",
+            )
+        )
 
         # "All-in-one: ~131 tools in VS Code" / "一站式：~131 個工具在 VS Code 裡"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"一站式[：:]\s*~?\d+\s*個工具",
-                f"一站式：~{c.total_tools} 個工具",
-                "zh all-in-one",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"一站式[：:]\s*~?\d+\s*個工具",
+                    f"一站式：~{c.total_tools} 個工具",
+                    "zh all-in-one",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"All-in-one:\s*~?\d+\s*tools",
-                f"All-in-one: ~{c.total_tools} tools",
-                "en all-in-one",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"All-in-one:\s*~?\d+\s*tools",
+                    f"All-in-one: ~{c.total_tools} tools",
+                    "en all-in-one",
+                )
+            )
 
         # "26 Skills + 14 Prompt Workflows" / "26 技能 + 14 Prompt 工作流"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"\d+\s*技能\s*\+\s*\d+\s*Prompt\s*工作流",
-                f"{c.skills} 技能 + {c.prompts} Prompt 工作流",
-                "zh skills + prompts",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\d+\s*技能\s*\+\s*\d+\s*Prompt\s*工作流",
+                    f"{c.skills} 技能 + {c.prompts} Prompt 工作流",
+                    "zh skills + prompts",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"\d+\s*Skills?\s*\+\s*\d+\s*Prompt\s*Workflows?",
-                f"{c.skills} Skills + {c.prompts} Prompt Workflows",
-                "en skills + prompts",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\d+\s*Skills?\s*\+\s*\d+\s*Prompt\s*Workflows?",
+                    f"{c.skills} Skills + {c.prompts} Prompt Workflows",
+                    "en skills + prompts",
+                )
+            )
 
         # "26 Skills · 14 Prompts" in mermaid
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"\d+\s*技能\s*·\s*\d+\s*Prompts?",
-                f"{c.skills} 技能 · {c.prompts} Prompts",
-                "zh mermaid skills prompts",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\d+\s*技能\s*·\s*\d+\s*Prompts?",
+                    f"{c.skills} 技能 · {c.prompts} Prompts",
+                    "zh mermaid skills prompts",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"\d+\s*Skills?\s*·\s*\d+\s*Prompts?",
-                f"{c.skills} Skills · {c.prompts} Prompts",
-                "en mermaid skills prompts",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\d+\s*Skills?\s*·\s*\d+\s*Prompts?",
+                    f"{c.skills} Skills · {c.prompts} Prompts",
+                    "en mermaid skills prompts",
+                )
+            )
 
         # "**26 Skills** covering" for README.md only
         if not is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"\*\*\d+\s*Skills?\*\*\s*covering",
-                f"**{c.skills} Skills** covering",
-                "en bold skills covering",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\*\*\d+\s*Skills?\*\*\s*covering",
+                    f"**{c.skills} Skills** covering",
+                    "en bold skills covering",
+                )
+            )
 
         # mdpaper per-section headings: "### 📁 Project Management (16 tools)"
         section_map = {
@@ -379,186 +417,234 @@ def build_replace_rules(c: RepoCounts) -> list[ReplaceRule]:
         for group_key, (en_name, zh_name) in section_map.items():
             group_count = c.tool_groups.get(group_key, 0)
             if is_zh:
-                rules.append(ReplaceRule(
-                    readme,
-                    rf"###\s*\S+\s*{re.escape(zh_name)}[（(]\d+\s*工具[）)]",
-                    f"### {_section_emoji(group_key)} {zh_name}（{group_count} 工具）",
-                    f"zh {group_key} section heading",
-                ))
+                rules.append(
+                    ReplaceRule(
+                        readme,
+                        rf"###\s*\S+\s*{re.escape(zh_name)}[（(]\d+\s*工具[）)]",
+                        f"### {_section_emoji(group_key)} {zh_name}（{group_count} 工具）",
+                        f"zh {group_key} section heading",
+                    )
+                )
             else:
-                rules.append(ReplaceRule(
-                    readme,
-                    rf"###\s*\S+\s*{re.escape(en_name)}\s*\(\d+\s*tools?\)",
-                    f"### {_section_emoji(group_key)} {en_name} ({group_count} tools)",
-                    f"en {group_key} section heading",
-                ))
+                rules.append(
+                    ReplaceRule(
+                        readme,
+                        rf"###\s*\S+\s*{re.escape(en_name)}\s*\(\d+\s*tools?\)",
+                        f"### {_section_emoji(group_key)} {en_name} ({group_count} tools)",
+                        f"en {group_key} section heading",
+                    )
+                )
 
         # Summary table: "mdpaper (81) + pubmed-search (37) + CGU (13)"
-        rules.append(ReplaceRule(
-            readme,
-            r"mdpaper\s*\(\d+\)\s*\+\s*pubmed-search\s*\(\d+\)\s*\+\s*CGU\s*\(\d+\)",
-            f"mdpaper ({c.mdpaper_total}) + pubmed-search ({c.pubmed_tools}) + CGU ({c.cgu_tools})",
-            f"{'zh' if is_zh else 'en'} MCP summary table",
-        ))
+        rules.append(
+            ReplaceRule(
+                readme,
+                r"mdpaper\s*\(\d+\)\s*\+\s*pubmed-search\s*\(\d+\)\s*\+\s*CGU\s*\(\d+\)",
+                f"mdpaper ({c.mdpaper_total}) + pubmed-search ({c.pubmed_tools}) + CGU ({c.cgu_tools})",
+                f"{'zh' if is_zh else 'en'} MCP summary table",
+            )
+        )
 
         # "3 MCP Servers |" / "3 個 MCP Server |"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"\*\*\d+\s*個\s*MCP\s*Server\*\*",
-                f"**{c.mcp_servers} 個 MCP Server**",
-                "zh bold MCP server count",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\*\*\d+\s*個\s*MCP\s*Server\*\*",
+                    f"**{c.mcp_servers} 個 MCP Server**",
+                    "zh bold MCP server count",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"\*\*\d+\s*MCP\s*Servers?\*\*",
-                f"**{c.mcp_servers} MCP Servers**",
-                "en bold MCP server count",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\*\*\d+\s*MCP\s*Servers?\*\*",
+                    f"**{c.mcp_servers} MCP Servers**",
+                    "en bold MCP server count",
+                )
+            )
 
         # Pre-commit hooks count
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"\*\*\d+\s*個\s*pre-commit\s*hooks?\*\*",
-                f"**{c.precommit_hooks} 個 pre-commit hooks**",
-                "zh pre-commit count",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\*\*\d+\s*個\s*pre-commit\s*hooks?\*\*",
+                    f"**{c.precommit_hooks} 個 pre-commit hooks**",
+                    "zh pre-commit count",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"\*\*\d+\s*pre-commit\s*hooks?\*\*",
-                f"**{c.precommit_hooks} pre-commit hooks**",
-                "en pre-commit count",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\*\*\d+\s*pre-commit\s*hooks?\*\*",
+                    f"**{c.precommit_hooks} pre-commit hooks**",
+                    "en pre-commit count",
+                )
+            )
 
         # Pre-commit in table: "15 hooks"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"\d+\s*hooks?[（(]ruff",
-                f"{c.precommit_hooks} hooks（ruff",
-                "zh pre-commit hooks table",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\d+\s*hooks?[（(]ruff",
+                    f"{c.precommit_hooks} hooks（ruff",
+                    "zh pre-commit hooks table",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"\d+\s*hooks?\s*\(ruff",
-                f"{c.precommit_hooks} hooks (ruff",
-                "en pre-commit hooks table",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\d+\s*hooks?\s*\(ruff",
+                    f"{c.precommit_hooks} hooks (ruff",
+                    "en pre-commit hooks table",
+                )
+            )
 
         # Tree view: "MCP server, 81 tools in 8 groups"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"MCP\s*Server[，,]\s*\d+\s*工具分\s*\d+\s*大類",
-                f"MCP Server，{c.mdpaper_total} 工具分 {len(c.tool_groups)} 大類",
-                "zh tree view tools",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"MCP\s*Server[，,]\s*\d+\s*工具分\s*\d+\s*大類",
+                    f"MCP Server，{c.mdpaper_total} 工具分 {len(c.tool_groups)} 大類",
+                    "zh tree view tools",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"MCP\s*server,\s*\d+\s*tools\s*in\s*\d+\s*groups?",
-                f"MCP server, {c.mdpaper_total} tools in {len(c.tool_groups)} groups",
-                "en tree view tools",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"MCP\s*server,\s*\d+\s*tools\s*in\s*\d+\s*groups?",
+                    f"MCP server, {c.mdpaper_total} tools in {len(c.tool_groups)} groups",
+                    "en tree view tools",
+                )
+            )
 
         # Tree view: pubmed-search and CGU lines
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"PubMed/PMC/CORE\s*搜尋[（(]\d+\s*工具[）)]",
-                f"PubMed/PMC/CORE 搜尋（{c.pubmed_tools} 工具）",
-                "zh tree pubmed",
-            ))
-            rules.append(ReplaceRule(
-                readme,
-                r"創意發想[（(]\d+\s*工具[）)]",
-                f"創意發想（{c.cgu_tools} 工具）",
-                "zh tree CGU",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"PubMed/PMC/CORE\s*搜尋[（(]\d+\s*工具[）)]",
+                    f"PubMed/PMC/CORE 搜尋（{c.pubmed_tools} 工具）",
+                    "zh tree pubmed",
+                )
+            )
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"創意發想[（(]\d+\s*工具[）)]",
+                    f"創意發想（{c.cgu_tools} 工具）",
+                    "zh tree CGU",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"PubMed/PMC/CORE\s*search\s*\(\d+\s*tools?\)",
-                f"PubMed/PMC/CORE search ({c.pubmed_tools} tools)",
-                "en tree pubmed",
-            ))
-            rules.append(ReplaceRule(
-                readme,
-                r"Creative\s*generation\s*\(\d+\s*tools?\)",
-                f"Creative generation ({c.cgu_tools} tools)",
-                "en tree CGU",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"PubMed/PMC/CORE\s*search\s*\(\d+\s*tools?\)",
+                    f"PubMed/PMC/CORE search ({c.pubmed_tools} tools)",
+                    "en tree pubmed",
+                )
+            )
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"Creative\s*generation\s*\(\d+\s*tools?\)",
+                    f"Creative generation ({c.cgu_tools} tools)",
+                    "en tree CGU",
+                )
+            )
 
         # Table row counts: "| 81 |" for mdpaper, "| 14 |" for Prompts, "| 26 |" for Skills
         # mdpaper row: match "Core MCP Server" or "核心 MCP Server" context
-        rules.append(ReplaceRule(
-            readme,
-            rf"((?:Core|核心)\s*MCP\s*Server\s*\|\s*)\d+",
-            rf"\g<1>{c.mdpaper_total}",
-            f"{'zh' if is_zh else 'en'} table mdpaper tools",
-        ))
+        rules.append(
+            ReplaceRule(
+                readme,
+                r"((?:Core|核心)\s*MCP\s*Server\s*\|\s*)\d+",
+                rf"\g<1>{c.mdpaper_total}",
+                f"{'zh' if is_zh else 'en'} table mdpaper tools",
+            )
+        )
         # Prompts row: "Prompt Files" context
-        rules.append(ReplaceRule(
-            readme,
-            r"(Prompt\s*Files?\s*\|\s*)\d+",
-            rf"\g<1>{c.prompts}",
-            f"{'zh' if is_zh else 'en'} table prompts count",
-        ))
+        rules.append(
+            ReplaceRule(
+                readme,
+                r"(Prompt\s*Files?\s*\|\s*)\d+",
+                rf"\g<1>{c.prompts}",
+                f"{'zh' if is_zh else 'en'} table prompts count",
+            )
+        )
 
         # Prompt tree: "14 Prompt workflow files" / "14 個 Prompt 工作流"
         if is_zh:
-            rules.append(ReplaceRule(
-                readme,
-                r"\d+\s*個\s*Prompt\s*工作流",
-                f"{c.prompts} 個 Prompt 工作流",
-                "zh prompt tree",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\d+\s*個\s*Prompt\s*工作流",
+                    f"{c.prompts} 個 Prompt 工作流",
+                    "zh prompt tree",
+                )
+            )
         else:
-            rules.append(ReplaceRule(
-                readme,
-                r"\d+\s*Prompt\s*workflow\s*files?",
-                f"{c.prompts} Prompt workflow files",
-                "en prompt tree",
-            ))
+            rules.append(
+                ReplaceRule(
+                    readme,
+                    r"\d+\s*Prompt\s*workflow\s*files?",
+                    f"{c.prompts} Prompt workflow files",
+                    "en prompt tree",
+                )
+            )
 
     # ── ARCHITECTURE.md ──
 
     arch = ROOT / "ARCHITECTURE.md"
     if arch.exists():
-        rules.append(ReplaceRule(
-            arch,
-            r"提供\s*\d+\s*個\s*tools",
-            f"提供 {c.mdpaper_total} 個 tools",
-            "ARCHITECTURE mdpaper tool count",
-        ))
-        rules.append(ReplaceRule(
-            arch,
-            r"Hook 架構[（(]\d+\s*checks\s*[—–-]+\s*\d+\s*Code-Enforced\s*/\s*\d+\s*Agent-Driven[）)]",
-            f"Hook 架構（{c.quality_hooks} checks — {c.quality_hooks_code_enforced} Code-Enforced / {c.quality_hooks_agent_driven} Agent-Driven）",
-            "ARCHITECTURE hook heading",
-        ))
-        rules.append(ReplaceRule(
-            arch,
-            r"追蹤\s*\d+\s*個\s*Hook",
-            f"追蹤 {c.quality_hooks} 個 Hook",
-            "ARCHITECTURE hook tracking count",
-        ))
-        rules.append(ReplaceRule(
-            arch,
-            r"Copilot\s*Skills[（(]\d+\s*個[）)]",
-            f"Copilot Skills（{c.skills} 個）",
-            "ARCHITECTURE skills count",
-        ))
-        rules.append(ReplaceRule(
-            arch,
-            r"Copilot\s*Prompts[（(]\d+\s*個[）)]",
-            f"Copilot Prompts（{c.prompts} 個）",
-            "ARCHITECTURE prompts count",
-        ))
+        rules.append(
+            ReplaceRule(
+                arch,
+                r"提供\s*\d+\s*個\s*tools",
+                f"提供 {c.mdpaper_total} 個 tools",
+                "ARCHITECTURE mdpaper tool count",
+            )
+        )
+        rules.append(
+            ReplaceRule(
+                arch,
+                r"Hook 架構[（(]\d+\s*checks\s*[—–-]+\s*\d+\s*Code-Enforced\s*/\s*\d+\s*Agent-Driven[）)]",
+                f"Hook 架構（{c.quality_hooks} checks — {c.quality_hooks_code_enforced} Code-Enforced / {c.quality_hooks_agent_driven} Agent-Driven）",
+                "ARCHITECTURE hook heading",
+            )
+        )
+        rules.append(
+            ReplaceRule(
+                arch,
+                r"追蹤\s*\d+\s*個\s*Hook",
+                f"追蹤 {c.quality_hooks} 個 Hook",
+                "ARCHITECTURE hook tracking count",
+            )
+        )
+        rules.append(
+            ReplaceRule(
+                arch,
+                r"Copilot\s*Skills[（(]\d+\s*個[）)]",
+                f"Copilot Skills（{c.skills} 個）",
+                "ARCHITECTURE skills count",
+            )
+        )
+        rules.append(
+            ReplaceRule(
+                arch,
+                r"Copilot\s*Prompts[（(]\d+\s*個[）)]",
+                f"Copilot Prompts（{c.prompts} 個）",
+                "ARCHITECTURE prompts count",
+            )
+        )
 
     # ── copilot-instructions.md (both .github/ and vscode-extension/) ──
 
@@ -570,77 +656,101 @@ def build_replace_rules(c: RepoCounts) -> list[ReplaceRule]:
             continue
 
         # Header: "## MCP Server（89 tools, ..."
-        rules.append(ReplaceRule(
-            ci_path,
-            r"MCP\s*Server[（(]\d+\s*tools",
-            f"MCP Server（{c.mdpaper_total} tools",
-            f"copilot-instructions MCP header ({ci_path.parent.name})",
-        ))
+        rules.append(
+            ReplaceRule(
+                ci_path,
+                r"MCP\s*Server[（(]\d+\s*tools",
+                f"MCP Server（{c.mdpaper_total} tools",
+                f"copilot-instructions MCP header ({ci_path.parent.name})",
+            )
+        )
 
         # Hook heading
-        rules.append(ReplaceRule(
-            ci_path,
-            r"Hook 架構[（(]\d+\s*checks\s*[—–-]+\s*\d+\s*Code-Enforced\s*/\s*\d+\s*Agent-Driven[）)]",
-            f"Hook 架構（{c.quality_hooks} checks — {c.quality_hooks_code_enforced} Code-Enforced / {c.quality_hooks_agent_driven} Agent-Driven）",
-            f"copilot-instructions hook heading ({ci_path.parent.name})",
-        ))
+        rules.append(
+            ReplaceRule(
+                ci_path,
+                r"Hook 架構[（(]\d+\s*checks\s*[—–-]+\s*\d+\s*Code-Enforced\s*/\s*\d+\s*Agent-Driven[）)]",
+                f"Hook 架構（{c.quality_hooks} checks — {c.quality_hooks_code_enforced} Code-Enforced / {c.quality_hooks_agent_driven} Agent-Driven）",
+                f"copilot-instructions hook heading ({ci_path.parent.name})",
+            )
+        )
 
         # Module breakdown table rows: match "| group/ " then capture spaces and "| N"
-        for group_key in ["project", "reference", "draft", "validation", "analysis", "review", "export"]:
+        for group_key in [
+            "project",
+            "reference",
+            "draft",
+            "validation",
+            "analysis",
+            "review",
+            "export",
+        ]:
             group_count = c.tool_groups.get(group_key, 0)
-            rules.append(ReplaceRule(
-                ci_path,
-                rf"(\|\s*{group_key}/\s*\|\s*)\d+",
-                rf"\g<1>{group_count}",
-                f"copilot-instructions {group_key} count ({ci_path.parent.name})",
-            ))
+            rules.append(
+                ReplaceRule(
+                    ci_path,
+                    rf"(\|\s*{group_key}/\s*\|\s*)\d+",
+                    rf"\g<1>{group_count}",
+                    f"copilot-instructions {group_key} count ({ci_path.parent.name})",
+                )
+            )
 
     # ── ROADMAP.md ──
 
     roadmap = ROOT / "ROADMAP.md"
     if roadmap.exists():
-        rules.append(ReplaceRule(
-            roadmap,
-            r"\d+\s*個品質檢查",
-            f"{c.quality_hooks} 個品質檢查",
-            "ROADMAP quality check count",
-        ))
+        rules.append(
+            ReplaceRule(
+                roadmap,
+                r"\d+\s*個品質檢查",
+                f"{c.quality_hooks} 個品質檢查",
+                "ROADMAP quality check count",
+            )
+        )
 
     # ── CONSTITUTION.md ──
 
     constitution = ROOT / "CONSTITUTION.md"
     if constitution.exists():
-        rules.append(ReplaceRule(
-            constitution,
-            r"\d+\s*個品質檢查",
-            f"{c.quality_hooks} 個品質檢查",
-            "CONSTITUTION quality check count",
-        ))
-        rules.append(ReplaceRule(
-            constitution,
-            r"\d+/\d+\s*Code-Enforced",
-            f"{c.quality_hooks_code_enforced}/{c.quality_hooks} Code-Enforced",
-            "CONSTITUTION code-enforced ratio",
-        ))
+        rules.append(
+            ReplaceRule(
+                constitution,
+                r"\d+\s*個品質檢查",
+                f"{c.quality_hooks} 個品質檢查",
+                "CONSTITUTION quality check count",
+            )
+        )
+        rules.append(
+            ReplaceRule(
+                constitution,
+                r"\d+/\d+\s*Code-Enforced",
+                f"{c.quality_hooks_code_enforced}/{c.quality_hooks} Code-Enforced",
+                "CONSTITUTION code-enforced ratio",
+            )
+        )
 
     # ── AGENTS.md ──
 
     agents_md = ROOT / "AGENTS.md"
     if agents_md.exists():
         # L1 hooks line
-        rules.append(ReplaceRule(
-            agents_md,
-            r"\d+\s*個品質檢查[（(]\d+\s*Code-Enforced\s*/\s*\d+\s*Agent-Driven[）)]",
-            f"{c.quality_hooks} 個品質檢查（{c.quality_hooks_code_enforced} Code-Enforced / {c.quality_hooks_agent_driven} Agent-Driven）",
-            "AGENTS.md L1 hooks detail",
-        ))
+        rules.append(
+            ReplaceRule(
+                agents_md,
+                r"\d+\s*個品質檢查[（(]\d+\s*Code-Enforced\s*/\s*\d+\s*Agent-Driven[）)]",
+                f"{c.quality_hooks} 個品質檢查（{c.quality_hooks_code_enforced} Code-Enforced / {c.quality_hooks_agent_driven} Agent-Driven）",
+                "AGENTS.md L1 hooks detail",
+            )
+        )
         # Hook heading (already in co-pilot instructions rules but AGENTS.md is separate)
-        rules.append(ReplaceRule(
-            agents_md,
-            r"Hook 架構[（(]\d+\s*checks\s*[—–-]+\s*\d+\s*Code-Enforced\s*/\s*\d+\s*Agent-Driven[）)]",
-            f"Hook 架構（{c.quality_hooks} checks — {c.quality_hooks_code_enforced} Code-Enforced / {c.quality_hooks_agent_driven} Agent-Driven）",
-            "AGENTS.md hook heading",
-        ))
+        rules.append(
+            ReplaceRule(
+                agents_md,
+                r"Hook 架構[（(]\d+\s*checks\s*[—–-]+\s*\d+\s*Code-Enforced\s*/\s*\d+\s*Agent-Driven[）)]",
+                f"Hook 架構（{c.quality_hooks} checks — {c.quality_hooks_code_enforced} Code-Enforced / {c.quality_hooks_agent_driven} Agent-Driven）",
+                "AGENTS.md hook heading",
+            )
+        )
 
     # ── docs/auto-paper-guide.md ──
     # NOTE: auto-paper-guide.md uses "42 項自動品質檢查（Hook A-D）"
@@ -770,7 +880,9 @@ def main() -> int:
     print(f"  Prompts             : {counts.prompts}")
     print(f"  Agents              : {counts.agents}")
     print(f"  Pre-commit hooks    : {counts.precommit_hooks}")
-    print(f"  Quality hooks       : {counts.quality_hooks} ({counts.quality_hooks_code_enforced} CE / {counts.quality_hooks_agent_driven} AD)")
+    print(
+        f"  Quality hooks       : {counts.quality_hooks} ({counts.quality_hooks_code_enforced} CE / {counts.quality_hooks_agent_driven} AD)"
+    )
     print(f"  Pipeline phases     : {counts.phases}")
     print()
 
@@ -785,7 +897,6 @@ def main() -> int:
 
     stale = [i for i in issues if i.startswith("❌")]
     fixed = [i for i in issues if i.startswith("🔧")]
-    warnings = [i for i in issues if i.startswith("⚠️")]
 
     if verbose or stale or fixed:
         print()

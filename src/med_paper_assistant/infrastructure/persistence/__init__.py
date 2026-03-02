@@ -22,13 +22,13 @@ from .project_repository import ProjectRepository
 from .quality_scorecard import QualityScorecard
 from .reference_manager import ReferenceManager
 from .reference_repository import ReferenceRepository
+from .review_hooks import ReviewHooksEngine
 from .tool_invocation_store import ToolInvocationStore
 from .workspace_state_manager import (
     WorkspaceStateManager,
     get_workspace_state_manager,
     reset_workspace_state_manager,
 )
-from .review_hooks import ReviewHooksEngine
 from .writing_hooks import HookIssue, HookResult, WritingHooksEngine
 
 __all__ = [

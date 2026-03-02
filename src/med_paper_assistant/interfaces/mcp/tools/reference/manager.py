@@ -490,9 +490,7 @@ def register_reference_manager_tools(
             return f"❌ {result.get('error', '未知錯誤')}"
 
     @mcp.tool()
-    def get_reference_for_analysis(
-        pmid: str, project: Optional[str] = None
-    ) -> str:
+    def get_reference_for_analysis(pmid: str, project: Optional[str] = None) -> str:
         """
         📖 Get reference content for subagent analysis (Phase 2.1).
 
@@ -562,8 +560,12 @@ def register_reference_manager_tools(
                     fulltext_available = True
 
         lines.append("---")
-        lines.append(f"**Fulltext available**: {'Yes' if fulltext_available else 'No (abstract only)'}")
-        lines.append(f"**Analysis status**: {'Completed' if meta.get('analysis_completed') else 'PENDING'}")
+        lines.append(
+            f"**Fulltext available**: {'Yes' if fulltext_available else 'No (abstract only)'}"
+        )
+        lines.append(
+            f"**Analysis status**: {'Completed' if meta.get('analysis_completed') else 'PENDING'}"
+        )
 
         if not fulltext_available:
             lines.append("")
@@ -625,7 +627,9 @@ def register_reference_manager_tools(
             return f"❌ metadata.json not found for PMID:{pmid}"
 
         # Parse usage sections
-        sections_list = [s.strip() for s in usage_sections.split(",") if s.strip()] if usage_sections else []
+        sections_list = (
+            [s.strip() for s in usage_sections.split(",") if s.strip()] if usage_sections else []
+        )
 
         # Build analysis data
         analysis = {

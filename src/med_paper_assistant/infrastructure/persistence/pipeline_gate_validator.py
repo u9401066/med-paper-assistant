@@ -349,9 +349,10 @@ class PipelineGateValidator:
                     name="prereq:exports",
                     description="Export files from Phase 9 (docx + pdf)",
                     passed=has_docx and has_pdf,
-                    details="docx+pdf exist" if (has_docx and has_pdf) else
-                            f"MISSING — {'no docx' if not has_docx else ''}"
-                            f"{'no pdf' if not has_pdf else ''} — complete Phase 9 first",
+                    details="docx+pdf exist"
+                    if (has_docx and has_pdf)
+                    else f"MISSING — {'no docx' if not has_docx else ''}"
+                    f"{'no pdf' if not has_pdf else ''} — complete Phase 9 first",
                     severity="CRITICAL",
                 )
             )

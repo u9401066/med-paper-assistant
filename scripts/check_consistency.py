@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Structural Consistency Checker — verifies code ↔ docs ↔ tests alignment.
 
@@ -35,15 +35,15 @@ TESTS = ROOT / "tests"
 # Declared hook groups (source of truth from AGENTS.md)
 # A3b is a sub-check of A3, counted within A's total of 6
 DECLARED_HOOKS = {
-    "A": 6,   # A1-A6 (A3b counted within A3)
+    "A": 6,  # A1-A6 (A3b counted within A3)
     "B": 16,  # B1-B16
     "C": 13,  # C1-C13
-    "D": 9,   # D1-D9
-    "E": 5,   # E1-E5
-    "F": 4,   # F1-F4
-    "G": 9,   # G1-G9
-    "P": 8,   # P1-P8
-    "R": 6,   # R1-R6
+    "D": 9,  # D1-D9
+    "E": 5,  # E1-E5
+    "F": 4,  # F1-F4
+    "G": 9,  # G1-G9
+    "P": 8,  # P1-P8
+    "R": 6,  # R1-R6
 }
 TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 76
 
@@ -374,6 +374,7 @@ def main() -> int:
 
 if __name__ == "__main__":
     import io
+
     if sys.stdout.encoding and sys.stdout.encoding.lower().replace("-", "") != "utf8":
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     sys.exit(main())

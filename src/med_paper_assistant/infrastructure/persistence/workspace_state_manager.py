@@ -326,9 +326,7 @@ class WorkspaceStateManager:
         }
 
         # Also update recovery hints as double-safety
-        state["recovery_hints"]["agent_was_doing"] = (
-            f"Writing {section} ({operation} → {filename})"
-        )
+        state["recovery_hints"]["agent_was_doing"] = f"Writing {section} ({operation} → {filename})"
         state["last_activity"] = datetime.now().isoformat()
 
         return self.save_state(state)
@@ -506,9 +504,7 @@ class WorkspaceStateManager:
                 lines.append("\n**Sections on Disk:**")
                 for sec in ws["sections_on_disk"]:
                     lines.append(f"  - {sec}")
-            lines.append(
-                "\n💡 Use `read_draft` to review current content before continuing."
-            )
+            lines.append("\n💡 Use `read_draft` to review current content before continuing.")
 
         return "\n".join(lines)
 
