@@ -33,8 +33,8 @@ export function getPythonArgs(command: string, module: string): string[] {
         return [module];
     }
 
-    // Case 3: Standard python -m ...
-    if (commandName === 'python' || commandName === 'python3' || commandName === 'py' || commandName === 'python.exe') {
+    // Case 3: Standard python -m ... (match python, python3, python3.12, py, etc.)
+    if (commandName === 'python' || commandName === 'py' || /^python3(\.\d+)?$/.test(commandName)) {
         return ['-m', module];
     }
 
@@ -120,6 +120,23 @@ export const BUNDLED_PROMPTS = [
     'mdpaper.analysis',
     'mdpaper.clarify',
     'mdpaper.help',
+    'mdpaper.audit',
+] as const;
+
+/**
+ * List of agents that should be bundled in the VSX extension.
+ * Single source of truth for build.sh and validation.
+ */
+export const BUNDLED_AGENTS = [
+    'concept-challenger',
+    'domain-reviewer',
+    'literature-searcher',
+    'meta-learner',
+    'methodology-reviewer',
+    'paper-reviewer',
+    'reference-analyzer',
+    'review-orchestrator',
+    'statistics-reviewer',
 ] as const;
 
 /**
@@ -233,6 +250,40 @@ export function validateBundledTemplates(
                 missing.push(tmpl + ' (outdated)');
             } else {
                 synced.push(tmpl);
+            }
+        }
+    }
+
+    return { missing, extra, synced };
+}
+
+/**
+ * Validate that bundled agents match the source directory.
+ */
+export function validateBundledAgents(
+    bundledAgentsDir: string,
+    sourceAgentsDir: string,
+): { missing: string[]; extra: string[]; synced: string[] } {
+    const missing: string[] = [];
+    const extra: string[] = [];
+    const synced: string[] = [];
+
+    for (const agent of BUNDLED_AGENTS) {
+        const filename = `${agent}.agent.md`;
+        const srcFile = path.join(sourceAgentsDir, filename);
+        const dstFile = path.join(bundledAgentsDir, filename);
+
+        if (!fs.existsSync(srcFile)) {
+            extra.push(agent);
+        } else if (!fs.existsSync(dstFile)) {
+            missing.push(agent);
+        } else {
+            const srcContent = fs.readFileSync(srcFile, 'utf-8');
+            const dstContent = fs.readFileSync(dstFile, 'utf-8');
+            if (srcContent !== dstContent) {
+                missing.push(agent + ' (outdated)');
+            } else {
+                synced.push(agent);
             }
         }
     }

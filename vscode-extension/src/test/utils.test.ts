@@ -9,11 +9,13 @@ import {
     validateBundledSkills,
     validateBundledPrompts,
     validateBundledTemplates,
+    validateBundledAgents,
     validateChatCommands,
     getPackageVersion,
     BUNDLED_SKILLS,
     BUNDLED_PROMPTS,
     BUNDLED_TEMPLATES,
+    BUNDLED_AGENTS,
 } from '../utils';
 
 // ──────────────────────────────────────────────────────────
@@ -41,6 +43,11 @@ describe('getPythonArgs', () => {
         expect(getPythonArgs('python', MODULE)).toEqual(['-m', MODULE]);
         expect(getPythonArgs('python3', MODULE)).toEqual(['-m', MODULE]);
         expect(getPythonArgs('py', MODULE)).toEqual(['-m', MODULE]);
+    });
+
+    it('versioned python (homebrew/macOS) → -m module', () => {
+        expect(getPythonArgs('/opt/homebrew/bin/python3.12', MODULE)).toEqual(['-m', MODULE]);
+        expect(getPythonArgs('python3.11', MODULE)).toEqual(['-m', MODULE]);
     });
 
     it('python.exe (Windows) → -m module', () => {
@@ -294,9 +301,11 @@ describe('Source ↔ VSX Sync', () => {
     const sourceSkillsDir = path.join(rootDir, '.claude', 'skills');
     const sourcePromptsDir = path.join(rootDir, '.github', 'prompts');
     const sourceTemplatesDir = path.join(rootDir, 'templates');
+    const sourceAgentsDir = path.join(rootDir, '.github', 'agents');
     const bundledSkillsDir = path.join(extDir, 'skills');
     const bundledPromptsDir = path.join(extDir, 'prompts');
     const bundledTemplatesDir = path.join(extDir, 'templates');
+    const bundledAgentsDir = path.join(extDir, 'agents');
 
     it('all BUNDLED_SKILLS exist in source .claude/skills/', () => {
         for (const skill of BUNDLED_SKILLS) {
@@ -342,5 +351,20 @@ describe('Source ↔ VSX Sync', () => {
         }
         const result = validateBundledTemplates(bundledTemplatesDir, sourceTemplatesDir);
         expect(result.missing, `Out of sync templates: ${result.missing.join(', ')}`).toHaveLength(0);
+    });
+
+    it('all BUNDLED_AGENTS exist in source .github/agents/', () => {
+        for (const agent of BUNDLED_AGENTS) {
+            const agentPath = path.join(sourceAgentsDir, `${agent}.agent.md`);
+            expect(fs.existsSync(agentPath), `Missing source agent: ${agent}`).toBe(true);
+        }
+    });
+
+    it('bundled agents are in sync with source (after build)', () => {
+        if (!fs.existsSync(bundledAgentsDir)) {
+            return; // Skip pre-build
+        }
+        const result = validateBundledAgents(bundledAgentsDir, sourceAgentsDir);
+        expect(result.missing, `Out of sync agents: ${result.missing.join(', ')}`).toHaveLength(0);
     });
 });

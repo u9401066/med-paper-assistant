@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES } from './utils';
+import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS } from './utils';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -62,6 +62,10 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    // Auto-scaffold: check if workspace is missing skills/agents/prompts
+    // Only prompt once per workspace (use globalState to track)
+    autoScaffoldIfNeeded(context);
+
     outputChannel.appendLine('MedPaper Assistant activated successfully!');
 }
 
@@ -109,6 +113,16 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
 
             const definitions: vscode.McpServerDefinition[] = [];
 
+            // Build environment: inherit PATH/HOME/SHELL so child processes find uv/uvx/git on macOS
+            const mcpEnv: Record<string, string> = {
+                PYTHONPATH: pythonPathEnv,
+                ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
+                ...(process.env.HOME ? { HOME: process.env.HOME } : {}),
+                ...(process.env.SHELL ? { SHELL: process.env.SHELL } : {}),
+                ...(process.env.LANG ? { LANG: process.env.LANG } : {}),
+                ...(process.env.USERPROFILE ? { USERPROFILE: process.env.USERPROFILE } : {}),
+            };
+
             // 1. MedPaper Assistant
             const mdpaperArgs = getPythonArgs(pythonPath, 'med_paper_assistant.interfaces.mcp');
             outputChannel.appendLine(`[MCP] MedPaper Args: ${mdpaperArgs.join(' ')}`);
@@ -116,9 +130,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 'MedPaper Assistant',
                 pythonPath,
                 mdpaperArgs,
-                {
-                    PYTHONPATH: pythonPathEnv
-                }
+                mcpEnv
             ));
 
             // 2. CGU (only if available in workspace or bundled)
@@ -133,9 +145,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                     'CGU Creativity',
                     pythonPath,
                     cguArgs,
-                    {
-                        PYTHONPATH: pythonPathEnv
-                    }
+                    mcpEnv
                 ));
             } else {
                 outputChannel.appendLine('[MCP] CGU not found — skipping registration');
@@ -147,6 +157,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 'uvx',
                 ['--from', 'drawio-mcp', 'drawio-mcp-server'],
                 {
+                    ...mcpEnv,
                     DRAWIO_NEXTJS_URL: 'http://localhost:3000'
                 }
             ));
@@ -403,6 +414,84 @@ function getPythonPath(context: vscode.ExtensionContext): string {
 
 
 
+async function autoScaffoldIfNeeded(context: vscode.ExtensionContext): Promise<void> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) {
+        return;
+    }
+
+    const wsRoot = workspaceFolders[0].uri.fsPath;
+    const extPath = context.extensionPath;
+
+    // Check if this workspace already has skills set up
+    const skillsDir = path.join(wsRoot, '.claude', 'skills');
+    const agentsDir = path.join(wsRoot, '.github', 'agents');
+    const promptsDir = path.join(wsRoot, '.github', 'prompts');
+
+    // Count what's missing
+    let missingSkills = 0;
+    for (const skill of BUNDLED_SKILLS) {
+        const dst = path.join(skillsDir, skill, 'SKILL.md');
+        const src = path.join(extPath, 'skills', skill, 'SKILL.md');
+        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            missingSkills++;
+        }
+    }
+
+    let missingAgents = 0;
+    for (const agent of BUNDLED_AGENTS) {
+        const dst = path.join(agentsDir, `${agent}.agent.md`);
+        const src = path.join(extPath, 'agents', `${agent}.agent.md`);
+        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            missingAgents++;
+        }
+    }
+
+    let missingPrompts = 0;
+    for (const prompt of BUNDLED_PROMPTS) {
+        const dst = path.join(promptsDir, `${prompt}.prompt.md`);
+        const src = path.join(extPath, 'prompts', `${prompt}.prompt.md`);
+        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            missingPrompts++;
+        }
+    }
+
+    const totalMissing = missingSkills + missingAgents + missingPrompts;
+
+    if (totalMissing === 0) {
+        outputChannel.appendLine('[AutoScaffold] Workspace already has all skills/agents/prompts.');
+        return;
+    }
+
+    // Use workspace-specific state key to avoid re-prompting
+    const stateKey = `mdpaper.scaffolded.${wsRoot}`;
+    const alreadyPrompted = context.globalState.get<boolean>(stateKey);
+
+    if (alreadyPrompted) {
+        outputChannel.appendLine(`[AutoScaffold] Already prompted for this workspace (${totalMissing} items missing). Run "MedPaper: Setup Workspace" to update.`);
+        return;
+    }
+
+    const detail = [];
+    if (missingSkills > 0) { detail.push(`${missingSkills} skills`); }
+    if (missingAgents > 0) { detail.push(`${missingAgents} agents`); }
+    if (missingPrompts > 0) { detail.push(`${missingPrompts} prompts`); }
+
+    const selection = await vscode.window.showInformationMessage(
+        `MedPaper: 偵測到 workspace 缺少 ${detail.join('、')}。要設定嗎？`,
+        '設定 Workspace',
+        '稍後再說',
+        '不再提醒'
+    );
+
+    if (selection === '設定 Workspace') {
+        await setupWorkspace(context);
+    } else if (selection === '不再提醒') {
+        await context.globalState.update(stateKey, true);
+    }
+    // '稍後再說' → do nothing, will prompt again next activation
+}
+
 async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
@@ -471,9 +560,20 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
         }
     }
 
+    // 6. Copy agents → .github/agents/
+    for (const agent of BUNDLED_AGENTS) {
+        const src = path.join(extPath, 'agents', `${agent}.agent.md`);
+        const dst = path.join(wsRoot, '.github', 'agents', `${agent}.agent.md`);
+        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            fs.mkdirSync(path.dirname(dst), { recursive: true });
+            fs.copyFileSync(src, dst);
+            copied++;
+        }
+    }
+
     if (copied > 0) {
         vscode.window.showInformationMessage(
-            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、instructions、templates）到 workspace。重新載入視窗以啟用全部功能。`,
+            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、agents、instructions、templates）到 workspace。重新載入視窗以啟用全部功能。`,
             '重新載入'
         ).then(selection => {
             if (selection === '重新載入') {

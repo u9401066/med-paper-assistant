@@ -80,7 +80,7 @@ EXPECTED_PROMPTS=(
     mdpaper.manuscript-revision mdpaper.search
     mdpaper.concept mdpaper.draft mdpaper.project
     mdpaper.format mdpaper.strategy mdpaper.analysis
-    mdpaper.clarify mdpaper.help
+    mdpaper.clarify mdpaper.help mdpaper.audit
 )
 
 for prompt in "${EXPECTED_PROMPTS[@]}"; do
@@ -145,6 +145,34 @@ for tmpl in "${EXPECTED_TEMPLATES[@]}"; do
         warn "Template outdated: $tmpl"
     else
         pass "Template synced: $tmpl"
+    fi
+done
+
+echo ""
+
+# ─── V3c: Agents Sync ───
+echo "🤖 V3c: Agents Sync"
+AGENTS_SRC="$ROOT_DIR/.github/agents"
+AGENTS_DST="$EXT_DIR/agents"
+
+EXPECTED_AGENTS=(
+    concept-challenger domain-reviewer literature-searcher
+    meta-learner methodology-reviewer paper-reviewer
+    reference-analyzer review-orchestrator statistics-reviewer
+)
+
+for agent in "${EXPECTED_AGENTS[@]}"; do
+    src_file="$AGENTS_SRC/${agent}.agent.md"
+    dst_file="$AGENTS_DST/${agent}.agent.md"
+
+    if [ ! -f "$src_file" ]; then
+        fail "Source agent missing: $agent"
+    elif [ ! -f "$dst_file" ]; then
+        fail "Bundled agent missing: $agent — run build.sh"
+    elif ! diff -q "$src_file" "$dst_file" > /dev/null 2>&1; then
+        warn "Agent outdated: $agent"
+    else
+        pass "Agent synced: $agent"
     fi
 done
 

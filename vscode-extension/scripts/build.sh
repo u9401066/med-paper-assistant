@@ -58,7 +58,7 @@ BUNDLED_PROMPTS=(
     mdpaper.manuscript-revision mdpaper.search
     mdpaper.concept mdpaper.draft mdpaper.project
     mdpaper.format mdpaper.strategy mdpaper.analysis
-    mdpaper.clarify mdpaper.help
+    mdpaper.clarify mdpaper.help mdpaper.audit
 )
 
 PROMPTS_COPIED=0
@@ -112,6 +112,34 @@ for tmpl in "${BUNDLED_TEMPLATES[@]}"; do
     fi
 done
 echo "  → Copied $TEMPLATES_COPIED / ${#BUNDLED_TEMPLATES[@]} templates"
+
+# ──────────────────────────────────────────────────────
+# 2d. Copy Agents from .github/agents/
+#     Keep in sync with src/utils.ts BUNDLED_AGENTS
+# ──────────────────────────────────────────────────────
+echo "🤖 Copying Agents..."
+AGENTS_SRC="$ROOT_DIR/.github/agents"
+AGENTS_DST="$EXT_DIR/agents"
+
+BUNDLED_AGENTS=(
+    concept-challenger domain-reviewer literature-searcher
+    meta-learner methodology-reviewer paper-reviewer
+    reference-analyzer review-orchestrator statistics-reviewer
+)
+
+AGENTS_COPIED=0
+mkdir -p "$AGENTS_DST"
+if [ -d "$AGENTS_SRC" ]; then
+    for agent in "${BUNDLED_AGENTS[@]}"; do
+        if [ -f "$AGENTS_SRC/$agent.agent.md" ]; then
+            cp "$AGENTS_SRC/$agent.agent.md" "$AGENTS_DST/" 2>/dev/null || true
+            AGENTS_COPIED=$((AGENTS_COPIED + 1))
+        else
+            echo "  ⚠️ Source agent not found: $agent"
+        fi
+    done
+fi
+echo "  → Copied $AGENTS_COPIED / ${#BUNDLED_AGENTS[@]} agents"
 
 # ──────────────────────────────────────────────────────
 # 3. Copy Python MCP source (for development)
