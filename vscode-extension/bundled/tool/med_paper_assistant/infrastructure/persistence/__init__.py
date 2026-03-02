@@ -28,6 +28,7 @@ from .workspace_state_manager import (
     get_workspace_state_manager,
     reset_workspace_state_manager,
 )
+from .review_hooks import ReviewHooksEngine
 from .writing_hooks import HookIssue, HookResult, WritingHooksEngine
 
 __all__ = [
@@ -53,6 +54,7 @@ __all__ = [
     "QualityScorecard",
     "ReferenceManager",
     "ReferenceRepository",
+    "ReviewHooksEngine",
     "ToolInvocationStore",
     "WorkspaceStateManager",
     "WritingHooksEngine",

@@ -126,11 +126,15 @@ class ReviewHooksEngine:
         report_path = self._audit_dir / f"review-report-{round_num}.md"
 
         if not report_path.is_file():
-            issues.append(HookIssue(
-                hook_id="R1", severity="CRITICAL", section="review",
-                message=f"review-report-{round_num}.md not found",
-                suggestion="Write the review report before submitting",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R1",
+                    severity="CRITICAL",
+                    section="review",
+                    message=f"review-report-{round_num}.md not found",
+                    suggestion="Write the review report before submitting",
+                )
+            )
             return HookResult(hook_id="R1", passed=False, issues=issues)
 
         content = report_path.read_text(encoding="utf-8")
@@ -138,11 +142,15 @@ class ReviewHooksEngine:
 
         # Word count check
         if words < MIN_REVIEW_REPORT_WORDS:
-            issues.append(HookIssue(
-                hook_id="R1", severity="CRITICAL", section="review",
-                message=f"Review report too short: {words} words (minimum {MIN_REVIEW_REPORT_WORDS})",
-                suggestion="Expand review with deeper analysis across methodology, domain, statistics, and writing quality",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R1",
+                    severity="CRITICAL",
+                    section="review",
+                    message=f"Review report too short: {words} words (minimum {MIN_REVIEW_REPORT_WORDS})",
+                    suggestion="Expand review with deeper analysis across methodology, domain, statistics, and writing quality",
+                )
+            )
 
         # Perspective coverage
         content_lower = content.lower()
@@ -152,28 +160,40 @@ class ReviewHooksEngine:
                 found_perspectives.append(persp)
 
         if len(found_perspectives) < MIN_PERSPECTIVES:
-            issues.append(HookIssue(
-                hook_id="R1", severity="CRITICAL", section="review",
-                message=f"Only {len(found_perspectives)}/{MIN_PERSPECTIVES} reviewer perspectives found: {found_perspectives}",
-                suggestion=f"Review must cover ≥{MIN_PERSPECTIVES} perspectives from: {REVIEWER_PERSPECTIVES}",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R1",
+                    severity="CRITICAL",
+                    section="review",
+                    message=f"Only {len(found_perspectives)}/{MIN_PERSPECTIVES} reviewer perspectives found: {found_perspectives}",
+                    suggestion=f"Review must cover ≥{MIN_PERSPECTIVES} perspectives from: {REVIEWER_PERSPECTIVES}",
+                )
+            )
 
         # Severity breakdown — parse YAML frontmatter or headings
         major_count = self._count_severity_in_report(content, "major")
         minor_count = self._count_severity_in_report(content, "minor")
 
         if major_count == 0 and minor_count == 0:
-            issues.append(HookIssue(
-                hook_id="R1", severity="CRITICAL", section="review",
-                message="No issues classified by severity — review must identify issues as major/minor/optional",
-                suggestion="Add severity classification to each issue (use YAML frontmatter or section headings)",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R1",
+                    severity="CRITICAL",
+                    section="review",
+                    message="No issues classified by severity — review must identify issues as major/minor/optional",
+                    suggestion="Add severity classification to each issue (use YAML frontmatter or section headings)",
+                )
+            )
         elif major_count == 0:
-            issues.append(HookIssue(
-                hook_id="R1", severity="WARNING", section="review",
-                message="No major issues found — a thorough review typically identifies at least one major concern",
-                suggestion="Re-examine methodology, statistical approach, or conceptual gaps for potential major issues",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R1",
+                    severity="WARNING",
+                    section="review",
+                    message="No major issues found — a thorough review typically identifies at least one major concern",
+                    suggestion="Re-examine methodology, statistical approach, or conceptual gaps for potential major issues",
+                )
+            )
 
         passed = all(i.severity != "CRITICAL" for i in issues)
         stats = {
@@ -201,11 +221,15 @@ class ReviewHooksEngine:
         response_path = self._audit_dir / f"author-response-{round_num}.md"
 
         if not response_path.is_file():
-            issues.append(HookIssue(
-                hook_id="R2", severity="CRITICAL", section="review",
-                message=f"author-response-{round_num}.md not found",
-                suggestion="Write the author response before submitting",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R2",
+                    severity="CRITICAL",
+                    section="review",
+                    message=f"author-response-{round_num}.md not found",
+                    suggestion="Write the author response before submitting",
+                )
+            )
             return HookResult(hook_id="R2", passed=False, issues=issues)
 
         content = response_path.read_text(encoding="utf-8")
@@ -216,11 +240,15 @@ class ReviewHooksEngine:
         total_decisions = accept_count + decline_count
 
         if total_decisions == 0:
-            issues.append(HookIssue(
-                hook_id="R2", severity="CRITICAL", section="review",
-                message="No ACCEPT/DECLINE decisions found in author response",
-                suggestion="Each review issue must be explicitly ACCEPT'd or DECLINE'd with reasoning",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R2",
+                    severity="CRITICAL",
+                    section="review",
+                    message="No ACCEPT/DECLINE decisions found in author response",
+                    suggestion="Each review issue must be explicitly ACCEPT'd or DECLINE'd with reasoning",
+                )
+            )
         else:
             # Cross-check with review report
             report_path = self._audit_dir / f"review-report-{round_num}.md"
@@ -228,21 +256,29 @@ class ReviewHooksEngine:
                 report_content = report_path.read_text(encoding="utf-8")
                 report_issue_count = self._count_total_issues_in_report(report_content)
                 if report_issue_count > 0 and total_decisions < report_issue_count:
-                    issues.append(HookIssue(
-                        hook_id="R2", severity="CRITICAL", section="review",
-                        message=f"Only {total_decisions}/{report_issue_count} review issues addressed in author response",
-                        suggestion="Every issue in the review report must have an ACCEPT or DECLINE decision",
-                    ))
+                    issues.append(
+                        HookIssue(
+                            hook_id="R2",
+                            severity="CRITICAL",
+                            section="review",
+                            message=f"Only {total_decisions}/{report_issue_count} review issues addressed in author response",
+                            suggestion="Every issue in the review report must have an ACCEPT or DECLINE decision",
+                        )
+                    )
 
             # DECLINE ratio check
             if total_decisions > 0:
                 decline_ratio = decline_count / total_decisions
                 if decline_ratio > MAX_DECLINE_RATIO:
-                    issues.append(HookIssue(
-                        hook_id="R2", severity="CRITICAL", section="review",
-                        message=f"DECLINE ratio {decline_ratio:.0%} exceeds maximum {MAX_DECLINE_RATIO:.0%} ({decline_count}/{total_decisions} declined)",
-                        suggestion="Re-evaluate declined issues — provide stronger justification or accept more reviewer suggestions",
-                    ))
+                    issues.append(
+                        HookIssue(
+                            hook_id="R2",
+                            severity="CRITICAL",
+                            section="review",
+                            message=f"DECLINE ratio {decline_ratio:.0%} exceeds maximum {MAX_DECLINE_RATIO:.0%} ({decline_count}/{total_decisions} declined)",
+                            suggestion="Re-evaluate declined issues — provide stronger justification or accept more reviewer suggestions",
+                        )
+                    )
 
         # Check for evidence/reference support in responses
         # Look for citation wikilinks or "evidence" / "reference" mentions near ACCEPT
@@ -252,25 +288,110 @@ class ReviewHooksEngine:
         )
         accepts_with_evidence = 0
         for section in accept_sections:
-            if re.search(r"\[\[.*?\]\]|doi|pmid|reference|evidence|support|literature|study|data", section, re.IGNORECASE):
+            if re.search(
+                r"\[\[.*?\]\]|doi|pmid|reference|evidence|support|literature|study|data",
+                section,
+                re.IGNORECASE,
+            ):
                 accepts_with_evidence += 1
 
         if accept_count > 0 and accepts_with_evidence == 0:
-            issues.append(HookIssue(
-                hook_id="R2", severity="WARNING", section="review",
-                message="None of the ACCEPT'd fixes reference supporting evidence or literature",
-                suggestion="When accepting reviewer comments, cite references or data to strengthen revisions (use [[wikilink]] or mention specific studies)",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R2",
+                    severity="WARNING",
+                    section="review",
+                    message="None of the ACCEPT'd fixes reference supporting evidence or literature",
+                    suggestion="When accepting reviewer comments, cite references or data to strengthen revisions (use [[wikilink]] or mention specific studies)",
+                )
+            )
 
         passed = all(i.severity != "CRITICAL" for i in issues)
         stats = {
             "accept_count": accept_count,
             "decline_count": decline_count,
             "total_decisions": total_decisions,
-            "decline_ratio": round(decline_count / total_decisions, 2) if total_decisions > 0 else 0,
+            "decline_ratio": round(decline_count / total_decisions, 2)
+            if total_decisions > 0
+            else 0,
             "accepts_with_evidence": accepts_with_evidence,
         }
         return HookResult(hook_id="R2", passed=passed, issues=issues, stats=stats)
+
+    # ── R3 helpers ─────────────────────────────────────────────────
+
+    # Patterns for counting checklist items across diverse agent-produced formats.
+    # Each regex is tried against every line; we take the union (de-dup by line)
+    # to avoid double-counting when a line matches multiple patterns.
+    _ITEM_PATTERNS: list[re.Pattern[str]] = [
+        # Markdown checkbox:  - [x] Item  /  * [ ] Item
+        re.compile(r"^\s*[-*]\s*\[[ xX✓✗]\]"),
+        # Numbered list:  1. Item  /  3) Item
+        re.compile(r"^\s*\d+[a-z]?[\.\)]\s"),
+        # Markdown pipe table data row (skip header-separator rows like |---|)
+        # Matches rows with ≥3 columns that contain real content
+        re.compile(r"^\s*\|(?!\s*[-:]+\s*\|)\s*\S.*\|.*\|.*\|"),
+        # Emoji status lines:  ✅ Item  /  ❌ Item  /  ⚠️ Item
+        re.compile(r"^\s*[✅❌⚠️🔲☑☐✓✗⬜🟢🔴🟡]\s*\S"),
+        # Bold numbered:  **1.** Item  /  **2a)** Item
+        re.compile(r"^\s*\*\*\d+[a-z]?[\.\)]\*\*\s"),
+        # Plain dash/bullet with content (last resort — only if nothing else matched)
+        re.compile(r"^\s*[-*]\s+\S"),
+    ]
+
+    def _count_equator_items(self, content: str) -> int:
+        """Count checklist items in an EQUATOR compliance file.
+
+        Supports multiple formats agents may produce:
+        - Markdown checkboxes:  ``- [x] Title``
+        - Numbered lists:  ``1. Title``
+        - Pipe tables:  ``| 1 | Title | Methods | ✅ |``
+        - Emoji status:  ``✅ Title and abstract``
+        - Bold numbered:  ``**1.** Title``
+        - Plain bullets:  ``- Title: Reported``
+
+        The method tries rich patterns first (checkbox, numbered, table, emoji,
+        bold) and only falls back to plain bullets if none of the rich patterns
+        matched anything. This prevents over-counting headings/prose as items.
+
+        Args:
+            content: Full text of the EQUATOR compliance file.
+
+        Returns:
+            Number of checklist items detected.
+        """
+        lines = content.splitlines()
+        # Try rich patterns first (all except the last plain-bullet fallback)
+        rich_patterns = self._ITEM_PATTERNS[:-1]
+        fallback_pattern = self._ITEM_PATTERNS[-1]
+
+        matched_lines: set[int] = set()
+        for idx, line in enumerate(lines):
+            for pat in rich_patterns:
+                if pat.search(line):
+                    matched_lines.add(idx)
+                    break  # one match per line is enough
+
+        # If no rich pattern matched anything, try the plain-bullet fallback.
+        # But exclude obvious non-item lines (headings, separators, blank).
+        if not matched_lines:
+            heading_re = re.compile(r"^\s*#{1,6}\s")
+            for idx, line in enumerate(lines):
+                if heading_re.match(line):
+                    continue
+                if fallback_pattern.search(line):
+                    matched_lines.add(idx)
+
+        # For pipe tables: subtract the header row (first table row).
+        # We keep it simple — if table rows are the dominant pattern,
+        # remove the first table-matched line (likely the header row).
+        table_pat = self._ITEM_PATTERNS[3 - 1]  # index 2 = pipe table pattern
+        table_lines = sorted(idx for idx in matched_lines if table_pat.search(lines[idx]))
+        if table_lines and len(table_lines) == len(matched_lines):
+            # All matches are table rows — first one is the header
+            matched_lines.discard(table_lines[0])
+
+        return len(matched_lines)
 
     # ── R3: EQUATOR Compliance Gate ────────────────────────────────
 
@@ -290,17 +411,18 @@ class ReviewHooksEngine:
 
         if compliance_path.is_file():
             content = compliance_path.read_text(encoding="utf-8")
-            # Count checklist items (lines starting with - [ ] or - [x] or numbered items)
-            checklist_items = len(re.findall(
-                r"(?:^|\n)\s*(?:[-*]\s*\[[ xX]\]|\d+[\.\)]\s)", content
-            ))
+            checklist_items = self._count_equator_items(content)
 
             if checklist_items < MIN_EQUATOR_ITEMS:
-                issues.append(HookIssue(
-                    hook_id="R3", severity="CRITICAL", section="review",
-                    message=f"EQUATOR checklist has only {checklist_items} items (minimum {MIN_EQUATOR_ITEMS})",
-                    suggestion="Complete the EQUATOR reporting guideline checklist (CONSORT/STROBE/PRISMA/CARE etc.)",
-                ))
+                issues.append(
+                    HookIssue(
+                        hook_id="R3",
+                        severity="CRITICAL",
+                        section="review",
+                        message=f"EQUATOR checklist has only {checklist_items} items (minimum {MIN_EQUATOR_ITEMS})",
+                        suggestion="Complete the EQUATOR reporting guideline checklist (CONSORT/STROBE/PRISMA/CARE etc.)",
+                    )
+                )
 
             stats = {"type": "compliance", "checklist_items": checklist_items}
 
@@ -308,19 +430,27 @@ class ReviewHooksEngine:
             content = na_path.read_text(encoding="utf-8")
             words = len(content.split())
             if words < 30:
-                issues.append(HookIssue(
-                    hook_id="R3", severity="WARNING", section="review",
-                    message=f"EQUATOR N/A justification too brief ({words} words) — explain why no reporting guideline applies",
-                    suggestion="Provide clear justification (≥30 words) for why no EQUATOR reporting guideline is applicable",
-                ))
+                issues.append(
+                    HookIssue(
+                        hook_id="R3",
+                        severity="WARNING",
+                        section="review",
+                        message=f"EQUATOR N/A justification too brief ({words} words) — explain why no reporting guideline applies",
+                        suggestion="Provide clear justification (≥30 words) for why no EQUATOR reporting guideline is applicable",
+                    )
+                )
             stats = {"type": "not_applicable", "justification_words": words}
 
         else:
-            issues.append(HookIssue(
-                hook_id="R3", severity="CRITICAL", section="review",
-                message=f"Neither equator-compliance-{round_num}.md nor equator-na-{round_num}.md found",
-                suggestion="Create equator-compliance-{N}.md with reporting guideline checklist, or equator-na-{N}.md with justification",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R3",
+                    severity="CRITICAL",
+                    section="review",
+                    message=f"Neither equator-compliance-{round_num}.md nor equator-na-{round_num}.md found",
+                    suggestion="Create equator-compliance-{N}.md with reporting guideline checklist, or equator-na-{N}.md with justification",
+                )
+            )
             stats = {"type": "missing"}
 
         passed = all(i.severity != "CRITICAL" for i in issues)
@@ -351,33 +481,48 @@ class ReviewHooksEngine:
 
         # Core traceability: accepted issues should have produced changes
         if accept_count > 0 and not manuscript_changed:
-            issues.append(HookIssue(
-                hook_id="R4", severity="CRITICAL", section="review",
-                message=f"{accept_count} issues ACCEPT'd but manuscript was NOT modified",
-                suggestion="Apply the accepted fixes to the manuscript using patch_draft()",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R4",
+                    severity="CRITICAL",
+                    section="review",
+                    message=f"{accept_count} issues ACCEPT'd but manuscript was NOT modified",
+                    suggestion="Apply the accepted fixes to the manuscript using patch_draft()",
+                )
+            )
 
         # Check issues_fixed vs accept_count consistency
         if accept_count > 0 and issues_fixed == 0:
-            issues.append(HookIssue(
-                hook_id="R4", severity="WARNING", section="review",
-                message=f"{accept_count} issues ACCEPT'd but issues_fixed=0 — inconsistent",
-                suggestion=f"Set issues_fixed={accept_count} or higher to reflect accepted changes",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R4",
+                    severity="WARNING",
+                    section="review",
+                    message=f"{accept_count} issues ACCEPT'd but issues_fixed=0 — inconsistent",
+                    suggestion=f"Set issues_fixed={accept_count} or higher to reflect accepted changes",
+                )
+            )
 
         # Check for change descriptions in response (look for "Changed:", "Fixed:", "Updated:", etc.)
         if response_path.is_file():
             content = response_path.read_text(encoding="utf-8")
-            change_descriptors = len(re.findall(
-                r"(?:changed|modified|updated|revised|added|removed|rewrote|corrected|fixed|edited)",
-                content, re.IGNORECASE,
-            ))
+            change_descriptors = len(
+                re.findall(
+                    r"(?:changed|modified|updated|revised|added|removed|rewrote|corrected|fixed|edited)",
+                    content,
+                    re.IGNORECASE,
+                )
+            )
             if accept_count > 0 and change_descriptors == 0:
-                issues.append(HookIssue(
-                    hook_id="R4", severity="WARNING", section="review",
-                    message="Author response lacks change descriptions — each ACCEPT should describe what was changed",
-                    suggestion="Add change descriptions (e.g., 'Changed: rewrote paragraph 3 of Discussion to clarify...')",
-                ))
+                issues.append(
+                    HookIssue(
+                        hook_id="R4",
+                        severity="WARNING",
+                        section="review",
+                        message="Author response lacks change descriptions — each ACCEPT should describe what was changed",
+                        suggestion="Add change descriptions (e.g., 'Changed: rewrote paragraph 3 of Discussion to clarify...')",
+                    )
+                )
 
         passed = all(i.severity != "CRITICAL" for i in issues)
         stats = {
@@ -405,23 +550,27 @@ class ReviewHooksEngine:
         issues: list[HookIssue] = []
         # Elevate A3/A3b issues as R5 issues
         for issue in a3_result.issues:
-            issues.append(HookIssue(
-                hook_id="R5",
-                severity=issue.severity,
-                section=issue.section,
-                message=f"[Post-Review A3] {issue.message}",
-                location=issue.location,
-                suggestion=issue.suggestion,
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R5",
+                    severity=issue.severity,
+                    section=issue.section,
+                    message=f"[Post-Review A3] {issue.message}",
+                    location=issue.location,
+                    suggestion=issue.suggestion,
+                )
+            )
         for issue in a3b_result.issues:
-            issues.append(HookIssue(
-                hook_id="R5",
-                severity=issue.severity,
-                section=issue.section,
-                message=f"[Post-Review A3b] {issue.message}",
-                location=issue.location,
-                suggestion=issue.suggestion,
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R5",
+                    severity=issue.severity,
+                    section=issue.section,
+                    message=f"[Post-Review A3b] {issue.message}",
+                    location=issue.location,
+                    suggestion=issue.suggestion,
+                )
+            )
 
         passed = a3_result.passed and a3b_result.passed
         stats = {
@@ -465,30 +614,44 @@ class ReviewHooksEngine:
         over_budget = total_refs - max_refs
 
         if over_budget > REF_BUDGET_HEADROOM:
-            issues.append(HookIssue(
-                hook_id="R6", severity="CRITICAL", section="References",
-                message=f"Citation count ({total_refs}) exceeds journal limit ({max_refs}) by {over_budget}",
-                suggestion=f"Remove {over_budget} lowest-priority references. Use citation_decisions.json priority field to rank.",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R6",
+                    severity="CRITICAL",
+                    section="References",
+                    message=f"Citation count ({total_refs}) exceeds journal limit ({max_refs}) by {over_budget}",
+                    suggestion=f"Remove {over_budget} lowest-priority references. Use citation_decisions.json priority field to rank.",
+                )
+            )
 
             # Provide specific trim suggestions based on citation_decisions.json
             trim_suggestions = self._suggest_refs_to_trim(
-                wikilinks, manuscript_content, over_budget,
+                wikilinks,
+                manuscript_content,
+                over_budget,
             )
             if trim_suggestions:
                 for ref_key, reason in trim_suggestions:
-                    issues.append(HookIssue(
-                        hook_id="R6", severity="WARNING", section="References",
-                        message=f"Trim candidate: [[{ref_key}]] — {reason}",
-                        suggestion=f"Remove [[{ref_key}]] from manuscript and references, or justify keeping it in citation_decisions.json",
-                    ))
+                    issues.append(
+                        HookIssue(
+                            hook_id="R6",
+                            severity="WARNING",
+                            section="References",
+                            message=f"Trim candidate: [[{ref_key}]] — {reason}",
+                            suggestion=f"Remove [[{ref_key}]] from manuscript and references, or justify keeping it in citation_decisions.json",
+                        )
+                    )
 
         elif over_budget == 0:
-            issues.append(HookIssue(
-                hook_id="R6", severity="WARNING", section="References",
-                message=f"Citation count ({total_refs}) at exact limit ({max_refs}) — no room for additional references",
-                suggestion="Consider whether all references are essential; any new addition will require removing another",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R6",
+                    severity="WARNING",
+                    section="References",
+                    message=f"Citation count ({total_refs}) at exact limit ({max_refs}) — no room for additional references",
+                    suggestion="Consider whether all references are essential; any new addition will require removing another",
+                )
+            )
 
         # Check for refs without citation_decisions.json entry
         decisions_path = self._project_dir / "citation_decisions.json"
@@ -501,11 +664,15 @@ class ReviewHooksEngine:
 
         undocumented_refs = [ref for ref in wikilinks if ref not in decisions]
         if undocumented_refs and over_budget > 0:
-            issues.append(HookIssue(
-                hook_id="R6", severity="WARNING", section="References",
-                message=f"{len(undocumented_refs)} references lack citation_decisions.json entry — cannot prioritise without justification",
-                suggestion="Add priority (1-5) and justification to citation_decisions.json for all references to enable informed trimming",
-            ))
+            issues.append(
+                HookIssue(
+                    hook_id="R6",
+                    severity="WARNING",
+                    section="References",
+                    message=f"{len(undocumented_refs)} references lack citation_decisions.json entry — cannot prioritise without justification",
+                    suggestion="Add priority (1-5) and justification to citation_decisions.json for all references to enable informed trimming",
+                )
+            )
 
         passed = over_budget <= REF_BUDGET_HEADROOM
         stats = {
@@ -536,7 +703,9 @@ class ReviewHooksEngine:
         results["R2"] = self.check_author_response_completeness(round_num)
         results["R3"] = self.check_equator_compliance(round_num)
         results["R4"] = self.check_review_fix_traceability(
-            round_num, issues_fixed, manuscript_changed,
+            round_num,
+            issues_fixed,
+            manuscript_changed,
         )
         if manuscript_content:
             results["R5"] = self.check_post_review_anti_ai(manuscript_content)
@@ -556,10 +725,13 @@ class ReviewHooksEngine:
         keywords = SEVERITY_KEYWORDS.get(severity, [severity])
         count = 0
         for keyword in keywords:
-            count += len(re.findall(
-                rf"(?:^|\n)\s*[-*]\s*.*\b{keyword}\b",
-                content, re.IGNORECASE,
-            ))
+            count += len(
+                re.findall(
+                    rf"(?:^|\n)\s*[-*]\s*.*\b{keyword}\b",
+                    content,
+                    re.IGNORECASE,
+                )
+            )
         return count
 
     def _count_total_issues_in_report(self, content: str) -> int:
@@ -569,10 +741,12 @@ class ReviewHooksEngine:
             total += self._count_severity_in_report(content, severity)
         # If YAML frontmatter didn't work, count numbered/bulleted items under issue headings
         if total == 0:
-            total = len(re.findall(
-                r"(?:^|\n)\s*(?:\d+[\.\)]\s|[-*]\s+(?!#))",
-                content,
-            ))
+            total = len(
+                re.findall(
+                    r"(?:^|\n)\s*(?:\d+[\.\)]\s|[-*]\s+(?!#))",
+                    content,
+                )
+            )
         return total
 
     def _suggest_refs_to_trim(

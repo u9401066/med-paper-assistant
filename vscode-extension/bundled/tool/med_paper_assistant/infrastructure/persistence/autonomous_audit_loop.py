@@ -356,6 +356,7 @@ class AutonomousAuditLoop:
 
     def get_status(self) -> dict[str, Any]:
         """Get current loop status."""
+        latest = self._rounds[-1].weighted_avg if self._rounds else None
         return {
             "context": self._config.context,
             "current_round": self._current_round,
@@ -364,7 +365,8 @@ class AutonomousAuditLoop:
             "in_round": self._in_round,
             "completed": self._completed,
             "quality_threshold": self._config.quality_threshold,
-            "latest_score": self._rounds[-1].weighted_avg if self._rounds else None,
+            "latest_score": latest,
+            "latest_weighted_score": latest,  # alias used by pipeline_gate.py
             "latest_verdict": self._rounds[-1].verdict if self._rounds else None,
             "score_trend": [r.weighted_avg for r in self._rounds],
         }

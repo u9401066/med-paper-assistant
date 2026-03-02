@@ -19,6 +19,7 @@ Tools:
 import hashlib
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -48,8 +49,6 @@ from .._shared import (
     log_tool_error,
     log_tool_result,
 )
-
-from datetime import datetime
 
 # Phase name mapping (shared across tools)
 _PHASE_NAMES = {
@@ -158,12 +157,23 @@ def _sync_to_workspace_state(
 
 
 def _compute_manuscript_hash(project_dir: str | Path) -> str:
-    """Compute SHA-256 hash of the manuscript file for change detection."""
-    manuscript = Path(project_dir) / "drafts" / "manuscript.md"
-    if not manuscript.is_file():
+    """Compute SHA-256 hash of ALL draft .md files for change detection.
+
+    Hashes every .md file in drafts/ (sorted by name for determinism),
+    so that modifications via patch_draft() to ANY section file
+    (e.g. introduction.md, methods.md) are detected — not just manuscript.md.
+    """
+    drafts_dir = Path(project_dir) / "drafts"
+    if not drafts_dir.is_dir():
         return ""
-    content = manuscript.read_bytes()
-    return hashlib.sha256(content).hexdigest()
+    md_files = sorted(drafts_dir.glob("*.md"))
+    if not md_files:
+        return ""
+    h = hashlib.sha256()
+    for f in md_files:
+        h.update(f.name.encode("utf-8"))
+        h.update(f.read_bytes())
+    return h.hexdigest()
 
 
 def _write_pipeline_completed(project_dir: Path, slug: str) -> None:
@@ -569,11 +579,19 @@ def register_pipeline_tools(
                     start_hash = last_round.artifact_hash_end
 
             if start_hash and current_hash and start_hash == current_hash:
+                # List which files were hashed for debugging
+                drafts_dir = project_dir / "drafts"
+                hashed_files = (
+                    sorted(f.name for f in drafts_dir.glob("*.md")) if drafts_dir.is_dir() else []
+                )
                 enforcement_failures.append(
                     "❌ Manuscript NOT modified — hash unchanged since round start. "
                     "A review MUST produce actual changes (use `patch_draft()` to apply fixes). "
                     "Even if no structural issues exist, strengthen narrative, tighten prose, "
-                    "or improve transitions."
+                    "or improve transitions.\n"
+                    f"   Files hashed: {', '.join(hashed_files) or '(none)'}.\n"
+                    f"   Start hash: {start_hash[:12]}…  Current hash: {current_hash[:12]}…\n"
+                    "   If stuck, call `reset_review_loop(confirm=True)` to reset the state machine."
                 )
 
             # Check issues_found is realistic
@@ -668,10 +686,12 @@ def register_pipeline_tools(
                     *[f"- {f}" for f in enforcement_failures],
                 ]
                 if r_warnings:
-                    failure_lines.extend([
-                        "\n## Warnings (address if possible)\n",
-                        *[f"- {w}" for w in r_warnings],
-                    ])
+                    failure_lines.extend(
+                        [
+                            "\n## Warnings (address if possible)\n",
+                            *[f"- {w}" for w in r_warnings],
+                        ]
+                    )
                 failure_lines.append("\nFix these issues and call `submit_review_round()` again.")
                 failure_report = "\n".join(failure_lines)
                 log_tool_result("submit_review_round", "REJECTED: enforcement failures")
@@ -764,7 +784,9 @@ def register_pipeline_tools(
             lines.extend(["", "## Review Hook Results (R-series)", ""])
             for hook_id, result in r_results.items():
                 status_icon = "✅" if result.passed else "❌"
-                lines.append(f"- {status_icon} **{hook_id}**: {'PASS' if result.passed else 'FAIL'}")
+                lines.append(
+                    f"- {status_icon} **{hook_id}**: {'PASS' if result.passed else 'FAIL'}"
+                )
 
             if r_warnings:
                 lines.extend(["", "## Warnings", ""])
@@ -1224,6 +1246,72 @@ def register_pipeline_tools(
             log_tool_error("approve_section", e)
             return f"❌ Error processing section approval: {e}"
 
+    @mcp.tool()
+    def reset_review_loop(
+        project: Optional[str] = None,
+        confirm: bool = False,
+    ) -> str:
+        """
+        🔄 Reset the review loop state machine (emergency recovery).
+
+        Use this when the review round is stuck (e.g., hash mismatch deadlock,
+        _in_round=True preventing start_round, or corrupted state).
+
+        This clears ALL review round history and allows starting fresh.
+        Requires confirm=True as a safety check.
+
+        Args:
+            project: Project slug (optional, uses current project)
+            confirm: Must be True to proceed (safety check)
+
+        Returns:
+            Confirmation that the loop was reset
+        """
+        log_tool_call("reset_review_loop", {"project": project, "confirm": confirm})
+        try:
+            if not confirm:
+                return (
+                    "⚠️ This will DELETE all review round history and reset the state machine.\n"
+                    "Call again with `confirm=True` to proceed."
+                )
+
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+            slug = project_info["slug"]
+            project_dir = Path(project_info["project_path"])
+
+            # Reset the loop object if it exists in cache
+            if slug in _active_loops:
+                _active_loops[slug].reset()
+                del _active_loops[slug]
+            else:
+                # Force-delete the persisted state file
+                state_file = Path(project_dir) / ".audit" / "audit-loop-review.json"
+                if state_file.is_file():
+                    state_file.unlink()
+
+            lines = [
+                "# ✅ Review Loop Reset",
+                "",
+                "The review state machine has been cleared:",
+                "- All round history deleted",
+                "- `_in_round` flag cleared",
+                "- Module cache entry removed",
+                "- State file deleted",
+                "",
+                "## Next Steps",
+                "",
+                "Call `start_review_round()` to begin a fresh review cycle.",
+            ]
+            log_tool_result("reset_review_loop", "Loop reset successfully")
+            return "\n".join(lines)
+
+        except Exception as e:
+            log_tool_error("reset_review_loop", e)
+            return f"❌ Error resetting review loop: {e}"
+
     return {
         "validate_phase_gate": validate_phase_gate,
         "pipeline_heartbeat": pipeline_heartbeat,
@@ -1234,6 +1322,7 @@ def register_pipeline_tools(
         "pause_pipeline": pause_pipeline,
         "resume_pipeline": resume_pipeline,
         "approve_section": approve_section,
+        "reset_review_loop": reset_review_loop,
     }
 
 

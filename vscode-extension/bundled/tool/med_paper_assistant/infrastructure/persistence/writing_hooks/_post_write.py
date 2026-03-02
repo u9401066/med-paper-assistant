@@ -8,10 +8,10 @@ from typing import Any
 import structlog
 
 from ._constants import (
+    AI_TRANSITION_WORDS,
     AMER_VS_BRIT,
     ANTI_AI_PARAGRAPH_START_ONLY,
     ANTI_AI_PHRASES,
-    AI_TRANSITION_WORDS,
     BRIT_VS_AMER,
 )
 from ._models import HookIssue, HookResult
@@ -245,16 +245,10 @@ class PostWriteHooksMixin:
         prose = prose.strip()
 
         if len(prose) < 200:
-            return HookResult(
-                hook_id="A3b", passed=True, issues=[], stats={"skipped": True}
-            )
+            return HookResult(hook_id="A3b", passed=True, issues=[], stats={"skipped": True})
 
         # ── 1. Sentence length uniformity (CV) ──
-        sentences = [
-            s.strip()
-            for s in re.split(r"[.!?]+", prose)
-            if len(s.strip().split()) >= 3
-        ]
+        sentences = [s.strip() for s in re.split(r"[.!?]+", prose) if len(s.strip().split()) >= 3]
         sentence_lengths = [len(s.split()) for s in sentences]
         sent_cv = 0.0
         if len(sentence_lengths) >= 5:
@@ -341,17 +335,13 @@ class PostWriteHooksMixin:
 
         # ── 5. Paragraph length uniformity ──
         paragraphs = [
-            p.strip()
-            for p in re.split(r"\n\s*\n", prose)
-            if len(p.strip().split()) >= 10
+            p.strip() for p in re.split(r"\n\s*\n", prose) if len(p.strip().split()) >= 10
         ]
         if len(paragraphs) >= 4:
             para_lengths = [len(p.split()) for p in paragraphs]
             mean_para = sum(para_lengths) / len(para_lengths)
             if mean_para > 0:
-                para_variance = sum(
-                    (x - mean_para) ** 2 for x in para_lengths
-                ) / len(para_lengths)
+                para_variance = sum((x - mean_para) ** 2 for x in para_lengths) / len(para_lengths)
                 para_cv = (para_variance**0.5) / mean_para
                 if para_cv < 0.20:
                     issues.append(
@@ -372,12 +362,12 @@ class PostWriteHooksMixin:
         stats = {
             "ai_signal_count": ai_signal_count,
             "sentence_cv": round(sent_cv, 3),
-            "transition_pct": round(
-                transition_starts / total_sentences * 100, 1
-            ) if total_sentences > 0 else 0,
-            "starter_diversity": round(
-                len(set(starters)) / len(starters), 3
-            ) if total_sentences >= 8 and starters else 1.0,
+            "transition_pct": round(transition_starts / total_sentences * 100, 1)
+            if total_sentences > 0
+            else 0,
+            "starter_diversity": round(len(set(starters)) / len(starters), 3)
+            if total_sentences >= 8 and starters
+            else 1.0,
             "list_of_three_count": len(list_of_three),
             "paragraph_count": len(paragraphs),
             "sentence_count": total_sentences,
@@ -578,7 +568,26 @@ class PostWriteHooksMixin:
             )
 
         def _extract_ngrams(text: str, n: int) -> set[str]:
-            words = re.findall(r"\b[a-z]+\b", text.lower())
+            # Strip statistical notation to avoid false positives
+            # e.g. "F(X,Y) = Z, p < 0.001, η²p = 0.12" → common in Results
+            cleaned = re.sub(
+                r"[FtZrR]\s*\([^)]*\)\s*=\s*[\d.]+"
+                r"|p\s*[<>=]+\s*[\d.]+"
+                r"|η[²2]p?\s*=\s*[\d.]+"
+                r"|\bCI\s*[:=]?\s*\[[^]]*\]"
+                r"|\bd\s*=\s*[\d.]+"
+                r"|\bOR\s*=\s*[\d.]+"
+                r"|\bHR\s*=\s*[\d.]+"
+                r"|\bRR\s*=\s*[\d.]+"
+                r"|\bAOR\s*=\s*[\d.]+"
+                r"|\bβ\s*=\s*[\-\d.]+"
+                r"|\bSD\s*=\s*[\d.]+"
+                r"|\bSE\s*=\s*[\d.]+",
+                "",
+                text,
+                flags=re.IGNORECASE,
+            )
+            words = re.findall(r"\b[a-z]+\b", cleaned.lower())
             return {" ".join(words[i : i + n]) for i in range(len(words) - n + 1)}
 
         para_ngrams: list[set[str]] = [_extract_ngrams(text, min_ngram) for _, text in paragraphs]

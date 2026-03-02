@@ -16,14 +16,23 @@ from pathlib import Path
 from typing import Any
 
 import structlog
-from citeproc import (
-    Citation,
-    CitationItem,
-    CitationStylesBibliography,
-    CitationStylesStyle,
-    formatter,
-)
-from citeproc.source.json import CiteProcJSON
+
+try:
+    from citeproc import (
+        Citation,
+        CitationItem,
+        CitationStylesBibliography,
+        CitationStylesStyle,
+        formatter,
+    )
+    from citeproc.source.json import CiteProcJSON
+
+    _CITEPROC_AVAILABLE = True
+except ImportError:
+    _CITEPROC_AVAILABLE = False
+    # Placeholders so the module can be imported without citeproc
+    Citation = CitationItem = CitationStylesBibliography = None  # type: ignore[assignment,misc]
+    CitationStylesStyle = formatter = CiteProcJSON = None  # type: ignore[assignment,misc]
 
 from med_paper_assistant.domain.entities.reference import Reference
 from med_paper_assistant.domain.value_objects.citation import CitationStyle
@@ -137,6 +146,8 @@ def _resolve_csl_path(style: str | CitationStyle) -> str | None:
             return str(candidate)
 
     # 4. citeproc built-in
+    if not _CITEPROC_AVAILABLE:
+        return None
     import citeproc as _cp
 
     builtin_dir = Path(_cp.__file__).parent / "data" / "styles"
@@ -161,6 +172,16 @@ class CSLCitationFormatter:
 
     def __init__(self, style: str | CitationStyle = "vancouver") -> None:
         self._style_name = style.value if isinstance(style, CitationStyle) else style
+
+        if not _CITEPROC_AVAILABLE:
+            logger.warning(
+                "citeproc-py not installed. CSL formatting unavailable. "
+                "Install with: uv pip install citeproc-py"
+            )
+            self._csl_path = None
+            self._available = False
+            return
+
         self._csl_path = _resolve_csl_path(style)
         self._available = self._csl_path is not None
 
@@ -279,6 +300,8 @@ class CSLCitationFormatter:
                 styles.append(f.stem)
 
         # citeproc built-in
+        if not _CITEPROC_AVAILABLE:
+            return sorted(styles)
         import citeproc as _cp
 
         builtin_dir = Path(_cp.__file__).parent / "data" / "styles"

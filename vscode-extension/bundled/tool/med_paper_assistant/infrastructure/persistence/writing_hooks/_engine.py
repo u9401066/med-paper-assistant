@@ -8,7 +8,7 @@ from ._data_artifacts import DataArtifactsMixin
 from ._git import GitHooksMixin
 from ._journal_config import JournalConfigMixin
 from ._manuscript import ManuscriptHooksMixin
-from ._models import HookIssue, HookResult
+from ._models import HookResult
 from ._post_write import PostWriteHooksMixin
 from ._precommit import PreCommitMixin
 from ._section_quality import SectionQualityMixin

@@ -535,7 +535,9 @@ class CheckpointManager:
             if draft_file.is_file() and draft_file.suffix == ".md":
                 try:
                     content = draft_file.read_bytes()
-                    hashes[draft_file.name] = hashlib.md5(content).hexdigest()  # noqa: S324
+                    hashes[draft_file.name] = hashlib.md5(
+                        content, usedforsecurity=False
+                    ).hexdigest()  # noqa: S324
                 except OSError:
                     continue
 

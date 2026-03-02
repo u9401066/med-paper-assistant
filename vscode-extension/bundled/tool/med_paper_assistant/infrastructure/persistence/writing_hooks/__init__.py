@@ -8,10 +8,10 @@ Consumers can continue to use:
 """
 
 from ._constants import (
+    AI_TRANSITION_WORDS,
     AMER_VS_BRIT,
     ANTI_AI_PARAGRAPH_START_ONLY,
     ANTI_AI_PHRASES,
-    AI_TRANSITION_WORDS,
     BODY_SECTIONS,
     BRIT_VS_AMER,
     COMMON_ABBREVIATIONS,

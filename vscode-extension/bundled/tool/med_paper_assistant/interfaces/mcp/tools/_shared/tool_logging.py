@@ -124,7 +124,7 @@ def log_tool_call(tool_name: str, params: Dict[str, Any], caller_hint: str = "")
     if _tool_store is not None:
         try:
             _tool_store.record_invocation(tool_name)
-        except Exception:
+        except Exception:  # nosec B110 — telemetry must not crash tools
             pass
 
 
@@ -150,7 +150,7 @@ def log_tool_result(tool_name: str, result: Any, success: bool = True) -> None:
                 _tool_store.record_success(tool_name)
             else:
                 _tool_store.record_error(tool_name)
-        except Exception:
+        except Exception:  # nosec B110 — telemetry must not crash tools
             pass
 
 
@@ -189,7 +189,7 @@ def log_tool_error(
     if _tool_store is not None:
         try:
             _tool_store.record_error(tool_name, type(error).__name__)
-        except Exception:
+        except Exception:  # nosec B110 — telemetry must not crash tools
             pass
 
 
@@ -221,7 +221,7 @@ def log_agent_misuse(
     if _tool_store is not None:
         try:
             _tool_store.record_misuse(tool_name)
-        except Exception:
+        except Exception:  # nosec B110 — telemetry must not crash tools
             pass
 
 

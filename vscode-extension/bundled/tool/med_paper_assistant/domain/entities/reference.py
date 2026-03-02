@@ -62,6 +62,17 @@ class Reference:
     # File paths (relative to reference directory)
     has_pdf: bool = False
 
+    # Fulltext ingestion tracking (Phase 2.1)
+    fulltext_ingested: bool = False
+    fulltext_unavailable_reason: str = ""  # e.g., "not_open_access", "pdf_parse_error"
+    asset_aware_doc_id: Optional[str] = None
+    fulltext_sections: List[str] = field(default_factory=list)  # e.g., ["Methods", "Results"]
+
+    # Per-reference analysis (Phase 2.1 subagent output)
+    analysis_completed: bool = False
+    analysis_summary: str = ""  # Structured summary from subagent
+    usage_sections: List[str] = field(default_factory=list)  # Where this ref can be used: ["Introduction", "Discussion"]
+
     # Metadata
     saved_at: datetime = field(default_factory=datetime.now)
 

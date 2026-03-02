@@ -58,29 +58,34 @@ def register_word_export_tools(
             return f"Error reading template: {str(e)}"
 
     @mcp.tool()
-    def start_document_session(template_name: str, session_id: str = "default") -> str:
+    def start_document_session(template_name: str = "", session_id: str = "default") -> str:
         """
-        Start a document editing session from a Word template.
+        Start a document editing session, optionally from a Word template.
 
         Args:
-            template_name: Template filename
+            template_name: Template filename. If empty, creates a blank document.
             session_id: Unique session identifier (default: "default")
         """
         try:
-            template_path = os.path.join(template_reader.templates_dir, template_name)
-            if not os.path.exists(template_path):
-                return f"Error: Template not found: {template_name}"
+            if template_name:
+                template_path = os.path.join(template_reader.templates_dir, template_name)
+                if not os.path.exists(template_path):
+                    return f"Error: Template not found: {template_name}"
+                doc = word_writer.create_document_from_template(template_path)
+            else:
+                doc = word_writer.create_blank_document()
 
-            doc = word_writer.create_document_from_template(template_path)
             _active_documents[session_id] = {
                 "doc": doc,
-                "template": template_name,
+                "template": template_name or "(blank)",
                 "modifications": [],
             }
 
-            structure = template_reader.get_template_summary(template_name)
-
-            return f"✅ Document session '{session_id}' started with template: {template_name}\n\n{structure}"
+            if template_name:
+                structure = template_reader.get_template_summary(template_name)
+                return f"✅ Document session '{session_id}' started with template: {template_name}\n\n{structure}"
+            else:
+                return f"✅ Document session '{session_id}' started with blank document. Use insert_section to add content."
         except Exception as e:
             return f"Error starting session: {str(e)}"
 

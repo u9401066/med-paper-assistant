@@ -129,6 +129,7 @@ class PipelineGateValidator:
             0: self._validate_phase_0,
             1: self._validate_phase_1,
             2: self._validate_phase_2,
+            21: self._validate_phase_2_1,
             3: self._validate_phase_3,
             4: self._validate_phase_4,
             5: self._validate_phase_5,
@@ -138,6 +139,7 @@ class PipelineGateValidator:
             8: self._validate_phase_8,
             9: self._validate_phase_9,
             10: self._validate_phase_10,
+            11: self._validate_phase_11,
         }
 
         validator = validators.get(phase)
@@ -311,7 +313,7 @@ class PipelineGateValidator:
                 )
             )
 
-        # Phase 7+ needs manuscript
+        # Phase 7+ needs manuscript (65 >= 7 is True — correct, Phase 65 is after Writing)
         if phase >= 7:
             ms = self._drafts_dir / "manuscript.md"
             checks.append(
@@ -324,7 +326,7 @@ class PipelineGateValidator:
                 )
             )
 
-        # Phase 9+ needs .audit directory with audit artifacts
+        # Phase 9+ needs quality-scorecard (65 >= 9 is True — correct, Phase 65 is after Audit)
         if phase >= 9:
             scorecard = self._audit_dir / "quality-scorecard.md"
             checks.append(
@@ -337,8 +339,7 @@ class PipelineGateValidator:
                 )
             )
 
-        # Phase 11 needs exports (docx + pdf) — use == because Phase 65 (6.5)
-        # is numerically > 11 but logically before Phase 9
+        # Phase 11 only — exports (docx + pdf).  Uses == to exclude Phase 65.
         if phase == 11:
             export_dir = self._project_dir / "exports"
             has_docx = bool(list(export_dir.glob("*.docx"))) if export_dir.is_dir() else False
@@ -497,6 +498,88 @@ class PipelineGateValidator:
             )
 
         return GateResult(phase=2, phase_name="Literature", checks=checks, passed=False)
+
+    def _validate_phase_2_1(self) -> GateResult:
+        """Phase 2.1: Fulltext ingestion + per-reference analysis."""
+        checks = []
+        refs_dir = self._project_dir / "references"
+
+        # Check fulltext-ingestion-status.md exists
+        status_file = refs_dir / "fulltext-ingestion-status.md"
+        checks.append(
+            GateCheck(
+                name="fulltext_ingestion_status",
+                description="Fulltext ingestion status file created",
+                passed=status_file.is_file(),
+                details="exists" if status_file.is_file() else "MISSING",
+            )
+        )
+
+        # Check individual reference metadata for fulltext and analysis status
+        ingested_count = 0
+        not_ingested_count = 0
+        analyzed_count = 0
+        not_analyzed_count = 0
+        total_refs = 0
+
+        if refs_dir.is_dir():
+            for ref_dir in refs_dir.iterdir():
+                if not ref_dir.is_dir() or ref_dir.name.startswith("."):
+                    continue
+                meta_path = ref_dir / "metadata.json"
+                if not meta_path.is_file():
+                    continue
+                total_refs += 1
+                try:
+                    import json
+
+                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    if meta.get("fulltext_ingested", False):
+                        ingested_count += 1
+                    else:
+                        not_ingested_count += 1
+                    if meta.get("analysis_completed", False):
+                        analyzed_count += 1
+                    else:
+                        not_analyzed_count += 1
+                except Exception:
+                    not_ingested_count += 1
+                    not_analyzed_count += 1
+
+        checks.append(
+            GateCheck(
+                name="fulltext_coverage",
+                description="References with fulltext ingested",
+                passed=total_refs == 0 or ingested_count > 0,
+                details=f"{ingested_count}/{total_refs} ingested, {not_ingested_count} metadata-only",
+                severity="WARNING",
+            )
+        )
+
+        # Analysis coverage check (CRITICAL — every ref must be analyzed)
+        checks.append(
+            GateCheck(
+                name="analysis_coverage",
+                description="References with subagent analysis completed",
+                passed=total_refs == 0 or not_analyzed_count == 0,
+                details=f"{analyzed_count}/{total_refs} analyzed, {not_analyzed_count} pending",
+                severity="CRITICAL",
+            )
+        )
+
+        # Warning if majority lacks fulltext
+        if total_refs > 0 and not_ingested_count > total_refs * 0.5:
+            checks.append(
+                GateCheck(
+                    name="fulltext_coverage_warning",
+                    description="Majority of references should have fulltext",
+                    passed=False,
+                    details=f">50% references ({not_ingested_count}/{total_refs}) lack fulltext. Consider adding Open Access references.",
+                    severity="WARNING",
+                )
+            )
+
+        return GateResult(phase=21, phase_name="Fulltext Ingestion", checks=checks, passed=False)
 
     def _validate_phase_3(self) -> GateResult:
         """Phase 3: concept.md exists with required sections."""
@@ -851,11 +934,13 @@ class PipelineGateValidator:
         rounds_completed = 0
         loop_verdict = "unknown"
         max_rounds = 3
+        min_rounds = 2
         if loop_state.is_file():
             try:
                 state = json.loads(loop_state.read_text(encoding="utf-8"))
                 rounds_completed = len(state.get("rounds", []))
                 max_rounds = state.get("config", {}).get("max_rounds", 3)
+                min_rounds = state.get("config", {}).get("min_rounds", 2)
                 if state.get("rounds"):
                     loop_verdict = state["rounds"][-1].get("verdict", "unknown")
             except (json.JSONDecodeError, OSError):
@@ -864,9 +949,9 @@ class PipelineGateValidator:
         checks.append(
             GateCheck(
                 name="review:rounds_completed",
-                description="At least 1 review round completed",
-                passed=rounds_completed >= 1,
-                details=f"{rounds_completed}/{max_rounds} rounds completed, verdict={loop_verdict}",
+                description=f"At least {min_rounds} review rounds completed (code-enforced)",
+                passed=rounds_completed >= min_rounds,
+                details=f"{rounds_completed}/{max_rounds} rounds completed (min={min_rounds}), verdict={loop_verdict}",
             )
         )
 
@@ -992,7 +1077,7 @@ class PipelineGateValidator:
         return GateResult(phase=8, phase_name="Reference Sync", checks=checks, passed=False)
 
     def _validate_phase_9(self) -> GateResult:
-        """Phase 9: Export files exist."""
+        """Phase 9: Export files exist (CRITICAL — mandatory deliverables)."""
         checks = []
 
         for ext in ["docx", "pdf"]:
@@ -1002,10 +1087,9 @@ class PipelineGateValidator:
             checks.append(
                 GateCheck(
                     name=f"export:{ext}",
-                    description=f"Exported {ext.upper()} file",
+                    description=f"Exported {ext.upper()} file (mandatory)",
                     passed=len(candidates) > 0,
                     details=f"{len(candidates)} {ext} file(s)" if candidates else "MISSING",
-                    severity="WARNING",  # Export can fail due to tooling
                 )
             )
 
@@ -1145,6 +1229,117 @@ class PipelineGateValidator:
             )
 
         return GateResult(phase=10, phase_name="Retrospective", checks=checks, passed=False)
+
+    def _validate_phase_11(self) -> GateResult:
+        """
+        Phase 11: Commit & Push — code-level enforced final delivery.
+
+        Checks:
+        - Git repository exists and is clean (no uncommitted changes)
+        - Latest commit includes project files
+        - Push has been executed (remote tracking branch is up to date)
+        """
+        import subprocess  # nosec B404 — only runs git commands
+
+        checks = []
+
+        # 1. Check .git exists
+        git_dir = self._project_dir.parents[1] / ".git"  # workspace root
+        if not git_dir.is_dir():
+            # Try project_dir itself
+            git_dir = self._project_dir / ".git"
+        has_git = git_dir.is_dir()
+        checks.append(
+            GateCheck(
+                name="git:repository",
+                description="Git repository exists",
+                passed=has_git,
+                details="found" if has_git else "No .git directory found",
+            )
+        )
+
+        if has_git:
+            workspace_root = git_dir.parent
+            try:
+                # 2. Check working tree is clean
+                result = subprocess.run(  # nosec B603 B607
+                    ["git", "status", "--porcelain"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(workspace_root),
+                    timeout=10,
+                )
+                dirty_files = result.stdout.strip()
+                is_clean = len(dirty_files) == 0
+                checks.append(
+                    GateCheck(
+                        name="git:clean",
+                        description="Working tree is clean (all changes committed)",
+                        passed=is_clean,
+                        details="clean"
+                        if is_clean
+                        else f"Uncommitted changes:\n{dirty_files[:500]}",
+                    )
+                )
+
+                # 3. Check latest commit contains project files
+                result = subprocess.run(  # nosec B603 B607
+                    ["git", "log", "-1", "--name-only", "--format=%H %s"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(workspace_root),
+                    timeout=10,
+                )
+                commit_output = result.stdout.strip()
+                has_project_files = "projects/" in commit_output
+                checks.append(
+                    GateCheck(
+                        name="git:commit_includes_project",
+                        description="Latest commit includes project files",
+                        passed=has_project_files,
+                        details=commit_output[:300] if commit_output else "No commits found",
+                        severity="WARNING",
+                    )
+                )
+
+                # 4. Check push status
+                result = subprocess.run(  # nosec B603 B607
+                    ["git", "status", "--branch", "--porcelain=v2"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(workspace_root),
+                    timeout=10,
+                )
+                branch_info = result.stdout
+                is_pushed = "branch.ab +0" in branch_info
+                # Also check if there's no upstream at all
+                has_upstream = "branch.upstream" in branch_info
+                checks.append(
+                    GateCheck(
+                        name="git:pushed",
+                        description="All commits pushed to remote",
+                        passed=is_pushed,
+                        details="up to date with remote"
+                        if is_pushed
+                        else (
+                            "No upstream configured"
+                            if not has_upstream
+                            else "Unpushed commits exist"
+                        ),
+                    )
+                )
+
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+                checks.append(
+                    GateCheck(
+                        name="git:error",
+                        description="Git command execution",
+                        passed=False,
+                        details=f"Git command failed: {e}",
+                    )
+                )
+
+        return GateResult(phase=11, phase_name="Commit & Push", checks=checks, passed=False)
 
     # ── Logging ────────────────────────────────────────────────────
 

@@ -12,10 +12,21 @@ class TextUtilsMixin:
     """Shared text processing utilities used by multiple hook series."""
 
     @staticmethod
+    def _strip_frontmatter(text: str) -> str:
+        """Strip YAML frontmatter (--- ... ---) from markdown content."""
+        if text.startswith("---"):
+            end = text.find("\n---", 3)
+            if end != -1:
+                text = text[end + 4 :]
+        return text
+
+    @staticmethod
     def _count_words(text: str) -> int:
-        """Count words in text, stripping markdown formatting."""
+        """Count words in text, stripping markdown formatting and frontmatter."""
+        # Strip YAML frontmatter
+        cleaned = TextUtilsMixin._strip_frontmatter(text)
         # Strip wikilinks
-        cleaned = re.sub(r"\[\[[^\]]*\]\]", "CITE", text)
+        cleaned = re.sub(r"\[\[[^\]]*\]\]", "CITE", cleaned)
         # Strip markdown links [text](url)
         cleaned = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", cleaned)
         # Strip bold/italic markers
@@ -76,7 +87,11 @@ class TextUtilsMixin:
 
     @staticmethod
     def _parse_sections(content: str) -> dict[str, str]:
-        """Parse markdown content into {section_name: section_text} dict."""
+        """Parse markdown content into {section_name: section_text} dict.
+
+        Strips YAML frontmatter before parsing.
+        """
+        content = TextUtilsMixin._strip_frontmatter(content)
         sections: dict[str, str] = {}
         current_name: str | None = None
         current_lines: list[str] = []
