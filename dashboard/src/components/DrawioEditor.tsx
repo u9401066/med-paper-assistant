@@ -26,8 +26,14 @@ export function DrawioEditor({
   // Handle export event (triggered by save action in Draw.io)
   const handleExport = useCallback(
     (data: EventExport) => {
-      if (data.format === 'xml' && data.xml) {
-        // XML export - this is what we save
+      if (data.format === 'xmlsvg' && data.xml) {
+        // XML export via xmlsvg - this is what we save
+        setIsSaving(true);
+        onSave?.(data.xml);
+        setLastSaved(new Date());
+        setIsSaving(false);
+      } else if (data.format === 'xmlpng' && data.xml) {
+        // XML export via xmlpng - also save XML
         setIsSaving(true);
         onSave?.(data.xml);
         setLastSaved(new Date());
@@ -43,11 +49,11 @@ export function DrawioEditor({
     [onSave, onExport]
   );
 
-  // Export as XML (save)
+  // Export as XML (save) - use xmlsvg to get XML content
   const handleSaveClick = useCallback(() => {
     if (drawioRef.current) {
       drawioRef.current.exportDiagram({
-        format: 'xml',
+        format: 'xmlsvg',
       });
     }
   }, []);
@@ -178,11 +184,6 @@ export function DrawioEditor({
           configuration={{
             // Custom libraries for medical diagrams
             defaultLibraries: 'general;basic;arrows2;flowchart',
-          }}
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
           }}
         />
       </div>
