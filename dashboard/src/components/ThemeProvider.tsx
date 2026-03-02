@@ -17,16 +17,16 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('theme') as Theme) || 'dark';
+    }
+    return 'dark';
+  });
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // 從 localStorage 讀取，預設 dark — hydration-safe init
-    const stored = localStorage.getItem('theme') as Theme;
-    if (stored) {
-      setTheme(stored);
-    }
-    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect -- hydration mount tracking
+    setMounted(true);
   }, []);
 
   useEffect(() => {

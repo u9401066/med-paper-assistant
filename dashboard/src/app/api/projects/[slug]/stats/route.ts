@@ -165,10 +165,10 @@ async function getPreAnalysisStatus(projectPath: string): Promise<ProjectStats['
 
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
     const projectPath = path.join(PROJECTS_DIR, slug);
 
     // Check if project exists
