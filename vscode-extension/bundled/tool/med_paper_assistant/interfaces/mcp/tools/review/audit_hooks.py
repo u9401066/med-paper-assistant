@@ -638,7 +638,20 @@ def register_audit_hook_tools(mcp: FastMCP):
                 elif t == "POST-SECTION":
                     requested |= {"B8", "B9", "B10", "B11", "B12", "B13", "B14", "B15", "B16"}
                 elif t == "POST-MANUSCRIPT":
-                    requested |= {"C3", "C4", "C5", "C6", "C7A", "C7D", "C9", "C10", "C11", "C12", "C13", "F"}
+                    requested |= {
+                        "C3",
+                        "C4",
+                        "C5",
+                        "C6",
+                        "C7A",
+                        "C7D",
+                        "C9",
+                        "C10",
+                        "C11",
+                        "C12",
+                        "C13",
+                        "F",
+                    }
                 elif t == "PRE-COMMIT":
                     requested |= {"P1", "P2", "P4", "P5", "P7", "G9"}
                 else:
@@ -1430,7 +1443,9 @@ def register_audit_hook_tools(mcp: FastMCP):
 
             if "R4" in requested:
                 r = engine.check_review_fix_traceability(
-                    round_num, issues_fixed=issues_fixed, manuscript_changed=True,
+                    round_num,
+                    issues_fixed=issues_fixed,
+                    manuscript_changed=True,
                 )
                 results["R4"] = r.to_dict()
                 total_critical += r.critical_count
@@ -1443,8 +1458,12 @@ def register_audit_hook_tools(mcp: FastMCP):
                     total_critical += r.critical_count
                     total_warning += r.warning_count
                 else:
-                    results["R5"] = {"hook_id": "R5", "passed": True, "issues": [],
-                                     "stats": {"skipped": "no manuscript found"}}
+                    results["R5"] = {
+                        "hook_id": "R5",
+                        "passed": True,
+                        "issues": [],
+                        "stats": {"skipped": "no manuscript found"},
+                    }
 
             if "R6" in requested:
                 if manuscript_content:
@@ -1453,8 +1472,12 @@ def register_audit_hook_tools(mcp: FastMCP):
                     total_critical += r.critical_count
                     total_warning += r.warning_count
                 else:
-                    results["R6"] = {"hook_id": "R6", "passed": True, "issues": [],
-                                     "stats": {"skipped": "no manuscript found"}}
+                    results["R6"] = {
+                        "hook_id": "R6",
+                        "passed": True,
+                        "issues": [],
+                        "stats": {"skipped": "no manuscript found"},
+                    }
 
             # Build TOON response
             overall_pass = total_critical == 0

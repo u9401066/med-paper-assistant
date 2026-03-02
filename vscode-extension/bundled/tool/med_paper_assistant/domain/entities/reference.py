@@ -71,7 +71,9 @@ class Reference:
     # Per-reference analysis (Phase 2.1 subagent output)
     analysis_completed: bool = False
     analysis_summary: str = ""  # Structured summary from subagent
-    usage_sections: List[str] = field(default_factory=list)  # Where this ref can be used: ["Introduction", "Discussion"]
+    usage_sections: List[str] = field(
+        default_factory=list
+    )  # Where this ref can be used: ["Introduction", "Discussion"]
 
     # Metadata
     saved_at: datetime = field(default_factory=datetime.now)

@@ -292,9 +292,7 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
             return f"❌ Error writing draft: {e}"
 
         # Auto-checkpoint writing session for compaction recovery
-        auto_checkpoint_writing(
-            os.path.basename(filepath), new_content, "patch"
-        )
+        auto_checkpoint_writing(os.path.basename(filepath), new_content, "patch")
 
         # Auto-commit after successful write
         if drafts_dir:
