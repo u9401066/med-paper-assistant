@@ -38,11 +38,14 @@ def _add_prerequisites(project_dir, up_to_phase: int):
         if not pj.is_file():
             pj.write_text('{"slug": "test"}')
     if up_to_phase >= 3:
+        # Must meet paper-type minimum (default original-research = 20)
         refs = project_dir / "references"
-        for i in range(5):
-            f = refs / f"ref-{i}.md"
-            if not f.is_file():
-                f.write_text(f"# Ref {i}")
+        for i in range(20):
+            ref_dir = refs / f"ref-{i}"
+            ref_dir.mkdir(parents=True, exist_ok=True)
+            meta = ref_dir / "metadata.json"
+            if not meta.is_file():
+                meta.write_text(f'{{"pmid": "0000{i}"}}')
     if up_to_phase >= 5:
         concept = project_dir / "concept.md"
         if not concept.is_file():
@@ -120,14 +123,93 @@ class TestPhase2:
         r = validator.validate_phase(2)
         assert not r.passed
         ref_check = next(c for c in r.checks if c.name == "references_count")
-        assert "0 references" in ref_check.details
+        assert "0/" in ref_check.details  # "0/20 references found"
 
-    def test_pass_with_refs(self, validator, project_dir):
-        # Phase 2 prereqs: project.json
+    def test_pass_with_refs_default_paper_type(self, validator, project_dir):
+        """Default paper type is original-research, minimum 20 refs."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(20):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True)
+            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+        r = validator.validate_phase(2)
+        assert r.passed
+
+    def test_fail_below_paper_type_minimum(self, validator, project_dir):
+        """10 refs is below the 20 minimum for original-research."""
         (project_dir / "project.json").write_text('{"slug": "test"}')
         for i in range(10):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True)
+            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
         r = validator.validate_phase(2)
+        assert not r.passed
+        ref_check = next(c for c in r.checks if c.name == "references_count")
+        assert "need 10 more" in ref_check.details
+
+    def test_case_report_lower_minimum(self, validator, project_dir):
+        """Case reports only need 8 refs (from journal-profile.yaml)."""
+        import yaml
+
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "journal-profile.yaml").write_text(
+            yaml.dump({"paper": {"type": "case-report"}})
+        )
+        for i in range(8):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True)
+            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+        v = PipelineGateValidator(project_dir)
+        r = v.validate_phase(2)
+        assert r.passed
+
+    def test_systematic_review_higher_minimum(self, validator, project_dir):
+        """Systematic reviews need 40 refs — 20 is insufficient."""
+        import yaml
+
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "journal-profile.yaml").write_text(
+            yaml.dump({"paper": {"type": "systematic-review"}})
+        )
+        for i in range(20):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True)
+            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+        v = PipelineGateValidator(project_dir)
+        r = v.validate_phase(2)
+        assert not r.passed
+        ref_check = next(c for c in r.checks if c.name == "references_count")
+        assert "systematic-review" in ref_check.description
+
+    def test_journal_profile_override_minimum(self, validator, project_dir):
+        """journal-profile.yaml minimum_reference_limits overrides defaults."""
+        import yaml
+
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        profile = {
+            "paper": {"type": "original-research"},
+            "references": {"minimum_reference_limits": {"original-research": 25}},
+        }
+        (project_dir / "journal-profile.yaml").write_text(yaml.dump(profile))
+        for i in range(22):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True)
+            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+        v = PipelineGateValidator(project_dir)
+        r = v.validate_phase(2)
+        assert not r.passed  # 22 < 25
+
+    def test_legacy_flat_md_refs_counted(self, validator, project_dir):
+        """Legacy .md refs (without metadata.json) are still counted."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        # Use letter type with low minimum (5) for easy testing
+        import yaml
+
+        (project_dir / "journal-profile.yaml").write_text(yaml.dump({"paper": {"type": "letter"}}))
+        for i in range(5):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        v = PipelineGateValidator(project_dir)
+        r = v.validate_phase(2)
         assert r.passed
 
 

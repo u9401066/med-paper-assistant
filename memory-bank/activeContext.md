@@ -6,7 +6,7 @@
 
 ## 當前焦點 (2026-03-03)
 
-Humanizer anti-AI 強化 + VS Code Copilot Lifecycle Hooks + 圖表插入文檔修正完成。
+Paper-type-aware 文獻最低數量強制完成：Hook A7 + Phase 2 Gate 紙類感知 + B003 約束 + 15 新測試。
 
 ### 當前狀態
 
@@ -14,12 +14,12 @@ Humanizer anti-AI 強化 + VS Code Copilot Lifecycle Hooks + 圖表插入文檔�
 | ----------------------- | ------------------------------------------------------------------------------------------- |
 | MCP Tools               | **86** (project/17, reference/12, draft/13, validation/3, analysis/9, review/22, export/10) |
 | Skills                  | **26**                                                                                      |
-| Hooks                   | **76 checks** (34 Code-Enforced / 42 Agent-Driven)                                          |
+| Hooks                   | **77 checks** (35 Code-Enforced / 42 Agent-Driven)                                          |
 | Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)                           |
 | Prompts                 | **15**                                                                                      |
 | Agents                  | **9**                                                                                       |
 | Infrastructure classes  | **8** core                                                                                  |
-| Python unit tests       | **826 passed** (excl. external-dep tests)                                                   |
+| Python unit tests       | **839 passed** (excl. external-dep tests)                                                   |
 | VSX vitest              | **106 passed** (4 test files)                                                               |
 | Ruff errors             | **0**                                                                                       |
 
@@ -27,7 +27,7 @@ Humanizer anti-AI 強化 + VS Code Copilot Lifecycle Hooks + 圖表插入文檔�
 
 | 層級                         | 狀態                   | 說明                                                 |
 | ---------------------------- | ---------------------- | ---------------------------------------------------- |
-| L1 Event-Driven Hooks        | ⚠️ 34/76 Code-Enforced | 42 個 Agent-Driven 僅靠 SKILL.md                     |
+| L1 Event-Driven Hooks        | ⚠️ 35/77 Code-Enforced | 42 個 Agent-Driven 僅靠 SKILL.md                     |
 | L2 Code-Level Enforcement    | ✅ 完整                | 5 元件全部上線                                       |
 | L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
 

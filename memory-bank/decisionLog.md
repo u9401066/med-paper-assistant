@@ -1,5 +1,24 @@
 # Decision Log
 
+## [2026-03-03] Paper-Type-Aware Reference Minimum Enforcement
+
+### 背景
+
+文獻搜尋量經常不足，原有 Phase 2 Gate 僅硬編碼 ≥10（所有紙類相同），SKILL.md 的 "15-20" 指引僅 Agent-Driven 容易被忽略。使用者明確要求更強制性的約束。
+
+### 決定
+
+1. **Paper-type-specific minimums**: original-research (20), review-article (30), systematic-review (40), meta-analysis (40), case-report (8), letter (5), fallback (15)
+2. **3-tier resolution chain**: journal-profile.yaml override → DEFAULT_MINIMUM_REFERENCES → DEFAULT_MIN_REFERENCES (15)
+3. **多重強制點**: Phase 2 Gate (HARD) + Phase 3+ prerequisites + Hook A7 (pre-write) + B003 DomainConstraint
+4. **Hook A7 設計**: 放在 run_post_write_hooks 而非獨立 gate，因為它與其他 A-series hooks 一起批量執行，且 CRITICAL severity 已足夠阻擋寫作
+
+### 影響
+
+- Hook count: 76 → 77 (35 Code-Enforced / 42 Agent-Driven)
+- 修改 8 個生產檔案 + 3 個測試檔案
+- 839 tests all pass
+
 ## [2026-03-03] Humanizer Anti-AI 強化 + VS Code Copilot Lifecycle Hooks + 圖表插入修正
 
 ### 背景

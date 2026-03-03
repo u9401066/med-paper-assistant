@@ -282,16 +282,18 @@ class PipelineGateValidator:
                 )
             )
 
-        # Phase 3+ needs references
+        # Phase 3+ needs references (paper-type-aware minimum)
         if phase >= 3:
             refs_dir = self._project_dir / "references"
             ref_count = self._count_references(refs_dir)
+            paper_type = self._get_paper_type_from_profile()
+            min_refs = self._resolve_min_references(paper_type)
             checks.append(
                 GateCheck(
                     name="prereq:references",
-                    description="References from Phase 2",
-                    passed=ref_count >= 5,
-                    details=f"{ref_count} references"
+                    description=f"References from Phase 2 (min {min_refs} for {paper_type})",
+                    passed=ref_count >= min_refs,
+                    details=f"{ref_count}/{min_refs} references"
                     if ref_count > 0
                     else "No references — complete Phase 2 first",
                     severity="CRITICAL",
@@ -439,6 +441,52 @@ class PipelineGateValidator:
         # Fallback: count flat .md files (legacy format)
         return len(list(refs_dir.glob("*.md")))
 
+    def _get_paper_type_from_profile(self) -> str:
+        """Read paper.type from journal-profile.yaml (default: 'original-research')."""
+        jp_path = self._project_dir / "journal-profile.yaml"
+        if jp_path.is_file():
+            try:
+                with open(jp_path, encoding="utf-8") as f:
+                    profile = yaml.safe_load(f) or {}
+                return profile.get("paper", {}).get("type", "original-research")
+            except Exception:
+                logger.warning("Failed to read paper type from journal-profile.yaml")
+        return "original-research"
+
+    def _resolve_min_references(self, paper_type: str) -> int:
+        """Resolve minimum reference count for a paper type.
+
+        Resolution order:
+        1. journal-profile.yaml → references.minimum_reference_limits[paper_type]
+        2. DEFAULT_MINIMUM_REFERENCES[paper_type]
+        3. DEFAULT_MIN_REFERENCES (15)
+        """
+        from med_paper_assistant.infrastructure.persistence.writing_hooks._constants import (
+            DEFAULT_MIN_REFERENCES,
+            DEFAULT_MINIMUM_REFERENCES,
+        )
+
+        # 1. journal-profile.yaml override
+        jp_path = self._project_dir / "journal-profile.yaml"
+        if jp_path.is_file():
+            try:
+                with open(jp_path, encoding="utf-8") as f:
+                    profile = yaml.safe_load(f) or {}
+                min_limits = profile.get("references", {}).get("minimum_reference_limits", {})
+                if isinstance(min_limits, dict):
+                    val = min_limits.get(paper_type)
+                    if val is not None:
+                        return int(val)
+            except (OSError, ValueError, yaml.YAMLError):
+                pass
+
+        # 2. Built-in defaults per paper type
+        if paper_type in DEFAULT_MINIMUM_REFERENCES:
+            return DEFAULT_MINIMUM_REFERENCES[paper_type]
+
+        # 3. Global fallback
+        return DEFAULT_MIN_REFERENCES
+
     # ── Phase Validators ───────────────────────────────────────────
 
     def _validate_phase_0(self) -> GateResult:
@@ -471,17 +519,30 @@ class PipelineGateValidator:
         return GateResult(phase=1, phase_name="Setup", checks=checks, passed=False)
 
     def _validate_phase_2(self) -> GateResult:
-        """Phase 2: ≥10 references saved."""
+        """Phase 2: references must meet paper-type-specific minimum.
+
+        Resolution order for minimum count:
+        1. journal-profile.yaml → references.minimum_reference_limits[paper_type]
+        2. DEFAULT_MINIMUM_REFERENCES[paper_type]
+        3. DEFAULT_MIN_REFERENCES fallback (15)
+        """
+
         checks = []
         refs_dir = self._project_dir / "references"
         ref_count = self._count_references(refs_dir)
 
+        # Determine paper type and minimum
+        paper_type = self._get_paper_type_from_profile()
+        min_refs = self._resolve_min_references(paper_type)
+
+        passed = ref_count >= min_refs
         checks.append(
             GateCheck(
                 name="references_count",
-                description="At least 10 references saved",
-                passed=ref_count >= 10,
-                details=f"{ref_count} references found",
+                description=f"At least {min_refs} references saved (paper type: {paper_type})",
+                passed=passed,
+                details=f"{ref_count}/{min_refs} references found"
+                + ("" if passed else f" — need {min_refs - ref_count} more"),
             )
         )
 

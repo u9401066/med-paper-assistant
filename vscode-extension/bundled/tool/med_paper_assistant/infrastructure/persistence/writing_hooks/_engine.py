@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ._constants import DEFAULT_MIN_REFERENCES, DEFAULT_MINIMUM_REFERENCES
 from ._data_artifacts import DataArtifactsMixin
 from ._git import GitHooksMixin
 from ._journal_config import JournalConfigMixin
 from ._manuscript import ManuscriptHooksMixin
-from ._models import HookResult
+from ._models import HookIssue, HookResult
 from ._post_write import PostWriteHooksMixin
 from ._precommit import PreCommitMixin
 from ._section_quality import SectionQualityMixin
@@ -52,7 +53,7 @@ class WritingHooksEngine(
         prefer_language: str = "american",
     ) -> dict[str, HookResult]:
         """
-        Run all post-write hooks (A1-A6, B9, B10, B15) on a section.
+        Run all post-write hooks (A1-A7, B9, B10, B15) on a section.
 
         Returns:
             Dict mapping hook_id -> HookResult.
@@ -65,6 +66,7 @@ class WritingHooksEngine(
             "A4": self.check_wikilink_format(content, section=section),
             "A5": self.check_language_consistency(content, prefer=prefer_language, section=section),
             "A6": self.check_overlap(content),
+            "A7": self.check_reference_sufficiency(),
             "B9": self.check_section_tense(content, section=section),
             "B10": self.check_paragraph_quality(content, section=section),
             "B15": self.check_hedging_density(content, section=section),
@@ -178,3 +180,70 @@ class WritingHooksEngine(
             "P5": self.check_protected_content(),
             "P7": self.check_reference_integrity(content),
         }
+
+    # ── Hook A7: Reference Sufficiency (pre-write gate) ───────────
+
+    def check_reference_sufficiency(self) -> HookResult:
+        """Hook A7: Check that saved references meet paper-type-specific minimum.
+
+        Code-Enforced pre-write check. Reads journal-profile.yaml for paper type,
+        counts saved references, and compares against minimum thresholds.
+
+        This is the WRITING-SIDE enforcement counterpart to Phase 2 Gate.
+        Phase 2 Gate blocks phase transitions; A7 blocks individual write operations
+        when the reference library is known to be insufficient.
+
+        Returns:
+            HookResult with CRITICAL severity if below minimum.
+        """
+        issues: list[HookIssue] = []
+        refs_dir = self._project_dir / "references"
+        paper_type = self._get_paper_type()
+        min_refs = self._get_min_references(paper_type)
+
+        # Count references
+        ref_count = 0
+        if refs_dir.is_dir():
+            ref_count = len(list(refs_dir.glob("*/metadata.json")))
+            if ref_count == 0:
+                ref_count = len(list(refs_dir.glob("*.md")))
+
+        passed = ref_count >= min_refs
+        if not passed:
+            deficit = min_refs - ref_count
+            issues.append(
+                HookIssue(
+                    hook_id="A7",
+                    severity="CRITICAL",
+                    section="references",
+                    message=(
+                        f"Insufficient references: {ref_count}/{min_refs} "
+                        f"(paper type: {paper_type}, need {deficit} more). "
+                        f"Expand literature search before writing."
+                    ),
+                    suggestion=(
+                        f"Run more searches with unified_search() and save at least "
+                        f"{deficit} additional references with save_reference_mcp(pmid)."
+                    ),
+                )
+            )
+        else:
+            max_refs = self._get_max_references(paper_type)
+            budget_note = f", max {max_refs}" if max_refs else ""
+            issues.append(
+                HookIssue(
+                    hook_id="A7",
+                    severity="INFO",
+                    section="references",
+                    message=(
+                        f"Reference library: {ref_count}/{min_refs} minimum met "
+                        f"(paper type: {paper_type}{budget_note})."
+                    ),
+                )
+            )
+
+        return HookResult(
+            hook_id="A7",
+            passed=passed,
+            issues=issues,
+        )

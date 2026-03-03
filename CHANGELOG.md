@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Paper-Type-Aware Reference Minimum Enforcement (Hook A7 + Phase 2 Gate)**:
+  - New Hook A7 `check_reference_sufficiency()` — Code-Enforced pre-write gate that blocks writing when reference library is insufficient
+  - Phase 2 Gate now paper-type-aware: reads `paper.type` from `journal-profile.yaml`, resolves minimum via 3-tier chain
+  - Per-type minimums: original-research (20), review-article (30), systematic-review (40), meta-analysis (40), case-report (8), letter (5), fallback (15)
+  - `journal-profile.template.yaml`: new `minimum_reference_limits` field for per-project override
+  - `DomainConstraintEngine`: B003 `minimum_references` BOUNDARY constraint added to all 3 paper types
+  - Phase 3+ prerequisite checks also paper-type-aware (can't bypass by skipping Phase 2)
+  - 8 new A7 hook tests + 7 new Phase 2 gate tests (839 tests total)
+  - Hook count: 76 → 77 (35 Code-Enforced / 42 Agent-Driven)
 - **Humanizer Anti-AI Enhancement**:
   - `ANTI_AI_PHRASES`: 76 → 133 phrases across 12 semantic categories (overly_formal, unnecessary_hedging, ai_conclusions, filler_boosters, generic_linking, hollow_emphasis, ai_structuring, inflated_academic, ai_discourse, passive_deflectors, nominalised_verbs, hollow_intensifiers)
   - `AI_TRANSITION_WORDS`: 25 → 33 (added: Nevertheless, Conversely, Correspondingly, Notably, Importantly, Significantly, Fundamentally, Substantially)

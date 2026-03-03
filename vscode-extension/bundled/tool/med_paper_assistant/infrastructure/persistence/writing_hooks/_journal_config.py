@@ -10,7 +10,7 @@ import yaml
 
 from med_paper_assistant.shared.constants import DEFAULT_WORD_LIMITS
 
-from ._constants import DEFAULT_CITATION_DENSITY
+from ._constants import DEFAULT_CITATION_DENSITY, DEFAULT_MIN_REFERENCES, DEFAULT_MINIMUM_REFERENCES
 
 logger = structlog.get_logger()
 
@@ -88,3 +88,72 @@ class JournalConfigMixin:
             tbl = assets.get("tables_max")
             return (int(fig) if fig is not None else None, int(tbl) if tbl is not None else None)
         return (None, None)
+
+    def _get_paper_type(self) -> str:
+        """Get paper type from journal profile (default: 'original-research')."""
+        if self._journal_profile:
+            return self._journal_profile.get("paper", {}).get("type", "original-research")
+        return "original-research"
+
+    def _get_min_references(self, paper_type: str | None = None) -> int:
+        """Get minimum reference count for the given paper type.
+
+        Resolution order:
+        1. journal-profile.yaml → references.minimum_reference_limits[paper_type]
+        2. DEFAULT_MINIMUM_REFERENCES[paper_type]
+        3. DEFAULT_MIN_REFERENCES (fallback: 15)
+
+        Args:
+            paper_type: Paper type key. If None, reads from journal profile.
+
+        Returns:
+            Minimum number of references required.
+        """
+        pt = paper_type or self._get_paper_type()
+
+        # 1. journal-profile.yaml override
+        if self._journal_profile:
+            refs = self._journal_profile.get("references", {})
+            min_limits = refs.get("minimum_reference_limits", {})
+            if isinstance(min_limits, dict):
+                val = min_limits.get(pt)
+                if val is not None:
+                    return int(val)
+
+        # 2. Built-in defaults per paper type
+        if pt in DEFAULT_MINIMUM_REFERENCES:
+            return DEFAULT_MINIMUM_REFERENCES[pt]
+
+        # 3. Global fallback
+        return DEFAULT_MIN_REFERENCES
+
+    def _get_max_references(self, paper_type: str | None = None) -> int | None:
+        """Get maximum reference count for the given paper type.
+
+        Resolution order:
+        1. journal-profile.yaml → references.reference_limits[paper_type]
+        2. journal-profile.yaml → references.max_references
+        3. None (no limit)
+
+        Args:
+            paper_type: Paper type key. If None, reads from journal profile.
+
+        Returns:
+            Maximum number of references allowed, or None if no limit.
+        """
+        pt = paper_type or self._get_paper_type()
+
+        if self._journal_profile:
+            refs = self._journal_profile.get("references", {})
+            # Per-type limit first
+            limits = refs.get("reference_limits", {})
+            if isinstance(limits, dict):
+                val = limits.get(pt)
+                if val is not None:
+                    return int(val)
+            # Global max
+            max_ref = refs.get("max_references")
+            if max_ref is not None:
+                return int(max_ref)
+
+        return None

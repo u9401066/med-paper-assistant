@@ -314,6 +314,21 @@ DEFAULT_CITATION_DENSITY: dict[str, int] = {
     "results": 0,
 }
 
+# ── Minimum reference counts per paper type ────────────────────────
+# Code-Enforced by Phase 2 Gate (pipeline_gate_validator.py).
+# journal-profile.yaml `minimum_reference_limits` overrides these defaults.
+# Fallback: DEFAULT_MIN_REFERENCES when paper type not found.
+DEFAULT_MIN_REFERENCES: int = 15
+
+DEFAULT_MINIMUM_REFERENCES: dict[str, int] = {
+    "original-research": 20,
+    "review-article": 30,
+    "systematic-review": 40,
+    "meta-analysis": 40,
+    "case-report": 8,
+    "letter": 5,
+}
+
 # Sections that count toward total manuscript word count.
 # Per academic convention (ICMJE, NEJM, JAMA, BMJ, Lancet, BJA):
 # Word count = main body text only.

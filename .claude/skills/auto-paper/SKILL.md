@@ -230,9 +230,21 @@ pipeline:
 5. 選前 15-20 篇 → `save_reference_mcp(pmid, agent_notes)`
 6. [Optional] Zotero: `search_items(query)` → 取 PMID → `save_reference_mcp()`
 
-**Gate**: ≥10 篇文獻已儲存
+**Gate**: Paper-type-aware 最低文獻數（Code-Enforced）
 
-自動決策：<20 → `expand_search_queries`；>500 → 加 MeSH 限縮；用戶有 Zotero → 主動問匯入。
+| Paper Type        | 最低文獻數 |
+| ----------------- | ---------- |
+| original-research | 20         |
+| review-article    | 30         |
+| systematic-review | 40         |
+| meta-analysis     | 40         |
+| case-report       | 8          |
+| letter            | 5          |
+| fallback          | 15         |
+
+解析優先序：`journal-profile.yaml references.minimum_reference_limits` → `DEFAULT_MINIMUM_REFERENCES` → `DEFAULT_MIN_REFERENCES (15)`
+
+自動決策：< minimum → `expand_search_queries`；>500 → 加 MeSH 限縮；用戶有 Zotero → 主動問匯入。
 
 ---
 
@@ -240,7 +252,7 @@ pipeline:
 
 **Skill**: `literature-review`
 **外部 MCP**: `asset-aware-mcp`, `pubmed-search`
-**輸入**: Phase 2 儲存的 ≥10 篇文獻
+**輸入**: Phase 2 儲存的文獻（須達 paper-type-specific 最低數量）
 **輸出**: 每篇文獻的全文解析結果 + `analysis.json` + `references/fulltext-ingestion-status.md`
 
 **核心原則**: 引用文獻前必須閱讀全文並完成結構化分析。僅依據 abstract/metadata 不足以支撐 Methods/Results/Discussion 的引用。
@@ -1518,6 +1530,7 @@ Phase 轉換時：
 | A4  | Wikilink 格式正確     | `validate_wikilinks`             | 自動修復                            | —                                     |
 | A5  | 語言一致性（BrE/AmE） | `run_writing_hooks(hooks="A5")`  | `patch_draft` 統一拼法              | `pipeline.writing.prefer_language`    |
 | A6  | 段落重複偵測          | `run_writing_hooks(hooks="A6")`  | `patch_draft` 改寫重複段            | `pipeline.writing.overlap_threshold`  |
+| A7  | 文獻數量充足性 🆕     | `run_writing_hooks(hooks="A7")`  | BLOCK 寫作，提示擴大搜尋            | `DEFAULT_MINIMUM_REFERENCES` per type |
 
 #### Hook A Cascading Protocol
 

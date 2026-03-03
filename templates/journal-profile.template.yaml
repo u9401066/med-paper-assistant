@@ -99,6 +99,17 @@ references:
     letter: 10
     # 若 paper.type 不在此列，fallback 到 max_references
 
+  # 依論文類型設定參考文獻下限（Code-Enforced by Phase 2 Gate）
+  # Phase 2 Gate 會根據 paper.type 查詢此表，不足則 BLOCK
+  minimum_reference_limits:
+    original-research: 20
+    review-article: 30
+    systematic-review: 40
+    meta-analysis: 40
+    case-report: 8
+    letter: 5
+    # 若 paper.type 不在此列，fallback 到 min_references (default: 15)
+
 # ── 必要文件 ──
 required_documents:
   cover_letter: true

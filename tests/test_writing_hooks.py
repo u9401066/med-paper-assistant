@@ -1261,6 +1261,7 @@ class TestUpdatedBatchRunners:
         assert "A4" in results
         assert "A5" in results
         assert "A6" in results
+        assert "A7" in results
 
     def test_post_manuscript_includes_new_hooks(self, engine: WritingHooksEngine):
         text = "## Methods\n\nSome methods.\n\n## Results\n\nSome results."
@@ -1701,3 +1702,119 @@ The odds ratio was OR = 2.3, 95% CI 1.2-4.5, p = 0.013. The hazard ratio was HR 
         content = "## Introduction\n\nSome text with p = 0.05."
         r = engine.check_effect_size_reporting(content)
         assert r.passed is True
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# A7: Reference Sufficiency
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestA7ReferenceSufficiency:
+    """Tests for Hook A7 — Code-Enforced reference count minimum."""
+
+    def test_pass_with_sufficient_refs(self, project_dir: Path):
+        """A7 passes when saved references >= minimum."""
+        refs = project_dir / "references"
+        refs.mkdir()
+        for i in range(20):
+            rd = refs / f"ref_{i}"
+            rd.mkdir()
+            (rd / "metadata.json").write_text("{}")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_reference_sufficiency()
+        assert r.passed is True
+        assert r.hook_id == "A7"
+        assert any("met" in i.message for i in r.issues)
+
+    def test_fail_with_insufficient_refs(self, project_dir: Path):
+        """A7 fails (CRITICAL) when saved references < minimum."""
+        refs = project_dir / "references"
+        refs.mkdir()
+        for i in range(5):
+            rd = refs / f"ref_{i}"
+            rd.mkdir()
+            (rd / "metadata.json").write_text("{}")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_reference_sufficiency()
+        assert r.passed is False
+        assert r.hook_id == "A7"
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+        assert any("5/20" in i.message for i in r.issues)  # default type = original-research (20)
+
+    def test_fail_with_no_refs_dir(self, project_dir: Path):
+        """A7 fails when references directory doesn't exist."""
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_reference_sufficiency()
+        assert r.passed is False
+        assert any("0/" in i.message for i in r.issues)
+
+    def test_paper_type_original_research(self, project_dir: Path):
+        """A7 uses paper-type-specific minimum (original-research = 20)."""
+        profile = {"paper": {"type": "original-research"}}
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        refs = project_dir / "references"
+        refs.mkdir()
+        for i in range(15):
+            rd = refs / f"ref_{i}"
+            rd.mkdir()
+            (rd / "metadata.json").write_text("{}")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_reference_sufficiency()
+        assert r.passed is False  # 15 < 20
+        assert any("original-research" in i.message for i in r.issues)
+
+    def test_paper_type_case_report(self, project_dir: Path):
+        """A7 passes for case-report with lower minimum (8)."""
+        profile = {"paper": {"type": "case-report"}}
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        refs = project_dir / "references"
+        refs.mkdir()
+        for i in range(8):
+            rd = refs / f"ref_{i}"
+            rd.mkdir()
+            (rd / "metadata.json").write_text("{}")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_reference_sufficiency()
+        assert r.passed is True  # 8 >= 8
+        assert any("case-report" in i.message for i in r.issues)
+
+    def test_paper_type_systematic_review(self, project_dir: Path):
+        """A7 systematic-review needs 40 references."""
+        profile = {"paper": {"type": "systematic-review"}}
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        refs = project_dir / "references"
+        refs.mkdir()
+        for i in range(30):
+            rd = refs / f"ref_{i}"
+            rd.mkdir()
+            (rd / "metadata.json").write_text("{}")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_reference_sufficiency()
+        assert r.passed is False  # 30 < 40
+        assert any("need 10 more" in i.message for i in r.issues)
+
+    def test_legacy_flat_md_refs(self, project_dir: Path):
+        """A7 counts flat .md files as fallback when no metadata.json found."""
+        # Set paper type to letter (min 5) to test with fewer files
+        profile = {"paper": {"type": "letter"}}
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        refs = project_dir / "references"
+        refs.mkdir()
+        for i in range(6):
+            (refs / f"ref_{i}.md").write_text("# Ref")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_reference_sufficiency()
+        assert r.passed is True  # 6 >= 5 (letter)
+
+    def test_in_run_post_write_hooks(self, project_dir: Path):
+        """A7 is included in run_post_write_hooks batch runner."""
+        engine = WritingHooksEngine(project_dir)
+        results = engine.run_post_write_hooks("Some text.")
+        assert "A7" in results
+        assert results["A7"].hook_id == "A7"
+        # No refs → should fail
+        assert results["A7"].passed is False

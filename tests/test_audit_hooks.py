@@ -411,7 +411,7 @@ class TestEndToEndAuditPipeline:
         """
         # Prerequisites for Phase 6 (CRITICAL since pipeline enforcement)
         (project_dir / "project.json").write_text('{"slug": "test"}')
-        for i in range(5):
+        for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
         (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
@@ -455,7 +455,7 @@ class TestEndToEndAuditPipeline:
         """
         # Prerequisites for Phase 10 (CRITICAL since pipeline enforcement)
         (project_dir / "project.json").write_text('{"slug": "test"}')
-        for i in range(5):
+        for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
         (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
@@ -615,7 +615,7 @@ class TestPhase6Enhanced:
         """All dimensions scored + hook events → PASS."""
         # Prerequisites for Phase 6 (CRITICAL)
         (project_dir / "project.json").write_text('{"slug": "test"}')
-        for i in range(5):
+        for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
 
@@ -659,7 +659,7 @@ class TestPhase6Enhanced:
         """Exactly 4 dimensions scored → PASS (minimum threshold)."""
         # Prerequisites for Phase 6 (CRITICAL)
         (project_dir / "project.json").write_text('{"slug": "test"}')
-        for i in range(5):
+        for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
 
@@ -755,7 +755,7 @@ class TestPhase10Enhanced:
         """Complete Phase 10 with valid meta-learning data → PASS."""
         # Prerequisites for Phase 10 (CRITICAL)
         (project_dir / "project.json").write_text('{"slug": "test"}')
-        for i in range(5):
+        for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
         (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
@@ -834,7 +834,7 @@ class TestMetaLearningEngineIntegration:
         """End-to-end: engine analyze → evolution log → Phase 10 passes."""
         # Prerequisites for Phase 10 (CRITICAL since pipeline enforcement)
         (project_dir / "project.json").write_text('{"slug": "test"}')
-        for i in range(5):
+        for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
         (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
@@ -876,7 +876,7 @@ class TestQualityScorecardIntegration:
         """Setting ≥4 scores + recording hook events → Phase 6 passes."""
         # Prerequisites for Phase 6 (CRITICAL)
         (project_dir / "project.json").write_text('{"slug": "test"}')
-        for i in range(5):
+        for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
 
