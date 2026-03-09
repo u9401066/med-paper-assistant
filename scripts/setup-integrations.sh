@@ -10,10 +10,30 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 echo "🔧 Setting up med-paper-assistant integrations..."
 echo ""
 
+# ── Ensure common tool paths are in PATH (macOS + Linux) ──
+if [ "$(uname -s)" = "Darwin" ]; then
+    if [ -x /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -x /usr/local/bin/brew ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
+fi
+for _dir in "$HOME/.local/bin" "$HOME/.cargo/bin"; do
+    if [ -d "$_dir" ]; then
+        case ":$PATH:" in
+            *":$_dir:"*) ;;
+            *) export PATH="$_dir:$PATH" ;;
+        esac
+    fi
+done
+
 # Check for uv/uvx
 if ! command -v uvx &> /dev/null; then
     echo "❌ uvx is not available. Please install uv first:"
     echo "   curl -LsSf https://astral.sh/uv/install.sh | sh"
+    if [ "$(uname -s)" = "Darwin" ]; then
+        echo "   Or: brew install uv"
+    fi
     exit 1
 fi
 

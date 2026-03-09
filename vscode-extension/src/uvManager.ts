@@ -21,6 +21,47 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 /**
+ * Extra directories that may contain uv/uvx/pandoc/git on macOS and Linux
+ * but are NOT in process.env.PATH when VS Code is launched from Dock/Spotlight.
+ *
+ * On macOS, GUI apps inherit a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin).
+ * Shell profile additions (~/.zprofile, ~/.zshrc, Homebrew shellenv) are NOT loaded.
+ */
+function getExtraPathDirs(): string[] {
+    const homeDir = process.env.HOME || '';
+    const dirs: string[] = [
+        path.join(homeDir, '.local', 'bin'),   // uv default install (curl | sh)
+        path.join(homeDir, '.cargo', 'bin'),    // uv via cargo / rustup
+    ];
+
+    if (process.platform === 'darwin') {
+        dirs.push(
+            '/opt/homebrew/bin',      // Homebrew on Apple Silicon (M1/M2/M3/M4)
+            '/opt/homebrew/sbin',
+            '/usr/local/bin',         // Homebrew on Intel Mac / MacPorts
+            '/usr/local/sbin',
+        );
+    }
+
+    return dirs.filter(d => fs.existsSync(d));
+}
+
+/**
+ * Enrich the given PATH string with extra directories that may contain tools.
+ * Only appends directories that exist and are not already in PATH.
+ *
+ * @param basePath - The original PATH string (e.g., process.env.PATH)
+ * @returns The enriched PATH string
+ */
+export function enrichPath(basePath: string): string {
+    const extraDirs = getExtraPathDirs();
+    const existing = new Set(basePath.split(path.delimiter));
+    const toAdd = extraDirs.filter(d => !existing.has(d));
+    if (toAdd.length === 0) { return basePath; }
+    return [...toAdd, basePath].join(path.delimiter);
+}
+
+/**
  * Get potential uv binary paths based on platform.
  * Covers PATH, common install locations, and platform-specific paths.
  */
@@ -38,7 +79,7 @@ export function getUvSearchPaths(): string[] {
         ];
     } else {
         return [
-            'uv',  // In PATH
+            'uv',  // In PATH (enriched)
             path.join(homeDir, '.local', 'bin', 'uv'),
             path.join(homeDir, '.cargo', 'bin', 'uv'),
             '/usr/local/bin/uv',
@@ -74,16 +115,22 @@ export function getUvInstallCommand(): string {
  * Find the actual uv binary path by checking known locations.
  * Returns the path string or null if not found.
  *
+ * On macOS, the process PATH is enriched with Homebrew and common install
+ * directories before searching, because VS Code GUI apps don't load shell profiles.
+ *
  * @param log - Optional logging function
  */
 export async function findUvPath(log?: (msg: string) => void): Promise<string | null> {
     const paths = getUvSearchPaths();
     const _log = log || (() => {});
 
+    // Build an enriched PATH for exec calls (macOS Dock launch doesn't have Homebrew)
+    const enrichedPath = enrichPath(process.env.PATH || '');
+
     for (const uvPath of paths) {
         try {
             if (uvPath === 'uv') {
-                await execAsync('uv --version');
+                await execAsync('uv --version', { env: { ...process.env, PATH: enrichedPath } });
                 _log('Found uv in PATH');
                 return 'uv';
             } else if (fs.existsSync(uvPath)) {
@@ -114,10 +161,15 @@ export async function installUvHeadless(log?: (msg: string) => void): Promise<st
     _log(`Running: ${command}`);
 
     try {
-        await execAsync(command, { timeout: 120000 });
+        // Use enriched PATH so the install script can find curl, etc.
+        const enrichedPath = enrichPath(process.env.PATH || '');
+        await execAsync(command, {
+            timeout: 120000,
+            env: { ...process.env, PATH: enrichedPath },
+        });
 
         // Wait for filesystem to sync
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         const uvPath = await findUvPath(log);
         if (uvPath) {
@@ -163,6 +215,10 @@ export function buildUvxCommand(
  * Build environment variables for MCP server child process.
  * Includes essential system variables for proper operation.
  *
+ * On macOS, the PATH is enriched with Homebrew and common tool directories
+ * so that subprocess calls to pandoc, git, etc. work even when VS Code
+ * was launched from Dock/Spotlight (which doesn't load shell profiles).
+ *
  * @param options - Configuration options
  * @returns Environment variables object
  */
@@ -182,11 +238,15 @@ export function buildMcpEnv(options: {
         env.PYTHONPATH = options.pythonPath;
     }
 
-    // Inherit essential system variables
-    if (process.env.PATH) { env.PATH = process.env.PATH; }
+    // Inherit and enrich PATH (critical for macOS — add Homebrew, ~/.local/bin)
+    if (process.env.PATH) {
+        env.PATH = enrichPath(process.env.PATH);
+    }
     if (process.env.HOME) { env.HOME = process.env.HOME; }
     if (process.env.SHELL) { env.SHELL = process.env.SHELL; }
     if (process.env.LANG) { env.LANG = process.env.LANG; }
+    // macOS: TMPDIR (macOS uses TMPDIR, not TEMP/TMP)
+    if (process.env.TMPDIR) { env.TMPDIR = process.env.TMPDIR; }
     // Windows-specific
     if (process.env.USERPROFILE) { env.USERPROFILE = process.env.USERPROFILE; }
     if (process.env.APPDATA) { env.APPDATA = process.env.APPDATA; }

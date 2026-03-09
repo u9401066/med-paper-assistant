@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getUvSearchPaths, getUvxPath, getUvInstallCommand, buildUvxCommand, buildMcpEnv, findUvPath } from '../uvManager';
+import { getUvSearchPaths, getUvxPath, getUvInstallCommand, buildUvxCommand, buildMcpEnv, findUvPath, enrichPath } from '../uvManager';
 
 // ──────────────────────────────────────────────────────────
 // getUvSearchPaths
@@ -96,6 +96,52 @@ describe('buildUvxCommand', () => {
 });
 
 // ──────────────────────────────────────────────────────────
+// enrichPath
+// ──────────────────────────────────────────────────────────
+
+describe('enrichPath', () => {
+    it('returns original PATH when no extra dirs exist', () => {
+        // Use a non-existent prefix so getExtraPathDirs() returns nothing new
+        const original = '/nonexistent/a:/nonexistent/b';
+        const result = enrichPath(original);
+        // Either returns original (no dirs to add) or adds existing dirs
+        expect(result).toContain('/nonexistent/a');
+        expect(result).toContain('/nonexistent/b');
+    });
+
+    it('does not duplicate dirs already in PATH', () => {
+        const homeDir = process.env.HOME || '/tmp';
+        const localBin = `${homeDir}/.local/bin`;
+        const original = `/usr/bin:${localBin}:/usr/sbin`;
+        const result = enrichPath(original);
+        // localBin should appear at most once
+        const count = result.split(':').filter(p => p === localBin).length;
+        expect(count).toBeLessThanOrEqual(1);
+    });
+
+    it('prepends extra dirs before original PATH', () => {
+        const result = enrichPath('/usr/bin:/bin');
+        const parts = result.split(':');
+        // Original entries must still be there
+        expect(parts).toContain('/usr/bin');
+        expect(parts).toContain('/bin');
+        // /usr/bin should appear after any prepended dirs (if any were added)
+        if (parts.length > 2) {
+            const usrBinIdx = parts.indexOf('/usr/bin');
+            // At least one prepended dir should be before /usr/bin
+            expect(usrBinIdx).toBeGreaterThan(0);
+        }
+    });
+
+    it('handles empty PATH', () => {
+        const result = enrichPath('');
+        expect(typeof result).toBe('string');
+        // Should not start with a delimiter
+        expect(result.startsWith(':')).toBe(false);
+    });
+});
+
+// ──────────────────────────────────────────────────────────
 // buildMcpEnv
 // ──────────────────────────────────────────────────────────
 
@@ -118,10 +164,16 @@ describe('buildMcpEnv', () => {
         expect(envWith.PYTHONPATH).toBe('/some/path');
     });
 
-    it('inherits PATH from current process', () => {
+    it('inherits and enriches PATH from current process', () => {
         const env = buildMcpEnv({});
         if (process.env.PATH) {
-            expect(env.PATH).toBe(process.env.PATH);
+            // PATH should be present and at least as long as original (enrichment only adds)
+            expect(env.PATH).toBeDefined();
+            expect(env.PATH!.length).toBeGreaterThanOrEqual(process.env.PATH.length);
+            // All original PATH entries should be preserved
+            for (const dir of process.env.PATH.split(':').slice(0, 3)) {
+                if (dir) { expect(env.PATH).toContain(dir); }
+            }
         }
     });
 

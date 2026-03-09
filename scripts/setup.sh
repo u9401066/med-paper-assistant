@@ -9,17 +9,69 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "🚀 Med Paper Assistant Setup..."
 
-# Detect OS
+# Detect OS and architecture
 OS="$(uname -s)"
+ARCH="$(uname -m)"
 case "$OS" in
     Linux*)     PLATFORM="linux";;
     Darwin*)    PLATFORM="darwin";;
     MINGW*|CYGWIN*|MSYS*) PLATFORM="win32";;
     *)          PLATFORM="unknown";;
 esac
-echo "📍 Detected platform: $PLATFORM"
+echo "📍 Detected platform: $PLATFORM ($ARCH)"
 
-# 1. Create virtual environment
+# ── macOS: Ensure Homebrew and common tool paths are in PATH ──
+if [ "$PLATFORM" = "darwin" ]; then
+    # Homebrew (Apple Silicon: /opt/homebrew, Intel: /usr/local)
+    if [ -x /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -x /usr/local/bin/brew ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
+    # Common uv install locations (may not be in PATH in non-interactive shells)
+    for _dir in "$HOME/.local/bin" "$HOME/.cargo/bin"; do
+        if [ -d "$_dir" ]; then
+            case ":$PATH:" in
+                *":$_dir:"*) ;;  # already in PATH
+                *) export PATH="$_dir:$PATH" ;;
+            esac
+        fi
+    done
+fi
+
+# ── Linux: also check ~/.local/bin and ~/.cargo/bin ──
+if [ "$PLATFORM" = "linux" ]; then
+    for _dir in "$HOME/.local/bin" "$HOME/.cargo/bin"; do
+        if [ -d "$_dir" ]; then
+            case ":$PATH:" in
+                *":$_dir:"*) ;;
+                *) export PATH="$_dir:$PATH" ;;
+            esac
+        fi
+    done
+fi
+
+# 1. Check uv is available (BEFORE using it)
+if ! command -v uv &> /dev/null; then
+    echo ""
+    echo "❌ uv is not installed."
+    echo ""
+    echo "📦 Install uv (recommended):"
+    echo "   curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo ""
+    if [ "$PLATFORM" = "darwin" ]; then
+        echo "   Or via Homebrew:"
+        echo "   brew install uv"
+        echo ""
+    fi
+    echo "   After installing, restart your terminal and re-run this script."
+    exit 1
+fi
+
+UV_VERSION="$(uv --version 2>/dev/null || echo 'unknown')"
+echo "📦 Found uv: $UV_VERSION"
+
+# 2. Create virtual environment
 echo "📦 Creating Python virtual environment with uv..."
 cd "$PROJECT_DIR"
 
@@ -28,15 +80,6 @@ if [ -d ".venv" ]; then
 else
     uv venv
     echo "  ✅ Virtual environment created"
-fi
-
-source .venv/bin/activate
-
-# 2. Check uv is available
-if ! command -v uv &> /dev/null; then
-    echo "❌ uv is not installed. Please install it first:"
-    echo "   curl -LsSf https://astral.sh/uv/install.sh | sh"
-    exit 1
 fi
 
 # 3. Install dependencies
@@ -83,7 +126,7 @@ fi
 
 # 5. Verify installation
 echo "✅ Verifying installation..."
-python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server loaded: {len(mcp._tool_manager._tools)} tools')"
+.venv/bin/python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server loaded: {len(mcp._tool_manager._tools)} tools')"
 
 echo ""
 echo "=========================================="
