@@ -573,7 +573,10 @@ FOR section IN plan.writing_order:
 
   ── Step 3: 撰寫（段落級 Brief 引導） ──
   3a. IF Methods + asset_plan 有 diagram:
-      → drawio.create_diagram → save_diagram(project, content)
+      → drawio.create_diagram → XML
+      → drawio.export_diagram → PNG/SVG
+      → save_diagram(project, content, rendered_content, rendered_format)
+      → insert_figure(rendered_filename or source filename, caption, draft_filename, after_section)
   3b. FOR paragraph IN brief.paragraphs:
       → 依據 paragraph.topic + key_claims + must_cite 撰寫
       → 尊重 paragraph.word_target
@@ -675,26 +678,28 @@ FOR asset IN asset_plan[section]:
     CASE "flow_diagram":  (CONSORT, PRISMA, study flow)
       1. IF drawio MCP 可用:
          → drawio.create_diagram(type, data) → XML
-         → save_diagram(project, content, name)
+        → drawio.export_diagram(format="png" or "svg") → rendered asset
+        → save_diagram(project, content, name, rendered_content, rendered_format)
+        → insert_figure(filename=name or rendered filename, caption, draft_filename, after_section)
       2. ELSE:
          → 產生 Mermaid 文字描述 → 存入 results/diagrams/
          → FLAG: 建議用戶手動轉換
-      3. reference 在草稿中
+      3. reference 在草稿中，確保導出的 Word/PDF 可見圖像而不只是 `.drawio` 原始檔
 
     CASE "custom_figure":
       1. Agent 依 asset_plan 說明 → create_plot 或手動描述
       2. insert_figure() 或 FLAG 需外部工具
 ```
 
-| Asset Type       | 必要 MCP Tool          | 外部 MCP           | Fallback        |
-| ---------------- | ---------------------- | ------------------ | --------------- |
-| table_one        | `generate_table_one`   | —                  | 手動提供表格    |
-| statistical_test | `run_statistical_test` | —                  | 描述預期分析    |
-| plot             | `create_plot`          | —                  | 描述圖表需求    |
-| flow_diagram     | `save_diagram`         | `drawio` 🔸        | Mermaid 文字    |
-| forest_plot      | ❌ 缺少                | `meta-analysis` 🔸 | R/Python script |
-| funnel_plot      | ❌ 缺少                | `meta-analysis` 🔸 | R/Python script |
-| PRISMA_diagram   | `save_diagram`         | `drawio` 🔸        | Mermaid 文字    |
+| Asset Type       | 必要 MCP Tool                    | 外部 MCP           | Fallback        |
+| ---------------- | -------------------------------- | ------------------ | --------------- |
+| table_one        | `generate_table_one`             | —                  | 手動提供表格    |
+| statistical_test | `run_statistical_test`           | —                  | 描述預期分析    |
+| plot             | `create_plot`                    | —                  | 描述圖表需求    |
+| flow_diagram     | `save_diagram` + `insert_figure` | `drawio` 🔸        | Mermaid 文字    |
+| forest_plot      | ❌ 缺少                          | `meta-analysis` 🔸 | R/Python script |
+| funnel_plot      | ❌ 缺少                          | `meta-analysis` 🔸 | R/Python script |
+| PRISMA_diagram   | `save_diagram` + `insert_figure` | `drawio` 🔸        | Mermaid 文字    |
 
 #### Agent-Initiated Asset Generation（寫作中自主新增圖表）
 

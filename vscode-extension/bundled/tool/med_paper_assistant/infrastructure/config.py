@@ -12,7 +12,16 @@ from typing import Optional
 
 def get_project_root() -> Path:
     """Get the project root directory."""
-    return Path(__file__).parent.parent.parent.parent
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        if (parent / "pyproject.toml").exists() and (parent / "templates").exists():
+            return parent
+    return current.parents[5]
+
+
+def _default_base_dir() -> Path:
+    """Return the repository root instead of depending on the current working directory."""
+    return Path(os.getenv("MEDPAPER_BASE_DIR", get_project_root())).resolve()
 
 
 @dataclass
@@ -24,9 +33,9 @@ class AppConfig:
     """
 
     # Base paths
-    base_dir: Path = field(default_factory=lambda: Path.cwd())
-    projects_dir: Path = field(default_factory=lambda: Path.cwd() / "projects")
-    templates_dir: Path = field(default_factory=lambda: Path.cwd() / "templates")
+    base_dir: Path = field(default_factory=_default_base_dir)
+    projects_dir: Path = field(default_factory=lambda: _default_base_dir() / "projects")
+    templates_dir: Path = field(default_factory=lambda: _default_base_dir() / "templates")
 
     # PubMed API
     entrez_email: str = "medpaper@example.com"
@@ -51,10 +60,11 @@ class AppConfig:
     @classmethod
     def from_env(cls) -> "AppConfig":
         """Create configuration from environment variables."""
+        base_dir = _default_base_dir()
         return cls(
-            base_dir=Path(os.getenv("MEDPAPER_BASE_DIR", Path.cwd())),
-            projects_dir=Path(os.getenv("MEDPAPER_PROJECTS_DIR", Path.cwd() / "projects")),
-            templates_dir=Path(os.getenv("MEDPAPER_TEMPLATES_DIR", Path.cwd() / "templates")),
+            base_dir=base_dir,
+            projects_dir=Path(os.getenv("MEDPAPER_PROJECTS_DIR", base_dir / "projects")).resolve(),
+            templates_dir=Path(os.getenv("MEDPAPER_TEMPLATES_DIR", base_dir / "templates")).resolve(),
             entrez_email=os.getenv("ENTREZ_EMAIL", "medpaper@example.com"),
             entrez_api_key=os.getenv("ENTREZ_API_KEY"),
         )

@@ -1,9 +1,33 @@
 """Fix title field in existing reference markdown files for Foam."""
 
+import argparse
 import re
 from pathlib import Path
 
-refs_dir = Path("projects/airway-device-oral-lip-injury-comparison/references")
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def _build_refs_dir(target: str) -> Path:
+    """Resolve the references directory relative to the repository root."""
+    candidate = Path(target)
+    if not candidate.is_absolute():
+        candidate = ROOT / candidate
+    return candidate.resolve()
+
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument(
+    "target",
+    nargs="?",
+    default="projects/airway-device-oral-lip-injury-comparison/references",
+    help="References directory to update (default: airway-device-oral-lip-injury-comparison)",
+)
+args = parser.parse_args()
+
+refs_dir = _build_refs_dir(args.target)
+if not refs_dir.exists():
+    raise SystemExit(f"References directory not found: {refs_dir}")
+
 for md_file in refs_dir.rglob("*.md"):
     content = md_file.read_text(encoding="utf-8")
 

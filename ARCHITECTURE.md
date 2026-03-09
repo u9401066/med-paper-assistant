@@ -266,13 +266,13 @@ DomainConstraintEngine.evolve()
 
 Copilot Agent Mode 同時連接多個 MCP Server：
 
-| Server            | 來源                                          | 用途                       | Tools 數量 |
-| ----------------- | --------------------------------------------- | -------------------------- | ---------- |
-| **mdpaper**       | 本專案                                        | 專案管理、草稿、引用、匯出 | 89         |
-| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule) | PubMed 文獻搜尋            | 37         |
-| **cgu**           | `integrations/cgu/` (submodule)               | 創意發想（快思慢想）       | 13         |
-| **drawio**        | `uvx drawio-mcp-server`                       | CONSORT/PRISMA 圖表        | ~5         |
-| **zotero-keeper** | `uvx zotero-keeper`                           | Zotero 書目管理            | ~15        |
+| Server            | 來源                                                                                                                                                                   | 用途                       | Tools 數量 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ---------- |
+| **mdpaper**       | 本專案                                                                                                                                                                 | 專案管理、草稿、引用、匯出 | 89         |
+| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule)                                                                                                                          | PubMed 文獻搜尋            | 37         |
+| **cgu**           | `integrations/cgu/` (submodule)                                                                                                                                        | 創意發想（快思慢想）       | 13         |
+| **drawio**        | `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` → fallback `node integrations/drawio-mcp/src/index.js` → `npx -y @drawio/mcp` | CONSORT/PRISMA 圖表        | ~5         |
+| **zotero-keeper** | `uvx zotero-keeper`                                                                                                                                                    | Zotero 書目管理            | ~15        |
 
 ### MCP-to-MCP 通訊
 

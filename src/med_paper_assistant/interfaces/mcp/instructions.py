@@ -136,9 +136,10 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 2. Call `drawio.create_diagram()` → Shows in browser
 3. User edits in browser → Says "存檔" or "save"
 4. Call `drawio.get_diagram_content()` → Get XML
-5. Call `mdpaper.save_diagram(project="xxx", content=...)` → Save to project
-6. If no project → `save_diagram(output_dir="...")` or ask user to create project
-7. Optionally call `insert_figure()` to register figure in draft
+5. Call `drawio.export_diagram()` or equivalent → Get PNG/SVG for paper embedding
+6. Call `mdpaper.save_diagram(project="xxx", content=..., rendered_content=..., rendered_format="png|svg")` → Save source + exportable asset
+7. Call `insert_figure()` with the rendered filename (or original `.drawio` name if companion image was saved beside it) to register it in manifest and insert Markdown image syntax into the draft
+8. If no project → `save_diagram(output_dir="...")` or ask user to create project
 
 ### 📄 WORD EXPORT (workflow)
 1. `list_templates` → Available templates

@@ -134,6 +134,13 @@ code --install-extension foam.foam-vscode
 ./scripts/setup-integrations.sh && ./scripts/start-drawio.sh
 ```
 
+Windows PowerShell：
+
+```powershell
+.\scripts\setup-integrations.ps1
+.\scripts\start-drawio.ps1
+```
+
 ---
 
 ## 💬 MCP Prompts — 輸入指令即可開始

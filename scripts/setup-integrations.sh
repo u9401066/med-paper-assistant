@@ -1,11 +1,13 @@
 #!/bin/bash
 # Setup script for med-paper-assistant integrations
-# Draw.io MCP is now installed via uvx (no submodule needed)
+# Draw.io MCP now uses the official npm package @drawio/mcp.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+DRAWIO_FORK_DIR="$PROJECT_ROOT/integrations/next-ai-draw-io/mcp-server"
+DRAWIO_WORKSPACE_DIR="$PROJECT_ROOT/integrations/drawio-mcp"
 
 echo "🔧 Setting up med-paper-assistant integrations..."
 echo ""
@@ -39,14 +41,26 @@ fi
 
 echo "✅ uvx is available"
 
-# Verify drawio-mcp-server can be resolved
+if [ -d "$DRAWIO_FORK_DIR/src/drawio_mcp_server" ]; then
+    echo "✅ forked Draw.io MCP detected at integrations/next-ai-draw-io/mcp-server"
+elif [ -f "$DRAWIO_WORKSPACE_DIR/src/index.js" ]; then
+    echo "✅ workspace Draw.io MCP detected at integrations/drawio-mcp"
+elif command -v drawio-mcp > /dev/null 2>&1; then
+    echo "✅ drawio-mcp binary is available"
+elif command -v npx > /dev/null 2>&1; then
+    echo "✅ npx is available for official Draw.io MCP startup"
+else
+    echo "⚠️  Draw.io MCP requires either a drawio-mcp binary or npx (Node.js/npm)."
+fi
+
+# Verify drawio-mcp can be resolved
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📊 Verifying Draw.io MCP Server..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-echo "  Draw.io MCP runs via uvx (configured in .vscode/mcp.json)"
-echo "  No local installation needed — uvx resolves it on demand."
+echo "  Draw.io MCP prefers your forked submodule at integrations/next-ai-draw-io/mcp-server when present."
+echo "  Otherwise it falls back to an official checkout, installed drawio-mcp binary, or npm package @drawio/mcp."
 echo ""
 
 # Check that mcp.json has drawio configured
@@ -64,9 +78,9 @@ echo "✅ Integration check complete!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "📋 Available integrations:"
-echo "  🎨 drawio     — CONSORT/PRISMA flowcharts (via uvx)"
+echo "  🎨 drawio     — CONSORT/PRISMA flowcharts (forked submodule → official checkout → package fallback)"
 echo "  📖 zotero     — Zotero reference import (via uvx)"
 echo ""
-echo "💡 Start Draw.io web app:"
+echo "💡 Verify Draw.io MCP availability:"
 echo "   ./scripts/start-drawio.sh"
 echo ""

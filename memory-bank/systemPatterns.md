@@ -22,21 +22,32 @@ src/med_paper_assistant/
     └── tools/           # Modular tool registration
 ```
 
-### Draw.io MCP Server (Submodule - 2025-11-28)
+### Draw.io MCP Server (Forked Submodule - 2025-11-28, updated 2026-03-09)
 
 ```
 integrations/next-ai-draw-io/
-├── app/                 # Next.js 15 frontend
-│   └── api/             # REST APIs for MCP
+├── app/                 # Forked Draw.io web/frontend for interactive editing
+│   └── api/             # REST/Web APIs for MCP push flows
 └── mcp-server/
-    └── src/drawio_mcp_server/
-        ├── __main__.py      # Entry point
-        ├── server.py        # FastMCP (10 tools)
-        ├── config.py        # Environment config
-        ├── web_client.py    # HTTP client
-        ├── diagram_generator.py
-        ├── validator.py     # XML validation
-        └── tools/           # Modular tools
+  └── src/drawio_mcp_server/
+    ├── __main__.py      # Entry point for forked MCP server
+    ├── server.py        # FastMCP tools MedPaper can patch directly
+    ├── config.py        # Environment config
+    ├── web_client.py    # HTTP client to the forked web app
+    ├── diagram_generator.py
+    ├── validator.py     # XML validation
+    └── tools/           # Modular tools
+
+Fallback reference implementation:
+
+integrations/drawio-mcp/
+└── src/index.js         # Optional official checkout for protocol/design reference
+
+Resolution order in MedPaper runtime:
+1. `integrations/next-ai-draw-io/mcp-server`
+2. `integrations/drawio-mcp`
+3. installed `drawio-mcp` binary
+4. `npx -y @drawio/mcp`
 ```
 
 - **Memory Bank**: .memory/ directory for context persistence.

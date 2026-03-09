@@ -5,11 +5,21 @@ This module reads Word templates and extracts structural information,
 allowing the MCP Agent (AI) to make intelligent decisions about content placement.
 """
 
-import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 from docx import Document
+
+
+def _find_project_templates_dir() -> Path:
+    """Locate the repository templates directory regardless of caller or bundle depth."""
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        templates_dir = parent / "templates"
+        if templates_dir.exists() and (parent / "pyproject.toml").exists():
+            return templates_dir
+    return current.parents[5] / "templates"
 
 
 @dataclass
@@ -49,13 +59,9 @@ class TemplateReader:
 
     def __init__(self, templates_dir: Optional[str] = None):
         if templates_dir:
-            self.templates_dir = templates_dir
+            self.templates_dir = Path(templates_dir)
         else:
-            # Default: project_root/templates
-            self.templates_dir = os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                "templates",
-            )
+            self.templates_dir = _find_project_templates_dir()
 
     def read_template(self, template_path: str) -> TemplateStructure:
         """
@@ -67,13 +73,15 @@ class TemplateReader:
         Returns:
             TemplateStructure with all sections and their properties.
         """
-        if not os.path.isabs(template_path):
-            template_path = os.path.join(self.templates_dir, template_path)
+        resolved_template_path = Path(template_path)
+        if not resolved_template_path.is_absolute():
+            resolved_template_path = self.templates_dir / resolved_template_path
+        resolved_template_path = resolved_template_path.resolve()
 
-        if not os.path.exists(template_path):
-            raise FileNotFoundError(f"Template not found: {template_path}")
+        if not resolved_template_path.exists():
+            raise FileNotFoundError(f"Template not found: {resolved_template_path}")
 
-        doc = Document(template_path)
+        doc = Document(str(resolved_template_path))
         sections = []
 
         for i, para in enumerate(doc.paragraphs):
@@ -110,7 +118,7 @@ class TemplateReader:
                 )
 
         return TemplateStructure(
-            name=os.path.basename(template_path),
+            name=resolved_template_path.name,
             sections=sections,
             journal_name=self._extract_journal_name(doc),
         )
@@ -168,11 +176,12 @@ class TemplateReader:
 
     def list_templates(self) -> List[str]:
         """List all available templates."""
-        if not os.path.exists(self.templates_dir):
+        if not self.templates_dir.exists():
             return []
 
         templates = []
-        for f in os.listdir(self.templates_dir):
-            if f.endswith(".docx") and not f.startswith("~"):
-                templates.append(f)
+        for f in self.templates_dir.iterdir():
+            filename = f.name
+            if filename.endswith(".docx") and not filename.startswith("~"):
+                templates.append(filename)
         return templates

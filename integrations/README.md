@@ -39,110 +39,51 @@ The search tools are automatically registered in med-paper-assistant. No additio
 
 ---
 
-## 📊 next-ai-draw-io
+## 📊 Draw.io MCP
 
-**Purpose**: Generate diagrams (CONSORT, PRISMA, study flow) from natural language via Draw.io
+**Purpose**: Generate diagrams (CONSORT, PRISMA, study flow) from natural language via Draw.io MCP.
 
-**Repository**: https://github.com/u9401066/next-ai-draw-io
+**Current setup**: This repo prefers your forked Draw.io submodule at `integrations/next-ai-draw-io/mcp-server` for co-development. That lets MedPaper and the Draw.io integration evolve in the same workspace. If the forked submodule is absent, it falls back to an optional official checkout at `integrations/drawio-mcp`, then to the published package `@drawio/mcp` via `npx -y @drawio/mcp`.
 
 ### Quick Setup
 
 ```bash
 # From project root
 ./scripts/setup-integrations.sh
+./scripts/start-drawio.sh
 ```
 
-### Submodule Management
+On Windows PowerShell:
 
-#### 🔄 Update when your fork has new commits
-
-```bash
-# Option 1: One-liner from project root
-git submodule update --remote integrations/next-ai-draw-io
-git add integrations/next-ai-draw-io
-git commit -m "chore: update next-ai-draw-io submodule"
-
-# Option 2: Manual pull
-cd integrations/next-ai-draw-io
-git pull origin main
-cd ../..
-git add integrations/next-ai-draw-io
-git commit -m "chore: update next-ai-draw-io submodule"
-```
-
-#### 📥 For users cloning this repo
-
-```bash
-# Clone with submodules
-git clone --recurse-submodules https://github.com/u9401066/med-paper-assistant.git
-
-# Or initialize after clone
-git clone https://github.com/u9401066/med-paper-assistant.git
-cd med-paper-assistant
-git submodule update --init --recursive
-```
-
-### Setup
-
-**Step 1: Install Next.js App**
-```bash
-cd integrations/next-ai-draw-io
-npm install
-```
-
-**Step 2: Configure Environment**
-```bash
-cp env.example .env.local
-# Edit .env.local with your LLM provider settings
-```
-
-**Step 3: Install MCP Server**
-```bash
-cd mcp-server
-# Using uv (recommended)
-uv sync
+```powershell
+.\scripts\setup-integrations.ps1
+.\scripts\start-drawio.ps1
 ```
 
 ### VS Code MCP Configuration
 
-Add both MCP servers to your `.vscode/mcp.json`:
+The recommended `.vscode/mcp.json` fallback entry is:
 
 ```json
 {
   "servers": {
-    "mdpaper": {
-      "command": "/path/to/med-paper-assistant/.venv/bin/python",
-      "args": ["-m", "med_paper_assistant.mcp_server.server"],
-      "cwd": "/path/to/med-paper-assistant"
-    },
     "drawio": {
-      "command": "/path/to/med-paper-assistant/integrations/next-ai-draw-io/mcp-server/.venv/bin/python",
-      "args": ["-m", "drawio_mcp"],
-      "cwd": "/path/to/med-paper-assistant/integrations/next-ai-draw-io/mcp-server"
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@drawio/mcp"]
     }
   }
 }
 ```
 
-### Running Both Services
+### Runtime Notes
 
-**Terminal 1 - Draw.io Web App:**
-```bash
-cd integrations/next-ai-draw-io
-npm run dev
-# Opens at http://localhost:3000
-```
-
-**Terminal 2 - Use in VS Code Copilot:**
-Both MCP servers are automatically available in Copilot Chat.
-
-### Available Draw.io MCP Tools
-
-| Tool | Description |
-|------|-------------|
-| `create_diagram` | Create a new diagram from natural language description |
-| `edit_diagram` | Edit an existing diagram |
-| `read_diagram` | Read and describe diagram contents |
+- For local development, keep your fork at `integrations/next-ai-draw-io`; the extension will prefer `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` automatically.
+- If you also keep an official checkout at `integrations/drawio-mcp`, it is treated as a secondary reference implementation.
+- No separate Next.js app is required for the current Draw.io MCP integration.
+- `./scripts/start-drawio.sh` is now a verification helper that checks the forked submodule first, then official workspace checkout, then `drawio-mcp`, then `npx -y @drawio/mcp`.
+- `./scripts/start-drawio.ps1` provides the same verification flow for Windows PowerShell.
+- Official `jgraph/drawio-mcp` should be treated as a design/reference source for new ideas and protocol behavior, while the forked submodule remains the integration branch MedPaper can patch directly.
 | `list_templates` | List available diagram templates |
 | `create_from_template` | Create diagram from a template |
 | `export_diagram` | Export diagram to SVG/PNG/PDF |

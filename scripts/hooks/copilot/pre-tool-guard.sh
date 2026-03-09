@@ -28,6 +28,15 @@ TOOL_INPUT=$(echo "$INPUT" | jq -c '.tool_input // {}' 2>/dev/null) || TOOL_INPU
 WORKSPACE_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 STATE_DIR="$WORKSPACE_ROOT/.github/hooks/_state"
 mkdir -p "$STATE_DIR"
+CROSS_PLATFORM_REGEX='(^|/)(\.github/workflows/|vscode-extension/|scripts/setup(\.ps1|\.sh)?$|scripts/setup-integrations(\.ps1|\.sh)$|scripts/start-drawio(\.ps1|\.sh)$|src/med_paper_assistant/infrastructure/config\.py$|src/med_paper_assistant/infrastructure/services/template_reader\.py$|tests/test_config_paths\.py$)'
+
+recent_cross_platform_changes() {
+    {
+        git diff --name-only --cached 2>/dev/null || true
+        git diff --name-only 2>/dev/null || true
+        git diff --name-only HEAD~1..HEAD 2>/dev/null || true
+    } | awk 'NF' | sort -u | grep -E "$CROSS_PLATFORM_REGEX" || true
+}
 
 # Read current mode
 MODE="normal"
@@ -84,7 +93,23 @@ if echo "$TOOL_NAME" | grep -qiE 'run_in_terminal|terminal'; then
         fi
 
         # Require confirmation for git push
-        if echo "$COMMAND" | grep -qE '(git\s+push|git\s+reset\s+--hard)'; then
+        if echo "$COMMAND" | grep -qE '(git\s+push|git\s+reset\s+--hard|git\s+tag\s+v[0-9])'; then
+            RECENT_CROSS_PLATFORM=$(recent_cross_platform_changes)
+            if [ -n "$RECENT_CROSS_PLATFORM" ]; then
+                jq -n \
+                    --arg reason "RELEASE/PUSH CHECK: recent cross-platform or installation files changed. Confirm CI smoke matrix passed before running '$COMMAND'." \
+                    --arg changed "$RECENT_CROSS_PLATFORM" \
+                    '{
+                        hookSpecificOutput: {
+                            hookEventName: "PreToolUse",
+                            permissionDecision: "ask",
+                            permissionDecisionReason: $reason,
+                            additionalContext: ("Changed files requiring smoke evidence:\n" + $changed)
+                        }
+                    }'
+                exit 0
+            fi
+
             jq -n \
                 --arg reason "GIT OPERATION requires confirmation: '$COMMAND'" \
                 '{

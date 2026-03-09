@@ -130,12 +130,15 @@ describe('extension entry point', () => {
         expect(content).toContain('export function deactivate');
     });
 
-    it('registers PubMed Search and Zotero Keeper MCP servers', () => {
+    it('registers PubMed Search, Zotero Keeper, and Draw.io MCP servers', () => {
         const content = fs.readFileSync(path.join(extDir, 'src', 'extension.ts'), 'utf-8');
         expect(content).toContain("'PubMed Search'");
         expect(content).toContain("'Zotero Keeper'");
+        expect(content).toContain("'Draw.io Diagrams'");
         expect(content).toContain("'pubmed-search-mcp'");
         expect(content).toContain("'zotero-keeper'");
+        expect(content).toContain("integrations', 'next-ai-draw-io', 'mcp-server'");
+        expect(content).toContain("integrations', 'drawio-mcp'");
     });
 });
 

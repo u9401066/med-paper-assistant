@@ -7,6 +7,7 @@ insert_figure, insert_table — register assets in manifest and insert reference
 import json
 import os
 import re
+from pathlib import Path
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -23,6 +24,8 @@ from .._shared import (
 
 FIGURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".tiff", ".drawio"}
 TABLE_EXTENSIONS = {".csv", ".xlsx", ".md", ".html"}
+EXPORTABLE_FIGURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".tiff"}
+COMPANION_FIGURE_EXTENSIONS = [".png", ".svg", ".jpg", ".jpeg", ".tiff"]
 
 
 def _get_project_path(project: Optional[str] = None) -> Optional[str]:
@@ -54,6 +57,81 @@ def _save_manifest(project_path: str, manifest: dict) -> str:
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
     return manifest_path
+
+
+def _resolve_exportable_figure_path(project_path: str, filename: str) -> Optional[str]:
+    """Resolve the file that should be embedded into the manuscript export.
+
+    Args:
+        project_path: Absolute project root path.
+        filename: Registered figure filename stored in ``results/figures``.
+
+    Returns:
+        Absolute path to an exportable figure asset, or ``None`` when only the
+        source ``.drawio`` file exists and no rendered companion asset is found.
+    """
+    figures_dir = Path(project_path) / "results" / "figures"
+    figure_path = figures_dir / filename
+
+    if figure_path.suffix.lower() in EXPORTABLE_FIGURE_EXTENSIONS and figure_path.is_file():
+        return str(figure_path)
+
+    stem = figure_path.stem
+    for extension in COMPANION_FIGURE_EXTENSIONS:
+        candidate = figures_dir / f"{stem}{extension}"
+        if candidate.is_file():
+            return str(candidate)
+
+    return None
+
+
+def _to_markdown_asset_path(asset_path: str, drafts_dir: Path) -> str:
+    """Convert a filesystem path to a Markdown-safe relative asset path.
+
+    Markdown image links should always use forward slashes, even on Windows.
+    This helper preserves relative semantics while normalizing path separators.
+
+    Args:
+        asset_path: Absolute or relative filesystem path to the asset.
+        drafts_dir: Directory containing the draft markdown file.
+
+    Returns:
+        Relative path string using POSIX separators.
+    """
+    relative_path = os.path.relpath(asset_path, drafts_dir)
+    return relative_path.replace("\\", "/")
+
+
+def _build_figure_insertion_markdown(
+    project_path: str,
+    filename: str,
+    caption: str,
+    figure_number: int,
+) -> tuple[str, Optional[str]]:
+    """Build the draft snippet for a registered figure.
+
+    Args:
+        project_path: Absolute project root path.
+        filename: Figure filename registered in the manifest.
+        caption: Figure caption.
+        figure_number: Sequential figure number.
+
+    Returns:
+        Tuple of ``(markdown_block, exportable_asset_path)``.  The markdown block
+        contains an embedded image when a renderable asset is available; otherwise
+        it falls back to caption-only text.
+    """
+    caption_line = f"**Figure {figure_number}.** {caption}"
+    exportable_asset = _resolve_exportable_figure_path(project_path, filename)
+
+    if not exportable_asset:
+        return f"\n\n{caption_line}\n\n", None
+
+    drafts_dir = Path(project_path) / "drafts"
+    relative_path = _to_markdown_asset_path(exportable_asset, drafts_dir)
+    image_alt = f"Figure {figure_number}. {caption}"
+    markdown = f"\n\n![{image_alt}]({relative_path})\n\n{caption_line}\n\n"
+    return markdown, exportable_asset
 
 
 def _next_number(entries: list, key: str = "number") -> int:
@@ -146,9 +224,22 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
 
         # Insert reference into draft if requested
         if draft_filename:
-            insert_text = f"\n\n**Figure {num}.** {caption}\n\n"
+            insert_text, exportable_asset = _build_figure_insertion_markdown(
+                project_path,
+                filename,
+                caption,
+                num,
+            )
             insert_result = _insert_into_draft(drafter, draft_filename, insert_text, after_section)
             output += f"\n{insert_result}"
+            if exportable_asset:
+                output += f"\n- **Embedded Asset:** {exportable_asset}\n"
+            else:
+                output += (
+                    "\n⚠️ No exportable image asset found. "
+                    "Save a companion PNG/SVG (for example via `save_diagram(rendered_content=...)`) "
+                    "to embed this figure in DOCX/PDF exports.\n"
+                )
 
         output += (
             "\n💡 **Next:** Reference as `Figure {num}` in your text. "

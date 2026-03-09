@@ -31,6 +31,14 @@ STATE_DIR="$WORKSPACE_ROOT/.github/hooks/_state"
 mkdir -p "$STATE_DIR"
 
 CONTEXT=""
+CROSS_PLATFORM_REGEX='(^|/)(\.github/workflows/|vscode-extension/|scripts/setup(\.ps1|\.sh)?$|scripts/setup-integrations(\.ps1|\.sh)$|scripts/start-drawio(\.ps1|\.sh)$|src/med_paper_assistant/infrastructure/config\.py$|src/med_paper_assistant/infrastructure/services/template_reader\.py$|tests/test_config_paths\.py$)'
+
+extract_paths_from_patch() {
+    echo "$TOOL_INPUT" | jq -r '.input // empty' 2>/dev/null | \
+        grep -E '^\*\*\* (Update|Add|Delete) File:' | \
+        sed -E 's/^\*\*\* (Update|Add|Delete) File: //' | \
+        cut -d' ' -f1
+}
 
 # ── 1. After MCP write_draft / patch_draft / draft_section ──
 if echo "$TOOL_NAME" | grep -qiE 'mcp_mdpaper_(write_draft|patch_draft|draft_section)'; then
@@ -38,7 +46,7 @@ if echo "$TOOL_NAME" | grep -qiE 'mcp_mdpaper_(write_draft|patch_draft|draft_sec
 fi
 
 # ── 2. After file edits to draft files ──
-if echo "$TOOL_NAME" | grep -qiE 'editFiles|replace_string|multi_replace|create_file'; then
+if echo "$TOOL_NAME" | grep -qiE 'apply_patch|editFiles|replace_string|multi_replace|create_file'; then
     FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.filePath // .path // empty' 2>/dev/null) || true
 
     if [ -n "$FILE_PATH" ]; then
@@ -62,6 +70,17 @@ if echo "$TOOL_NAME" | grep -qiE 'editFiles|replace_string|multi_replace|create_
         # Hook/config files edited
         if echo "$FILE_PATH" | grep -qE '\.(copilot-mode|mdpaper-state)\.json$'; then
             CONTEXT="[STATE FILE CHANGED] Mode or workspace state was updated. The next SessionStart hook will pick up these changes."
+        fi
+
+        if echo "$FILE_PATH" | grep -qE "$CROSS_PLATFORM_REGEX"; then
+            CONTEXT="[CROSS-PLATFORM SMOKE ADVISED] You changed installation, workflow, extension, or path-resolution code at '$FILE_PATH'. Before wrapping up, run the focused smoke checks or ensure the GitHub Actions cross-platform smoke matrix covers this change."
+        fi
+    fi
+
+    if [ -z "$FILE_PATH" ] && echo "$TOOL_NAME" | grep -qiE 'apply_patch'; then
+        PATCH_PATHS=$(extract_paths_from_patch || true)
+        if [ -n "$PATCH_PATHS" ] && echo "$PATCH_PATHS" | grep -qE "$CROSS_PLATFORM_REGEX"; then
+            CONTEXT="[CROSS-PLATFORM SMOKE ADVISED] You modified installation, workflow, extension, or path-resolution files via apply_patch. Before wrapping up, run focused smoke tests or confirm the GitHub Actions cross-platform smoke matrix covers this change."
         fi
     fi
 fi

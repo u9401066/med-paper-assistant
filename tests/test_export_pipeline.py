@@ -186,6 +186,8 @@ class TestExportDocx:
         call_kwargs = mock_pandoc.markdown_to_docx.call_args
         assert call_kwargs.kwargs.get("bibliography") is not None
         assert call_kwargs.kwargs.get("csl") == "vancouver"
+        extra_args = call_kwargs.kwargs.get("extra_args") or []
+        assert any(str(arg).startswith("--resource-path=") for arg in extra_args)
 
     def test_export_without_pandoc(self, mock_ref_manager, tmp_path):
         pandoc = MagicMock()
@@ -422,3 +424,15 @@ class TestExportPdfStrictGate:
 
         with pytest.raises(ValueError, match="unresolved citation"):
             pipeline.export_pdf(str(draft), str(output))
+
+    def test_export_pdf_includes_resource_path(self, pipeline, mock_pandoc, tmp_path):
+        draft = tmp_path / "good.md"
+        draft.write_text("Text [[tang2023_38049909]].", encoding="utf-8")
+        output = tmp_path / "good.pdf"
+
+        result = pipeline.export_pdf(str(draft), str(output))
+
+        assert result["success"] is True
+        call_kwargs = mock_pandoc.markdown_to_pdf.call_args
+        extra_args = call_kwargs.kwargs.get("extra_args") or []
+        assert any(str(arg).startswith("--resource-path=") for arg in extra_args)

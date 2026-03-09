@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS } from './utils';
-import { findUvPath, installUvHeadless, getUvxPath, buildUvxCommand, buildMcpCommand, buildMcpEnv, ensureInstalledTool } from './uvManager';
+import { findUvPath, installUvHeadless, getUvxPath, buildUvxCommand, buildMcpCommand, buildMcpEnv, ensureInstalledTool, findInstalledTool } from './uvManager';
 import { shouldSkipMcpRegistration, isDevWorkspace as checkIsDevWorkspace, determinePythonPath, countMissingBundledItems, buildDevPythonPath } from './extensionHelpers';
 
 let outputChannel: vscode.OutputChannel;
@@ -182,7 +182,6 @@ async function ensureMarketplaceToolsReady(context: vscode.ExtensionContext): Pr
         { packageName: 'med-paper-assistant' },
         { packageName: 'pubmed-search-mcp' },
         { packageName: 'zotero-keeper' },
-        { packageName: 'drawio-mcp', binaryName: 'drawio-mcp-server' },
     ];
 
     if (hasCguBundled || cguInWorkspace) {
@@ -372,25 +371,55 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
             ));
 
             // --- 5. Draw.io ---
-            const [drawioCmd, drawioArgs, drawioPreInstalled] = buildMcpCommand(
-                uvPath, 'drawio-mcp', 'drawio-mcp-server'
-            );
-            if (drawioPreInstalled) {
-                outputChannel.appendLine(`[MCP] Draw.io: using pre-installed binary (skipping uvx)`);
-                definitions.push(new vscode.McpStdioServerDefinition(
-                    'Draw.io Diagrams',
-                    drawioCmd,
-                    [],
-                    { ...mcpEnv, DRAWIO_NEXTJS_URL: 'http://localhost:3000' }
-                ));
+            const drawioForkDir = wsRoot
+                ? path.join(wsRoot, 'integrations', 'next-ai-draw-io', 'mcp-server')
+                : null;
+            const drawioForkEntry = drawioForkDir
+                ? path.join(drawioForkDir, 'src', 'drawio_mcp_server')
+                : null;
+            const drawioWorkspaceDir = wsRoot
+                ? path.join(wsRoot, 'integrations', 'drawio-mcp')
+                : null;
+            const drawioWorkspaceEntry = drawioWorkspaceDir
+                ? path.join(drawioWorkspaceDir, 'src', 'index.js')
+                : null;
+            const drawioNode = findInstalledTool('node') || 'node';
+            const drawioBinary = findInstalledTool('drawio-mcp');
+            const drawioNpx = findInstalledTool('npx') || 'npx';
+            let drawioCommand: string;
+            let drawioArgs: string[];
+
+            if (drawioForkEntry && fs.existsSync(drawioForkEntry)) {
+                drawioCommand = uvPath;
+                drawioArgs = [
+                    'run',
+                    '--directory', drawioForkDir!,
+                    'python',
+                    '-m',
+                    'drawio_mcp_server',
+                ];
+                outputChannel.appendLine('[MCP] Draw.io: using forked workspace integration from integrations/next-ai-draw-io/mcp-server');
+            } else if (drawioWorkspaceEntry && fs.existsSync(drawioWorkspaceEntry)) {
+                drawioCommand = drawioNode;
+                drawioArgs = [drawioWorkspaceEntry];
+                outputChannel.appendLine('[MCP] Draw.io: using official workspace integration from integrations/drawio-mcp');
+            } else if (drawioBinary) {
+                drawioCommand = drawioBinary;
+                drawioArgs = [];
+                outputChannel.appendLine('[MCP] Draw.io: using pre-installed drawio-mcp binary');
             } else {
-                definitions.push(new vscode.McpStdioServerDefinition(
-                    'Draw.io Diagrams',
-                    uvxPath,
-                    ['--from', 'drawio-mcp', 'drawio-mcp-server'],
-                    { ...mcpEnv, DRAWIO_NEXTJS_URL: 'http://localhost:3000' }
-                ));
+                drawioCommand = drawioNpx;
+                drawioArgs = ['-y', '@drawio/mcp'];
+                outputChannel.appendLine('[MCP] Draw.io: using npx fallback for official @drawio/mcp package');
             }
+
+            outputChannel.appendLine(`[MCP] Draw.io: ${drawioCommand} ${drawioArgs.join(' ')}`);
+            definitions.push(new vscode.McpStdioServerDefinition(
+                'Draw.io Diagrams',
+                drawioCommand,
+                drawioArgs,
+                mcpEnv
+            ));
 
             return definitions;
         },

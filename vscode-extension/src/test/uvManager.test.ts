@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { getUvSearchPaths, getUvxPath, getUvInstallCommand, getUvToolInstallCommand, buildUvxCommand, buildMcpCommand, buildMcpEnv, findUvPath, enrichPath, findInstalledTool } from '../uvManager';
 
@@ -81,8 +82,8 @@ describe('getUvToolInstallCommand', () => {
     });
 
     it('includes python version when specified', () => {
-        const cmd = getUvToolInstallCommand('drawio-mcp', 'drawio-mcp-server', '>=3.11');
-        expect(cmd).toBe('uv tool install --python >=3.11 --from drawio-mcp drawio-mcp-server');
+        const cmd = getUvToolInstallCommand('med-paper-assistant', undefined, '>=3.11');
+        expect(cmd).toBe('uv tool install --python >=3.11 med-paper-assistant');
     });
 });
 
@@ -139,12 +140,12 @@ describe('findInstalledTool', () => {
     it('returns an absolute path', () => {
         const result = findInstalledTool('uv');
         if (result !== null) {
-            expect(result.startsWith('/')).toBe(true);
+            expect(path.isAbsolute(result)).toBe(true);
         }
     });
 
     it('can resolve tools from PATH-derived directories', () => {
-        const pathDirs = enrichPath(process.env.PATH || '').split(':').filter(Boolean);
+        const pathDirs = enrichPath(process.env.PATH || '').split(path.delimiter).filter(Boolean);
         const result = findInstalledTool('uv');
         if (result !== null) {
             expect(pathDirs.some(dir => result.startsWith(dir))).toBe(true);
@@ -177,11 +178,11 @@ describe('buildMcpCommand', () => {
     });
 
     it('supports custom binaryName different from packageName', () => {
-        const [cmd, args, preInstalled] = buildMcpCommand('uv', 'drawio-mcp', 'drawio-mcp-server');
+        const [cmd, args, preInstalled] = buildMcpCommand('uv', 'some-package', 'some-binary');
         if (!preInstalled) {
             // Falls back to uvx with the packageName
             expect(cmd).toBe('uvx');
-            expect(args).toEqual(['drawio-mcp']);
+            expect(args).toEqual(['some-package']);
         }
     });
 
@@ -209,7 +210,7 @@ describe('buildMcpCommand', () => {
 describe('enrichPath', () => {
     it('returns original PATH when no extra dirs exist', () => {
         // Use a non-existent prefix so getExtraPathDirs() returns nothing new
-        const original = '/nonexistent/a:/nonexistent/b';
+        const original = ['/nonexistent/a', '/nonexistent/b'].join(path.delimiter);
         const result = enrichPath(original);
         // Either returns original (no dirs to add) or adds existing dirs
         expect(result).toContain('/nonexistent/a');
@@ -219,16 +220,16 @@ describe('enrichPath', () => {
     it('does not duplicate dirs already in PATH', () => {
         const homeDir = process.env.HOME || '/tmp';
         const localBin = `${homeDir}/.local/bin`;
-        const original = `/usr/bin:${localBin}:/usr/sbin`;
+        const original = ['/usr/bin', localBin, '/usr/sbin'].join(path.delimiter);
         const result = enrichPath(original);
         // localBin should appear at most once
-        const count = result.split(':').filter(p => p === localBin).length;
+        const count = result.split(path.delimiter).filter(p => p === localBin).length;
         expect(count).toBeLessThanOrEqual(1);
     });
 
     it('prepends extra dirs before original PATH', () => {
-        const result = enrichPath('/usr/bin:/bin');
-        const parts = result.split(':');
+        const result = enrichPath(['/usr/bin', '/bin'].join(path.delimiter));
+        const parts = result.split(path.delimiter);
         // Original entries must still be there
         expect(parts).toContain('/usr/bin');
         expect(parts).toContain('/bin');
@@ -244,7 +245,7 @@ describe('enrichPath', () => {
         const result = enrichPath('');
         expect(typeof result).toBe('string');
         // Should not start with a delimiter
-        expect(result.startsWith(':')).toBe(false);
+        expect(result.startsWith(path.delimiter)).toBe(false);
     });
 });
 
@@ -278,7 +279,7 @@ describe('buildMcpEnv', () => {
             expect(env.PATH).toBeDefined();
             expect(env.PATH!.length).toBeGreaterThanOrEqual(process.env.PATH.length);
             // All original PATH entries should be preserved
-            for (const dir of process.env.PATH.split(':').slice(0, 3)) {
+            for (const dir of process.env.PATH.split(path.delimiter).slice(0, 3)) {
                 if (dir) { expect(env.PATH).toContain(dir); }
             }
         }
@@ -313,7 +314,7 @@ describe('findUvPath', () => {
         const result = await findUvPath();
         if (result !== null) {
             // Either "uv" (in PATH) or an absolute path
-            expect(result === 'uv' || result.includes('/')).toBe(true);
+            expect(result === 'uv' || path.isAbsolute(result)).toBe(true);
         }
     });
 });

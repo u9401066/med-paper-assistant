@@ -124,6 +124,45 @@ class ExportPipeline:
         }
 
     @staticmethod
+    def _build_resource_path_args(
+        draft_path: str, extra_args: list[str] | None = None
+    ) -> list[str]:
+        """Build Pandoc ``--resource-path`` args so local figures/tables resolve.
+
+        Args:
+            draft_path: Absolute path to the markdown draft being exported.
+            extra_args: Existing Pandoc arguments to preserve.
+
+        Returns:
+            A new argument list containing an appended ``--resource-path`` unless
+            one was already provided by the caller.
+        """
+        args = list(extra_args or [])
+        if any(arg == "--resource-path" or arg.startswith("--resource-path=") for arg in args):
+            return args
+
+        draft_dir = Path(draft_path).resolve().parent
+        project_dir = draft_dir.parent
+        resource_dirs = [
+            draft_dir,
+            project_dir / "results" / "figures",
+            project_dir / "results" / "tables",
+            project_dir / "results",
+            project_dir,
+        ]
+
+        seen: set[str] = set()
+        ordered_dirs: list[str] = []
+        for directory in resource_dirs:
+            directory_str = str(directory)
+            if directory_str not in seen:
+                ordered_dirs.append(directory_str)
+                seen.add(directory_str)
+
+        args.append(f"--resource-path={os.pathsep.join(ordered_dirs)}")
+        return args
+
+    @staticmethod
     def _build_yaml_frontmatter(
         title: str,
         authors: list[dict[str, Any]] | None = None,
@@ -289,6 +328,7 @@ class ExportPipeline:
             bib_path = bib_file.name
 
         try:
+            pandoc_args = self._build_resource_path_args(draft_path, extra_args)
             # Call Pandoc
             result_path = self._pandoc.markdown_to_docx(
                 source=pandoc_content,
@@ -296,7 +336,7 @@ class ExportPipeline:
                 csl=csl_style,
                 bibliography=bib_path,
                 reference_doc=reference_doc,
-                extra_args=extra_args,
+                extra_args=pandoc_args,
             )
 
             return {
@@ -369,7 +409,7 @@ class ExportPipeline:
 
         try:
             # Build args: CSL + bibliography + citeproc + user extras
-            args = list(extra_args or [])
+            args = self._build_resource_path_args(draft_path, extra_args)
             csl_path = self._pandoc._resolve_csl(csl_style)
             if csl_path:
                 args.extend(["--csl", csl_path, "--citeproc"])

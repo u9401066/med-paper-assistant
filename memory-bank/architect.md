@@ -14,7 +14,7 @@ med-paper-assistant/
 │   └── shared/                    # 共用模組
 ├── integrations/                  # 外部整合
 │   ├── pubmed-search-mcp/         # PubMed 搜尋子模組
-│   └── next-ai-draw-io/           # Draw.io 整合
+│   └── next-ai-draw-io/           # Draw.io forked submodule（主要共同開發線）
 ├── _workspace/                    # 🆕 成品暫存區 (Artifact-Centric)
 │   ├── .registry.json             # 成品註冊表
 │   ├── references/                # 暫存參考文獻
@@ -37,7 +37,7 @@ med-paper-assistant/
 ├── pubmed-search  # PubMed 搜尋 (submodule)
 ├── cgu            # Creativity Generation (submodule)
 ├── zotero-keeper  # 書目管理 (uvx)
-└── drawio         # Draw.io 圖表 (uvx)
+└── drawio         # Draw.io 圖表 (npx @drawio/mcp)
 ```
 
 ### MCP Tool 模組分布 (2026-02-27)

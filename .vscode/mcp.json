@@ -56,15 +56,12 @@
     },
 
     // ============================================
-    // 獨立安裝：Draw.io 架構圖 (需另外啟動 Next.js)
+    // 獨立安裝：Draw.io 架構圖 (官方 npm MCP)
     // ============================================
     "drawio": {
       "type": "stdio",
-      "command": "uvx",
-      "args": ["--from", "drawio-mcp", "drawio-mcp-server"],
-      "env": {
-        "DRAWIO_NEXTJS_URL": "http://localhost:6002"
-      }
+      "command": "npx",
+      "args": ["-y", "@drawio/mcp"]
     }
   }
 }
