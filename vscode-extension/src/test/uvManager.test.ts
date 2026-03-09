@@ -38,15 +38,14 @@ describe('getUvxPath', () => {
 
     it('derives uvx from absolute uv path (unix)', () => {
         const result = getUvxPath('/home/user/.local/bin/uv');
-        // On Windows test runner, extension may be added
-        expect(result).toContain('uvx');
-        expect(result).toContain('/home/user/.local/bin/');
+        expect(path.basename(result)).toBe(process.platform === 'win32' ? 'uvx.exe' : 'uvx');
+        expect(path.dirname(result)).toBe(path.normalize('/home/user/.local/bin'));
     });
 
     it('keeps the same directory as uv', () => {
         const dir = '/opt/homebrew/bin';
         const result = getUvxPath(`${dir}/uv`);
-        expect(result.startsWith(dir)).toBe(true);
+        expect(path.dirname(result)).toBe(path.normalize(dir));
     });
 });
 
@@ -100,8 +99,8 @@ describe('buildUvxCommand', () => {
 
     it('builds uvx command from absolute uv path', () => {
         const [cmd, args] = buildUvxCommand('/home/user/.local/bin/uv', 'med-paper-assistant');
-        expect(cmd).toContain('uvx');
-        expect(cmd).toContain('/home/user/.local/bin/');
+        expect(path.basename(cmd)).toBe(process.platform === 'win32' ? 'uvx.exe' : 'uvx');
+        expect(path.dirname(cmd)).toBe(path.normalize('/home/user/.local/bin'));
         expect(args).toEqual(['med-paper-assistant']);
     });
 
