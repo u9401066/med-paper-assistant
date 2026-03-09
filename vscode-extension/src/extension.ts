@@ -322,7 +322,56 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 outputChannel.appendLine('[MCP] CGU not found — skipping registration');
             }
 
-            // --- 3. Draw.io ---
+            // --- 3. PubMed Search ---
+            const pubmedInWorkspace = wsRoot
+                ? fs.existsSync(path.join(wsRoot, 'integrations', 'pubmed-search-mcp', 'src', 'pubmed_search'))
+                : false;
+
+            let pubmedCommand: string;
+            let pubmedArgs: string[];
+
+            if (pubmedInWorkspace) {
+                pubmedCommand = uvPath;
+                pubmedArgs = [
+                    'run',
+                    '--directory', path.join(wsRoot!, 'integrations', 'pubmed-search-mcp'),
+                    'pubmed-search-mcp'
+                ];
+                outputChannel.appendLine('[MCP] PubMed Search: using workspace integration');
+            } else {
+                const [cmd, args, preInstalled] = buildMcpCommand(uvPath, 'pubmed-search-mcp');
+                pubmedCommand = cmd;
+                pubmedArgs = args;
+                if (preInstalled) {
+                    outputChannel.appendLine('[MCP] PubMed Search: using pre-installed binary (skipping uvx)');
+                }
+            }
+
+            outputChannel.appendLine(`[MCP] PubMed Search: ${pubmedCommand} ${pubmedArgs.join(' ')}`);
+            definitions.push(new vscode.McpStdioServerDefinition(
+                'PubMed Search',
+                pubmedCommand,
+                pubmedArgs,
+                {
+                    ...mcpEnv,
+                    ENTREZ_EMAIL: process.env.ENTREZ_EMAIL || 'medpaper@example.com'
+                }
+            ));
+
+            // --- 4. Zotero Keeper ---
+            const [zoteroCommand, zoteroArgs, zoteroPreInstalled] = buildMcpCommand(uvPath, 'zotero-keeper');
+            if (zoteroPreInstalled) {
+                outputChannel.appendLine('[MCP] Zotero Keeper: using pre-installed binary (skipping uvx)');
+            }
+            outputChannel.appendLine(`[MCP] Zotero Keeper: ${zoteroCommand} ${zoteroArgs.join(' ')}`);
+            definitions.push(new vscode.McpStdioServerDefinition(
+                'Zotero Keeper',
+                zoteroCommand,
+                zoteroArgs,
+                mcpEnv
+            ));
+
+            // --- 5. Draw.io ---
             const [drawioCmd, drawioArgs, drawioPreInstalled] = buildMcpCommand(
                 uvPath, 'drawio-mcp', 'drawio-mcp-server'
             );

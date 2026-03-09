@@ -129,6 +129,14 @@ describe('extension entry point', () => {
         const content = fs.readFileSync(path.join(extDir, 'src', 'extension.ts'), 'utf-8');
         expect(content).toContain('export function deactivate');
     });
+
+    it('registers PubMed Search and Zotero Keeper MCP servers', () => {
+        const content = fs.readFileSync(path.join(extDir, 'src', 'extension.ts'), 'utf-8');
+        expect(content).toContain("'PubMed Search'");
+        expect(content).toContain("'Zotero Keeper'");
+        expect(content).toContain("'pubmed-search-mcp'");
+        expect(content).toContain("'zotero-keeper'");
+    });
 });
 
 // ──────────────────────────────────────────────────────────
