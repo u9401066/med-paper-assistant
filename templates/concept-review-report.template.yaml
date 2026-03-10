@@ -1,0 +1,106 @@
+# ═══════════════════════════════════════════════════════════════════
+# Concept Review Report Template — Auto-Paper Phase 3 正規化輸出
+# ═══════════════════════════════════════════════════════════════════
+# 目的：
+#   1. 接收 human-authored / agent-authored / hybrid 的 concept.md
+#   2. 將自由文字正規化為 Phase 4 / Phase 5 可直接消費的結構化欄位
+#   3. 作為 Phase 3 Gate 的正式審查輸出
+#
+# 預設位置：
+#   projects/{slug}/.audit/concept-review.yaml
+# ═══════════════════════════════════════════════════════════════════
+
+metadata:
+  generated_at: ""
+  generated_by: ""                 # concept-validator | agent | human-assisted
+  source_mode: "hybrid"           # human-authored | agent-authored | hybrid
+  source_files:
+    - "concept.md"
+  based_on:
+    journal_profile: "journal-profile.yaml"
+    references_count: 0
+    validation_rounds: 3
+
+review:
+  readiness: "revise"             # ready | revise | blocked
+  gate_passed: false
+  summary: ""
+  blocking_reasons: []
+  warnings: []
+
+research_question:
+  canonical_question: ""
+  study_objective: ""
+  target_population: ""
+  comparator: ""
+  outcomes_primary: []
+  outcomes_secondary: []
+
+paper_type_fit:
+  recommended_type: "original-research"
+  alternatives: []
+  rationale: ""
+
+claims_required:
+  - id: "claim-1"
+    text: ""
+    priority: "critical"          # critical | important | optional
+    section_targets:
+      - "Introduction"
+      - "Discussion"
+
+evidence_requirements:
+  - claim_id: "claim-1"
+    evidence_type: "literature"   # literature | dataset | statistical_test | guideline | figure | table
+    required: true
+    description: ""
+    currently_satisfied: false
+
+asset_obligations:
+  - id: "figure-1"
+    required: true
+    type: "flow_diagram"          # flow_diagram | plot | table_one | custom_figure | comparison_table
+    target_section: "Methods"
+    purpose: ""
+    minimum_caption_requirements: []
+    exportable_required: true
+
+dataset_requirements:
+  - id: "dataset-1"
+    required: true
+    description: ""
+    source: ""                     # existing | user-provided | to-be-collected
+    fields_required: []
+
+protected_content:
+  novelty_statement_locked:
+    present: false
+    summary: ""
+  selling_points_locked:
+    present: false
+    items: []
+
+risk_register:
+  - id: "risk-1"
+    category: "novelty"           # novelty | evidence | dataset | feasibility | methodology | scope
+    severity: "warning"           # info | warning | critical
+    description: ""
+    mitigation: ""
+
+open_questions:
+  - id: "q-1"
+    question: ""
+    owner: "user"                 # user | agent | reviewer
+    blocking: false
+
+downstream_contract:
+  phase4_inputs:
+    - "research_question.canonical_question"
+    - "claims_required"
+    - "evidence_requirements"
+    - "asset_obligations"
+  phase5_inputs:
+    - "protected_content"
+    - "risk_register"
+    - "asset_obligations"
+    - "dataset_requirements"

@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -110,6 +111,194 @@ class PipelineGateValidator:
         self._drafts_dir = self._project_dir / "drafts"
         self._exports_dir = self._project_dir / "exports"
         self._memory_dir = self._project_dir / ".memory"
+
+    def _load_manuscript_plan(self) -> dict[str, Any]:
+        """Load manuscript-plan.yaml when available."""
+        plan_path = self._project_dir / "manuscript-plan.yaml"
+        if not plan_path.is_file():
+            return {}
+
+        try:
+            data = yaml.safe_load(plan_path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError):
+            return {}
+
+        return data if isinstance(data, dict) else {}
+
+    def _normalize_planned_assets(self, plan: dict[str, Any]) -> list[dict[str, Any]]:
+        """Normalize manuscript-plan asset declarations into a flat list."""
+        raw_assets = plan.get("asset_plan")
+        if not raw_assets:
+            return []
+
+        normalized: list[dict[str, Any]] = []
+
+        def _append_asset(asset: Any, section_hint: str | None = None) -> None:
+            if not isinstance(asset, dict):
+                return
+
+            asset_type = str(asset.get("type", "")).strip()
+            section = str(asset.get("section") or section_hint or "").strip()
+            if not asset_type or not section:
+                return
+
+            required = asset.get("required")
+            optional = asset.get("optional")
+            is_required = not (required is False or optional is True)
+            normalized.append(
+                {
+                    "id": str(asset.get("id") or f"{section}-{asset_type}"),
+                    "type": asset_type,
+                    "section": section,
+                    "caption": str(asset.get("caption") or "").strip(),
+                    "required": is_required,
+                }
+            )
+
+        if isinstance(raw_assets, list):
+            for asset in raw_assets:
+                _append_asset(asset)
+        elif isinstance(raw_assets, dict):
+            for section_name, assets in raw_assets.items():
+                if isinstance(assets, list):
+                    for asset in assets:
+                        _append_asset(asset, str(section_name))
+                elif isinstance(assets, dict):
+                    _append_asset(assets, str(section_name))
+
+        return normalized
+
+    def _asset_kind(self, asset_type: str) -> str | None:
+        """Map asset types to figure/table kinds that need hard validation."""
+        normalized = asset_type.strip().lower()
+        if normalized in {
+            "table",
+            "table_one",
+            "literature_summary_table",
+            "comparison_table",
+            "characteristics_table",
+            "summary_table",
+        }:
+            return "table"
+        if normalized in {
+            "plot",
+            "flow_diagram",
+            "custom_figure",
+            "forest_plot",
+            "funnel_plot",
+            "prisma_diagram",
+            "concept_diagram",
+            "figure",
+        }:
+            return "figure"
+        return None
+
+    def _load_manifest_entries(self) -> list[dict[str, Any]]:
+        """Normalize manifest.json across legacy and current schemas."""
+        manifest_path = self._project_dir / "results" / "manifest.json"
+        if not manifest_path.is_file():
+            return []
+
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return []
+
+        entries: list[dict[str, Any]] = []
+        for entry in manifest.get("figures", []):
+            if isinstance(entry, dict):
+                entries.append(
+                    {
+                        "kind": "figure",
+                        "number": str(entry.get("number", "")).strip(),
+                        "filename": str(entry.get("filename", "")).strip(),
+                        "caption": str(entry.get("caption", "")).strip(),
+                    }
+                )
+        for entry in manifest.get("tables", []):
+            if isinstance(entry, dict):
+                entries.append(
+                    {
+                        "kind": "table",
+                        "number": str(entry.get("number", "")).strip(),
+                        "filename": str(entry.get("filename", "")).strip(),
+                        "caption": str(entry.get("caption", "")).strip(),
+                    }
+                )
+        for entry in manifest.get("assets", []):
+            if isinstance(entry, dict) and entry.get("type") in {"figure", "table"}:
+                entries.append(
+                    {
+                        "kind": str(entry.get("type", "")).strip(),
+                        "number": str(entry.get("number", entry.get("id", ""))).strip(),
+                        "filename": str(entry.get("filename", "")).strip(),
+                        "caption": str(entry.get("caption", "")).strip(),
+                    }
+                )
+        return entries
+
+    def _match_manifest_asset(
+        self,
+        planned_asset: dict[str, Any],
+        manifest_entries: list[dict[str, Any]],
+    ) -> dict[str, Any] | None:
+        """Find the manifest entry that most likely satisfies a planned asset."""
+        kind = self._asset_kind(planned_asset["type"])
+        if kind is None:
+            return None
+
+        same_kind = [entry for entry in manifest_entries if entry.get("kind") == kind]
+        if not same_kind:
+            return None
+
+        caption = planned_asset.get("caption", "").strip().lower()
+        if caption:
+            for entry in same_kind:
+                entry_caption = entry.get("caption", "").strip().lower()
+                if entry_caption == caption or caption in entry_caption or entry_caption in caption:
+                    return entry
+
+        asset_id = str(planned_asset.get("id", ""))
+        numeric_parts = [part for part in asset_id.replace("_", "-").split("-") if part.isdigit()]
+        if numeric_parts:
+            target_number = numeric_parts[-1]
+            for entry in same_kind:
+                if entry.get("number") == target_number:
+                    return entry
+
+        return same_kind[0] if len(same_kind) == 1 else None
+
+    def _get_section_content(self, manuscript: str, section_name: str) -> str:
+        """Extract one named section from the manuscript."""
+        pattern = re.compile(
+            rf"^##\s+{re.escape(section_name)}\s*$([\s\S]*?)(?=^##\s+|\Z)",
+            re.IGNORECASE | re.MULTILINE,
+        )
+        match = pattern.search(manuscript)
+        if match:
+            return match.group(1)
+
+        fallback = re.compile(
+            rf"^#\s+{re.escape(section_name)}\s*$([\s\S]*?)(?=^#\s+|\Z)",
+            re.IGNORECASE | re.MULTILINE,
+        )
+        match = fallback.search(manuscript)
+        return match.group(1) if match else ""
+
+    def _has_exportable_figure(self, filename: str) -> bool:
+        """Return True when a figure has a rendered asset suitable for export."""
+        if not filename:
+            return False
+
+        figure_path = self._project_dir / "results" / "figures" / filename
+        if figure_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".svg", ".tiff"}:
+            return figure_path.is_file()
+
+        for extension in [".png", ".svg", ".jpg", ".jpeg", ".tiff"]:
+            if (figure_path.parent / f"{figure_path.stem}{extension}").is_file():
+                return True
+
+        return False
 
     def validate_phase(self, phase: int) -> GateResult:
         """
@@ -302,15 +491,29 @@ class PipelineGateValidator:
 
         # Phase 5+ needs concept.md
         if phase >= 5:
-            concept = self._project_dir / "concept.md"
-            concept_in_drafts = self._drafts_dir / "concept.md"
-            has_concept = concept.is_file() or concept_in_drafts.is_file()
+            concept = self._find_concept_path()
+            has_concept = concept.is_file()
             checks.append(
                 GateCheck(
                     name="prereq:concept.md",
                     description="Concept from Phase 3",
                     passed=has_concept,
                     details="exists" if has_concept else "MISSING — complete Phase 3 first",
+                    severity="CRITICAL",
+                )
+            )
+
+        # Phase 4+ needs structured concept review artifact
+        if phase >= 4:
+            review_complete, review_details = self._concept_review_is_actionable()
+            checks.append(
+                GateCheck(
+                    name="prereq:audit:concept-review.yaml",
+                    description="Structured concept review from Phase 3",
+                    passed=review_complete,
+                    details=review_details
+                    if review_complete
+                    else f"MISSING — complete Phase 3 concept review first ({review_details})",
                     severity="CRITICAL",
                 )
             )
@@ -487,6 +690,98 @@ class PipelineGateValidator:
         # 3. Global fallback
         return DEFAULT_MIN_REFERENCES
 
+    def _find_concept_path(self) -> Path:
+        """Return the preferred concept.md path for the project."""
+        concept_in_drafts = self._drafts_dir / "concept.md"
+        if concept_in_drafts.is_file():
+            return concept_in_drafts
+        return self._project_dir / "concept.md"
+
+    def _load_concept_review(self) -> dict[str, Any]:
+        """Load concept-review.yaml when available."""
+        review_path = self._audit_dir / "concept-review.yaml"
+        if not review_path.is_file():
+            return {}
+
+        try:
+            review = yaml.safe_load(review_path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError):
+            return {}
+
+        return review if isinstance(review, dict) else {}
+
+    def _load_concept_review_override(self) -> dict[str, Any]:
+        """Load manual concept review override decision when available."""
+        override_path = self._audit_dir / "concept-review-override.yaml"
+        if not override_path.is_file():
+            return {}
+
+        try:
+            override = yaml.safe_load(override_path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError):
+            return {}
+
+        return override if isinstance(override, dict) else {}
+
+    def _concept_review_is_complete(self, review: dict[str, Any]) -> tuple[bool, str]:
+        """Check whether concept-review.yaml contains the minimum planning contract."""
+        if not review:
+            return False, "missing or unreadable"
+
+        review_block = review.get("review")
+        research_question = review.get("research_question")
+        protected_content = review.get("protected_content")
+        claims_required = review.get("claims_required")
+
+        if not isinstance(review_block, dict):
+            return False, "missing review block"
+        if not isinstance(research_question, dict):
+            return False, "missing research_question block"
+        if not isinstance(protected_content, dict):
+            return False, "missing protected_content block"
+        if not isinstance(claims_required, list) or not claims_required:
+            return False, "missing claims_required"
+
+        canonical_question = str(research_question.get("canonical_question", "")).strip()
+        readiness = str(review_block.get("readiness", "")).strip().lower()
+        novelty_present = bool(protected_content.get("novelty_statement_locked", {}).get("present"))
+        selling_points_present = bool(
+            protected_content.get("selling_points_locked", {}).get("present")
+        )
+
+        if not canonical_question:
+            return False, "research question is empty"
+        if readiness not in {"ready", "revise", "blocked"}:
+            return False, "invalid readiness"
+        if not novelty_present:
+            return False, "novelty statement not locked"
+        if not selling_points_present:
+            return False, "selling points not locked"
+
+        return True, f"ready={readiness}, claims={len(claims_required)}"
+
+    def _concept_review_is_actionable(self) -> tuple[bool, str]:
+        """Check whether concept review is ready to unblock downstream phases."""
+        review = self._load_concept_review()
+        review_complete, review_details = self._concept_review_is_complete(review)
+        if not review_complete:
+            return False, review_details
+
+        readiness = str(review.get("review", {}).get("readiness", "")).strip().lower()
+        if readiness == "ready":
+            return True, "ready"
+
+        override = self._load_concept_review_override()
+        approved = bool(override.get("approved_to_proceed"))
+        rationale = str(override.get("rationale", "")).strip()
+        accepted_readiness = str(override.get("accepted_readiness", "")).strip().lower()
+        approved_by = str(override.get("approved_by", "human")).strip() or "human"
+
+        if approved and rationale and accepted_readiness == readiness:
+            return True, f"manual override by {approved_by} (readiness={readiness})"
+
+        return False, f"readiness={readiness}; manual approval required"
+
     # ── Phase Validators ───────────────────────────────────────────
 
     def _validate_phase_0(self) -> GateResult:
@@ -647,9 +942,7 @@ class PipelineGateValidator:
         """Phase 3: concept.md exists with required sections."""
         checks = []
 
-        concept = self._drafts_dir / "concept.md"
-        if not concept.is_file():
-            concept = self._project_dir / "concept.md"
+        concept = self._find_concept_path()
 
         checks.append(
             GateCheck(
@@ -685,11 +978,44 @@ class PipelineGateValidator:
             )
         )
 
+        concept_review = self._load_concept_review()
+        review_complete, review_details = self._concept_review_is_complete(concept_review)
+        checks.append(
+            GateCheck(
+                name="audit:concept-review.yaml",
+                description="Structured concept review artifact",
+                passed=review_complete,
+                details=review_details if review_complete else f"MISSING — {review_details}",
+            )
+        )
+
+        review_actionable, actionable_details = self._concept_review_is_actionable()
+        checks.append(
+            GateCheck(
+                name="concept-review-decision",
+                description="Concept review must be ready or manually approved",
+                passed=review_actionable,
+                details=actionable_details
+                if review_actionable
+                else f"BLOCKED — {actionable_details}",
+            )
+        )
+
         return GateResult(phase=3, phase_name="Concept", checks=checks, passed=False)
 
     def _validate_phase_4(self) -> GateResult:
-        """Phase 4: manuscript-plan exists."""
+        """Phase 4: manuscript-plan exists after concept review normalization."""
         checks = []
+
+        review_complete, review_details = self._concept_review_is_actionable()
+        checks.append(
+            GateCheck(
+                name="concept-review-ready",
+                description="Concept review artifact available for planning",
+                passed=review_complete,
+                details=review_details if review_complete else f"MISSING — {review_details}",
+            )
+        )
 
         # Check both .yaml and .md variants
         plan_yaml = self._project_dir / "manuscript-plan.yaml"
@@ -771,6 +1097,75 @@ class PipelineGateValidator:
                         ),
                     )
                 )
+
+            plan = self._load_manuscript_plan()
+            planned_assets = [
+                asset
+                for asset in self._normalize_planned_assets(plan)
+                if asset.get("required") and self._asset_kind(asset.get("type", "")) is not None
+            ]
+            manifest_entries = self._load_manifest_entries()
+
+            for asset in planned_assets:
+                asset_id = asset["id"]
+                kind = self._asset_kind(asset["type"])
+                if kind is None:
+                    continue
+
+                manifest_entry = self._match_manifest_asset(asset, manifest_entries)
+                section_content = self._get_section_content(content, asset["section"])
+
+                checks.append(
+                    GateCheck(
+                        name=f"asset-plan:{asset_id}:registered",
+                        description=(
+                            f"Required planned {kind} for {asset['section']} is registered in results/manifest.json"
+                        ),
+                        passed=manifest_entry is not None,
+                        details=(
+                            f"matched {kind} {manifest_entry.get('number')} ({manifest_entry.get('filename')})"
+                            if manifest_entry is not None
+                            else "MISSING — run insert_figure/insert_table for this planned asset"
+                        ),
+                    )
+                )
+
+                if manifest_entry is None:
+                    continue
+
+                ref_label = f"{kind.title()} {manifest_entry.get('number')}".strip()
+                placed = bool(section_content) and (
+                    ref_label.lower() in section_content.lower()
+                    or manifest_entry.get("filename", "").lower() in section_content.lower()
+                    or manifest_entry.get("caption", "").lower() in section_content.lower()
+                )
+                checks.append(
+                    GateCheck(
+                        name=f"asset-plan:{asset_id}:placed",
+                        description=f"Required planned {kind} is referenced or embedded inside {asset['section']}",
+                        passed=placed,
+                        details=(
+                            f"found {ref_label or manifest_entry.get('filename') or manifest_entry.get('caption')} in {asset['section']}"
+                            if placed
+                            else f"MISSING from {asset['section']} section"
+                        ),
+                    )
+                )
+
+                if kind == "figure":
+                    exportable = self._has_exportable_figure(manifest_entry.get("filename", ""))
+                    checks.append(
+                        GateCheck(
+                            name=f"asset-plan:{asset_id}:exportable",
+                            description="Figure has a renderable PNG/SVG/JPG/TIFF asset for export",
+                            passed=exportable,
+                            details=(
+                                "renderable asset found"
+                                if exportable
+                                else "MISSING rendered companion asset for DOCX/PDF export"
+                            ),
+                        )
+                    )
 
         # Section approval check: all sections must be user-approved
         checkpoint_path = self._audit_dir / "checkpoint.json"

@@ -1064,6 +1064,143 @@ class TestHookC7a:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Hook C7b: Asset Plan Coverage
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookC7b:
+    def test_missing_planned_asset_is_critical(self, engine: WritingHooksEngine, project_dir: Path):
+        (project_dir / "manuscript-plan.yaml").write_text(
+            yaml.dump(
+                {
+                    "asset_plan": [
+                        {
+                            "id": "fig-1",
+                            "type": "flow_diagram",
+                            "section": "Methods",
+                            "caption": "Study flow diagram",
+                        }
+                    ]
+                }
+            )
+        )
+
+        text = "## Methods\n\nSee Figure 1.\n\n## Results\n\ntext"
+        r = engine.check_asset_plan_coverage(text)
+        assert r.passed is False
+        assert any("missing from manifest.json" in issue.message for issue in r.issues)
+
+    def test_missing_exportable_companion_is_critical(
+        self,
+        engine: WritingHooksEngine,
+        project_dir: Path,
+    ):
+        results_dir = project_dir / "results"
+        (results_dir / "figures").mkdir(parents=True)
+        (results_dir / "figures" / "study-flow.drawio").write_text("xml")
+        (results_dir / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "figures": [
+                        {
+                            "number": 1,
+                            "filename": "study-flow.drawio",
+                            "caption": "Study flow diagram",
+                        }
+                    ]
+                }
+            )
+        )
+        (project_dir / "manuscript-plan.yaml").write_text(
+            yaml.dump(
+                {
+                    "asset_plan": [
+                        {
+                            "id": "fig-1",
+                            "type": "flow_diagram",
+                            "section": "Methods",
+                            "caption": "Study flow diagram",
+                        }
+                    ]
+                }
+            )
+        )
+
+        text = (
+            "## Methods\n\n"
+            "![Figure 1. Study flow diagram](../results/figures/study-flow.drawio)\n\n"
+            "**Figure 1.** Study flow diagram\n\n"
+            "See Figure 1.\n\n"
+            "## Results\n\ntext"
+        )
+        r = engine.check_asset_plan_coverage(text)
+        assert r.passed is False
+        assert any("lacks an exportable rendered asset" in issue.message for issue in r.issues)
+
+    def test_registered_and_placed_assets_pass(self, engine: WritingHooksEngine, project_dir: Path):
+        results_dir = project_dir / "results"
+        (results_dir / "figures").mkdir(parents=True)
+        (results_dir / "tables").mkdir(parents=True)
+        (results_dir / "figures" / "study-flow.drawio").write_text("xml")
+        (results_dir / "figures" / "study-flow.png").write_bytes(b"png")
+        (results_dir / "tables" / "baseline.md").write_text("| a | b |")
+        (results_dir / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "figures": [
+                        {
+                            "number": 1,
+                            "filename": "study-flow.drawio",
+                            "caption": "Study flow diagram",
+                        }
+                    ],
+                    "tables": [
+                        {
+                            "number": 1,
+                            "filename": "baseline.md",
+                            "caption": "Baseline characteristics of study participants",
+                        }
+                    ],
+                }
+            )
+        )
+        (project_dir / "manuscript-plan.yaml").write_text(
+            yaml.dump(
+                {
+                    "asset_plan": [
+                        {
+                            "id": "fig-1",
+                            "type": "flow_diagram",
+                            "section": "Methods",
+                            "caption": "Study flow diagram",
+                        },
+                        {
+                            "id": "table-1",
+                            "type": "table_one",
+                            "section": "Results",
+                            "caption": "Baseline characteristics of study participants",
+                        },
+                    ]
+                }
+            )
+        )
+
+        text = (
+            "## Methods\n\n"
+            "![Figure 1. Study flow diagram](../results/figures/study-flow.png)\n\n"
+            "**Figure 1.** Study flow diagram\n\n"
+            "See Figure 1.\n\n"
+            "## Results\n\n"
+            "**Table 1.** Baseline characteristics of study participants\n\n"
+            "See Table 1 for baseline characteristics."
+        )
+        r = engine.check_asset_plan_coverage(text)
+        assert r.passed is True
+        assert r.stats["required_assets"] == 2
+        assert r.stats["manifest_matches"] == 2
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Hook C7d: Cross-References
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -1271,6 +1408,7 @@ class TestUpdatedBatchRunners:
         assert "C5" in results
         assert "C6" in results
         assert "C7a" in results
+        assert "C7b" in results
         assert "C7d" in results
         assert "C9" in results
         assert "F" in results

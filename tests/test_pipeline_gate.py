@@ -46,10 +46,35 @@ def _add_prerequisites(project_dir, up_to_phase: int):
             meta = ref_dir / "metadata.json"
             if not meta.is_file():
                 meta.write_text(f'{{"pmid": "0000{i}"}}')
+    if up_to_phase >= 4:
+        concept = project_dir / "concept.md"
+        if not concept.is_file():
+            concept.write_text("# NOVELTY\n\nNew idea\n\n# KEY SELLING POINTS\n\n- Point A")
+        concept_review = project_dir / ".audit" / "concept-review.yaml"
+        if not concept_review.is_file():
+            concept_review.write_text(
+                "metadata:\n"
+                "  generated_at: '2026-01-01T00:00:00'\n"
+                "review:\n"
+                "  readiness: ready\n"
+                "research_question:\n"
+                "  canonical_question: Does intervention X improve outcome Y?\n"
+                "claims_required:\n"
+                "  - id: claim-1\n"
+                "    text: Intervention X improves outcome Y.\n"
+                "protected_content:\n"
+                "  novelty_statement_locked:\n"
+                "    present: true\n"
+                "  selling_points_locked:\n"
+                "    present: true\n"
+            )
+        concept_validation = project_dir / ".audit" / "concept-validation.md"
+        if not concept_validation.is_file():
+            concept_validation.write_text("# Concept Validation")
     if up_to_phase >= 5:
         concept = project_dir / "concept.md"
         if not concept.is_file():
-            concept.write_text("# Concept")
+            concept.write_text("# NOVELTY\n\nNew idea\n\n# KEY SELLING POINTS\n\n- Point A")
     if up_to_phase >= 7:
         ms = project_dir / "drafts" / "manuscript.md"
         if not ms.is_file():
@@ -213,6 +238,100 @@ class TestPhase2:
         assert r.passed
 
 
+class TestPhase3And4:
+    def test_phase3_fails_without_concept_review_artifact(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=3)
+        (project_dir / "concept.md").write_text(
+            "# NOVELTY\n\nQuestion\n\n# KEY SELLING POINTS\n\n- Point A"
+        )
+
+        r = validator.validate_phase(3)
+
+        assert not r.passed
+        review_check = next(c for c in r.checks if c.name == "audit:concept-review.yaml")
+        assert not review_check.passed
+
+    def test_phase4_fails_without_complete_concept_review(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=3)
+        (project_dir / ".audit" / "concept-review.yaml").write_text(
+            "review:\n  readiness: ready\nclaims_required: []\n"
+        )
+        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n")
+
+        r = validator.validate_phase(4)
+
+        assert not r.passed
+        prereq_check = next(c for c in r.checks if c.name == "prereq:audit:concept-review.yaml")
+        assert not prereq_check.passed
+
+    def test_phase4_passes_with_complete_concept_review(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=4)
+        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n")
+
+        r = validator.validate_phase(4)
+
+        assert r.passed
+
+    def test_phase3_blocks_revise_readiness_without_manual_override(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=4)
+        (project_dir / ".audit" / "concept-review.yaml").write_text(
+            "metadata:\n"
+            "  generated_at: '2026-01-01T00:00:00'\n"
+            "review:\n"
+            "  readiness: revise\n"
+            "research_question:\n"
+            "  canonical_question: Does intervention X improve outcome Y?\n"
+            "claims_required:\n"
+            "  - id: claim-1\n"
+            "    text: Intervention X improves outcome Y.\n"
+            "protected_content:\n"
+            "  novelty_statement_locked:\n"
+            "    present: true\n"
+            "  selling_points_locked:\n"
+            "    present: true\n"
+        )
+
+        r = validator.validate_phase(3)
+
+        assert not r.passed
+        decision_check = next(c for c in r.checks if c.name == "concept-review-decision")
+        assert decision_check.passed is False
+        assert "manual approval required" in decision_check.details
+
+    def test_phase4_allows_manual_override_for_revise_readiness(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=4)
+        (project_dir / ".audit" / "concept-review.yaml").write_text(
+            "metadata:\n"
+            "  generated_at: '2026-01-01T00:00:00'\n"
+            "review:\n"
+            "  readiness: revise\n"
+            "research_question:\n"
+            "  canonical_question: Does intervention X improve outcome Y?\n"
+            "claims_required:\n"
+            "  - id: claim-1\n"
+            "    text: Intervention X improves outcome Y.\n"
+            "protected_content:\n"
+            "  novelty_statement_locked:\n"
+            "    present: true\n"
+            "  selling_points_locked:\n"
+            "    present: true\n"
+        )
+        (project_dir / ".audit" / "concept-review-override.yaml").write_text(
+            "approved_to_proceed: true\n"
+            "approved_by: human\n"
+            "accepted_readiness: revise\n"
+            "rationale: The concept is clinically meaningful despite weak novelty score.\n"
+            "mode: human-collaboration\n"
+        )
+        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n")
+
+        r = validator.validate_phase(4)
+
+        assert r.passed
+        decision_check = next(c for c in r.checks if c.name == "concept-review-ready")
+        assert "manual override" in decision_check.details
+
+
 class TestPhase5:
     def test_fail_no_manuscript(self, validator):
         r = validator.validate_phase(5)
@@ -241,6 +360,188 @@ class TestPhase5:
             ]
         )
         (project_dir / "drafts" / "manuscript.md").write_text(content)
+        r = validator.validate_phase(5)
+        assert r.passed
+
+    def test_fail_required_planned_asset_missing_from_manifest(self, validator, project_dir):
+        import yaml
+
+        _add_prerequisites(project_dir, up_to_phase=5)
+        (project_dir / "manuscript-plan.yaml").write_text(
+            yaml.dump(
+                {
+                    "asset_plan": [
+                        {
+                            "id": "fig-1",
+                            "type": "flow_diagram",
+                            "section": "Methods",
+                            "caption": "Study flow diagram",
+                        }
+                    ]
+                }
+            )
+        )
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "\n".join(
+                [
+                    "# Title",
+                    "## Abstract",
+                    "text",
+                    "## Introduction",
+                    "text",
+                    "## Methods",
+                    "See Figure 1.",
+                    "## Results",
+                    "text",
+                    "## Discussion",
+                    "text",
+                ]
+            )
+        )
+
+        r = validator.validate_phase(5)
+        assert not r.passed
+        failed = next(c for c in r.checks if c.name == "asset-plan:fig-1:registered")
+        assert failed.passed is False
+
+    def test_fail_required_planned_figure_without_exportable_asset(self, validator, project_dir):
+        import yaml
+
+        _add_prerequisites(project_dir, up_to_phase=5)
+        (project_dir / "results" / "figures").mkdir(parents=True)
+        (project_dir / "results" / "figures" / "study-flow.drawio").write_text("xml")
+        (project_dir / "results" / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "figures": [
+                        {
+                            "number": 1,
+                            "filename": "study-flow.drawio",
+                            "caption": "Study flow diagram",
+                        }
+                    ]
+                }
+            )
+        )
+        (project_dir / "manuscript-plan.yaml").write_text(
+            yaml.dump(
+                {
+                    "asset_plan": [
+                        {
+                            "id": "fig-1",
+                            "type": "flow_diagram",
+                            "section": "Methods",
+                            "caption": "Study flow diagram",
+                        }
+                    ]
+                }
+            )
+        )
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "\n".join(
+                [
+                    "# Title",
+                    "## Abstract",
+                    "text",
+                    "## Introduction",
+                    "text",
+                    "## Methods",
+                    "![Figure 1. Study flow diagram](../results/figures/study-flow.drawio)",
+                    "**Figure 1.** Study flow diagram",
+                    "See Figure 1.",
+                    "## Results",
+                    "text",
+                    "## Discussion",
+                    "text",
+                ]
+            )
+        )
+
+        r = validator.validate_phase(5)
+        assert not r.passed
+        failed = next(c for c in r.checks if c.name == "asset-plan:fig-1:exportable")
+        assert failed.passed is False
+
+    def test_pass_required_planned_assets_when_registered_and_placed(self, validator, project_dir):
+        import yaml
+
+        _add_prerequisites(project_dir, up_to_phase=5)
+        (project_dir / "results" / "figures").mkdir(parents=True)
+        (project_dir / "results" / "tables").mkdir(parents=True)
+        (project_dir / "results" / "figures" / "study-flow.drawio").write_text("xml")
+        (project_dir / "results" / "figures" / "study-flow.png").write_bytes(b"png")
+        (project_dir / "results" / "tables" / "baseline.md").write_text("| a | b |")
+        (project_dir / ".audit" / "data-artifacts.yaml").write_text(
+            yaml.dump(
+                {
+                    "artifacts": [
+                        {"id": "fig-1", "kind": "figure"},
+                        {"id": "table-1", "kind": "table"},
+                    ]
+                }
+            )
+        )
+        (project_dir / "results" / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "figures": [
+                        {
+                            "number": 1,
+                            "filename": "study-flow.drawio",
+                            "caption": "Study flow diagram",
+                        }
+                    ],
+                    "tables": [
+                        {
+                            "number": 1,
+                            "filename": "baseline.md",
+                            "caption": "Baseline characteristics of study participants",
+                        }
+                    ],
+                }
+            )
+        )
+        (project_dir / "manuscript-plan.yaml").write_text(
+            yaml.dump(
+                {
+                    "asset_plan": [
+                        {
+                            "id": "fig-1",
+                            "type": "flow_diagram",
+                            "section": "Methods",
+                            "caption": "Study flow diagram",
+                        },
+                        {
+                            "id": "table-1",
+                            "type": "table_one",
+                            "section": "Results",
+                            "caption": "Baseline characteristics of study participants",
+                        },
+                    ]
+                }
+            )
+        )
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "\n".join(
+                [
+                    "# Title",
+                    "## Abstract",
+                    "text",
+                    "## Introduction",
+                    "text",
+                    "## Methods",
+                    "![Figure 1. Study flow diagram](../results/figures/study-flow.png)",
+                    "**Figure 1.** Study flow diagram",
+                    "See Figure 1.",
+                    "## Results",
+                    "**Table 1.** Baseline characteristics of study participants",
+                    "See Table 1 for baseline characteristics.",
+                    "## Discussion",
+                    "text",
+                ]
+            )
+        )
+
         r = validator.validate_phase(5)
         assert r.passed
 

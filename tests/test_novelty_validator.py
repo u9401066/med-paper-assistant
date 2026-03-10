@@ -171,3 +171,40 @@ class TestSkepticScoring:
         content = "This is the first study to do X."
         fb = validator._generate_novelty_feedback(content, [50, 50, 50])
         assert fb["reviewers"]["skeptic"]["score"] <= 55
+
+
+class TestConceptReviewArtifacts:
+    def test_build_concept_review_contains_downstream_contract(self, validator, tmp_path):
+        concept_path = tmp_path / "concept.md"
+        concept_path.write_text(
+            "# RESEARCH QUESTION\n\nDoes intervention X improve outcome Y?\n\n"
+            "# NOVELTY\n\nThis is the first structured comparison of X and Y.\n\n"
+            "# KEY SELLING POINTS\n\n- Better framing\n- Stronger synthesis\n"
+        )
+
+        result = validator.validate_structure_only(str(concept_path))
+        review = validator.build_concept_review(result)
+
+        assert review["research_question"]["canonical_question"]
+        assert review["claims_required"]
+        assert review["protected_content"]["novelty_statement_locked"]["present"] is True
+        assert "phase4_inputs" in review["downstream_contract"]
+
+    def test_save_validation_artifacts_writes_review_and_report(self, validator, tmp_path):
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        concept_path = project_dir / "concept.md"
+        concept_path.write_text(
+            "# RESEARCH QUESTION\n\nDoes intervention X improve outcome Y?\n\n"
+            "# NOVELTY\n\nThis is the first structured comparison of X and Y.\n\n"
+            "# KEY SELLING POINTS\n\n- Better framing\n"
+        )
+
+        result = validator.validate_structure_only(str(concept_path))
+        artifact_paths = validator.save_validation_artifacts(result, project_dir=project_dir)
+
+        assert set(artifact_paths) == {"concept_validation", "concept_review"}
+        assert (project_dir / ".audit" / "concept-validation.md").is_file()
+        review_path = project_dir / ".audit" / "concept-review.yaml"
+        assert review_path.is_file()
+        assert "canonical_question" in review_path.read_text(encoding="utf-8")

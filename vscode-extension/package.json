@@ -67,7 +67,11 @@
           },
           {
             "name": "autopaper",
-            "description": "全自動寫論文（11-Phase Pipeline + 76 Hooks）"
+            "description": "全自動寫論文（11-Phase Pipeline + 77 Hooks）"
+          },
+          {
+            "name": "drawio",
+            "description": "📐 Draw.io 圖表繪製（WebviewPanel 嵌入）"
           },
           {
             "name": "analysis",

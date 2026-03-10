@@ -159,6 +159,16 @@ def register_concept_validation_tools(mcp: FastMCP):
                 f"overall_passed={validation_result.overall_passed}, can_write_section={validation_result.can_write_section}, novelty_avg={validation_result.novelty_average}, wikilink_fixed={wikilink_result.auto_fixed}",
                 success=validation_result.overall_passed or validation_result.can_write_section,
             )
+            artifact_paths = _concept_validator.save_validation_artifacts(
+                validation_result,
+                project_dir=current_info["project_path"],
+            )
+            if artifact_paths:
+                report += "\n\n---\n\n📁 **Saved Artifacts**\n"
+                if artifact_paths.get("concept_validation"):
+                    report += f"- concept-validation.md: {artifact_paths['concept_validation']}\n"
+                if artifact_paths.get("concept_review"):
+                    report += f"- concept-review.yaml: {artifact_paths['concept_review']}\n"
             return report
 
         except Exception as e:

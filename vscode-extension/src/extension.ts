@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS } from './utils';
 import { findUvPath, installUvHeadless, getUvxPath, buildUvxCommand, buildMcpCommand, buildMcpEnv, ensureInstalledTool, findInstalledTool } from './uvManager';
 import { shouldSkipMcpRegistration, isDevWorkspace as checkIsDevWorkspace, determinePythonPath, countMissingBundledItems, buildDevPythonPath } from './extensionHelpers';
+import { DrawioPanel } from './drawioPanel';
 
 let outputChannel: vscode.OutputChannel;
 let resolvedUvPath: string | null = null;
@@ -439,6 +440,100 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
 
 
 
+/**
+ * Run a tool-calling loop: sends the user prompt + available MCP tools to the
+ * language model and iterates up to `maxRounds` when the model requests tool
+ * invocations.  Text parts are streamed straight to the chat UI.
+ */
+async function runWithTools(
+    request: vscode.ChatRequest,
+    stream: vscode.ChatResponseStream,
+    token: vscode.CancellationToken,
+    toolFilter?: (tool: vscode.LanguageModelToolInformation) => boolean,
+): Promise<void> {
+    const maxRounds = 5;
+
+    // Gather available MCP tools, applying an optional filter
+    const allTools = vscode.lm.tools;
+    const filtered = toolFilter ? allTools.filter(toolFilter) : Array.from(allTools);
+
+    // Convert LanguageModelToolInformation → LanguageModelChatTool (plain objects)
+    const chatTools: vscode.LanguageModelChatTool[] = filtered.map(t => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+    }));
+
+    const messages: vscode.LanguageModelChatMessage[] = [
+        vscode.LanguageModelChatMessage.User(request.prompt),
+    ];
+
+    for (let round = 0; round < maxRounds; round++) {
+        const response = await request.model.sendRequest(
+            messages,
+            { tools: chatTools },
+            token,
+        );
+
+        // Collect parts from the stream – text goes to UI, tool calls are batched
+        const toolCalls: vscode.LanguageModelToolCallPart[] = [];
+        const assistantParts: (vscode.LanguageModelTextPart | vscode.LanguageModelToolCallPart)[] = [];
+
+        for await (const chunk of response.stream) {
+            if (chunk instanceof vscode.LanguageModelTextPart) {
+                stream.markdown(chunk.value);
+                assistantParts.push(chunk);
+            } else if (chunk instanceof vscode.LanguageModelToolCallPart) {
+                toolCalls.push(chunk);
+                assistantParts.push(chunk);
+            }
+        }
+
+        // If the model didn't request any tool calls we're done
+        if (toolCalls.length === 0) {
+            return;
+        }
+
+        // Record assistant turn then invoke each requested tool
+        messages.push(vscode.LanguageModelChatMessage.Assistant(assistantParts));
+
+        const toolResults: (vscode.LanguageModelToolResultPart | vscode.LanguageModelTextPart)[] = [];
+        for (const call of toolCalls) {
+            try {
+                const result = await vscode.lm.invokeTool(call.name, {
+                    input: call.input,
+                    toolInvocationToken: request.toolInvocationToken,
+                }, token);
+
+                // Extract text from tool result
+                const texts = result.content
+                    .filter((p): p is vscode.LanguageModelTextPart => p instanceof vscode.LanguageModelTextPart)
+                    .map(p => p.value);
+                toolResults.push(new vscode.LanguageModelToolResultPart(call.callId, [new vscode.LanguageModelTextPart(texts.join('\n'))]));
+            } catch (err) {
+                toolResults.push(new vscode.LanguageModelToolResultPart(
+                    call.callId,
+                    [new vscode.LanguageModelTextPart(`Tool error: ${err instanceof Error ? err.message : String(err)}`)],
+                ));
+            }
+        }
+
+        messages.push(vscode.LanguageModelChatMessage.User(toolResults));
+    }
+}
+
+/** Tool name filter helpers */
+const TOOL_FILTERS: Record<string, (t: vscode.LanguageModelToolInformation) => boolean> = {
+    search: t => /search|literature|pubmed|reference|citation/i.test(t.name + ' ' + t.description),
+    draft: t => /draft|write|section|citation|wikilink|word|count/i.test(t.name + ' ' + t.description),
+    concept: t => /concept|novelty|valid|idea/i.test(t.name + ' ' + t.description),
+    project: t => /project|exploration|workspace/i.test(t.name + ' ' + t.description),
+    format: t => /template|document|export|docx|section|insert/i.test(t.name + ' ' + t.description),
+    analysis: t => /analy|statistic|plot|table|dataset|figure/i.test(t.name + ' ' + t.description),
+    strategy: t => /search|strategy|query|mesh/i.test(t.name + ' ' + t.description),
+    drawio: t => /diagram|drawio|draw|figure/i.test(t.name + ' ' + t.description),
+};
+
 function registerChatParticipant(context: vscode.ExtensionContext): vscode.Disposable | null {
     try {
         // Pre-load skill summaries for chat context
@@ -450,59 +545,25 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
             stream: vscode.ChatResponseStream,
             token: vscode.CancellationToken
         ) => {
-            // Handle different commands
+            // Commands that use the tool-calling loop
+            const toolCommand = request.command;
+            if (toolCommand && toolCommand in TOOL_FILTERS) {
+                const icons: Record<string, string> = {
+                    search: '🔍', draft: '✍️', concept: '💡',
+                    project: '📁', format: '📄', analysis: '📊',
+                    strategy: '🎯', drawio: '📐',
+                };
+                stream.markdown(`${icons[toolCommand] || '🔧'} **正在使用 MCP 工具處理您的請求…**\n\n`);
+                await runWithTools(request, stream, token, TOOL_FILTERS[toolCommand]);
+                return { metadata: { command: toolCommand } };
+            }
+
+            // Commands that stay static
             switch (request.command) {
-                case 'search':
-                    stream.markdown('🔍 **文獻搜尋模式**\n\n');
-                    stream.markdown('在 Agent Mode 中，我可以使用以下 MCP 工具：\n');
-                    stream.markdown('- `search_literature` - PubMed 搜尋\n');
-                    stream.markdown('- `find_related_articles` - 相關文獻\n');
-                    stream.markdown('- `save_reference_mcp` - 儲存文獻\n\n');
-                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
-                    break;
-
-                case 'draft':
-                    stream.markdown('✍️ **草稿撰寫模式**\n\n');
-                    stream.markdown('在 Agent Mode 中，我可以：\n');
-                    stream.markdown('- 撰寫 Introduction、Methods、Results、Discussion\n');
-                    stream.markdown('- 自動插入 [[wikilink]] 引用\n');
-                    stream.markdown('- 字數控制和 Anti-AI 檢查\n\n');
-                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
-                    break;
-
-                case 'concept':
-                    stream.markdown('💡 **研究概念發展**\n\n');
-                    stream.markdown('在 Agent Mode 中，我可以：\n');
-                    stream.markdown('- 發展研究概念 (concept.md)\n');
-                    stream.markdown('- 驗證 novelty（三輪評分）\n');
-                    stream.markdown('- 文獻缺口分析\n\n');
-                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
-                    break;
-
-                case 'project':
-                    stream.markdown('📁 **專案管理**\n\n');
-                    stream.markdown('在 Agent Mode 中，使用以下工具：\n');
-                    stream.markdown('- `create_project` / `list_projects` / `switch_project`\n');
-                    stream.markdown('- `setup_project_interactive` - 互動設定\n');
-                    stream.markdown('- `get_paper_types` - 可用論文類型\n\n');
-                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
-                    break;
-
-                case 'format':
-                    stream.markdown('📄 **Word 匯出**\n\n');
-                    stream.markdown('匯出流程：\n');
-                    stream.markdown('1. `list_templates` → 選擇模板\n');
-                    stream.markdown('2. `start_document_session` → 開始編輯\n');
-                    stream.markdown('3. `insert_section` → 插入各章節\n');
-                    stream.markdown('4. `save_document` → 儲存 .docx\n\n');
-                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
-                    break;
-
                 case 'autopaper': {
-                    // Load auto-paper skill
                     const autoPaperSkill = loadSkillContent(skillsPath, 'auto-paper');
                     stream.markdown('🚀 **全自動論文撰寫 (Auto Paper)**\n\n');
-                    stream.markdown('### 11-Phase Pipeline + 42 Hooks\n\n');
+                    stream.markdown('### 11-Phase Pipeline + 77 Hooks\n\n');
                     stream.markdown('| Phase | 名稱 | 說明 |\n');
                     stream.markdown('|-------|------|------|\n');
                     stream.markdown('| 0 | 期刊定位 | journal-profile.yaml 設定 |\n');
@@ -516,11 +577,14 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                     stream.markdown('| 8 | Word 匯出 | 產生 .docx |\n');
                     stream.markdown('| 9 | 投稿準備 | Cover letter, checklist |\n');
                     stream.markdown('| 10 | Meta-Learning | 更新 SKILL + Hooks |\n\n');
-                    stream.markdown('### 品質保證：42 Checks（4 層 Audit Hooks）\n\n');
+                    stream.markdown('### 品質保證：77 Checks（35 Code-Enforced / 42 Agent-Driven）\n\n');
                     stream.markdown('- **Hook A** (post-write): 字數、引用密度、Anti-AI、Wikilink\n');
                     stream.markdown('- **Hook B** (post-section): 概念一致、🔒 保護、方法學、寫作順序\n');
                     stream.markdown('- **Hook C** (post-manuscript): 全稿一致性、投稿清單、時間一致性\n');
-                    stream.markdown('- **Hook D** (meta-learning): SKILL/Hook 自我改進\n\n');
+                    stream.markdown('- **Hook D** (meta-learning): SKILL/Hook 自我改進\n');
+                    stream.markdown('- **Hook E** (EQUATOR): 報告指引合規\n');
+                    stream.markdown('- **Hook F** (data artifacts): 數據產出物追蹤\n');
+                    stream.markdown('- **Hook R** (review): 審查品質門檻\n\n');
                     if (autoPaperSkill) {
                         stream.markdown('---\n\n<details><summary>📖 完整 Auto-Paper Skill</summary>\n\n');
                         stream.markdown(autoPaperSkill);
@@ -530,68 +594,34 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                     break;
                 }
 
-                case 'analysis':
-                    stream.markdown('📊 **資料分析模式**\n\n');
-                    stream.markdown('在 Agent Mode 中，可用工具：\n');
-                    stream.markdown('- `analyze_dataset` - 摘要統計\n');
-                    stream.markdown('- `run_statistical_test` - t-test、correlation 等\n');
-                    stream.markdown('- `create_plot` - 建立圖表\n');
-                    stream.markdown('- `generate_table_one` - 生成 Table 1\n\n');
-                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
-                    break;
-
-                case 'strategy':
-                    stream.markdown('🎯 **搜尋策略設定**\n\n');
-                    stream.markdown('在 Agent Mode 中，我可以：\n');
-                    stream.markdown('- 定義搜尋關鍵字和 MeSH terms\n');
-                    stream.markdown('- 設定 inclusion/exclusion criteria\n');
-                    stream.markdown('- 產生多組搜尋查詢並行執行\n\n');
-                    stream.markdown('💡 請切換到 **Agent Mode** 使用完整功能。');
-                    break;
-
                 case 'help':
                     stream.markdown('## 📚 MedPaper Assistant 完整指令列表\n\n');
                     stream.markdown('### 💬 Chat 指令 (@mdpaper)\n\n');
                     stream.markdown('| 指令 | 說明 |\n');
                     stream.markdown('|------|------|\n');
-                    stream.markdown('| `/search` | 搜尋 PubMed 文獻 |\n');
-                    stream.markdown('| `/draft` | 撰寫論文章節 |\n');
-                    stream.markdown('| `/concept` | 發展研究概念 |\n');
-                    stream.markdown('| `/project` | 管理研究專案 |\n');
-                    stream.markdown('| `/format` | 匯出 Word 文件 |\n');
+                    stream.markdown('| `/search` | 🔍 搜尋 PubMed 文獻（MCP 工具） |\n');
+                    stream.markdown('| `/draft` | ✍️ 撰寫論文章節（MCP 工具） |\n');
+                    stream.markdown('| `/concept` | 💡 發展研究概念（MCP 工具） |\n');
+                    stream.markdown('| `/project` | 📁 管理研究專案（MCP 工具） |\n');
+                    stream.markdown('| `/format` | 📄 匯出 Word 文件（MCP 工具） |\n');
+                    stream.markdown('| `/analysis` | 📊 資料分析與統計（MCP 工具） |\n');
+                    stream.markdown('| `/strategy` | 🎯 搜尋策略設定（MCP 工具） |\n');
+                    stream.markdown('| `/drawio` | 📐 Draw.io 圖表繪製（MCP 工具） |\n');
                     stream.markdown('| `/autopaper` | 🚀 全自動寫論文 |\n');
-                    stream.markdown('| `/analysis` | 資料分析與統計 |\n');
-                    stream.markdown('| `/strategy` | 搜尋策略設定 |\n');
                     stream.markdown('| `/help` | 顯示本說明 |\n\n');
-                    stream.markdown('### 🎯 Command Palette (Ctrl+Shift+P)\n\n');
-                    stream.markdown('| 指令 | 說明 |\n');
-                    stream.markdown('|------|------|\n');
-                    stream.markdown('| `MedPaper: Auto Paper` | 全自動寫論文 |\n');
-                    stream.markdown('| `MedPaper: Show Status` | 顯示狀態 |\n\n');
                     stream.markdown('### 🔧 Agent Mode 自然語言\n\n');
                     stream.markdown('直接在 Agent Mode 輸入：\n');
                     stream.markdown('- 「全自動寫論文」「一鍵寫論文」→ Auto Paper Pipeline\n');
                     stream.markdown('- 「找論文」「搜尋 PubMed」→ 文獻搜尋\n');
                     stream.markdown('- 「寫 Introduction」→ 草稿撰寫\n');
                     stream.markdown('- 「驗證 novelty」→ 概念驗證\n');
+                    stream.markdown('- 「畫流程圖」→ Draw.io 圖表\n');
                     break;
 
                 default:
-                    // General query - provide guidance
-                    stream.markdown(`## MedPaper Assistant\n\n`);
-                    stream.markdown(`您好！我是 MedPaper Assistant，專門協助醫學論文撰寫。\n\n`);
-                    stream.markdown(`### ⭐ 主打功能\n`);
-                    stream.markdown(`- \`/autopaper\` - 🚀 **全自動寫論文** (9-Phase Pipeline + Hooks)\n\n`);
-                    stream.markdown(`### 所有指令\n`);
-                    stream.markdown(`- \`/search\` - 搜尋 PubMed 文獻\n`);
-                    stream.markdown(`- \`/draft\` - 撰寫論文章節\n`);
-                    stream.markdown(`- \`/concept\` - 發展研究概念\n`);
-                    stream.markdown(`- \`/project\` - 管理研究專案\n`);
-                    stream.markdown(`- \`/format\` - 匯出 Word 文件\n`);
-                    stream.markdown(`- \`/analysis\` - 資料分析\n`);
-                    stream.markdown(`- \`/strategy\` - 搜尋策略\n`);
-                    stream.markdown(`- \`/help\` - 顯示完整說明\n\n`);
-                    stream.markdown(`💡 **建議**：在 Agent Mode 中使用以獲得完整的 MCP 工具支援。`);
+                    // General query — use full tool set
+                    stream.markdown('🔧 **正在使用 MCP 工具處理您的請求…**\n\n');
+                    await runWithTools(request, stream, token);
             }
 
             return { metadata: { command: request.command } };
@@ -607,7 +637,8 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                     { prompt: '全自動寫論文', label: '🚀 Auto Paper', command: 'autopaper' },
                     { prompt: '搜尋相關文獻', label: '🔍 Search Literature', command: 'search' },
                     { prompt: '開始撰寫草稿', label: '✍️ Start Drafting', command: 'draft' },
-                    { prompt: '驗證研究概念', label: '💡 Validate Concept', command: 'concept' }
+                    { prompt: '驗證研究概念', label: '💡 Validate Concept', command: 'concept' },
+                    { prompt: '畫流程圖', label: '📐 Draw.io', command: 'drawio' }
                 ];
             }
         };

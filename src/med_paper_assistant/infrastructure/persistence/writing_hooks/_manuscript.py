@@ -22,6 +22,169 @@ class ManuscriptHooksMixin:
     _project_dir: Path
     _audit_dir: Path
 
+    def _load_manifest_entries(self) -> list[dict[str, str]]:
+        """Normalize manifest.json across legacy and current schemas."""
+        manifest_path = self._project_dir / "results" / "manifest.json"
+        if not manifest_path.is_file():
+            return []
+
+        try:
+            with open(manifest_path, encoding="utf-8") as f:
+                manifest = json.load(f)
+        except Exception:
+            return []
+
+        entries: list[dict[str, str]] = []
+        for entry in manifest.get("figures", []):
+            if isinstance(entry, dict):
+                entries.append(
+                    {
+                        "kind": "figure",
+                        "number": str(entry.get("number", "")).strip(),
+                        "filename": str(entry.get("filename", "")).strip(),
+                        "caption": str(entry.get("caption", "")).strip(),
+                    }
+                )
+        for entry in manifest.get("tables", []):
+            if isinstance(entry, dict):
+                entries.append(
+                    {
+                        "kind": "table",
+                        "number": str(entry.get("number", "")).strip(),
+                        "filename": str(entry.get("filename", "")).strip(),
+                        "caption": str(entry.get("caption", "")).strip(),
+                    }
+                )
+        for entry in manifest.get("assets", []):
+            if isinstance(entry, dict) and entry.get("type") in {"figure", "table"}:
+                entries.append(
+                    {
+                        "kind": str(entry.get("type", "")).strip(),
+                        "number": str(entry.get("number", entry.get("id", ""))).strip(),
+                        "filename": str(entry.get("filename", "")).strip(),
+                        "caption": str(entry.get("caption", "")).strip(),
+                    }
+                )
+        return entries
+
+    def _load_required_visual_assets(self) -> list[dict[str, str]]:
+        """Read manuscript-plan.yaml and normalize required figure/table obligations."""
+        plan_path = self._project_dir / "manuscript-plan.yaml"
+        if not plan_path.is_file():
+            return []
+
+        try:
+            import yaml
+
+            plan = yaml.safe_load(plan_path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            return []
+
+        raw_assets = plan.get("asset_plan")
+        if not raw_assets:
+            return []
+
+        result: list[dict[str, str]] = []
+
+        def _asset_kind(asset_type: str) -> str | None:
+            normalized = asset_type.strip().lower()
+            if normalized in {
+                "table",
+                "table_one",
+                "literature_summary_table",
+                "comparison_table",
+                "characteristics_table",
+                "summary_table",
+            }:
+                return "table"
+            if normalized in {
+                "plot",
+                "flow_diagram",
+                "custom_figure",
+                "forest_plot",
+                "funnel_plot",
+                "prisma_diagram",
+                "concept_diagram",
+                "figure",
+            }:
+                return "figure"
+            return None
+
+        def _append(asset: Any, section_hint: str | None = None) -> None:
+            if not isinstance(asset, dict):
+                return
+
+            kind = _asset_kind(str(asset.get("type", "")))
+            section = str(asset.get("section") or section_hint or "").strip()
+            if kind is None or not section:
+                return
+            if asset.get("required") is False or asset.get("optional") is True:
+                return
+
+            result.append(
+                {
+                    "id": str(asset.get("id") or f"{section}-{kind}"),
+                    "kind": kind,
+                    "section": section,
+                    "caption": str(asset.get("caption") or "").strip(),
+                    "type": str(asset.get("type") or "").strip(),
+                }
+            )
+
+        if isinstance(raw_assets, list):
+            for asset in raw_assets:
+                _append(asset)
+        elif isinstance(raw_assets, dict):
+            for section_name, assets in raw_assets.items():
+                if isinstance(assets, list):
+                    for asset in assets:
+                        _append(asset, str(section_name))
+                elif isinstance(assets, dict):
+                    _append(assets, str(section_name))
+
+        return result
+
+    def _match_planned_asset_to_manifest(
+        self,
+        planned_asset: dict[str, str],
+        manifest_entries: list[dict[str, str]],
+    ) -> dict[str, str] | None:
+        """Match a planned asset to its manifest entry using caption or numeric id."""
+        same_kind = [e for e in manifest_entries if e.get("kind") == planned_asset.get("kind")]
+        if not same_kind:
+            return None
+
+        caption = planned_asset.get("caption", "").strip().lower()
+        if caption:
+            for entry in same_kind:
+                entry_caption = entry.get("caption", "").strip().lower()
+                if entry_caption == caption or caption in entry_caption or entry_caption in caption:
+                    return entry
+
+        asset_id = planned_asset.get("id", "")
+        numeric_parts = [part for part in asset_id.replace("_", "-").split("-") if part.isdigit()]
+        if numeric_parts:
+            target_number = numeric_parts[-1]
+            for entry in same_kind:
+                if entry.get("number") == target_number:
+                    return entry
+
+        return same_kind[0] if len(same_kind) == 1 else None
+
+    def _has_exportable_figure_asset(self, filename: str) -> bool:
+        """Check whether a figure filename is directly exportable or has a rendered companion."""
+        if not filename:
+            return False
+
+        figure_path = self._project_dir / "results" / "figures" / filename
+        if figure_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".svg", ".tiff"}:
+            return figure_path.is_file()
+
+        for extension in [".png", ".svg", ".jpg", ".jpeg", ".tiff"]:
+            if (figure_path.parent / f"{figure_path.stem}{extension}").is_file():
+                return True
+        return False
+
     # ── Hook C3: N-value Cross-Section Consistency ─────────────────
 
     def check_n_value_consistency(
@@ -315,22 +478,16 @@ class ManuscriptHooksMixin:
         fig_refs = set(re.findall(r"Figure\s+(\d+)", content, re.IGNORECASE))
         tbl_refs = set(re.findall(r"Table\s+(\d+)", content, re.IGNORECASE))
 
-        manifest_path = self._project_dir / "results" / "manifest.json"
-        if manifest_path.is_file():
-            try:
-                with open(manifest_path, encoding="utf-8") as f:
-                    manifest = json.load(f)
-                manifest_figs = {
-                    a["id"] for a in manifest.get("assets", []) if a.get("type") == "figure"
-                }
-                manifest_tbls = {
-                    a["id"] for a in manifest.get("assets", []) if a.get("type") == "table"
-                }
-                fig_count = max(len(fig_refs), len(manifest_figs))
-                tbl_count = max(len(tbl_refs), len(manifest_tbls))
-            except Exception:
-                fig_count = len(fig_refs)
-                tbl_count = len(tbl_refs)
+        manifest_entries = self._load_manifest_entries()
+        if manifest_entries:
+            manifest_figs = {
+                a.get("number", "") for a in manifest_entries if a.get("kind") == "figure"
+            }
+            manifest_tbls = {
+                a.get("number", "") for a in manifest_entries if a.get("kind") == "table"
+            }
+            fig_count = max(len(fig_refs), len({n for n in manifest_figs if n}))
+            tbl_count = max(len(tbl_refs), len({n for n in manifest_tbls if n}))
         else:
             fig_count = len(fig_refs)
             tbl_count = len(tbl_refs)
@@ -385,8 +542,8 @@ class ManuscriptHooksMixin:
         fig_refs = set(re.findall(r"Figure\s+(\d+)", content, re.IGNORECASE))
         tbl_refs = set(re.findall(r"Table\s+(\d+)", content, re.IGNORECASE))
 
-        manifest_path = self._project_dir / "results" / "manifest.json"
-        if not manifest_path.is_file():
+        manifest_entries = self._load_manifest_entries()
+        if not manifest_entries:
             return HookResult(
                 hook_id="C7d",
                 passed=True,
@@ -397,26 +554,8 @@ class ManuscriptHooksMixin:
                 },
             )
 
-        try:
-            with open(manifest_path, encoding="utf-8") as f:
-                manifest = json.load(f)
-        except Exception:
-            return HookResult(
-                hook_id="C7d",
-                passed=True,
-                stats={"note": "Failed to read manifest.json"},
-            )
-
-        manifest_figs = {
-            str(a.get("number", a.get("id", "")))
-            for a in manifest.get("assets", [])
-            if a.get("type") == "figure"
-        }
-        manifest_tbls = {
-            str(a.get("number", a.get("id", "")))
-            for a in manifest.get("assets", [])
-            if a.get("type") == "table"
-        }
+        manifest_figs = {a.get("number", "") for a in manifest_entries if a.get("kind") == "figure"}
+        manifest_tbls = {a.get("number", "") for a in manifest_entries if a.get("kind") == "table"}
 
         phantom_figs = fig_refs - manifest_figs
         phantom_tbls = tbl_refs - manifest_tbls
@@ -483,6 +622,100 @@ class ManuscriptHooksMixin:
             orphans=stats["orphan_count"],
         )
         return HookResult(hook_id="C7d", passed=passed, issues=issues, stats=stats)
+
+    def check_asset_plan_coverage(
+        self,
+        content: str,
+    ) -> HookResult:
+        """Hook C7b: verify required planned assets are registered, placed, and exportable."""
+        issues: list[HookIssue] = []
+
+        planned_assets = self._load_required_visual_assets()
+        if not planned_assets:
+            return HookResult(
+                hook_id="C7b",
+                passed=True,
+                stats={
+                    "required_assets": 0,
+                    "note": "No required visual assets in manuscript-plan.yaml",
+                },
+            )
+
+        manifest_entries = self._load_manifest_entries()
+        sections = self._parse_sections(content)
+
+        matched_count = 0
+        placed_count = 0
+        exportable_count = 0
+
+        for asset in planned_assets:
+            entry = self._match_planned_asset_to_manifest(asset, manifest_entries)
+            if entry is None:
+                issues.append(
+                    HookIssue(
+                        hook_id="C7b",
+                        severity="CRITICAL",
+                        section=asset["section"],
+                        message=f"Planned {asset['kind']} '{asset['id']}' is missing from manifest.json",
+                        suggestion="Run insert_figure/insert_table for this planned asset",
+                    )
+                )
+                continue
+
+            matched_count += 1
+            section_content = sections.get(asset["section"], "")
+            number = entry.get("number", "")
+            label = f"{asset['kind'].title()} {number}" if number else asset["kind"].title()
+            placed = bool(section_content) and (
+                label.lower() in section_content.lower()
+                or entry.get("filename", "").lower() in section_content.lower()
+                or entry.get("caption", "").lower() in section_content.lower()
+            )
+            if not placed:
+                issues.append(
+                    HookIssue(
+                        hook_id="C7b",
+                        severity="CRITICAL",
+                        section=asset["section"],
+                        message=(
+                            f"Planned {asset['kind']} '{asset['id']}' is not referenced or embedded in {asset['section']}"
+                        ),
+                        suggestion=f"Insert or cite {label} inside the {asset['section']} section",
+                    )
+                )
+            else:
+                placed_count += 1
+
+            if asset["kind"] == "figure":
+                exportable = self._has_exportable_figure_asset(entry.get("filename", ""))
+                if not exportable:
+                    issues.append(
+                        HookIssue(
+                            hook_id="C7b",
+                            severity="CRITICAL",
+                            section=asset["section"],
+                            message=f"Planned figure '{asset['id']}' lacks an exportable rendered asset",
+                            suggestion="Save a PNG/SVG/JPG/TIFF companion before export",
+                        )
+                    )
+                else:
+                    exportable_count += 1
+
+        passed = not any(issue.severity == "CRITICAL" for issue in issues)
+        stats = {
+            "required_assets": len(planned_assets),
+            "manifest_matches": matched_count,
+            "placed_assets": placed_count,
+            "exportable_figures": exportable_count,
+        }
+
+        logger.info(
+            "Hook C7b complete",
+            passed=passed,
+            required_assets=len(planned_assets),
+            issues=len(issues),
+        )
+        return HookResult(hook_id="C7b", passed=passed, issues=issues, stats=stats)
 
     # ── Hook C9: Supplementary Material Cross-Reference ────────────
 

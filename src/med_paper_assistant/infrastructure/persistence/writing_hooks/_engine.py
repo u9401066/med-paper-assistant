@@ -106,7 +106,7 @@ class WritingHooksEngine(
         content: str,
     ) -> dict[str, HookResult]:
         """
-        Run all post-manuscript hooks (C3, C4, C5, C6, C7a, C7d, C9, F) on the full manuscript.
+        Run all post-manuscript hooks (C3, C4, C5, C6, C7a, C7b, C7d, C9, F) on the full manuscript.
 
         Returns:
             Dict mapping hook_id -> HookResult.
@@ -117,6 +117,7 @@ class WritingHooksEngine(
             "C5": self.check_wikilink_resolvable(content),
             "C6": self.check_total_word_count(content),
             "C7a": self.check_figure_table_counts(content),
+            "C7b": self.check_asset_plan_coverage(content),
             "C7d": self.check_cross_references(content),
             "C9": self.check_supplementary_crossref(content),
             "F": self.validate_data_artifacts(content),
