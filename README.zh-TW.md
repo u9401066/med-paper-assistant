@@ -14,7 +14,7 @@
 
 > 📖 [English Version](README.md)
 
-> 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 11 階段 Pipeline、76 項品質檢查、結構化 Review Loop
+> 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 11 階段 Pipeline、78 項品質檢查、結構化 Review Loop
 
 ---
 
@@ -49,8 +49,8 @@ flowchart LR
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Server（~137 工具）"]
-      mdpaper["mdpaper<br/>87 工具<br/>草稿 · 匯出 · 驗證 · 審查"]
+    subgraph MCP["MCP Server（~138 工具）"]
+      mdpaper["mdpaper<br/>88 工具<br/>草稿 · 匯出 · 驗證 · 審查"]
         pubmed["pubmed-search<br/>37 工具<br/>搜尋 · 指標"]
         cgu["CGU<br/>13 工具<br/>深度思考 · 創意"]
     end
@@ -265,7 +265,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 外部 MCPs   │
-│  86 工具      │  │  search       │  │  13 工具      │  │   (uvx)       │
+│  88 工具      │  │  search       │  │  13 工具      │  │   (uvx)       │
 │               │  │  37 工具      │  │               │  │               │
 │ • 專案管理    │  │ • PubMed      │  │ • 腦力激盪    │  │ 🎨 drawio     │
 │ • 參考文獻    │  │ • Europe PMC  │  │ • 深度思考    │  │ • 流程圖      │
@@ -483,7 +483,7 @@ med-paper-assistant/
 │   ├── domain/                    #   業務邏輯、實體、值物件
 │   ├── application/               #   用例、服務
 │   ├── infrastructure/            #   DAL、外部服務
-│   └── interfaces/mcp/            #   MCP Server，86 工具分 7 大類
+│   └── interfaces/mcp/            #   MCP Server，88 工具分 7 大類
 │
 ├── integrations/                  # 內建 MCP Server
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（37 工具）
@@ -518,7 +518,7 @@ med-paper-assistant/
 
 | 狀態 | 功能                        | 說明                                                |
 | ---- | --------------------------- | --------------------------------------------------- |
-| ✅   | **3 個 MCP Server**         | mdpaper (86) + pubmed-search (37) + CGU (13)        |
+| ✅   | **3 個 MCP Server**         | mdpaper (88) + pubmed-search (37) + CGU (13)        |
 | ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、專案隔離             |
 | ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                       |
 | ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                  |

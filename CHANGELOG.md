@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-11
+
 ### Added
 
 - **Hook A3c: Voice Consistency Detector (Anti-AI 語體一致性偵測)**:
@@ -67,6 +69,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 5 new tests: `TestCaptionNormalization` (4 unit tests) + auto-review integration test
 - **MCP Instructions**: Removed ghost tool `save_diagram_standalone` (merged into `save_diagram`), added missing `insert_figure`/`insert_table`/`list_assets` to DATA ANALYSIS section, updated DIAGRAM WORKFLOW
 - **Tool count drift**: 85 → 86 tools (review/ 21 → 22), synced across 5 files via `sync_repo_counts.py --fix`
+
+### Changed
+
+- **Tool count**: 86 → 88 tools (analysis/ 9 → 10: `review_asset_for_insertion`, review/ 22 → 23: `approve_concept_review`)
+- **Hook count**: 76 → 78 (34 → 36 Code-Enforced): added A3c Voice Consistency + A7 Reference Sufficiency
+- **VSX Extension**: Synced `copilot-instructions.md` + `auto-paper/SKILL.md`, added 3 research skills (`memory-checkpoint`, `memory-updater`, `project-init`)
 
 ## [0.4.6] - 2026-03-02
 

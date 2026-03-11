@@ -65,17 +65,17 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 **Code-Enforced** = `run_writing_hooks` / `run_review_hooks` / `run_meta_learning` 內有確定性程式碼邏輯。
 **Agent-Driven** = 僅靠 Agent 閱讀 SKILL.md 並自行執行，無程式碼強制。
 
-## MCP Server（86 tools, 2026-03-03）
+## MCP Server（88 tools, 2026-03-11）
 
-| 模組        | 工具數 | 重點                                                                       |
-| ----------- | ------ | -------------------------------------------------------------------------- |
-| project/    | 17     | CRUD + exploration + workspace state + writing checkpoint                  |
-| reference/  | 12     | save_reference_mcp 優先 + subagent analysis                                |
-| draft/      | 13     | writing + citation + editing (patch_draft)                                 |
-| validation/ | 3      | validate_concept + wikilinks                                               |
-| analysis/   | 9      | table_one + stats + figures（含 insert_figure/insert_table/list_assets）   |
-| review/     | 22     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility |
-| export/     | 10     | word + pandoc (docx/pdf/bib)                                               |
+| 模組        | 工具數 | 重點                                                                                         |
+| ----------- | ------ | -------------------------------------------------------------------------------------------- |
+| project/    | 17     | CRUD + exploration + workspace state + writing checkpoint                                    |
+| reference/  | 12     | save_reference_mcp 優先 + subagent analysis                                                  |
+| draft/      | 13     | writing + citation + editing (patch_draft)                                                   |
+| validation/ | 3      | validate_concept + wikilinks                                                                 |
+| analysis/   | 10     | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）        |
+| review/     | 23     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept |
+| export/     | 10     | word + pandoc (docx/pdf/bib)                                                                 |
 
 ## VS Code Copilot Lifecycle Hooks
 

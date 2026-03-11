@@ -988,11 +988,14 @@ FOR round = 1 TO N:
 
   ── Stage C3: Anti-AI 自然度審查（MANDATORY — Code-Enforced Gate） ──
   AI 生成文字常被偵測器（Gemini 3.1 等）秒辨。Stage C3 強制 Agent 自我檢測並修正。
+  更關鍵的是：有經驗的人類審稿人會注意到段落間的「語體斷裂」——前段 ESL 風格突然切換到
+  流暢的 corporate-academic prose，即使通過自動偵測也會引起懷疑。
 
-  Step 1: Code-Enforced Hook Gate
-    → run_writing_hooks(hooks="A3,A3B")
-    → A3: 禁止詞掃描（~75 個 AI 特徵用語）
+  Step 1: Code-Enforced Hook Gate（三層掃描）
+    → run_writing_hooks(hooks="A3,A3B,A3C")
+    → A3: 禁止詞掃描（~150 個 AI 特徵用語）
     → A3b: 結構信號偵測（句長均勻度、轉折詞密度、句首多樣性、三連列舉、段落均勻度）
+    → A3c: 語體一致性偵測（段落級可讀性指標 z-score 異常偵測 + 詞彙精緻度落差）
     → 任何 CRITICAL → 必須 patch_draft 修正後重跑，直到 PASS
 
   Step 2: Agent 自我審閱（Anti-AI Naturalness Check）
@@ -1002,10 +1005,29 @@ FOR round = 1 TO N:
     c) 是否有 AI 特有的「禮貌性冗餘」？（"It is important to note that" → 刪）
     d) 段落是否缺乏個人學術觀點？（全是 hedging → 加 assertive claim）
     e) 是否有「假平衡」？（on the one hand... on the other hand → 取立場）
+    f) **語體斷裂**：A3c 標記的 outlier 段落是否「太流暢」而脫離作者自然語體？
+       → 降級過度精煉的句子、加回作者的「笨拙但真實」語法特徵
     → 每項至少修正 2 處 → patch_draft()
 
-  Step 3: 修正後驗證
-    → 重跑 run_writing_hooks(hooks="A3,A3B")
+  Step 3: 雙 Subagent 交叉審計（RECOMMENDED — 至少最終輪必做）
+    使用兩個不同模型的 subagent 分別審計，交叉比對結果：
+
+    Subagent 1 — Surface Scanner（concept-challenger 或主 Agent）：
+      → 審計目標：黑名單詞、結構信號、自動偵測器可偵測的 pattern
+      → 問題：「能否通過 GPTZero？哪些具體詞/句需要替換？」
+
+    Subagent 2 — Voice Analyst（domain-reviewer）：
+      → 審計目標：語體一致性、ESL baseline vs polished prose 對比
+      → 問題：「人類審稿人會不會因為語體突變而起疑？逐段評分 1-5」
+      → 重點：段落級 AI 機率評分，標出 TOP 5 最可疑句子
+
+    交叉比對規則：
+      → 兩者都標 🔴 → 必須重寫該段落
+      → 僅一方標 ⚠️ → Agent 判斷是否需要調整
+      → 兩者都 ✅ → 安全
+
+  Step 4: 修正後驗證
+    → 重跑 run_writing_hooks(hooks="A3,A3B,A3C")
     → 必須全部 PASS 或僅 WARNING（無 CRITICAL）才能進入 Stage D
     → IF 仍有 CRITICAL → 回到 Step 2 再修，最多 3 輪
 
@@ -1532,6 +1554,7 @@ Phase 轉換時：
 | A2  | 引用密度達標          | `get_available_citations`        | `suggest_citations` + `patch_draft` | `pipeline.writing.citation_density.*` |
 | A3  | 無 Anti-AI 模式       | `run_writing_hooks(hooks="A3")`  | `patch_draft` 改寫                  | `pipeline.writing.anti_ai_strictness` |
 | A3b | AI 結構信號偵測 🆕    | `run_writing_hooks(hooks="A3B")` | `patch_draft` 改寫                  | Code-Enforced（5 項結構分析）         |
+| A3c | 語音一致性偵測 🆕     | `run_writing_hooks(hooks="A3C")` | `patch_draft` 改寫                  | Code-Enforced（z-score 離群值）       |
 | A4  | Wikilink 格式正確     | `validate_wikilinks`             | 自動修復                            | —                                     |
 | A5  | 語言一致性（BrE/AmE） | `run_writing_hooks(hooks="A5")`  | `patch_draft` 統一拼法              | `pipeline.writing.prefer_language`    |
 | A6  | 段落重複偵測          | `run_writing_hooks(hooks="A6")`  | `patch_draft` 改寫重複段            | `pipeline.writing.overlap_threshold`  |
@@ -1562,6 +1585,7 @@ Round 3: re-run A1-A4
   A2 引用: suggest_citations → search more refs → flag for user
   A3 Anti-AI: rephrase → rewrite paragraph → flag specific phrases
   A3b AI結構信號: 句長CV/轉折詞密度/句首多樣性/三連列舉/段落CV → patch_draft
+  A3c 語音一致性: 段落風格離群值 → patch_draft 改寫風格斷裂段落
   A4 Wikilink: auto-fix → manual check → flag broken refs
 ```
 
@@ -1576,6 +1600,14 @@ A3b AI 結構信號偵測（Code-Enforced）：
 - 句首多樣性: unique ratio < 0.50 = WARNING
 - 三連列舉: `X, Y, and Z` 出現 >3 次 = WARNING
 - 段落長度均勻度: CV < 0.20 = WARNING
+
+A3c 語音一致性偵測（Code-Enforced）：
+
+- 段落級特徵：avg_sent_len、avg_word_len、type_token_ratio、punct_complexity
+- 文件基線：計算全文各指標的 mean + std
+- 離群偵測：任一指標 z-score > 1.8 → WARNING（風格斷裂）
+- 詞彙精緻度落差：max − min avg_word_len > 1.2 → WARNING（ESL vs 精修段落）
+- 典型場景：ESL 文法段落突然轉為精修企業學術文風 → 人類審稿者可察覺
 
 ---
 

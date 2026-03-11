@@ -20,7 +20,7 @@
 
 > 📖 [繁體中文版](README.zh-TW.md)
 
-> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 76 Quality Hooks, Structured Review Loop
+> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 78 Quality Hooks, Structured Review Loop
 
 ---
 
@@ -55,8 +55,8 @@ flowchart LR
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers (~137 tools)"]
-      mdpaper["mdpaper<br/>87 tools<br/>Draft · Export · Validate · Review"]
+    subgraph MCP["MCP Servers (~138 tools)"]
+      mdpaper["mdpaper<br/>88 tools<br/>Draft · Export · Validate · Review"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -271,7 +271,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  86 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│  88 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
@@ -490,7 +490,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 86 tools in 7 groups
+│   └── interfaces/mcp/            #   MCP server, 88 tools in 7 groups
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
@@ -525,7 +525,7 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                            |
 | ------ | --------------------------- | ------------------------------------------------------ |
-| ✅     | **3 MCP Servers**           | mdpaper (86) + pubmed-search (37) + CGU (13)           |
+| ✅     | **3 MCP Servers**           | mdpaper (88) + pubmed-search (37) + CGU (13)           |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, project isolation |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                 |
