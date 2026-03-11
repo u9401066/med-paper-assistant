@@ -68,6 +68,34 @@ def register_pandoc_export_tools(mcp: FastMCP):
             f"ℹ️ Hook C5 (Wikilink Resolvable) — pre-export HARD GATE"
         )
 
+    def _run_pre_export_review_gate(project_dir: str) -> str | None:
+        """Check that Phase 7 review loop was completed before allowing export.
+
+        Returns:
+            None if review is complete; error message string if not.
+        """
+        from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
+            PipelineGateValidator,
+        )
+
+        validator = PipelineGateValidator(project_dir=Path(project_dir))
+        passed, details = validator._check_review_completed()
+        if passed:
+            return None
+
+        return (
+            f"❌ **Export blocked — Review loop not completed**\n\n"
+            f"📊 {details}\n\n"
+            f"## 🔧 REMEDIATION REQUIRED\n\n"
+            f"1. Call `start_review_round()` to begin a review round\n"
+            f"2. Write a review report and author response\n"
+            f"3. Call `submit_review_round()` to complete the round\n"
+            f"4. Repeat until minimum rounds are met\n"
+            f"5. Retry export\n\n"
+            f"⚠️ This is a **Code-Enforced** hard gate. "
+            f"Export cannot proceed without completing the review loop."
+        )
+
     @mcp.tool()
     def export_docx(
         draft_filename: str,
@@ -134,6 +162,14 @@ def register_pandoc_export_tools(mcp: FastMCP):
                     "export_docx", Exception("C5 gate failed"), {"draft": draft_filename}
                 )
                 return gate_error
+
+            # ── HARD GATE: Review Loop Completed ──
+            review_error = _run_pre_export_review_gate(project_dir)
+            if review_error:
+                log_tool_error(
+                    "export_docx", Exception("Review gate failed"), {"draft": draft_filename}
+                )
+                return review_error
 
             # Determine output path
             if not output_filename:
@@ -242,6 +278,14 @@ def register_pandoc_export_tools(mcp: FastMCP):
             if gate_error:
                 log_tool_error("export_pdf", Exception("C5 gate failed"), {"draft": draft_filename})
                 return gate_error
+
+            # ── HARD GATE: Review Loop Completed ──
+            review_error = _run_pre_export_review_gate(project_dir)
+            if review_error:
+                log_tool_error(
+                    "export_pdf", Exception("Review gate failed"), {"draft": draft_filename}
+                )
+                return review_error
 
             if not output_filename:
                 base = os.path.splitext(draft_filename)[0]

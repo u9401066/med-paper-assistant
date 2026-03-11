@@ -83,6 +83,21 @@ def _add_prerequisites(project_dir, up_to_phase: int):
         sc = project_dir / ".audit" / "quality-scorecard.md"
         if not sc.is_file():
             sc.write_text("# Scorecard")
+    # Phase 8+ needs completed review loop (Phase 7 prerequisite)
+    if up_to_phase >= 8:
+        loop_state = project_dir / ".audit" / "audit-loop-review.json"
+        if not loop_state.is_file():
+            loop_state.write_text(
+                json.dumps(
+                    {
+                        "config": {"min_rounds": 2, "max_rounds": 3},
+                        "rounds": [
+                            {"round": 1, "verdict": "needs_revision"},
+                            {"round": 2, "verdict": "quality_met"},
+                        ],
+                    }
+                )
+            )
     if up_to_phase == 11:
         exports = project_dir / "exports"
         exports.mkdir(parents=True, exist_ok=True)
@@ -719,3 +734,131 @@ class TestPrerequisiteChecks:
         assert len(prereq_fails) > 0
         for c in prereq_fails:
             assert c.severity == "CRITICAL"
+
+
+class TestReviewPrerequisite:
+    """Tests for the Phase 7 review completion prerequisite enforced on phases 8+."""
+
+    def test_phase_8_requires_review_completed(self, validator, project_dir):
+        """Phase 8+ gate should check prereq:review_completed."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        r = validator.validate_phase(8)
+        prereq_names = [c.name for c in r.checks]
+        assert "prereq:review_completed" in prereq_names
+
+    def test_phase_8_fails_without_review_loop(self, validator, project_dir):
+        """Phase 8 should fail when audit-loop-review.json doesn't exist."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        r = validator.validate_phase(8)
+        review_check = next(c for c in r.checks if c.name == "prereq:review_completed")
+        assert not review_check.passed
+        assert "start_review_round" in review_check.details
+
+    def test_phase_8_fails_with_insufficient_rounds(self, validator, project_dir):
+        """Phase 8 should fail when fewer than min_rounds completed."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        loop_state = project_dir / ".audit" / "audit-loop-review.json"
+        loop_state.write_text(
+            json.dumps(
+                {
+                    "config": {"min_rounds": 2, "max_rounds": 3},
+                    "rounds": [{"round": 1, "verdict": "needs_revision"}],
+                }
+            )
+        )
+        r = validator.validate_phase(8)
+        review_check = next(c for c in r.checks if c.name == "prereq:review_completed")
+        assert not review_check.passed
+        assert "1/2" in review_check.details
+
+    def test_phase_8_passes_with_completed_review(self, validator, project_dir):
+        """Phase 8 should pass when review loop is properly completed."""
+        _add_prerequisites(project_dir, up_to_phase=8)
+        r = validator.validate_phase(8)
+        review_check = next(c for c in r.checks if c.name == "prereq:review_completed")
+        assert review_check.passed
+
+    def test_phase_9_also_requires_review(self, validator, project_dir):
+        """Phase 9 (Export) should also require review completion."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        r = validator.validate_phase(9)
+        prereq_names = [c.name for c in r.checks]
+        assert "prereq:review_completed" in prereq_names
+
+    def test_phase_65_does_not_require_review(self, validator, project_dir):
+        """Phase 65 (Evolution Gate) sits before Phase 7 — should NOT check review."""
+        _add_prerequisites(project_dir, up_to_phase=6)
+        r = validator.validate_phase(65)
+        prereq_names = [c.name for c in r.checks]
+        assert "prereq:review_completed" not in prereq_names
+
+    def test_review_fails_with_invalid_verdict(self, validator, project_dir):
+        """Review should fail when loop didn't terminate properly."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        loop_state = project_dir / ".audit" / "audit-loop-review.json"
+        loop_state.write_text(
+            json.dumps(
+                {
+                    "config": {"min_rounds": 2, "max_rounds": 3},
+                    "rounds": [
+                        {"round": 1, "verdict": "needs_revision"},
+                        {"round": 2, "verdict": "in_progress"},
+                    ],
+                }
+            )
+        )
+        r = validator.validate_phase(8)
+        review_check = next(c for c in r.checks if c.name == "prereq:review_completed")
+        assert not review_check.passed
+        assert "not properly terminated" in review_check.details
+
+
+class TestCheckReviewCompleted:
+    """Direct tests for _check_review_completed helper."""
+
+    def test_missing_audit_loop_file(self, validator, project_dir):
+        """Should fail with guidance when file doesn't exist."""
+        passed, details = validator._check_review_completed()
+        assert not passed
+        assert "start_review_round" in details
+
+    def test_corrupt_json(self, validator, project_dir):
+        """Should fail gracefully on corrupt JSON."""
+        (project_dir / ".audit" / "audit-loop-review.json").write_text("{not valid")
+        passed, details = validator._check_review_completed()
+        assert not passed
+        assert "corrupt" in details
+
+    def test_quality_met_verdict(self, validator, project_dir):
+        """Should pass with quality_met verdict."""
+        (project_dir / ".audit" / "audit-loop-review.json").write_text(
+            json.dumps(
+                {
+                    "config": {"min_rounds": 2, "max_rounds": 3},
+                    "rounds": [
+                        {"round": 1, "verdict": "needs_revision"},
+                        {"round": 2, "verdict": "quality_met"},
+                    ],
+                }
+            )
+        )
+        passed, details = validator._check_review_completed()
+        assert passed
+        assert "quality_met" in details
+
+    def test_max_rounds_verdict(self, validator, project_dir):
+        """Should pass with max_rounds verdict (reviewed enough times)."""
+        (project_dir / ".audit" / "audit-loop-review.json").write_text(
+            json.dumps(
+                {
+                    "config": {"min_rounds": 2, "max_rounds": 3},
+                    "rounds": [
+                        {"round": 1, "verdict": "needs_revision"},
+                        {"round": 2, "verdict": "needs_revision"},
+                        {"round": 3, "verdict": "max_rounds"},
+                    ],
+                }
+            )
+        )
+        passed, details = validator._check_review_completed()
+        assert passed

@@ -81,6 +81,41 @@ def _mock_project_context(project_dir: Path):
     )
 
 
+def _write_concept_review(audit_dir: Path) -> None:
+    """Write a minimal valid concept-review.yaml for pipeline gate prerequisites."""
+    (audit_dir / "concept-review.yaml").write_text(
+        "metadata:\n"
+        "  generated_at: '2026-01-01T00:00:00'\n"
+        "review:\n"
+        "  readiness: ready\n"
+        "research_question:\n"
+        "  canonical_question: Does X improve Y?\n"
+        "claims_required:\n"
+        "  - id: claim-1\n"
+        "    text: X improves Y.\n"
+        "protected_content:\n"
+        "  novelty_statement_locked:\n"
+        "    present: true\n"
+        "  selling_points_locked:\n"
+        "    present: true\n"
+    )
+
+
+def _write_review_loop(audit_dir: Path) -> None:
+    """Write a minimal completed review loop for pipeline gate prerequisites (phase >= 8)."""
+    (audit_dir / "audit-loop-review.json").write_text(
+        json.dumps(
+            {
+                "config": {"min_rounds": 2, "max_rounds": 3},
+                "rounds": [
+                    {"round": 1, "verdict": "needs_revision"},
+                    {"round": 2, "verdict": "quality_met"},
+                ],
+            }
+        )
+    )
+
+
 @pytest.fixture
 def tool_funcs(project_dir):
     """Register audit hook tools on a mock MCP and return the callable functions."""
@@ -415,6 +450,7 @@ class TestEndToEndAuditPipeline:
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
         (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+        _write_concept_review(audit_dir)
 
         rec = tool_funcs["record_hook_event"]
         audit = tool_funcs["run_quality_audit"]
@@ -460,6 +496,8 @@ class TestEndToEndAuditPipeline:
         (project_dir / "concept.md").write_text("# Concept")
         (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
         (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+        _write_concept_review(audit_dir)
+        _write_review_loop(audit_dir)
 
         rec = tool_funcs["record_hook_event"]
         audit = tool_funcs["run_quality_audit"]
@@ -618,6 +656,7 @@ class TestPhase6Enhanced:
         for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
+        _write_concept_review(audit_dir)
 
         scores_data = {
             "version": 1,
@@ -662,6 +701,7 @@ class TestPhase6Enhanced:
         for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
+        _write_concept_review(audit_dir)
 
         scores_data = {
             "version": 1,
@@ -760,6 +800,8 @@ class TestPhase10Enhanced:
         (project_dir / "concept.md").write_text("# Concept")
         (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
         (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+        _write_concept_review(audit_dir)
+        _write_review_loop(audit_dir)
 
         (audit_dir / "pipeline-run-20260101.md").write_text(
             "# Pipeline Run\n## D7\nReview retro\n## D8\nEQUATOR retro\n"
@@ -838,6 +880,8 @@ class TestMetaLearningEngineIntegration:
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
         (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+        _write_concept_review(audit_dir)
+        _write_review_loop(audit_dir)
 
         tracker.record_event("A1", "trigger")
         tracker.record_event("A1", "pass")
@@ -879,6 +923,7 @@ class TestQualityScorecardIntegration:
         for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
+        _write_concept_review(audit_dir)
 
         for dim in DIMENSIONS:
             scorecard.set_score(dim, 7.5, f"Score for {dim}")

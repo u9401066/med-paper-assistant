@@ -544,6 +544,20 @@ class PipelineGateValidator:
                 )
             )
 
+        # Phase 8+ needs completed review loop (Phase 7 prerequisite)
+        # Uses == 8 or > 8 check, but NOT for Phase 65 (which is between 6 and 7).
+        if phase >= 8 and phase != 65:
+            review_passed, review_details = self._check_review_completed()
+            checks.append(
+                GateCheck(
+                    name="prereq:review_completed",
+                    description="Review loop from Phase 7 (code-enforced)",
+                    passed=review_passed,
+                    details=review_details,
+                    severity="CRITICAL",
+                )
+            )
+
         # Phase 11 only — exports (docx + pdf).  Uses == to exclude Phase 65.
         if phase == 11:
             export_dir = self._project_dir / "exports"
@@ -696,6 +710,57 @@ class PipelineGateValidator:
         if concept_in_drafts.is_file():
             return concept_in_drafts
         return self._project_dir / "concept.md"
+
+    def _check_review_completed(self) -> tuple[bool, str]:
+        """Check whether the Phase 7 review loop was completed.
+
+        Validates:
+        1. audit-loop-review.json exists
+        2. At least min_rounds rounds were completed
+        3. Loop terminated with a valid verdict
+
+        Returns:
+            (passed, details) tuple for use as a GateCheck.
+        """
+        loop_state_path = self._audit_dir / "audit-loop-review.json"
+        if not loop_state_path.is_file():
+            return (
+                False,
+                "MISSING — run start_review_round to begin Phase 7 review loop",
+            )
+
+        try:
+            state = json.loads(loop_state_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return False, "audit-loop-review.json is corrupt or unreadable"
+
+        rounds = state.get("rounds", [])
+        rounds_completed = len(rounds)
+        min_rounds = state.get("config", {}).get("min_rounds", 2)
+        max_rounds = state.get("config", {}).get("max_rounds", 3)
+
+        if rounds_completed < min_rounds:
+            return (
+                False,
+                f"{rounds_completed}/{min_rounds} rounds completed — "
+                f"need {min_rounds - rounds_completed} more review round(s). "
+                f"Call start_review_round → submit_review_round.",
+            )
+
+        # Check for valid termination verdict
+        last_verdict = rounds[-1].get("verdict", "unknown") if rounds else "unknown"
+        valid_verdicts = {"quality_met", "max_rounds", "stagnated", "user_needed"}
+        if last_verdict not in valid_verdicts:
+            return (
+                False,
+                f"Review loop not properly terminated (verdict={last_verdict}). "
+                f"Call submit_review_round to complete the current round.",
+            )
+
+        return (
+            True,
+            f"{rounds_completed}/{max_rounds} rounds completed, verdict={last_verdict}",
+        )
 
     def _load_concept_review(self) -> dict[str, Any]:
         """Load concept-review.yaml when available."""

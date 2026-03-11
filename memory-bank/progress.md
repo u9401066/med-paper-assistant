@@ -1,4 +1,4 @@
-# Progress (Updated: 2026-03-03)
+# Progress (Updated: 2026-03-04)
 
 ## Done
 
@@ -15,6 +15,9 @@
 - MCP instructions fix: removed ghost save_diagram_standalone, added insert_figure/insert_table/list_assets to DATA ANALYSIS, updated DIAGRAM WORKFLOW
 - Tool count sync: 85→86 tools (review/ 21→22), sync_repo_counts.py --fix across 5 files (22 stale counts fixed)
 - **Paper-type-aware reference minimum enforcement**: Hook A7 + Phase 2 Gate paper-type-aware + B003 constraints + journal-profile minimum_reference_limits + 15 new tests (839 total)
+- **VSX Phase 2+3**: runWithTools() 5-round tool-calling loop + 8 command-specific tool filters + DrawioPanel WebviewPanel + /drawio command + 77 Hooks
+- **Governance Review Stack**: Concept Review Gate (novelty<75 block) + Pipeline Gate Validator (Phase 4/7/9/11) + C12/C13 hooks + template
+- **Draw.io submodule doc**: MEDPAPER_INTEGRATION.md in integrations/next-ai-draw-io (d289938)
 
 ## Doing
 
