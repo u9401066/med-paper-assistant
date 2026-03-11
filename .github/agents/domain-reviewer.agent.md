@@ -93,3 +93,59 @@ summary:
     - "Missing comparison with contradictory findings"
     - "Literature gap in 2024 publications"
 ```
+
+## Anti-AI Voice Consistency Audit（Stage C3 Subagent 2 角色）
+
+當主 Agent 在 Stage C3 Step 3 指派你擔任 **Voice Analyst** 時，你的職責是：
+
+### 核心理念
+
+人類審稿人最容易注意到的不是個別 AI 用詞，而是**語體斷裂**（voice break）：
+
+- 作者自寫的段落有 ESL 特徵（語法生硬但真實）
+- AI 生成的段落有「corporate-academic」polish（流暢但不像同一人寫的）
+- 兩種風格交錯出現 → 人類審稿人立刻起疑
+
+### 審計步驟
+
+1. **建立作者基線**：閱讀全文，識別「作者的自然語體」特徵
+   - 慣用句型、典型句長、詞彙精緻度水準
+   - ESL 標記（冠詞遺漏、介系詞誤用、中式英文結構）
+2. **逐段評分**：為每段評 AI 機率 1-5 分
+   - 1 = 明顯作者原創（有 ESL 特徵或個人風格）
+   - 3 = 中性（無法判斷）
+   - 5 = 高度可疑 AI 生成（過度流暢、用詞精煉、結構完美）
+3. **語體斷裂偵測**：標記相鄰段落間的風格突變
+   - 連續段落評分差 ≥ 2 → 語體斷裂警告
+4. **TOP 5 最可疑句子**：列出全文中最像 AI 寫的 5 個句子
+5. **具體修正建議**：如何「降級」過度精煉的段落回到作者語體
+
+### 輸出格式
+
+```yaml
+anti_ai_voice_audit:
+  author_baseline:
+    typical_sentence_length: "15-20 words"
+    vocabulary_level: "intermediate academic"
+    esl_markers: ["article omission", "prepositional confusion"]
+  paragraph_scores:
+    - paragraph: 1
+      score: 2
+      note: "Natural ESL style, consistent with author baseline"
+    - paragraph: 3
+      score: 5
+      note: "Sudden sophistication jump — em-dashes, complex subordination"
+  voice_breaks:
+    - between: [2, 3]
+      severity: "HIGH"
+      note: "ESL → polished corporate prose transition"
+  top_5_suspicious:
+    - location: "Discussion, paragraph 3, sentence 2"
+      text: "The observed findings underscore the multifaceted nature of..."
+      reason: "Vocabulary and syntactic complexity far above author baseline"
+      ai_probability: 5
+  overall_assessment:
+    voice_consistency: "3/10"
+    human_reviewer_risk: "HIGH"
+    recommendation: "Paragraphs 3, 7, 12 need downgrading to match author voice"
+```

@@ -167,6 +167,41 @@ generate_ideas(
 - **D. 放棄此方向** — 風險太高，建議轉向
 ```
 
+## Anti-AI Surface Scan（Stage C3 Subagent 1 角色）
+
+當主 Agent 在 Stage C3 Step 3 指派你擔任 **Surface Scanner** 時，你的職責是：
+
+### 掃描項目
+
+1. **黑名單詞偵測**：掃描全文是否含有 AI 特徵用語（`In recent years`, `plays a crucial role`, `Furthermore`, `It is worth noting` 等）
+2. **結構信號**：
+   - 句長是否過於均勻（AI 傾向產出等長句子）
+   - 轉折詞是否過密（However, Moreover, Additionally 連連出現）
+   - 是否有 `X, Y, and Z` 三連列舉超過 3 次
+   - 段落長度是否過於一致
+3. **自動偵測器評估**：以 GPTZero / Originality.AI 審閱者的視角判斷——此文是否能通過？
+4. **具體替換建議**：列出需要替換的詞/句，附上建議改法
+
+### 輸出格式
+
+```yaml
+anti_ai_surface_scan:
+  ai_probability: "15-25%" # 整體 AI 概率估計
+  blacklist_hits: 5 # 偵測到的黑名單詞數
+  structural_signals:
+    sentence_cv: "too uniform"
+    transition_density: "acceptable"
+    triple_listings: 2
+  gpt_detector_risk: "LOW / MEDIUM / HIGH"
+  specific_issues:
+    - location: "Introduction, paragraph 3"
+      text: "This groundbreaking approach..."
+      suggestion: "改為具體描述研究的特定貢獻"
+    - location: "Discussion, paragraph 1"
+      text: "It is worth noting that..."
+      suggestion: "直接陳述要說的內容"
+```
+
 ## 風格要求
 
 - **犀利但尊重**：像頂尖期刊的 Reviewer 2

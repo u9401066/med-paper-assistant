@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Hook A3c: Voice Consistency Detector (Anti-AI 語體一致性偵測)**:
+
+  - New Code-Enforced hook `check_voice_consistency()` in `_post_write.py` — detects paragraph-level style breaks via z-score outlier analysis
+  - Per-paragraph metrics: avg_sent_len, avg_word_len, type_token_ratio, punct_complexity
+  - Document baseline computation (mean + std per metric)
+  - Outlier detection (z-score > 1.8) + vocabulary sophistication gap (max−min avg_word_len > 1.2)
+  - Catches the #1 human-reviewer signal: ESL paragraphs suddenly switching to polished corporate-academic prose
+  - Registered in WritingHooksEngine batch runner (`run_post_write_hooks`) and pre-commit P2c delegation
+  - Integrated into R5 post-review anti-AI gate (now runs A3 + A3b + A3c)
+  - MCP dispatch: `run_writing_hooks(hooks="A3C")` available in ALL and POST-WRITE hook sets
+  - 18 new tests covering uniform text, mixed voice detection, sophistication gap, custom thresholds, markdown handling, and batch integration
+  - Hook count: 77 → 78 (36 Code-Enforced / 42 Agent-Driven)
+
+- **Dual-Subagent Anti-AI Cross-Audit Protocol (Stage C3)**:
+
+  - SKILL.md Stage C3 rewritten: three-layer code scan (A3+A3B+A3C) → agent self-review (6 criteria incl. voice breaks) → dual-subagent cross-audit → verification
+  - Concept-Challenger: new Anti-AI Surface Scanner role (blacklist + structural signals + GPTZero risk assessment)
+  - Domain-Reviewer: new Voice Analyst role (per-paragraph AI probability scoring 1-5, ESL baseline analysis, TOP 5 suspicious sentences)
+  - Cross-comparison protocol: 🔴 both flag → must rewrite, ⚠️ one flags → judge, ✅ both safe → pass
+
 - **Asset Review Receipt Hard Gate for Figures/Tables**:
 
   - New analysis tool `review_asset_for_insertion()` records auditable review receipts in `.audit/data-artifacts.yaml`

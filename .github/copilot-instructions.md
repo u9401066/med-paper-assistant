@@ -47,11 +47,11 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | 9 匯出   | docx+pdf（CRITICAL Gate）        |
 | 11 提交  | git commit+push（CRITICAL Gate） |
 
-## Hook 架構（77 checks — 35 Code-Enforced / 42 Agent-Driven）
+## Hook 架構（78 checks — 36 Code-Enforced / 42 Agent-Driven）
 
 | 類型             | 時機               | Code-Enforced                                                                                                                      | Agent-Driven                                 |
 | ---------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Copilot A1-7+A3b | post-write         | A5 語言一致、A6 段落重複、A3b AI 結構信號、A7 文獻數量充足性                                                                       | A1 字數、A2 引用、A3 Anti-AI、A4 Wikilink    |
+| Copilot A1-7+A3b | post-write         | A5 語言一致、A6 段落重複、A3b AI 結構信號、A3c 語體一致性、A7 文獻數量充足性                                                       | A1 字數、A2 引用、A3 Anti-AI、A4 Wikilink    |
 | Copilot B1-16    | post-section       | B8 統計對齊、B9 時態、B10 段落品質、B11 Results 客觀性、B12 Intro 結構、B13 Discussion 結構、B14 倫理聲明、B15 Hedging、B16 效果量 | B1-B7 概念一致、🔒保護、方法學、順序、Brief  |
 | Copilot C1-13    | post-manuscript    | C9 補充材料、C10 全文驗證、C11 引用分布、C12 引用決策審計、C13 圖表品質                                                            | C1-C8 全稿一致、投稿清單、數量交叉引用、時間 |
 | Copilot D1-D9    | Phase 10           | D1-D9 全部（MetaLearningEngine）                                                                                                   | —                                            |

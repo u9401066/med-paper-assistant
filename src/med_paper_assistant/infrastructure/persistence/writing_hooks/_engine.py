@@ -29,7 +29,7 @@ class WritingHooksEngine(
     Unified engine for all writing-quality hooks.
 
     Composes all mixin series:
-    - A-series (PostWriteHooksMixin): A1–A6, A3b — post-write immediate checks
+    - A-series (PostWriteHooksMixin): A1–A6, A3b, A3c — post-write immediate checks
     - B-series (SectionQualityMixin): B8–B16 — section-level quality
     - C-series (ManuscriptHooksMixin): C3–C13 — manuscript-level consistency
     - F-series (DataArtifactsMixin): F1–F4 — data artifact validation
@@ -62,6 +62,7 @@ class WritingHooksEngine(
             "A2": self.check_citation_density(content, section_name=section),
             "A3": self.check_anti_ai_patterns(content, section=section),
             "A3b": self.check_ai_writing_signals(content, section=section),
+            "A3c": self.check_voice_consistency(content, section=section),
             "A4": self.check_wikilink_format(content, section=section),
             "A5": self.check_language_consistency(content, prefer=prefer_language, section=section),
             "A6": self.check_overlap(content),
@@ -165,6 +166,15 @@ class WritingHooksEngine(
             issue.hook_id = "P2"
             p2_result.issues.append(issue)
         if not p2b_result.passed:
+            p2_result.passed = False
+
+        # P2c: Voice consistency — delegate to A3c
+        p2c_result = self.check_voice_consistency(content, section="precommit")
+        p2c_result.hook_id = "P2"
+        for issue in p2c_result.issues:
+            issue.hook_id = "P2"
+            p2_result.issues.append(issue)
+        if not p2c_result.passed:
             p2_result.passed = False
 
         # P4: Word count — delegate to A1 with 50% critical threshold

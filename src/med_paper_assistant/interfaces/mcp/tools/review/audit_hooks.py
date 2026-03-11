@@ -607,6 +607,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                         "A2",
                         "A3",
                         "A3B",
+                        "A3C",
                         "A4",
                         "A5",
                         "A6",
@@ -634,7 +635,19 @@ def register_audit_hook_tools(mcp: FastMCP):
                     }
                     break
                 elif t == "POST-WRITE":
-                    requested |= {"A1", "A2", "A3", "A3B", "A4", "A5", "A6", "B9", "B10", "B15"}
+                    requested |= {
+                        "A1",
+                        "A2",
+                        "A3",
+                        "A3B",
+                        "A3C",
+                        "A4",
+                        "A5",
+                        "A6",
+                        "B9",
+                        "B10",
+                        "B15",
+                    }
                 elif t == "POST-SECTION":
                     requested |= {"B8", "B9", "B10", "B11", "B12", "B13", "B14", "B15", "B16"}
                 elif t == "POST-MANUSCRIPT":
@@ -696,6 +709,13 @@ def register_audit_hook_tools(mcp: FastMCP):
                 r = engine.check_ai_writing_signals(full_content)
                 all_results["A3B"] = r.to_dict()
                 tracker.record_event("A3B", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "A3C" in requested:
+                r = engine.check_voice_consistency(full_content)
+                all_results["A3C"] = r.to_dict()
+                tracker.record_event("A3C", "pass" if r.passed else "trigger")
                 total_critical += r.critical_count
                 total_warning += r.warning_count
 
