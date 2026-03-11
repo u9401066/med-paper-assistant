@@ -16,7 +16,7 @@ from .hook_effectiveness_tracker import HookEffectivenessTracker
 from .meta_learning_engine import MetaLearningEngine
 from .pending_evolution_store import EvolutionItem, PendingEvolutionStore
 from .pipeline_gate_validator import GateResult, PipelineGateValidator
-from .project_manager import ProjectManager, get_project_manager
+from .project_manager import ProjectManager, get_project_manager, _reset_project_manager
 from .project_memory_manager import ProjectMemoryManager
 from .project_repository import ProjectRepository
 from .quality_scorecard import QualityScorecard
@@ -59,6 +59,7 @@ __all__ = [
     "WorkspaceStateManager",
     "WritingHooksEngine",
     "get_project_manager",
+    "_reset_project_manager",
     "get_workspace_state_manager",
     "reset_workspace_state_manager",
 ]

@@ -903,9 +903,23 @@ class ProjectManager:
 _project_manager: Optional[ProjectManager] = None
 
 
-def get_project_manager(base_path: str = ".") -> ProjectManager:
-    """Get or create the global ProjectManager instance."""
+def get_project_manager(base_path: str | None = None) -> ProjectManager:
+    """Get or create the global ProjectManager instance.
+
+    Args:
+        base_path: Base directory. When None (default), delegates to
+                   ProjectManager.__init__ which reads MEDPAPER_BASE_DIR
+                   env var then falls back to CWD.  Previous default of "."
+                   bypassed the env-var check, causing a dual-instance
+                   state bug when MEDPAPER_BASE_DIR != CWD (e.g. VSX).
+    """
     global _project_manager
     if _project_manager is None:
         _project_manager = ProjectManager(base_path)
     return _project_manager
+
+
+def _reset_project_manager() -> None:
+    """Reset the singleton (for testing only)."""
+    global _project_manager
+    _project_manager = None

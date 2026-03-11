@@ -4,9 +4,9 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-03-04)
+## 當前焦點 (2026-03-11)
 
-VSX Extension Phase 2+3 完成：runWithTools tool-calling loop + DrawioPanel WebviewPanel 嵌入 + Governance Review Stack。已 commit (`d4390cc`) 並 push。
+Code-Enforced reference sufficiency gate & review loop prerequisite 完成。已 commit (`c51b758`) 並 push。
 
 ### 當前狀態
 
@@ -19,7 +19,7 @@ VSX Extension Phase 2+3 完成：runWithTools tool-calling loop + DrawioPanel We
 | Prompts                 | **15**                                                                                      |
 | Agents                  | **9**                                                                                       |
 | Infrastructure classes  | **8** core                                                                                  |
-| Python unit tests       | **839 passed** (excl. external-dep tests)                                                   |
+| Python unit tests       | **871 passed** (excl. external-dep tests)                                                   |
 | VSX vitest              | **106 passed** (4 test files)                                                               |
 | Ruff errors             | **0**                                                                                       |
 
@@ -32,6 +32,19 @@ VSX Extension Phase 2+3 完成：runWithTools tool-calling loop + DrawioPanel We
 | L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
 
 ### 最近變更
+
+#### Code-Enforced Reference Sufficiency & Review Loop (2026-03-11)
+
+- **\_enforce_reference_sufficiency()**: 寫作前硬性檢查文獻數量，不足時返回結構化 REMEDIATION_REQUIRED 指令（unified_search + save_reference_mcp）
+  - 接入 `write_draft` 和 `draft_section`，與 concept validation 同層級
+  - 讀取 journal-profile.yaml 取得 paper_type 對應最低門檻
+  - 從 concept.md 標題提取搜尋 topic hint
+- **\_check_review_completed()**: PipelineGateValidator 新方法，驗證 Phase 7 review loop 完成
+  - 檢查 audit-loop-review.json 存在、min_rounds 達標、verdict 合法
+  - 接入 `_check_prerequisites()` 作為 `prereq:review_completed`（phase >= 8, != 65）
+- **\_run_pre_export_review_gate()**: export_docx/export_pdf 直接阻擋未完成 review
+- **修復 5 個既有測試**: 補上缺少的 concept-review.yaml 前置條件（Phase 4+ 需求）
+- **Tests**: 871 passed（51 pipeline gate, 39 audit hooks）
 
 #### VSX Extension Phase 2+3: runWithTools + DrawioPanel (2026-03-04)
 

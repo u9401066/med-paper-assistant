@@ -37,8 +37,8 @@ from mcp.server.fastmcp import FastMCP
 # Infrastructure modules (DDD architecture)
 from med_paper_assistant.infrastructure.logging import setup_logger
 from med_paper_assistant.infrastructure.persistence import (
-    ProjectManager,
     ReferenceManager,
+    get_project_manager,
 )
 from med_paper_assistant.infrastructure.services import (
     Analyzer,
@@ -82,8 +82,12 @@ def create_server() -> FastMCP:
     logger = setup_logger()
     logger.info("Initializing MedPaper Assistant MCP Server...")
 
-    # Initialize core modules
-    project_manager = ProjectManager()  # Multi-project support
+    # Initialize core modules — use singleton to avoid dual-instance state bug.
+    # get_project_manager() reads MEDPAPER_BASE_DIR env var (set by VSX extension)
+    # then falls back to CWD.  Previously ProjectManager() was called directly here,
+    # creating a separate instance from the singleton used by helper functions
+    # like get_drafts_dir(), causing stale-project reads after switch_project().
+    project_manager = get_project_manager()
     ref_manager = ReferenceManager(project_manager=project_manager)
     drafter = Drafter(ref_manager, project_manager=project_manager)
     formatter = Formatter()

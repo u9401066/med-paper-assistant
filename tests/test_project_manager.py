@@ -224,3 +224,79 @@ class TestAuthorManagement:
         assert stored[0]["orcid"] == ""
         assert stored[1]["name"] == "Dict Name"
         assert stored[1]["orcid"] == "0000-0002-0000-0002"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Singleton + MEDPAPER_BASE_DIR fix (stale-project-state bug)
+# ─────────────────────────────────────────────────────────────────────────────
+class TestGetProjectManagerSingleton:
+    """Verify singleton respects MEDPAPER_BASE_DIR and avoids dual-instance bug."""
+
+    def test_default_reads_medpaper_base_dir(self, tmp_path, monkeypatch):
+        """get_project_manager() with no args should use MEDPAPER_BASE_DIR, not CWD."""
+        from med_paper_assistant.infrastructure.persistence.project_manager import (
+            _reset_project_manager,
+            get_project_manager,
+        )
+
+        _reset_project_manager()
+        monkeypatch.setenv("MEDPAPER_BASE_DIR", str(tmp_path))
+        # CWD is different from tmp_path
+        monkeypatch.chdir("/tmp")  # noqa: S108
+
+        pm = get_project_manager()
+        assert pm.base_path == tmp_path
+        assert pm.state_file == tmp_path / ".current_project"
+
+        _reset_project_manager()
+
+    def test_singleton_returns_same_instance(self, tmp_path, monkeypatch):
+        """Repeated calls return the same object."""
+        from med_paper_assistant.infrastructure.persistence.project_manager import (
+            _reset_project_manager,
+            get_project_manager,
+        )
+
+        _reset_project_manager()
+        monkeypatch.setenv("MEDPAPER_BASE_DIR", str(tmp_path))
+
+        pm1 = get_project_manager()
+        pm2 = get_project_manager()
+        assert pm1 is pm2
+
+        _reset_project_manager()
+
+    def test_switch_project_visible_to_helpers(self, tmp_path, monkeypatch):
+        """After switch_project via singleton, helpers see the new project.
+
+        This is the exact scenario that was broken: create_server() used a
+        local ProjectManager() while get_drafts_dir() used the singleton,
+        so switch_project wrote .current_project to a different location.
+        """
+        from med_paper_assistant.infrastructure.persistence.project_manager import (
+            _reset_project_manager,
+            get_project_manager,
+        )
+
+        _reset_project_manager()
+        monkeypatch.setenv("MEDPAPER_BASE_DIR", str(tmp_path))
+
+        pm = get_project_manager()
+
+        # Create two projects
+        pm.create_project(name="Project A", paper_type="original-research")
+        pm.create_project(name="Project B", paper_type="case-report")
+
+        assert pm.get_current_project() == "project-b"
+
+        # Switch back to A
+        pm.switch_project("project-a")
+        assert pm.get_current_project() == "project-a"
+
+        # A second get_project_manager() call returns the SAME instance
+        pm2 = get_project_manager()
+        assert pm2.get_current_project() == "project-a"
+        info = pm2.get_project_info()
+        assert info["slug"] == "project-a"
+
+        _reset_project_manager()
