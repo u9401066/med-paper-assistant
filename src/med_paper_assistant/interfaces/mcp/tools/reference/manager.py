@@ -48,14 +48,25 @@ def register_reference_manager_tools(
     @mcp.tool()
     def save_reference(article: Union[dict, str], project: Optional[str] = None) -> str:
         """
-        Save reference with metadata from pubmed-search. Use save_reference_mcp instead for verified data.
+        ⚠️ DEPRECATED — Use save_reference_mcp(pmid) instead for verified data.
+
+        This tool accepts unverified metadata that may be fabricated.
+        Only use as fallback when pubmed-search API is unavailable.
 
         Args:
             article: Article metadata dict with 'pmid' field (from pubmed-search)
             project: Project slug (default: current)
         """
-        # Log tool call
+        # Log tool call with deprecation warning
         log_tool_call("save_reference", {"article": article, "project": project})
+
+        # === GUARDRAIL: Deprecation warning ===
+        # Always emit warning so even weak models notice
+        deprecation_warning = (
+            "\n\n⚠️ **DEPRECATION WARNING**: `save_reference()` accepts unverified metadata.\n"
+            "✅ **Preferred**: `save_reference_mcp(pmid='<PMID>')` — fetches verified data from PubMed API.\n"
+            "Only use `save_reference()` when pubmed-search API is confirmed unavailable.\n"
+        )
 
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
@@ -117,7 +128,17 @@ def register_reference_manager_tools(
         project_msg = _ensure_project_exists()
         result = ref_manager.save_reference(article)
         log_tool_result("save_reference", result)
-        return result + project_msg
+
+        # Log as misuse for telemetry tracking
+        pmid_val = article.get("pmid", "unknown") if isinstance(article, dict) else "unknown"
+        log_agent_misuse(
+            "save_reference",
+            "save_reference_mcp(pmid)",
+            {"pmid": pmid_val},
+            "Agent used deprecated save_reference() instead of save_reference_mcp()",
+        )
+
+        return result + deprecation_warning + project_msg
 
     @mcp.tool()
     def save_reference_mcp(pmid: str, agent_notes: str = "", project: Optional[str] = None) -> str:

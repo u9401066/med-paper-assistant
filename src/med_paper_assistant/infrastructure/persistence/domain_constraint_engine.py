@@ -58,6 +58,30 @@ class ConstraintCategory:
     BOUNDARY = "boundary"  # Hard limits (word count, figures, etc.)
 
 
+# ── Core Anti-AI Patterns (shared across all paper types) ─────────
+# This is the DCE "core" subset (16 patterns). The full 130+ list
+# lives in writing_hooks/_constants.py and is used by Hook A3.
+
+_CORE_ANTI_AI_PATTERNS: list[str] = [
+    "it is worth noting",
+    "it is important to note",
+    "in conclusion, our study",
+    "delve into",
+    "shed light on",
+    "pave the way",
+    "a myriad of",
+    "in the realm of",
+    "a testament to",
+    "multifaceted",
+    "underscores the importance",
+    "notably",
+    "groundbreaking",
+    "comprehensive overview",
+    "leveraging",
+    "pivotal role",
+]
+
+
 # ── Base Constraint Templates ─────────────────────────────────────
 
 
@@ -156,24 +180,7 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                     "rule": "anti_ai_vocabulary",
                     "description": "Forbidden AI-typical phrases that trigger reviewer suspicion",
                     "params": {
-                        "forbidden_patterns": [
-                            "it is worth noting",
-                            "it is important to note",
-                            "in conclusion, our study",
-                            "delve into",
-                            "shed light on",
-                            "pave the way",
-                            "a myriad of",
-                            "in the realm of",
-                            "a testament to",
-                            "multifaceted",
-                            "underscores the importance",
-                            "notably",
-                            "groundbreaking",
-                            "comprehensive overview",
-                            "leveraging",
-                            "pivotal role",
-                        ],
+                        "forbidden_patterns": list(_CORE_ANTI_AI_PATTERNS),
                     },
                     "severity": "WARNING",
                     "hook_ref": "A3",
@@ -259,7 +266,7 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
         "case-report": {
             "meta": {
                 "paper_type": "case-report",
-                "version": "1.0.0",
+                "version": "1.1.0",
                 "description": "Constraints for case reports and case series",
             },
             "constraints": [
@@ -292,15 +299,9 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                     "id": "V002",
                     "category": ConstraintCategory.VOCABULARY,
                     "rule": "anti_ai_vocabulary",
-                    "description": "Forbidden AI-typical phrases",
+                    "description": "Forbidden AI-typical phrases that trigger reviewer suspicion",
                     "params": {
-                        "forbidden_patterns": [
-                            "it is worth noting",
-                            "delve into",
-                            "shed light on",
-                            "a myriad of",
-                            "multifaceted",
-                        ],
+                        "forbidden_patterns": list(_CORE_ANTI_AI_PATTERNS),
                     },
                     "severity": "WARNING",
                     "hook_ref": "A3",
@@ -315,6 +316,14 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                     "provenance": "base",
                 },
                 {
+                    "id": "T001",
+                    "category": ConstraintCategory.TEMPORAL,
+                    "rule": "case_presentation_past_tense",
+                    "description": "Case Presentation section should primarily use past tense",
+                    "severity": "INFO",
+                    "provenance": "base",
+                },
+                {
                     "id": "B001",
                     "category": ConstraintCategory.BOUNDARY,
                     "rule": "word_count_range",
@@ -322,6 +331,15 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                     "params": {"min_words": 800, "max_words": 2500},
                     "severity": "WARNING",
                     "hook_ref": "A1",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B002",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "no_overlap_between_sections",
+                    "description": "Paragraphs should not be duplicated across sections",
+                    "severity": "WARNING",
+                    "hook_ref": "A6",
                     "provenance": "base",
                 },
                 {
@@ -349,7 +367,7 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
         "systematic-review": {
             "meta": {
                 "paper_type": "systematic-review",
-                "version": "1.0.0",
+                "version": "1.1.0",
                 "description": "Constraints for systematic reviews",
             },
             "constraints": [
@@ -357,6 +375,7 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                     "id": "R001",
                     "category": ConstraintCategory.STRUCTURAL,
                     "rule": "required_sections",
+                    "description": "Must have Introduction, Methods, Results, Discussion, Conclusion",
                     "params": {
                         "sections": [
                             "Introduction",
@@ -367,6 +386,15 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                         ]
                     },
                     "severity": "CRITICAL",
+                    "provenance": "base",
+                },
+                {
+                    "id": "R002",
+                    "category": ConstraintCategory.STRUCTURAL,
+                    "rule": "methods_before_results",
+                    "description": "Methods section must appear before Results",
+                    "severity": "CRITICAL",
+                    "hook_ref": "B6",
                     "provenance": "base",
                 },
                 {
@@ -389,16 +417,65 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                     "id": "V001",
                     "category": ConstraintCategory.VOCABULARY,
                     "rule": "language_consistency",
+                    "description": "Must use consistent British or American English throughout",
                     "severity": "WARNING",
                     "hook_ref": "A5",
+                    "provenance": "base",
+                },
+                {
+                    "id": "V002",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "anti_ai_vocabulary",
+                    "description": "Forbidden AI-typical phrases that trigger reviewer suspicion",
+                    "params": {
+                        "forbidden_patterns": list(_CORE_ANTI_AI_PATTERNS),
+                    },
+                    "severity": "WARNING",
+                    "hook_ref": "A3",
+                    "provenance": "base",
+                },
+                {
+                    "id": "E001",
+                    "category": ConstraintCategory.EVIDENTIAL,
+                    "rule": "claim_requires_citation",
+                    "description": "Factual claims in Introduction/Discussion must have citations",
+                    "params": {"min_citations_per_paragraph": 1},
+                    "severity": "WARNING",
+                    "hook_ref": "A2",
+                    "provenance": "base",
+                },
+                {
+                    "id": "T001",
+                    "category": ConstraintCategory.TEMPORAL,
+                    "rule": "methods_past_tense",
+                    "description": "Methods section should primarily use past tense",
+                    "severity": "INFO",
+                    "provenance": "base",
+                },
+                {
+                    "id": "T002",
+                    "category": ConstraintCategory.TEMPORAL,
+                    "rule": "results_past_tense",
+                    "description": "Results section should primarily use past tense",
+                    "severity": "INFO",
                     "provenance": "base",
                 },
                 {
                     "id": "B001",
                     "category": ConstraintCategory.BOUNDARY,
                     "rule": "word_count_range",
+                    "description": "Total word count should be within typical range for systematic reviews",
                     "params": {"min_words": 3000, "max_words": 8000},
                     "severity": "WARNING",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B002",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "no_overlap_between_sections",
+                    "description": "Paragraphs should not be duplicated across sections",
+                    "severity": "WARNING",
+                    "hook_ref": "A6",
                     "provenance": "base",
                 },
                 {
@@ -415,9 +492,355 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                     "id": "P001",
                     "category": ConstraintCategory.REPORTING,
                     "rule": "equator_guideline_required",
+                    "description": "PRISMA guideline required for systematic reviews",
                     "params": {"guidelines": ["PRISMA"]},
                     "severity": "CRITICAL",
                     "hook_ref": "E1",
+                    "provenance": "base",
+                },
+            ],
+        },
+        "meta-analysis": {
+            "meta": {
+                "paper_type": "meta-analysis",
+                "version": "1.0.0",
+                "description": "Constraints for meta-analyses (systematic review with quantitative synthesis)",
+            },
+            "constraints": [
+                {
+                    "id": "R001",
+                    "category": ConstraintCategory.STRUCTURAL,
+                    "rule": "required_sections",
+                    "description": "Must have Introduction, Methods, Results, Discussion, Conclusion",
+                    "params": {
+                        "sections": [
+                            "Introduction",
+                            "Methods",
+                            "Results",
+                            "Discussion",
+                            "Conclusion",
+                        ]
+                    },
+                    "severity": "CRITICAL",
+                    "provenance": "base",
+                },
+                {
+                    "id": "R002",
+                    "category": ConstraintCategory.STRUCTURAL,
+                    "rule": "methods_before_results",
+                    "description": "Methods section must appear before Results",
+                    "severity": "CRITICAL",
+                    "hook_ref": "B6",
+                    "provenance": "base",
+                },
+                {
+                    "id": "S001",
+                    "category": ConstraintCategory.STATISTICAL,
+                    "rule": "statistical_test_must_be_declared",
+                    "description": "Every statistical test in Results must be declared in Methods",
+                    "severity": "CRITICAL",
+                    "hook_ref": "B8",
+                    "provenance": "base",
+                },
+                {
+                    "id": "S002",
+                    "category": ConstraintCategory.STATISTICAL,
+                    "rule": "heterogeneity_reported",
+                    "description": "Heterogeneity statistics (I², Q-test) must be reported",
+                    "severity": "CRITICAL",
+                    "provenance": "base",
+                },
+                {
+                    "id": "S003",
+                    "category": ConstraintCategory.STRUCTURAL,
+                    "rule": "prisma_flow_required",
+                    "description": "PRISMA flow diagram must be included",
+                    "severity": "CRITICAL",
+                    "provenance": "base",
+                },
+                {
+                    "id": "S004",
+                    "category": ConstraintCategory.STRUCTURAL,
+                    "rule": "search_strategy_documented",
+                    "description": "Full search strategy with databases and terms must be in Methods",
+                    "severity": "CRITICAL",
+                    "provenance": "base",
+                },
+                {
+                    "id": "S005",
+                    "category": ConstraintCategory.STRUCTURAL,
+                    "rule": "forest_plot_required",
+                    "description": "Forest plot must be included for primary outcome",
+                    "severity": "CRITICAL",
+                    "provenance": "base",
+                },
+                {
+                    "id": "V001",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "language_consistency",
+                    "description": "Must use consistent British or American English throughout",
+                    "severity": "WARNING",
+                    "hook_ref": "A5",
+                    "provenance": "base",
+                },
+                {
+                    "id": "V002",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "anti_ai_vocabulary",
+                    "description": "Forbidden AI-typical phrases that trigger reviewer suspicion",
+                    "params": {
+                        "forbidden_patterns": list(_CORE_ANTI_AI_PATTERNS),
+                    },
+                    "severity": "WARNING",
+                    "hook_ref": "A3",
+                    "provenance": "base",
+                },
+                {
+                    "id": "E001",
+                    "category": ConstraintCategory.EVIDENTIAL,
+                    "rule": "claim_requires_citation",
+                    "description": "Factual claims in Introduction/Discussion must have citations",
+                    "params": {"min_citations_per_paragraph": 1},
+                    "severity": "WARNING",
+                    "hook_ref": "A2",
+                    "provenance": "base",
+                },
+                {
+                    "id": "T001",
+                    "category": ConstraintCategory.TEMPORAL,
+                    "rule": "methods_past_tense",
+                    "description": "Methods section should primarily use past tense",
+                    "severity": "INFO",
+                    "provenance": "base",
+                },
+                {
+                    "id": "T002",
+                    "category": ConstraintCategory.TEMPORAL,
+                    "rule": "results_past_tense",
+                    "description": "Results section should primarily use past tense",
+                    "severity": "INFO",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B001",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "word_count_range",
+                    "description": "Total word count should be within typical range for meta-analyses",
+                    "params": {"min_words": 3500, "max_words": 8000},
+                    "severity": "WARNING",
+                    "hook_ref": "A1",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B002",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "no_overlap_between_sections",
+                    "description": "Paragraphs should not be duplicated across sections",
+                    "severity": "WARNING",
+                    "hook_ref": "A6",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B003",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "minimum_references",
+                    "description": "Minimum 40 references required for meta-analyses",
+                    "params": {"min_references": 40},
+                    "severity": "CRITICAL",
+                    "hook_ref": "Phase2Gate",
+                    "provenance": "base",
+                },
+                {
+                    "id": "P001",
+                    "category": ConstraintCategory.REPORTING,
+                    "rule": "equator_guideline_required",
+                    "description": "PRISMA guideline required for meta-analyses",
+                    "params": {"guidelines": ["PRISMA"]},
+                    "severity": "CRITICAL",
+                    "hook_ref": "E1",
+                    "provenance": "base",
+                },
+            ],
+        },
+        "review-article": {
+            "meta": {
+                "paper_type": "review-article",
+                "version": "1.0.0",
+                "description": "Constraints for narrative reviews and invited reviews",
+            },
+            "constraints": [
+                {
+                    "id": "R001",
+                    "category": ConstraintCategory.STRUCTURAL,
+                    "rule": "required_sections",
+                    "description": "Must have Introduction and Conclusion",
+                    "params": {
+                        "sections": [
+                            "Introduction",
+                            "Conclusion",
+                        ]
+                    },
+                    "severity": "CRITICAL",
+                    "provenance": "base",
+                },
+                {
+                    "id": "V001",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "language_consistency",
+                    "description": "Must use consistent British or American English throughout",
+                    "severity": "WARNING",
+                    "hook_ref": "A5",
+                    "provenance": "base",
+                },
+                {
+                    "id": "V002",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "anti_ai_vocabulary",
+                    "description": "Forbidden AI-typical phrases that trigger reviewer suspicion",
+                    "params": {
+                        "forbidden_patterns": list(_CORE_ANTI_AI_PATTERNS),
+                    },
+                    "severity": "WARNING",
+                    "hook_ref": "A3",
+                    "provenance": "base",
+                },
+                {
+                    "id": "E001",
+                    "category": ConstraintCategory.EVIDENTIAL,
+                    "rule": "claim_requires_citation",
+                    "description": "Factual claims must have citations",
+                    "params": {"min_citations_per_paragraph": 1},
+                    "severity": "WARNING",
+                    "hook_ref": "A2",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B001",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "word_count_range",
+                    "description": "Total word count should be within typical range for review articles",
+                    "params": {"min_words": 3000, "max_words": 6000},
+                    "severity": "WARNING",
+                    "hook_ref": "A1",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B002",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "no_overlap_between_sections",
+                    "description": "Paragraphs should not be duplicated across sections",
+                    "severity": "WARNING",
+                    "hook_ref": "A6",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B003",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "minimum_references",
+                    "description": "Minimum 30 references required for review articles",
+                    "params": {"min_references": 30},
+                    "severity": "CRITICAL",
+                    "hook_ref": "Phase2Gate",
+                    "provenance": "base",
+                },
+            ],
+        },
+        "letter": {
+            "meta": {
+                "paper_type": "letter",
+                "version": "1.0.0",
+                "description": "Constraints for letters to the editor and brief communications",
+            },
+            "constraints": [
+                {
+                    "id": "V001",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "language_consistency",
+                    "description": "Must use consistent British or American English",
+                    "severity": "WARNING",
+                    "hook_ref": "A5",
+                    "provenance": "base",
+                },
+                {
+                    "id": "V002",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "anti_ai_vocabulary",
+                    "description": "Forbidden AI-typical phrases that trigger reviewer suspicion",
+                    "params": {
+                        "forbidden_patterns": list(_CORE_ANTI_AI_PATTERNS),
+                    },
+                    "severity": "WARNING",
+                    "hook_ref": "A3",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B001",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "word_count_range",
+                    "description": "Letters are typically very short",
+                    "params": {"min_words": 200, "max_words": 800},
+                    "severity": "WARNING",
+                    "hook_ref": "A1",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B003",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "minimum_references",
+                    "description": "Minimum 5 references required for letters",
+                    "params": {"min_references": 5},
+                    "severity": "WARNING",
+                    "hook_ref": "Phase2Gate",
+                    "provenance": "base",
+                },
+            ],
+        },
+        "other": {
+            "meta": {
+                "paper_type": "other",
+                "version": "1.0.0",
+                "description": "Generic constraints for editorials, perspectives, commentaries, etc.",
+            },
+            "constraints": [
+                {
+                    "id": "V001",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "language_consistency",
+                    "description": "Must use consistent British or American English",
+                    "severity": "WARNING",
+                    "hook_ref": "A5",
+                    "provenance": "base",
+                },
+                {
+                    "id": "V002",
+                    "category": ConstraintCategory.VOCABULARY,
+                    "rule": "anti_ai_vocabulary",
+                    "description": "Forbidden AI-typical phrases that trigger reviewer suspicion",
+                    "params": {
+                        "forbidden_patterns": list(_CORE_ANTI_AI_PATTERNS),
+                    },
+                    "severity": "WARNING",
+                    "hook_ref": "A3",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B001",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "word_count_range",
+                    "description": "Total word count should be within typical range",
+                    "params": {"min_words": 1000, "max_words": 5000},
+                    "severity": "WARNING",
+                    "hook_ref": "A1",
+                    "provenance": "base",
+                },
+                {
+                    "id": "B003",
+                    "category": ConstraintCategory.BOUNDARY,
+                    "rule": "minimum_references",
+                    "description": "Minimum 10 references required",
+                    "params": {"min_references": 10},
+                    "severity": "WARNING",
+                    "hook_ref": "Phase2Gate",
                     "provenance": "base",
                 },
             ],
@@ -681,13 +1104,15 @@ class DomainConstraintEngine:
         This is the 'Sand Spreader' — checks content against the
         epistemic boundary defined by the constraint set.
 
-        Currently validates:
+        Validates:
         - Vocabulary constraints (forbidden patterns)
-        - Boundary constraints (word count)
-        - Structural constraints (section existence)
+        - Boundary constraints (word count, min references, overlap)
+        - Structural constraints (section existence, ordering)
+        - Evidential constraints (patient consent)
 
-        Statistical/evidential constraints are handled by WritingHooksEngine
-        (B8, A2) and referenced here for completeness.
+        Statistical/evidential constraints like claim_requires_citation and
+        tense checks are handled by WritingHooksEngine (B8, A2, B9) and
+        referenced here for completeness.
 
         Args:
             content: Text content to validate.
@@ -774,6 +1199,121 @@ class DomainConstraintEngine:
                                 suggestion=f"Add '## {req_section}' section",
                             )
                         )
+
+            # Methods-before-Results ordering check
+            elif rule == "methods_before_results" and section == "manuscript":
+                methods_match = re.search(
+                    r"^\s*#{1,4}\s+Methods\s*$", content, re.IGNORECASE | re.MULTILINE
+                )
+                results_match = re.search(
+                    r"^\s*#{1,4}\s+Results\s*$", content, re.IGNORECASE | re.MULTILINE
+                )
+                if methods_match and results_match:
+                    if methods_match.start() > results_match.start():
+                        violations.append(
+                            ConstraintViolation(
+                                constraint_id=cid,
+                                rule=rule,
+                                category=category,
+                                severity=severity,
+                                message="Methods section appears after Results",
+                                section="manuscript",
+                                suggestion="Move Methods section before Results",
+                            )
+                        )
+
+            # Minimum references check (count [[wikilink]] citations)
+            elif rule == "minimum_references":
+                min_refs = params.get("min_references", 0)
+                # Count unique wikilink citations [[...]]
+                wikilinks = set(re.findall(r"\[\[([^\]]+)\]\]", content))
+                if len(wikilinks) < min_refs:
+                    violations.append(
+                        ConstraintViolation(
+                            constraint_id=cid,
+                            rule=rule,
+                            category=category,
+                            severity=severity,
+                            message=(
+                                f"Only {len(wikilinks)} unique citations found, "
+                                f"minimum {min_refs} required"
+                            ),
+                            section=section,
+                            suggestion=f"Add at least {min_refs - len(wikilinks)} more citations",
+                        )
+                    )
+
+            # Patient consent mentioned check (case reports)
+            elif rule == "patient_consent_mentioned" and section == "manuscript":
+                consent_keywords = [
+                    "informed consent",
+                    "patient consent",
+                    "written consent",
+                    "irb approval",
+                    "irb waiver",
+                    "ethics committee",
+                    "ethical approval",
+                    "institutional review board",
+                ]
+                found_consent = any(kw in content_lower for kw in consent_keywords)
+                if not found_consent:
+                    violations.append(
+                        ConstraintViolation(
+                            constraint_id=cid,
+                            rule=rule,
+                            category=category,
+                            severity=severity,
+                            message="No mention of patient consent or IRB approval found",
+                            section="manuscript",
+                            suggestion=(
+                                "Add a statement about informed consent or IRB approval/waiver"
+                            ),
+                        )
+                    )
+
+            # No overlap between sections check
+            elif rule == "no_overlap_between_sections" and section == "manuscript":
+                # Split content into sections and detect duplicate paragraphs
+                section_pattern = re.compile(r"^\s*#{1,4}\s+(.+?)\s*$", re.MULTILINE)
+                headings = list(section_pattern.finditer(content))
+                if len(headings) >= 2:
+                    section_texts: dict[str, list[str]] = {}
+                    for i, heading in enumerate(headings):
+                        start = heading.end()
+                        end = headings[i + 1].start() if i + 1 < len(headings) else len(content)
+                        sec_name = heading.group(1).strip()
+                        sec_content = content[start:end].strip()
+                        # Extract paragraphs (non-empty, 3+ words)
+                        paragraphs = [
+                            p.strip()
+                            for p in sec_content.split("\n\n")
+                            if p.strip() and len(p.split()) >= 3
+                        ]
+                        section_texts[sec_name] = paragraphs
+
+                    # Check for duplicate paragraphs across different sections
+                    seen_paragraphs: dict[str, str] = {}  # paragraph -> section_name
+                    for sec_name, paragraphs in section_texts.items():
+                        for para in paragraphs:
+                            # Normalize for comparison
+                            normalized = " ".join(para.lower().split())
+                            if normalized in seen_paragraphs:
+                                violations.append(
+                                    ConstraintViolation(
+                                        constraint_id=cid,
+                                        rule=rule,
+                                        category=category,
+                                        severity=severity,
+                                        message=(
+                                            f"Duplicate paragraph found in "
+                                            f"'{seen_paragraphs[normalized]}' and '{sec_name}'"
+                                        ),
+                                        section="manuscript",
+                                        suggestion="Remove or rewrite the duplicated paragraph",
+                                    )
+                                )
+                                break  # One violation per section pair is enough
+                            seen_paragraphs[normalized] = sec_name
 
         critical_count = sum(1 for v in violations if v.severity == "CRITICAL")
         passed = critical_count == 0

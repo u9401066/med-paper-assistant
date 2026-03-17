@@ -16,7 +16,7 @@ def get_project_root() -> Path:
     for parent in current.parents:
         if (parent / "pyproject.toml").exists() and (parent / "templates").exists():
             return parent
-    return current.parents[5]
+    return current.parents[3]
 
 
 def _default_base_dir() -> Path:
@@ -64,7 +64,9 @@ class AppConfig:
         return cls(
             base_dir=base_dir,
             projects_dir=Path(os.getenv("MEDPAPER_PROJECTS_DIR", base_dir / "projects")).resolve(),
-            templates_dir=Path(os.getenv("MEDPAPER_TEMPLATES_DIR", base_dir / "templates")).resolve(),
+            templates_dir=Path(
+                os.getenv("MEDPAPER_TEMPLATES_DIR", base_dir / "templates")
+            ).resolve(),
             entrez_email=os.getenv("ENTREZ_EMAIL", "medpaper@example.com"),
             entrez_api_key=os.getenv("ENTREZ_API_KEY"),
         )

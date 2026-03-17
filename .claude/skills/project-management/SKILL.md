@@ -69,3 +69,30 @@ description: |
 | 不確定用哪個  | `list_projects()`                           |
 | 先看文獻      | `start_exploration()`                       |
 | 改 paper type | `update_project_settings(paper_type="...")` |
+
+---
+
+## Journal Profile（期刊設定）
+
+系統內建麻醉學前 20 大期刊的投稿設定檔（`templates/journal-profiles/`），包含字數限制、圖表上限、引用格式等。
+
+**使用方式**：
+
+- 用戶只需告訴 Copilot 目標期刊名稱（如「我要投 BJA」）
+- Agent 讀取對應 YAML → 複製到 `projects/{slug}/journal-profile.yaml`
+- 所有 Writing Hooks 自動套用該期刊的約束
+
+**可用指令**：
+
+```
+# 查看所有可用期刊
+read_file templates/journal-profiles/_index.yaml
+
+# 讀取特定期刊設定
+read_file templates/journal-profiles/bja.yaml
+
+# 套用到專案
+cp templates/journal-profiles/bja.yaml projects/{slug}/journal-profile.yaml
+```
+
+💡 **提醒用戶**：可以直接請 Copilot 讀取期刊的設定資料來建立 journal-profile.yaml，不需手動操作。

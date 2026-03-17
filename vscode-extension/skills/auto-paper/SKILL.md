@@ -134,9 +134,15 @@ Agent 按優先順序取得期刊要求：
   a) 用戶提供 submission guide / for-authors PDF/URL
      → 解析文件 → 自動填入 YAML（需用戶確認）
   b) 用戶口頭說明（例：「BJA, original research, 3000字」）
-     → Agent 查詢內建期刊庫 + 補全欄位
+     → Agent 先查 templates/journal-profiles/ 內建期刊庫（麻醉學 Top 20）
+     → 有匹配 → 讀取 YAML → 複製到專案 → 用戶確認
+     → 無匹配 → 從 template 建立 + 補全欄位
   c) 無明確期刊 → 使用 paper_type 預設值
      → 產出 YAML 後提醒用戶日後補充
+
+  💡 提醒用戶：可直接請 Copilot 讀取內建期刊設定（templates/journal-profiles/），
+     例如「幫我套用 BJA 的設定」即可自動產生 journal-profile.yaml。
+     用 read_file 閱讀 _index.yaml 可查看所有 20 個可用期刊。
 
 ── Step 2: 產生 journal-profile.yaml ──
   1. 從 templates/journal-profile.template.yaml 複製模板

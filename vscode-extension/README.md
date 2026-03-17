@@ -10,7 +10,7 @@ AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
 - 💡 **Concept Development** - Develop and validate research novelty
 - 📊 **Data Analysis** - Statistical tests, Table 1, visualizations
 - 📄 **Word Export** - Export to journal-ready Word documents
-- 🔔 **Dual-Hook Architecture** - 76 個品質檢查（34 Code-Enforced / 42 Agent-Driven）
+- 🔔 **Dual-Hook Architecture** - 78 個品質檢查（55 Code-Enforced / 23 Agent-Driven）
 
 ## Installation
 
@@ -88,20 +88,20 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 Capability → Skill → Hook → MCP Tool
 ```
 
-### 🔔 Hook Architecture（76 checks — 34 Code-Enforced / 42 Agent-Driven）
+### 🔔 Hook Architecture（78 checks — 55 Code-Enforced / 23 Agent-Driven）
 
-| Hook             | 時機            | 功能                                 |
-| ---------------- | --------------- | ------------------------------------ |
-| Copilot A1-6+A3b | 每段寫完        | 字數、引用密度、Anti-AI、語言一致    |
-| Copilot B1-16    | 每節寫完        | 概念一致、統計、時態、段落品質       |
-| Copilot C1-13    | 全稿完成        | 全稿一致性、引用分布、圖表品質       |
-| Copilot D1-D9    | Phase 10        | MetaLearningEngine 自我改進          |
-| Copilot E1-5     | Phase 7 每輪    | EQUATOR 報告指引                     |
-| Copilot F1-4     | post-manuscript | DataArtifactTracker                  |
-| Review R1-R6     | Phase 7 submit  | ReviewHooksEngine 審查品質 HARD GATE |
-| General G9       | pre-commit      | Git 狀態檢查                         |
-| Pre-Commit P1-P8 | Git commit 前   | Safety net                           |
-| General G1-G8    | Git commit 前   | Memory、README、CHANGELOG 等         |
+| Hook             | 時機            | 功能                                         |
+| ---------------- | --------------- | -------------------------------------------- |
+| Copilot A1-7+A3b | 每段寫完        | 字數、引用密度、Anti-AI、語言一致、B2 🔒保護 |
+| Copilot B1-16    | 每節寫完        | 概念一致、統計、時態、段落品質               |
+| Copilot C1-13    | 全稿完成        | 全稿一致性、C2 投稿清單、引用分布、圖表品質  |
+| Copilot D1-D9    | Phase 10        | MetaLearningEngine 自我改進                  |
+| Copilot E1-5     | Phase 7 每輪    | EQUATOR 報告指引                             |
+| Copilot F1-4     | post-manuscript | DataArtifactTracker                          |
+| Review R1-R6     | Phase 7 submit  | ReviewHooksEngine 審查品質 HARD GATE         |
+| General G9       | pre-commit      | Git 狀態檢查                                 |
+| Pre-Commit P1-P8 | Git commit 前   | Safety net + P6 記憶同步                     |
+| General G1-G8    | Git commit 前   | Memory、README、CHANGELOG 等                 |
 
 ### Bundled Skills (26)
 
@@ -118,11 +118,11 @@ Capability → Skill → Hook → MCP Tool
 | 開發 | ddd-architect, code-refactor, code-reviewer, test-generator |
 | 文件 | readme-updater, readme-i18n, roadmap-updater                |
 
-### MCP Tools (85)
+### MCP Tools (88)
 
 自動註冊 MCP Server：
 
-- **MedPaper Assistant** - 85 工具（project/17, reference/12, draft/13, validation/3, analysis/9, review/21, export/10）
+- **MedPaper Assistant** - 88 工具（project/17, reference/12, draft/13, validation/3, analysis/10, review/23, export/10）
 - **CGU Creativity** - 創意發想工具
 - **Draw.io Diagrams** - 圖表繪製
 

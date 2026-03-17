@@ -45,8 +45,19 @@
   - Corrected hook count: 36→52 Code-Enforced / 42→26 Agent-Driven (total still 78)
   - AGENTS.md + copilot-instructions.md tables fully aligned with code
   - 905 tests all passing, 0 regressions
+- **Weak model resilience — 3 hooks Code-Enforced (2026-03-18)**:
+  - Converted B2 🔒保護內容, C2 投稿清單, P6 記憶同步 from Agent-Driven to Code-Enforced
+  - B2: delegates to P5 with hook_id remapped; runs in post-write batch
+  - C2: check_submission_checklist() reads journal_profile required_documents; 8 doc type patterns; runs in post-manuscript batch
+  - P6: check_memory_sync() checks .memory/ and memory-bank/ mtimes (7200s threshold); runs in precommit batch
+  - save_reference() deprecation guardrail with log_agent_misuse()
+  - 17 new tests (B2×4, C2×8, P6×5) + 21 weak model simulation tests — all passing
+  - Hook count: 52→55 Code-Enforced / 26→23 Agent-Driven (total still 78)
+  - All docs synced: AGENTS.md, .github/copilot-instructions.md, vscode-extension/copilot-instructions.md, memory-bank/activeContext.md
 
 ## Doing
+
+- Weak model resilience: remaining 20 Agent-Driven hooks still need code enforcement or simplification
 
 (none)
 

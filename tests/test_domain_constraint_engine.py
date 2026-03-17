@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from med_paper_assistant.infrastructure.persistence.domain_constraint_engine import (
+    _CORE_ANTI_AI_PATTERNS,
     BASE_CONSTRAINTS,
     ConstraintCategory,
     ConstraintViolation,
@@ -50,6 +51,30 @@ class TestBaseConstraints:
     def test_base_has_systematic_review(self) -> None:
         assert "systematic-review" in BASE_CONSTRAINTS
 
+    def test_base_has_meta_analysis(self) -> None:
+        assert "meta-analysis" in BASE_CONSTRAINTS
+
+    def test_base_has_review_article(self) -> None:
+        assert "review-article" in BASE_CONSTRAINTS
+
+    def test_base_has_letter(self) -> None:
+        assert "letter" in BASE_CONSTRAINTS
+
+    def test_base_has_other(self) -> None:
+        assert "other" in BASE_CONSTRAINTS
+
+    def test_all_seven_paper_types_present(self) -> None:
+        expected = {
+            "original-research",
+            "case-report",
+            "systematic-review",
+            "meta-analysis",
+            "review-article",
+            "letter",
+            "other",
+        }
+        assert set(BASE_CONSTRAINTS.keys()) == expected
+
     def test_original_research_has_constraints(self) -> None:
         constraints = BASE_CONSTRAINTS["original-research"]["constraints"]
         assert len(constraints) >= 10
@@ -58,6 +83,27 @@ class TestBaseConstraints:
         or_count = len(BASE_CONSTRAINTS["original-research"]["constraints"])
         cr_count = len(BASE_CONSTRAINTS["case-report"]["constraints"])
         assert cr_count < or_count
+
+    def test_all_types_have_anti_ai_vocabulary(self) -> None:
+        """Every paper type must have V002 anti_ai_vocabulary constraint."""
+        for paper_type, template in BASE_CONSTRAINTS.items():
+            rules = [c["rule"] for c in template["constraints"]]
+            assert "anti_ai_vocabulary" in rules, (
+                f"{paper_type} missing anti_ai_vocabulary constraint"
+            )
+
+    def test_core_anti_ai_patterns_shared(self) -> None:
+        """All paper types' V002 should use the same _CORE_ANTI_AI_PATTERNS."""
+        for paper_type, template in BASE_CONSTRAINTS.items():
+            v002 = next(
+                (c for c in template["constraints"] if c.get("rule") == "anti_ai_vocabulary"),
+                None,
+            )
+            assert v002 is not None, f"{paper_type} missing V002"
+            patterns = v002.get("params", {}).get("forbidden_patterns", [])
+            assert set(patterns) == set(_CORE_ANTI_AI_PATTERNS), (
+                f"{paper_type} V002 patterns don't match _CORE_ANTI_AI_PATTERNS"
+            )
 
     def test_constraints_have_required_fields(self) -> None:
         for paper_type, template in BASE_CONSTRAINTS.items():
@@ -73,6 +119,14 @@ class TestBaseConstraints:
         for paper_type, template in BASE_CONSTRAINTS.items():
             ids = [c["id"] for c in template["constraints"]]
             assert len(ids) == len(set(ids)), f"Duplicate IDs in {paper_type}: {ids}"
+
+    def test_all_constraints_have_descriptions(self) -> None:
+        """Every constraint should have a description field."""
+        for paper_type, template in BASE_CONSTRAINTS.items():
+            for c in template["constraints"]:
+                assert "description" in c and c["description"], (
+                    f"Missing description in {paper_type} constraint {c.get('id')}"
+                )
 
 
 # ── Get Active Constraints ────────────────────────────────────────
@@ -259,8 +313,9 @@ class TestValidateAgainstConstraints:
     """Test content validation (Sand Spreader)."""
 
     def test_clean_content_passes(self, engine: DomainConstraintEngine) -> None:
-        content = """## Introduction
-        This is research about medical devices.
+        refs = " ".join(f"[[ref{i}]]" for i in range(25))
+        content = f"""## Introduction
+        This is research about medical devices. {refs}
 
         ## Methods
         We conducted a study of patients.
@@ -354,6 +409,147 @@ class TestValidateAgainstConstraints:
         result = engine.validate_against_constraints(content, section="introduction")
         ai_viol = [v for v in result["violations"] if v["constraint_id"] == "L001"]
         assert len(ai_viol) == 1
+
+    def test_methods_before_results_ordering(self, engine: DomainConstraintEngine) -> None:
+        """Methods appearing after Results should trigger a violation."""
+        content = """## Introduction
+        Intro content.
+
+        ## Results
+        Results came first.
+
+        ## Methods
+        Methods came second (wrong).
+
+        ## Discussion
+        Discussion.
+
+        ## Conclusion
+        Conclusion.
+        """
+        result = engine.validate_against_constraints(content, section="manuscript")
+        ordering = [v for v in result["violations"] if v["rule"] == "methods_before_results"]
+        assert len(ordering) == 1
+        assert "after Results" in ordering[0]["message"]
+
+    def test_methods_before_results_correct_order(self, engine: DomainConstraintEngine) -> None:
+        """Correct ordering should not trigger a violation."""
+        content = """## Introduction
+        Intro.
+
+        ## Methods
+        Methods first (correct).
+
+        ## Results
+        Results second.
+
+        ## Discussion
+        Discussion.
+
+        ## Conclusion
+        Done.
+        """
+        result = engine.validate_against_constraints(content, section="manuscript")
+        ordering = [v for v in result["violations"] if v["rule"] == "methods_before_results"]
+        assert len(ordering) == 0
+
+    def test_minimum_references_check(self, engine: DomainConstraintEngine) -> None:
+        """Too few citations should trigger a violation."""
+        content = "Some text with only [[ref1]] and [[ref2]] citations."
+        result = engine.validate_against_constraints(content, section="manuscript")
+        ref_viol = [v for v in result["violations"] if v["rule"] == "minimum_references"]
+        assert len(ref_viol) == 1
+        assert "2 unique citations" in ref_viol[0]["message"]
+
+    def test_minimum_references_sufficient(self, engine: DomainConstraintEngine) -> None:
+        """Enough citations should not trigger a violation."""
+        refs = " ".join(f"[[ref{i}]]" for i in range(25))
+        content = f"Some text with many references: {refs}"
+        result = engine.validate_against_constraints(content, section="manuscript")
+        ref_viol = [v for v in result["violations"] if v["rule"] == "minimum_references"]
+        assert len(ref_viol) == 0
+
+    def test_patient_consent_check(self, case_engine: DomainConstraintEngine) -> None:
+        """Case report without consent mention should trigger a violation."""
+        content = """## Introduction
+        Case intro.
+
+        ## Case Presentation
+        A patient presented with symptoms.
+
+        ## Discussion
+        Discussion.
+
+        ## Conclusion
+        Conclusion.
+        """
+        result = case_engine.validate_against_constraints(content, section="manuscript")
+        consent_viol = [v for v in result["violations"] if v["rule"] == "patient_consent_mentioned"]
+        assert len(consent_viol) == 1
+
+    def test_patient_consent_present(self, case_engine: DomainConstraintEngine) -> None:
+        """Case report mentioning consent should pass."""
+        content = """## Introduction
+        Case intro.
+
+        ## Case Presentation
+        Written informed consent was obtained from the patient.
+
+        ## Discussion
+        Discussion.
+
+        ## Conclusion
+        Conclusion.
+        """
+        result = case_engine.validate_against_constraints(content, section="manuscript")
+        consent_viol = [v for v in result["violations"] if v["rule"] == "patient_consent_mentioned"]
+        assert len(consent_viol) == 0
+
+    def test_overlap_detection(self, engine: DomainConstraintEngine) -> None:
+        """Duplicate paragraphs across sections should be detected."""
+        dup_paragraph = (
+            "This exact paragraph is duplicated across two different sections word for word."
+        )
+        content = f"""## Introduction
+        {dup_paragraph}
+
+        ## Methods
+        We did some methods.
+
+        ## Results
+        {dup_paragraph}
+
+        ## Discussion
+        Discussion.
+
+        ## Conclusion
+        Conclusion.
+        """
+        result = engine.validate_against_constraints(content, section="manuscript")
+        overlap = [v for v in result["violations"] if v["rule"] == "no_overlap_between_sections"]
+        assert len(overlap) >= 1
+        assert "Duplicate paragraph" in overlap[0]["message"]
+
+    def test_no_overlap_when_unique(self, engine: DomainConstraintEngine) -> None:
+        """Unique paragraphs should not trigger overlap violation."""
+        content = """## Introduction
+        Introduction paragraph about the topic.
+
+        ## Methods
+        Methods paragraph about the approach.
+
+        ## Results
+        Results paragraph about findings.
+
+        ## Discussion
+        Discussion paragraph about implications.
+
+        ## Conclusion
+        Conclusion paragraph summarizing.
+        """
+        result = engine.validate_against_constraints(content, section="manuscript")
+        overlap = [v for v in result["violations"] if v["rule"] == "no_overlap_between_sections"]
+        assert len(overlap) == 0
 
 
 # ── Constraint Summary ────────────────────────────────────────────

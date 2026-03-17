@@ -52,6 +52,9 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 | `get_paper_types` | List available paper types |
 | `update_project_settings` | Change paper type or preferences |
 
+> 💡 **Journal Profile**: 系統內建麻醉學前 20 大期刊投稿設定（`templates/journal-profiles/`），
+> 用戶只需說出目標期刊名稱，Agent 即可讀取對應 YAML 並產生 `journal-profile.yaml`。
+
 ### 🔍 LITERATURE EXPLORATION (NEW!)
 | Tool | When to use |
 |------|-------------|

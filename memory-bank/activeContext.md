@@ -14,7 +14,7 @@ Enforcement gap closure 完成 — 補齊 P0（git pre-commit paper hooks）、P
 | ----------------------- | -------------------------------------------------------------------------------------------- |
 | MCP Tools               | **88** (project/17, reference/12, draft/13, validation/3, analysis/10, review/23, export/10) |
 | Skills                  | **26**                                                                                       |
-| Hooks                   | **78 checks** (52 Code-Enforced / 26 Agent-Driven)                                           |
+| Hooks                   | **78 checks** (55 Code-Enforced / 23 Agent-Driven)                                           |
 | Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)                            |
 | Prompts                 | **15**                                                                                       |
 | Agents                  | **10**                                                                                       |

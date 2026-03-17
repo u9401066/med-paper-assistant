@@ -52,6 +52,9 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 | `get_paper_types` | List available paper types |
 | `update_project_settings` | Change paper type or preferences |
 
+> 💡 **Journal Profile**: 系統內建麻醉學前 20 大期刊投稿設定（`templates/journal-profiles/`），
+> 用戶只需說出目標期刊名稱，Agent 即可讀取對應 YAML 並產生 `journal-profile.yaml`。
+
 ### 🔍 LITERATURE EXPLORATION (NEW!)
 | Tool | When to use |
 |------|-------------|
@@ -121,12 +124,15 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 | `run_statistical_test` | Run t-test, correlation, etc. |
 | `create_plot` | Create visualizations |
 | `generate_table_one` | Generate baseline characteristics table |
+| `review_asset_for_insertion` | Record proof that the agent reviewed a figure/table before captioning/inserting |
+| `insert_figure` | Insert a figure reference into draft |
+| `insert_table` | Insert a table reference into draft |
+| `list_assets` | List all figures/tables in project |
 
 ### 🎨 DIAGRAM TOOLS (with Draw.io MCP)
 | Tool | When to use |
 |------|-------------|
-| `save_diagram` | Save diagram to project's results/figures |
-| `save_diagram_standalone` | Save diagram without project |
+| `save_diagram` | Save diagram to project's results/figures (works with or without project) |
 | `list_diagrams` | List diagrams in project |
 
 **DIAGRAM WORKFLOW (with Draw.io MCP):**
@@ -134,8 +140,10 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 2. Call `drawio.create_diagram()` → Shows in browser
 3. User edits in browser → Says "存檔" or "save"
 4. Call `drawio.get_diagram_content()` → Get XML
-5. Call `mdpaper.save_diagram(project="xxx", content=...)` → Save to project
-6. If no project → Use `save_diagram_standalone()` or ask user to create project
+5. Call `drawio.export_diagram()` or equivalent → Get PNG/SVG for paper embedding
+6. Call `mdpaper.save_diagram(project="xxx", content=..., rendered_content=..., rendered_format="png|svg")` → Save source + exportable asset
+7. Call `insert_figure()` with the rendered filename (or original `.drawio` name if companion image was saved beside it) to register it in manifest and insert Markdown image syntax into the draft
+8. If no project → `save_diagram(output_dir="...")` or ask user to create project
 
 ### 📄 WORD EXPORT (workflow)
 1. `list_templates` → Available templates
@@ -162,6 +170,10 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 - "ready to write, have references" → `convert_exploration_to_project` → `create_project`
 - "write/draft" → **`validate_concept` first!** → `write_draft`
 - "analyze data" → `analyze_dataset`
+- "review figure/table before caption" → `review_asset_for_insertion`
+- "insert figure" → `review_asset_for_insertion` → `insert_figure`
+- "insert table" → `review_asset_for_insertion` → `insert_table` (after generating with `generate_table_one`)
+- "list figures/tables" → `list_assets`
 - "create diagram" → **Confirm project first** → `drawio.create_diagram()`
 - "save diagram" → `drawio.get_diagram_content()` → `save_diagram(project=...)`
 - "export to Word" → Use export workflow

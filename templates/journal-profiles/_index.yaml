@@ -1,0 +1,211 @@
+# Anesthesiology Top 20 Journal Profiles — Quick Index
+# Generated: 2026-03-17
+
+specialty: Anesthesiology
+total_journals: 20
+generated_date: '2026-03-17'
+verified_journals:
+- rapm
+- eja
+- kja
+journals:
+- slug: bja
+  name: British Journal of Anaesthesia
+  abbreviation: Br J Anaesth
+  publisher: Oxford University Press / NIAA
+  issn: 1471-6771
+  guidelines_url: https://academic.oup.com/bja/pages/general-instructions
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 30
+  reference_style: vancouver
+- slug: anesthesiology
+  name: Anesthesiology
+  abbreviation: Anesthesiology
+  publisher: Wolters Kluwer / American Society of Anesthesiologists
+  issn: 1528-1175
+  guidelines_url: https://pubs.asahq.org/anesthesiology/pages/instructions-for-authors
+  word_limit_original: 4500
+  abstract_limit: 350
+  max_references: 50
+  reference_style: vancouver
+- slug: anaesthesia
+  name: Anaesthesia
+  abbreviation: Anaesthesia
+  publisher: Wiley / Association of Anaesthetists
+  issn: 1365-2044
+  guidelines_url: https://anaesthesia.onlinelibrary.wiley.com/hub/journal/13652044/homepage/ForAuthors
+  word_limit_original: 3000
+  abstract_limit: 200
+  max_references: 30
+  reference_style: vancouver
+- slug: rapm
+  name: Regional Anesthesia & Pain Medicine
+  abbreviation: Reg Anesth Pain Med
+  publisher: BMJ Publishing Group / ASRA Pain Medicine
+  issn: 1532-8651
+  guidelines_url: https://rapm.bmj.com/pages/authors/
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 30
+  reference_style: vancouver
+- slug: aanda
+  name: Anesthesia & Analgesia
+  abbreviation: Anesth Analg
+  publisher: Wolters Kluwer / IARS
+  issn: 1526-7598
+  guidelines_url: https://journals.lww.com/anesthesia-analgesia/pages/informationforauthors.aspx
+  word_limit_original: 3000
+  abstract_limit: 400
+  max_references: 50
+  reference_style: vancouver
+- slug: eja
+  name: European Journal of Anaesthesiology
+  abbreviation: Eur J Anaesthesiol
+  publisher: Wolters Kluwer / ESAIC
+  issn: 1365-2346
+  guidelines_url: http://edmgr.ovid.com/eja/accounts/ifauth.htm
+  word_limit_original: 3500
+  abstract_limit: 300
+  max_references: 40
+  reference_style: vancouver
+- slug: cja
+  name: Canadian Journal of Anesthesia / Journal canadien d'anesthésie
+  abbreviation: Can J Anaesth
+  publisher: Springer / Canadian Anesthesiologists' Society
+  issn: 1496-8975
+  guidelines_url: https://www.springer.com/journal/12630/submission-guidelines
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 40
+  reference_style: vancouver
+- slug: jca
+  name: Journal of Clinical Anesthesia
+  abbreviation: J Clin Anesth
+  publisher: Elsevier
+  issn: 1873-4529
+  guidelines_url: https://www.sciencedirect.com/journal/journal-of-clinical-anesthesia/publish/guide-for-authors
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 40
+  reference_style: vancouver
+- slug: current-opinion-anaesthesiology
+  name: Current Opinion in Anaesthesiology
+  abbreviation: Curr Opin Anaesthesiol
+  publisher: Wolters Kluwer
+  issn: 1473-6500
+  guidelines_url: https://journals.lww.com/co-anesthesiology/pages/informationforauthors.aspx
+  word_limit_original: 3500
+  abstract_limit: 200
+  max_references: 50
+  reference_style: vancouver
+- slug: minerva-anestesiologica
+  name: Minerva Anestesiologica
+  abbreviation: Minerva Anestesiol
+  publisher: Edizioni Minerva Medica
+  issn: 1827-1596
+  guidelines_url: https://www.minervamedica.it/en/journals/minerva-anestesiologica/notice-to-authors.php
+  word_limit_original: 4000
+  abstract_limit: 250
+  max_references: 40
+  reference_style: vancouver
+- slug: jna
+  name: Journal of Neurosurgical Anesthesiology
+  abbreviation: J Neurosurg Anesthesiol
+  publisher: Wolters Kluwer
+  issn: 1537-1921
+  guidelines_url: https://journals.lww.com/jnsa/pages/informationforauthors.aspx
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 35
+  reference_style: vancouver
+- slug: acta-anaesthesiol-scand
+  name: Acta Anaesthesiologica Scandinavica
+  abbreviation: Acta Anaesthesiol Scand
+  publisher: Wiley / Scandinavian Society of Anaesthesiology and Intensive Care Medicine
+  issn: 1399-6576
+  guidelines_url: https://onlinelibrary.wiley.com/page/journal/13996576/homepage/forauthors.html
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 30
+  reference_style: vancouver
+- slug: paediatric-anaesthesia
+  name: Paediatric Anaesthesia
+  abbreviation: Paediatr Anaesth
+  publisher: Wiley
+  issn: 1460-9592
+  guidelines_url: https://onlinelibrary.wiley.com/page/journal/14609592/homepage/forauthors.html
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 40
+  reference_style: vancouver
+- slug: jcva
+  name: Journal of Cardiothoracic and Vascular Anesthesia
+  abbreviation: J Cardiothorac Vasc Anesth
+  publisher: Elsevier / Society of Cardiovascular Anesthesiologists
+  issn: 1532-8422
+  guidelines_url: https://www.sciencedirect.com/journal/journal-of-cardiothoracic-and-vascular-anesthesia/publish/guide-for-authors
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 40
+  reference_style: vancouver
+- slug: ijoa
+  name: International Journal of Obstetric Anesthesia
+  abbreviation: Int J Obstet Anesth
+  publisher: Elsevier / Obstetric Anaesthetists' Association
+  issn: 1532-3374
+  guidelines_url: https://www.sciencedirect.com/journal/international-journal-of-obstetric-anesthesia/publish/guide-for-authors
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 30
+  reference_style: vancouver
+- slug: bmc-anesthesiology
+  name: BMC Anesthesiology
+  abbreviation: BMC Anesthesiol
+  publisher: BioMed Central / Springer Nature
+  issn: 1471-2253
+  guidelines_url: https://bmcanesthesiol.biomedcentral.com/submission-guidelines
+  word_limit_original: 5000
+  abstract_limit: 350
+  max_references: 60
+  reference_style: vancouver
+- slug: journal-of-anesthesia
+  name: Journal of Anesthesia
+  abbreviation: J Anesth
+  publisher: Springer / Japanese Society of Anesthesiologists
+  issn: 1438-8359
+  guidelines_url: https://www.springer.com/journal/540/submission-guidelines
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 30
+  reference_style: vancouver
+- slug: anaesthesia-intensive-care
+  name: Anaesthesia and Intensive Care
+  abbreviation: Anaesth Intensive Care
+  publisher: SAGE / Australian Society of Anaesthetists
+  issn: 1448-0271
+  guidelines_url: https://journals.sagepub.com/author-instructions/AIC
+  word_limit_original: 3000
+  abstract_limit: 200
+  max_references: 30
+  reference_style: vancouver
+- slug: kja
+  name: Korean Journal of Anesthesiology
+  abbreviation: Korean J Anesthesiol
+  publisher: Korean Society of Anesthesiologists
+  issn: 2005-7563
+  guidelines_url: https://ekja.org/authors/authors.php
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 30
+  reference_style: vancouver
+- slug: bja-br
+  name: Brazilian Journal of Anesthesiology
+  abbreviation: Braz J Anesthesiol
+  publisher: Elsevier / Brazilian Society of Anesthesiology
+  issn: 1806-907X
+  guidelines_url: https://www.sciencedirect.com/journal/brazilian-journal-of-anesthesiology/publish/guide-for-authors
+  word_limit_original: 3000
+  abstract_limit: 250
+  max_references: 30
+  reference_style: vancouver

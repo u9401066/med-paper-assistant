@@ -1,4 +1,4 @@
-"""Writing Hooks — Post-write hooks mixin (A-series: A1–A6, A3b)."""
+"""Writing Hooks — Post-write hooks mixin (A-series: A1–A6, A3b, A3c)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,10 @@ from typing import Any
 import structlog
 
 from ._constants import (
+    AI_COPULA_AVOIDANCE_VERBS,
+    AI_EM_DASH_PATTERN,
+    AI_FALSE_RANGE_PATTERN,
+    AI_NEGATIVE_PARALLELISM_PATTERNS,
     AI_TRANSITION_WORDS,
     AMER_VS_BRIT,
     ANTI_AI_PARAGRAPH_START_ONLY,
@@ -356,6 +360,79 @@ class PostWriteHooksMixin:
                         )
                     )
 
+        # ── 6. Negative parallelism overuse (Pattern 9) ──
+        neg_parallel_count = 0
+        for pat in AI_NEGATIVE_PARALLELISM_PATTERNS:
+            neg_parallel_count += len(re.findall(pat, prose, re.IGNORECASE))
+        if neg_parallel_count > 2:
+            issues.append(
+                HookIssue(
+                    hook_id="A3b",
+                    severity="WARNING",
+                    section=section,
+                    message=f"Negative parallelism overuse ({neg_parallel_count} instances of "
+                    "'not just X, it's Y' / 'not only...but...'). AI text frequently "
+                    "uses this rhetorical device.",
+                    suggestion="Rephrase to direct statements instead of 'not just/only' "
+                    "constructions.",
+                )
+            )
+
+        # ── 7. Copula avoidance (Pattern 8) ──
+        copula_count = 0
+        copula_found: dict[str, int] = {}
+        for verb in AI_COPULA_AVOIDANCE_VERBS:
+            cnt = len(re.findall(rf"\b{re.escape(verb)}\b", prose, re.IGNORECASE))
+            if cnt > 0:
+                copula_count += cnt
+                copula_found[verb] = cnt
+        if copula_count > 3:
+            issues.append(
+                HookIssue(
+                    hook_id="A3b",
+                    severity="WARNING",
+                    section=section,
+                    message=f"Copula avoidance detected ({copula_count} instances: "
+                    f"{', '.join(f'{v} ({c}x)' for v, c in copula_found.items())}). "
+                    "AI avoids 'is/has' by substituting grandiose verbs.",
+                    suggestion="Consider simpler alternatives: 'is', 'has', 'means'.",
+                )
+            )
+
+        # ── 8. Em dash overuse (Pattern 13) ──
+        em_dash_count = len(re.findall(AI_EM_DASH_PATTERN, prose))
+        word_count_for_density = len(prose.split())
+        em_dash_per_500w = (
+            (em_dash_count / word_count_for_density * 500) if word_count_for_density > 0 else 0
+        )
+        if em_dash_count > 3 and em_dash_per_500w > 3:
+            issues.append(
+                HookIssue(
+                    hook_id="A3b",
+                    severity="WARNING",
+                    section=section,
+                    message=f"Em dash overuse ({em_dash_count} em dashes, "
+                    f"{em_dash_per_500w:.1f} per 500 words). "
+                    "AI overuses em dashes for parenthetical asides.",
+                    suggestion="Use commas, parentheses, or restructure sentences. "
+                    "Reserve em dashes for emphasis.",
+                )
+            )
+
+        # ── 9. False range patterns (Pattern 12) ──
+        false_ranges = re.findall(AI_FALSE_RANGE_PATTERN, prose, re.IGNORECASE)
+        if len(false_ranges) > 4:
+            issues.append(
+                HookIssue(
+                    hook_id="A3b",
+                    severity="WARNING",
+                    section=section,
+                    message=f"Excessive 'from X to Y' range patterns ({len(false_ranges)} instances). "
+                    "AI text overuses vague range enumerations.",
+                    suggestion="Be specific with numbers or quantities instead of vague ranges.",
+                )
+            )
+
         # ── Composite score ──
         ai_signal_count = len(issues)
         passed = ai_signal_count == 0
@@ -374,6 +451,10 @@ class PostWriteHooksMixin:
             "transition_word_counts": dict(
                 sorted(transition_used.items(), key=lambda x: -x[1])[:10]
             ),
+            "neg_parallelism_count": neg_parallel_count,
+            "copula_avoidance_count": copula_count,
+            "em_dash_count": em_dash_count,
+            "false_range_count": len(false_ranges),
         }
         logger.info(
             "Hook A3b complete",
@@ -382,6 +463,186 @@ class PostWriteHooksMixin:
             sent_cv=sent_cv,
         )
         return HookResult(hook_id="A3b", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook A3c: Voice Consistency Detector ───────────────────────
+
+    def check_voice_consistency(
+        self,
+        content: str,
+        section: str = "manuscript",
+        outlier_z: float = 1.8,
+    ) -> HookResult:
+        """
+        Hook A3c: Detect voice consistency breaks across paragraphs.
+
+        Computes per-paragraph readability metrics and flags paragraphs
+        whose style deviates significantly from the document baseline.
+        Catches the #1 risk for human reviewers: ESL paragraphs suddenly
+        switching to polished corporate-academic prose.
+
+        Metrics per paragraph:
+          - avg_sent_len: average words per sentence
+          - avg_word_len: average characters per word (vocabulary sophistication)
+          - type_token_ratio: unique words / total words (vocabulary diversity)
+          - punct_complexity: (em-dashes + semicolons + parentheses) per 100 words
+
+        Outliers are detected using z-scores against the document mean.
+
+        Args:
+            content: Full manuscript or section text.
+            section: Section name for reporting.
+            outlier_z: Z-score threshold for flagging (default 1.8).
+        """
+        issues: list[HookIssue] = []
+
+        # Strip markdown headings and wikilinks
+        prose = re.sub(r"^#+\s.*$", "", content, flags=re.MULTILINE)
+        prose = re.sub(r"\[\[[^\]]*\]\]", "", prose)
+        prose = prose.strip()
+
+        # Split into paragraphs (min 20 words to exclude headers/stubs)
+        paragraphs = [
+            p.strip() for p in re.split(r"\n\s*\n", prose) if len(p.strip().split()) >= 20
+        ]
+
+        if len(paragraphs) < 4:
+            return HookResult(
+                hook_id="A3c",
+                passed=True,
+                issues=[],
+                stats={"skipped": True, "reason": "too_few_paragraphs"},
+            )
+
+        # ── Compute per-paragraph metrics ──
+        para_metrics: list[dict[str, Any]] = []
+        for i, para in enumerate(paragraphs):
+            sentences = [
+                s.strip() for s in re.split(r"[.!?]+", para) if len(s.strip().split()) >= 3
+            ]
+            words = para.split()
+            n_words = len(words)
+
+            avg_sent_len = (
+                sum(len(s.split()) for s in sentences) / len(sentences) if sentences else 0.0
+            )
+            avg_word_len = sum(len(w) for w in words) / n_words if n_words else 0.0
+
+            # Type-token ratio (vocabulary diversity)
+            unique_words = {w.lower().strip(".,;:!?\"'()-") for w in words}
+            ttr = len(unique_words) / n_words if n_words else 0.0
+
+            # Punctuation complexity (em-dashes, semicolons, parentheses per 100 words)
+            punct_hits = para.count("—") + para.count(";") + para.count("(")
+            punct_complexity = punct_hits / n_words * 100 if n_words else 0.0
+
+            para_metrics.append(
+                {
+                    "index": i,
+                    "word_count": n_words,
+                    "avg_sent_len": avg_sent_len,
+                    "avg_word_len": avg_word_len,
+                    "ttr": ttr,
+                    "punct_complexity": punct_complexity,
+                    "preview": para[:80] + ("..." if len(para) > 80 else ""),
+                }
+            )
+
+        # ── Compute document baseline (mean + std) ──
+        metric_keys = ["avg_sent_len", "avg_word_len", "ttr", "punct_complexity"]
+        baselines: dict[str, dict[str, float]] = {}
+        for key in metric_keys:
+            values = [m[key] for m in para_metrics]
+            n = len(values)
+            mean_val = sum(values) / n
+            std_val = (sum((v - mean_val) ** 2 for v in values) / n) ** 0.5
+            baselines[key] = {"mean": mean_val, "std": std_val}
+
+        # ── 1. Flag outlier paragraphs (z-score > threshold) ──
+        outlier_paragraphs: list[dict] = []
+        for m in para_metrics:
+            deviations: dict[str, float] = {}
+            for key in metric_keys:
+                std = baselines[key]["std"]
+                if std > 0:
+                    z = abs(m[key] - baselines[key]["mean"]) / std
+                    if z > outlier_z:
+                        deviations[key] = round(z, 2)
+            if deviations:
+                outlier_paragraphs.append(
+                    {
+                        "paragraph": m["index"] + 1,
+                        "preview": m["preview"],
+                        "deviations": deviations,
+                    }
+                )
+
+        for op in outlier_paragraphs:
+            deviation_desc = ", ".join(f"{k}: z={v}" for k, v in op["deviations"].items())
+            issues.append(
+                HookIssue(
+                    hook_id="A3c",
+                    severity="WARNING",
+                    section=section,
+                    message=f"Voice break at paragraph {op['paragraph']}: "
+                    f"style deviates from document baseline ({deviation_desc}). "
+                    f'Preview: "{op["preview"]}"',
+                    suggestion="This paragraph's writing style differs from the rest of the "
+                    "manuscript. A human reviewer may notice this shift. Consider "
+                    "rewriting to match the document's natural voice (e.g. simplify "
+                    "vocabulary, vary sentence rhythm, reduce punctuation complexity).",
+                )
+            )
+
+        # ── 2. Sophistication gap: max vs min avg_word_len ──
+        word_lens = [m["avg_word_len"] for m in para_metrics]
+        sophistication_gap = max(word_lens) - min(word_lens) if word_lens else 0.0
+        if sophistication_gap > 1.2:
+            max_p = word_lens.index(max(word_lens)) + 1
+            min_p = word_lens.index(min(word_lens)) + 1
+            issues.append(
+                HookIssue(
+                    hook_id="A3c",
+                    severity="WARNING",
+                    section=section,
+                    message=f"Large vocabulary sophistication gap between paragraphs: "
+                    f"P{max_p} avg_word_len={max(word_lens):.2f} vs "
+                    f"P{min_p} avg_word_len={min(word_lens):.2f} "
+                    f"(gap={sophistication_gap:.2f}, threshold >1.2). "
+                    "This ESL-to-polished-prose pattern is a strong AI signal.",
+                    suggestion="Ensure vocabulary complexity is consistent throughout. "
+                    "If some paragraphs use simpler words (author's natural voice), "
+                    "adjust overly polished paragraphs to match.",
+                )
+            )
+
+        passed = len(issues) == 0
+        stats: dict[str, Any] = {
+            "paragraph_count": len(para_metrics),
+            "outlier_count": len(outlier_paragraphs),
+            "sophistication_gap": round(sophistication_gap, 3),
+            "baselines": {
+                k: {kk: round(vv, 3) for kk, vv in v.items()} for k, v in baselines.items()
+            },
+            "paragraph_scores": [
+                {
+                    "p": m["index"] + 1,
+                    "words": m["word_count"],
+                    "avg_sl": round(m["avg_sent_len"], 1),
+                    "avg_wl": round(m["avg_word_len"], 2),
+                    "ttr": round(m["ttr"], 3),
+                    "punct": round(m["punct_complexity"], 2),
+                }
+                for m in para_metrics
+            ],
+            "outlier_paragraphs": outlier_paragraphs,
+        }
+        logger.info(
+            "Hook A3c complete",
+            passed=passed,
+            outlier_count=len(outlier_paragraphs),
+            sophistication_gap=round(sophistication_gap, 3),
+        )
+        return HookResult(hook_id="A3c", passed=passed, issues=issues, stats=stats)
 
     # ── Hook A4: Wikilink Format Validation ────────────────────────
 

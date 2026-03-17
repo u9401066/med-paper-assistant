@@ -522,7 +522,7 @@ def register_audit_hook_tools(mcp: FastMCP):
         project: Optional[str] = None,
     ) -> str:
         """
-        ✍️ Run code-enforced writing hooks (37 checks).
+        ✍️ Run code-enforced writing hooks (40 checks).
 
         Call this after writing or editing a section. Runs the specified hooks
         and records events for each via HookEffectivenessTracker.
@@ -531,9 +531,12 @@ def register_audit_hook_tools(mcp: FastMCP):
         - A1: Word Count Compliance (section word count vs target ±20%)
         - A2: Citation Density (wikilinks per N words)
         - A3: Anti-AI Pattern Detection (forbidden AI-characteristic phrases)
+        - A3b: AI Writing Structural Signals (list-heavy, uniform paragraphs)
+        - A3c: Voice Consistency (register/tone uniformity)
         - A4: Wikilink Format Validation (correct [[author2024_12345678]] format)
         - A5: Language Consistency (British vs American English mixing)
         - A6: Self-Plagiarism / Overlap Detection (repeated n-grams)
+        - A7: Reference Sufficiency (saved refs meet paper-type minimum)
         - B8: Data-Claim Alignment (statistical tests in Results ↔ Methods)
         - B9: Section Tense Consistency (Methods/Results → past tense)
         - B10: Paragraph Quality (length, structure, single-sentence detection)
@@ -548,12 +551,16 @@ def register_audit_hook_tools(mcp: FastMCP):
         - C5: Wikilink Resolvable (wikilinks map to saved references)
         - C6: Total Word Count (manuscript total vs journal limit)
         - C7a: Figure/Table Count Limits
+        - C7b: Asset Plan Coverage (figures/tables match asset plan)
         - C7d: Cross-Reference Orphan/Phantom Detection
         - C9: Supplementary Cross-Reference (main text ↔ supplementary files)
         - C10: Reference Fulltext Status (cited refs have fulltext ingested)
+        - C11: Citation Distribution (citations spread across sections)
+        - C12: Citation Relevance Audit (usage justification recorded)
+        - C13: Figure/Table Quality (captions, labels, resolution)
         - F:  Data Artifact Validation (provenance, manifest, draft)
         - P1: Citation Integrity (pre-commit, delegates to C5)
-        - P2: Anti-AI Scan (pre-commit, delegates to A3)
+        - P2: Anti-AI Scan (pre-commit, delegates to A3+A3b+A3c)
         - P4: Word Count (pre-commit, delegates to A1 with stricter threshold)
         - P5: Protected Content (🔒 blocks in concept.md)
         - P7: Reference Integrity (verified metadata)
@@ -561,9 +568,9 @@ def register_audit_hook_tools(mcp: FastMCP):
 
         Args:
             hooks: Comma-separated hook IDs (e.g., "A5,A6,B11") or aliases:
-                   "all", "post-write" (A1-A6,B9,B10,B15),
+                   "all", "post-write" (A1-A7,A3b,A3c,B9,B10,B15),
                    "post-section" (B8-B16),
-                   "post-manuscript" (C3,C4,C5,C6,C7a,C7d,C9,F),
+                   "post-manuscript" (C3-C13,F),
                    "pre-commit" (P1,P2,P4,P5,P7,G9).
             prefer_language: "american" or "british" (default: american).
                              Only affects A5.
@@ -607,9 +614,11 @@ def register_audit_hook_tools(mcp: FastMCP):
                         "A2",
                         "A3",
                         "A3B",
+                        "A3C",
                         "A4",
                         "A5",
                         "A6",
+                        "A7",
                         "B8",
                         "B9",
                         "B10",
@@ -624,6 +633,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                         "C5",
                         "C6",
                         "C7A",
+                        "C7B",
                         "C7D",
                         "C9",
                         "C10",
@@ -634,7 +644,20 @@ def register_audit_hook_tools(mcp: FastMCP):
                     }
                     break
                 elif t == "POST-WRITE":
-                    requested |= {"A1", "A2", "A3", "A3B", "A4", "A5", "A6", "B9", "B10", "B15"}
+                    requested |= {
+                        "A1",
+                        "A2",
+                        "A3",
+                        "A3B",
+                        "A3C",
+                        "A4",
+                        "A5",
+                        "A6",
+                        "A7",
+                        "B9",
+                        "B10",
+                        "B15",
+                    }
                 elif t == "POST-SECTION":
                     requested |= {"B8", "B9", "B10", "B11", "B12", "B13", "B14", "B15", "B16"}
                 elif t == "POST-MANUSCRIPT":
@@ -644,6 +667,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                         "C5",
                         "C6",
                         "C7A",
+                        "C7B",
                         "C7D",
                         "C9",
                         "C10",
@@ -696,6 +720,13 @@ def register_audit_hook_tools(mcp: FastMCP):
                 r = engine.check_ai_writing_signals(full_content)
                 all_results["A3B"] = r.to_dict()
                 tracker.record_event("A3B", "pass" if r.passed else "trigger")
+                total_critical += r.critical_count
+                total_warning += r.warning_count
+
+            if "A3C" in requested:
+                r = engine.check_voice_consistency(full_content)
+                all_results["A3C"] = r.to_dict()
+                tracker.record_event("A3C", "pass" if r.passed else "trigger")
                 total_critical += r.critical_count
                 total_warning += r.warning_count
 

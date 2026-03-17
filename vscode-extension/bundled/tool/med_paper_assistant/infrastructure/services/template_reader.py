@@ -19,7 +19,7 @@ def _find_project_templates_dir() -> Path:
         templates_dir = parent / "templates"
         if templates_dir.exists() and (parent / "pyproject.toml").exists():
             return templates_dir
-    return current.parents[5] / "templates"
+    return current.parents[3] / "templates"
 
 
 @dataclass

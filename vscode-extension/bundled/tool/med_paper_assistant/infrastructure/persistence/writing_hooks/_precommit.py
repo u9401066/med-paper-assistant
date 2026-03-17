@@ -173,3 +173,91 @@ class PreCommitMixin:
 
         logger.info("Hook P7 complete", passed=passed, verified=verified_count, total=total_refs)
         return HookResult(hook_id="P7", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook P6: Memory Sync Gate ──────────────────────────────────
+
+    def check_memory_sync(self) -> HookResult:
+        """Hook P6: Verify memory files were updated before commit.
+
+        Code-Enforced pre-commit check. Verifies that project .memory/
+        or workspace memory-bank/ files have been modified recently
+        (within the last 2 hours), indicating the Agent synced context.
+
+        Previously Agent-Driven (relied on Agent reading git-precommit SKILL.md).
+        Now Code-Enforced for weak model resilience.
+        """
+        import time
+
+        issues: list[HookIssue] = []
+        staleness_threshold = 7200  # 2 hours in seconds
+
+        # Check project-level memory
+        memory_dir = self._project_dir / ".memory"
+        # Also check workspace-level memory-bank
+        workspace_root = self._project_dir
+        for _ in range(5):
+            if (workspace_root / ".git").is_dir():
+                break
+            parent = workspace_root.parent
+            if parent == workspace_root:
+                break
+            workspace_root = parent
+        memory_bank_dir = workspace_root / "memory-bank"
+
+        memory_files_checked = 0
+        stale_files: list[str] = []
+        fresh_files: list[str] = []
+        now = time.time()
+
+        # Check key memory files
+        files_to_check = []
+        if memory_dir.is_dir():
+            files_to_check.append(memory_dir / "activeContext.md")
+        if memory_bank_dir.is_dir():
+            files_to_check.append(memory_bank_dir / "activeContext.md")
+            files_to_check.append(memory_bank_dir / "progress.md")
+
+        for fpath in files_to_check:
+            if not fpath.is_file():
+                continue
+            memory_files_checked += 1
+            try:
+                mtime = fpath.stat().st_mtime
+                age = now - mtime
+                if age > staleness_threshold:
+                    stale_files.append(f"{fpath.name} (age: {age / 3600:.1f}h)")
+                else:
+                    fresh_files.append(fpath.name)
+            except OSError:
+                stale_files.append(f"{fpath.name} (unreadable)")
+
+        if memory_files_checked == 0:
+            return HookResult(
+                hook_id="P6",
+                passed=True,
+                stats={"note": "No memory files found to check"},
+            )
+
+        if stale_files and not fresh_files:
+            issues.append(
+                HookIssue(
+                    hook_id="P6",
+                    severity="WARNING",
+                    section="memory",
+                    message=f"Memory files appear stale: {', '.join(stale_files)}",
+                    suggestion=(
+                        "Run sync_workspace_state() or update memory-bank/ "
+                        "before committing to preserve session context"
+                    ),
+                )
+            )
+
+        passed = len(issues) == 0
+        stats = {
+            "files_checked": memory_files_checked,
+            "fresh_files": fresh_files,
+            "stale_files": stale_files,
+        }
+
+        logger.info("Hook P6 complete", passed=passed, fresh=len(fresh_files), stale=len(stale_files))
+        return HookResult(hook_id="P6", passed=passed, issues=issues, stats=stats)

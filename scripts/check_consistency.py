@@ -33,9 +33,10 @@ SRC = ROOT / "src" / "med_paper_assistant"
 TESTS = ROOT / "tests"
 
 # Declared hook groups (source of truth from AGENTS.md)
-# A3b is a sub-check of A3, counted within A's total of 6
+# A3b and A3c are sub-checks of A3; A7 is a standalone hook.
+# Total A = A1-A7 + A3b = 8 (A3c counted within A3)
 DECLARED_HOOKS = {
-    "A": 6,  # A1-A6 (A3b counted within A3)
+    "A": 8,  # A1-A7 + A3b (A3c counted within A3)
     "B": 16,  # B1-B16
     "C": 13,  # C1-C13
     "D": 9,  # D1-D9
@@ -45,7 +46,14 @@ DECLARED_HOOKS = {
     "P": 8,  # P1-P8
     "R": 6,  # R1-R6
 }
-TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 76
+TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 78
+
+# Sub-hooks that don't follow sequential numbering (e.g. A3b instead of A8)
+# These are counted in DECLARED_HOOKS totals.
+SUB_HOOKS = {"A3b"}
+# Sequential upper bound per series (for series with sub-hooks)
+# A: 8 total = A1-A7 (sequential) + A3b (sub-hook) → sequential max = 7
+SEQUENTIAL_MAX = {"A": 7}
 
 # Files to check for hook count
 HOOK_COUNT_FILES = [
@@ -137,8 +145,10 @@ def check_expected_hooks() -> CheckResult:
     # Build full expected set from DECLARED_HOOKS
     full_expected: set[str] = set()
     for letter, count in DECLARED_HOOKS.items():
-        for i in range(1, count + 1):
+        max_seq = SEQUENTIAL_MAX.get(letter, count)
+        for i in range(1, max_seq + 1):
             full_expected.add(f"{letter}{i}")
+    full_expected.update(SUB_HOOKS)
 
     # D1-D9: meta-learning engine itself (self-referential, excluded)
     # G1-G9: pre-commit/general hooks tracked separately (excluded)
@@ -310,10 +320,9 @@ def check_hook_categories() -> CheckResult:
         return CheckResult("HOOK_CATEGORIES", False, "Cannot find HOOK_CATEGORIES")
 
     code_categories = set(re.findall(r'"(\w)"', m.group(1)))
-    # D, G, P hooks are instructional (not code-tracked) but should still have categories
+    # All declared categories should be present in the tracker
     declared_letters = set(DECLARED_HOOKS.keys())
-    # P and G are pre-commit/general — tracked differently
-    tracked_letters = declared_letters - {"P", "G"}
+    tracked_letters = declared_letters
 
     missing = tracked_letters - code_categories
     extra = code_categories - tracked_letters

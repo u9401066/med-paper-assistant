@@ -45,6 +45,12 @@ class DataArtifactsMixin:
             # Map categories to hook sub-IDs
             if category in ("provenance_missing", "no_provenance_code"):
                 hook_sub = "F1"
+            elif category in (
+                "asset_review_missing",
+                "asset_review_incomplete",
+                "caption_unreviewed",
+            ):
+                hook_sub = "F1"
             elif category in ("manifest_missing", "phantom_file"):
                 hook_sub = "F2"
             elif category in ("phantom_reference", "orphan_asset"):

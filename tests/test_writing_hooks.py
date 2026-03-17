@@ -1,5 +1,5 @@
 """
-Tests for WritingHooksEngine — 37 Code-Enforced Hooks.
+Tests for WritingHooksEngine — Code-Enforced Hooks.
 
 Validates:
   - A1: Word count compliance (section word count vs target)
@@ -8,6 +8,8 @@ Validates:
   - A4: Wikilink format validation
   - A5: Language consistency (British vs American English detection)
   - A6: Overlap detection (internal paragraph similarity via n-grams)
+  - A7: Reference sufficiency (saved refs >= minimum for paper type)
+  - B2: Protected content post-write (delegates to P5 with B2 hook_id)
   - B8: Data-claim alignment (statistical tests, p-values, CI, software)
   - B9: Section tense consistency (Methods/Results → past tense)
   - B10: Paragraph quality (length, structure, single-sentence detection)
@@ -17,6 +19,7 @@ Validates:
   - B14: Ethical & registration statements (IRB, consent, trial reg.)
   - B15: Hedging language density (excessive may/might/could)
   - B16: Effect size & statistical reporting (p-values, CIs, effect sizes)
+  - C2: Submission checklist (required documents from journal-profile.yaml)
   - C3: N-value consistency (sample sizes across sections)
   - C4: Abbreviation first-use (defined at first occurrence)
   - C5: Wikilink resolvable (mapped to saved references)
@@ -26,6 +29,7 @@ Validates:
   - C9: Supplementary cross-reference (text refs ↔ supplementary files)
   - F:  Data artifact validation (wrapper around DataArtifactTracker)
   - P5: Protected content (🔒 blocks in concept.md)
+  - P6: Memory sync gate (memory file staleness check)
   - P7: Reference integrity (verified metadata)
   - Batch runners: run_post_write_hooks, run_post_section_hooks,
                    run_post_manuscript_hooks, run_precommit_hooks
@@ -1401,6 +1405,7 @@ class TestPrecommitBatchRunner:
         assert "P2" in results
         assert "P4" in results
         assert "P5" in results
+        assert "P6" in results
         assert "P7" in results
 
     def test_hook_id_correctly_remapped(self, engine: WritingHooksEngine, project_dir: Path):
@@ -1411,6 +1416,7 @@ class TestPrecommitBatchRunner:
         assert results["P2"].hook_id == "P2"
         assert results["P4"].hook_id == "P4"
         assert results["P5"].hook_id == "P5"
+        assert results["P6"].hook_id == "P6"
         assert results["P7"].hook_id == "P7"
 
     def test_p2_uses_anti_ai(self, engine: WritingHooksEngine, project_dir: Path):
@@ -1436,10 +1442,12 @@ class TestUpdatedBatchRunners:
         assert "A5" in results
         assert "A6" in results
         assert "A7" in results
+        assert "B2" in results
 
     def test_post_manuscript_includes_new_hooks(self, engine: WritingHooksEngine):
         text = "## Methods\n\nSome methods.\n\n## Results\n\nSome results."
         results = engine.run_post_manuscript_hooks(text)
+        assert "C2" in results
         assert "C3" in results
         assert "C4" in results
         assert "C5" in results
@@ -1993,3 +2001,255 @@ class TestA7ReferenceSufficiency:
         assert results["A7"].hook_id == "A7"
         # No refs → should fail
         assert results["A7"].passed is False
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook B2: Protected Content (post-write, delegates to P5)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookB2:
+    """B2: Protected content integrity — runs after every write (delegates to P5)."""
+
+    def test_b2_returns_correct_hook_id(self, engine: WritingHooksEngine, project_dir: Path):
+        """B2 result has hook_id='B2', not 'P5'."""
+        concept = (
+            "# Concept\n\n"
+            "## NOVELTY STATEMENT \U0001f512\n\n"
+            "This study is novel.\n\n"
+            "## KEY SELLING POINTS \U0001f512\n\n"
+            "1. First point\n"
+        )
+        (project_dir / "concept.md").write_text(concept, encoding="utf-8")
+        r = engine._run_b2_protected_content()
+        assert r.hook_id == "B2"
+        assert r.passed is True
+        assert r.stats["protected_blocks_found"] == 2
+
+    def test_b2_empty_block_critical_with_b2_id(
+        self, engine: WritingHooksEngine, project_dir: Path
+    ):
+        """Empty protected block → CRITICAL with hook_id='B2' (not P5)."""
+        concept = (
+            "# Concept\n\n"
+            "## NOVELTY STATEMENT \U0001f512\n\n"
+            "[placeholder]\n\n"
+            "## KEY SELLING POINTS \U0001f512\n\n"
+            "1. Valid content\n"
+        )
+        (project_dir / "concept.md").write_text(concept, encoding="utf-8")
+        r = engine._run_b2_protected_content()
+        assert r.hook_id == "B2"
+        assert r.passed is False
+        assert all(i.hook_id == "B2" for i in r.issues)
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+
+    def test_b2_no_concept_file_passes(self, engine: WritingHooksEngine):
+        """No concept.md → PASS (same as P5 behavior)."""
+        r = engine._run_b2_protected_content()
+        assert r.hook_id == "B2"
+        assert r.passed is True
+
+    def test_b2_in_post_write_batch(self, engine: WritingHooksEngine):
+        """B2 is included in run_post_write_hooks batch runner."""
+        results = engine.run_post_write_hooks("Some text.")
+        assert "B2" in results
+        assert results["B2"].hook_id == "B2"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook C2: Submission Checklist
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookC2:
+    """C2: Verify required submission documents exist."""
+
+    def test_no_journal_profile_passes(self, engine: WritingHooksEngine):
+        """No journal-profile.yaml → PASS (skipped)."""
+        r = engine.check_submission_checklist("Some content.")
+        assert r.hook_id == "C2"
+        assert r.passed is True
+        assert "No journal-profile" in r.stats.get("note", "")
+
+    def test_no_required_documents_passes(self, project_dir: Path):
+        """Profile exists but no required_documents → PASS."""
+        profile = {"word_limits": {"total_manuscript": 5000}}
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_submission_checklist("Some content.")
+        assert r.hook_id == "C2"
+        assert r.passed is True
+
+    def test_all_required_docs_found_in_content(self, project_dir: Path):
+        """Required documents found via content pattern matching → PASS."""
+        profile = {
+            "required_documents": {
+                "conflict_of_interest": True,
+                "funding_statement": True,
+                "ethics_statement": True,
+            }
+        }
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        engine = WritingHooksEngine(project_dir)
+        content = (
+            "The authors declare no conflict of interest.\n"
+            "This study was supported by Grant No. 12345.\n"
+            "The study was approved by the Institutional Review Board.\n"
+        )
+        r = engine.check_submission_checklist(content)
+        assert r.hook_id == "C2"
+        assert r.passed is True
+        assert r.stats["missing_count"] == 0
+        assert r.stats["found_count"] == 3
+
+    def test_missing_required_doc_warns(self, project_dir: Path):
+        """Required document not found → WARNING per missing item."""
+        profile = {
+            "required_documents": {
+                "cover_letter": True,
+                "highlights": True,
+            }
+        }
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_submission_checklist("No relevant content here.")
+        assert r.hook_id == "C2"
+        assert r.passed is False
+        assert r.stats["missing_count"] == 2
+        assert "cover_letter" in r.stats["missing_docs"]
+        assert "highlights" in r.stats["missing_docs"]
+        assert all(i.severity == "WARNING" for i in r.issues)
+
+    def test_file_existence_satisfies(self, project_dir: Path):
+        """File found in project dir → satisfies the requirement."""
+        profile = {"required_documents": {"cover_letter": True}}
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        (project_dir / "cover-letter.md").write_text("Dear Editor,\n")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_submission_checklist("No content match here.")
+        assert r.passed is True
+        assert "cover_letter" in r.stats["found_docs"]
+
+    def test_false_requirement_skipped(self, project_dir: Path):
+        """required_documents entry with False → not checked."""
+        profile = {
+            "required_documents": {
+                "cover_letter": True,
+                "highlights": False,
+            }
+        }
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        (project_dir / "cover-letter.md").write_text("Dear Editor,\n")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_submission_checklist("")
+        assert r.passed is True
+        assert r.stats["required_count"] == 1  # Only cover_letter counted
+
+    def test_c2_in_post_manuscript_batch(self, engine: WritingHooksEngine):
+        """C2 is included in run_post_manuscript_hooks batch runner."""
+        results = engine.run_post_manuscript_hooks("## Methods\n\nSome methods.")
+        assert "C2" in results
+        assert results["C2"].hook_id == "C2"
+
+    def test_dict_required_documents_format(self, project_dir: Path):
+        """required_documents with dict values (required: true/false)."""
+        profile = {
+            "required_documents": {
+                "cover_letter": {"required": True},
+                "highlights": {"required": False},
+            }
+        }
+        with open(project_dir / "journal-profile.yaml", "w") as f:
+            yaml.dump(profile, f)
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_submission_checklist("")
+        # cover_letter required but not found
+        assert r.passed is False
+        assert r.stats["required_count"] == 1
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hook P6: Memory Sync Gate
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestHookP6:
+    """P6: Verify memory files updated before commit."""
+
+    def test_no_memory_files_passes(self, engine: WritingHooksEngine):
+        """No memory dirs/files → PASS (nothing to check)."""
+        r = engine.check_memory_sync()
+        assert r.hook_id == "P6"
+        assert r.passed is True
+        assert "No memory files" in r.stats.get("note", "")
+
+    def test_fresh_memory_passes(self, project_dir: Path):
+        """Recently updated memory files → PASS."""
+        mem = project_dir / ".memory"
+        mem.mkdir()
+        (mem / "activeContext.md").write_text("# Active Context\nUpdated now.")
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_memory_sync()
+        assert r.hook_id == "P6"
+        assert r.passed is True
+        assert r.stats["files_checked"] >= 1
+        assert len(r.stats["fresh_files"]) >= 1
+
+    def test_stale_memory_warns(self, project_dir: Path):
+        """All memory files older than 2 hours → WARNING."""
+        import os
+        import time
+
+        mem = project_dir / ".memory"
+        mem.mkdir()
+        fpath = mem / "activeContext.md"
+        fpath.write_text("# Active Context\nOld content.")
+        # Set mtime to 3 hours ago
+        old_time = time.time() - 10800
+        os.utime(fpath, (old_time, old_time))
+
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_memory_sync()
+        assert r.hook_id == "P6"
+        assert r.passed is False
+        assert len(r.stats["stale_files"]) >= 1
+        assert any(i.severity == "WARNING" for i in r.issues)
+        assert any("stale" in i.message.lower() for i in r.issues)
+
+    def test_mixed_fresh_stale_passes(self, project_dir: Path):
+        """At least one fresh memory file → PASS (not all stale)."""
+        import os
+        import time
+
+        mem = project_dir / ".memory"
+        mem.mkdir()
+        # Stale file
+        stale = mem / "activeContext.md"
+        stale.write_text("Old content.")
+        old_time = time.time() - 10800
+        os.utime(stale, (old_time, old_time))
+        # Fresh file — create a workspace-level memory-bank for this
+        # The engine walks up to find .git, so create .git in project_dir
+        (project_dir / ".git").mkdir(exist_ok=True)
+        mb = project_dir / "memory-bank"
+        mb.mkdir()
+        (mb / "activeContext.md").write_text("Fresh content.")
+
+        engine = WritingHooksEngine(project_dir)
+        r = engine.check_memory_sync()
+        assert r.hook_id == "P6"
+        # At least one fresh → passes (stale_files AND fresh_files both exist)
+        assert r.passed is True
+
+    def test_p6_in_precommit_batch(self, engine: WritingHooksEngine, project_dir: Path):
+        """P6 is included in run_precommit_hooks batch runner."""
+        (project_dir / "references").mkdir()
+        results = engine.run_precommit_hooks("Some text.")
+        assert "P6" in results
+        assert results["P6"].hook_id == "P6"

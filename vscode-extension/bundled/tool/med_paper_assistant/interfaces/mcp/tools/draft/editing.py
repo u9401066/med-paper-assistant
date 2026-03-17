@@ -226,6 +226,23 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
             log_tool_result("patch_draft", f"ambiguous: {match_count} matches", success=False)
             return error_msg
 
+        # 3.5 B2 Protected Content Guard — block modification of 🔒-marked content
+        is_concept_file = "concept" in os.path.basename(filepath).lower()
+        if is_concept_file and "\U0001f512" in old_text:
+            error_msg = (
+                "❌ **BLOCKED: Cannot modify 🔒-protected content via patch_draft.**\n\n"
+                "The old_text contains 🔒-marked protected content (NOVELTY STATEMENT "
+                "or KEY SELLING POINTS). These sections require explicit user approval.\n\n"
+                "Ask the user before modifying protected sections in concept.md."
+            )
+            log_agent_misuse(
+                "patch_draft",
+                "attempted to modify 🔒-protected content",
+                {"filename": filename},
+                error_msg,
+            )
+            return error_msg
+
         # 4. Validate wikilinks in new_text
         references_dir = _get_references_dir()
         new_wikilinks = ALL_WIKILINK_PATTERN.findall(new_text)
@@ -317,6 +334,19 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
             output += "\n" + "\n".join(validation_report) + "\n"
 
         output += "\n💡 Run `sync_references` to update the References section."
+
+        # 🔒 Embedded post-write hooks (auto-run, agent cannot skip)
+        if not is_concept_file:
+            from .writing import _run_embedded_post_write_hooks
+
+            section_for_hooks = (
+                os.path.splitext(os.path.basename(filepath))[0]
+                .replace("_", " ")
+                .replace("-", " ")
+                .title()
+            )
+            hook_report = _run_embedded_post_write_hooks(new_content, section_for_hooks)
+            output += hook_report
 
         log_tool_result("patch_draft", f"patched {filepath}", success=True)
         return output

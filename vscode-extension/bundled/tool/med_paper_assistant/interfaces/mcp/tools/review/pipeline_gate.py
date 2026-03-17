@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Optional
 
 import structlog
+import yaml
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
@@ -1247,6 +1248,115 @@ def register_pipeline_tools(
             return f"❌ Error processing section approval: {e}"
 
     @mcp.tool()
+    def approve_concept_review(
+        action: str = "approve",
+        rationale: str = "",
+        accepted_risks: str = "",
+        project: Optional[str] = None,
+        approved_by: str = "human",
+    ) -> str:
+        """
+        ✅ Record a human decision for Concept Review when proceeding despite revise/blocked readiness.
+
+        This is the explicit bypass path for human-collaboration mode.
+        Full-autonomous mode should NOT use this tool; it should reach
+        `readiness=ready` through normal concept iteration.
+
+        Actions:
+        - "approve": Allow downstream planning despite current concept-review readiness.
+        - "revoke": Remove the previous manual approval and restore normal hard gate behavior.
+
+        Args:
+            action: "approve" or "revoke"
+            rationale: Why the human wants to proceed despite validator concerns
+            accepted_risks: Risks the human accepts for downstream drafting/planning
+            project: Project slug (optional, uses current project)
+            approved_by: Free-text approver label, defaults to "human"
+
+        Returns:
+            Confirmation plus current gating implication
+        """
+        log_tool_call(
+            "approve_concept_review",
+            {"action": action, "project": project, "approved_by": approved_by},
+        )
+        try:
+            is_valid, msg, project_info = ensure_project_context(project)
+            if not is_valid:
+                return msg
+            assert project_info is not None
+
+            if action not in ("approve", "revoke"):
+                return "❌ Action must be 'approve' or 'revoke'."
+
+            project_dir = Path(project_info["project_path"])
+            audit_dir = project_dir / ".audit"
+            audit_dir.mkdir(parents=True, exist_ok=True)
+            concept_review_path = audit_dir / "concept-review.yaml"
+            override_path = audit_dir / "concept-review-override.yaml"
+
+            if not concept_review_path.is_file():
+                return (
+                    "❌ concept-review.yaml not found. Run `validate_concept()` first so the concept "
+                    "is normalized before any manual approval is recorded."
+                )
+
+            review = yaml.safe_load(concept_review_path.read_text(encoding="utf-8")) or {}
+            readiness = str(review.get("review", {}).get("readiness", "")).strip().lower()
+
+            if action == "revoke":
+                if override_path.is_file():
+                    override_path.unlink()
+                log_tool_result("approve_concept_review", "override revoked")
+                return (
+                    "# ↩️ Concept Review Override Revoked\n\n"
+                    "Manual bypass has been removed. Phase 3/4 now require `readiness=ready` again."
+                )
+
+            if readiness == "ready":
+                return (
+                    "✅ Concept review is already `ready`. Manual bypass is unnecessary; "
+                    "the normal full-autonomous path can continue."
+                )
+
+            if not rationale.strip():
+                return "❌ Rationale is required when approving a concept review override."
+
+            override = {
+                "approved_to_proceed": True,
+                "approved_at": datetime.now().isoformat(),
+                "approved_by": approved_by.strip() or "human",
+                "accepted_readiness": readiness,
+                "rationale": rationale.strip(),
+                "accepted_risks": accepted_risks.strip(),
+                "mode": "human-collaboration",
+            }
+            override_path.write_text(
+                yaml.safe_dump(override, allow_unicode=True, sort_keys=False),
+                encoding="utf-8",
+            )
+
+            log_tool_result(
+                "approve_concept_review", f"override approved for readiness={readiness}"
+            )
+            return "\n".join(
+                [
+                    "# ✅ Concept Review Override Recorded",
+                    "",
+                    f"- Current readiness: {readiness}",
+                    f"- Approved by: {override['approved_by']}",
+                    f"- Override file: {override_path}",
+                    "",
+                    "Phase 3/4 may now proceed in human-collaboration mode.",
+                    "Full-autonomous mode should still avoid this path and keep iterating to `ready`.",
+                ]
+            )
+
+        except Exception as e:
+            log_tool_error("approve_concept_review", e)
+            return f"❌ Error processing concept review approval: {e}"
+
+    @mcp.tool()
     def reset_review_loop(
         project: Optional[str] = None,
         confirm: bool = False,
@@ -1322,6 +1432,7 @@ def register_pipeline_tools(
         "pause_pipeline": pause_pipeline,
         "resume_pipeline": resume_pipeline,
         "approve_section": approve_section,
+        "approve_concept_review": approve_concept_review,
         "reset_review_loop": reset_review_loop,
     }
 

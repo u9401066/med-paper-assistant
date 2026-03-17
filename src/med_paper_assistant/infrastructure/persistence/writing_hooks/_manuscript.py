@@ -1287,3 +1287,141 @@ class ManuscriptHooksMixin:
             tbls=len(set(seen_tbls)),
         )
         return HookResult(hook_id="C13", passed=passed, issues=issues, stats=stats)
+
+    # ── Hook C2: Submission Checklist ──────────────────────────────
+
+    def check_submission_checklist(self, content: str) -> HookResult:
+        """Hook C2: Verify required submission documents exist.
+
+        Code-Enforced check that reads journal-profile.yaml required_documents
+        and verifies each required item is present in the project directory
+        or mentioned in the manuscript content.
+
+        Previously Agent-Driven (relied on Agent reading SKILL.md).
+        Now partially Code-Enforced for weak model resilience.
+
+        Args:
+            content: Full manuscript text.
+        """
+        issues: list[HookIssue] = []
+
+        if not self._journal_profile:
+            return HookResult(
+                hook_id="C2",
+                passed=True,
+                stats={"note": "No journal-profile.yaml — skipping checklist"},
+            )
+
+        required_docs = self._journal_profile.get("required_documents", {})
+        if not required_docs:
+            return HookResult(
+                hook_id="C2",
+                passed=True,
+                stats={"note": "No required_documents in journal profile"},
+            )
+
+        # Map document types to file patterns and content patterns
+        doc_checks: dict[str, dict] = {
+            "cover_letter": {
+                "files": ["cover-letter.md", "cover_letter.md", "cover-letter.docx"],
+                "content_pattern": None,
+            },
+            "highlights": {
+                "files": ["highlights.md", "highlights.txt"],
+                "content_pattern": r"(?i)(?:highlight|key\s*finding)",
+            },
+            "graphical_abstract": {
+                "files": [
+                    "graphical-abstract.png",
+                    "graphical-abstract.jpg",
+                    "graphical-abstract.pdf",
+                    "graphical_abstract.*",
+                ],
+                "content_pattern": None,
+            },
+            "author_contributions": {
+                "files": [],
+                "content_pattern": r"(?i)(?:author\s*contribution|CRediT|contributor)",
+            },
+            "conflict_of_interest": {
+                "files": [],
+                "content_pattern": r"(?i)(?:conflict\s*of\s*interest|competing\s*interest|disclosure|COI)",
+            },
+            "funding_statement": {
+                "files": [],
+                "content_pattern": r"(?i)(?:funding|grant|financial\s*support|supported\s*by)",
+            },
+            "ethics_statement": {
+                "files": [],
+                "content_pattern": r"(?i)(?:ethic|IRB|institutional\s*review\s*board|informed\s*consent|Helsinki)",
+            },
+            "data_availability": {
+                "files": [],
+                "content_pattern": r"(?i)(?:data\s*availab|data\s*sharing|data\s*access)",
+            },
+        }
+
+        checked = 0
+        missing: list[str] = []
+        found: list[str] = []
+
+        for doc_type, is_required in required_docs.items():
+            # Skip non-boolean or false entries
+            if isinstance(is_required, dict):
+                is_required = is_required.get("required", False)
+            if not is_required:
+                continue
+
+            checked += 1
+            check = doc_checks.get(doc_type)
+            if not check:
+                continue
+
+            # Check 1: File exists in project directory
+            file_found = False
+            for pattern in check["files"]:
+                if "*" in pattern:
+                    file_found = bool(list(self._project_dir.glob(pattern)))
+                else:
+                    file_found = (self._project_dir / pattern).is_file()
+                if file_found:
+                    break
+
+            # Check 2: Content pattern found in manuscript
+            content_found = False
+            if check["content_pattern"] and content:
+                content_found = bool(re.search(check["content_pattern"], content))
+
+            if file_found or content_found:
+                found.append(doc_type)
+            else:
+                missing.append(doc_type)
+                issues.append(
+                    HookIssue(
+                        hook_id="C2",
+                        severity="WARNING",
+                        section="submission",
+                        message=f"Required document '{doc_type}' not found",
+                        suggestion=(
+                            f"Add {doc_type.replace('_', ' ')} to the manuscript or "
+                            f"create a separate file in the project directory"
+                        ),
+                    )
+                )
+
+        passed = len(missing) == 0
+        stats = {
+            "required_count": checked,
+            "found_count": len(found),
+            "missing_count": len(missing),
+            "missing_docs": missing,
+            "found_docs": found,
+        }
+
+        logger.info(
+            "Hook C2 (Submission Checklist) complete",
+            passed=passed,
+            found=len(found),
+            missing=len(missing),
+        )
+        return HookResult(hook_id="C2", passed=passed, issues=issues, stats=stats)

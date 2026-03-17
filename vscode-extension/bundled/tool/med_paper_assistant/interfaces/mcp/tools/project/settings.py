@@ -206,6 +206,9 @@ Please first select or create a project:
 3. 📊 分析資料 (`/mdpaper.analysis`)
 4. 📄 匯出 Word (`/mdpaper.format`)
 5. ⚙️ 修改專案設定 (`update_project_settings`)
+
+💡 **Journal Profile 提示**: 系統內建麻醉學前 20 大期刊的投稿設定（`templates/journal-profiles/`），
+可直接請 Copilot 讀取期刊設定檔（如 `bja.yaml`、`anesthesiology.yaml`）來建立 `journal-profile.yaml`。
 """
 
         # Project not configured yet - run setup wizard
@@ -271,9 +274,13 @@ Please first select or create a project:
 
 ---
 **Next Steps:**
-1. Edit `concept.md` to define your research concept
-2. Use `search_literature` to find relevant papers
-3. Use `write_draft` to start writing sections
+1. 📋 設定期刊 profile — 請 Copilot 讀取 `templates/journal-profiles/` 內建期刊設定，
+   或提供投稿指南 URL，自動產生 `journal-profile.yaml`
+2. Edit `concept.md` to define your research concept
+3. Use `search_literature` to find relevant papers
+4. Use `write_draft` to start writing sections
+
+💡 **Tip**: 系統內建麻醉學前 20 大期刊投稿設定，直接告訴 Copilot 目標期刊名稱即可自動套用。
 """
 
     @mcp.tool()

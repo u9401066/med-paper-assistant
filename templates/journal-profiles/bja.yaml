@@ -1,0 +1,155 @@
+# ═══════════════════════════════════════════════════════════════
+# Journal Profile: British Journal of Anaesthesia
+# ═══════════════════════════════════════════════════════════════
+# Generated: 2026-03-17
+# Source: https://academic.oup.com/bja/pages/general-instructions
+#
+# Usage: cp templates/journal-profiles/bja.yaml \
+#           projects/{slug}/journal-profile.yaml
+#
+# ⚠️  Always verify against the latest author guidelines URL above.
+#     Journal requirements may change without notice.
+# ═══════════════════════════════════════════════════════════════
+
+journal:
+  name: British Journal of Anaesthesia
+  abbreviation: Br J Anaesth
+  issn: 0007-0912
+  issn_online: 1471-6771
+  publisher: Oxford University Press / NIAA
+  submission_url: https://mc.manuscriptcentral.com/bja
+  guidelines_url: https://academic.oup.com/bja/pages/general-instructions
+authors: []
+paper:
+  type: original-research
+  sections:
+  - name: Title Page
+    required: true
+  - name: Abstract
+    required: true
+    structured: true
+    word_limit: 250
+  - name: Introduction
+    required: true
+  - name: Methods
+    required: true
+  - name: Results
+    required: true
+  - name: Discussion
+    required: true
+  - name: Conclusions
+    required: false
+word_limits:
+  total_manuscript: 3000
+  abstract: 250
+  title_characters: 150
+  running_title_characters: 50
+assets:
+  figures_max: 6
+  tables_max: 6
+  total_display_items_max: 8
+  supplementary_allowed: true
+  figure_formats:
+  - TIFF
+  - EPS
+  - PDF
+  - PNG
+  figure_dpi: 300
+  table_format: editable
+references:
+  style: vancouver
+  csl: ''
+  max_references: 30
+  max_authors_before_etal: 6
+  doi_required: false
+  pmid_preferred: true
+  reference_limits:
+    original-research: 30
+    review-article: 80
+    systematic-review: 80
+    meta-analysis: 80
+    case-report: 10
+    letter: 5
+  minimum_reference_limits:
+    original-research: 20
+    review-article: 30
+    case-report: 5
+    letter: 0
+required_documents:
+  cover_letter: true
+  highlights: false
+  graphical_abstract: false
+  author_contributions: true
+  conflict_of_interest: true
+  funding_statement: true
+  ethics_statement: true
+  data_availability: true
+  keywords:
+    required: true
+    count: 3-6
+reporting_guidelines:
+  checklist: required (CONSORT/STROBE/PRISMA as appropriate)
+  registration_required: true
+pipeline:
+  hook_a_max_rounds: 3
+  hook_b_max_rounds: 2
+  hook_c_max_rounds: 3
+  review_max_rounds: 3
+  autonomous_review:
+    enabled: true
+    reviewer_perspectives:
+    - methodology_expert
+    - domain_specialist
+    - statistician
+    - editor
+    quality_threshold: 7
+  tolerance:
+    word_percent: 20
+    citation_density_strict: true
+  section_brief:
+    enabled: true
+    paragraph_level: true
+    enforce_must_cite: true
+  changelog: []
+  writing:
+    language: en
+    tone: formal-academic
+    anti_ai_strictness: high
+    citation_density:
+      introduction: 100
+      methods: 0
+      results: 0
+      discussion: 150
+  assets:
+    auto_generate_table_one: true
+    auto_generate_plots: true
+    flow_diagram_tool: drawio
+    fallback_to_description: true
+    agent_initiated:
+      enabled: true
+      allowed_types:
+      - literature_summary_table
+      - comparison_table
+      - timeline_figure
+      - concept_diagram
+      must_respect_limits: true
+abstract:
+  structured: true
+  headings: Background, Methods, Results, Conclusions
+other_article_types:
+  case-report:
+    word_limit: 1500
+    abstract: 150
+    references: 10
+  review-article:
+    word_limit: 4000
+    abstract: 250
+    references: 80
+  letter:
+    word_limit: 600
+    abstract: 0
+    references: 5
+  editorial:
+    word_limit: 1500
+    abstract: 0
+    references: 15

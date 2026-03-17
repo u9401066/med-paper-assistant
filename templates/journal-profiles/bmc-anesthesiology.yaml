@@ -1,0 +1,149 @@
+# ═══════════════════════════════════════════════════════════════
+# Journal Profile: BMC Anesthesiology
+# ═══════════════════════════════════════════════════════════════
+# Generated: 2026-03-17
+# Source: https://bmcanesthesiol.biomedcentral.com/submission-guidelines
+#
+# Usage: cp templates/journal-profiles/bmc-anesthesiology.yaml \
+#           projects/{slug}/journal-profile.yaml
+#
+# ⚠️  Always verify against the latest author guidelines URL above.
+#     Journal requirements may change without notice.
+# ═══════════════════════════════════════════════════════════════
+
+journal:
+  name: BMC Anesthesiology
+  abbreviation: BMC Anesthesiol
+  issn: ''
+  issn_online: 1471-2253
+  publisher: BioMed Central / Springer Nature
+  submission_url: https://www.editorialmanager.com/bean/
+  guidelines_url: https://bmcanesthesiol.biomedcentral.com/submission-guidelines
+authors: []
+paper:
+  type: original-research
+  sections:
+  - name: Title Page
+    required: true
+  - name: Abstract
+    required: true
+    structured: true
+    word_limit: 350
+  - name: Background
+    required: true
+  - name: Methods
+    required: true
+  - name: Results
+    required: true
+  - name: Discussion
+    required: true
+  - name: Conclusions
+    required: true
+word_limits:
+  total_manuscript: 5000
+  abstract: 350
+  title_characters: 150
+  running_title_characters: 0
+assets:
+  figures_max: 10
+  tables_max: 10
+  total_display_items_max: 15
+  supplementary_allowed: true
+  figure_formats:
+  - TIFF
+  - EPS
+  - PDF
+  - PNG
+  - JPEG
+  figure_dpi: 300
+  table_format: editable
+references:
+  style: vancouver
+  csl: ''
+  max_references: 60
+  max_authors_before_etal: 6
+  doi_required: true
+  pmid_preferred: true
+  reference_limits:
+    original-research: 60
+    review-article: 80
+    systematic-review: 80
+    meta-analysis: 80
+    case-report: 30
+    letter: 10
+  minimum_reference_limits:
+    original-research: 15
+    review-article: 25
+    case-report: 5
+    letter: 0
+required_documents:
+  cover_letter: false
+  highlights: false
+  graphical_abstract: false
+  author_contributions: true
+  conflict_of_interest: true
+  funding_statement: true
+  ethics_statement: true
+  data_availability: true
+  keywords:
+    required: true
+    count: 3-10
+reporting_guidelines:
+  checklist: required (CONSORT/STROBE/PRISMA as appropriate)
+  registration_required: true
+pipeline:
+  hook_a_max_rounds: 3
+  hook_b_max_rounds: 2
+  hook_c_max_rounds: 3
+  review_max_rounds: 3
+  autonomous_review:
+    enabled: true
+    reviewer_perspectives:
+    - methodology_expert
+    - domain_specialist
+    - statistician
+    - editor
+    quality_threshold: 7
+  tolerance:
+    word_percent: 20
+    citation_density_strict: true
+  section_brief:
+    enabled: true
+    paragraph_level: true
+    enforce_must_cite: true
+  changelog: []
+  writing:
+    language: en
+    tone: formal-academic
+    anti_ai_strictness: high
+    citation_density:
+      introduction: 100
+      methods: 0
+      results: 0
+      discussion: 150
+  assets:
+    auto_generate_table_one: true
+    auto_generate_plots: true
+    flow_diagram_tool: drawio
+    fallback_to_description: true
+    agent_initiated:
+      enabled: true
+      allowed_types:
+      - literature_summary_table
+      - comparison_table
+      - timeline_figure
+      - concept_diagram
+      must_respect_limits: true
+abstract:
+  structured: true
+  headings: Background, Methods, Results, Conclusions
+other_article_types:
+  case-report:
+    word_limit: 3000
+    abstract: 350
+    references: 30
+  review-article:
+    word_limit: 6000
+    abstract: 350
+    references: 80
+notes: Open access journal. No strict word limit for main text but 5000 recommended. APC applies.

@@ -67,10 +67,24 @@ class WritingHooksEngine(
             "A5": self.check_language_consistency(content, prefer=prefer_language, section=section),
             "A6": self.check_overlap(content),
             "A7": self.check_reference_sufficiency(),
+            "B2": self._run_b2_protected_content(),
             "B9": self.check_section_tense(content, section=section),
             "B10": self.check_paragraph_quality(content, section=section),
             "B15": self.check_hedging_density(content, section=section),
         }
+
+    def _run_b2_protected_content(self) -> HookResult:
+        """Hook B2: Protected content integrity — delegate to P5 with B2 hook_id.
+
+        Ensures 🔒-marked sections in concept.md are not empty after every write,
+        not just at pre-commit. Catches weak models that accidentally overwrite
+        protected content during drafting.
+        """
+        result = self.check_protected_content()
+        result.hook_id = "B2"
+        for issue in result.issues:
+            issue.hook_id = "B2"
+        return result
 
     # ── Batch Runner: Post-Section ─────────────────────────────────
 
@@ -113,6 +127,7 @@ class WritingHooksEngine(
             Dict mapping hook_id -> HookResult.
         """
         return {
+            "C2": self.check_submission_checklist(content),
             "C3": self.check_n_value_consistency(content),
             "C4": self.check_abbreviation_first_use(content),
             "C5": self.check_wikilink_resolvable(content),
@@ -192,6 +207,7 @@ class WritingHooksEngine(
             "P2": p2_result,
             "P4": p4_result,
             "P5": self.check_protected_content(),
+            "P6": self.check_memory_sync(),
             "P7": self.check_reference_integrity(content),
         }
 

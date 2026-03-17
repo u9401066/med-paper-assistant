@@ -60,6 +60,18 @@ class DataArtifactTracker:
         self._report_path = self._audit_dir / self.REPORT_FILE
         self._data: dict[str, Any] | None = None
 
+    def _normalize_path(self, path: str | None) -> str | None:
+        """Normalize project-relative paths for stable audit matching."""
+        if not path:
+            return None
+        candidate = Path(path)
+        if candidate.is_absolute():
+            try:
+                candidate = candidate.relative_to(self._project_dir)
+            except ValueError:
+                return candidate.as_posix()
+        return candidate.as_posix()
+
     def _load(self) -> dict[str, Any]:
         """Load or initialize tracking data."""
         if self._data is not None:
@@ -78,6 +90,7 @@ class DataArtifactTracker:
         self._data = {
             "version": 1,
             "artifacts": [],
+            "asset_reviews": [],
             "created_at": datetime.now().isoformat(),
         }
         return self._data
@@ -134,6 +147,92 @@ class DataArtifactTracker:
         logger.info("Recorded data artifact: %s (%s via %s)", entry["id"], artifact_type, tool_name)
         return entry
 
+    def record_asset_review(
+        self,
+        asset_type: Literal["figure", "table"],
+        asset_path: str,
+        observations: list[str],
+        rationale: str,
+        proposed_caption: str,
+        evidence_excerpt: str | None = None,
+    ) -> dict[str, Any]:
+        """Record an auditable asset review receipt before insertion/caption writing.
+
+        This is the closest code-enforced proxy for "agent truly looked at it":
+        the agent must produce structured observations tied to a specific asset
+        before insert_figure/insert_table can proceed.
+        """
+        data = self._load()
+        normalized_path = self._normalize_path(asset_path)
+        reviews: list[dict[str, Any]] = data.setdefault("asset_reviews", [])
+
+        entry = {
+            "id": f"AR-{len(reviews) + 1:03d}",
+            "asset_type": asset_type,
+            "asset_path": normalized_path,
+            "observations": [o.strip() for o in observations if o and o.strip()],
+            "rationale": rationale.strip(),
+            "proposed_caption": proposed_caption.strip(),
+            "evidence_excerpt": (evidence_excerpt or "").strip(),
+            "timestamp": datetime.now().isoformat(),
+        }
+        reviews.append(entry)
+        self._save()
+        logger.info("Recorded asset review: %s (%s %s)", entry["id"], asset_type, normalized_path)
+        return entry
+
+    def get_asset_review(
+        self,
+        asset_path: str,
+        asset_type: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Return the latest review receipt for a given asset path."""
+        normalized_path = self._normalize_path(asset_path)
+        data = self._load()
+        reviews = data.get("asset_reviews", [])
+        matches = [
+            r
+            for r in reviews
+            if r.get("asset_path") == normalized_path
+            and (asset_type is None or r.get("asset_type") == asset_type)
+        ]
+        if not matches:
+            return None
+        return sorted(matches, key=lambda r: r.get("timestamp", ""))[-1]
+
+    @staticmethod
+    def _normalize_caption(text: str) -> str:
+        """Normalize caption for comparison: lowercase, strip punctuation/whitespace."""
+        import string
+
+        return text.strip().rstrip(string.punctuation).strip().lower()
+
+    def review_satisfies_caption(
+        self,
+        asset_path: str,
+        proposed_caption: str,
+        asset_type: str,
+    ) -> tuple[bool, str]:
+        """Validate that an asset has a review receipt aligned with the caption."""
+        review = self.get_asset_review(asset_path, asset_type=asset_type)
+        if review is None:
+            return False, "no asset review receipt found"
+
+        observations = review.get("observations", [])
+        if len(observations) < 2:
+            return False, "asset review must contain at least 2 observations"
+
+        if not review.get("rationale"):
+            return False, "asset review rationale missing"
+
+        reviewed_caption = str(review.get("proposed_caption", "")).strip()
+        if reviewed_caption and (
+            self._normalize_caption(reviewed_caption) != self._normalize_caption(proposed_caption)
+        ):
+            return False, "caption differs from reviewed proposed_caption"
+
+        return True, review.get("id", "asset review receipt")
+
     def get_artifacts(self, artifact_type: str | None = None) -> list[dict[str, Any]]:
         """Get all artifacts, optionally filtered by type."""
         data = self._load()
@@ -175,7 +274,6 @@ class DataArtifactTracker:
         # Get tracked artifacts
         artifacts = self.get_artifacts()
         artifact_outputs = {a.get("output_path") for a in artifacts if a.get("output_path")}
-
         # Check 1: Files in results/figures/ have provenance
         figures_dir = self._project_dir / "results" / "figures"
         if figures_dir.is_dir():
@@ -264,6 +362,36 @@ class DataArtifactTracker:
                     }
                 )
 
+        # Check 4b: Figure/Table artifacts have review receipts before insertion/captioning
+        for a in artifacts:
+            if a.get("artifact_type") in ("figure", "table") and a.get("output_path"):
+                review = self.get_asset_review(
+                    str(a.get("output_path")),
+                    asset_type=str(a.get("artifact_type")),
+                )
+                if not review:
+                    issues.append(
+                        {
+                            "severity": "CRITICAL",
+                            "category": "asset_review_missing",
+                            "message": (
+                                f"{str(a.get('artifact_type')).title()} artifact {a.get('output_path')} has no asset review receipt; "
+                                "call review_asset_for_insertion() before inserting or captioning"
+                            ),
+                        }
+                    )
+                elif len(review.get("observations", [])) < 2 or not review.get("rationale"):
+                    issues.append(
+                        {
+                            "severity": "CRITICAL",
+                            "category": "asset_review_incomplete",
+                            "message": (
+                                f"Asset review for {a.get('output_path')} is incomplete; "
+                                "need >=2 observations and a rationale"
+                            ),
+                        }
+                    )
+
         # Check 5: Draft cross-references (if draft content provided)
         if draft_content:
             # Find Figure N and Table N references in text
@@ -282,6 +410,45 @@ class DataArtifactTracker:
                         "message": f"Draft references 'Figure {ref}' but no such entry in manifest",
                     }
                 )
+
+            # Manifest entries also need review receipts for caption trustworthiness
+            for entry in manifest.get("figures", []):
+                fname = entry.get("filename")
+                if not fname:
+                    continue
+                asset_path = f"results/figures/{fname}"
+                ok, detail = self.review_satisfies_caption(
+                    asset_path,
+                    str(entry.get("caption", "")),
+                    asset_type="figure",
+                )
+                if not ok:
+                    issues.append(
+                        {
+                            "severity": "CRITICAL",
+                            "category": "caption_unreviewed",
+                            "message": f"Figure {entry.get('number')} caption is not backed by a matching review receipt: {detail}",
+                        }
+                    )
+
+            for entry in manifest.get("tables", []):
+                fname = entry.get("filename")
+                if not fname:
+                    continue
+                asset_path = f"results/tables/{fname}"
+                ok, detail = self.review_satisfies_caption(
+                    asset_path,
+                    str(entry.get("caption", "")),
+                    asset_type="table",
+                )
+                if not ok:
+                    issues.append(
+                        {
+                            "severity": "CRITICAL",
+                            "category": "caption_unreviewed",
+                            "message": f"Table {entry.get('number')} caption is not backed by a matching review receipt: {detail}",
+                        }
+                    )
 
             for ref in tbl_refs - manifest_tbl_nums:
                 issues.append(
@@ -391,6 +558,26 @@ class DataArtifactTracker:
                     lines.append("```python")
                     lines.append(item["provenance_code"])
                     lines.append("```")
+                lines.append("")
+
+        reviews = data.get("asset_reviews", [])
+        if reviews:
+            lines.append(f"## Asset Reviews ({len(reviews)})")
+            lines.append("")
+            for review in reviews:
+                lines.append(
+                    f"### {review.get('id')} — {review.get('asset_type')} {review.get('asset_path')}"
+                )
+                lines.append(f"- **Timestamp**: {review.get('timestamp')}")
+                lines.append(f"- **Proposed Caption**: {review.get('proposed_caption', '')}")
+                lines.append(f"- **Rationale**: {review.get('rationale', '')}")
+                if review.get("evidence_excerpt"):
+                    lines.append(f"- **Evidence Excerpt**: {review.get('evidence_excerpt')}")
+                observations = review.get("observations", [])
+                if observations:
+                    lines.append("- **Observations**:")
+                    for observation in observations:
+                        lines.append(f"  - {observation}")
                 lines.append("")
 
         report_text = "\n".join(lines)

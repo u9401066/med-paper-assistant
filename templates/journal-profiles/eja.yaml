@@ -1,0 +1,172 @@
+# ═══════════════════════════════════════════════════════════════
+# Journal Profile: European Journal of Anaesthesiology
+# ═══════════════════════════════════════════════════════════════
+# Generated: 2026-03-17
+# Source: http://edmgr.ovid.com/eja/accounts/ifauth.htm
+#
+# Usage: cp templates/journal-profiles/eja.yaml \
+#           projects/{slug}/journal-profile.yaml
+#
+# ⚠️  Always verify against the latest author guidelines URL above.
+#     Journal requirements may change without notice.
+# ═══════════════════════════════════════════════════════════════
+
+journal:
+  name: European Journal of Anaesthesiology
+  abbreviation: Eur J Anaesthesiol
+  issn: 0265-0215
+  issn_online: 1365-2346
+  publisher: Wolters Kluwer / ESAIC
+  submission_url: https://www.editorialmanager.com/eja/
+  guidelines_url: http://edmgr.ovid.com/eja/accounts/ifauth.htm
+authors: []
+paper:
+  type: original-research
+  sections:
+  - name: Title Page
+    required: true
+  - name: Abstract
+    required: true
+    structured: true
+    word_limit: 300
+  - name: Key Points
+    required: true
+  - name: Introduction
+    required: true
+  - name: Methods
+    required: true
+  - name: Results
+    required: true
+  - name: Discussion
+    required: true
+word_limits:
+  total_manuscript: 3500
+  abstract: 300
+  title_characters: 150
+  running_title_characters: 50
+assets:
+  figures_max: 6
+  tables_max: 6
+  total_display_items_max: 8
+  supplementary_allowed: true
+  figure_formats:
+  - TIFF
+  - EPS
+  - DOC
+  - PPT
+  figure_dpi: 300
+  table_format: editable
+references:
+  style: vancouver
+  csl: ''
+  max_references: 40
+  max_authors_before_etal: 3
+  doi_required: false
+  pmid_preferred: true
+  reference_limits:
+    original-research: 40
+    review-article: 60
+    systematic-review: 60
+    meta-analysis: 60
+    case-report: 7
+    letter: 7
+  minimum_reference_limits:
+    original-research: 20
+    review-article: 30
+    case-report: 3
+    letter: 0
+required_documents:
+  cover_letter: true
+  highlights: false
+  graphical_abstract: false
+  author_contributions: true
+  conflict_of_interest: true
+  funding_statement: true
+  ethics_statement: true
+  data_availability: true
+  keywords:
+    required: true
+    count: 3-5
+  key_points: true
+  credit_taxonomy: true
+reporting_guidelines:
+  checklist: required (CONSORT/STROBE/PRISMA/MOOSE/ARRIVE/STARD/CARE/SQUIRE)
+  registration_required: true
+  protocol_registration: PROSPERO (mandatory for systematic reviews)
+pipeline:
+  hook_a_max_rounds: 3
+  hook_b_max_rounds: 2
+  hook_c_max_rounds: 3
+  review_max_rounds: 3
+  autonomous_review:
+    enabled: true
+    reviewer_perspectives:
+    - methodology_expert
+    - domain_specialist
+    - statistician
+    - editor
+    quality_threshold: 7
+  tolerance:
+    word_percent: 20
+    citation_density_strict: true
+  section_brief:
+    enabled: true
+    paragraph_level: true
+    enforce_must_cite: true
+  changelog: []
+  writing:
+    language: en
+    tone: formal-academic
+    anti_ai_strictness: high
+    citation_density:
+      introduction: 100
+      methods: 0
+      results: 0
+      discussion: 150
+  assets:
+    auto_generate_table_one: true
+    auto_generate_plots: true
+    flow_diagram_tool: drawio
+    fallback_to_description: true
+    agent_initiated:
+      enabled: true
+      allowed_types:
+      - literature_summary_table
+      - comparison_table
+      - timeline_figure
+      - concept_diagram
+      must_respect_limits: true
+abstract:
+  structured: true
+  headings: Background, Objective(s), Design, Setting, Patients/Participants, Intervention(s), Main outcome
+    measures, Results, Conclusions, Trial registration
+other_article_types:
+  case-report:
+    word_limit: 1000
+    abstract: 0
+    references: 7
+    max_authors: 4
+  review-article:
+    word_limit: 3500
+    abstract: 250
+    references: 60
+    note: unstructured abstract for narrative reviews
+  letter:
+    word_limit: 1000
+    abstract: 0
+    references: 7
+    max_authors: 4
+  editorial:
+    word_limit: 1500
+    abstract: 0
+    references: 15
+  short-scientific-report:
+    word_limit: 1000
+    abstract: 0
+    references: 7
+    max_authors: 4
+  pro-con-debate:
+    word_limit: 2000
+    abstract: 200
+    references: 20
+notes: UK spelling preferred. 1.5 spacing. Visual abstracts for selected submissions.

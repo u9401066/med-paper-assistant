@@ -40,6 +40,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import yaml
+
 from med_paper_assistant.domain.paper_types import (
     get_concept_requirements,
     get_section_requirements,
@@ -1025,6 +1027,357 @@ class ConceptValidator:
     def _cache_result(self, cache_key: str, result: ValidationResult) -> None:
         """Cache validation result."""
         self._validation_cache[cache_key] = result
+
+    def build_concept_review(self, result: ValidationResult) -> Dict[str, Any]:
+        """Build a structured concept review artifact from a validation result.
+
+        The concept review normalizes free-form concept text into stable fields
+        that later phases can consume. It is intentionally source-agnostic:
+        human-authored, agent-authored, and hybrid concepts all map to the same
+        downstream contract.
+
+        Args:
+            result: Validation result produced by validate().
+
+        Returns:
+            A serializable dictionary for concept-review.yaml.
+        """
+        content = ""
+        try:
+            content = Path(result.file_path).read_text(encoding="utf-8")
+        except OSError:
+            content = ""
+
+        research_question = self._extract_research_question(result, content)
+        claims_required = self._extract_claims_required(result, content)
+        evidence_requirements = self._build_evidence_requirements(claims_required, content, result)
+        asset_obligations = self._extract_asset_obligations(content)
+        risk_register = self._build_risk_register(result)
+        open_questions = self._build_open_questions(result)
+
+        readiness = "ready" if result.overall_passed else "revise"
+        if result.errors and not result.structure_valid:
+            readiness = "blocked"
+
+        novelty_summary = result.sections.get(
+            "novelty_statement", SectionCheck(name="", found=False, has_content=False)
+        ).content.strip() or self._extract_markdown_section(content, "NOVELTY")
+        selling_points = self._extract_selling_points(result, content)
+
+        return {
+            "metadata": {
+                "generated_at": result.timestamp,
+                "generated_by": "concept_validator",
+                "source_mode": self._infer_source_mode(content),
+                "source_files": [os.path.basename(result.file_path)],
+                "based_on": {
+                    "paper_type": result.paper_type,
+                    "target_section": result.target_section,
+                    "validation_rounds": self.NOVELTY_CONFIG["rounds"],
+                },
+            },
+            "review": {
+                "readiness": readiness,
+                "gate_passed": result.overall_passed,
+                "summary": self._build_review_summary(result),
+                "blocking_reasons": result.errors[:10],
+                "warnings": result.warnings[:10],
+            },
+            "research_question": research_question,
+            "paper_type_fit": {
+                "recommended_type": result.paper_type,
+                "alternatives": [],
+                "rationale": f"Validated under paper type '{result.paper_type}'.",
+            },
+            "claims_required": claims_required,
+            "evidence_requirements": evidence_requirements,
+            "asset_obligations": asset_obligations,
+            "dataset_requirements": [],
+            "protected_content": {
+                "novelty_statement_locked": {
+                    "present": bool(novelty_summary),
+                    "summary": novelty_summary,
+                },
+                "selling_points_locked": {
+                    "present": len(selling_points) > 0,
+                    "items": selling_points,
+                },
+            },
+            "risk_register": risk_register,
+            "open_questions": open_questions,
+            "downstream_contract": {
+                "phase4_inputs": [
+                    "research_question.canonical_question",
+                    "claims_required",
+                    "evidence_requirements",
+                    "asset_obligations",
+                ],
+                "phase5_inputs": [
+                    "protected_content",
+                    "risk_register",
+                    "asset_obligations",
+                ],
+            },
+        }
+
+    def save_validation_artifacts(
+        self,
+        result: ValidationResult,
+        project_dir: Optional[str | Path] = None,
+    ) -> Dict[str, str]:
+        """Persist concept validation artifacts to the project audit directory.
+
+        Writes both the human-readable concept-validation.md report and the
+        machine-readable concept-review.yaml artifact.
+
+        Args:
+            result: Validation result produced by validate().
+            project_dir: Optional project root. If omitted, inferred from the
+                concept file location.
+
+        Returns:
+            Mapping of artifact names to saved file paths. Empty if the project
+            root cannot be determined.
+        """
+        resolved_project_dir = Path(project_dir) if project_dir else self._infer_project_dir(result)
+        if resolved_project_dir is None:
+            return {}
+
+        audit_dir = resolved_project_dir / ".audit"
+        audit_dir.mkdir(parents=True, exist_ok=True)
+
+        validation_report_path = audit_dir / "concept-validation.md"
+        validation_report_path.write_text(self.generate_report(result), encoding="utf-8")
+
+        concept_review_path = audit_dir / "concept-review.yaml"
+        concept_review = self.build_concept_review(result)
+        concept_review_path.write_text(
+            yaml.dump(
+                concept_review, default_flow_style=False, allow_unicode=True, sort_keys=False
+            ),
+            encoding="utf-8",
+        )
+
+        return {
+            "concept_validation": str(validation_report_path),
+            "concept_review": str(concept_review_path),
+        }
+
+    def _infer_project_dir(self, result: ValidationResult) -> Optional[Path]:
+        """Infer project root from a concept file path."""
+        concept_path = Path(result.file_path)
+        if concept_path.name != "concept.md":
+            return None
+        if concept_path.parent.name == "drafts":
+            return concept_path.parent.parent
+        return concept_path.parent
+
+    def _infer_source_mode(self, content: str) -> str:
+        """Infer the broad authorship mode for a concept document.
+
+        This intentionally uses conservative heuristics. If authorship is not
+        obvious, return ``hybrid``.
+        """
+        lower = content.lower()
+        has_placeholders = bool(re.search(r"\[(insert|todo|placeholder)", lower))
+        has_structured_markers = any(marker in content for marker in ["🔒", "📝", "Selling Point"])
+
+        if has_structured_markers and not has_placeholders:
+            return "agent-authored"
+        if has_placeholders and not has_structured_markers:
+            return "human-authored"
+        return "hybrid"
+
+    def _extract_research_question(self, result: ValidationResult, content: str) -> Dict[str, Any]:
+        """Extract a canonical research question block."""
+        question_content = result.sections.get(
+            "research_question", SectionCheck(name="", found=False, has_content=False)
+        ).content.strip() or self._extract_markdown_section(content, "RESEARCH QUESTION")
+        novelty_content = result.sections.get(
+            "novelty_statement", SectionCheck(name="", found=False, has_content=False)
+        ).content.strip() or self._extract_markdown_section(content, "NOVELTY")
+        fallback_sentence = ""
+        source_text = question_content or novelty_content or content
+        sentence_match = re.search(r"([^.!?\n]{15,}[.!?])", source_text)
+        if sentence_match:
+            fallback_sentence = sentence_match.group(1).strip()
+
+        return {
+            "canonical_question": question_content or fallback_sentence,
+            "study_objective": fallback_sentence,
+            "target_population": "",
+            "comparator": "",
+            "outcomes_primary": [],
+            "outcomes_secondary": [],
+        }
+
+    def _extract_claims_required(
+        self, result: ValidationResult, content: str
+    ) -> List[Dict[str, Any]]:
+        """Extract required claims from novelty and selling point sections."""
+        claims: List[Dict[str, Any]] = []
+        novelty_content = result.sections.get(
+            "novelty_statement", SectionCheck(name="", found=False, has_content=False)
+        ).content.strip() or self._extract_markdown_section(content, "NOVELTY")
+        if novelty_content:
+            claims.append(
+                {
+                    "id": "claim-1",
+                    "text": novelty_content.splitlines()[0].strip(),
+                    "priority": "critical",
+                    "section_targets": ["Introduction", "Discussion"],
+                }
+            )
+
+        for idx, point in enumerate(self._extract_selling_points(result, content), start=2):
+            claims.append(
+                {
+                    "id": f"claim-{idx}",
+                    "text": point,
+                    "priority": "important",
+                    "section_targets": ["Discussion"],
+                }
+            )
+
+        return claims
+
+    def _extract_selling_points(self, result: ValidationResult, content: str) -> List[str]:
+        """Extract individual selling points from the protected section."""
+        selling_content = result.sections.get(
+            "selling_points", SectionCheck(name="", found=False, has_content=False)
+        ).content or self._extract_markdown_section(content, "KEY SELLING POINTS")
+        lines = [line.strip(" -*\t") for line in selling_content.splitlines() if line.strip()]
+        points: List[str] = []
+        for line in lines:
+            cleaned = re.sub(r"^(Selling Point\s*\d+[:：]?|\d+[.)]\s*)", "", line, flags=re.I)
+            cleaned = cleaned.strip("* ")
+            if cleaned and cleaned not in points:
+                points.append(cleaned)
+        return points[:10]
+
+    def _extract_markdown_section(self, content: str, heading: str) -> str:
+        """Extract content under a markdown heading using a simple fallback parser."""
+        pattern = re.compile(
+            rf"^#+\s*{re.escape(heading)}\s*$\n(?P<body>.*?)(?=^#|\Z)",
+            re.IGNORECASE | re.MULTILINE | re.DOTALL,
+        )
+        match = pattern.search(content)
+        if not match:
+            return ""
+        return match.group("body").strip()
+
+    def _build_evidence_requirements(
+        self,
+        claims_required: List[Dict[str, Any]],
+        content: str,
+        result: ValidationResult,
+    ) -> List[Dict[str, Any]]:
+        """Build evidence requirements for each claim."""
+        has_any_citation = bool(re.search(r"\[\[[^\]]+\]\]", content))
+        requirements: List[Dict[str, Any]] = []
+        for claim in claims_required:
+            requirements.append(
+                {
+                    "claim_id": claim["id"],
+                    "evidence_type": "literature",
+                    "required": True,
+                    "description": f"Evidence needed to support: {claim['text']}",
+                    "currently_satisfied": has_any_citation and result.citation_score >= 0,
+                }
+            )
+        return requirements
+
+    def _extract_asset_obligations(self, content: str) -> List[Dict[str, Any]]:
+        """Infer mandatory assets mentioned in concept text."""
+        obligations: List[Dict[str, Any]] = []
+        normalized = content.lower()
+        if "flow diagram" in normalized or "流程圖" in content:
+            obligations.append(
+                {
+                    "id": "figure-1",
+                    "required": True,
+                    "type": "flow_diagram",
+                    "target_section": "Methods",
+                    "purpose": "Study flow or patient selection",
+                    "minimum_caption_requirements": [],
+                    "exportable_required": True,
+                }
+            )
+        if any(
+            token in normalized for token in ["table 1", "baseline characteristics", "基線特徵"]
+        ):
+            obligations.append(
+                {
+                    "id": "table-1",
+                    "required": True,
+                    "type": "table_one",
+                    "target_section": "Results",
+                    "purpose": "Baseline characteristics",
+                    "minimum_caption_requirements": [],
+                    "exportable_required": False,
+                }
+            )
+        if any(token in normalized for token in ["roc", "forest plot", "plot", "figure"]):
+            obligations.append(
+                {
+                    "id": f"figure-{len(obligations) + 1}",
+                    "required": True,
+                    "type": "plot",
+                    "target_section": "Results",
+                    "purpose": "Quantitative visual evidence",
+                    "minimum_caption_requirements": [],
+                    "exportable_required": True,
+                }
+            )
+        return obligations
+
+    def _build_risk_register(self, result: ValidationResult) -> List[Dict[str, Any]]:
+        """Convert validation issues into a risk register."""
+        risks: List[Dict[str, Any]] = []
+        for idx, issue in enumerate(result.errors[:10], start=1):
+            risks.append(
+                {
+                    "id": f"risk-{idx}",
+                    "category": "concept",
+                    "severity": "critical",
+                    "description": issue,
+                    "mitigation": "Revise concept and re-run concept review.",
+                }
+            )
+        start_idx = len(risks) + 1
+        for offset, issue in enumerate(result.consistency_issues[:10], start=start_idx):
+            risks.append(
+                {
+                    "id": f"risk-{offset}",
+                    "category": "consistency",
+                    "severity": "warning",
+                    "description": issue,
+                    "mitigation": "Align claims across concept sections before planning.",
+                }
+            )
+        return risks
+
+    def _build_open_questions(self, result: ValidationResult) -> List[Dict[str, Any]]:
+        """Convert suggestions into explicit open questions."""
+        questions: List[Dict[str, Any]] = []
+        for idx, suggestion in enumerate(result.suggestions[:10], start=1):
+            questions.append(
+                {
+                    "id": f"q-{idx}",
+                    "question": suggestion,
+                    "owner": "user",
+                    "blocking": False,
+                }
+            )
+        return questions
+
+    def _build_review_summary(self, result: ValidationResult) -> str:
+        """Create a short review summary string."""
+        if result.overall_passed:
+            return "Concept passed validation and is ready for downstream planning."
+        if result.errors:
+            return f"Concept has {len(result.errors)} blocking issue(s) requiring revision."
+        return "Concept needs revision before downstream planning."
 
     def generate_report(self, result: ValidationResult) -> str:
         """Generate a human-readable validation report."""

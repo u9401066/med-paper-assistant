@@ -1,0 +1,126 @@
+# ═══════════════════════════════════════════════════════════════
+# Journal Profile: Current Opinion in Anaesthesiology
+# ═══════════════════════════════════════════════════════════════
+# Generated: 2026-03-17
+# Source: https://journals.lww.com/co-anesthesiology/pages/informationforauthors.aspx
+#
+# Usage: cp templates/journal-profiles/current-opinion-anaesthesiology.yaml \
+#           projects/{slug}/journal-profile.yaml
+#
+# ⚠️  Always verify against the latest author guidelines URL above.
+#     Journal requirements may change without notice.
+# ═══════════════════════════════════════════════════════════════
+
+journal:
+  name: Current Opinion in Anaesthesiology
+  abbreviation: Curr Opin Anaesthesiol
+  issn: 0952-7907
+  issn_online: 1473-6500
+  publisher: Wolters Kluwer
+  submission_url: https://www.editorialmanager.com/coa/
+  guidelines_url: https://journals.lww.com/co-anesthesiology/pages/informationforauthors.aspx
+authors: []
+paper:
+  type: review-article
+  sections:
+  - name: Title Page
+    required: true
+  - name: Abstract
+    required: true
+    structured: false
+    word_limit: 200
+  - name: Introduction
+    required: true
+  - name: Body
+    required: true
+  - name: Conclusion
+    required: true
+word_limits:
+  total_manuscript: 3500
+  abstract: 200
+  title_characters: 150
+  running_title_characters: 50
+assets:
+  figures_max: 4
+  tables_max: 4
+  total_display_items_max: 6
+  supplementary_allowed: true
+  figure_formats:
+  - TIFF
+  - EPS
+  - PDF
+  figure_dpi: 300
+  table_format: editable
+references:
+  style: vancouver
+  csl: ''
+  max_references: 50
+  max_authors_before_etal: 6
+  doi_required: false
+  pmid_preferred: true
+  reference_limits:
+    review-article: 50
+  minimum_reference_limits:
+    review-article: 20
+required_documents:
+  cover_letter: true
+  highlights: false
+  graphical_abstract: false
+  author_contributions: true
+  conflict_of_interest: true
+  funding_statement: true
+  ethics_statement: false
+  data_availability: false
+  keywords:
+    required: true
+    count: 3-5
+reporting_guidelines:
+  checklist: PRISMA (for systematic reviews)
+  registration_required: false
+pipeline:
+  hook_a_max_rounds: 3
+  hook_b_max_rounds: 2
+  hook_c_max_rounds: 3
+  review_max_rounds: 3
+  autonomous_review:
+    enabled: true
+    reviewer_perspectives:
+    - methodology_expert
+    - domain_specialist
+    - statistician
+    - editor
+    quality_threshold: 7
+  tolerance:
+    word_percent: 20
+    citation_density_strict: true
+  section_brief:
+    enabled: true
+    paragraph_level: true
+    enforce_must_cite: true
+  changelog: []
+  writing:
+    language: en
+    tone: formal-academic
+    anti_ai_strictness: high
+    citation_density:
+      introduction: 100
+      methods: 0
+      results: 0
+      discussion: 150
+  assets:
+    auto_generate_table_one: true
+    auto_generate_plots: true
+    flow_diagram_tool: drawio
+    fallback_to_description: true
+    agent_initiated:
+      enabled: true
+      allowed_types:
+      - literature_summary_table
+      - comparison_table
+      - timeline_figure
+      - concept_diagram
+      must_respect_limits: true
+abstract:
+  structured: false
+  headings: Purpose of review, Recent findings, Summary
+notes: Review-only journal. Articles typically commissioned.

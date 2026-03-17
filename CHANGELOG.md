@@ -7,18 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-03-17
+
 ### Added
 
+- **Top 20 anesthesiology journal profiles**: Added `templates/journal-profiles/` with 20 ready-to-use journal YAML presets, `_index.yaml`, README, and `scripts/generate_journal_profiles.py` to regenerate the catalog from source metadata
 - **Paper pre-commit hook (P-series)**: New `scripts/hooks/paper_precommit.py` registered in `.pre-commit-config.yaml` — runs P1/P2/P4/P5/P7 quality checks automatically on `git commit`, blocking on CRITICAL issues
 - **Embedded post-write hooks**: `write_draft` and `patch_draft` now auto-run A-series hooks (A1–A7, B9, B10, B15) after successful write — agent cannot skip, non-blocking advisory report appended to output
 - **B2 protected content guard**: `patch_draft` now blocks modification of 🔒-marked sections in `concept.md` — prevents agent from altering NOVELTY STATEMENT or KEY SELLING POINTS without user approval
+- **Weak-model guardrails expansion**: Added Code-Enforced B2/C2/P6 coverage, deprecated `save_reference()` warning + telemetry, and a dedicated weak-model regression suite in `tests/test_weak_model_guardrails.py`
+- **Domain constraint expansion**: Added shared anti-AI vocabulary core and broader paper-type coverage for `meta-analysis`, `review-article`, `letter`, and `other`, plus structural/temporal/evidential constraints such as methods-before-results, minimum references, and section-overlap detection
 
 ### Fixed
 
 - **Hook batch runner**: `run_post_manuscript_hooks()` now calls C10 (full manuscript validation), C11 (citation distribution), C12 (citation decision audit), C13 (figure/table quality) — previously defined in mixin but not wired into the batch runner
 - **MCP hook aliases**: `audit_hooks.py` ALL set now includes A7 (reference sufficiency) and C7B (asset coverage); POST-WRITE +A7, POST-MANUSCRIPT +C7B; docstring corrected from 37→40 hooks
 - **Hook effectiveness tracker**: `HOOK_CATEGORIES` now tracks P (pre-commit) and G (git-hooks) event categories
-- **Documentation alignment**: AGENTS.md and copilot-instructions.md hook count tables corrected — Code-Enforced 36→52, Agent-Driven 42→26, matching actual codebase
+- **Consistency checker accuracy**: `scripts/check_consistency.py` now understands sub-hooks like `A3b`, counts 78 hooks correctly, and validates P/G hook categories instead of misreporting false failures
+- **Documentation alignment**: AGENTS.md, `.github/copilot-instructions.md`, `vscode-extension/copilot-instructions.md`, and `vscode-extension/README.md` now reflect 78 hooks / 55 Code-Enforced / 23 Agent-Driven and 88 MCP tools consistently
+- **VSX bundled parity**: Re-synced bundled Python sources and bundled skills with workspace source so local `vitest` sync checks and packaged extension content match the repository state
 
 ## [0.5.0] - 2026-03-11
 

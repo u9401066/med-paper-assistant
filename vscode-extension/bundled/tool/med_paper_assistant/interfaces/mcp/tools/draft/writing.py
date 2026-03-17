@@ -6,12 +6,17 @@ write_draft, draft_section, read_draft, list_drafts
 
 import os
 import re
+from pathlib import Path
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.domain.paper_types import check_writing_prerequisites
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
+from med_paper_assistant.infrastructure.persistence.writing_hooks._constants import (
+    DEFAULT_MIN_REFERENCES,
+    DEFAULT_MINIMUM_REFERENCES,
+)
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
 from med_paper_assistant.infrastructure.services.prompts import SECTION_PROMPTS
@@ -20,13 +25,13 @@ from .._shared import (
     auto_checkpoint_writing,
     get_concept_path,
     get_drafts_dir,
+    get_project_path,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
     log_tool_result,
     validate_project_for_tool,
 )
-from .._shared.guidance import build_guidance_hint
 
 # Global validator instance
 _concept_validator = ConceptValidator()
@@ -109,6 +114,110 @@ def _enforce_concept_validation(require_novelty: bool = True) -> tuple:
     )
 
 
+def _enforce_reference_sufficiency() -> tuple[bool, str]:
+    """
+    Hard gate: Block writing when saved references are below paper-type minimum.
+
+    Cross-MCP enforcement: mdpaper cannot invoke pubmed-search directly,
+    so this returns structured REMEDIATION_REQUIRED directives with exact
+    tool calls the agent MUST execute before retrying.
+
+    Returns:
+        Tuple of (can_proceed: bool, message: str).
+        When can_proceed is False, message contains blocking error + remediation steps.
+        When can_proceed is True, message is empty or informational.
+    """
+    from med_paper_assistant.infrastructure.persistence import get_project_manager
+
+    pm = get_project_manager()
+    current_info = pm.get_project_info()
+    if not current_info or not current_info.get("project_path"):
+        # No project context — let other validators handle this
+        return True, ""
+
+    project_dir = Path(str(current_info["project_path"]))
+    refs_dir = project_dir / "references"
+
+    # Count references (same logic as A7 hook and pipeline gate)
+    ref_count = 0
+    if refs_dir.is_dir():
+        ref_count = len(list(refs_dir.glob("*/metadata.json")))
+        if ref_count == 0:
+            ref_count = len(list(refs_dir.glob("*.md")))
+
+    # Determine paper type and minimum
+    paper_type = current_info.get("paper_type", "original-research")
+
+    # Check journal-profile.yaml override first
+    min_refs = None
+    jp_path = project_dir / "journal-profile.yaml"
+    if jp_path.is_file():
+        try:
+            import yaml
+
+            with open(jp_path, encoding="utf-8") as f:
+                profile = yaml.safe_load(f) or {}
+            paper_type_from_profile = profile.get("paper", {}).get("type")
+            if paper_type_from_profile:
+                paper_type = paper_type_from_profile
+            min_limits = profile.get("references", {}).get("minimum_reference_limits", {})
+            if isinstance(min_limits, dict):
+                val = min_limits.get(paper_type)
+                if val is not None:
+                    min_refs = int(val)
+        except Exception:  # nosec B110 - fallback to defaults below
+            pass
+
+    if min_refs is None:
+        min_refs = DEFAULT_MINIMUM_REFERENCES.get(paper_type, DEFAULT_MIN_REFERENCES)
+
+    if ref_count >= min_refs:
+        return True, ""
+
+    deficit = min_refs - ref_count
+    project_name = current_info.get("name", "")
+
+    # Extract research topic from concept.md for search query suggestion
+    topic_hint = ""
+    concept_path = get_concept_path()
+    if concept_path and os.path.exists(concept_path):
+        try:
+            with open(concept_path, "r", encoding="utf-8") as f:
+                concept_text = f.read(2000)  # Read first 2000 chars for topic extraction
+            # Look for title or first heading
+            title_match = re.search(r"^#\s+(.+)$", concept_text, re.MULTILINE)
+            if title_match:
+                topic_hint = title_match.group(1).strip()
+        except Exception:  # nosec B110 - topic hint is optional
+            pass
+
+    search_query_example = topic_hint if topic_hint else project_name
+
+    return (
+        False,
+        f"❌ **WRITING BLOCKED — Insufficient References (Hook A7)**\n\n"
+        f"📊 Current: **{ref_count}/{min_refs}** references "
+        f"(paper type: {paper_type}, need **{deficit}** more)\n\n"
+        f"---\n\n"
+        f"## 🔧 REMEDIATION REQUIRED\n\n"
+        f"Complete these steps before retrying `write_draft` or `draft_section`:\n\n"
+        f"### Step 1: Search for more literature\n"
+        f"```\n"
+        f'unified_search(query="{search_query_example}", limit=20)\n'
+        f"```\n\n"
+        f"### Step 2: Save at least {deficit} references\n"
+        f"```\n"
+        f'save_reference_mcp(pmid="<PMID from search results>")\n'
+        f"```\n"
+        f"Repeat for each relevant article until you have ≥{min_refs} references.\n\n"
+        f"### Step 3: Retry writing\n"
+        f"Call `write_draft` or `draft_section` again after saving enough references.\n\n"
+        f"---\n"
+        f"⚠️ This is a **Code-Enforced** hard gate. Writing cannot proceed "
+        f"until reference count ≥ {min_refs}.",
+    )
+
+
 def _validate_wikilinks_in_content(content: str, references_dir: Optional[str] = None) -> tuple:
     """
     驗證內容中的 wikilinks 並自動修復。
@@ -170,6 +279,57 @@ def _get_author_block() -> str:
         return ""
 
     return generate_author_block(author_objs)
+
+
+def _run_embedded_post_write_hooks(content: str, section_name: str = "manuscript") -> str:
+    """
+    Run post-write hooks automatically after write_draft/patch_draft.
+
+    Non-blocking: returns a report string (never raises). Agent cannot skip
+    this because it's embedded in the write path, not a separate tool call.
+
+    Returns:
+        Formatted report string, or empty string if no issues or on error.
+    """
+    project_path = get_project_path()
+    if not project_path:
+        return ""
+
+    try:
+        from med_paper_assistant.infrastructure.persistence.writing_hooks import (
+            WritingHooksEngine,
+        )
+
+        engine = WritingHooksEngine(project_path)
+        results = engine.run_post_write_hooks(content, section=section_name)
+
+        criticals: list[str] = []
+        warnings: list[str] = []
+
+        for hook_id, hook_result in results.items():
+            for issue in hook_result.issues:
+                line = f"[{hook_id}] {issue.message}"
+                if issue.severity == "CRITICAL":
+                    criticals.append(f"❌ {line}")
+                elif issue.severity == "WARNING":
+                    warnings.append(f"⚠️  {line}")
+
+        if not criticals and not warnings:
+            return "\n\n✅ **Post-write hooks**: All checks passed."
+
+        parts = ["\n\n📋 **Post-write hooks (auto-run)**:"]
+        if criticals:
+            parts.append(f"\n**CRITICAL ({len(criticals)}):**")
+            parts.extend(f"\n- {c}" for c in criticals)
+        if warnings:
+            parts.append(f"\n**Warnings ({len(warnings)}):**")
+            parts.extend(f"\n- {w}" for w in warnings[:10])  # Cap at 10 to avoid token bloat
+            if len(warnings) > 10:
+                parts.append(f"\n- ... and {len(warnings) - 10} more")
+
+        return "".join(parts)
+    except Exception:
+        return ""  # Silently fail — don't block writing due to hook errors
 
 
 def register_writing_tools(mcp: FastMCP, drafter: Drafter):
@@ -303,6 +463,13 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         else:
             protected = {}
 
+        # 1.1 Enforce Reference Sufficiency (A7 hard gate)
+        if not skip_validation:
+            refs_ok, refs_msg = _enforce_reference_sufficiency()
+            if not refs_ok:
+                log_tool_result("draft_section", "reference sufficiency failed", success=False)
+                return refs_msg
+
         # 1.5 Check Writing Order Prerequisites (advisory)
         prereq_warning = _check_section_prerequisites(topic)
 
@@ -421,6 +588,13 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 log_tool_result("write_draft", "concept validation failed", success=False)
                 return message
 
+        # Enforce Reference Sufficiency (A7 hard gate)
+        if not skip_validation and not is_concept_file:
+            refs_ok, refs_msg = _enforce_reference_sufficiency()
+            if not refs_ok:
+                log_tool_result("write_draft", "reference sufficiency failed", success=False)
+                return refs_msg
+
         # Check writing order prerequisites (advisory, non-blocking)
         prereq_warning = ""
         if not is_concept_file:
@@ -467,7 +641,18 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 reminder += f"\n\n{prereq_warning}"
 
             result = f"Draft created successfully at: {path}{reminder}"
-            result = build_guidance_hint(result, next_tool="run_writing_hooks")
+
+            # 🔒 Embedded post-write hooks (auto-run, agent cannot skip)
+            if not is_concept_file:
+                section_for_hooks = (
+                    os.path.splitext(os.path.basename(filename))[0]
+                    .replace("_", " ")
+                    .replace("-", " ")
+                    .title()
+                )
+                hook_report = _run_embedded_post_write_hooks(fixed_content, section_for_hooks)
+                result += hook_report
+
             log_tool_result("write_draft", result, success=True)
             return result
         except Exception as e:
