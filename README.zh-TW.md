@@ -9,7 +9,7 @@
 
 <p align="center">
   <b>🔬 醫學論文寫作的整合式 AI 工具包</b><br>
-  <i>3 個 MCP Server · ~136 個工具 · 26 個技能 · 15 個 Prompt 工作流 — 全在 VS Code 裡</i>
+  <i>3 個 MCP Server · ~138 個工具 · 26 個技能 · 15 個 Prompt 工作流 — 全在 VS Code 裡</i>
 </p>
 
 > 📖 [English Version](README.md)
@@ -24,7 +24,7 @@
 
 | 元件                                                               | 類型                 | 工具數 | 說明                                                      |
 | ------------------------------------------------------------------ | -------------------- | ------ | --------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-工具)**                                  | 核心 MCP Server      | 87     | 論文寫作：專案、文獻、草稿、分析、驗證、審查、匯出        |
+| **[mdpaper](#-mdpaper-mcp-工具)**                                  | 核心 MCP Server      | 88     | 論文寫作：專案、文獻、草稿、分析、驗證、審查、匯出        |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37     | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理 |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13     | 創意發想：腦力激盪、深度思考、火花碰撞                    |
 | **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 3 指令 | MCP Server 生命週期、`@mdpaper` 聊天參與者                |
@@ -37,6 +37,8 @@
 
 - **drawio** — CONSORT/PRISMA 流程圖生成
 - **zotero-keeper** — 從 Zotero 匯入參考文獻
+
+**VSX 說明**：MedPaper 的 VS Code 擴充功能會用 `uv tool install` 以電腦為單位持久安裝 Python MCP 工具，後續啟動會嘗試 `uv tool upgrade` 升級；若系統上已有其他 VS Code 擴充功能提供 `PubMed Search` 或 `Zotero Keeper` MCP server，MedPaper 會自動跳過重複安裝與重複註冊。
 
 ### 各元件如何協作
 
@@ -85,7 +87,7 @@ flowchart LR
 | 傳統工具                   | Medical Paper Assistant          |
 | -------------------------- | -------------------------------- |
 | 固定模板、僵化流程         | 彈性、探索式方法                 |
-| 搜尋/寫作/引用分開多個 App | 一站式：~136 個工具在 VS Code 裡 |
+| 搜尋/寫作/引用分開多個 App | 一站式：~138 個工具在 VS Code 裡 |
 | 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料       |
 | 匯出後再排版               | 直接匯出符合期刊格式的 Word      |
 | 學習複雜介面               | 自然語言對話                     |
@@ -118,9 +120,17 @@ cd med-paper-assistant
 腳本會自動：
 
 1. ✅ 建立 Python 虛擬環境（`.venv/`）
-2. ✅ 安裝所有依賴（透過 `uv`）
-3. ✅ 建立 `.vscode/mcp.json` 設定
-4. ✅ 驗證安裝
+2. ✅ 初始化本 repository 釘選的 Git 子模組版本
+3. ✅ 安裝所有依賴（透過 `uv`）
+4. ✅ 建立 `.vscode/mcp.json` 設定，包含 `mdpaper`、`pubmed-search`、`cgu`、`zotero-keeper`、`asset-aware`、`drawio`
+5. ✅ 驗證 MedPaper 與 CGU 啟動路徑
+
+重要安裝說明：
+
+- 安裝腳本使用本 repository 釘選的 submodule commit，確保可重現安裝；不會在安裝時自動追最新 upstream HEAD。
+- 如果你要刻意升級 submodule，請自行執行 `git submodule update --remote --merge`，並在提交前完成測試。
+- `drawio` 透過 `npx -y @drawio/mcp` 啟動，因此機器上必須有 Node.js/npm。
+- 在 repo 工作流中，`zotero-keeper` 與 `pubmed-search` 走 `uvx`；在 VSX 工作流中，則可能由 MedPaper 本身或其他已安裝的 VS Code 擴充功能提供。
 
 **驗證**：在 Copilot Chat 輸入 `/mcp`，應該看到 `mdpaper` 🎉
 
@@ -240,6 +250,7 @@ projects/{slug}/
 - **15 個 pre-commit hooks**（ruff、mypy、bandit、pytest、prettier、doc-update...）
 - **Workspace State** 跨 session 狀態恢復
 - **uv** 管理所有 Python 套件
+- **已實際啟用的 MCP SDK 能力** — tools、elicitation，以及長任務 audit/review 的 progress notifications
 
 ---
 
@@ -408,6 +419,13 @@ pubmed-search: GET /api/cached_article/24891204
 | **發想** | `generate_ideas`、`spark_collision`、`spark_collision_deep` |
 | **分析** | `deep_think`、`multi_agent_brainstorm`                      |
 | **方法** | `list_methods`、`select_method`、`apply_method`             |
+
+CGU 執行說明：
+
+- 在 repository 工作流中，CGU 透過釘選子模組啟動：`uv run --directory integrations/cgu python -m cgu.server`
+- 在 VSX 工作流中，MedPaper 只有在 bundled code 或 workspace submodule 可用時才會註冊 CGU；否則會安全略過，不會阻塞其他功能
+- CGU 自身支援 Python `>=3.11`，但本 repository 目前要求 Python `>=3.12`，因此 macOS、Linux、Windows 的 repo 安裝都應以 Python 3.12 為基線
+- 預設 `.vscode/mcp.json` 使用 `CGU_THINKING_ENGINE=simple`，這是低摩擦模式；較進階的 LLM 模式仍需要 CGU 端模型與 provider 設定
 
 ---
 

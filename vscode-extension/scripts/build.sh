@@ -10,10 +10,10 @@ ROOT_DIR="$(dirname "$EXT_DIR")"
 
 echo "🔨 Building MedPaper Assistant VS Code Extension..."
 
-# 0. Update Submodules to ensure latest code
-echo "🔄 Updating Git submodules..."
+# 0. Initialize pinned submodules for reproducible builds
+echo "🔄 Initializing pinned Git submodules..."
 cd "$ROOT_DIR"
-git submodule update --init --recursive --remote 2>/dev/null || echo "  ⚠️ Submodule update skipped (no remote)"
+git submodule update --init --recursive 2>/dev/null || echo "  ⚠️ Submodule init skipped"
 cd "$EXT_DIR"
 
 # ──────────────────────────────────────────────────────

@@ -8,6 +8,53 @@
 import * as path from 'path';
 import * as fs from 'fs';
 
+const EXTERNAL_MCP_EXTENSION_TARGETS = {
+    pubmed: {
+        labels: ['pubmed search'],
+        ids: ['pubmed-search', 'pubmed-search-mcp'],
+        keywords: ['pubmed', 'pubmed-search'],
+    },
+    zotero: {
+        labels: ['zotero keeper'],
+        ids: ['zotero-keeper', 'zoterokeeper'],
+        keywords: ['zotero', 'zotero-keeper'],
+    },
+} as const;
+
+function normalizeExtensionText(value: unknown): string {
+    return typeof value === 'string'
+        ? value.trim().toLowerCase()
+        : '';
+}
+
+function matchesAnyToken(value: string, tokens: readonly string[]): boolean {
+    return tokens.some(token => value.includes(token));
+}
+
+function packageJsonProvidesMcpLabel(packageJson: any, labels: readonly string[]): boolean {
+    const providers = Array.isArray(packageJson?.contributes?.mcpServerDefinitionProviders)
+        ? packageJson.contributes.mcpServerDefinitionProviders
+        : [];
+
+    return providers.some((provider: any) => {
+        const label = normalizeExtensionText(provider?.label);
+        const id = normalizeExtensionText(provider?.id);
+        return matchesAnyToken(label, labels) || matchesAnyToken(id, labels);
+    });
+}
+
+function packageJsonMatchesExtensionMetadata(packageJson: any, ids: readonly string[], keywords: readonly string[]): boolean {
+    const textCandidates = [
+        packageJson?.name,
+        packageJson?.displayName,
+        packageJson?.description,
+    ].map(normalizeExtensionText);
+
+    return textCandidates.some(candidate =>
+        matchesAnyToken(candidate, ids) || matchesAnyToken(candidate, keywords)
+    );
+}
+
 /**
  * Determine if the workspace has a user-defined mdpaper MCP server
  * in .vscode/mcp.json, meaning we should skip auto-registration.
@@ -191,4 +238,57 @@ export function buildDevPythonPath(wsRoot: string, bundledToolPath: string): str
     }
 
     return pythonPath;
+}
+
+/**
+ * Detect which managed external MCP servers are already provided by other
+ * installed VS Code extensions, so MedPaper can avoid duplicate registration.
+ *
+ * @param extensions - Installed VS Code extensions metadata
+ * @param selfExtensionId - Current extension id to exclude from checks
+ * @returns Object describing whether PubMed / Zotero are externally provided
+ */
+export function detectExternallyProvidedMcpServers(
+    extensions: ReadonlyArray<{ id?: string; packageJSON?: any }>,
+    selfExtensionId?: string,
+): { pubmed: boolean; zotero: boolean } {
+    const result = { pubmed: false, zotero: false };
+
+    for (const extension of extensions) {
+        const extensionId = normalizeExtensionText(extension.id);
+        if (selfExtensionId && extensionId === normalizeExtensionText(selfExtensionId)) {
+            continue;
+        }
+
+        const packageJson = extension.packageJSON;
+        if (!packageJson) {
+            continue;
+        }
+
+        if (!result.pubmed) {
+            result.pubmed =
+                packageJsonProvidesMcpLabel(packageJson, EXTERNAL_MCP_EXTENSION_TARGETS.pubmed.labels)
+                || packageJsonMatchesExtensionMetadata(
+                    packageJson,
+                    EXTERNAL_MCP_EXTENSION_TARGETS.pubmed.ids,
+                    EXTERNAL_MCP_EXTENSION_TARGETS.pubmed.keywords,
+                );
+        }
+
+        if (!result.zotero) {
+            result.zotero =
+                packageJsonProvidesMcpLabel(packageJson, EXTERNAL_MCP_EXTENSION_TARGETS.zotero.labels)
+                || packageJsonMatchesExtensionMetadata(
+                    packageJson,
+                    EXTERNAL_MCP_EXTENSION_TARGETS.zotero.ids,
+                    EXTERNAL_MCP_EXTENSION_TARGETS.zotero.keywords,
+                );
+        }
+
+        if (result.pubmed && result.zotero) {
+            return result;
+        }
+    }
+
+    return result;
 }

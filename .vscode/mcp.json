@@ -1,67 +1,70 @@
 {
-  "inputs": [],
-  "servers": {
-    // ============================================
-    // 主框架：論文 Idea 共構
-    // ============================================
-    "mdpaper": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "med_paper_assistant.interfaces.mcp"],
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src"
-      }
-    },
-
-    // ============================================
-    // Submodule：PubMed 文獻搜尋 (使用 uvx)
-    // ============================================
-    "pubmed-search": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["pubmed-search-mcp"],
-      "env": {
-        "ENTREZ_EMAIL": "medpaper@example.com"
-      }
-    },
-
-    // ============================================
-    // Submodule：CGU 創意引擎
-    // ============================================
-    "cgu": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "${workspaceFolder}/integrations/cgu", "python", "-m", "cgu.server"],
-      "env": {
-        "CGU_THINKING_ENGINE": "simple"
-      }
-    },
-
-    // ============================================
-    // 獨立安裝：Zotero 書目管理 (uvx)
-    // ============================================
-    "zotero-keeper": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["zotero-keeper"]
-    },
-
-    // ============================================
-    // Submodule：Asset-Aware MCP (v0.3.3 本地)
-    // ============================================
-    "asset-aware": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "${workspaceFolder}/integrations/asset-aware-mcp", "asset-aware-mcp"]
-    },
-
-    // ============================================
-    // 獨立安裝：Draw.io 架構圖 (官方 npm MCP)
-    // ============================================
-    "drawio": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@drawio/mcp"]
+    "inputs": [],
+    "servers": {
+        "mdpaper": {
+            "type": "stdio",
+            "command": "uv",
+            "args": [
+                "run",
+                "--directory",
+                "${workspaceFolder}",
+                "python",
+                "-m",
+                "med_paper_assistant.interfaces.mcp"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            }
+        },
+        "pubmed-search": {
+            "type": "stdio",
+            "command": "uvx",
+            "args": [
+                "pubmed-search-mcp"
+            ],
+            "env": {
+                "ENTREZ_EMAIL": "medpaper@example.com"
+            }
+        },
+        "cgu": {
+            "type": "stdio",
+            "command": "uv",
+            "args": [
+                "run",
+                "--directory",
+                "${workspaceFolder}/integrations/cgu",
+                "python",
+                "-m",
+                "cgu.server"
+            ],
+            "env": {
+                "CGU_THINKING_ENGINE": "simple"
+            }
+        },
+        "zotero-keeper": {
+            "type": "stdio",
+            "command": "uvx",
+            "args": [
+                "zotero-keeper"
+            ]
+        },
+        "asset-aware": {
+            "type": "stdio",
+            "command": "uv",
+            "args": [
+                "run",
+                "--directory",
+                "${workspaceFolder}/integrations/asset-aware-mcp",
+                "asset-aware-mcp"
+            ]
+        },
+        "drawio": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@drawio/mcp"
+            ]
+        }
     }
-  }
 }

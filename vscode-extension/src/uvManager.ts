@@ -276,6 +276,32 @@ export function getUvToolInstallCommand(
 }
 
 /**
+ * Build the command for upgrading an already installed uv-managed tool.
+ *
+ * The upgrade target is the installed tool name, which matches the executable
+ * name for normal tools and custom entry points such as cgu-server.
+ *
+ * @param packageName - PyPI package name (used when binaryName is omitted)
+ * @param binaryName - Installed tool name when different from package name
+ * @param pythonVersion - Optional Python interpreter/version selector
+ * @returns Command string runnable by exec
+ */
+export function getUvToolUpgradeCommand(
+    packageName: string,
+    binaryName?: string,
+    pythonVersion?: string,
+): string {
+    const args = ['tool', 'upgrade'];
+
+    if (pythonVersion) {
+        args.push('--python', pythonVersion);
+    }
+
+    args.push(binaryName || packageName);
+    return `uv ${args.join(' ')}`;
+}
+
+/**
  * Ensure a persistent tool binary is installed for marketplace mode.
  *
  * If the binary already exists, it is reused. Otherwise the package is installed
@@ -300,6 +326,25 @@ export async function ensureInstalledTool(
 
     if (existing) {
         _log(`Found pre-installed tool: ${bin} -> ${existing}`);
+
+        const upgradeCommand = getUvToolUpgradeCommand(packageName, binaryName, pythonVersion);
+        _log(`Checking for tool upgrades: ${upgradeCommand}`);
+
+        try {
+            await execAsync(upgradeCommand, {
+                timeout: 180000,
+                env: { ...process.env, PATH: enrichPath(process.env.PATH || '') },
+            });
+            const upgraded = findInstalledTool(bin);
+            if (upgraded) {
+                _log(`Tool is up to date: ${bin} -> ${upgraded}`);
+                return upgraded;
+            }
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            _log(`Tool upgrade skipped for ${bin}: ${errorMsg}`);
+        }
+
         return existing;
     }
 

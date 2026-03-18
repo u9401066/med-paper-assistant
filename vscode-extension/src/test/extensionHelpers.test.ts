@@ -9,6 +9,7 @@ import {
     determinePythonPath,
     countMissingBundledItems,
     buildDevPythonPath,
+    detectExternallyProvidedMcpServers,
 } from '../extensionHelpers';
 
 // ──────────────────────────────────────────────────────────
@@ -431,5 +432,91 @@ describe('buildDevPythonPath', () => {
         fs.mkdirSync(path.join(wsDir, 'src'), { recursive: true });
         const result = buildDevPythonPath(wsDir, '/ext/bundled/tool');
         expect(result).toContain(path.delimiter);
+    });
+});
+
+// ──────────────────────────────────────────────────────────
+// detectExternallyProvidedMcpServers
+// ──────────────────────────────────────────────────────────
+
+describe('detectExternallyProvidedMcpServers', () => {
+    it('detects MCP providers by contributed labels', () => {
+        const result = detectExternallyProvidedMcpServers([
+            {
+                id: 'someone.pubmed-extension',
+                packageJSON: {
+                    contributes: {
+                        mcpServerDefinitionProviders: [
+                            { id: 'pubmed-search', label: 'PubMed Search' },
+                        ],
+                    },
+                },
+            },
+            {
+                id: 'someone.zotero-extension',
+                packageJSON: {
+                    contributes: {
+                        mcpServerDefinitionProviders: [
+                            { id: 'zotero-keeper', label: 'Zotero Keeper' },
+                        ],
+                    },
+                },
+            },
+        ]);
+
+        expect(result).toEqual({ pubmed: true, zotero: true });
+    });
+
+    it('falls back to extension metadata when provider labels are absent', () => {
+        const result = detectExternallyProvidedMcpServers([
+            {
+                id: 'publisher.pubmed-search-mcp',
+                packageJSON: {
+                    name: 'pubmed-search-mcp',
+                    displayName: 'PubMed Search MCP',
+                },
+            },
+            {
+                id: 'publisher.zotero-tools',
+                packageJSON: {
+                    name: 'some-zotero-helper',
+                    description: 'Integrates Zotero Keeper tools into VS Code',
+                },
+            },
+        ]);
+
+        expect(result).toEqual({ pubmed: true, zotero: true });
+    });
+
+    it('ignores the current MedPaper extension itself', () => {
+        const result = detectExternallyProvidedMcpServers([
+            {
+                id: 'u9401066.medpaper-assistant',
+                packageJSON: {
+                    contributes: {
+                        mcpServerDefinitionProviders: [
+                            { id: 'pubmed-search', label: 'PubMed Search' },
+                            { id: 'zotero-keeper', label: 'Zotero Keeper' },
+                        ],
+                    },
+                },
+            },
+        ], 'u9401066.medpaper-assistant');
+
+        expect(result).toEqual({ pubmed: false, zotero: false });
+    });
+
+    it('returns false when unrelated extensions are installed', () => {
+        const result = detectExternallyProvidedMcpServers([
+            {
+                id: 'someone.random-extension',
+                packageJSON: {
+                    name: 'random-tools',
+                    displayName: 'Random Tools',
+                },
+            },
+        ]);
+
+        expect(result).toEqual({ pubmed: false, zotero: false });
     });
 });

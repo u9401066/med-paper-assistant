@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal, Optional, cast
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import (
     DataArtifactTracker,
@@ -53,6 +53,7 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    report_tool_progress,
 )
 from .._shared.guidance import build_guidance_hint
 
@@ -133,9 +134,10 @@ def register_audit_hook_tools(mcp: FastMCP):
             return f"❌ Error recording hook event: {e}"
 
     @mcp.tool()
-    def run_quality_audit(
+    async def run_quality_audit(
         scores: str,
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         🔍 HARD GATE: Run quality audit — set scores and generate reports.
@@ -168,6 +170,7 @@ def register_audit_hook_tools(mcp: FastMCP):
         """
         log_tool_call("run_quality_audit", {"project": project})
         try:
+            await report_tool_progress(ctx, 0, 4, "Parsing quality audit scores", end=95)
             # Parse scores
             try:
                 score_dict = json.loads(scores)
@@ -199,6 +202,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                     f"Standard dimensions: {', '.join(DIMENSIONS)}"
                 )
 
+            await report_tool_progress(ctx, 1, 4, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid or project_info is None:
                 return f"❌ {msg}"
@@ -208,6 +212,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             audit_dir = project_dir / ".audit"
 
             # Set quality scores
+            await report_tool_progress(ctx, 2, 4, "Generating quality scorecard", end=95)
             scorecard = QualityScorecard(audit_dir)
             for dim, score in score_dict.items():
                 explanation = ""
@@ -221,6 +226,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             sc_data = scorecard.get_scorecard()
 
             # Generate hook effectiveness report
+            await report_tool_progress(ctx, 3, 4, "Generating hook effectiveness report", end=95)
             tracker = HookEffectivenessTracker(audit_dir)
             tracker.generate_report()
 
@@ -283,6 +289,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             )
 
             result = "\n".join(lines)
+            await report_tool_progress(ctx, 4, 4, "Quality audit complete")
             log_tool_result(
                 "run_quality_audit",
                 f"avg={sc_data['average_score']}, dims={sc_data['scored_count']}",
@@ -294,8 +301,9 @@ def register_audit_hook_tools(mcp: FastMCP):
             return f"❌ Error running quality audit: {e}"
 
     @mcp.tool()
-    def run_meta_learning(
+    async def run_meta_learning(
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         🧠 HARD GATE: Run D1-D6 meta-learning analysis.
@@ -321,6 +329,7 @@ def register_audit_hook_tools(mcp: FastMCP):
         """
         log_tool_call("run_meta_learning", {"project": project})
         try:
+            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid or project_info is None:
                 return f"❌ {msg}"
@@ -331,6 +340,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             audit_dir.mkdir(parents=True, exist_ok=True)
 
             # Initialize infrastructure
+            await report_tool_progress(ctx, 1, 4, "Initializing meta-learning engine", end=95)
             tracker = HookEffectivenessTracker(audit_dir)
             scorecard = QualityScorecard(audit_dir)
             # project_dir = projects/<slug>, so .parent.parent = workspace root
@@ -340,6 +350,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             )
 
             # Run analysis (D1 through D6)
+            await report_tool_progress(ctx, 2, 4, "Running D1-D6 meta-learning analysis", end=95)
             result = engine.analyze()
 
             # Write meta_learning event to evolution-log.jsonl
@@ -361,6 +372,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             _flush_meta_learning_evolutions(workspace_root, slug, result)
 
             # Build response (TOON format)
+            await report_tool_progress(ctx, 3, 4, "Building meta-learning report", end=95)
             lines = [
                 "status: ok",
                 f"project: {slug}",
@@ -423,6 +435,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             report = build_guidance_hint(
                 report, next_tool="evolve_constraint", warnings=_hints or None
             )
+            await report_tool_progress(ctx, 4, 4, "Meta-learning complete")
             return report
 
         except Exception as e:
@@ -430,8 +443,9 @@ def register_audit_hook_tools(mcp: FastMCP):
             return f"❌ Error running meta-learning analysis: {e}"
 
     @mcp.tool()
-    def validate_data_artifacts(
+    async def validate_data_artifacts(
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         🔍 HARD GATE: Validate data artifacts — provenance, manifest, and draft cross-references.
@@ -454,6 +468,7 @@ def register_audit_hook_tools(mcp: FastMCP):
         """
         log_tool_call("validate_data_artifacts", {"project": project})
         try:
+            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid or project_info is None:
                 return f"❌ {msg}"
@@ -463,12 +478,14 @@ def register_audit_hook_tools(mcp: FastMCP):
             audit_dir = project_dir / ".audit"
 
             # Read draft content if available
+            await report_tool_progress(ctx, 1, 4, "Reading manuscript and artifact inputs", end=95)
             draft_content = None
             manuscript = project_dir / "drafts" / "manuscript.md"
             if manuscript.is_file():
                 draft_content = manuscript.read_text(encoding="utf-8")
 
             # Run cross-reference validation
+            await report_tool_progress(ctx, 2, 4, "Cross-validating data artifacts", end=95)
             tracker = DataArtifactTracker(audit_dir, project_dir)
             validation = tracker.validate_cross_references(draft_content)
 
@@ -505,6 +522,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             lines.append("files: .audit/data-artifacts.yaml,.audit/data-artifacts.md")
 
             result = "\n".join(lines)
+            await report_tool_progress(ctx, 4, 4, "Data artifact validation complete")
             log_tool_result(
                 "validate_data_artifacts",
                 f"passed={validation['passed']}, critical={summary['critical_issues']}, warnings={summary['warning_issues']}",
@@ -516,10 +534,11 @@ def register_audit_hook_tools(mcp: FastMCP):
             return f"❌ Error validating data artifacts: {e}"
 
     @mcp.tool()
-    def run_writing_hooks(
+    async def run_writing_hooks(
         hooks: str = "all",
         prefer_language: str = "american",
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         ✍️ Run code-enforced writing hooks (40 checks).
@@ -581,6 +600,7 @@ def register_audit_hook_tools(mcp: FastMCP):
         """
         log_tool_call("run_writing_hooks", {"hooks": hooks, "project": project})
         try:
+            await report_tool_progress(ctx, 0, 6, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid or project_info is None:
                 return f"❌ {msg}"
@@ -590,6 +610,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             audit_dir = project_dir / ".audit"
 
             # Read draft content
+            await report_tool_progress(ctx, 1, 6, "Loading manuscript content", end=95)
             manuscript = project_dir / "drafts" / "manuscript.md"
             if not manuscript.is_file():
                 return "❌ No manuscript found at drafts/manuscript.md"
@@ -689,6 +710,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             total_warning = 0
 
             # --- Post-write hooks (A1-A6) ---
+            await report_tool_progress(ctx, 2, 6, "Running post-write hooks", end=95)
 
             if "A1" in requested:
                 r = engine.check_word_count_compliance(full_content)
@@ -809,6 +831,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                 total_warning += r.warning_count
 
             # --- Post-manuscript hooks (C3-C7d) ---
+            await report_tool_progress(ctx, 3, 6, "Running manuscript-level hooks", end=95)
 
             if "C3" in requested:
                 r = engine.check_n_value_consistency(full_content)
@@ -907,6 +930,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                 total_warning += r.warning_count
 
             # --- Git status hook (G9) ---
+            await report_tool_progress(ctx, 4, 6, "Running pre-commit and git hooks", end=95)
 
             if "G9" in requested:
                 r = engine.check_git_status()
@@ -916,6 +940,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                 total_warning += r.warning_count
 
             # --- Section writing quality hooks (B9-B16) ---
+            await report_tool_progress(ctx, 5, 6, "Running section quality hooks", end=95)
 
             if "B9" in requested:
                 for sec_name in ("Methods", "Results"):
@@ -1015,6 +1040,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                 workspace_root = project_dir.parent.parent
                 _flush_writing_hook_alerts(workspace_root, slug, all_results)
 
+            await report_tool_progress(ctx, 6, 6, "Writing hook audit complete")
             return result
 
         except Exception as e:
@@ -1379,11 +1405,12 @@ def register_audit_hook_tools(mcp: FastMCP):
             return f"❌ Error processing pending evolutions: {e}"
 
     @mcp.tool()
-    def run_review_hooks(
+    async def run_review_hooks(
         round_num: int = 0,
         hooks: str = "all",
         issues_fixed: int = 0,
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         🔍 Run code-enforced review quality hooks (R1-R6).
@@ -1411,6 +1438,7 @@ def register_audit_hook_tools(mcp: FastMCP):
         """
         log_tool_call("run_review_hooks", {"round_num": round_num, "hooks": hooks})
         try:
+            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid or project_info is None:
                 return f"❌ {msg}"
@@ -1425,6 +1453,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             engine = ReviewHooksEngine(project_dir)
 
             # Auto-detect round number if not specified
+            await report_tool_progress(ctx, 1, 4, "Loading review round artifacts", end=95)
             if round_num <= 0:
                 audit_dir = project_dir / ".audit"
                 for i in range(20, 0, -1):
@@ -1454,6 +1483,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             total_critical = 0
             total_warning = 0
 
+            await report_tool_progress(ctx, 2, 4, "Running review quality hooks", end=95)
             if "R1" in requested:
                 r = engine.check_review_report_depth(round_num)
                 results["R1"] = r.to_dict()
@@ -1511,6 +1541,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                     }
 
             # Build TOON response
+            await report_tool_progress(ctx, 3, 4, "Building review hook report", end=95)
             overall_pass = total_critical == 0
             lines = [
                 f"status: {'PASS' if overall_pass else 'FAIL'}",
@@ -1534,6 +1565,7 @@ def register_audit_hook_tools(mcp: FastMCP):
                         lines.append(f"    → {issue['suggestion']}")
 
             result = "\n".join(lines)
+            await report_tool_progress(ctx, 4, 4, "Review hooks complete")
             log_tool_result("run_review_hooks", f"critical={total_critical}")
             return result
 

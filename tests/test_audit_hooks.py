@@ -1,5 +1,7 @@
 """Tests for hard audit hooks — MCP tool functions + validator enforcement."""
 
+import asyncio
+import inspect
 import json
 from pathlib import Path
 from unittest.mock import patch
@@ -127,7 +129,15 @@ def tool_funcs(project_dir):
 
     def fake_tool(*args, **kwargs):
         def decorator(fn):
-            captured[fn.__name__] = fn
+            if inspect.iscoroutinefunction(fn):
+
+                def sync_wrapper(*wrapper_args, **wrapper_kwargs):
+                    return asyncio.run(fn(*wrapper_args, **wrapper_kwargs))
+
+                sync_wrapper.__name__ = fn.__name__
+                captured[fn.__name__] = sync_wrapper
+            else:
+                captured[fn.__name__] = fn
             return fn
 
         return decorator

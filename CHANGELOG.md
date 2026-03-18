@@ -1,4 +1,4 @@
-c96u.3oa6u.3ul4ur03t86# Changelog
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.5.2] - 2026-03-18
+
+### Fixed
+
+- **VSX marketplace MCP deduplication**: `vscode-extension/src/extension.ts` now detects when another installed VS Code extension already provides `PubMed Search` or `Zotero Keeper` MCP servers and skips both persistent tool installation and duplicate MCP registration, preventing doubled tool lists in Copilot Chat
+- **VSX persistent tool upgrades**: `vscode-extension/src/uvManager.ts` now runs `uv tool upgrade` for already-installed managed tools during activation, so older machine-level installs are refreshed on newer extension releases instead of staying pinned silently
+- **VSX documentation alignment**: Synced root `README.md`, `README.zh-TW.md`, and `vscode-extension/README.md` with current MCP counts, 11-phase Auto Paper wording, persistent-install behavior, and external VSX deduplication notes
+- **Cross-platform setup reproducibility**: `scripts/setup.sh`, `scripts/setup.ps1`, and `vscode-extension/scripts/build.sh` no longer auto-track remote submodule HEAD during install/build; they now use repository-pinned submodule commits, generate the full repo `.vscode/mcp.json` shape consistently, and verify current MedPaper/CGU startup paths
+- **JSONC mcp.json support**: `scripts/migrate_mcp_json.py` now strips `//` comments from `.vscode/mcp.json` before parsing, preventing failures when VS Code leaves JSONC-style comments in the config
+- **setup.sh heredoc template corruption**: Rewrote the mcp.json heredoc block with consistent 2-space indentation and all 6 canonical servers, fixing structural corruption from overlapping patches
+- **CHANGELOG first-line corruption**: Removed garbage prefix from `CHANGELOG.md` first line that would fail Prettier CI checks
+- **Ruff lint/format compliance**: Fixed E402 import ordering and formatting issues in new test files to pass CI checks
+
+### Added
+
+- **MCP progress notifications for long-running tools**: Audit/review pipeline tools now use FastMCP `Context.report_progress()` when the client provides a progress token, covering phase validation, pipeline heartbeat, review-round start/submit, quality audit, meta-learning, data artifact validation, writing hooks, and review hooks
+- **Cross-platform migration script** (`scripts/migrate_mcp_json.py`): Non-destructive mcp.json migration — detects missing servers, normalizes JSONC→JSON, creates timestamped backups; shared loader used by `smoke_test.py`
+- **Installation smoke test** (`scripts/smoke_test.py`): 13-check cross-platform verification covering environment, core imports, MCP server creation, CGU integration, mcp.json validation, git submodules, and migration dry-run
 
 ## [0.5.1] - 2026-03-17
 
@@ -332,8 +351,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pytest default config**: `addopts = "-m 'not integration and not slow'"` — 本地 `pytest` 預設只跑 unit tests（與 CI 行為一致）
 - **VSX autopaper 描述**: "9-Phase Pipeline + Hooks" → "11-Phase Pipeline + 42 Hooks"
 - **Hook C7 (Temporal Consistency)**: 新增 post-manuscript hook 修正過時引用
-
-## [Unreleased]
 
 ## [0.3.8] - 2026-02-20
 

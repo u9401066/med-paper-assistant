@@ -83,16 +83,17 @@ else
 fi
 
 # 3. Install dependencies
-echo "🔄 Updating Git submodules..."
-git submodule update --init --recursive --remote
+echo "🔄 Initializing pinned Git submodules..."
+git submodule update --init --recursive
 echo "📥 Installing dependencies with uv..."
 uv sync --all-extras
 echo "  ✅ Dependencies installed"
 
-# 4. Create .vscode/mcp.json if not exists
+# 4. Create or migrate .vscode/mcp.json
 mkdir -p .vscode
 if [ -f .vscode/mcp.json ]; then
-    echo "⚙️  .vscode/mcp.json already exists, skipping (delete it manually to regenerate)"
+    echo "⚙️  .vscode/mcp.json exists — checking for missing servers..."
+    uv run python "$SCRIPT_DIR/migrate_mcp_json.py" .vscode/mcp.json || true
 else
     echo "⚙️  Creating .vscode/mcp.json (cross-platform)..."
     cat > .vscode/mcp.json << 'EOF'
@@ -101,33 +102,52 @@ else
   "servers": {
     "mdpaper": {
       "type": "stdio",
-      "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["-m", "med_paper_assistant.interfaces.mcp"],
+      "command": "uv",
+      "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "med_paper_assistant.interfaces.mcp"],
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src"
-      },
-      "platforms": {
-        "win32": {
-          "command": "${workspaceFolder}/.venv/Scripts/python.exe"
-        },
-        "linux": {
-          "command": "${workspaceFolder}/.venv/bin/python"
-        },
-        "darwin": {
-          "command": "${workspaceFolder}/.venv/bin/python"
-        }
       }
+    },
+    "pubmed-search": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["pubmed-search-mcp"],
+      "env": {
+        "ENTREZ_EMAIL": "medpaper@example.com"
+      }
+    },
+    "cgu": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "${workspaceFolder}/integrations/cgu", "python", "-m", "cgu.server"],
+      "env": {
+        "CGU_THINKING_ENGINE": "simple"
+      }
+    },
+    "zotero-keeper": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["zotero-keeper"]
+    },
+    "asset-aware": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "${workspaceFolder}/integrations/asset-aware-mcp", "asset-aware-mcp"]
+    },
+    "drawio": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@drawio/mcp"]
     }
   }
 }
 EOF
-    echo "  ✅ mcp.json created (cross-platform)"
+    echo "  ✅ mcp.json created (mdpaper + pubmed-search + cgu + zotero-keeper + asset-aware + drawio)"
 fi
 
-# 5. Verify installation
 echo "✅ Verifying installation..."
-.venv/bin/python -c "from med_paper_assistant.interfaces.mcp.server import mcp; print(f'  MCP Server loaded: {len(mcp._tool_manager._tools)} tools')"
-
+uv run python -c "from med_paper_assistant.interfaces.mcp.server import create_server; server = create_server(); print('  MedPaper MCP server loaded')"
+uv run --directory integrations/cgu python -c "import cgu; print('  CGU import OK')"
 echo ""
 echo "=========================================="
 echo "✅ Setup Complete!"
@@ -146,4 +166,9 @@ echo "  /mdpaper.draft    - Write paper draft"
 echo "  /mdpaper.analysis - Data analysis"
 echo "  /mdpaper.clarify  - Improve content"
 echo "  /mdpaper.format   - Export to Word"
+echo ""
+echo "📝 Notes:"
+echo "  - Setup uses pinned submodule commits from this repository for reproducibility."
+echo "  - To update submodules intentionally, run: git submodule update --remote --merge"
+echo "  - Draw.io requires Node.js/npm for the npx fallback."
 echo ""

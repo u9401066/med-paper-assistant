@@ -64,3 +64,6 @@ pandoc-*.msi
 
 # Copilot hooks runtime state (ephemeral, per-session)
 .github/hooks/_state/
+
+# Migration backup files
+.vscode/mcp.json.bak.*

@@ -4,7 +4,7 @@ AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
 
 ## Features
 
-- � **Auto Paper** - 全自動 9-Phase 論文撰寫 + 3 層 Audit Hooks
+- **Auto Paper** - 全自動 11-Phase 論文撰寫 + 3 層 Audit Hooks
 - 🔍 **PubMed Literature Search** - Search and save references
 - ✍️ **Draft Writing** - Write paper sections with citation-aware editing
 - 💡 **Concept Development** - Develop and validate research novelty
@@ -17,7 +17,7 @@ AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
 ### From VSIX
 
 ```bash
-code --install-extension medpaper-assistant-0.4.0.vsix
+code --install-extension medpaper-assistant-0.5.1.vsix
 ```
 
 Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
@@ -26,7 +26,16 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 - VS Code 1.100.0 or higher
 - GitHub Copilot (for Agent Mode)
-- Python 3.11+ with `uv` (recommended)
+- Python 3.12+ with `uv` (recommended for full MedPaper repo parity; CGU itself supports 3.11+)
+
+## MCP Installation Behavior
+
+- MCP Python tools are installed persistently per machine with `uv tool install`, not once per folder.
+- On later MedPaper extension updates, existing managed tools are checked with `uv tool upgrade` so older installs can move forward without manual reinstall.
+- If another installed VS Code extension already provides `PubMed Search` or `Zotero Keeper` MCP servers, MedPaper skips both persistent tool installation and MCP registration for those servers to avoid duplicated tools.
+- A workspace-level `.vscode/mcp.json` still has highest priority. If the workspace already manages `mdpaper` itself, MedPaper skips auto-registration.
+- CGU is registered only when bundled CGU code or a workspace `integrations/cgu` submodule is present. If CGU is absent, MedPaper continues without it.
+- Draw.io fallback uses `npx -y @drawio/mcp`, so Node.js/npm must be installed if you rely on the npm path.
 
 ## Quick Start
 
@@ -124,6 +133,8 @@ Capability → Skill → Hook → MCP Tool
 
 - **MedPaper Assistant** - 88 工具（project/17, reference/12, draft/13, validation/3, analysis/10, review/23, export/10）
 - **CGU Creativity** - 創意發想工具
+- **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
+- **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Draw.io Diagrams** - 圖表繪製
 
 ## Configuration

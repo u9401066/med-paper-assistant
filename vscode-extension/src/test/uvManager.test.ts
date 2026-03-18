@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { getUvSearchPaths, getUvxPath, getUvInstallCommand, getUvToolInstallCommand, buildUvxCommand, buildMcpCommand, buildMcpEnv, findUvPath, enrichPath, findInstalledTool } from '../uvManager';
+import { getUvSearchPaths, getUvxPath, getUvInstallCommand, getUvToolInstallCommand, getUvToolUpgradeCommand, buildUvxCommand, buildMcpCommand, buildMcpEnv, findUvPath, enrichPath, findInstalledTool } from '../uvManager';
 
 // ──────────────────────────────────────────────────────────
 // getUvSearchPaths
@@ -83,6 +83,27 @@ describe('getUvToolInstallCommand', () => {
     it('includes python version when specified', () => {
         const cmd = getUvToolInstallCommand('med-paper-assistant', undefined, '>=3.11');
         expect(cmd).toBe('uv tool install --python >=3.11 med-paper-assistant');
+    });
+});
+
+// ──────────────────────────────────────────────────────────
+// getUvToolUpgradeCommand
+// ──────────────────────────────────────────────────────────
+
+describe('getUvToolUpgradeCommand', () => {
+    it('upgrades package directly when binary name matches package name', () => {
+        const cmd = getUvToolUpgradeCommand('med-paper-assistant');
+        expect(cmd).toBe('uv tool upgrade med-paper-assistant');
+    });
+
+    it('upgrades custom binary name when different from package name', () => {
+        const cmd = getUvToolUpgradeCommand('creativity-generation-unit', 'cgu-server');
+        expect(cmd).toBe('uv tool upgrade cgu-server');
+    });
+
+    it('includes python version when specified', () => {
+        const cmd = getUvToolUpgradeCommand('med-paper-assistant', undefined, '>=3.11');
+        expect(cmd).toBe('uv tool upgrade --python >=3.11 med-paper-assistant');
     });
 });
 

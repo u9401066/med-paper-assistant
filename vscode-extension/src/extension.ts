@@ -3,11 +3,15 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS } from './utils';
 import { findUvPath, installUvHeadless, getUvxPath, buildUvxCommand, buildMcpCommand, buildMcpEnv, ensureInstalledTool, findInstalledTool } from './uvManager';
-import { shouldSkipMcpRegistration, isDevWorkspace as checkIsDevWorkspace, determinePythonPath, countMissingBundledItems, buildDevPythonPath } from './extensionHelpers';
+import { shouldSkipMcpRegistration, isDevWorkspace as checkIsDevWorkspace, determinePythonPath, countMissingBundledItems, buildDevPythonPath, detectExternallyProvidedMcpServers } from './extensionHelpers';
 import { DrawioPanel } from './drawioPanel';
 
 let outputChannel: vscode.OutputChannel;
 let resolvedUvPath: string | null = null;
+
+function getExternallyProvidedManagedServers(context: vscode.ExtensionContext): { pubmed: boolean; zotero: boolean } {
+    return detectExternallyProvidedMcpServers(vscode.extensions.all, context.extension.id);
+}
 
 export async function activate(context: vscode.ExtensionContext) {
     outputChannel = vscode.window.createOutputChannel('MedPaper Assistant');
@@ -178,12 +182,23 @@ async function ensureMarketplaceToolsReady(context: vscode.ExtensionContext): Pr
     const cguInWorkspace = wsRoot
         ? fs.existsSync(path.join(wsRoot, 'integrations', 'cgu', 'src', 'cgu'))
         : false;
+    const externalServers = getExternallyProvidedManagedServers(context);
 
     const toolSpecs: Array<{ packageName: string; binaryName?: string }> = [
         { packageName: 'med-paper-assistant' },
-        { packageName: 'pubmed-search-mcp' },
-        { packageName: 'zotero-keeper' },
     ];
+
+    if (!externalServers.pubmed) {
+        toolSpecs.push({ packageName: 'pubmed-search-mcp' });
+    } else {
+        outputChannel.appendLine('[Install] PubMed Search is already provided by another installed VS Code extension - skipping persistent tool install.');
+    }
+
+    if (!externalServers.zotero) {
+        toolSpecs.push({ packageName: 'zotero-keeper' });
+    } else {
+        outputChannel.appendLine('[Install] Zotero Keeper is already provided by another installed VS Code extension - skipping persistent tool install.');
+    }
 
     if (hasCguBundled || cguInWorkspace) {
         toolSpecs.push({ packageName: 'creativity-generation-unit', binaryName: 'cgu-server' });
@@ -239,6 +254,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
         provideMcpServerDefinitions(token: vscode.CancellationToken): vscode.ProviderResult<vscode.McpServerDefinition[]> {
             const workspaceFolders = vscode.workspace.workspaceFolders;
             const wsRoot = workspaceFolders?.[0]?.uri.fsPath;
+            const externalServers = getExternallyProvidedManagedServers(context);
 
             // Detect development workspace (has src/med_paper_assistant/ source code)
             const isDevWorkspace = wsRoot ? checkIsDevWorkspace(wsRoot) : false;
@@ -323,53 +339,61 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
             }
 
             // --- 3. PubMed Search ---
-            const pubmedInWorkspace = wsRoot
-                ? fs.existsSync(path.join(wsRoot, 'integrations', 'pubmed-search-mcp', 'src', 'pubmed_search'))
-                : false;
-
-            let pubmedCommand: string;
-            let pubmedArgs: string[];
-
-            if (pubmedInWorkspace) {
-                pubmedCommand = uvPath;
-                pubmedArgs = [
-                    'run',
-                    '--directory', path.join(wsRoot!, 'integrations', 'pubmed-search-mcp'),
-                    'pubmed-search-mcp'
-                ];
-                outputChannel.appendLine('[MCP] PubMed Search: using workspace integration');
+            if (externalServers.pubmed) {
+                outputChannel.appendLine('[MCP] PubMed Search is already provided by another installed VS Code extension - skipping duplicate registration.');
             } else {
-                const [cmd, args, preInstalled] = buildMcpCommand(uvPath, 'pubmed-search-mcp');
-                pubmedCommand = cmd;
-                pubmedArgs = args;
-                if (preInstalled) {
-                    outputChannel.appendLine('[MCP] PubMed Search: using pre-installed binary (skipping uvx)');
-                }
-            }
+                const pubmedInWorkspace = wsRoot
+                    ? fs.existsSync(path.join(wsRoot, 'integrations', 'pubmed-search-mcp', 'src', 'pubmed_search'))
+                    : false;
 
-            outputChannel.appendLine(`[MCP] PubMed Search: ${pubmedCommand} ${pubmedArgs.join(' ')}`);
-            definitions.push(new vscode.McpStdioServerDefinition(
-                'PubMed Search',
-                pubmedCommand,
-                pubmedArgs,
-                {
-                    ...mcpEnv,
-                    ENTREZ_EMAIL: process.env.ENTREZ_EMAIL || 'medpaper@example.com'
+                let pubmedCommand: string;
+                let pubmedArgs: string[];
+
+                if (pubmedInWorkspace) {
+                    pubmedCommand = uvPath;
+                    pubmedArgs = [
+                        'run',
+                        '--directory', path.join(wsRoot!, 'integrations', 'pubmed-search-mcp'),
+                        'pubmed-search-mcp'
+                    ];
+                    outputChannel.appendLine('[MCP] PubMed Search: using workspace integration');
+                } else {
+                    const [cmd, args, preInstalled] = buildMcpCommand(uvPath, 'pubmed-search-mcp');
+                    pubmedCommand = cmd;
+                    pubmedArgs = args;
+                    if (preInstalled) {
+                        outputChannel.appendLine('[MCP] PubMed Search: using pre-installed binary (skipping uvx)');
+                    }
                 }
-            ));
+
+                outputChannel.appendLine(`[MCP] PubMed Search: ${pubmedCommand} ${pubmedArgs.join(' ')}`);
+                definitions.push(new vscode.McpStdioServerDefinition(
+                    'PubMed Search',
+                    pubmedCommand,
+                    pubmedArgs,
+                    {
+                        ...mcpEnv,
+                        ENTREZ_EMAIL: process.env.ENTREZ_EMAIL || 'medpaper@example.com'
+                    }
+                ));
+            }
 
             // --- 4. Zotero Keeper ---
-            const [zoteroCommand, zoteroArgs, zoteroPreInstalled] = buildMcpCommand(uvPath, 'zotero-keeper');
-            if (zoteroPreInstalled) {
-                outputChannel.appendLine('[MCP] Zotero Keeper: using pre-installed binary (skipping uvx)');
+            if (externalServers.zotero) {
+                outputChannel.appendLine('[MCP] Zotero Keeper is already provided by another installed VS Code extension - skipping duplicate registration.');
+            } else {
+                const [zoteroCommand, zoteroArgs, zoteroPreInstalled] = buildMcpCommand(uvPath, 'zotero-keeper');
+                if (zoteroPreInstalled) {
+                    outputChannel.appendLine('[MCP] Zotero Keeper: using pre-installed binary (skipping uvx)');
+                }
+                outputChannel.appendLine(`[MCP] Zotero Keeper: ${zoteroCommand} ${zoteroArgs.join(' ')}`);
+                definitions.push(new vscode.McpStdioServerDefinition(
+                    'Zotero Keeper',
+                    zoteroCommand,
+                    zoteroArgs,
+                    mcpEnv
+                ));
             }
-            outputChannel.appendLine(`[MCP] Zotero Keeper: ${zoteroCommand} ${zoteroArgs.join(' ')}`);
-            definitions.push(new vscode.McpStdioServerDefinition(
-                'Zotero Keeper',
-                zoteroCommand,
-                zoteroArgs,
-                mcpEnv
-            ));
 
             // --- 5. Draw.io ---
             const drawioForkDir = wsRoot

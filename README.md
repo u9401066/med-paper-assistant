@@ -15,7 +15,7 @@
 
 <p align="center">
   <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
-  <i>3 MCP Servers · ~135 Tools · 26 Skills · 15 Prompts Workflows — All in VS Code</i>
+  <i>3 MCP Servers · ~138 Tools · 26 Skills · 15 Prompts Workflows — All in VS Code</i>
 </p>
 
 > 📖 [繁體中文版](README.zh-TW.md)
@@ -30,7 +30,7 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 | Component                                                          | Type                   | Tools  | Description                                                                       |
 | ------------------------------------------------------------------ | ---------------------- | ------ | --------------------------------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 87     | Paper writing: projects, references, drafts, analysis, validation, review, export |
+| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 88     | Paper writing: projects, references, drafts, analysis, validation, review, export |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37     | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt               |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13     | Creative generation: brainstorm, deep think, spark collision                      |
 | **[VS Code Extension](vscode-extension/)**                         | Extension              | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant                                 |
@@ -43,6 +43,8 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 - **drawio** — CONSORT/PRISMA flowchart generation
 - **zotero-keeper** — Import references from Zotero library
+
+**VSX note**: The MedPaper VS Code extension installs Python MCP tools persistently per machine via `uv tool install`, attempts `uv tool upgrade` on later activations, and skips duplicate PubMed Search / Zotero Keeper registration when another installed VS Code extension already provides those MCP servers.
 
 ### How the Pieces Fit Together
 
@@ -91,7 +93,7 @@ flowchart LR
 | Traditional Tools                   | Medical Paper Assistant                |
 | ----------------------------------- | -------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach         |
-| Separate apps for search/write/cite | All-in-one: ~136 tools in VS Code      |
+| Separate apps for search/write/cite | All-in-one: ~138 tools in VS Code      |
 | Manual reference management         | Auto-save with verified PubMed data    |
 | Export then format                  | Direct Word export with journal styles |
 | Learn complex UI                    | Natural language conversation          |
@@ -124,9 +126,17 @@ cd med-paper-assistant
 The script will:
 
 1. ✅ Create Python virtual environment (`.venv/`)
-2. ✅ Install all dependencies (via `uv`)
-3. ✅ Create `.vscode/mcp.json` configuration
-4. ✅ Verify installation
+2. ✅ Initialize pinned Git submodules from this repository
+3. ✅ Install all dependencies (via `uv`)
+4. ✅ Create `.vscode/mcp.json` configuration for `mdpaper`, `pubmed-search`, `cgu`, `zotero-keeper`, `asset-aware`, and `drawio`
+5. ✅ Verify MedPaper and CGU startup paths
+
+Important installation notes:
+
+- The setup script uses pinned submodule commits for reproducible installs. It does not auto-track the latest upstream submodule HEAD.
+- If you intentionally want newer submodule code, run `git submodule update --remote --merge` yourself and test before committing.
+- `drawio` uses `npx -y @drawio/mcp`, so Node.js/npm must be available on the machine.
+- `zotero-keeper` and `pubmed-search` are launched via `uvx` in the repo workflow. In the VSX workflow they may be provided either by MedPaper itself or by separate installed VS Code extensions.
 
 **Verify**: In Copilot Chat, type `/mcp` — you should see `mdpaper` listed 🎉
 
@@ -246,6 +256,7 @@ projects/{slug}/
 - **15 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
 - **Workspace State** recovery for cross-session continuity
 - **uv** for all Python package management
+- **MCP SDK features in active use** — tools, elicitation, and progress notifications for long-running audit/review operations
 
 ---
 
@@ -415,6 +426,13 @@ Write, edit, cite — with built-in validation.
 | **Ideation** | `generate_ideas`, `spark_collision`, `spark_collision_deep` |
 | **Analysis** | `deep_think`, `multi_agent_brainstorm`                      |
 | **Methods**  | `list_methods`, `select_method`, `apply_method`             |
+
+CGU runtime notes:
+
+- In the repository workflow, CGU is started from the pinned submodule with `uv run --directory integrations/cgu python -m cgu.server`.
+- In the VSX workflow, MedPaper registers CGU when bundled code or the workspace submodule is available; otherwise CGU is simply skipped.
+- CGU itself supports Python `>=3.11`, but this repository currently requires Python `>=3.12`, so cross-platform repo setup should be treated as Python 3.12 baseline on macOS, Linux, and Windows.
+- The default repo MCP example uses `CGU_THINKING_ENGINE=simple`, which is the low-friction mode. Advanced LLM-backed modes still depend on CGU-side model/provider configuration.
 
 ---
 
