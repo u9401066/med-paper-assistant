@@ -1,6 +1,9 @@
-# Submission Preparation Skill
+---
+name: submission-preparation
+description: "Generate journal-specific cover letters, highlights, and reviewer response documents for medical manuscript submission. Use when the user says 投稿準備, cover letter, highlights, reviewer response, revision, or 投稿 checklist."
+---
 
-觸發：投稿準備、cover letter、highlights、reviewer response、revision、投稿 checklist
+# Submission Preparation Skill
 
 不使用 MCP 工具 — Agent 直接按模板生成內容。
 

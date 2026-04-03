@@ -1,6 +1,9 @@
-# Reference Management Skill
+---
+name: reference-management
+description: "Save, organize, format, and retrieve medical literature references using MCP-to-MCP PubMed integration with Foam wikilink support. Use when the user says save, 存這篇, 儲存文獻, references, citation, 格式化, PDF, foam, or wikilink."
+---
 
-觸發：存這篇、save、儲存文獻、列出 references、citation、格式化、PDF、foam、wikilink
+# Reference Management Skill
 
 ## 🔒 核心規則：MCP-to-MCP 優先
 
