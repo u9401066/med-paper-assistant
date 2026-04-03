@@ -1,6 +1,9 @@
-# Parallel Search Skill
+---
+name: parallel-search
+description: "Run multiple PubMed searches in parallel with synonym and MeSH term variants, then merge and deduplicate results to maximize literature coverage. Use when the user says parallel search, 並行搜尋, 批量搜尋, 多組搜尋, 廣泛搜尋, or comprehensive search."
+---
 
-觸發：並行搜尋、parallel search、批量搜尋、多組搜尋、廣泛搜尋、comprehensive search
+# Parallel Search Skill
 
 使用 pubmed-search MCP 多次搜尋 + 合併結果，提高覆蓋率。
 
