@@ -40,7 +40,7 @@ PATH_FIELD_NAMES = {
 }
 
 
-def _rebase_foreign_absolute_path(parts: tuple[str, ...], workspace_root: Path) -> Path | None:
+def _normalize_parts(parts: tuple[str, ...]) -> list[str]:
     normalized_parts: list[str] = []
     for part in parts:
         cleaned = part.rstrip("\\/")
@@ -49,12 +49,21 @@ def _rebase_foreign_absolute_path(parts: tuple[str, ...], workspace_root: Path) 
         if re.fullmatch(r"[A-Za-z]:", cleaned):
             continue
         normalized_parts.append(cleaned)
+    return normalized_parts
 
-    try:
-        repo_index = normalized_parts.index(workspace_root.name)
-    except ValueError:
+
+def _rebase_foreign_absolute_path(parts: tuple[str, ...], workspace_root: Path) -> Path | None:
+    normalized_parts = _normalize_parts(parts)
+    workspace_parts = _normalize_parts(workspace_root.parts)
+
+    if normalized_parts[: len(workspace_parts)] == workspace_parts:
+        return workspace_root.joinpath(*normalized_parts[len(workspace_parts) :]).resolve()
+
+    repo_indexes = [index for index, part in enumerate(normalized_parts) if part == workspace_root.name]
+    if not repo_indexes:
         return None
 
+    repo_index = repo_indexes[-1]
     return workspace_root.joinpath(*normalized_parts[repo_index + 1 :]).resolve()
 
 

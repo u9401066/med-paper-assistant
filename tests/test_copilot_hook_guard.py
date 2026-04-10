@@ -76,6 +76,20 @@ def test_iter_patch_paths_handles_arrow_path_conversion() -> None:
     assert paths[0] == (WORKSPACE_ROOT / "src" / "med_paper_assistant" / "interfaces" / "mcp" / "server.py").resolve()
 
 
+def test_iter_patch_paths_handles_duplicate_workspace_name_prefix(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "med-paper-assistant" / "med-paper-assistant"
+    patch_text = f"""*** Begin Patch
+*** Update File: {workspace_root.as_posix()}/src/med_paper_assistant/interfaces/mcp/server.py -> bundled/tool/server.py
+*** End Patch"""
+
+    paths = iter_patch_paths(patch_text, workspace_root)
+
+    assert len(paths) == 1
+    assert paths[0] == (
+        workspace_root / "src" / "med_paper_assistant" / "interfaces" / "mcp" / "server.py"
+    ).resolve()
+
+
 def test_normal_mode_denies_protected_create_file() -> None:
     payload = {
         "tool_name": "create_file",
@@ -91,6 +105,23 @@ def test_normal_mode_denies_protected_create_file() -> None:
 
     decision = result["hookSpecificOutput"]["permissionDecision"]
     assert decision == "deny"
+
+
+def test_normal_mode_denies_protected_create_file_with_duplicate_workspace_name(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "med-paper-assistant" / "med-paper-assistant"
+    payload = {
+        "tool_name": "create_file",
+        "tool_input": {"filePath": str(workspace_root / "src" / "new_file.py")},
+    }
+
+    result = evaluate_pre_tool_use(
+        payload,
+        mode="normal",
+        protected_paths=PROTECTED_PATHS,
+        workspace_root=workspace_root,
+    )
+
+    assert result["hookSpecificOutput"]["permissionDecision"] == "deny"
 
 
 def test_research_mode_denies_protected_apply_patch() -> None:
@@ -165,6 +196,24 @@ def test_nested_path_fields_in_dicts_and_lists_are_extracted() -> None:
 
     assert (WORKSPACE_ROOT / "docs" / "draft.md").resolve() in paths
     assert (WORKSPACE_ROOT / "src" / "renamed.py").resolve() in paths
+
+
+def test_nested_path_fields_handle_duplicate_workspace_name_prefix(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "med-paper-assistant" / "med-paper-assistant"
+    payload = {
+        "tool_name": "rename_file",
+        "tool_input": {
+            "operations": [
+                {"path": str(workspace_root / "docs" / "draft.md")},
+                {"nested": {"newPath": str(workspace_root / "src" / "renamed.py")}},
+            ]
+        },
+    }
+
+    paths = get_tool_target_paths(payload, workspace_root)
+
+    assert (workspace_root / "docs" / "draft.md").resolve() in paths
+    assert (workspace_root / "src" / "renamed.py").resolve() in paths
 
 
 def test_read_only_tools_are_not_blocked_by_protected_paths() -> None:
