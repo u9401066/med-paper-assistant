@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "uv run python scripts/copilot_hook_guard.py",
+        "windows": "uv run python scripts\\copilot_hook_guard.py",
+        "cwd": ".",
+        "timeout": 15
+      }
+    ]
+  }
+}
