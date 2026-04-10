@@ -37,6 +37,8 @@ CONSTITUTION.md > `.github/bylaws/*.md` > `.claude/skills/*/SKILL.md`
 
 Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」。
 
+**Phase 0 Journal Profile**: 內建麻醉學 Top 20 期刊設定（`templates/journal-profiles/`）。用戶說出期刊名稱 → Agent 讀取 YAML → 複製到專案。
+
 | Phase    | 外部 MCP                         |
 | -------- | -------------------------------- |
 | 2 文獻   | pubmed-search, zotero-keeper🔸   |
@@ -65,7 +67,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 **Code-Enforced** = `run_writing_hooks` / `run_review_hooks` / `run_meta_learning` 內有確定性程式碼邏輯。
 **Agent-Driven** = 僅靠 Agent 閱讀 SKILL.md 並自行執行，無程式碼強制。
 
-## MCP Server（88 tools, 2026-03-11）
+## MCP Server（88 tools + 3 prompts + 3 resources, verified 2026-04-08）
 
 | 模組        | 工具數 | 重點                                                                                         |
 | ----------- | ------ | -------------------------------------------------------------------------------------------- |
@@ -79,7 +81,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 
 ## VS Code Copilot Lifecycle Hooks
 
-7 個 hook 腳本（`.github/hooks/mdpaper-lifecycle.json`）。設計文件：`docs/design/copilot-lifecycle-hooks.md`。
+7 個核心 hook 腳本（`.github/hooks/mdpaper-lifecycle.json`）。設計文件：`docs/design/copilot-lifecycle-hooks.md`。
 
 | Event            | 腳本                | 功能                                   |
 | ---------------- | ------------------- | -------------------------------------- |
@@ -90,6 +92,8 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | PreCompact       | pre-compact-save.sh | Context 壓縮前 checkpoint              |
 | SubagentStart    | subagent-init.sh    | 注入專案/模式至 subagent               |
 | Stop             | session-stop.sh     | 審計 + 清理 + memory sync 提醒         |
+
+補強層：`.github/hooks/mode-guard.json` 會在 `PreToolUse` 階段額外執行 `scripts/copilot_hook_guard.py`。它負責 Python/Windows-safe 的工具路徑解析，特別是 `apply_patch` 這類 shell hook 不易精準判斷的編輯入口。
 
 ## 回應風格
 

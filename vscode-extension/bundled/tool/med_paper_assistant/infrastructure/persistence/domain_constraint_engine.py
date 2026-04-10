@@ -1266,8 +1266,7 @@ class DomainConstraintEngine:
                             message="No mention of patient consent or IRB approval found",
                             section="manuscript",
                             suggestion=(
-                                "Add a statement about informed consent or "
-                                "IRB approval/waiver"
+                                "Add a statement about informed consent or IRB approval/waiver"
                             ),
                         )
                     )
@@ -1275,9 +1274,7 @@ class DomainConstraintEngine:
             # No overlap between sections check
             elif rule == "no_overlap_between_sections" and section == "manuscript":
                 # Split content into sections and detect duplicate paragraphs
-                section_pattern = re.compile(
-                    r"^\s*#{1,4}\s+(.+?)\s*$", re.MULTILINE
-                )
+                section_pattern = re.compile(r"^\s*#{1,4}\s+(.+?)\s*$", re.MULTILINE)
                 headings = list(section_pattern.finditer(content))
                 if len(headings) >= 2:
                     section_texts: dict[str, list[str]] = {}

@@ -31,7 +31,7 @@ Response template 格式：> Comment → **Response** → **Changes made** (Page
 
 ## Phase 5: 匯出
 
-修改稿：`start_document_session` → `insert_section` → `save_document("manuscript_R1.docx")`
+修改稿：`export_document(action="session_start")` → `export_document(action="session_insert")` → `export_document(action="session_save", output_filename="manuscript_R1.docx")`
 Response letter：Cover letter + Point-by-point + 修改摘要
 
 ## 回應策略

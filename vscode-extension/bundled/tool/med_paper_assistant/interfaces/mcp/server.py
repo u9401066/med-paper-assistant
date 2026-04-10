@@ -51,6 +51,7 @@ from med_paper_assistant.infrastructure.services import (
 # Server modules
 from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS
 from med_paper_assistant.interfaces.mcp.prompts import register_prompts
+from med_paper_assistant.interfaces.mcp.resources import register_resources
 from med_paper_assistant.interfaces.mcp.tools import (
     register_analysis_tools,
     register_draft_tools,
@@ -130,6 +131,9 @@ def create_server() -> FastMCP:
     # Register prompts
     logger.info("Registering prompts...")
     register_prompts(mcp, template_reader)
+
+    logger.info("Registering resources...")
+    register_resources(mcp, project_manager, template_reader)
 
     logger.info("MedPaper Assistant MCP Server initialized successfully!")
     logger.info("Note: Use pubmed-search MCP for literature search.")

@@ -14,7 +14,7 @@ description: "✍️ mdpaper.draft - 撰寫論文草稿"
 
 ## Step 1: 確認專案 + 驗證
 
-`get_current_project()` → `validate_for_section(section)` → ✅ CAN WRITE / ❌ 缺區塊
+`project_action(action="current")` → `validate_for_section(section)` → ✅ CAN WRITE / ❌ 缺區塊
 
 ## Step 2: 讀 Concept
 

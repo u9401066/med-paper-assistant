@@ -259,5 +259,7 @@ class PreCommitMixin:
             "stale_files": stale_files,
         }
 
-        logger.info("Hook P6 complete", passed=passed, fresh=len(fresh_files), stale=len(stale_files))
+        logger.info(
+            "Hook P6 complete", passed=passed, fresh=len(fresh_files), stale=len(stale_files)
+        )
         return HookResult(hook_id="P6", passed=passed, issues=issues, stats=stats)

@@ -8,7 +8,7 @@ description: "📝 mdpaper.concept - 發展研究概念與文獻缺口分析"
 
 ## Step 1: 確認專案
 
-`get_current_project()` — 無專案 → 先 `/mdpaper.project`
+`project_action(action="current")` — 無專案 → 先 `/mdpaper.project`
 
 ## Step 2: 文獻搜尋
 

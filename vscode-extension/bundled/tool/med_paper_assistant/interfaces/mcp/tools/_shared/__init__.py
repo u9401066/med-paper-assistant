@@ -3,6 +3,7 @@ Shared utilities for MCP tools.
 """
 
 from .checkpoint import auto_checkpoint_writing
+from .progress import report_tool_progress
 from .project_context import (
     ensure_project_context,
     get_concept_path,
@@ -24,6 +25,7 @@ from .tool_logging import (
 
 __all__ = [
     "auto_checkpoint_writing",
+    "report_tool_progress",
     "ensure_project_context",
     "validate_project_slug",
     "get_project_list_for_prompt",

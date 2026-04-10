@@ -9,10 +9,10 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 
 ### ⚠️ CRITICAL: PROJECT CONTEXT RULE
 **Before ANY operation that modifies project content, you MUST:**
-1. Call `get_current_project()` to confirm active project
+1. Call `project_action(action="current")` to confirm active project
 2. Show the project name to user: "目前專案: [project name]，確認要在這個專案操作嗎？"
-3. If user wants different project → `switch_project(slug="xxx")`
-4. If uncertain which project → `list_projects()` then ask user
+3. If user wants different project → `project_action(action="switch", slug="xxx")`
+4. If uncertain which project → `project_action(action="list")` then ask user
 
 **Tools that require project confirmation:**
 - All `write_draft`, `draft_section`, `insert_citation` operations
@@ -42,15 +42,10 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 ### 📁 PROJECT MANAGEMENT
 | Tool | When to use |
 |------|-------------|
-| `setup_project_interactive` | Configure project (uses elicitation for paper type) |
-| `create_project` | Create new research paper project |
-| `list_projects` | List all projects |
-| `switch_project` | Switch to different project |
-| `get_current_project` | Check current project |
-| `update_project_status` | Update project status |
-| `get_project_paths` | Get project directory paths |
-| `get_paper_types` | List available paper types |
-| `update_project_settings` | Change paper type or preferences |
+| `project_action` | Stable public verb for create/list/switch/current/update/setup/exploration |
+| `workspace_state_action` | Stable public verb for get/sync/checkpoint workspace recovery state |
+
+> Legacy project verbs remain compatibility-only; first-party orchestration should prefer `project_action` / `workspace_state_action`.
 
 > 💡 **Journal Profile**: 系統內建麻醉學前 20 大期刊投稿設定（`templates/journal-profiles/`），
 > 用戶只需說出目標期刊名稱，Agent 即可讀取對應 YAML 並產生 `journal-profile.yaml`。
@@ -58,11 +53,10 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 ### 🔍 LITERATURE EXPLORATION (NEW!)
 | Tool | When to use |
 |------|-------------|
-| `start_exploration` | Start exploring literature without formal project |
-| `get_exploration_status` | Check exploration workspace contents |
-| `convert_exploration_to_project` | Convert exploration to formal project |
+| `project_action(action="start_exploration")` | Start exploring literature without formal project |
+| `project_action(action="convert_exploration")` | Convert exploration to formal project |
 
-**Workflow:** User wants to browse papers first → `start_exploration` → search & save → `convert_exploration_to_project`
+**Workflow:** User wants to browse papers first → `project_action(action="start_exploration")` → search & save → `project_action(action="convert_exploration")`
 
 ### 🔍 LITERATURE SEARCH
 | Tool | When to use |
@@ -146,14 +140,14 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 8. If no project → `save_diagram(output_dir="...")` or ask user to create project
 
 ### 📄 WORD EXPORT (workflow)
-1. `list_templates` → Available templates
-2. `read_template` → Get template structure
+1. `inspect_export(action="list_templates")` → Available templates
+2. `inspect_export(action="read_template")` → Get template structure
 3. `read_draft` → Get draft content
-4. `start_document_session` → Begin editing
-5. `insert_section` → Insert content (repeat)
-6. `verify_document` → Check insertion
-7. `check_word_limits` → Verify limits
-8. `save_document` → Export final file
+4. `export_document(action="session_start")` → Begin editing
+5. `export_document(action="session_insert")` → Insert content (repeat)
+6. `inspect_export(action="verify_document")` → Check insertion
+7. `export_document(action="session_save")` → Export final file
+8. `export_document(action="docx")` / `export_document(action="pdf")` → Direct Pandoc exports
 
 ## 🔒 PROTECTED CONTENT RULES
 | Section | Must appear in | Rule |
@@ -163,11 +157,11 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 | 🔒 Author Notes | Never exported | Do not include in drafts |
 
 ## QUICK DECISION TREE
-- "just want to browse/explore papers" → `start_exploration`
+- "just want to browse/explore papers" → `project_action(action="start_exploration")`
 - "search/find papers" → `search_literature`
 - "save this paper" → `save_reference_mcp(pmid)` (auto-creates workspace if needed)
 - "my saved papers" → `list_saved_references`
-- "ready to write, have references" → `convert_exploration_to_project` → `create_project`
+- "ready to write, have references" → `project_action(action="convert_exploration")` or `project_action(action="create")`
 - "write/draft" → **`validate_concept` first!** → `write_draft`
 - "analyze data" → `analyze_dataset`
 - "review figure/table before caption" → `review_asset_for_insertion`
@@ -176,7 +170,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 - "list figures/tables" → `list_assets`
 - "create diagram" → **Confirm project first** → `drawio.create_diagram()`
 - "save diagram" → `drawio.get_diagram_content()` → `save_diagram(project=...)`
-- "export to Word" → Use export workflow
+- "export to Word" → `inspect_export` / `export_document`
 - "Table 1" → `generate_table_one`
 - "references format" → `format_references`
 

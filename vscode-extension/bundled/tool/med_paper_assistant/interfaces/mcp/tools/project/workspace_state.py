@@ -11,7 +11,7 @@ Solves the state inconsistency problem:
 Solution: Single source of truth in .mdpaper-state.json
 """
 
-from typing import Optional
+from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -23,8 +23,8 @@ from med_paper_assistant.infrastructure.persistence import (
 def register_workspace_state_tools(mcp: FastMCP):
     """Register workspace state management tools."""
 
-    @mcp.tool()
-    def get_workspace_state() -> str:
+    @mcp.tool(structured_output=True)
+    def get_workspace_state() -> dict[str, Any]:
         """
         Get workspace state for context recovery. Call at conversation START.
         Returns: current project, last activity, suggested next action.
@@ -32,6 +32,7 @@ def register_workspace_state_tools(mcp: FastMCP):
         """
         state_manager = get_workspace_state_manager()
         summary = state_manager.get_recovery_summary()
+        state = state_manager.get_state()
 
         # Append pending evolutions guidance if any exist
         from pathlib import Path
@@ -45,7 +46,11 @@ def register_workspace_state_tools(mcp: FastMCP):
         if evolution_guidance:
             summary += "\n" + evolution_guidance
 
-        return summary
+        return {
+            "recovery_summary": summary,
+            "workspace_state": state,
+            "startup_guidance": evolution_guidance or "",
+        }
 
     @mcp.tool()
     def sync_workspace_state(

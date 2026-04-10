@@ -3,20 +3,25 @@ name: project-management
 description: |
   研究專案的建立、切換、設定管理。
   LOAD THIS SKILL WHEN: 新專案、切換專案、專案設定、paper type、start exploration、convert exploration
-  CAPABILITIES: create_project, list_projects, switch_project, get_current_project, setup_project_interactive, start_exploration, convert_exploration_to_project
+  CAPABILITIES: project_action, workspace_state_action
 ---
 
 # 專案管理技能
 
-| 觸發語           | 操作                                                                       |
-| ---------------- | -------------------------------------------------------------------------- |
-| 新專案、開始研究 | `create_project(name, description, paper_type)`                            |
-| 切換、換專案     | `list_projects()` → `switch_project(slug)`                                 |
-| 設定 paper type  | `setup_project_interactive()`                                              |
-| 先瀏覽文獻       | `start_exploration()`                                                      |
-| 轉成正式專案     | `convert_exploration_to_project(name, description)`                        |
-| 改設定           | `update_project_settings(paper_type/target_journal/status/citation_style)` |
-| 查目前專案       | `get_current_project(include_files=True)`                                  |
+| 觸發語           | 操作                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------- |
+| 新專案、開始研究 | `project_action(action="create", name, description, paper_type)`                           |
+| 切換、換專案     | `project_action(action="list")` → `project_action(action="switch", slug)`               |
+| 設定 paper type  | `project_action(action="setup")`                                                           |
+| 先瀏覽文獻       | `project_action(action="start_exploration")`                                               |
+| 轉成正式專案     | `project_action(action="convert_exploration", name, description, paper_type)`             |
+| 改設定           | `project_action(action="update", paper_type/target_journal/status/citation_style)`        |
+| 查目前專案       | `project_action(action="current", include_files=True)`                                     |
+| 查 workspace 狀態 | `workspace_state_action(action="get")`                                                     |
+
+> Legacy verbs `create_project`, `list_projects`, `switch_project`, `get_current_project`,
+> `setup_project_interactive`, `start_exploration`, `convert_exploration_to_project`,
+> `sync_workspace_state` 僅保留相容性；first-party orchestration 一律優先走 façade。
 
 ---
 
@@ -38,19 +43,20 @@ description: |
 ### A: 建立新專案
 
 1. 問用戶：專案名稱（**必須英文**，中文 → 翻譯）、描述、論文類型
-2. `create_project(name, description, paper_type)`
-3. `setup_project_interactive()` — 互動式設定
+2. `project_action(action="create", name, description, paper_type)`
+3. `project_action(action="setup")` — 互動式設定
+4. `workspace_state_action(action="sync", doing="project setup", next_action="concept development")`
 
 ### B: 切換專案
 
-1. `list_projects()` → 用戶選擇 → `switch_project(slug)`
+1. `project_action(action="list")` → 用戶選擇 → `project_action(action="switch", slug)`
 2. 讀 `projects/{slug}/.memory/activeContext.md`
 
 ### C: 探索模式
 
-1. `start_exploration()` → 建立 ~exploration 臨時工作區
+1. `project_action(action="start_exploration")` → 建立 ~exploration 臨時工作區
 2. 搜尋 + 儲存文獻
-3. `convert_exploration_to_project(name, description)` → 文獻自動遷移
+3. `project_action(action="convert_exploration", name, description)` → 文獻自動遷移
 
 ---
 
@@ -66,9 +72,9 @@ description: |
 | 問題          | 解法                                        |
 | ------------- | ------------------------------------------- |
 | 中文名稱      | Agent 翻成英文                              |
-| 不確定用哪個  | `list_projects()`                           |
-| 先看文獻      | `start_exploration()`                       |
-| 改 paper type | `update_project_settings(paper_type="...")` |
+| 不確定用哪個  | `project_action(action="list")`           |
+| 先看文獻      | `project_action(action="start_exploration")` |
+| 改 paper type | `project_action(action="update", paper_type="...")` |
 
 ---
 

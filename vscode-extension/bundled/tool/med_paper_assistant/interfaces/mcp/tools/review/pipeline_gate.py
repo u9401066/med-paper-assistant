@@ -25,7 +25,7 @@ from typing import Optional
 
 import structlog
 import yaml
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import (
@@ -49,6 +49,7 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    report_tool_progress,
 )
 
 # Phase name mapping (shared across tools)
@@ -214,9 +215,10 @@ def register_pipeline_tools(
     """Register pipeline enforcement tools with the MCP server."""
 
     @mcp.tool()
-    def validate_phase_gate(
+    async def validate_phase_gate(
         phase: int,
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         🚧 HARD GATE: Validate all required artifacts for a pipeline phase.
@@ -251,6 +253,9 @@ def register_pipeline_tools(
         """
         log_tool_call("validate_phase_gate", {"phase": phase, "project": project})
         try:
+            await report_tool_progress(
+                ctx, 0, 3, f"Resolving project context for Phase {phase}", end=95
+            )
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
@@ -258,6 +263,7 @@ def register_pipeline_tools(
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
+            await report_tool_progress(ctx, 1, 3, f"Validating Phase {phase} artifacts", end=95)
             validator = PipelineGateValidator(project_dir)
             result = validator.validate_phase(phase)
 
@@ -286,6 +292,7 @@ def register_pipeline_tools(
             )
 
             report = result.to_markdown()
+            await report_tool_progress(ctx, 3, 3, f"Phase {phase} validation complete")
             log_tool_result(
                 "validate_phase_gate", f"Phase {phase}: {'PASSED' if result.passed else 'FAILED'}"
             )
@@ -296,8 +303,9 @@ def register_pipeline_tools(
             return f"❌ Error validating phase gate: {e}"
 
     @mcp.tool()
-    def pipeline_heartbeat(
+    async def pipeline_heartbeat(
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         💓 Pipeline heartbeat — get full status across ALL phases.
@@ -319,6 +327,7 @@ def register_pipeline_tools(
         """
         log_tool_call("pipeline_heartbeat", {"project": project})
         try:
+            await report_tool_progress(ctx, 0, 3, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
@@ -326,6 +335,7 @@ def register_pipeline_tools(
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
+            await report_tool_progress(ctx, 1, 3, "Collecting pipeline status", end=95)
             validator = PipelineGateValidator(project_dir)
             status = validator.get_pipeline_status()
 
@@ -375,6 +385,7 @@ def register_pipeline_tools(
             )
 
             log_tool_result("pipeline_heartbeat", f"{status['completion_pct']}% complete")
+            await report_tool_progress(ctx, 3, 3, "Pipeline heartbeat complete")
             return report
 
         except Exception as e:
@@ -382,11 +393,12 @@ def register_pipeline_tools(
             return f"❌ Error getting pipeline heartbeat: {e}"
 
     @mcp.tool()
-    def start_review_round(
+    async def start_review_round(
         project: Optional[str] = None,
         max_rounds: int = 3,
         min_rounds: int = 2,
         quality_threshold: float = 7.0,
+        ctx: Context | None = None,
     ) -> str:
         """
         🔄 Start a new review round (Phase 7 state machine).
@@ -417,6 +429,7 @@ def register_pipeline_tools(
             {"project": project, "max_rounds": max_rounds, "min_rounds": min_rounds},
         )
         try:
+            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
@@ -424,6 +437,7 @@ def register_pipeline_tools(
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
+            await report_tool_progress(ctx, 1, 4, "Initializing review loop", end=95)
             loop = _get_or_create_loop(
                 project_dir,
                 config={
@@ -434,6 +448,7 @@ def register_pipeline_tools(
             )
 
             # Compute manuscript hash BEFORE the round starts
+            await report_tool_progress(ctx, 2, 4, "Snapshotting manuscript state", end=95)
             ms_hash = _compute_manuscript_hash(project_dir)
 
             context = loop.start_round(artifact_hash=ms_hash)
@@ -499,6 +514,7 @@ def register_pipeline_tools(
                     lines.append(f"| {dim} | {prev} |")
 
             report = "\n".join(lines)
+            await report_tool_progress(ctx, 4, 4, f"Review round {round_num} ready")
             log_tool_result("start_review_round", f"Round {round_num} started")
             return report
 
@@ -507,11 +523,12 @@ def register_pipeline_tools(
             return f"❌ Error starting review round: {e}"
 
     @mcp.tool()
-    def submit_review_round(
+    async def submit_review_round(
         scores: str,
         issues_found: int = 0,
         issues_fixed: int = 0,
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         ✅ Submit a completed review round with quality scores.
@@ -539,6 +556,7 @@ def register_pipeline_tools(
         """
         log_tool_call("submit_review_round", {"scores": scores, "issues_found": issues_found})
         try:
+            await report_tool_progress(ctx, 0, 5, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
@@ -550,6 +568,9 @@ def register_pipeline_tools(
             audit_dir = project_dir / ".audit"
 
             # ── Enforcement: Artifact verification ──
+            await report_tool_progress(
+                ctx, 1, 5, "Checking review artifacts and manuscript changes", end=95
+            )
             round_num = loop.current_round_number
             enforcement_failures: list[str] = []
 
@@ -699,6 +720,9 @@ def register_pipeline_tools(
                 return failure_report
 
             # ── Enforcement passed — proceed with normal submission ──
+            await report_tool_progress(
+                ctx, 2, 5, "Recording fixes and scoring review round", end=95
+            )
 
             # Parse scores
             try:
@@ -734,6 +758,7 @@ def register_pipeline_tools(
             status = loop.get_status()
 
             # Auto-sync pipeline state (anti-compaction)
+            await report_tool_progress(ctx, 3, 5, "Evaluating verdict and syncing state", end=95)
             is_done = verdict.value in (
                 "quality_met",
                 "max_rounds",
@@ -795,6 +820,9 @@ def register_pipeline_tools(
                     lines.append(f"- {w}")
 
             report = "\n".join(lines)
+            await report_tool_progress(
+                ctx, 5, 5, f"Review round {status['current_round']} submission complete"
+            )
             log_tool_result("submit_review_round", f"verdict={verdict.value}")
             return report
 
@@ -803,8 +831,9 @@ def register_pipeline_tools(
             return f"❌ Error submitting review round: {e}"
 
     @mcp.tool()
-    def validate_project_structure(
+    async def validate_project_structure(
         project: Optional[str] = None,
+        ctx: Context | None = None,
     ) -> str:
         """
         🏗️ Validate project file structure integrity.
@@ -821,16 +850,19 @@ def register_pipeline_tools(
         """
         log_tool_call("validate_project_structure", {"project": project})
         try:
+            await report_tool_progress(ctx, 0, 2, "Resolving project context", end=95)
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
             assert project_info is not None
             project_dir = Path(project_info["project_path"])
 
+            await report_tool_progress(ctx, 1, 2, "Validating project structure", end=95)
             validator = PipelineGateValidator(project_dir)
             result = validator.validate_project_structure()
 
             report = result.to_markdown()
+            await report_tool_progress(ctx, 2, 2, "Project structure validation complete")
             log_tool_result(
                 "validate_project_structure", f"{'PASSED' if result.passed else 'FAILED'}"
             )

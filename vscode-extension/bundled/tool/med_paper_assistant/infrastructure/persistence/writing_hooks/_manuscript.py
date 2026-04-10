@@ -1331,8 +1331,12 @@ class ManuscriptHooksMixin:
                 "content_pattern": r"(?i)(?:highlight|key\s*finding)",
             },
             "graphical_abstract": {
-                "files": ["graphical-abstract.png", "graphical-abstract.jpg",
-                          "graphical-abstract.pdf", "graphical_abstract.*"],
+                "files": [
+                    "graphical-abstract.png",
+                    "graphical-abstract.jpg",
+                    "graphical-abstract.pdf",
+                    "graphical_abstract.*",
+                ],
                 "content_pattern": None,
             },
             "author_contributions": {
