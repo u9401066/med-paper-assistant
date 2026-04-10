@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "publisher": "u9401066",
   "license": "Apache-2.0",
   "repository": {
@@ -162,11 +162,14 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "bundle:check": "node ./scripts/bundle-assets.cjs check",
+    "bundle:sync": "node ./scripts/bundle-assets.cjs sync",
+    "bundle:sync-python": "node ./scripts/bundle-assets.cjs sync-python",
     "pretest": "npm run compile",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src --ext ts",
-    "validate": "./scripts/validate-build.sh",
+    "validate": "node ./scripts/run-validate-build.cjs",
     "package": "vsce package"
   },
   "devDependencies": {

@@ -14,12 +14,20 @@ concurrency:
 
 jobs:
   cross-platform-smoke:
-    name: "Cross-Platform Smoke (${{ matrix.os }})"
+    name: "Cross-Platform Smoke (${{ matrix.label }})"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            label: ubuntu-latest
+          - os: windows-latest
+            label: windows-latest
+          - os: macos-13
+            label: macos-13
+          - os: macos-14
+            label: macos-14
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,13 +73,17 @@ jobs:
           ./scripts/setup-integrations.ps1
           ./scripts/start-drawio.ps1
 
-      - name: Run Python smoke tests
+      - name: Run Python and MCP smoke tests
         shell: bash
-        run: uv run pytest tests/test_export_pipeline.py tests/test_figure_embedding.py tests/test_config_paths.py -q
+        run: uv run pytest tests/test_export_pipeline.py tests/test_figure_embedding.py tests/test_config_paths.py tests/test_copilot_hook_guard.py tests/test_mcp_integration.py -q
+
+      - name: Verify MCP server boots directly
+        run: >-
+          uv run python -c "from med_paper_assistant.interfaces.mcp.server import create_server; mcp = create_server(); tool_count = len(mcp._tool_manager._tools); prompt_count = len(mcp._prompt_manager._prompts); resource_count = len(mcp._resource_manager._resources); print(f'✅ MCP server OK: {tool_count} tools, {prompt_count} prompts, {resource_count} resources'); assert tool_count >= 50, f'Expected ≥50 tools, got {tool_count}'; assert prompt_count == 3, f'Expected 3 prompts, got {prompt_count}'; assert resource_count == 3, f'Expected 3 resources, got {resource_count}'"
 
       - name: Run VS Code extension smoke tests
         working-directory: vscode-extension
-        run: npm test -- --run src/test/uvManager.test.ts src/test/packaging.test.ts
+        run: npm test -- --run src/test/uvManager.test.ts src/test/packaging.test.ts src/test/extensionHelpers.test.ts src/test/workflows.test.ts
 
   # ──────────────────────────────────────────────────────
   # Python: lint, type check, security, tests
@@ -169,47 +181,21 @@ jobs:
         working-directory: vscode-extension
         run: npm ci
 
-      - name: Sync bundled skills & prompts
-        run: |
-          cd vscode-extension
-          for skill in literature-review concept-development concept-validation \
-                       parallel-search project-management draft-writing \
-                       reference-management word-export auto-paper \
-                       academic-debate idea-validation manuscript-review \
-                       submission-preparation git-precommit; do
-            if [ -d "../.claude/skills/$skill" ]; then
-              mkdir -p "skills/$skill"
-              cp "../.claude/skills/$skill/SKILL.md" "skills/$skill/"
-            fi
-          done
-          for prompt in mdpaper.write-paper mdpaper.literature-survey \
-                        mdpaper.manuscript-revision mdpaper.search \
-                        mdpaper.concept mdpaper.draft mdpaper.project \
-                        mdpaper.format mdpaper.strategy mdpaper.analysis \
-                        mdpaper.clarify mdpaper.help; do
-            if [ -f "../.github/prompts/$prompt.prompt.md" ]; then
-              cp "../.github/prompts/$prompt.prompt.md" "prompts/"
-            fi
-          done
-          if [ -f "../.github/prompts/_capability-index.md" ]; then
-            cp "../.github/prompts/_capability-index.md" "prompts/"
-          fi
-          if [ -f "../.github/copilot-instructions.md" ]; then
-            cp "../.github/copilot-instructions.md" "copilot-instructions.md"
-          fi
-          # Sync templates
-          mkdir -p templates
-          if [ -f "../templates/journal-profile.template.yaml" ]; then
-            cp "../templates/journal-profile.template.yaml" "templates/"
-          fi
+      - name: Check committed bundle drift
+        working-directory: vscode-extension
+        run: npm run bundle:check
+
+      - name: Sync bundled assets for build-time validation
+        working-directory: vscode-extension
+        run: npm run bundle:sync
 
       - name: Compile TypeScript
         working-directory: vscode-extension
         run: npm run compile
 
-      - name: Run tests
+      - name: Run extension validate
         working-directory: vscode-extension
-        run: npm test
+        run: npm run validate
 
   # ──────────────────────────────────────────────────────
   # Dashboard: build check

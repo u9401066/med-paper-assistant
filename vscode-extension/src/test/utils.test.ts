@@ -3,19 +3,25 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import {
+    BUNDLE_MANIFEST,
     getPythonArgs,
     loadSkillsAsInstructions,
     loadSkillContent,
     validateBundledSkills,
     validateBundledPrompts,
+    validateBundledSupportFiles,
     validateBundledTemplates,
     validateBundledAgents,
     validateChatCommands,
     getPackageVersion,
     BUNDLED_SKILLS,
     BUNDLED_PROMPTS,
+    BUNDLED_SUPPORT_FILES,
     BUNDLED_TEMPLATES,
     BUNDLED_AGENTS,
+    BUNDLED_CHAT_COMMANDS,
+    BUNDLED_PALETTE_COMMANDS,
+    PYTHON_SOURCE_BUNDLES,
 } from '../utils';
 
 // ──────────────────────────────────────────────────────────
@@ -204,6 +210,45 @@ describe('validateBundledPrompts', () => {
     });
 });
 
+describe('validateBundledSupportFiles', () => {
+    let repoRootDir: string;
+    let extensionRootDir: string;
+
+    beforeAll(() => {
+        repoRootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-support-repo-'));
+        extensionRootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-support-ext-'));
+
+        for (const file of BUNDLED_SUPPORT_FILES) {
+            const srcFile = path.join(repoRootDir, file.source);
+            const dstFile = path.join(extensionRootDir, file.destination);
+            fs.mkdirSync(path.dirname(srcFile), { recursive: true });
+            fs.mkdirSync(path.dirname(dstFile), { recursive: true });
+            fs.writeFileSync(srcFile, `source:${file.name}`);
+        }
+    });
+
+    afterAll(() => {
+        fs.rmSync(repoRootDir, { recursive: true, force: true });
+        fs.rmSync(extensionRootDir, { recursive: true, force: true });
+    });
+
+    it('detects missing support files', () => {
+        const result = validateBundledSupportFiles(extensionRootDir, repoRootDir);
+        expect(result.missing.length).toBe(BUNDLED_SUPPORT_FILES.length);
+    });
+
+    it('detects synced support files when content matches', () => {
+        const file = BUNDLED_SUPPORT_FILES[0];
+        const srcFile = path.join(repoRootDir, file.source);
+        const dstFile = path.join(extensionRootDir, file.destination);
+        fs.mkdirSync(path.dirname(dstFile), { recursive: true });
+        fs.copyFileSync(srcFile, dstFile);
+
+        const result = validateBundledSupportFiles(extensionRootDir, repoRootDir);
+        expect(result.synced).toContain(file.name);
+    });
+});
+
 // ──────────────────────────────────────────────────────────
 // validateChatCommands
 // ──────────────────────────────────────────────────────────
@@ -291,6 +336,34 @@ describe('BUNDLED_PROMPTS', () => {
     });
 });
 
+describe('BUNDLE_MANIFEST', () => {
+    it('defines all shared bundle groups', () => {
+        expect(BUNDLE_MANIFEST.skills.length).toBe(BUNDLED_SKILLS.length);
+        expect(BUNDLE_MANIFEST.prompts.length).toBe(BUNDLED_PROMPTS.length);
+        expect(BUNDLE_MANIFEST.supportFiles.length).toBe(BUNDLED_SUPPORT_FILES.length);
+        expect(BUNDLE_MANIFEST.templates.length).toBe(BUNDLED_TEMPLATES.length);
+        expect(BUNDLE_MANIFEST.agents.length).toBe(BUNDLED_AGENTS.length);
+        expect(BUNDLE_MANIFEST.chatCommands.length).toBe(BUNDLED_CHAT_COMMANDS.length);
+        expect(BUNDLE_MANIFEST.paletteCommands.length).toBe(BUNDLED_PALETTE_COMMANDS.length);
+        expect(BUNDLE_MANIFEST.pythonSources.length).toBe(PYTHON_SOURCE_BUNDLES.length);
+    });
+
+    it('has no duplicate bundle identifiers within each group', () => {
+        const groups = [
+            BUNDLED_SKILLS,
+            BUNDLED_PROMPTS,
+            BUNDLED_TEMPLATES,
+            BUNDLED_AGENTS,
+            BUNDLED_CHAT_COMMANDS,
+            BUNDLED_PALETTE_COMMANDS,
+        ];
+
+        for (const group of groups) {
+            expect(new Set(group).size).toBe(group.length);
+        }
+    });
+});
+
 // ──────────────────────────────────────────────────────────
 // Integration: Source ↔ VSX Sync Check
 // ──────────────────────────────────────────────────────────
@@ -304,6 +377,7 @@ describe('Source ↔ VSX Sync', () => {
     const sourceAgentsDir = path.join(rootDir, '.github', 'agents');
     const bundledSkillsDir = path.join(extDir, 'skills');
     const bundledPromptsDir = path.join(extDir, 'prompts');
+    const bundledSupportRoot = extDir;
     const bundledTemplatesDir = path.join(extDir, 'templates');
     const bundledAgentsDir = path.join(extDir, 'agents');
 
@@ -336,6 +410,11 @@ describe('Source ↔ VSX Sync', () => {
         }
         const result = validateBundledPrompts(bundledPromptsDir, sourcePromptsDir);
         expect(result.missing, `Out of sync prompts: ${result.missing.join(', ')}`).toHaveLength(0);
+    });
+
+    it('bundled support files are in sync with source (after build)', () => {
+        const result = validateBundledSupportFiles(bundledSupportRoot, rootDir);
+        expect(result.missing, `Out of sync support files: ${result.missing.join(', ')}`).toHaveLength(0);
     });
 
     it('all BUNDLED_TEMPLATES exist in source templates/', () => {

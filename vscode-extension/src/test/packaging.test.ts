@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs';
+import { BUNDLED_CHAT_COMMANDS, BUNDLED_PALETTE_COMMANDS } from '../utils';
 
 const extDir = path.resolve(__dirname, '..', '..');
 const pkgPath = path.join(extDir, 'package.json');
@@ -50,8 +51,7 @@ describe('package.json manifest', () => {
     it('chat participant has all expected commands', () => {
         const participant = pkg.contributes.chatParticipants[0];
         const commandNames = participant.commands.map((c: { name: string }) => c.name);
-        const expected = ['search', 'draft', 'concept', 'project', 'format', 'autopaper', 'analysis', 'strategy', 'help'];
-        for (const cmd of expected) {
+        for (const cmd of BUNDLED_CHAT_COMMANDS) {
             expect(commandNames, `Missing command: ${cmd}`).toContain(cmd);
         }
     });
@@ -60,10 +60,9 @@ describe('package.json manifest', () => {
         const commands = pkg.contributes?.commands;
         expect(commands).toBeDefined();
         const ids = commands.map((c: { command: string }) => c.command);
-        expect(ids).toContain('mdpaper.startServer');
-        expect(ids).toContain('mdpaper.showStatus');
-        expect(ids).toContain('mdpaper.autoPaper');
-        expect(ids).toContain('mdpaper.setupWorkspace');
+        for (const commandId of BUNDLED_PALETTE_COMMANDS) {
+            expect(ids).toContain(commandId);
+        }
     });
 
     it('has configuration properties', () => {

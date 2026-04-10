@@ -1,0 +1,92 @@
+{
+  "skills": [
+    "literature-review",
+    "concept-development",
+    "concept-validation",
+    "parallel-search",
+    "project-management",
+    "draft-writing",
+    "reference-management",
+    "word-export",
+    "auto-paper",
+    "academic-debate",
+    "idea-validation",
+    "manuscript-review",
+    "submission-preparation",
+    "git-precommit"
+  ],
+  "prompts": [
+    "mdpaper.write-paper",
+    "mdpaper.literature-survey",
+    "mdpaper.manuscript-revision",
+    "mdpaper.search",
+    "mdpaper.concept",
+    "mdpaper.draft",
+    "mdpaper.project",
+    "mdpaper.format",
+    "mdpaper.strategy",
+    "mdpaper.analysis",
+    "mdpaper.clarify",
+    "mdpaper.help",
+    "mdpaper.audit"
+  ],
+  "agents": [
+    "concept-challenger",
+    "domain-reviewer",
+    "literature-searcher",
+    "meta-learner",
+    "methodology-reviewer",
+    "paper-reviewer",
+    "reference-analyzer",
+    "review-orchestrator",
+    "statistics-reviewer"
+  ],
+  "templates": [
+    "journal-profile.template.yaml"
+  ],
+  "supportFiles": [
+    {
+      "name": "_capability-index.md",
+      "source": ".github/prompts/_capability-index.md",
+      "destination": "prompts/_capability-index.md"
+    },
+    {
+      "name": "copilot-instructions.md",
+      "source": ".github/copilot-instructions.md",
+      "destination": "copilot-instructions.md"
+    }
+  ],
+  "chatCommands": [
+    "search",
+    "draft",
+    "concept",
+    "project",
+    "format",
+    "autopaper",
+    "drawio",
+    "analysis",
+    "strategy",
+    "help"
+  ],
+  "paletteCommands": [
+    "mdpaper.startServer",
+    "mdpaper.stopServer",
+    "mdpaper.showStatus",
+    "mdpaper.autoPaper",
+    "mdpaper.setupWorkspace"
+  ],
+  "pythonSources": [
+    {
+      "name": "med_paper_assistant",
+      "source": "src/med_paper_assistant",
+      "destination": "bundled/tool/med_paper_assistant",
+      "required": true
+    },
+    {
+      "name": "cgu",
+      "source": "integrations/cgu/src/cgu",
+      "destination": "bundled/tool/cgu",
+      "required": false
+    }
+  ]
+}

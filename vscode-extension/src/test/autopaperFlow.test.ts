@@ -25,7 +25,7 @@ describe('autopaper execution flow', () => {
     it('builds an execution prompt for autopaper instead of doc-only output', () => {
         expect(extensionSource).toContain('function buildAutopaperExecutionPrompt');
         expect(extensionSource).toContain('This is an execution request, not a documentation request.');
-        expect(extensionSource).toContain('validate_phase_gate(phase)');
-        expect(extensionSource).toContain('pipeline_heartbeat()');
+        expect(extensionSource).toContain('pipeline_action(action="validate_phase", phase=...)');
+        expect(extensionSource).toContain('pipeline_action(action="heartbeat")');
     });
 });

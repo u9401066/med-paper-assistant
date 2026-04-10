@@ -50,13 +50,21 @@ jobs:
           echo "✅ package.json version: $VSX_VERSION"
 
   smoke-cross-platform:
-    name: "Cross-Platform Smoke (${{ matrix.os }})"
+    name: "Cross-Platform Smoke (${{ matrix.label }})"
     runs-on: ${{ matrix.os }}
     needs: validate
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            label: ubuntu-latest
+          - os: windows-latest
+            label: windows-latest
+          - os: macos-13
+            label: macos-13
+          - os: macos-14
+            label: macos-14
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,13 +110,17 @@ jobs:
           ./scripts/setup-integrations.ps1
           ./scripts/start-drawio.ps1
 
-      - name: Run Python smoke tests
+      - name: Run Python and MCP smoke tests
         shell: bash
-        run: uv run pytest tests/test_export_pipeline.py tests/test_figure_embedding.py tests/test_config_paths.py -q
+        run: uv run pytest tests/test_export_pipeline.py tests/test_figure_embedding.py tests/test_config_paths.py tests/test_copilot_hook_guard.py tests/test_mcp_integration.py -q
+
+      - name: Verify MCP server boots directly
+        run: >-
+          uv run python -c "from med_paper_assistant.interfaces.mcp.server import create_server; mcp = create_server(); tool_count = len(mcp._tool_manager._tools); prompt_count = len(mcp._prompt_manager._prompts); resource_count = len(mcp._resource_manager._resources); print(f'✅ MCP server OK: {tool_count} tools, {prompt_count} prompts, {resource_count} resources'); assert tool_count >= 50, f'Expected ≥50 tools, got {tool_count}'; assert prompt_count == 3, f'Expected 3 prompts, got {prompt_count}'; assert resource_count == 3, f'Expected 3 resources, got {resource_count}'"
 
       - name: Run VS Code extension smoke tests
         working-directory: vscode-extension
-        run: npm test -- --run src/test/uvManager.test.ts src/test/packaging.test.ts
+        run: npm test -- --run src/test/uvManager.test.ts src/test/packaging.test.ts src/test/extensionHelpers.test.ts
 
   # ──────────────────────────────────────────────────────
   # 2. Run tests before publishing
@@ -140,7 +152,7 @@ jobs:
       - name: Run tests
         run: uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
 
-  test-vsx:
+  vsx-bundle-drift:
     runs-on: ubuntu-latest
     needs: [validate, smoke-cross-platform]
     steps:
@@ -155,57 +167,13 @@ jobs:
         working-directory: vscode-extension
         run: npm ci
 
-      - name: Sync bundled skills & prompts
-        run: |
-          cd vscode-extension
-          for skill in literature-review concept-development concept-validation \
-                       parallel-search project-management draft-writing \
-                       reference-management word-export auto-paper \
-                       academic-debate idea-validation manuscript-review \
-                       submission-preparation git-precommit; do
-            if [ -d "../.claude/skills/$skill" ]; then
-              mkdir -p "skills/$skill"
-              cp "../.claude/skills/$skill/SKILL.md" "skills/$skill/"
-            fi
-          done
-          for prompt in mdpaper.write-paper mdpaper.literature-survey \
-                        mdpaper.manuscript-revision mdpaper.search \
-                        mdpaper.concept mdpaper.draft mdpaper.project \
-                        mdpaper.format mdpaper.strategy mdpaper.analysis \
-                        mdpaper.clarify mdpaper.help; do
-            if [ -f "../.github/prompts/$prompt.prompt.md" ]; then
-              cp "../.github/prompts/$prompt.prompt.md" "prompts/"
-            fi
-          done
-          if [ -f "../.github/prompts/_capability-index.md" ]; then
-            cp "../.github/prompts/_capability-index.md" "prompts/"
-          fi
-          if [ -f "../.github/copilot-instructions.md" ]; then
-            cp "../.github/copilot-instructions.md" "copilot-instructions.md"
-          fi
-          # Sync templates
-          mkdir -p templates
-          if [ -f "../templates/journal-profile.template.yaml" ]; then
-            cp "../templates/journal-profile.template.yaml" "templates/"
-          fi
-
-      - name: Run tests
+      - name: Check committed bundle drift
         working-directory: vscode-extension
-        run: npm test
+        run: npm run bundle:check
 
-      - name: Compile TypeScript
-        working-directory: vscode-extension
-        run: npm run compile
-
-  # ──────────────────────────────────────────────────────
-  # 3. Publish to PyPI (Trusted Publishing)
-  # ──────────────────────────────────────────────────────
-  publish-pypi:
+  build-artifacts:
     runs-on: ubuntu-latest
-    needs: [validate, smoke-cross-platform, test-python]
-    environment: pypi
-    permissions:
-      id-token: write  # Required for trusted publishing
+    needs: [validate, smoke-cross-platform, test-python, vsx-bundle-drift]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -221,12 +189,74 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Build package
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install VS Code extension dependencies
+        working-directory: vscode-extension
+        run: npm ci
+
+      - name: Sync bundled assets for artifact build
+        working-directory: vscode-extension
+        run: npm run bundle:sync
+
+      - name: Sync Python MCP sources for VSIX
+        working-directory: vscode-extension
+        run: npm run bundle:sync-python
+
+      - name: Compile TypeScript
+        working-directory: vscode-extension
+        run: npm run compile
+
+      - name: Run extension tests
+        working-directory: vscode-extension
+        run: npm test
+
+      - name: Package VSIX
+        working-directory: vscode-extension
+        run: npm run package
+
+      - name: Validate packaged extension
+        working-directory: vscode-extension
+        run: npm run validate -- --skip-tests
+
+      - name: Build Python distribution artifacts
         run: uv build
+
+      - name: Upload Python dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: medpaper-python-dist-${{ needs.validate.outputs.version }}
+          path: dist/*
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
+          path: vscode-extension/*.vsix
+
+  # ──────────────────────────────────────────────────────
+  # 3. Publish to PyPI (Trusted Publishing)
+  # ──────────────────────────────────────────────────────
+  publish-pypi:
+    runs-on: ubuntu-latest
+    needs: [validate, build-artifacts]
+    environment: pypi
+    permissions:
+      id-token: write  # Required for trusted publishing
+    steps:
+      - name: Download Python dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: medpaper-python-dist-${{ needs.validate.outputs.version }}
+          path: dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          packages-dir: dist
           skip-existing: true
         # Uses trusted publishing - no API token needed!
         # Configure at: https://pypi.org/manage/project/med-paper-assistant/settings/publishing/
@@ -236,11 +266,9 @@ jobs:
   # ──────────────────────────────────────────────────────
   publish-vsx:
     runs-on: ubuntu-latest
-    needs: [validate, smoke-cross-platform, test-vsx]
+    needs: [validate, build-artifacts, publish-pypi]
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -251,82 +279,24 @@ jobs:
         working-directory: vscode-extension
         run: npm ci
 
-      - name: Sync bundled skills & prompts
-        run: |
-          cd vscode-extension
-          # Copy skills from source
-          for skill in literature-review concept-development concept-validation \
-                       parallel-search project-management draft-writing \
-                       reference-management word-export auto-paper \
-                       academic-debate idea-validation manuscript-review \
-                       submission-preparation git-precommit; do
-            if [ -d "../.claude/skills/$skill" ]; then
-              mkdir -p "skills/$skill"
-              cp "../.claude/skills/$skill/SKILL.md" "skills/$skill/"
-            fi
-          done
-          # Copy prompts from source
-          for prompt in mdpaper.write-paper mdpaper.literature-survey \
-                        mdpaper.manuscript-revision mdpaper.search \
-                        mdpaper.concept mdpaper.draft mdpaper.project \
-                        mdpaper.format mdpaper.strategy mdpaper.analysis \
-                        mdpaper.clarify mdpaper.help; do
-            if [ -f "../.github/prompts/$prompt.prompt.md" ]; then
-              cp "../.github/prompts/$prompt.prompt.md" "prompts/"
-            fi
-          done
-          if [ -f "../.github/prompts/_capability-index.md" ]; then
-            cp "../.github/prompts/_capability-index.md" "prompts/"
-          fi
-          if [ -f "../.github/copilot-instructions.md" ]; then
-            cp "../.github/copilot-instructions.md" "copilot-instructions.md"
-          fi
-          # Sync templates
-          mkdir -p templates
-          if [ -f "../templates/journal-profile.template.yaml" ]; then
-            cp "../templates/journal-profile.template.yaml" "templates/"
-          fi
-
-      - name: Copy Python MCP source
-        run: |
-          cd vscode-extension
-          # med_paper_assistant
-          if [ -d "../src/med_paper_assistant" ]; then
-            rm -rf bundled/tool/med_paper_assistant
-            cp -r ../src/med_paper_assistant bundled/tool/med_paper_assistant
-          fi
-          # cgu
-          if [ -d "../integrations/cgu/src/cgu" ]; then
-            rm -rf bundled/tool/cgu
-            cp -r ../integrations/cgu/src/cgu bundled/tool/cgu
-          fi
-
-      - name: Compile & test
-        working-directory: vscode-extension
-        run: |
-          npm run compile
-          npm test
-
-      - name: Package VSIX
-        working-directory: vscode-extension
-        run: npx @vscode/vsce package
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
+          path: release-assets
 
       - name: Publish to VS Marketplace
         working-directory: vscode-extension
-        run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
-
-      - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
-          path: vscode-extension/*.vsix
+        run: |
+          VSIX_PATH=$(find ../release-assets -name '*.vsix' -print -quit)
+          npx @vscode/vsce publish --packagePath "$VSIX_PATH" -p ${{ secrets.VSCE_PAT }}
 
   # ──────────────────────────────────────────────────────
   # 5. Create GitHub Release
   # ──────────────────────────────────────────────────────
   github-release:
     runs-on: ubuntu-latest
-    needs: [validate, publish-pypi, publish-vsx]
+    needs: [validate, publish-vsx]
     permissions:
       contents: write
     steps:

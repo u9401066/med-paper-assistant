@@ -5,6 +5,33 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import bundleManifest from '../bundle-manifest.json';
+
+type SupportFile = {
+    name: string;
+    source: string;
+    destination: string;
+};
+
+type PythonSourceBundle = {
+    name: string;
+    source: string;
+    destination: string;
+    required?: boolean;
+};
+
+type BundleManifest = {
+    skills: string[];
+    prompts: string[];
+    agents: string[];
+    templates: string[];
+    supportFiles: SupportFile[];
+    chatCommands: string[];
+    paletteCommands: string[];
+    pythonSources: PythonSourceBundle[];
+};
+
+export const BUNDLE_MANIFEST = bundleManifest as BundleManifest;
 
 /**
  * Determine the correct Python args based on the command being used.
@@ -83,69 +110,44 @@ export function loadSkillContent(skillsPath: string, skillName: string): string 
 }
 
 /**
- * List of skills that should be bundled in the VSX extension.
- * Single source of truth for build.sh and validation.
+ * Bundle manifest data shared by build scripts, validation, tests, and workflows.
  */
-export const BUNDLED_SKILLS = [
-    'literature-review',
-    'concept-development',
-    'concept-validation',
-    'parallel-search',
-    'project-management',
-    'draft-writing',
-    'reference-management',
-    'word-export',
-    'auto-paper',
-    'academic-debate',
-    'idea-validation',
-    'manuscript-review',
-    'submission-preparation',
-    'git-precommit',
-] as const;
+export const BUNDLED_SKILLS = [...BUNDLE_MANIFEST.skills];
 
 /**
- * List of prompts that should be bundled in the VSX extension.
- * Single source of truth for build.sh and validation.
+ * Prompts bundled in the VSX extension.
  */
-export const BUNDLED_PROMPTS = [
-    'mdpaper.write-paper',
-    'mdpaper.literature-survey',
-    'mdpaper.manuscript-revision',
-    'mdpaper.search',
-    'mdpaper.concept',
-    'mdpaper.draft',
-    'mdpaper.project',
-    'mdpaper.format',
-    'mdpaper.strategy',
-    'mdpaper.analysis',
-    'mdpaper.clarify',
-    'mdpaper.help',
-    'mdpaper.audit',
-] as const;
+export const BUNDLED_PROMPTS = [...BUNDLE_MANIFEST.prompts];
 
 /**
- * List of agents that should be bundled in the VSX extension.
- * Single source of truth for build.sh and validation.
+ * Agents bundled in the VSX extension.
  */
-export const BUNDLED_AGENTS = [
-    'concept-challenger',
-    'domain-reviewer',
-    'literature-searcher',
-    'meta-learner',
-    'methodology-reviewer',
-    'paper-reviewer',
-    'reference-analyzer',
-    'review-orchestrator',
-    'statistics-reviewer',
-] as const;
+export const BUNDLED_AGENTS = [...BUNDLE_MANIFEST.agents];
 
 /**
- * List of templates that should be bundled in the VSX extension.
- * Single source of truth for build.sh and validation.
+ * Templates bundled in the VSX extension.
  */
-export const BUNDLED_TEMPLATES = [
-    'journal-profile.template.yaml',
-] as const;
+export const BUNDLED_TEMPLATES = [...BUNDLE_MANIFEST.templates];
+
+/**
+ * Additional support files bundled in the VSX extension.
+ */
+export const BUNDLED_SUPPORT_FILES = [...BUNDLE_MANIFEST.supportFiles];
+
+/**
+ * Chat commands expected in package.json.
+ */
+export const BUNDLED_CHAT_COMMANDS = [...BUNDLE_MANIFEST.chatCommands];
+
+/**
+ * Palette commands expected in package.json.
+ */
+export const BUNDLED_PALETTE_COMMANDS = [...BUNDLE_MANIFEST.paletteCommands];
+
+/**
+ * Python source bundles copied into the VSIX during build-time packaging.
+ */
+export const PYTHON_SOURCE_BUNDLES = [...BUNDLE_MANIFEST.pythonSources];
 
 /**
  * Validate that bundled skills match the source directory.
@@ -219,6 +221,39 @@ export function validateBundledPrompts(
     const idxDst = path.join(bundledPromptsDir, '_capability-index.md');
     if (fs.existsSync(idxSrc) && !fs.existsSync(idxDst)) {
         missing.push('_capability-index.md');
+    }
+
+    return { missing, extra, synced };
+}
+
+/**
+ * Validate that bundled support files match the source directory.
+ */
+export function validateBundledSupportFiles(
+    extensionRootDir: string,
+    repoRootDir: string,
+): { missing: string[]; extra: string[]; synced: string[] } {
+    const missing: string[] = [];
+    const extra: string[] = [];
+    const synced: string[] = [];
+
+    for (const file of BUNDLED_SUPPORT_FILES) {
+        const srcFile = path.join(repoRootDir, file.source);
+        const dstFile = path.join(extensionRootDir, file.destination);
+
+        if (!fs.existsSync(srcFile)) {
+            extra.push(file.name);
+        } else if (!fs.existsSync(dstFile)) {
+            missing.push(file.name);
+        } else {
+            const srcContent = fs.readFileSync(srcFile, 'utf-8');
+            const dstContent = fs.readFileSync(dstFile, 'utf-8');
+            if (srcContent !== dstContent) {
+                missing.push(file.name + ' (outdated)');
+            } else {
+                synced.push(file.name);
+            }
+        }
     }
 
     return { missing, extra, synced };
@@ -311,8 +346,7 @@ export function validateChatCommands(packageJsonPath: string): { valid: boolean;
     const commandNames = commands.map((c: { name: string }) => c.name);
 
     // Required commands
-    const requiredCommands = ['search', 'draft', 'concept', 'project', 'format', 'autopaper', 'analysis', 'strategy', 'help'];
-    for (const cmd of requiredCommands) {
+    for (const cmd of BUNDLED_CHAT_COMMANDS) {
         if (!commandNames.includes(cmd)) {
             issues.push(`Missing chat command: /${cmd}`);
         }

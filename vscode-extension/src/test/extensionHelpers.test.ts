@@ -422,7 +422,8 @@ describe('buildDevPythonPath', () => {
         fs.mkdirSync(path.join(cguWs, 'integrations', 'cgu', 'src'), { recursive: true });
         try {
             const result = buildDevPythonPath(cguWs, '/ext/bundled/tool');
-            expect(result).toContain('integrations/cgu/src');
+            const cguSrcPath = path.join(cguWs, 'integrations', 'cgu', 'src');
+            expect(result).toContain(cguSrcPath);
         } finally {
             fs.rmSync(cguWs, { recursive: true, force: true });
         }
