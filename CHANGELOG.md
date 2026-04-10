@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-04-11
+
+### Fixed
+
+- **Windows release smoke quoting**: Replaced inline `python -c` MCP boot checks in CI/release workflows with the shared `scripts/verify_mcp_server_boot.py` runner so PowerShell quoting and Unicode parsing no longer break the Windows cross-platform smoke job
+
 ## [0.6.1] - 2026-04-11
 
 ### Fixed
