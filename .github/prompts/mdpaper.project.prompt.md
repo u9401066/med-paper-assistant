@@ -8,9 +8,10 @@ description: "📁 mdpaper.project - 專案建立與管理"
 
 ## 流程
 
-1. `list_projects()` → 檢查現有專案
-2. 新建 → `create_project(title, slug, paper_type)` / 切換 → `switch_project(slug)`
-3. `setup_project_interactive()` → 設定 paper type + 偏好
+1. `project_action(action="list")` → 檢查現有專案
+2. 新建 → `project_action(action="create", name, description, paper_type)` / 切換 → `project_action(action="switch", slug)`
+3. `project_action(action="setup")` → 設定 paper type + 偏好
+4. `workspace_state_action(action="sync", doing="project setup", next_action="literature search")`
 
 Paper types: `original-research` `systematic-review` `case-report` `letter` `meta-analysis` `narrative-review`
 

@@ -28,4 +28,4 @@ description: "write-paper - 完整論文撰寫（全自動 + 閉環審計）"
 
 **人工介入**：僅 Phase 4 大綱確認。Concept < 60 兩次仍低、Hook 3 輪仍失敗時暫停。
 
-**中斷恢復**：`sync_workspace_state()` → `.memory/activeContext.md` → 下次 `get_workspace_state()`。
+**中斷恢復**：`workspace_state_action(action="sync")` → `.memory/activeContext.md` → 下次 `workspace_state_action(action="get")`。

@@ -12,7 +12,7 @@ description: |
 
 ## 前置條件
 
-1. `get_current_project()` 確認專案
+1. `project_action(action="current")` 確認專案
 2. concept.md 存在且 🔒 區塊非空（寫 concept.md 本身除外）
 
 ---
@@ -74,7 +74,7 @@ description: |
 3. `read_draft("concept.md")` → 提取 🔒 NOVELTY + 🔒 SELLING POINTS
 4. 參考下方 Section 指南撰寫
 5. `count_words()`
-6. `approve_section(section, action)` → 用戶審閱 approve/revise（Phase 5 時 MANDATORY）
+6. `pipeline_action(action="approve_section", section=section, decision="approve|revise")` → 用戶審閱 approve/revise（Phase 5 時 MANDATORY）
 
 ## Flow B: Citation-Aware 編輯
 
@@ -94,7 +94,7 @@ description: |
 
 ## Section 寫作指南
 
-> 以下每條指南都有對應的 Code-Enforced Hook（B9-B16），`run_writing_hooks` 會自動檢查。
+> 以下每條指南都有對應的 Code-Enforced Hook（B9-B16），`run_quality_checks(action="writing_hooks")` 會自動檢查。
 
 ### Introduction (400-600 words)
 
@@ -271,7 +271,7 @@ description: |
 | B15  | Hedging Density      | POST-WRITE   | CRITICAL/WARN | may/might/could 密度                 |
 | B16  | Effect Size          | POST-SECTION | CRITICAL/WARN | p-value 格式 + 效果量 + CI           |
 
-使用方式：`run_writing_hooks("B9,B11,B13")` 或 `run_writing_hooks("post-section")`
+使用方式：`run_quality_checks(action="writing_hooks", hooks="B9,B11,B13")` 或 `run_quality_checks(action="writing_hooks", hooks="post-section")`
 
 ---
 

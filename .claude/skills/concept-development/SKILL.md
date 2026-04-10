@@ -43,7 +43,7 @@ description: 發展研究概念並驗證創新性。觸發：concept、發展概
 
 ### Phase 2: 專案建立
 
-`create_project()` → `save_reference_mcp(pmid)`
+`project_action(action="create")` → `save_reference_mcp(pmid)`
 
 ### Phase 3: 概念撰寫
 

@@ -22,23 +22,23 @@
 
 這是一個 **Monorepo 工具包**，將醫學研究者需要的一切 — 從文獻搜尋到 Word/LaTeX 匯出 — 整合在一個 VS Code 環境中。
 
-| 元件                                                               | 類型                 | 工具數 | 說明                                                      |
-| ------------------------------------------------------------------ | -------------------- | ------ | --------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-工具)**                                  | 核心 MCP Server      | 88     | 論文寫作：專案、文獻、草稿、分析、驗證、審查、匯出        |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37     | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理 |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13     | 創意發想：腦力激盪、深度思考、火花碰撞                    |
-| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 3 指令 | MCP Server 生命週期、`@mdpaper` 聊天參與者                |
-| **[Dashboard](dashboard/)**                                        | Next.js Web App      | —      | 專案管理 UI、圖表編輯器                                   |
-| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —      | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖               |
-| **[Skills](.claude/skills/)**                                      | Agent 工作流         | 26     | 引導式多工具工作流（文獻回顧、草稿寫作...）               |
-| **[Prompts](.github/prompts/)**                                    | Prompt Files         | 15     | `/mdpaper.search`、`/mdpaper.draft` 等                    |
+| 元件 | 類型 | 工具數 | 說明 |
+| --- | --- | --- | --- |
+| **mdpaper** | 核心 MCP Server | 88 | 論文寫作：88 工具，另含 3 個 MCP prompts 與 3 個 MCP resources |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37 | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理 |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)** | MCP Server（子模組） | 13 | 創意發想：腦力激盪、深度思考、火花碰撞 |
+| **[VS Code Extension](vscode-extension/)** | 擴充功能 | 5 指令 + 10 chat | MCP 自動註冊、workspace 設定、`@mdpaper` 參與者 |
+| **[Dashboard](dashboard/)** | Next.js Web App | — | 專案管理 UI、圖表編輯器 |
+| **[Foam](https://foambubble.github.io/foam/)** | VS Code 擴充功能 | — | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖 |
+| **[Skills](.claude/skills/)** | Agent 工作流 | 26 | 引導式多工具工作流（文獻回顧、草稿寫作...） |
+| **[Prompts](.github/prompts/)** | Prompt Files | 15 | `/mdpaper.search`、`/mdpaper.draft` 等 |
 
 **外部 MCP Server**（選用，透過 uvx 安裝）：
 
 - **drawio** — CONSORT/PRISMA 流程圖生成
 - **zotero-keeper** — 從 Zotero 匯入參考文獻
 
-**VSX 說明**：MedPaper 的 VS Code 擴充功能會用 `uv tool install` 以電腦為單位持久安裝 Python MCP 工具，後續啟動會嘗試 `uv tool upgrade` 升級；若系統上已有其他 VS Code 擴充功能提供 `PubMed Search` 或 `Zotero Keeper` MCP server，MedPaper 會自動跳過重複安裝與重複註冊。
+**VSX 說明**：MedPaper 的 VS Code 擴充功能會用 `uv tool install` 以電腦為單位持久安裝 Python MCP 工具，後續啟動會嘗試 `uv tool upgrade` 升級；若系統上已有其他 VS Code 擴充功能提供 `PubMed Search` 或 `Zotero Keeper` MCP server，MedPaper 會自動跳過重複安裝與重複註冊。CI smoke 目前覆蓋 `ubuntu-latest`、`windows-latest`、`macos-13`、`macos-14`，並包含 official MCP client 檢查與 VSX validate smoke。
 
 ### 各元件如何協作
 
@@ -52,7 +52,7 @@ flowchart LR
     end
 
     subgraph MCP["MCP Server（~138 工具）"]
-      mdpaper["mdpaper<br/>88 工具<br/>草稿 · 匯出 · 驗證 · 審查"]
+      mdpaper["mdpaper<br/>88 工具 + 3 prompts + 3 resources<br/>草稿 · 匯出 · 驗證 · 審查"]
         pubmed["pubmed-search<br/>37 工具<br/>搜尋 · 指標"]
         cgu["CGU<br/>13 工具<br/>深度思考 · 創意"]
     end
@@ -322,7 +322,7 @@ pubmed-search: GET /api/cached_article/24891204
 
 ## 🛠️ mdpaper MCP 工具
 
-**81 個啟用中的工具**，分為 8 大類：
+**88 個啟用中的工具**，分為 7 大類，另加 **3 個 MCP prompts** 與 **3 個 MCP resources**。
 
 ### 📁 專案管理（17 工具）
 
@@ -352,24 +352,25 @@ pubmed-search: GET /api/cached_article/24891204
 
 寫作、編輯、引用 — 內建驗證。
 
-| 關鍵工具                                   | 說明                                            |
-| ------------------------------------------ | ----------------------------------------------- |
-| `write_draft` / `draft_section`            | 建立和撰寫各章節                                |
-| `get_available_citations`                  | 編輯前列出所有可用的 `[[citation_key]]`         |
-| `patch_draft`                              | **Citation-aware** 部分編輯，自動驗證 wikilinks |
-| `insert_citation` / `suggest_citations`    | 智慧引用插入                                    |
-| `scan_draft_citations` / `sync_references` | 引用管理                                        |
-| `get_section_template`                     | 章節寫作指引                                    |
+| 關鍵工具 | 說明 |
+| --- | --- |
+| `draft_section` / `write_draft` | 建立和撰寫各章節 |
+| `list_drafts` / `read_draft` / `delete_draft` | 草稿生命週期 |
+| `get_available_citations` | 編輯前列出所有可用的 `[[citation_key]]` |
+| `patch_draft` | **Citation-aware** 部分編輯，自動驗證 wikilinks |
+| `insert_citation` / `suggest_citations` | 智慧引用插入 |
+| `scan_draft_citations` / `sync_references` | 引用管理 |
+| `count_words` | 段落、章節與全文字數檢查 |
 
 ### ✅ 驗證（3 工具）
 
-| 工具                      | 說明                                                |
-| ------------------------- | --------------------------------------------------- |
-| `validate_concept`        | 完整新穎性評分（3 輪，門檻 75/100）                 |
-| `validate_wikilinks`      | 自動修復 `[[12345678]]` → `[[author2024_12345678]]` |
-| `compare_with_literature` | 與文獻比較研究構想                                  |
+| 工具 | 說明 |
+| --- | --- |
+| `validate_concept` | 對目前 concept 做完整新穎性評估 |
+| `validate_wikilinks` | 自動修復 `[[12345678]]` → `[[author2024_12345678]]` |
+| `compare_with_literature` | 將研究想法與已存文獻做差異與重疊比較 |
 
-### 📊 資料分析（9 工具）
+### 📊 資料分析（10 工具）
 
 | 工具                   | 說明                          |
 | ---------------------- | ----------------------------- |
@@ -381,7 +382,7 @@ pubmed-search: GET /api/cached_article/24891204
 | `insert_table`         | 插入表格至草稿，含歸檔驗證    |
 | `list_assets`          | 列出專案 results 中的圖表資源 |
 
-### 🔍 審查與審計（22 工具）
+### 🔍 審查與審計（23 工具）
 
 | 分類              | 關鍵工具                                                                  |
 | ----------------- | ------------------------------------------------------------------------- |
@@ -400,6 +401,13 @@ pubmed-search: GET /api/cached_article/24891204
 | **Word 匯出**   | `export_word`、`list_templates`、`start_document_session`、`verify_document` |
 | **Pandoc 匯出** | `export_docx`、`export_pdf`、`preview_citations`、`build_bibliography`       |
 | **投稿準備**    | `generate_cover_letter`、`generate_highlights`                               |
+
+### 🧩 MCP Prompts 與 Resources
+
+| 能力 | 名稱 / URI | 用途 |
+| --- | --- | --- |
+| **Prompts** | `project_bootstrap`、`draft_section_plan`、`word_export_checklist` | 透過官方 MCP prompt API 生成引導式工作流內容 |
+| **Resources** | `medpaper://workspace/state`、`medpaper://workspace/projects`、`medpaper://templates/catalog` | 透過 MCP resources 暴露工作區狀態、專案列表與模板資訊 |
 
 ### 🔍 pubmed-search MCP 工具（37 工具）
 
@@ -501,7 +509,7 @@ med-paper-assistant/
 │   ├── domain/                    #   業務邏輯、實體、值物件
 │   ├── application/               #   用例、服務
 │   ├── infrastructure/            #   DAL、外部服務
-│   └── interfaces/mcp/            #   MCP Server，88 工具分 7 大類
+│   └── interfaces/mcp/            #   MCP Server，88 工具 + 3 prompts + 3 resources
 │
 ├── integrations/                  # 內建 MCP Server
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（37 工具）

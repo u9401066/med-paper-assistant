@@ -200,7 +200,7 @@ uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/
 
 ### VS Code Copilot Lifecycle Hooks
 
-7 個 hook 腳本（`.github/hooks/mdpaper-lifecycle.json`）。設計文件：`docs/design/copilot-lifecycle-hooks.md`。
+7 個核心 lifecycle hook 腳本（`.github/hooks/mdpaper-lifecycle.json`）。設計文件：`docs/design/copilot-lifecycle-hooks.md`。
 
 | Event            | 腳本                | 功能                                   |
 | ---------------- | ------------------- | -------------------------------------- |
@@ -213,6 +213,8 @@ uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/
 | Stop             | session-stop.sh     | 審計 + 清理 + memory sync 提醒         |
 
 腳本位於 `scripts/hooks/copilot/`。依賴 jq（腳本無 jq 時 graceful degradation）。
+
+另有補強型 `PreToolUse` runtime guard：`.github/hooks/mode-guard.json` 會在工具執行前呼叫 `scripts/copilot_hook_guard.py`，補上 Python / `apply_patch` / Windows PowerShell 路徑解析，專門攔截受保護路徑修改與破壞性 terminal 指令。它是 lifecycle hooks 的補充層，不取代 `mdpaper-lifecycle.json`。
 
 ---
 

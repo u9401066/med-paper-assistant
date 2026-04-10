@@ -14,7 +14,7 @@ description: "audit - 獨立審計 + 自主審稿（Phase 6+7）"
 
 ## 前置條件
 
-1. 專案已存在（`get_current_project()`）
+1. 專案已存在（`project_action(action="current")`）
 2. `manuscript-plan.yaml` 已存在（Hook B7/C7 需要）
 3. 草稿檔案已在 `projects/{slug}/drafts/` 下
 
@@ -23,7 +23,7 @@ description: "audit - 獨立審計 + 自主審稿（Phase 6+7）"
 ### Step 1: 環境確認
 
 ```
-get_current_project() → 確認專案
+project_action(action="current") → 確認專案
 list_drafts() → 確認草稿檔案
 ```
 

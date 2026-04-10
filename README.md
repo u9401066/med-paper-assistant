@@ -1,25 +1,19 @@
 # Medical Paper Assistant
 
-<p align="center">
-  <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white"></a>
-  <a href="https://modelcontextprotocol.io/"><img alt="MCP" src="https://img.shields.io/badge/MCP-Compatible-green"></a>
-  <a href="https://github.com/features/copilot"><img alt="Copilot" src="https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white"></a>
-  <a href="https://github.com/u9401066/med-paper-assistant"><img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue"></a>
-</p>
+[![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io/)
+[![Copilot](https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white)](https://github.com/features/copilot)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/u9401066/med-paper-assistant)
 
-<p align="center">
-  <img alt="Windows" src="https://img.shields.io/badge/Windows-0078D6?logo=windows&logoColor=white">
-  <img alt="Linux" src="https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black">
-  <img alt="macOS" src="https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white">
-</p>
+![Windows](https://img.shields.io/badge/Windows-0078D6?logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
+![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)
 
-<p align="center">
-  <b>🔬 An Integrated AI Toolkit for Medical Paper Writing</b><br>
-  <i>3 MCP Servers · ~138 Tools · 26 Skills · 15 Prompts Workflows — All in VS Code</i>
-</p>
+## 🔬 An Integrated AI Toolkit for Medical Paper Writing
+
+3 MCP Servers · ~138 Tools · 26 Skills · 15 Prompt Workflows — All in VS Code
 
 > 📖 [繁體中文版](README.zh-TW.md)
-
 > 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 78 Quality Hooks, Structured Review Loop
 
 ---
@@ -28,23 +22,23 @@
 
 This is a **monorepo toolkit** that bundles everything a medical researcher needs — from literature search to Word/LaTeX export — into one integrated VS Code environment.
 
-| Component                                                          | Type                   | Tools  | Description                                                                       |
-| ------------------------------------------------------------------ | ---------------------- | ------ | --------------------------------------------------------------------------------- |
-| **[mdpaper](#-mdpaper-mcp-tools)**                                 | Core MCP Server        | 88     | Paper writing: projects, references, drafts, analysis, validation, review, export |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37     | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt               |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13     | Creative generation: brainstorm, deep think, spark collision                      |
-| **[VS Code Extension](vscode-extension/)**                         | Extension              | 3 cmds | MCP server lifecycle, `@mdpaper` chat participant                                 |
-| **[Dashboard](dashboard/)**                                        | Next.js Web App        | —      | Project management UI, diagram editor                                             |
-| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —      | `[[wikilink]]` citation linking, hover preview, graph view                        |
-| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26     | Guided multi-tool workflows (literature review, draft writing...)                 |
-| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 15     | `/mdpaper.search`, `/mdpaper.draft`, etc.                                         |
+| Component | Type | Tools | Description |
+| --- | --- | --- | --- |
+| **mdpaper** | Core MCP Server | 88 | Paper writing: 88 tools, plus 3 MCP prompts and 3 MCP resources |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37 | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)** | MCP Server (submodule) | 13 | Creative generation: brainstorm, deep think, spark collision |
+| **[VS Code Extension](vscode-extension/)** | Extension | 5 cmds + 10 chat | MCP auto-registration, workspace setup, `@mdpaper` chat participant |
+| **[Dashboard](dashboard/)** | Next.js Web App | — | Project management UI, diagram editor |
+| **[Foam](https://foambubble.github.io/foam/)** | VS Code Extension | — | `[[wikilink]]` citation linking, hover preview, graph view |
+| **[Skills](.claude/skills/)** | Agent Workflows | 26 | Guided multi-tool workflows (literature review, draft writing...) |
+| **[Prompts](.github/prompts/)** | Prompt Files | 15 | `/mdpaper.search`, `/mdpaper.draft`, etc. |
 
 **External MCP Servers** (optional, installed via uvx):
 
 - **drawio** — CONSORT/PRISMA flowchart generation
 - **zotero-keeper** — Import references from Zotero library
 
-**VSX note**: The MedPaper VS Code extension installs Python MCP tools persistently per machine via `uv tool install`, attempts `uv tool upgrade` on later activations, and skips duplicate PubMed Search / Zotero Keeper registration when another installed VS Code extension already provides those MCP servers.
+**VSX note**: The MedPaper VS Code extension installs Python MCP tools persistently per machine via `uv tool install`, attempts `uv tool upgrade` on later activations, and skips duplicate PubMed Search / Zotero Keeper registration when another installed VS Code extension already provides those MCP servers. CI smoke now covers `ubuntu-latest`, `windows-latest`, `macos-13`, and `macos-14`, including official MCP client checks plus VSX validation smoke.
 
 ### How the Pieces Fit Together
 
@@ -58,7 +52,7 @@ flowchart LR
     end
 
     subgraph MCP["MCP Servers (~138 tools)"]
-      mdpaper["mdpaper<br/>88 tools<br/>Draft · Export · Validate · Review"]
+      mdpaper["mdpaper<br/>88 tools + 3 prompts + 3 resources<br/>Draft · Export · Validate · Review"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -185,7 +179,7 @@ In Copilot Chat, type these prompts to trigger guided workflows:
 
 ### What is a Skill?
 
-```
+```text
 Tool  = Single capability (search, save, analyze...)
 Skill = Complete knowledge (how to combine tools to accomplish tasks)
 ```
@@ -203,7 +197,7 @@ Skill = Complete knowledge (how to combine tools to accomplish tasks)
 
 Each project maintains its own `.memory/` folder, so the AI continues previous research coherently:
 
-```
+```text
 projects/{slug}/
 ├── .memory/
 │   ├── activeContext.md   ← Agent's working memory
@@ -262,7 +256,7 @@ projects/{slug}/
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          👤 User Layer                                    │
 │  ┌─────────────────┐    ┌──────────────────────────────┐  ┌──────────┐  │
@@ -308,7 +302,7 @@ projects/{slug}/
 
 When saving references, data flows directly between MCP servers — the Agent only passes a PMID, never full metadata:
 
-```
+```text
 Agent: "save PMID:24891204"
      │
      ▼
@@ -328,7 +322,7 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-**81 active tools** organized into 8 groups:
+**88 active tools** organized into 7 groups, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
 
 ### 📁 Project Management (17 tools)
 
@@ -358,25 +352,25 @@ Save, search, format, and manage references with Foam integration.
 
 Write, edit, cite — with built-in validation.
 
-| Key Tools                                  | Description                                              |
-| ------------------------------------------ | -------------------------------------------------------- |
-| `write_draft` / `draft_section`            | Create and write sections                                |
-| `get_available_citations`                  | List all valid `[[citation_key]]` before editing         |
-| `patch_draft`                              | **Citation-aware** partial edit with wikilink validation |
-| `insert_citation` / `suggest_citations`    | Smart citation insertion                                 |
-| `scan_draft_citations` / `sync_references` | Citation management                                      |
-| `get_section_template`                     | Section-specific writing guidelines                      |
+| Key Tools | Description |
+| --- | --- |
+| `draft_section` / `write_draft` | Create and write sections |
+| `list_drafts` / `read_draft` / `delete_draft` | Draft lifecycle |
+| `get_available_citations` | List all valid `[[citation_key]]` before editing |
+| `patch_draft` | **Citation-aware** partial edit with wikilink validation |
+| `insert_citation` / `suggest_citations` | Smart citation insertion |
+| `scan_draft_citations` / `sync_references` | Citation management |
+| `count_words` | Section and manuscript word-count checks |
 
 ### ✅ Validation (3 tools)
 
-| Tool                     | Description                                         |
-| ------------------------ | --------------------------------------------------- |
-| `validate_concept`       | Full novelty scoring (3 rounds, threshold 75/100)   |
-| `validate_concept_quick` | Quick structural check                              |
-| `validate_wikilinks`     | Auto-fix `[[12345678]]` → `[[author2024_12345678]]` |
-| `validate_for_section`   | Check concept before writing specific section       |
+| Tool | Description |
+| --- | --- |
+| `validate_concept` | Full novelty scoring against the active concept |
+| `validate_wikilinks` | Auto-fix `[[12345678]]` → `[[author2024_12345678]]` |
+| `compare_with_literature` | Compare the current idea against saved references |
 
-### 📊 Data Analysis (9 tools)
+### 📊 Data Analysis (10 tools)
 
 | Tool                   | Description                                           |
 | ---------------------- | ----------------------------------------------------- |
@@ -388,7 +382,7 @@ Write, edit, cite — with built-in validation.
 | `insert_table`         | Insert table into draft with archive validation       |
 | `list_assets`          | List figures and tables in project results            |
 
-### 🔍 Review & Audit (22 tools)
+### 🔍 Review & Audit (23 tools)
 
 | Category               | Key Tools                                                                 |
 | ---------------------- | ------------------------------------------------------------------------- |
@@ -407,6 +401,13 @@ Write, edit, cite — with built-in validation.
 | **Word Export**   | `export_word`, `list_templates`, `start_document_session`, `verify_document` |
 | **Pandoc Export** | `export_docx`, `export_pdf`, `preview_citations`, `build_bibliography`       |
 | **Submission**    | `generate_cover_letter`, `generate_highlights`                               |
+
+### 🧩 MCP Prompts & Resources
+
+| Capability | Names / URIs | Purpose |
+| --- | --- | --- |
+| **Prompts** | `project_bootstrap`, `draft_section_plan`, `word_export_checklist` | Materialize guided prompt workflows through the official MCP prompt API |
+| **Resources** | `medpaper://workspace/state`, `medpaper://workspace/projects`, `medpaper://templates/catalog` | Surface live workspace state, project lists, and template metadata via MCP resources |
 
 ### 🔍 pubmed-search MCP Tools (37 tools)
 
@@ -468,7 +469,7 @@ Search by author (`[[greer`), year (`[[2017`), PMID (`[[27345583`), or keyword (
 
 References are stored with **Foam-optimized, layered-trust** structure:
 
-```
+```text
 references/{pmid}/
 ├── {citation_key}.md   ← YAML frontmatter + abstract (human-readable)
 └── metadata.json       ← Full metadata (programmatic access)
@@ -502,13 +503,13 @@ tags: [reference, airway, review]
 
 ## 📂 Project Structure
 
-```
+```text
 med-paper-assistant/
 ├── src/med_paper_assistant/       # Core MCP server (DDD architecture)
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 88 tools in 7 groups
+│   └── interfaces/mcp/            #   MCP server, 88 tools + 3 prompts + 3 resources
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)

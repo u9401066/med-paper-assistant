@@ -8,7 +8,7 @@ description: "📊 mdpaper.analysis - 資料分析與視覺化"
 
 ## Step 1: 確認專案 + 資料
 
-`get_current_project()` → `list_data_files()` → 確認 CSV 欄位
+`project_action(action="current")` → `list_data_files()` → 確認 CSV 欄位
 
 ## Step 2: 描述統計
 
