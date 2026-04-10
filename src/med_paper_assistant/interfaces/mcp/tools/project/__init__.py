@@ -18,6 +18,7 @@ from med_paper_assistant.infrastructure.persistence import ProjectManager
 from .crud import register_crud_tools
 from .diagrams import register_diagram_tools
 from .exploration import register_exploration_tools
+from .facade import register_project_facade_tools
 from .settings import register_settings_tools
 from .workspace import register_workspace_tools
 from .workspace_state import register_workspace_state_tools
@@ -25,12 +26,19 @@ from .workspace_state import register_workspace_state_tools
 
 def register_project_tools(mcp: FastMCP, project_manager: ProjectManager):
     """Register all project management tools with the MCP server."""
-    register_crud_tools(mcp, project_manager)
-    register_settings_tools(mcp, project_manager)
-    register_exploration_tools(mcp, project_manager)
+    crud_tools = register_crud_tools(mcp, project_manager)
+    settings_tools = register_settings_tools(mcp, project_manager)
+    exploration_tools = register_exploration_tools(mcp, project_manager)
     register_diagram_tools(mcp, project_manager)
     register_workspace_tools(mcp, project_manager)
-    register_workspace_state_tools(mcp)  # Workspace state tools
+    workspace_state_tools = register_workspace_state_tools(mcp)  # Workspace state tools
+    register_project_facade_tools(
+        mcp,
+        crud_tools=crud_tools,
+        settings_tools=settings_tools,
+        exploration_tools=exploration_tools,
+        workspace_state_tools=workspace_state_tools,
+    )
 
 
 __all__ = ["register_project_tools"]

@@ -44,14 +44,15 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
         )
 
         # Parse authors
-        authors = []
+        authors: list[object] = []
         if authors_json:
             try:
-                authors = json.loads(authors_json)
-                if not isinstance(authors, list):
-                    return "❌ Error: authors_json must be a JSON array."
+                authors_payload = json.loads(authors_json)
             except json.JSONDecodeError as e:
                 return f"❌ Error parsing authors_json: {e}"
+            if not isinstance(authors_payload, list):
+                return "❌ Error: authors_json must be a JSON array."
+            authors = authors_payload
 
         try:
             result = project_manager.create_project(
@@ -107,7 +108,10 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
 
     @mcp.tool()
     def list_projects() -> str:
-        """List all research paper projects with status."""
+        """DEPRECATED public verb. Prefer `project_action(action="list")`.
+
+        List all research paper projects with status.
+        """
         log_tool_call("list_projects", {})
 
         result = project_manager.list_projects()
@@ -195,6 +199,8 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
     @mcp.tool()
     def get_current_project(include_files: bool = False) -> str:
         """
+        DEPRECATED public verb. Prefer `project_action(action="current")`.
+
         Get current project info including paths, statistics, and exploration status.
 
         Args:
@@ -445,3 +451,12 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
             error_msg = f"❌ {delete_result.get('error', '未知錯誤')}"
             log_tool_result("delete_project", error_msg, success=False)
             return error_msg
+
+    return {
+        "create_project": create_project,
+        "list_projects": list_projects,
+        "switch_project": switch_project,
+        "get_current_project": get_current_project,
+        "archive_project": archive_project,
+        "delete_project": delete_project,
+    }

@@ -140,6 +140,8 @@ def register_audit_hook_tools(mcp: FastMCP):
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `run_quality_checks(action="quality_audit", ...)`.
+
         🔍 HARD GATE: Run quality audit — set scores and generate reports.
 
         Call this AFTER Phase 6 (Hook C post-manuscript audit).
@@ -541,6 +543,8 @@ def register_audit_hook_tools(mcp: FastMCP):
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `run_quality_checks(action="writing_hooks", ...)`.
+
         ✍️ Run code-enforced writing hooks (40 checks).
 
         Call this after writing or editing a section. Runs the specified hooks
@@ -1024,10 +1028,17 @@ def register_audit_hook_tools(mcp: FastMCP):
                     for k, v in hr["stats"].items():
                         lines.append(f"  {k}: {v}")
                 for issue in hr.get("issues", []):
-                    sev = issue["severity"]
-                    lines.append(f"  [{sev}] {issue['message']}")
-                    if issue.get("suggestion"):
-                        lines.append(f"    → {issue['suggestion']}")
+                    if isinstance(issue, dict):
+                        sev = issue.get("severity", "INFO")
+                        message = issue.get("message", "")
+                        suggestion = issue.get("suggestion")
+                    else:
+                        sev = getattr(issue, "severity", "INFO")
+                        message = getattr(issue, "message", str(issue))
+                        suggestion = getattr(issue, "suggestion", None)
+                    lines.append(f"  [{sev}] {message}")
+                    if suggestion:
+                        lines.append(f"    → {suggestion}")
 
             result = "\n".join(lines)
             log_tool_result(

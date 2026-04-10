@@ -118,3 +118,8 @@ def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
 - Choose a unique project name in English
 - Check that the paper_type is valid
 """
+
+    return {
+        "start_exploration": start_exploration,
+        "convert_exploration_to_project": convert_exploration_to_project,
+    }

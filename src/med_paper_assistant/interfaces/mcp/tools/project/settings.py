@@ -322,3 +322,9 @@ Please first select or create a project:
         output += "This info is stored in `project.json` and used for title page generation."
 
         return output
+
+    return {
+        "update_project_settings": update_project_settings,
+        "setup_project_interactive": setup_project_interactive,
+        "update_authors": update_authors,
+    }

@@ -479,3 +479,5 @@ def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: Refer
             success=error_count == 0,
         )
         return output
+
+    return {"check_formatting": check_formatting}

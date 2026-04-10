@@ -105,6 +105,8 @@ def register_pandoc_export_tools(mcp: FastMCP):
         project: Optional[str] = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `export_document(action="docx", ...)`.
+
         Export a draft to Word (.docx) with properly formatted citations.
 
         Converts [[wikilink]] citations → [@key] → formatted citations via Pandoc citeproc.
@@ -231,6 +233,8 @@ def register_pandoc_export_tools(mcp: FastMCP):
         project: Optional[str] = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `export_document(action="pdf", ...)`.
+
         Export a draft to PDF with properly formatted citations.
 
         Requires a LaTeX engine (pdflatex, xelatex, or lualatex).
@@ -471,3 +475,10 @@ def register_pandoc_export_tools(mcp: FastMCP):
         except Exception as e:
             log_tool_error("build_bibliography", e, {"draft": draft_filename})
             return f"❌ Build bibliography failed: {e}"
+
+    return {
+        "export_docx": export_docx,
+        "export_pdf": export_pdf,
+        "preview_citations": preview_citations,
+        "build_bibliography": build_bibliography,
+    }

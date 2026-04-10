@@ -723,6 +723,39 @@ class ReferenceManager:
         # Reference not found locally
         return {}
 
+    def get_reference_details(self, pmid: str) -> Dict[str, Any]:
+        """
+        Get local reference details for downstream analysis workflows.
+
+        Args:
+            pmid: PubMed ID.
+
+        Returns:
+            Dict with metadata, reference directory, and optional analysis data.
+            Returns empty dict if the reference does not exist locally.
+        """
+        metadata = self.get_metadata(pmid)
+        if not metadata:
+            return {}
+
+        ref_dir = os.path.join(self.base_dir, pmid)
+        detail: Dict[str, Any] = {
+            "pmid": pmid,
+            "metadata": metadata,
+            "ref_dir": ref_dir,
+            "has_fulltext_pdf": self.has_fulltext(pmid),
+        }
+
+        analysis_path = os.path.join(ref_dir, "analysis.json")
+        if os.path.exists(analysis_path):
+            try:
+                with open(analysis_path, "r", encoding="utf-8") as f:
+                    detail["analysis"] = json.load(f)
+            except Exception as e:
+                detail["analysis_error"] = str(e)
+
+        return detail
+
     def search_local(self, query: str) -> List[Dict[str, Any]]:
         """
         Search within saved local references by keyword.

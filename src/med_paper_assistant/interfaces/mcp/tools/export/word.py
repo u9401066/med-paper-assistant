@@ -268,3 +268,12 @@ def register_word_export_tools(
             )
         except Exception as e:
             return f"Error saving document: {str(e)}"
+
+    return {
+        "list_templates": list_templates,
+        "read_template": read_template,
+        "start_document_session": start_document_session,
+        "insert_section": insert_section,
+        "verify_document": verify_document,
+        "save_document": save_document,
+    }

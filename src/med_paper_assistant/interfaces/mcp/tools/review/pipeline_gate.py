@@ -221,6 +221,8 @@ def register_pipeline_tools(
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `pipeline_action(action="validate_phase", phase=...)`.
+
         🚧 HARD GATE: Validate all required artifacts for a pipeline phase.
 
         Call this AFTER completing a phase, BEFORE proceeding to the next.
@@ -308,6 +310,8 @@ def register_pipeline_tools(
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `pipeline_action(action="heartbeat")`.
+
         💓 Pipeline heartbeat — get full status across ALL phases.
 
         Returns:
@@ -401,6 +405,8 @@ def register_pipeline_tools(
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `pipeline_action(action="start_review", ...)`.
+
         🔄 Start a new review round (Phase 7 state machine).
 
         This exposes the AutonomousAuditLoop as an MCP tool.
@@ -531,6 +537,8 @@ def register_pipeline_tools(
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `pipeline_action(action="submit_review", ...)`.
+
         ✅ Submit a completed review round with quality scores.
 
         Call this AFTER writing review-report and author-response files,
