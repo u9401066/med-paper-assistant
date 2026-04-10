@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-04-11
+
+### Fixed
+
+- **Unsupported macOS runner lane**: Removed the `macos-13` cross-platform smoke lane from CI and release matrices because GitHub Actions resolves it to an unsupported `macos-13-us-default` configuration for this repository, which was forcing otherwise healthy release runs to end as `cancelled`
+
 ## [0.6.2] - 2026-04-11
 
 ### Fixed
