@@ -17,7 +17,7 @@ AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
 ### From VSIX
 
 ```bash
-code --install-extension medpaper-assistant-0.5.1.vsix
+code --install-extension medpaper-assistant-0.6.0.vsix
 ```
 
 Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
@@ -63,24 +63,28 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 ### Chat Commands (@mdpaper)
 
-| 指令                  | 說明             |
-| --------------------- | ---------------- |
-| `@mdpaper /autopaper` | 🚀 全自動寫論文  |
-| `@mdpaper /search`    | 搜尋 PubMed 文獻 |
-| `@mdpaper /draft`     | 撰寫論文章節     |
-| `@mdpaper /concept`   | 發展研究概念     |
-| `@mdpaper /project`   | 管理研究專案     |
-| `@mdpaper /format`    | 匯出 Word 文件   |
-| `@mdpaper /analysis`  | 資料分析與統計   |
-| `@mdpaper /strategy`  | 搜尋策略設定     |
-| `@mdpaper /help`      | 顯示所有指令     |
+| 指令 | 說明 |
+| --- | --- |
+| `@mdpaper /autopaper` | 🚀 全自動寫論文 |
+| `@mdpaper /search` | 搜尋 PubMed 文獻 |
+| `@mdpaper /draft` | 撰寫論文章節 |
+| `@mdpaper /concept` | 發展研究概念 |
+| `@mdpaper /project` | 管理研究專案 |
+| `@mdpaper /format` | 匯出 Word 文件 |
+| `@mdpaper /drawio` | 開啟 Draw.io 圖表 |
+| `@mdpaper /analysis` | 資料分析與統計 |
+| `@mdpaper /strategy` | 搜尋策略設定 |
+| `@mdpaper /help` | 顯示所有指令 |
 
 ### Command Palette (Ctrl+Shift+P)
 
-| 指令                    | 說明             |
-| ----------------------- | ---------------- |
-| `MedPaper: Auto Paper`  | 全自動寫論文     |
+| 指令 | 說明 |
+| --- | --- |
+| `MedPaper: Start MedPaper MCP Server` | 顯示 MCP 啟動說明 |
+| `MedPaper: Stop MedPaper MCP Server` | 顯示 MCP 停止說明 |
+| `MedPaper: Auto Paper` | 全自動寫論文 |
 | `MedPaper: Show Status` | 顯示擴充功能狀態 |
+| `MedPaper: Setup Workspace` | 複製 skills、prompts、agents、templates |
 
 ### Agent Mode 自然語言
 
@@ -93,7 +97,7 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 ## Architecture
 
-```
+```text
 Capability → Skill → Hook → MCP Tool
 ```
 
@@ -112,30 +116,35 @@ Capability → Skill → Hook → MCP Tool
 | Pre-Commit P1-P8 | Git commit 前   | Safety net + P6 記憶同步                     |
 | General G1-G8    | Git commit 前   | Memory、README、CHANGELOG 等                 |
 
-### Bundled Skills (26)
+### Bundled Assets
 
-| 類別 | Skills                                                      |
-| ---- | ----------------------------------------------------------- |
-| 核心 | auto-paper, draft-writing, concept-development              |
-| 搜尋 | literature-review, parallel-search                          |
-| 管理 | project-management, reference-management, project-init      |
-| 品質 | concept-validation, manuscript-review                       |
-| 分析 | academic-debate, idea-validation                            |
-| 匯出 | word-export, submission-preparation                         |
-| Git  | git-precommit (P1-P8), git-doc-updater                      |
-| 維護 | memory-updater, memory-checkpoint, changelog-updater        |
-| 開發 | ddd-architect, code-refactor, code-reviewer, test-generator |
-| 文件 | readme-updater, readme-i18n, roadmap-updater                |
+The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, and **1 journal profile template**. The full repository still contains a broader authoring and maintenance surface.
+
+| 類別 | Skills |
+| --- | --- |
+| 核心 | auto-paper, draft-writing, project-management |
+| 搜尋 | literature-review, parallel-search, reference-management |
+| 概念與審查 | concept-development, concept-validation, academic-debate, idea-validation, manuscript-review |
+| 交付 | word-export, submission-preparation |
+| 安全 | git-precommit |
+
+Bundled prompt workflows: `mdpaper.write-paper`, `mdpaper.literature-survey`, `mdpaper.manuscript-revision`, `mdpaper.search`, `mdpaper.concept`, `mdpaper.draft`, `mdpaper.project`, `mdpaper.format`, `mdpaper.strategy`, `mdpaper.analysis`, `mdpaper.clarify`, `mdpaper.help`, `mdpaper.audit`.
+
+Bundled reviewer/analysis agents: `concept-challenger`, `domain-reviewer`, `literature-searcher`, `meta-learner`, `methodology-reviewer`, `paper-reviewer`, `reference-analyzer`, `review-orchestrator`, `statistics-reviewer`.
 
 ### MCP Tools (88)
 
 自動註冊 MCP Server：
 
-- **MedPaper Assistant** - 88 工具（project/17, reference/12, draft/13, validation/3, analysis/10, review/23, export/10）
+- **MedPaper Assistant** - 88 工具，另含 3 個 MCP prompts 與 3 個 MCP resources（project/17, reference/12, draft/13, validation/3, analysis/10, review/23, export/10）
 - **CGU Creativity** - 創意發想工具
 - **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Draw.io Diagrams** - 圖表繪製
+
+MCP prompts: `project_bootstrap`, `draft_section_plan`, `word_export_checklist`.
+
+MCP resources: `medpaper://workspace/state`, `medpaper://workspace/projects`, `medpaper://templates/catalog`.
 
 ## Configuration
 
@@ -158,8 +167,11 @@ npm install
 
 # Manual steps
 npm run compile       # TypeScript only
+npm run validate      # Cross-platform bundle sync / package consistency checks
 npm run package       # Generate .vsix
 ```
+
+`npm run validate` automatically selects the PowerShell validator on Windows and the shell validator on Unix-like systems, so the same command can be used locally and in CI.
 
 ## License
 

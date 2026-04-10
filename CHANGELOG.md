@@ -1,11 +1,34 @@
 # Changelog
 
+<!-- markdownlint-disable MD024 -->
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-04-10
+
+### Added
+
+- **Facade-first MCP surface**: Added stable public entrypoints for project/workspace, review/pipeline, and export flows via `project_action`, `workspace_state_action`, `run_quality_checks`, `pipeline_action`, `export_document`, and `inspect_export`, plus lightweight MCP resources for workspace state, project catalog, and template catalog
+- **Greedy MCP smoke runner**: Added `scripts/greedy_mcp_tool_smoke.py` with isolated fixture setup, CI-friendly JSON v2 output, stable summary formatting, and categorized skip reporting (`interactive`, `external`, `other`) for regression diffs
+- **Release-grade smoke coverage**: Added façade routing tests, legacy deprecation guidance tests, real MCP stdio workspace smoke, greedy smoke report tests, and VS Code extension host smoke covering activation, MCP provider registration, and a core command path
+- **Runtime mode guard**: Added `.github/hooks/mode-guard.json` and `scripts/copilot_hook_guard.py` so protected-path edits and destructive terminal commands are checked consistently across Windows-safe `apply_patch` and terminal flows
+
+### Changed
+
+- **First-party orchestration guidance**: Updated root prompts, skills, bundled instructions, and extension autopaper guidance so first-party flows prefer façade verbs over legacy compatibility verbs, with explicit deprecation messaging for legacy public tools
+- **VS Code extension packaging**: Switched bundle/build validation to a manifest-driven model using `vscode-extension/bundle-manifest.json` plus shared Node-based bundle and validate scripts, and reused the same manifest data in packaging tests and workflow assertions
+- **CI and release validation**: Expanded CI/release smoke to cover `ubuntu-latest`, `windows-latest`, `macos-13`, and `macos-14`, added committed bundle drift checks before sync/build steps, and routed `npm run validate` through a platform-aware launcher for cross-platform parity
+
+### Fixed
+
+- **Stable smoke diff normalization**: Normalized Windows path separators and workspace-root substitutions in greedy smoke summaries so CI diffs stay stable across operating systems
+- **Cross-platform VSX assertions**: Reworked extension path assertions and packaging checks to use native path handling and shared command manifests, preventing Windows-only false negatives
+- **Documentation parity**: Synced repository and VSX documentation with the façade-first MCP surface, stable smoke coverage, and current cross-platform validation flow
 
 ## [0.5.2] - 2026-03-18
 
