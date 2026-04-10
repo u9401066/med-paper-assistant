@@ -6,12 +6,12 @@ This folder contains integrated external tools that extend Medical Paper Assista
 
 **Purpose**: PubMed literature search with parallel query and strategy management
 
-**Repository**: https://github.com/u9401066/pubmed-search-mcp
+**Repository**: [u9401066/pubmed-search-mcp](https://github.com/u9401066/pubmed-search-mcp)
 
 ### Features
 
 | Tool | Description |
-|------|-------------|
+| ---- | ----------- |
 | `search_literature` | Search PubMed for medical literature |
 | `find_related_articles` | Find related articles by PMID |
 | `find_citing_articles` | Find articles citing a PMID |
@@ -35,7 +35,7 @@ python -m pubmed_search.mcp your@email.com
 
 ### Integrated Usage (Default)
 
-The search tools are automatically registered in med-paper-assistant. No additional setup needed.
+In the repo workflow, setup scripts add PubMed Search to `.vscode/mcp.json` automatically. In the VSX workflow, the MedPaper extension also registers PubMed Search unless another installed extension already provides that MCP server.
 
 ---
 
@@ -84,14 +84,14 @@ The recommended `.vscode/mcp.json` fallback entry is:
 - `./scripts/start-drawio.sh` is now a verification helper that checks the forked submodule first, then official workspace checkout, then `drawio-mcp`, then `npx -y @drawio/mcp`.
 - `./scripts/start-drawio.ps1` provides the same verification flow for Windows PowerShell.
 - Official `jgraph/drawio-mcp` should be treated as a design/reference source for new ideas and protocol behavior, while the forked submodule remains the integration branch MedPaper can patch directly.
-| `list_templates` | List available diagram templates |
-| `create_from_template` | Create diagram from a template |
-| `export_diagram` | Export diagram to SVG/PNG/PDF |
+
+Representative Draw.io operations include template listing, creating diagrams from templates, and exporting diagrams to SVG, PNG, or PDF.
 
 ### Use Cases for Medical Papers
 
 1. **CONSORT Flowchart** (RCT)
-   ```
+
+  ```text
    Create a CONSORT flowchart showing:
    - 500 patients assessed for eligibility
    - 120 excluded (80 not meeting criteria, 40 declined)
@@ -100,8 +100,9 @@ The recommended `.vscode/mcp.json` fallback entry is:
    - 180 analyzed in each group
    ```
 
-2. **PRISMA Flowchart** (Systematic Review)
-   ```
+1. **PRISMA Flowchart** (Systematic Review)
+
+  ```text
    Create a PRISMA flowchart:
    - 1500 records from database search
    - 200 duplicates removed
@@ -111,8 +112,9 @@ The recommended `.vscode/mcp.json` fallback entry is:
    - 30 included in meta-analysis
    ```
 
-3. **Study Flow Diagram**
-   ```
+1. **Study Flow Diagram**
+
+  ```text
    Create a study flow diagram from my concept.md showing the
    methodology: data collection → preprocessing → model training → validation
    ```

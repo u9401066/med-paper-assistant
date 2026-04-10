@@ -37,7 +37,7 @@ MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫
 
 ## MCP Server（DDD Architecture）
 
-主要的 Python MCP Server，提供 88 個 tools。
+主要的 Python MCP Server，提供 88 個 tools，另暴露 3 個 prompts 與 3 個 resources。
 
 ### 層級結構
 
@@ -117,6 +117,7 @@ src/med_paper_assistant/
 │       ├── config.py               #   SERVER_INSTRUCTIONS
 │       ├── instructions.py         #   動態指令生成
 │       ├── prompts/                #   MCP Prompts
+│       ├── resources.py            #   MCP Resources
 │       └── tools/                  #   MCP Tools（7 groups）
 │           ├── project/            #     CRUD, settings, exploration, diagrams
 │           ├── reference/          #     save, search, format, citations
@@ -210,7 +211,7 @@ verify_evolution() → 跨專案演化驗證
 | L3 Instruction | 事實性內容修改                                                                    | 記錄 decisionLog       |
 | **禁止**       | 修改 CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則、Hook D 本身 | —                      |
 
-### Hook 架構（78 checks — 36 Code-Enforced / 42 Agent-Driven）
+### Hook 架構（78 checks — 55 Code-Enforced / 23 Agent-Driven）
 
 | 類型                  | 時機            | 數量 | 重點                                                                                                                                                                                     |
 | --------------------- | --------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -266,13 +267,13 @@ DomainConstraintEngine.evolve()
 
 Copilot Agent Mode 同時連接多個 MCP Server：
 
-| Server            | 來源                                                                                                                                                                   | 用途                       | Tools 數量 |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ---------- |
-| **mdpaper**       | 本專案                                                                                                                                                                 | 專案管理、草稿、引用、匯出 | 89         |
-| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule)                                                                                                                          | PubMed 文獻搜尋            | 37         |
-| **cgu**           | `integrations/cgu/` (submodule)                                                                                                                                        | 創意發想（快思慢想）       | 13         |
-| **drawio**        | `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` → fallback `node integrations/drawio-mcp/src/index.js` → `npx -y @drawio/mcp` | CONSORT/PRISMA 圖表        | ~5         |
-| **zotero-keeper** | `uvx zotero-keeper`                                                                                                                                                    | Zotero 書目管理            | ~15        |
+| Server | 來源 | 用途 | Tools 數量 |
+| --- | --- | --- | --- |
+| **mdpaper** | 本專案 | 專案管理、草稿、引用、審查、匯出；另含 3 prompts / 3 resources | 88 |
+| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule) | PubMed 文獻搜尋 | 37 |
+| **cgu** | `integrations/cgu/` (submodule) | 創意發想（快思慢想） | 13 |
+| **drawio** | `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` → fallback `node integrations/drawio-mcp/src/index.js` → `npx -y @drawio/mcp` | CONSORT/PRISMA 圖表 | ~5 |
+| **zotero-keeper** | `uvx zotero-keeper` | Zotero 書目管理 | ~15 |
 
 ### MCP-to-MCP 通訊
 
@@ -301,11 +302,12 @@ Reference file:
 
 ## VS Code Extension
 
-[vscode-extension/](vscode-extension/) — TypeScript，提供三個功能：
+[vscode-extension/](vscode-extension/) — TypeScript，提供五個 commands 與十個 chat commands：
 
-1. **MCP Server 註冊**：自動啟動 mdpaper、cgu、drawio MCP servers
-2. **Chat Participant**：`@mdpaper` with `/search`, `/draft`, `/concept`, `/project`, `/format`
-3. **Commands**：`mdpaper.startServer`, `mdpaper.stopServer`, `mdpaper.showStatus`
+1. **MCP Server 註冊**：在 workspace 沒有自行管理 `.vscode/mcp.json` 時，自動註冊 mdpaper，並依環境條件註冊 cgu、pubmed-search、zotero-keeper、drawio
+2. **Chat Participant**：`@mdpaper` with 10 commands (`/search`, `/draft`, `/concept`, `/project`, `/format`, `/autopaper`, `/drawio`, `/analysis`, `/strategy`, `/help`)
+3. **Commands**：`mdpaper.startServer`, `mdpaper.stopServer`, `mdpaper.showStatus`, `mdpaper.autoPaper`, `mdpaper.setupWorkspace`
+4. **Workspace Bootstrap**：複製 14 個 bundled skills、13 個 bundled prompts、9 個 reviewer agents、`copilot-instructions.md`、期刊模板
 
 ---
 
@@ -336,12 +338,17 @@ Foam (VS Code extension) 提供論文引用的知識圖譜功能：
 
 行為指引層（不是代碼，是 Copilot 的 SOP）：
 
-| 類型             | 位置                              | 數量 | 作用                                   |
-| ---------------- | --------------------------------- | ---- | -------------------------------------- |
-| **Skills**       | `.claude/skills/*/SKILL.md`       | 26   | 單一任務的知識（如何組合 tools）       |
-| **Prompts**      | `.github/prompts/*.prompt.md`     | 14   | 高層編排（多 skill 組合的工作流程）    |
-| **Bylaws**       | `.github/bylaws/*.md`             | 4    | 規範（架構、git、memory、python 環境） |
-| **Instructions** | `.github/copilot-instructions.md` | 1    | 全域指引入口                           |
+| 類型 | 位置 | 數量 | 作用 |
+| --- | --- | --- | --- |
+| **Skills** | `.claude/skills/*/SKILL.md` | 26 | 單一任務的知識（如何組合 tools） |
+| **Prompts** | `.github/prompts/*.prompt.md` | 15 | 高層編排（多 skill 組合的工作流程） |
+| **Hooks** | `.github/hooks/*.json` | 1 | deterministic runtime guard for mode/protected-path policy |
+| **Bylaws** | `.github/bylaws/*.md` | 4 | 規範（架構、git、memory、python 環境） |
+| **Instructions** | `.github/copilot-instructions.md` | 1 | 全域指引入口 |
+
+補充：Skill/Prompt 文件中的 Hook A/B/C/D 屬於 workflow-level 指引與審計慣例；真正會在 VS Code agent 執行期 deterministic 攔截的，是 `.github/hooks/` 中的 official hook configuration。
+
+補充：`.github/copilot-instructions.md` 是目前 VS Code extension 打包與 `Setup Workspace` 流程使用的 authoritative workspace instructions 檔；`AGENTS.md` 保留做 repo-level 相容與人類閱讀入口。
 
 層級關係：
 

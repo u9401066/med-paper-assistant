@@ -1,5 +1,39 @@
 # Decision Log
 
+## [2026-04-10] Facade-First Orchestration + Telemetry-Guided Legacy Deprecation
+
+### 本次背景
+
+第一階段 façade 已落地六個穩定 public verbs：`project_action`、`workspace_state_action`、`run_quality_checks`、`pipeline_action`、`inspect_export`、`export_document`。但 first-party prompts / skills / extension autopaper prompt 仍大量直接指向 legacy verbs，導致新 façade 雖存在卻不是主路徑。
+
+同時 `.audit/tool-telemetry.yaml` 已提供足夠訊號，可開始做「只標 deprecated、不立刻刪除」的第一批 legacy 收斂：
+
+| Legacy Tool | Telemetry | 決定 |
+| ----------- | --------- | ---- |
+| `list_projects` | 1 calls / 0 errors | 標 deprecated，改由 `project_action(action="list")` |
+| `get_current_project` | 3 calls / 0 errors | 標 deprecated，改由 `project_action(action="current")` |
+| `run_writing_hooks` | 5 calls / 0 errors | 標 deprecated，改由 `run_quality_checks(action="writing_hooks")` |
+| `run_quality_audit` | 2 calls / 1 error | 標 deprecated，改由 `run_quality_checks(action="quality_audit")` |
+| `validate_phase_gate` | 2 calls / 0 errors | 標 deprecated，改由 `pipeline_action(action="validate_phase")` |
+| `pipeline_heartbeat` | telemetry sparse but fully façade-covered | 主路徑改走 `pipeline_action(action="heartbeat")` |
+| `start_review_round` | 6 calls / 3 errors | 標 deprecated，改由 `pipeline_action(action="start_review")` |
+| `submit_review_round` | 3 calls / 1 error | 標 deprecated，改由 `pipeline_action(action="submit_review")` |
+| `export_docx` / `export_pdf` | 各 1 call / 0 errors | 標 deprecated，改由 `export_document(action="docx")` 或 `export_document(action="pdf")` |
+
+### 本次決定
+
+1. **先改 orchestrators，不先砍工具**：root `.claude/skills/`、`.github/prompts/`、VSX copies、extension autopaper execution prompt 全面改成 façade-first。
+2. **greedy smoke runner 也要 façade-first**：SAFE_TOOL_ORDER 先跑 façade，再跑 legacy tools，確保新 public verbs 成為 regression 主路徑。
+3. **deprecated 採分批策略**：只有 telemetry 已證明低直接使用量、且 façade 完整覆蓋的 legacy verbs 先在 docstring 標 deprecated。零 telemetry 或覆蓋不完整者暫不標。
+4. **第二階段縮面延後**：等 façade adoption 持續一段時間、telemetry 再累積後，再決定哪些 legacy tools 可以真的隱藏或移除。
+
+### 本次成果
+
+- first-party prompts / skills / bundled instructions / extension autopaper prompt 均已切到 façade 主路徑
+- greedy smoke runner 現在優先驗證 façade verbs
+- 第一批 telemetry-backed legacy verbs 已有 deprecated docstring guardrail
+- 保留相容性，尚未進行 destructive surface shrink
+
 ## [2026-03-17] Enforcement Gap Closure — Embedded Hooks + Pre-Commit + B2 Guard
 
 ### 背景
