@@ -115,8 +115,7 @@ jobs:
         run: uv run pytest tests/test_export_pipeline.py tests/test_figure_embedding.py tests/test_config_paths.py tests/test_copilot_hook_guard.py tests/test_mcp_integration.py -q
 
       - name: Verify MCP server boots directly
-        run: >-
-          uv run python -c "from med_paper_assistant.interfaces.mcp.server import create_server; mcp = create_server(); tool_count = len(mcp._tool_manager._tools); prompt_count = len(mcp._prompt_manager._prompts); resource_count = len(mcp._resource_manager._resources); print(f'✅ MCP server OK: {tool_count} tools, {prompt_count} prompts, {resource_count} resources'); assert tool_count >= 50, f'Expected ≥50 tools, got {tool_count}'; assert prompt_count == 3, f'Expected 3 prompts, got {prompt_count}'; assert resource_count == 3, f'Expected 3 resources, got {resource_count}'"
+        run: uv run python scripts/verify_mcp_server_boot.py
 
       - name: Run VS Code extension smoke tests
         working-directory: vscode-extension
