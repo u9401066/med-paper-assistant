@@ -61,8 +61,6 @@ jobs:
             label: ubuntu-latest
           - os: windows-latest
             label: windows-latest
-          - os: macos-13
-            label: macos-13
           - os: macos-14
             label: macos-14
     steps:
