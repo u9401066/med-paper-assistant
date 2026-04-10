@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-04-11
+
+### Fixed
+
+- **Cross-platform hook guard path rebasing**: `scripts/copilot_hook_guard.py` now prefers the full workspace path signature before falling back to repo-name rebasing, preventing duplicated workspace segments such as `.../med-paper-assistant/med-paper-assistant/...` in GitHub Actions workspaces
+- **Release smoke guard regressions**: `tests/test_copilot_hook_guard.py` now covers duplicated-workspace-path scenarios for patch parsing, protected-path denial, and nested path extraction so the release smoke suite stays stable across GitHub-hosted runners
+
 ## [0.6.0] - 2026-04-10
 
 ### Added
