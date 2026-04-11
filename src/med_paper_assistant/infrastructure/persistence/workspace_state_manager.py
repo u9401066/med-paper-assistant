@@ -13,6 +13,7 @@ Current project tracking is handled by ProjectManager (.current_project file).
 """
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -39,13 +40,15 @@ class WorkspaceStateManager:
     STATE_FILE = ".mdpaper-state.json"
     STATE_VERSION = 2
 
-    def __init__(self, base_path: str = "."):
+    def __init__(self, base_path: Optional[str] = None):
         """
         Initialize WorkspaceStateManager.
 
         Args:
             base_path: Base directory for the med-paper-assistant workspace.
         """
+        if base_path is None:
+            base_path = os.environ.get("MEDPAPER_BASE_DIR", ".")
         self.base_path = Path(base_path).resolve()
         self.projects_dir = self.base_path / "projects"
 
@@ -531,7 +534,7 @@ class WorkspaceStateManager:
 _workspace_state_manager: Optional[WorkspaceStateManager] = None
 
 
-def get_workspace_state_manager(base_path: str = ".") -> WorkspaceStateManager:
+def get_workspace_state_manager(base_path: Optional[str] = None) -> WorkspaceStateManager:
     """
     Get the singleton WorkspaceStateManager instance.
 
