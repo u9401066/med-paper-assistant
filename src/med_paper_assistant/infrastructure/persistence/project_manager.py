@@ -49,7 +49,7 @@ class ProjectManager:
     """
 
     # Subdirectories for each project
-    PROJECT_DIRS = ["drafts", "references", "data", "results", ".memory"]
+    PROJECT_DIRS = ["drafts", "references", "data", "results", "exports", ".memory"]
 
     # Current project state file
     STATE_FILE = ".current_project"
@@ -348,6 +348,7 @@ class ProjectManager:
             "references": str(project_path / "references"),
             "data": str(project_path / "data"),
             "results": str(project_path / "results"),
+            "exports": str(project_path / "exports"),
             "config": str(project_path / "project.json"),
         }
 
@@ -695,6 +696,8 @@ class ProjectManager:
         temp_path = self.projects_dir / self.TEMP_PROJECT_SLUG
 
         if temp_path.exists():
+            for subdir in self.PROJECT_DIRS:
+                (temp_path / subdir).mkdir(exist_ok=True)
             # Return existing temp project info
             config = self._load_config(temp_path)
             if config:
@@ -829,6 +832,10 @@ class ProjectManager:
         else:
             # Move (rename)
             shutil.move(str(temp_path), str(new_path))
+
+        # Ensure new schema directories (e.g., exports) exist after move/copy
+        for subdir in self.PROJECT_DIRS:
+            (new_path / subdir).mkdir(exist_ok=True)
 
         # Update the config for the new project
         config = self._create_project_config(
