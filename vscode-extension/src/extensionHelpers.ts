@@ -8,6 +8,11 @@
 import * as path from 'path';
 import * as fs from 'fs';
 
+type BundledSupportFile = {
+    destination: string;
+    workspaceDestination: string;
+};
+
 const EXTERNAL_MCP_EXTENSION_TARGETS = {
     pubmed: {
         labels: ['pubmed search'],
@@ -168,6 +173,7 @@ export function determinePythonPath(options: {
  * @param bundledSkills - Array of skill names
  * @param bundledAgents - Array of agent names
  * @param bundledPrompts - Array of prompt names
+ * @param bundledSupportFiles - Array of support file metadata
  * @returns Object with counts and details
  */
 export function countMissingBundledItems(
@@ -176,7 +182,14 @@ export function countMissingBundledItems(
     bundledSkills: readonly string[],
     bundledAgents: readonly string[],
     bundledPrompts: readonly string[],
-): { missingSkills: number; missingAgents: number; missingPrompts: number; total: number } {
+    bundledSupportFiles: readonly BundledSupportFile[],
+): {
+    missingSkills: number;
+    missingAgents: number;
+    missingPrompts: number;
+    missingSupportFiles: number;
+    total: number;
+} {
     const skillsDir = path.join(wsRoot, '.claude', 'skills');
     const agentsDir = path.join(wsRoot, '.github', 'agents');
     const promptsDir = path.join(wsRoot, '.github', 'prompts');
@@ -208,11 +221,21 @@ export function countMissingBundledItems(
         }
     }
 
+    let missingSupportFiles = 0;
+    for (const file of bundledSupportFiles) {
+        const src = path.join(extPath, file.destination);
+        const dst = path.join(wsRoot, file.workspaceDestination);
+        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            missingSupportFiles++;
+        }
+    }
+
     return {
         missingSkills,
         missingAgents,
         missingPrompts,
-        total: missingSkills + missingAgents + missingPrompts,
+        missingSupportFiles,
+        total: missingSkills + missingAgents + missingPrompts + missingSupportFiles,
     };
 }
 

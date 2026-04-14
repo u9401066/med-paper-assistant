@@ -343,10 +343,11 @@ describe('countMissingBundledItems', () => {
             fs.writeFileSync(src, `# ${p}`);
         }
 
-        const result = countMissingBundledItems(wsDir, extDir, skills, agents, prompts);
+        const result = countMissingBundledItems(wsDir, extDir, skills, agents, prompts, []);
         expect(result.missingSkills).toBe(2);
         expect(result.missingAgents).toBe(1);
         expect(result.missingPrompts).toBe(1);
+        expect(result.missingSupportFiles).toBe(0);
         expect(result.total).toBe(4);
     });
 
@@ -373,13 +374,38 @@ describe('countMissingBundledItems', () => {
         fs.mkdirSync(path.dirname(dstPrompt), { recursive: true });
         fs.writeFileSync(dstPrompt, '# prompt-1');
 
-        const result = countMissingBundledItems(wsDir, extDir, skills, agents, prompts);
+        const result = countMissingBundledItems(wsDir, extDir, skills, agents, prompts, []);
         expect(result.total).toBe(0);
+        expect(result.missingSupportFiles).toBe(0);
     });
 
     it('handles empty arrays', () => {
-        const result = countMissingBundledItems(wsDir, extDir, [], [], []);
+        const result = countMissingBundledItems(wsDir, extDir, [], [], [], []);
         expect(result.total).toBe(0);
+        expect(result.missingSupportFiles).toBe(0);
+    });
+
+    it('counts missing support files in workspace root or nested paths', () => {
+        const bundledSupportFiles = [
+            {
+                destination: '.copilot-mode.json',
+                workspaceDestination: '.copilot-mode.json',
+            },
+            {
+                destination: 'copilot-instructions.md',
+                workspaceDestination: '.github/copilot-instructions.md',
+            },
+        ];
+
+        for (const file of bundledSupportFiles) {
+            const src = path.join(extDir, file.destination);
+            fs.mkdirSync(path.dirname(src), { recursive: true });
+            fs.writeFileSync(src, `# ${file.destination}`);
+        }
+
+        const result = countMissingBundledItems(wsDir, extDir, [], [], [], bundledSupportFiles);
+        expect(result.missingSupportFiles).toBe(2);
+        expect(result.total).toBe(2);
     });
 });
 

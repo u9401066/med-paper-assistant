@@ -277,11 +277,13 @@ describe('buildMcpEnv', () => {
     it('includes MEDPAPER_BASE_DIR when workspaceDir is provided', () => {
         const env = buildMcpEnv({ workspaceDir: '/home/user/project' });
         expect(env.MEDPAPER_BASE_DIR).toBe('/home/user/project');
+        expect(env.MEDPAPER_TOOL_SURFACE).toBe('compact');
     });
 
     it('omits MEDPAPER_BASE_DIR when workspaceDir is not provided', () => {
         const env = buildMcpEnv({});
         expect(env.MEDPAPER_BASE_DIR).toBeUndefined();
+        expect(env.MEDPAPER_TOOL_SURFACE).toBe('compact');
     });
 
     it('includes PYTHONPATH only when explicitly provided', () => {

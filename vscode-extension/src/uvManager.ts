@@ -449,6 +449,9 @@ export function buildMcpEnv(options: {
         env.MEDPAPER_BASE_DIR = options.workspaceDir;
     }
 
+    // Default agent-facing runtime to the compact main mdpaper surface.
+    env.MEDPAPER_TOOL_SURFACE = process.env.MEDPAPER_TOOL_SURFACE || 'compact';
+
     // PYTHONPATH only for dev mode (bundled code)
     if (options.pythonPath) {
         env.PYTHONPATH = options.pythonPath;

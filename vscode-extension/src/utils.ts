@@ -11,6 +11,7 @@ type SupportFile = {
     name: string;
     source: string;
     destination: string;
+    workspaceDestination: string;
 };
 
 type PythonSourceBundle = {

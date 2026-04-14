@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS } from './utils';
+import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS, BUNDLED_SUPPORT_FILES } from './utils';
 import { findUvPath, installUvHeadless, getUvxPath, buildUvxCommand, buildMcpCommand, buildMcpEnv, ensureInstalledTool, findInstalledTool } from './uvManager';
 import { shouldSkipMcpRegistration, isDevWorkspace as checkIsDevWorkspace, determinePythonPath, countMissingBundledItems, buildDevPythonPath, detectExternallyProvidedMcpServers } from './extensionHelpers';
 import { DrawioPanel } from './drawioPanel';
@@ -716,8 +716,20 @@ async function autoScaffoldIfNeeded(context: vscode.ExtensionContext): Promise<v
     const wsRoot = workspaceFolders[0].uri.fsPath;
     const extPath = context.extensionPath;
 
-    const { missingSkills, missingAgents, missingPrompts, total: totalMissing } =
-        countMissingBundledItems(wsRoot, extPath, BUNDLED_SKILLS, BUNDLED_AGENTS, BUNDLED_PROMPTS);
+    const {
+        missingSkills,
+        missingAgents,
+        missingPrompts,
+        missingSupportFiles,
+        total: totalMissing,
+    } = countMissingBundledItems(
+        wsRoot,
+        extPath,
+        BUNDLED_SKILLS,
+        BUNDLED_AGENTS,
+        BUNDLED_PROMPTS,
+        BUNDLED_SUPPORT_FILES,
+    );
 
     if (totalMissing === 0) {
         outputChannel.appendLine('[AutoScaffold] Workspace already has all skills/agents/prompts.');
@@ -737,6 +749,7 @@ async function autoScaffoldIfNeeded(context: vscode.ExtensionContext): Promise<v
     if (missingSkills > 0) { detail.push(`${missingSkills} skills`); }
     if (missingAgents > 0) { detail.push(`${missingAgents} agents`); }
     if (missingPrompts > 0) { detail.push(`${missingPrompts} prompts`); }
+    if (missingSupportFiles > 0) { detail.push(`${missingSupportFiles} support files`); }
 
     const selection = await vscode.window.showInformationMessage(
         `MedPaper: 偵測到 workspace 缺少 ${detail.join('、')}。要設定嗎？`,
@@ -786,25 +799,18 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
         }
     }
 
-    // 3. Copy _capability-index.md
-    const idxSrc = path.join(extPath, 'prompts', '_capability-index.md');
-    const idxDst = path.join(wsRoot, '.github', 'prompts', '_capability-index.md');
-    if (fs.existsSync(idxSrc) && !fs.existsSync(idxDst)) {
-        fs.mkdirSync(path.dirname(idxDst), { recursive: true });
-        fs.copyFileSync(idxSrc, idxDst);
-        copied++;
+    // 3. Copy support files such as prompt indexes, instructions, and copilot mode.
+    for (const file of BUNDLED_SUPPORT_FILES) {
+        const src = path.join(extPath, file.destination);
+        const dst = path.join(wsRoot, file.workspaceDestination);
+        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+            fs.mkdirSync(path.dirname(dst), { recursive: true });
+            fs.copyFileSync(src, dst);
+            copied++;
+        }
     }
 
-    // 4. Copy copilot-instructions.md (only if not exists)
-    const instrSrc = path.join(extPath, 'copilot-instructions.md');
-    const instrDst = path.join(wsRoot, '.github', 'copilot-instructions.md');
-    if (fs.existsSync(instrSrc) && !fs.existsSync(instrDst)) {
-        fs.mkdirSync(path.dirname(instrDst), { recursive: true });
-        fs.copyFileSync(instrSrc, instrDst);
-        copied++;
-    }
-
-    // 5. Copy templates → templates/ (overwrite if outdated)
+    // 4. Copy templates → templates/ (overwrite if outdated)
     for (const tmpl of BUNDLED_TEMPLATES) {
         const src = path.join(extPath, 'templates', tmpl);
         const dst = path.join(wsRoot, 'templates', tmpl);
@@ -821,7 +827,7 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
         }
     }
 
-    // 6. Copy agents → .github/agents/
+    // 5. Copy agents → .github/agents/
     for (const agent of BUNDLED_AGENTS) {
         const src = path.join(extPath, 'agents', `${agent}.agent.md`);
         const dst = path.join(wsRoot, '.github', 'agents', `${agent}.agent.md`);
@@ -834,7 +840,7 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
 
     if (copied > 0) {
         vscode.window.showInformationMessage(
-            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、agents、instructions、templates）到 workspace。重新載入視窗以啟用全部功能。`,
+            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、agents、support files、templates）到 workspace。重新載入視窗以啟用全部功能。`,
             '重新載入'
         ).then(selection => {
             if (selection === '重新載入') {

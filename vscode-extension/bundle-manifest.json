@@ -48,12 +48,20 @@
     {
       "name": "_capability-index.md",
       "source": ".github/prompts/_capability-index.md",
-      "destination": "prompts/_capability-index.md"
+      "destination": "prompts/_capability-index.md",
+      "workspaceDestination": ".github/prompts/_capability-index.md"
     },
     {
       "name": "copilot-instructions.md",
       "source": ".github/copilot-instructions.md",
-      "destination": "copilot-instructions.md"
+      "destination": "copilot-instructions.md",
+      "workspaceDestination": ".github/copilot-instructions.md"
+    },
+    {
+      "name": ".copilot-mode.json",
+      "source": ".copilot-mode.json",
+      "destination": ".copilot-mode.json",
+      "workspaceDestination": ".copilot-mode.json"
     }
   ],
   "chatCommands": [

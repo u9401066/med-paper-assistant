@@ -132,11 +132,11 @@ Bundled prompt workflows: `mdpaper.write-paper`, `mdpaper.literature-survey`, `m
 
 Bundled reviewer/analysis agents: `concept-challenger`, `domain-reviewer`, `literature-searcher`, `meta-learner`, `methodology-reviewer`, `paper-reviewer`, `reference-analyzer`, `review-orchestrator`, `statistics-reviewer`.
 
-### MCP Tools (88)
+### MCP Tools (94 full / 44 compact default)
 
 自動註冊 MCP Server：
 
-- **MedPaper Assistant** - 88 工具，另含 3 個 MCP prompts 與 3 個 MCP resources（project/17, reference/12, draft/13, validation/3, analysis/10, review/23, export/10）
+- **MedPaper Assistant** - 預設 compact 44 工具（可切換 full 94），另含 3 個 MCP prompts 與 3 個 MCP resources（88 個領域工具 + 6 個 facade 入口）
 - **CGU Creativity** - 創意發想工具
 - **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊

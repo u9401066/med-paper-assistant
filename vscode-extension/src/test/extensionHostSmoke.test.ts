@@ -122,7 +122,7 @@ vi.mock('../extensionHelpers', () => ({
     shouldSkipMcpRegistration: vi.fn(() => false),
     isDevWorkspace: vi.fn(() => true),
     determinePythonPath: vi.fn(() => 'uv'),
-    countMissingBundledItems: vi.fn(() => ({ missingSkills: 0, missingAgents: 0, missingPrompts: 0, total: 0 })),
+    countMissingBundledItems: vi.fn(() => ({ missingSkills: 0, missingAgents: 0, missingPrompts: 0, missingSupportFiles: 0, total: 0 })),
     buildDevPythonPath: vi.fn(() => path.join(os.tmpdir(), 'medpaper-dev-pythonpath')),
     detectExternallyProvidedMcpServers: vi.fn(() => ({ pubmed: false, zotero: false })),
 }));
@@ -140,6 +140,7 @@ vi.mock('../utils', () => ({
     BUNDLED_PROMPTS: [],
     BUNDLED_TEMPLATES: [],
     BUNDLED_AGENTS: [],
+    BUNDLED_SUPPORT_FILES: [],
 }));
 
 vi.mock('../drawioPanel', () => ({
