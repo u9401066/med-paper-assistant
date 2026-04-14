@@ -1,6 +1,13 @@
-# Progress (Updated: 2026-03-11)
+# Progress (Updated: 2026-04-14)
 
 ## Done
+
+- **v0.6.4 release prep (2026-04-14)**:
+  - main mdpaper tool surface compactification landed (full 94 / compact 44 default)
+  - workspace and setup defaults now inject `MEDPAPER_TOOL_SURFACE=compact`
+  - VSX runtime defaults to compact surface and tests assert env behavior
+  - root/zh-TW/VSX documentation aligned to full vs compact counts
+  - changelog + version bump prepared for segmented commit/push/tag flow
 
 - v0.4.6: uvManager.ts — cross-platform uv auto-detection + headless installation for zero-config marketplace mode
 - v0.4.6: extensionHelpers.ts — 6 pure functions extracted from extension.ts for testability

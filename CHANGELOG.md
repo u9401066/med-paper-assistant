@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-04-14
+
+### Changed
+
+- **Compact tool surface default**: `mdpaper` now supports `MEDPAPER_TOOL_SURFACE=full|compact`; default runtime in workspace/VSX paths is compact, exposing 44 tools while retaining 94 tools in full mode
+- **Documentation alignment for release**: Synced `README.md`, `README.zh-TW.md`, and `vscode-extension/README.md` to describe full/compact counts and facade-first behavior consistently
+
 ## [0.6.3] - 2026-04-11
 
 ### Fixed

@@ -4,15 +4,15 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-03-17)
+## 當前焦點 (2026-04-14)
 
-Enforcement gap closure 完成 — 補齊 P0（git pre-commit paper hooks）、P1（write_draft/patch_draft 嵌入式 A-series hooks）、B2（🔒 protected content guard）。
+v0.6.4 發布準備：完成 main mdpaper compact tool surface（full 94 / compact 44 預設）、VSX 預設 compact、文件/變更紀錄對齊，進入 segmented commit + push + tag。
 
 ### 當前狀態
 
 | 項目                    | 數量/狀態                                                                                    |
 | ----------------------- | -------------------------------------------------------------------------------------------- |
-| MCP Tools               | **88** (project/17, reference/12, draft/13, validation/3, analysis/10, review/23, export/10) |
+| MCP Tools               | **94 full / 44 compact (default)**                                                   |
 | Skills                  | **26**                                                                                       |
 | Hooks                   | **78 checks** (55 Code-Enforced / 23 Agent-Driven)                                           |
 | Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)                            |

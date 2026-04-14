@@ -29,31 +29,38 @@ med-paper-assistant/
 └── scripts/                       # 跨平台腳本
 ```
 
-### MCP Server 架構 (81 tools, 2026-02-27)
+### MCP Server 架構 (94 full / 44 compact default, 2026-04-14)
 
 ```
 .vscode/mcp.json
-├── mdpaper        # 主要 MCP (81 tools) - 專案/草稿/參考/匯出/Workspace State/Self-Evolution
+├── mdpaper        # 主要 MCP（94 full / 44 compact default）- façade-first 公開 surface
 ├── pubmed-search  # PubMed 搜尋 (submodule)
 ├── cgu            # Creativity Generation (submodule)
 ├── zotero-keeper  # 書目管理 (uvx)
 └── drawio         # Draw.io 圖表 (npx @drawio/mcp)
 ```
 
-### MCP Tool 模組分布 (2026-02-27)
+### MCP Tool 模組分布 (2026-04-14)
 
 ```
 tools/
-├── project/       16 tools  CRUD + exploration + workspace state
-├── reference/     10 tools  save_reference_mcp 優先
+├── project/       17 tools  CRUD + settings + exploration + diagrams + workspace state
+├── reference/     12 tools  save_reference_mcp 優先
 ├── draft/         13 tools  writing + citation + editing (patch_draft)
 ├── validation/     3 tools  validate_concept + wikilinks
-├── analysis/       9 tools  table_one + stats + figures
-├── review/        20 tools  formatting + pipeline + audit + meta-learning + flexibility + tool_health
+├── analysis/      10 tools  table_one + stats + figures
+├── review/        23 tools  formatting + pipeline + audit + review hooks + tool_health
 ├── export/        10 tools  word + pandoc (docx/pdf/bib)
-├── _shared/       — (非 MCP tool) guidance + tool_logging + project_context
+├── façade/         6 tools  project/workspace/review/pipeline/export stable entrypoints
+├── _shared/       — (非 MCP tool) guidance + tool_logging + project_context + optional decorators
 └── discussion/    — (DEPRECATED — 已遷移至 Skills)
 ```
+
+### Tool Surface Policy (2026-04-14)
+
+- **full**: 保留所有 94 個 first-party tools，供開發、相容性、進階 orchestration 使用
+- **compact**: 預設公開 44 個工具，以 façade-first surface 為主，降低 agent 選錯 granular verbs 的機率
+- **切換方式**: 透過 `MEDPAPER_TOOL_SURFACE=full|compact` 控制；workspace setup、`.vscode/mcp.json` 與 VSX runtime 預設注入 `compact`
 
 ### Self-Evolution 架構 (2026-02-27)
 

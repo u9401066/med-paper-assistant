@@ -11,7 +11,7 @@
 
 ## 🔬 An Integrated AI Toolkit for Medical Paper Writing
 
-3 MCP Servers · ~138 Tools · 26 Skills · 15 Prompt Workflows — All in VS Code
+3 MCP Servers · ~144 Tools · 26 Skills · 15 Prompts Workflows — All in VS Code
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 78 Quality Hooks, Structured Review Loop
@@ -24,7 +24,7 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 | Component | Type | Tools | Description |
 | --- | --- | --- | --- |
-| **mdpaper** | Core MCP Server | 88 | Paper writing: 88 tools, plus 3 MCP prompts and 3 MCP resources |
+| **mdpaper** | Core MCP Server | 94 (full) / 44 (compact default) | Paper writing: 88 domain tools + 6 facade entrypoints, plus 3 MCP prompts and 3 MCP resources |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37 | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)** | MCP Server (submodule) | 13 | Creative generation: brainstorm, deep think, spark collision |
 | **[VS Code Extension](vscode-extension/)** | Extension | 5 cmds + 10 chat | MCP auto-registration, workspace setup, `@mdpaper` chat participant |
@@ -51,8 +51,8 @@ flowchart LR
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Servers (~138 tools)"]
-      mdpaper["mdpaper<br/>88 tools + 3 prompts + 3 resources<br/>Draft · Export · Validate · Review"]
+    subgraph MCP["MCP Servers (~144 tools)"]
+      mdpaper["mdpaper<br/>94 full / 44 compact (default) + 3 prompts + 3 resources<br/>Draft · Export · Validate · Review"]
         pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
         cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
     end
@@ -87,7 +87,7 @@ flowchart LR
 | Traditional Tools                   | Medical Paper Assistant                |
 | ----------------------------------- | -------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach         |
-| Separate apps for search/write/cite | All-in-one: ~138 tools in VS Code      |
+| Separate apps for search/write/cite | All-in-one: ~144 tools in VS Code      |
 | Manual reference management         | Auto-save with verified PubMed data    |
 | Export then format                  | Direct Word export with journal styles |
 | Learn complex UI                    | Natural language conversation          |
@@ -247,7 +247,7 @@ projects/{slug}/
 ### Infrastructure
 
 - **DDD Architecture** (Domain-Driven Design) with clean layer separation
-- **15 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
+- **16 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
 - **Workspace State** recovery for cross-session continuity
 - **uv** for all Python package management
 - **MCP SDK features in active use** — tools, elicitation, and progress notifications for long-running audit/review operations
@@ -276,7 +276,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  88 tools     │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│  94/44 tools  │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
@@ -322,7 +322,11 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-**88 active tools** organized into 7 groups, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
+**94 tools (full surface) / 44 tools (compact default)**, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
+
+Compact mode keeps the main facade entrypoints (project/workspace/review/pipeline/export) and hides most granular public verbs; set `MEDPAPER_TOOL_SURFACE=full` to expose the complete surface.
+
+The seven sections below describe the 88 granular domain tools. The remaining six full-surface entrypoints are the facade verbs (`project_action`, `workspace_state_action`, `run_quality_checks`, `pipeline_action`, `export_document`, `inspect_export`).
 
 ### 📁 Project Management (17 tools)
 
@@ -509,7 +513,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 88 tools + 3 prompts + 3 resources
+│   └── interfaces/mcp/            #   MCP server, 94 full / 44 compact tools + 3 prompts + 3 resources
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
@@ -544,14 +548,14 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                            |
 | ------ | --------------------------- | ------------------------------------------------------ |
-| ✅     | **3 MCP Servers**           | mdpaper (88) + pubmed-search (37) + CGU (13)           |
+| ✅     | **3 MCP Servers**           | mdpaper (94 full / 44 compact) + pubmed-search (37) + CGU (13) |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, project isolation |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                 |
 | ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                  |
 | ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                 |
 | ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                   |
-| ✅     | **Pre-commit Hooks**        | 15 hooks (ruff, mypy, bandit, pytest, prettier...)     |
+| ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)     |
 | 🔜     | **Full VSX Extension**      | TreeView, CodeLens, Diagnostics (Direction C)          |
 | 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations            |
 | 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis               |

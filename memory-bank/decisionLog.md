@@ -1,5 +1,27 @@
 # Decision Log
 
+## [2026-04-14] Compact-By-Default Main MCP Surface For Workspace And VSX
+
+### 背景
+
+`mdpaper` 原本把 90+ 個 first-party public verbs 全部直接暴露給 agent。雖然功能完整，但在 VS Code / VSX 實際使用時，工具選擇噪音偏高，且 façade-first 設計已經足以承接大多數主流程。
+
+同時，workspace runtime、setup scripts、VSX extension、README/marketplace docs 之間的敘述也需要統一，不然會出現「執行行為是 compact，文件卻還在講舊 counts」的落差。
+
+### 本次決定
+
+1. **保留 full surface，但把 workspace / VSX 預設切到 compact**：新增 `MEDPAPER_TOOL_SURFACE=full|compact`，server registration 依設定決定是否公開 granular verbs。
+2. **compact 模式保留 façade entrypoints**：主要保留 project/workspace/review/pipeline/export 等 façade public verbs，隱藏大多數 legacy / granular public verbs。
+3. **full surface 仍作為相容與進階模式存在**：若 agent 或開發者需要完整 verb surface，可顯式設定 `MEDPAPER_TOOL_SURFACE=full`。
+4. **release blocker 另補 guardrail**：`scripts/copilot_hook_guard.py` 不再因為單一 marker（如 `src`）就把外部絕對路徑 rebasing 進 workspace，改為必須命中 workspace repo alias 才轉換。
+
+### 成果
+
+- `mdpaper` surface 現為 **94 tools（full）/ 44 tools（compact default）**
+- workspace setup / `.vscode/mcp.json` / VSX runtime 全部預設 compact
+- root README、zh-TW README、VSX README、CHANGELOG、memory-bank 已對齊
+- hook guard regression 已補測，避免外部絕對路徑被誤判成受保護 workspace 路徑
+
 ## [2026-04-10] Facade-First Orchestration + Telemetry-Guided Legacy Deprecation
 
 ### 本次背景

@@ -37,7 +37,7 @@ MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫
 
 ## MCP Server（DDD Architecture）
 
-主要的 Python MCP Server，提供 88 個 tools，另暴露 3 個 prompts 與 3 個 resources。
+主要的 Python MCP Server，full surface 提供 94 個 tools（88 個 domain tools + 6 個 facade entrypoints），另暴露 3 個 prompts 與 3 個 resources；compact default 暴露 44 個 tools。
 
 ### 層級結構
 
@@ -118,7 +118,7 @@ src/med_paper_assistant/
 │       ├── instructions.py         #   動態指令生成
 │       ├── prompts/                #   MCP Prompts
 │       ├── resources.py            #   MCP Resources
-│       └── tools/                  #   MCP Tools（7 groups）
+│       └── tools/                  #   MCP Tools（7 domain groups + 6 facade entrypoints）
 │           ├── project/            #     CRUD, settings, exploration, diagrams
 │           ├── reference/          #     save, search, format, citations
 │           ├── draft/              #     write, read, cite, templates

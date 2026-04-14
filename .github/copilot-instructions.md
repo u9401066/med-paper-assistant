@@ -67,7 +67,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 **Code-Enforced** = `run_writing_hooks` / `run_review_hooks` / `run_meta_learning` 內有確定性程式碼邏輯。
 **Agent-Driven** = 僅靠 Agent 閱讀 SKILL.md 並自行執行，無程式碼強制。
 
-## MCP Server（88 tools + 3 prompts + 3 resources, verified 2026-04-08）
+## MCP Server（94 full / 44 compact default + 3 prompts + 3 resources, verified 2026-04-14）
 
 | 模組        | 工具數 | 重點                                                                                         |
 | ----------- | ------ | -------------------------------------------------------------------------------------------- |
@@ -78,6 +78,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | analysis/   | 10     | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）        |
 | review/     | 23     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept |
 | export/     | 10     | word + pandoc (docx/pdf/bib)                                                                 |
+| facade/     | 6      | project/workspace/review/pipeline/export stable entrypoints                                  |
 
 ## VS Code Copilot Lifecycle Hooks
 

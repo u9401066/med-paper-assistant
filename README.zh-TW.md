@@ -9,7 +9,7 @@
 
 <p align="center">
   <b>🔬 醫學論文寫作的整合式 AI 工具包</b><br>
-  <i>3 個 MCP Server · ~138 個工具 · 26 個技能 · 15 個 Prompt 工作流 — 全在 VS Code 裡</i>
+  <i>3 個 MCP Server · ~144 個工具 · 26 個技能 · 15 個 Prompt 工作流 — 全在 VS Code 裡</i>
 </p>
 
 > 📖 [English Version](README.md)
@@ -24,7 +24,7 @@
 
 | 元件 | 類型 | 工具數 | 說明 |
 | --- | --- | --- | --- |
-| **mdpaper** | 核心 MCP Server | 88 | 論文寫作：88 工具，另含 3 個 MCP prompts 與 3 個 MCP resources |
+| **mdpaper** | 核心 MCP Server | 94（full）/ 44（compact 預設） | 論文寫作：88 個領域工具 + 6 個 facade 入口，另含 3 個 MCP prompts 與 3 個 MCP resources |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37 | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理 |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)** | MCP Server（子模組） | 13 | 創意發想：腦力激盪、深度思考、火花碰撞 |
 | **[VS Code Extension](vscode-extension/)** | 擴充功能 | 5 指令 + 10 chat | MCP 自動註冊、workspace 設定、`@mdpaper` 參與者 |
@@ -51,8 +51,8 @@ flowchart LR
         Dash[Dashboard]
     end
 
-    subgraph MCP["MCP Server（~138 工具）"]
-      mdpaper["mdpaper<br/>88 工具 + 3 prompts + 3 resources<br/>草稿 · 匯出 · 驗證 · 審查"]
+    subgraph MCP["MCP Server（~144 工具）"]
+      mdpaper["mdpaper<br/>94 full / 44 compact（預設） + 3 prompts + 3 resources<br/>草稿 · 匯出 · 驗證 · 審查"]
         pubmed["pubmed-search<br/>37 工具<br/>搜尋 · 指標"]
         cgu["CGU<br/>13 工具<br/>深度思考 · 創意"]
     end
@@ -87,7 +87,7 @@ flowchart LR
 | 傳統工具                   | Medical Paper Assistant          |
 | -------------------------- | -------------------------------- |
 | 固定模板、僵化流程         | 彈性、探索式方法                 |
-| 搜尋/寫作/引用分開多個 App | 一站式：~138 個工具在 VS Code 裡 |
+| 搜尋/寫作/引用分開多個 App | 一站式：~144 個工具在 VS Code 裡 |
 | 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料       |
 | 匯出後再排版               | 直接匯出符合期刊格式的 Word      |
 | 學習複雜介面               | 自然語言對話                     |
@@ -247,7 +247,7 @@ projects/{slug}/
 ### 基礎架構
 
 - **DDD 架構**（Domain-Driven Design）清晰的分層設計
-- **15 個 pre-commit hooks**（ruff、mypy、bandit、pytest、prettier、doc-update...）
+- **16 個 pre-commit hooks**（ruff、mypy、bandit、pytest、prettier、doc-update...）
 - **Workspace State** 跨 session 狀態恢復
 - **uv** 管理所有 Python 套件
 - **已實際啟用的 MCP SDK 能力** — tools、elicitation，以及長任務 audit/review 的 progress notifications
@@ -276,7 +276,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 外部 MCPs   │
-│  88 工具      │  │  search       │  │  13 工具      │  │   (uvx)       │
+│  94/44 工具   │  │  search       │  │  13 工具      │  │   (uvx)       │
 │               │  │  37 工具      │  │               │  │               │
 │ • 專案管理    │  │ • PubMed      │  │ • 腦力激盪    │  │ 🎨 drawio     │
 │ • 參考文獻    │  │ • Europe PMC  │  │ • 深度思考    │  │ • 流程圖      │
@@ -322,7 +322,11 @@ pubmed-search: GET /api/cached_article/24891204
 
 ## 🛠️ mdpaper MCP 工具
 
-**88 個啟用中的工具**，分為 7 大類，另加 **3 個 MCP prompts** 與 **3 個 MCP resources**。
+**94 個工具（full）/ 44 個工具（compact 預設）**，另加 **3 個 MCP prompts** 與 **3 個 MCP resources**。
+
+compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/export），隱藏多數細粒度 public verbs；若要完整 surface，設定 `MEDPAPER_TOOL_SURFACE=full`。
+
+下方七個章節描述的是 88 個細粒度 domain tools；剩下 6 個 full-surface 入口則是 facade verbs（`project_action`、`workspace_state_action`、`run_quality_checks`、`pipeline_action`、`export_document`、`inspect_export`）。
 
 ### 📁 專案管理（17 工具）
 
@@ -509,7 +513,7 @@ med-paper-assistant/
 │   ├── domain/                    #   業務邏輯、實體、值物件
 │   ├── application/               #   用例、服務
 │   ├── infrastructure/            #   DAL、外部服務
-│   └── interfaces/mcp/            #   MCP Server，88 工具 + 3 prompts + 3 resources
+│   └── interfaces/mcp/            #   MCP Server，94 full / 44 compact 工具 + 3 prompts + 3 resources
 │
 ├── integrations/                  # 內建 MCP Server
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（37 工具）
@@ -544,14 +548,14 @@ med-paper-assistant/
 
 | 狀態 | 功能                        | 說明                                                |
 | ---- | --------------------------- | --------------------------------------------------- |
-| ✅   | **3 個 MCP Server**         | mdpaper (88) + pubmed-search (37) + CGU (13)        |
+| ✅   | **3 個 MCP Server**         | mdpaper（94 full / 44 compact）+ pubmed-search (37) + CGU (13) |
 | ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、專案隔離             |
 | ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                       |
 | ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                  |
 | ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                               |
 | ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                      |
 | ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                  |
-| ✅   | **Pre-commit Hooks**        | 15 hooks（ruff、mypy、bandit、pytest、prettier...） |
+| ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...） |
 | 🔜   | **完整 VSX Extension**      | TreeView、CodeLens、Diagnostics（方向 C）           |
 | 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                 |
 | 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                     |

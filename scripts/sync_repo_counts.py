@@ -46,6 +46,8 @@ EXTERNAL_MCP = {
     "cgu": 13,
 }
 
+COMPACT_SURFACE_FACADE_GROUPS = {"project", "review", "export"}
+
 
 # ── Data Classes ──────────────────────────────────────────────────────
 
@@ -54,8 +56,11 @@ EXTERNAL_MCP = {
 class RepoCounts:
     """All dynamically counted repo metrics."""
 
-    # mdpaper tool counts per module
+    # mdpaper tool counts per module (88 granular domain tools)
     tool_groups: dict[str, int] = field(default_factory=dict)
+    mdpaper_domain_total: int = 0
+    mdpaper_facade_tools: int = 0
+    mdpaper_compact_total: int = 0
     mdpaper_total: int = 0
 
     # External MCP
@@ -82,9 +87,34 @@ class RepoCounts:
 # ── Counting Functions ────────────────────────────────────────────────
 
 
-def count_mcp_tools() -> dict[str, int]:
-    """Count @mcp.tool() decorators per group using AST (ignores docstrings)."""
+def _count_tool_decorators(tree: ast.AST) -> tuple[int, int]:
+    """Count direct @mcp.tool() and optional @tool() decorators in one file."""
+
+    direct_count = 0
+    optional_count = 0
+
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+
+        for dec in node.decorator_list:
+            if not isinstance(dec, ast.Call):
+                continue
+
+            if isinstance(dec.func, ast.Attribute) and dec.func.attr == "tool":
+                direct_count += 1
+            elif isinstance(dec.func, ast.Name) and dec.func.id == "tool":
+                optional_count += 1
+
+    return direct_count, optional_count
+
+
+def count_mcp_tools() -> tuple[dict[str, int], int, int]:
+    """Count granular domain tools, compact-surface tools, and facade entrypoints."""
+
     groups: dict[str, int] = {}
+    compact_total = 0
+    facade_total = 0
     skip_dirs = {"_shared", "__pycache__"}
 
     for py_file in sorted(TOOLS_DIR.rglob("*.py")):
@@ -97,19 +127,18 @@ def count_mcp_tools() -> dict[str, int]:
         content = py_file.read_text(encoding="utf-8")
         tree = ast.parse(content)
 
-        count = 0
-        for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            for dec in node.decorator_list:
-                if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute):
-                    if dec.func.attr == "tool":
-                        count += 1
+        direct_count, optional_count = _count_tool_decorators(tree)
+        compact_total += direct_count
 
-        if count > 0:
-            groups[group] = groups.get(group, 0) + count
+        if py_file.name == "facade.py" and group in COMPACT_SURFACE_FACADE_GROUPS:
+            facade_total += direct_count
+            continue
 
-    return groups
+        group_count = optional_count if optional_count else direct_count
+        if group_count > 0:
+            groups[group] = groups.get(group, 0) + group_count
+
+    return groups, compact_total, facade_total
 
 
 def count_dir_entries(directory: Path, pattern: str = "*") -> int:
@@ -159,8 +188,13 @@ def gather_counts() -> RepoCounts:
     counts = RepoCounts()
 
     # MCP tools
-    counts.tool_groups = count_mcp_tools()
-    counts.mdpaper_total = sum(counts.tool_groups.values())
+    (
+        counts.tool_groups,
+        counts.mdpaper_compact_total,
+        counts.mdpaper_facade_tools,
+    ) = count_mcp_tools()
+    counts.mdpaper_domain_total = sum(counts.tool_groups.values())
+    counts.mdpaper_total = counts.mdpaper_domain_total + counts.mdpaper_facade_tools
     counts.total_tools = counts.mdpaper_total + counts.pubmed_tools + counts.cgu_tools
 
     # Skills, Prompts, Agents
@@ -845,6 +879,9 @@ def main() -> int:
         data = {
             "mdpaper_tools": {
                 "total": counts.mdpaper_total,
+                "domain_total": counts.mdpaper_domain_total,
+                "compact_default": counts.mdpaper_compact_total,
+                "facade_tools": counts.mdpaper_facade_tools,
                 "groups": counts.tool_groups,
             },
             "external_mcp": {
@@ -870,7 +907,9 @@ def main() -> int:
     # Print summary
     print("📊 Repository Counts (dynamic)")
     print("=" * 50)
-    print(f"  MCP Tools (mdpaper) : {counts.mdpaper_total}")
+    print(f"  MCP Tools (mdpaper) : {counts.mdpaper_total} full / {counts.mdpaper_compact_total} compact")
+    print(f"    domain tools      : {counts.mdpaper_domain_total}")
+    print(f"    facade entrypoints: {counts.mdpaper_facade_tools}")
     for g in sorted(counts.tool_groups):
         print(f"    {g + '/':<14s}: {counts.tool_groups[g]}")
     print(f"  pubmed-search       : {counts.pubmed_tools} (external)")
