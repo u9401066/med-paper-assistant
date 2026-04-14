@@ -19,6 +19,7 @@ from med_paper_assistant.infrastructure.services import Drafter
 from .._shared import (
     ensure_project_context,
     get_drafts_dir,
+    get_optional_tool_decorator,
     get_project_list_for_prompt,
     log_tool_call,
     log_tool_error,
@@ -44,10 +45,18 @@ from .medrxiv_screening import run_medrxiv_screening
 from .submission import JOURNAL_REQUIREMENTS
 
 
-def register_formatting_tools(mcp: FastMCP, drafter: Drafter, ref_manager: ReferenceManager):
+def register_formatting_tools(
+    mcp: FastMCP,
+    drafter: Drafter,
+    ref_manager: ReferenceManager,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register formatting check tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def check_formatting(
         draft_filename: str,
         journal: str = "generic",

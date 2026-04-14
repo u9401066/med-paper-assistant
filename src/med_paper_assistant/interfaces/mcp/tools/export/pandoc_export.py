@@ -13,14 +13,21 @@ from mcp.server.fastmcp import FastMCP
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     log_tool_call,
     log_tool_error,
     log_tool_result,
 )
 
 
-def register_pandoc_export_tools(mcp: FastMCP):
+def register_pandoc_export_tools(
+    mcp: FastMCP,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register Pandoc-based export tools."""
+
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
     def _get_pipeline():
         """Lazy-initialize ExportPipeline with current project context."""
@@ -96,7 +103,7 @@ def register_pandoc_export_tools(mcp: FastMCP):
             f"Export cannot proceed without completing the review loop."
         )
 
-    @mcp.tool()
+    @tool()
     def export_docx(
         draft_filename: str,
         output_filename: Optional[str] = None,
@@ -225,7 +232,7 @@ def register_pandoc_export_tools(mcp: FastMCP):
             log_tool_error("export_docx", e, {"draft": draft_filename})
             return f"❌ Export failed: {e}"
 
-    @mcp.tool()
+    @tool()
     def export_pdf(
         draft_filename: str,
         output_filename: Optional[str] = None,
@@ -338,7 +345,7 @@ def register_pandoc_export_tools(mcp: FastMCP):
             log_tool_error("export_pdf", e, {"draft": draft_filename})
             return f"❌ PDF export failed: {e}"
 
-    @mcp.tool()
+    @tool()
     def preview_citations(
         draft_filename: str,
         project: Optional[str] = None,
@@ -410,7 +417,7 @@ def register_pandoc_export_tools(mcp: FastMCP):
             log_tool_error("preview_citations", e, {"draft": draft_filename})
             return f"❌ Preview failed: {e}"
 
-    @mcp.tool()
+    @tool()
     def build_bibliography(
         draft_filename: str,
         output_filename: Optional[str] = None,

@@ -10,8 +10,9 @@ Output format: TOON (Token-Oriented Object Notation) for token efficiency.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -19,17 +20,23 @@ from med_paper_assistant.infrastructure.persistence.tool_invocation_store import
     ToolInvocationStore,
 )
 
-from .._shared import log_tool_call, log_tool_error, log_tool_result
+from .._shared import get_optional_tool_decorator, log_tool_call, log_tool_error, log_tool_result
 
 # Thresholds for health categorisation
 _ERROR_RATE_THRESHOLD = 0.25  # >25% error rate → high_error
 _MISUSE_RATE_THRESHOLD = 0.15  # >15% misuse rate → high_misuse
 
 
-def register_tool_health_tools(mcp: FastMCP) -> None:
+def register_tool_health_tools(
+    mcp: FastMCP,
+    *,
+    register_public_verbs: bool = True,
+) -> dict[str, Callable[..., Any]]:
     """Register tool health diagnostic tools with the MCP server."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def diagnose_tool_health(project: Optional[str] = None) -> str:
         """
         Diagnose MCP tool health across the workspace.
@@ -151,6 +158,8 @@ def register_tool_health_tools(mcp: FastMCP) -> None:
         except Exception as e:
             log_tool_error("diagnose_tool_health", e)
             return f"❌ Error diagnosing tool health: {e}"
+
+    return {"diagnose_tool_health": diagnose_tool_health}
 
 
 def _flush_health_alerts(

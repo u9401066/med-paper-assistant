@@ -8,11 +8,20 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 
+from .._shared import get_optional_tool_decorator
 
-def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
+
+def register_exploration_tools(
+    mcp: FastMCP,
+    project_manager: ProjectManager,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register exploration workspace tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def start_exploration() -> str:
         """
         Start literature exploration workspace without formal project.
@@ -60,7 +69,7 @@ def register_exploration_tools(mcp: FastMCP, project_manager: ProjectManager):
         else:
             return f"❌ Error: {result.get('error', 'Unknown error')}"
 
-    @mcp.tool()
+    @tool()
     def convert_exploration_to_project(
         name: str,
         description: str = "",

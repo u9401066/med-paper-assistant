@@ -18,8 +18,13 @@ def register_project_facade_tools(
     settings_tools: ToolMap,
     exploration_tools: ToolMap,
     workspace_state_tools: ToolMap,
+    diagram_tools: ToolMap | None = None,
+    workspace_tools: ToolMap | None = None,
 ):
     """Register stable public verbs for project and workspace state management."""
+
+    diagram_tools = diagram_tools or {}
+    workspace_tools = workspace_tools or {}
 
     @mcp.tool()
     async def project_action(
@@ -39,6 +44,14 @@ def register_project_facade_tools(
         keep_exploration: bool = False,
         include_files: bool = False,
         confirm: bool = False,
+        filename: str = "",
+        content: str = "",
+        content_format: str = "xml",
+        output_dir: str = "",
+        rendered_content: str = "",
+        rendered_format: str = "",
+        rendered_content_format: str = "auto",
+        rendered_filename: str = "",
         ctx: Context | None = None,
     ) -> str:
         """
@@ -56,6 +69,9 @@ def register_project_facade_tools(
         - convert_exploration
         - archive
         - delete
+        - save_diagram
+        - list_diagrams
+        - open_files
         """
         aliases = {
             "get": "current",
@@ -64,6 +80,9 @@ def register_project_facade_tools(
             "explore": "start_exploration",
             "convert": "convert_exploration",
             "authors": "update_authors",
+            "diagram_save": "save_diagram",
+            "diagram_list": "list_diagrams",
+            "open": "open_files",
         }
         normalized = normalize_facade_action(action, aliases)
 
@@ -132,6 +151,32 @@ def register_project_facade_tools(
                 crud_tools,
                 "delete_project",
                 {"slug": slug, "confirm": confirm},
+            ),
+            "save_diagram": (
+                diagram_tools,
+                "save_diagram",
+                {
+                    "filename": filename,
+                    "content": content,
+                    "project": slug or None,
+                    "content_format": content_format,
+                    "description": description,
+                    "output_dir": output_dir,
+                    "rendered_content": rendered_content,
+                    "rendered_format": rendered_format,
+                    "rendered_content_format": rendered_content_format,
+                    "rendered_filename": rendered_filename,
+                },
+            ),
+            "list_diagrams": (
+                diagram_tools,
+                "list_diagrams",
+                {"project": slug or None},
+            ),
+            "open_files": (
+                workspace_tools,
+                "open_project_files",
+                {"project_slug": slug or None},
             ),
         }
 
@@ -207,9 +252,7 @@ def register_project_facade_tools(
 
         return {
             "status": "error",
-            "message": (
-                f"Unsupported action '{action}'. Supported actions: checkpoint, get, sync"
-            ),
+            "message": (f"Unsupported action '{action}'. Supported actions: checkpoint, get, sync"),
         }
 
     return {

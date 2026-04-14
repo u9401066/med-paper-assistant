@@ -19,11 +19,19 @@ from med_paper_assistant.infrastructure.persistence import (
     get_workspace_state_manager,
 )
 
+from .._shared import get_optional_tool_decorator
 
-def register_workspace_state_tools(mcp: FastMCP):
+
+def register_workspace_state_tools(
+    mcp: FastMCP,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register workspace state management tools."""
 
-    @mcp.tool(structured_output=True)
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool(structured_output=True)
     def get_workspace_state() -> dict[str, Any]:
         """
         Get workspace state for context recovery. Call at conversation START.
@@ -52,7 +60,7 @@ def register_workspace_state_tools(mcp: FastMCP):
             "startup_guidance": evolution_guidance or "",
         }
 
-    @mcp.tool()
+    @tool()
     def sync_workspace_state(
         doing: Optional[str] = None,
         next_action: Optional[str] = None,
@@ -101,7 +109,7 @@ def register_workspace_state_tools(mcp: FastMCP):
         else:
             return "❌ Failed to sync workspace state. Check file permissions."
 
-    @mcp.tool()
+    @tool()
     def checkpoint_writing_context(
         section: str,
         plan: str = "",

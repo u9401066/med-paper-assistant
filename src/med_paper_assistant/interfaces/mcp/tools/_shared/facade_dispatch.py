@@ -1,10 +1,12 @@
-"""Shared helpers for consolidated MCP facade tools."""
+"""Shared helpers for consolidated MCP facade tools and optional registration."""
 
 from __future__ import annotations
 
 import inspect
 from collections.abc import Callable, Mapping
 from typing import Any
+
+from mcp.server.fastmcp import FastMCP
 
 
 def normalize_facade_action(action: str, aliases: Mapping[str, str] | None = None) -> str:
@@ -26,3 +28,22 @@ async def invoke_tool_handler(handler: Callable[..., Any], **kwargs: Any) -> Any
     if inspect.isawaitable(result):
         return await result
     return result
+
+
+def get_optional_tool_decorator(
+    mcp: FastMCP,
+    *,
+    register_public_verbs: bool,
+) -> Callable[..., Callable[[Callable[..., Any]], Callable[..., Any]]]:
+    """Return a FastMCP tool decorator or a no-op replacement."""
+
+    def tool(*args: Any, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        if register_public_verbs:
+            return mcp.tool(*args, **kwargs)
+
+        def identity(handler: Callable[..., Any]) -> Callable[..., Any]:
+            return handler
+
+        return identity
+
+    return tool

@@ -15,6 +15,8 @@ from med_paper_assistant.domain.paper_types import get_paper_type_dict
 from med_paper_assistant.domain.value_objects.author import Author, generate_author_block
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 
+from .._shared import get_optional_tool_decorator
+
 # ============================================
 # Pydantic Models for Elicitation
 # ============================================
@@ -54,10 +56,17 @@ class TextInputSchema(BaseModel):
     value: str = Field(default="", description="Enter text (optional)")
 
 
-def register_settings_tools(mcp: FastMCP, project_manager: ProjectManager):
+def register_settings_tools(
+    mcp: FastMCP,
+    project_manager: ProjectManager,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register project settings tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def update_project_settings(
         paper_type: str = "",
         target_journal: str = "",
@@ -152,7 +161,7 @@ These settings are saved in `project.json` and `.memory/activeContext.md`
         else:
             return f"❌ Error: {result.get('error', 'Unknown error')}"
 
-    @mcp.tool()
+    @tool()
     async def setup_project_interactive(ctx: Context) -> str:
         """
         Interactive project setup wizard using elicitation (paper type, preferences, memo).
@@ -283,7 +292,7 @@ Please first select or create a project:
 💡 **Tip**: 系統內建麻醉學前 20 大期刊投稿設定，直接告訴 Copilot 目標期刊名稱即可自動套用。
 """
 
-    @mcp.tool()
+    @tool()
     def update_authors(authors_json: str) -> str:
         """
         Set or update the author list for the current project.

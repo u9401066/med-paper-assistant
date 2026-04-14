@@ -8,11 +8,20 @@ import os
 import subprocess  # nosec B404 - intentional VS Code integration
 from typing import Any, Optional
 
+from .._shared import get_optional_tool_decorator
 
-def register_workspace_tools(mcp: Any, project_manager: Any) -> None:
+
+def register_workspace_tools(
+    mcp: Any,
+    project_manager: Any,
+    *,
+    register_public_verbs: bool = True,
+) -> dict[str, Any]:
     """Register workspace management tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     async def open_project_files(project_slug: Optional[str] = None) -> str:
         """
         Open project's core files (concept.md, draft.md) in VS Code.
@@ -77,3 +86,5 @@ def register_workspace_tools(mcp: Any, project_manager: Any) -> None:
 
         except Exception as e:
             return f"❌ Error: {str(e)}"
+
+    return {"open_project_files": open_project_files}

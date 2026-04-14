@@ -50,6 +50,7 @@ from med_paper_assistant.infrastructure.persistence.writing_hooks import (
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     log_tool_call,
     log_tool_error,
     log_tool_result,
@@ -63,10 +64,16 @@ MIN_SCORED_DIMENSIONS = 4
 MIN_AVERAGE_SCORE = 1.0
 
 
-def register_audit_hook_tools(mcp: FastMCP):
+def register_audit_hook_tools(
+    mcp: FastMCP,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register audit hook enforcement tools with the MCP server."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def record_hook_event(
         hook_id: str,
         event_type: str,
@@ -133,7 +140,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("record_hook_event", e)
             return f"❌ Error recording hook event: {e}"
 
-    @mcp.tool()
+    @tool()
     async def run_quality_audit(
         scores: str,
         project: Optional[str] = None,
@@ -302,7 +309,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("run_quality_audit", e)
             return f"❌ Error running quality audit: {e}"
 
-    @mcp.tool()
+    @tool()
     async def run_meta_learning(
         project: Optional[str] = None,
         ctx: Context | None = None,
@@ -444,7 +451,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("run_meta_learning", e)
             return f"❌ Error running meta-learning analysis: {e}"
 
-    @mcp.tool()
+    @tool()
     async def validate_data_artifacts(
         project: Optional[str] = None,
         ctx: Context | None = None,
@@ -535,7 +542,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("validate_data_artifacts", e)
             return f"❌ Error validating data artifacts: {e}"
 
-    @mcp.tool()
+    @tool()
     async def run_writing_hooks(
         hooks: str = "all",
         prefer_language: str = "american",
@@ -1058,7 +1065,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("run_writing_hooks", e)
             return f"❌ Error running writing hooks: {e}"
 
-    @mcp.tool()
+    @tool()
     def verify_evolution() -> str:
         """
         📈 Verify self-evolution across all projects.
@@ -1118,7 +1125,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("verify_evolution", e)
             return f"❌ Error verifying evolution: {e}"
 
-    @mcp.tool()
+    @tool()
     def check_domain_constraints(
         content: str,
         section: str = "manuscript",
@@ -1207,7 +1214,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("check_domain_constraints", e)
             return f"❌ Error checking constraints: {e}"
 
-    @mcp.tool()
+    @tool()
     def evolve_constraint(
         constraint_id: str,
         rule: str,
@@ -1298,7 +1305,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("evolve_constraint", e)
             return f"❌ Error evolving constraint: {e}"
 
-    @mcp.tool()
+    @tool()
     def apply_pending_evolutions(
         action: str = "preview",
         item_ids: str = "",
@@ -1415,7 +1422,7 @@ def register_audit_hook_tools(mcp: FastMCP):
             log_tool_error("apply_pending_evolutions", e)
             return f"❌ Error processing pending evolutions: {e}"
 
-    @mcp.tool()
+    @tool()
     async def run_review_hooks(
         round_num: int = 0,
         hooks: str = "all",

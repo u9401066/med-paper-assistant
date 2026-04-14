@@ -12,13 +12,26 @@ from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.domain.paper_types import get_paper_type_dict
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 
-from .._shared import log_agent_misuse, log_tool_call, log_tool_error, log_tool_result
+from .._shared import (
+    get_optional_tool_decorator,
+    log_agent_misuse,
+    log_tool_call,
+    log_tool_error,
+    log_tool_result,
+)
 
 
-def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
+def register_crud_tools(
+    mcp: FastMCP,
+    project_manager: ProjectManager,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register project CRUD tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def create_project(
         name: str,
         description: str = "",
@@ -106,7 +119,7 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
             log_tool_error("create_project", e, {"name": name, "paper_type": paper_type})
             return f"❌ Error creating project: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def list_projects() -> str:
         """DEPRECATED public verb. Prefer `project_action(action="list")`.
 
@@ -151,7 +164,7 @@ create_project(name="My Research Topic", description="Brief description")
         log_tool_result("list_projects", f"found {len(projects)} projects", success=True)
         return "\n".join(lines)
 
-    @mcp.tool()
+    @tool()
     def switch_project(slug: str) -> str:
         """
         Switch to a different project. All subsequent operations use this project.
@@ -196,7 +209,7 @@ create_project(name="My Research Topic", description="Brief description")
 Use `list_projects` to see all projects, or `create_project` to create a new one.
 """
 
-    @mcp.tool()
+    @tool()
     def get_current_project(include_files: bool = False) -> str:
         """
         DEPRECATED public verb. Prefer `project_action(action="current")`.
@@ -317,7 +330,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 4. `start_exploration()` - Browse literature without a project
 """
 
-    @mcp.tool()
+    @tool()
     def archive_project(slug: str, confirm: bool = False) -> str:
         """
         Archive project (soft delete). Data preserved, can restore manually.
@@ -394,7 +407,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
             log_tool_error("archive_project", e, {"slug": slug})
             return error_msg
 
-    @mcp.tool()
+    @tool()
     def delete_project(slug: str, confirm: bool = False) -> str:
         """
         ⚠️ PERMANENTLY delete project. Cannot undo! Use archive_project for soft delete.

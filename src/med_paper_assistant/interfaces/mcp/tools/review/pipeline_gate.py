@@ -46,6 +46,7 @@ from med_paper_assistant.infrastructure.persistence.workspace_state_manager impo
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     log_tool_call,
     log_tool_error,
     log_tool_result,
@@ -211,10 +212,14 @@ def _count_review_report_issues(audit_dir: Path, round_num: int) -> dict[str, in
 def register_pipeline_tools(
     mcp: FastMCP,
     project_manager: ProjectManager,
+    *,
+    register_public_verbs: bool = True,
 ):
     """Register pipeline enforcement tools with the MCP server."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     async def validate_phase_gate(
         phase: int,
         project: Optional[str] = None,
@@ -304,7 +309,7 @@ def register_pipeline_tools(
             log_tool_error("validate_phase_gate", e)
             return f"❌ Error validating phase gate: {e}"
 
-    @mcp.tool()
+    @tool()
     async def pipeline_heartbeat(
         project: Optional[str] = None,
         ctx: Context | None = None,
@@ -396,7 +401,7 @@ def register_pipeline_tools(
             log_tool_error("pipeline_heartbeat", e)
             return f"❌ Error getting pipeline heartbeat: {e}"
 
-    @mcp.tool()
+    @tool()
     async def start_review_round(
         project: Optional[str] = None,
         max_rounds: int = 3,
@@ -528,7 +533,7 @@ def register_pipeline_tools(
             log_tool_error("start_review_round", e)
             return f"❌ Error starting review round: {e}"
 
-    @mcp.tool()
+    @tool()
     async def submit_review_round(
         scores: str,
         issues_found: int = 0,
@@ -838,7 +843,7 @@ def register_pipeline_tools(
             log_tool_error("submit_review_round", e)
             return f"❌ Error submitting review round: {e}"
 
-    @mcp.tool()
+    @tool()
     async def validate_project_structure(
         project: Optional[str] = None,
         ctx: Context | None = None,
@@ -882,7 +887,7 @@ def register_pipeline_tools(
 
     # ── New Flexibility Tools ─────────────────────────────────────
 
-    @mcp.tool()
+    @tool()
     def request_section_rewrite(
         sections: str,
         reason: str,
@@ -1011,7 +1016,7 @@ def register_pipeline_tools(
             log_tool_error("request_section_rewrite", e)
             return f"❌ Error requesting section rewrite: {e}"
 
-    @mcp.tool()
+    @tool()
     def pause_pipeline(
         reason: str = "user_requested",
         project: Optional[str] = None,
@@ -1087,7 +1092,7 @@ def register_pipeline_tools(
             log_tool_error("pause_pipeline", e)
             return f"❌ Error pausing pipeline: {e}"
 
-    @mcp.tool()
+    @tool()
     def resume_pipeline(
         project: Optional[str] = None,
     ) -> str:
@@ -1179,7 +1184,7 @@ def register_pipeline_tools(
             log_tool_error("resume_pipeline", e)
             return f"❌ Error resuming pipeline: {e}"
 
-    @mcp.tool()
+    @tool()
     def approve_section(
         section: str,
         action: str = "approve",
@@ -1287,7 +1292,7 @@ def register_pipeline_tools(
             log_tool_error("approve_section", e)
             return f"❌ Error processing section approval: {e}"
 
-    @mcp.tool()
+    @tool()
     def approve_concept_review(
         action: str = "approve",
         rationale: str = "",
@@ -1396,7 +1401,7 @@ def register_pipeline_tools(
             log_tool_error("approve_concept_review", e)
             return f"❌ Error processing concept review approval: {e}"
 
-    @mcp.tool()
+    @tool()
     def reset_review_loop(
         project: Optional[str] = None,
         confirm: bool = False,

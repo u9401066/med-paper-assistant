@@ -52,6 +52,22 @@ def _normalize_parts(parts: tuple[str, ...]) -> list[str]:
     return normalized_parts
 
 
+def _workspace_repo_aliases(workspace_root: Path) -> set[str]:
+    aliases = {workspace_root.name}
+
+    src_dir = workspace_root / "src"
+    if not src_dir.is_dir():
+        return aliases
+
+    for child in src_dir.iterdir():
+        if not child.is_dir():
+            continue
+        aliases.add(child.name)
+        aliases.add(child.name.replace("_", "-"))
+
+    return aliases
+
+
 def _rebase_foreign_absolute_path(parts: tuple[str, ...], workspace_root: Path) -> Path | None:
     normalized_parts = _normalize_parts(parts)
     workspace_parts = _normalize_parts(workspace_root.parts)
@@ -59,7 +75,8 @@ def _rebase_foreign_absolute_path(parts: tuple[str, ...], workspace_root: Path) 
     if normalized_parts[: len(workspace_parts)] == workspace_parts:
         return workspace_root.joinpath(*normalized_parts[len(workspace_parts) :]).resolve()
 
-    repo_indexes = [index for index, part in enumerate(normalized_parts) if part == workspace_root.name]
+    repo_aliases = _workspace_repo_aliases(workspace_root)
+    repo_indexes = [index for index, part in enumerate(normalized_parts) if part in repo_aliases]
     if not repo_indexes:
         return None
 
@@ -185,7 +202,9 @@ def get_tool_target_paths(payload: dict[str, Any], workspace_root: Path) -> list
     ]
 
 
-def is_protected_path(target_path: Path, workspace_root: Path, protected_paths: Iterable[str]) -> bool:
+def is_protected_path(
+    target_path: Path, workspace_root: Path, protected_paths: Iterable[str]
+) -> bool:
     try:
         relative = target_path.resolve().relative_to(workspace_root.resolve()).as_posix()
     except ValueError:

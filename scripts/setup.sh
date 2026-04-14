@@ -105,7 +105,8 @@ else
       "command": "uv",
       "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "med_paper_assistant.interfaces.mcp"],
       "env": {
-        "PYTHONPATH": "${workspaceFolder}/src"
+        "PYTHONPATH": "${workspaceFolder}/src",
+        "MEDPAPER_TOOL_SURFACE": "compact"
       }
     },
     "pubmed-search": {

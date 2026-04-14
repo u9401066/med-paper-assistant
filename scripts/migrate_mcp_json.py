@@ -29,7 +29,10 @@ REQUIRED_SERVERS: dict[str, dict] = {
             "-m",
             "med_paper_assistant.interfaces.mcp",
         ],
-        "env": {"PYTHONPATH": "${workspaceFolder}/src"},
+        "env": {
+            "PYTHONPATH": "${workspaceFolder}/src",
+            "MEDPAPER_TOOL_SURFACE": "compact",
+        },
     },
     "pubmed-search": {
         "type": "stdio",
