@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -39,12 +38,10 @@ def test_pipeline_legacy_public_verbs_point_to_facade_replacements() -> None:
     )
     assert 'DEPRECATED public verb. Prefer `pipeline_action(action="heartbeat")`.' in content
     assert (
-        'DEPRECATED public verb. Prefer `pipeline_action(action="start_review", ...)`.'
-        in content
+        'DEPRECATED public verb. Prefer `pipeline_action(action="start_review", ...)`.' in content
     )
     assert (
-        'DEPRECATED public verb. Prefer `pipeline_action(action="submit_review", ...)`.'
-        in content
+        'DEPRECATED public verb. Prefer `pipeline_action(action="submit_review", ...)`.' in content
     )
 
 

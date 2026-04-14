@@ -8,16 +8,16 @@ description: |
 
 # 專案管理技能
 
-| 觸發語           | 操作                                                                                         |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| 新專案、開始研究 | `project_action(action="create", name, description, paper_type)`                           |
-| 切換、換專案     | `project_action(action="list")` → `project_action(action="switch", slug)`               |
-| 設定 paper type  | `project_action(action="setup")`                                                           |
-| 先瀏覽文獻       | `project_action(action="start_exploration")`                                               |
-| 轉成正式專案     | `project_action(action="convert_exploration", name, description, paper_type)`             |
-| 改設定           | `project_action(action="update", paper_type/target_journal/status/citation_style)`        |
-| 查目前專案       | `project_action(action="current", include_files=True)`                                     |
-| 查 workspace 狀態 | `workspace_state_action(action="get")`                                                     |
+| 觸發語            | 操作                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| 新專案、開始研究  | `project_action(action="create", name, description, paper_type)`                   |
+| 切換、換專案      | `project_action(action="list")` → `project_action(action="switch", slug)`          |
+| 設定 paper type   | `project_action(action="setup")`                                                   |
+| 先瀏覽文獻        | `project_action(action="start_exploration")`                                       |
+| 轉成正式專案      | `project_action(action="convert_exploration", name, description, paper_type)`      |
+| 改設定            | `project_action(action="update", paper_type/target_journal/status/citation_style)` |
+| 查目前專案        | `project_action(action="current", include_files=True)`                             |
+| 查 workspace 狀態 | `workspace_state_action(action="get")`                                             |
 
 > Legacy verbs `create_project`, `list_projects`, `switch_project`, `get_current_project`,
 > `setup_project_interactive`, `start_exploration`, `convert_exploration_to_project`,
@@ -69,11 +69,11 @@ description: |
 
 ## 常見問題
 
-| 問題          | 解法                                        |
-| ------------- | ------------------------------------------- |
-| 中文名稱      | Agent 翻成英文                              |
-| 不確定用哪個  | `project_action(action="list")`           |
-| 先看文獻      | `project_action(action="start_exploration")` |
+| 問題          | 解法                                                |
+| ------------- | --------------------------------------------------- |
+| 中文名稱      | Agent 翻成英文                                      |
+| 不確定用哪個  | `project_action(action="list")`                     |
+| 先看文獻      | `project_action(action="start_exploration")`        |
 | 改 paper type | `project_action(action="update", paper_type="...")` |
 
 ---

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-04-14
+
+### Fixed
+
+- **Release gate normalization**: absorbed repository-wide EOF, Prettier, and Ruff auto-fixes across prompts, skills, tests, and bundle helper scripts so `uv run pre-commit run --all-files` no longer leaves release work in a half-formatted state
+- **Hook and harness revalidation**: rechecked the hook guard, embedded hooks, audit hooks, MCP boot verification, install smoke, greedy MCP smoke, full fast pytest suite, and VS Code extension tests before tagging the marketplace build
+
 ## [0.6.4] - 2026-04-14
 
 ### Changed

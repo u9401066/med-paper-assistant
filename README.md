@@ -22,16 +22,16 @@
 
 This is a **monorepo toolkit** that bundles everything a medical researcher needs — from literature search to Word/LaTeX export — into one integrated VS Code environment.
 
-| Component | Type | Tools | Description |
-| --- | --- | --- | --- |
-| **mdpaper** | Core MCP Server | 94 (full) / 44 (compact default) | Paper writing: 88 domain tools + 6 facade entrypoints, plus 3 MCP prompts and 3 MCP resources |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37 | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)** | MCP Server (submodule) | 13 | Creative generation: brainstorm, deep think, spark collision |
-| **[VS Code Extension](vscode-extension/)** | Extension | 5 cmds + 10 chat | MCP auto-registration, workspace setup, `@mdpaper` chat participant |
-| **[Dashboard](dashboard/)** | Next.js Web App | — | Project management UI, diagram editor |
-| **[Foam](https://foambubble.github.io/foam/)** | VS Code Extension | — | `[[wikilink]]` citation linking, hover preview, graph view |
-| **[Skills](.claude/skills/)** | Agent Workflows | 26 | Guided multi-tool workflows (literature review, draft writing...) |
-| **[Prompts](.github/prompts/)** | Prompt Files | 15 | `/mdpaper.search`, `/mdpaper.draft`, etc. |
+| Component                                                          | Type                   | Tools                            | Description                                                                                   |
+| ------------------------------------------------------------------ | ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------- |
+| **mdpaper**                                                        | Core MCP Server        | 94 (full) / 44 (compact default) | Paper writing: 88 domain tools + 6 facade entrypoints, plus 3 MCP prompts and 3 MCP resources |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37                               | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                           |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13                               | Creative generation: brainstorm, deep think, spark collision                                  |
+| **[VS Code Extension](vscode-extension/)**                         | Extension              | 5 cmds + 10 chat                 | MCP auto-registration, workspace setup, `@mdpaper` chat participant                           |
+| **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                | Project management UI, diagram editor                                                         |
+| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                | `[[wikilink]]` citation linking, hover preview, graph view                                    |
+| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26                               | Guided multi-tool workflows (literature review, draft writing...)                             |
+| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 15                               | `/mdpaper.search`, `/mdpaper.draft`, etc.                                                     |
 
 **External MCP Servers** (optional, installed via uvx):
 
@@ -356,23 +356,23 @@ Save, search, format, and manage references with Foam integration.
 
 Write, edit, cite — with built-in validation.
 
-| Key Tools | Description |
-| --- | --- |
-| `draft_section` / `write_draft` | Create and write sections |
-| `list_drafts` / `read_draft` / `delete_draft` | Draft lifecycle |
-| `get_available_citations` | List all valid `[[citation_key]]` before editing |
-| `patch_draft` | **Citation-aware** partial edit with wikilink validation |
-| `insert_citation` / `suggest_citations` | Smart citation insertion |
-| `scan_draft_citations` / `sync_references` | Citation management |
-| `count_words` | Section and manuscript word-count checks |
+| Key Tools                                     | Description                                              |
+| --------------------------------------------- | -------------------------------------------------------- |
+| `draft_section` / `write_draft`               | Create and write sections                                |
+| `list_drafts` / `read_draft` / `delete_draft` | Draft lifecycle                                          |
+| `get_available_citations`                     | List all valid `[[citation_key]]` before editing         |
+| `patch_draft`                                 | **Citation-aware** partial edit with wikilink validation |
+| `insert_citation` / `suggest_citations`       | Smart citation insertion                                 |
+| `scan_draft_citations` / `sync_references`    | Citation management                                      |
+| `count_words`                                 | Section and manuscript word-count checks                 |
 
 ### ✅ Validation (3 tools)
 
-| Tool | Description |
-| --- | --- |
-| `validate_concept` | Full novelty scoring against the active concept |
-| `validate_wikilinks` | Auto-fix `[[12345678]]` → `[[author2024_12345678]]` |
-| `compare_with_literature` | Compare the current idea against saved references |
+| Tool                      | Description                                         |
+| ------------------------- | --------------------------------------------------- |
+| `validate_concept`        | Full novelty scoring against the active concept     |
+| `validate_wikilinks`      | Auto-fix `[[12345678]]` → `[[author2024_12345678]]` |
+| `compare_with_literature` | Compare the current idea against saved references   |
 
 ### 📊 Data Analysis (10 tools)
 
@@ -408,9 +408,9 @@ Write, edit, cite — with built-in validation.
 
 ### 🧩 MCP Prompts & Resources
 
-| Capability | Names / URIs | Purpose |
-| --- | --- | --- |
-| **Prompts** | `project_bootstrap`, `draft_section_plan`, `word_export_checklist` | Materialize guided prompt workflows through the official MCP prompt API |
+| Capability    | Names / URIs                                                                                  | Purpose                                                                              |
+| ------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **Prompts**   | `project_bootstrap`, `draft_section_plan`, `word_export_checklist`                            | Materialize guided prompt workflows through the official MCP prompt API              |
 | **Resources** | `medpaper://workspace/state`, `medpaper://workspace/projects`, `medpaper://templates/catalog` | Surface live workspace state, project lists, and template metadata via MCP resources |
 
 ### 🔍 pubmed-search MCP Tools (37 tools)
@@ -546,21 +546,21 @@ med-paper-assistant/
 
 ## 🗺️ Roadmap
 
-| Status | Feature                     | Description                                            |
-| ------ | --------------------------- | ------------------------------------------------------ |
+| Status | Feature                     | Description                                                    |
+| ------ | --------------------------- | -------------------------------------------------------------- |
 | ✅     | **3 MCP Servers**           | mdpaper (94 full / 44 compact) + pubmed-search (37) + CGU (13) |
-| ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, project isolation |
-| ✅     | **Project Memory**          | `.memory/` for cross-session AI context                |
-| ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                 |
-| ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                  |
-| ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                 |
-| ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                   |
-| ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)     |
-| 🔜     | **Full VSX Extension**      | TreeView, CodeLens, Diagnostics (Direction C)          |
-| 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations            |
-| 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis               |
-| 📋     | **AI Writing Intelligence** | Citation intelligence, coherence engine                |
-| 📋     | **REST API Mode**           | Expose tools as REST API                               |
+| ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, project isolation         |
+| ✅     | **Project Memory**          | `.memory/` for cross-session AI context                        |
+| ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                         |
+| ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                          |
+| ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                         |
+| ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                           |
+| ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)             |
+| 🔜     | **Full VSX Extension**      | TreeView, CodeLens, Diagnostics (Direction C)                  |
+| 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations                    |
+| 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis                       |
+| 📋     | **AI Writing Intelligence** | Citation intelligence, coherence engine                        |
+| 📋     | **REST API Mode**           | Expose tools as REST API                                       |
 
 **Architecture Direction**: [Direction C — Full VSX + Foam + Pandoc](ROADMAP.md)
 

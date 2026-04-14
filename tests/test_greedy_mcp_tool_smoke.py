@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -214,7 +214,11 @@ def test_build_stable_summary_is_ci_friendly_and_splits_skip_categories(tmp_path
             "requires live PubMed/network metadata",
             skip_category="external",
         ),
-        ToolOutcome("validate_concept", "precondition", f"Concept file not found: {workspace_root}\\concept.md"),
+        ToolOutcome(
+            "validate_concept",
+            "precondition",
+            f"Concept file not found: {workspace_root}\\concept.md",
+        ),
     ]
 
     counts = summarize_counts(outcomes)
@@ -277,5 +281,3 @@ def test_prepare_project_fixtures_creates_reference_and_draft_assets(tmp_path: P
     assert metadata_path.exists()
     assert '"citation_key": "greer2017_27345583"' in metadata_path.read_text(encoding="utf-8")
     assert note_path.exists()
-
-

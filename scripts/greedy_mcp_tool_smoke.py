@@ -312,7 +312,11 @@ def build_tool_arguments(
     raw_properties = schema.get("properties")
     properties: dict[str, Any] = raw_properties if isinstance(raw_properties, dict) else {}
     raw_required = schema.get("required")
-    required: list[str] = [item for item in raw_required if isinstance(item, str)] if isinstance(raw_required, list) else []
+    required: list[str] = (
+        [item for item in raw_required if isinstance(item, str)]
+        if isinstance(raw_required, list)
+        else []
+    )
 
     arguments: dict[str, Any] = {}
     for property_name, property_schema in properties.items():
@@ -438,9 +442,9 @@ def prepare_project_fixtures(context: SmokeContext) -> None:
     )
     (ref_dir / f"{context.reference_citation_key}.md").write_text(
         "---\n"
-        f"title: \"{metadata['title']}\"\n"
-        f"pmid: \"{context.reference_pmid}\"\n"
-        f"aliases: [{context.reference_citation_key}, \"PMID:{context.reference_pmid}\"]\n"
+        f'title: "{metadata["title"]}"\n'
+        f'pmid: "{context.reference_pmid}"\n'
+        f'aliases: [{context.reference_citation_key}, "PMID:{context.reference_pmid}"]\n'
         "---\n\n"
         "Synthetic reference fixture for greedy MCP smoke tests.\n",
         encoding="utf-8",
@@ -526,7 +530,9 @@ def build_stable_summary(
         else:
             grouped_tools[outcome.status].append(outcome.name)
             if outcome.status != "ok":
-                execution_item["detail"] = normalize_detail_for_summary(outcome.detail, workspace_root)
+                execution_item["detail"] = normalize_detail_for_summary(
+                    outcome.detail, workspace_root
+                )
 
         execution.append(execution_item)
 
@@ -566,7 +572,9 @@ def build_json_report(
             "stop_on": args.stop_on,
         },
         "counts": counts,
-        "stable_summary": build_stable_summary(outcomes, counts, args, workspace_root, workspace_mode),
+        "stable_summary": build_stable_summary(
+            outcomes, counts, args, workspace_root, workspace_mode
+        ),
         "results": [serialize_outcome(outcome) for outcome in outcomes],
     }
 
@@ -645,7 +653,9 @@ async def smoke_tool(session: ClientSession, tool: Any, context: SmokeContext) -
     return ToolOutcome(tool_name, status, detail, arguments)
 
 
-async def run_smoke(args: argparse.Namespace, workspace_root: Path) -> tuple[list[ToolOutcome], dict[str, int]]:
+async def run_smoke(
+    args: argparse.Namespace, workspace_root: Path
+) -> tuple[list[ToolOutcome], dict[str, int]]:
     context = SmokeContext(workspace_root=workspace_root)
     outcomes: list[ToolOutcome] = []
 
@@ -675,7 +685,9 @@ async def run_smoke(args: argparse.Namespace, workspace_root: Path) -> tuple[lis
     return outcomes, summarize_counts(outcomes)
 
 
-def print_text_report(outcomes: list[ToolOutcome], counts: dict[str, int], workspace_root: Path) -> None:
+def print_text_report(
+    outcomes: list[ToolOutcome], counts: dict[str, int], workspace_root: Path
+) -> None:
     print(f"Workspace: {workspace_root}")
     for index, outcome in enumerate(outcomes, start=1):
         status_label = outcome.status
@@ -711,7 +723,13 @@ def main() -> int:
             workspace_root = Path(temp_dir)
             outcomes, counts = asyncio.run(run_smoke(args, workspace_root))
             if args.json:
-                print(json.dumps(build_json_report(outcomes, counts, args, workspace_root, "temporary"), ensure_ascii=True, indent=2))
+                print(
+                    json.dumps(
+                        build_json_report(outcomes, counts, args, workspace_root, "temporary"),
+                        ensure_ascii=True,
+                        indent=2,
+                    )
+                )
             else:
                 print_text_report(outcomes, counts, workspace_root)
             return 1 if counts.get("broken", 0) else 0
@@ -720,7 +738,13 @@ def main() -> int:
     workspace_root.mkdir(parents=True, exist_ok=True)
     outcomes, counts = asyncio.run(run_smoke(args, workspace_root))
     if args.json:
-        print(json.dumps(build_json_report(outcomes, counts, args, workspace_root, "explicit"), ensure_ascii=True, indent=2))
+        print(
+            json.dumps(
+                build_json_report(outcomes, counts, args, workspace_root, "explicit"),
+                ensure_ascii=True,
+                indent=2,
+            )
+        )
     else:
         print_text_report(outcomes, counts, workspace_root)
     return 1 if counts.get("broken", 0) else 0

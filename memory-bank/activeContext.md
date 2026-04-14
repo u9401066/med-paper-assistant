@@ -10,18 +10,18 @@ v0.6.4 發布準備：完成 main mdpaper compact tool surface（full 94 / compa
 
 ### 當前狀態
 
-| 項目                    | 數量/狀態                                                                                    |
-| ----------------------- | -------------------------------------------------------------------------------------------- |
-| MCP Tools               | **94 full / 44 compact (default)**                                                   |
-| Skills                  | **26**                                                                                       |
-| Hooks                   | **78 checks** (55 Code-Enforced / 23 Agent-Driven)                                           |
-| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)                            |
-| Prompts                 | **15**                                                                                       |
-| Agents                  | **10**                                                                                       |
-| Infrastructure classes  | **8** core                                                                                   |
-| Python unit tests       | **916 passed** (excl. external-dep tests)                                                    |
-| VSX vitest              | **126 passed** (5 test files)                                                                |
-| Ruff errors             | **0** (310 E501 line-length only)                                                            |
+| 項目                    | 數量/狀態                                                         |
+| ----------------------- | ----------------------------------------------------------------- |
+| MCP Tools               | **94 full / 44 compact (default)**                                |
+| Skills                  | **26**                                                            |
+| Hooks                   | **78 checks** (55 Code-Enforced / 23 Agent-Driven)                |
+| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`) |
+| Prompts                 | **15**                                                            |
+| Agents                  | **10**                                                            |
+| Infrastructure classes  | **8** core                                                        |
+| Python unit tests       | **916 passed** (excl. external-dep tests)                         |
+| VSX vitest              | **126 passed** (5 test files)                                     |
+| Ruff errors             | **0** (310 E501 line-length only)                                 |
 
 ### 三層演進架構實作狀態
 

@@ -30,17 +30,17 @@
 
 同時 `.audit/tool-telemetry.yaml` 已提供足夠訊號，可開始做「只標 deprecated、不立刻刪除」的第一批 legacy 收斂：
 
-| Legacy Tool | Telemetry | 決定 |
-| ----------- | --------- | ---- |
-| `list_projects` | 1 calls / 0 errors | 標 deprecated，改由 `project_action(action="list")` |
-| `get_current_project` | 3 calls / 0 errors | 標 deprecated，改由 `project_action(action="current")` |
-| `run_writing_hooks` | 5 calls / 0 errors | 標 deprecated，改由 `run_quality_checks(action="writing_hooks")` |
-| `run_quality_audit` | 2 calls / 1 error | 標 deprecated，改由 `run_quality_checks(action="quality_audit")` |
-| `validate_phase_gate` | 2 calls / 0 errors | 標 deprecated，改由 `pipeline_action(action="validate_phase")` |
-| `pipeline_heartbeat` | telemetry sparse but fully façade-covered | 主路徑改走 `pipeline_action(action="heartbeat")` |
-| `start_review_round` | 6 calls / 3 errors | 標 deprecated，改由 `pipeline_action(action="start_review")` |
-| `submit_review_round` | 3 calls / 1 error | 標 deprecated，改由 `pipeline_action(action="submit_review")` |
-| `export_docx` / `export_pdf` | 各 1 call / 0 errors | 標 deprecated，改由 `export_document(action="docx")` 或 `export_document(action="pdf")` |
+| Legacy Tool                  | Telemetry                                 | 決定                                                                                    |
+| ---------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| `list_projects`              | 1 calls / 0 errors                        | 標 deprecated，改由 `project_action(action="list")`                                     |
+| `get_current_project`        | 3 calls / 0 errors                        | 標 deprecated，改由 `project_action(action="current")`                                  |
+| `run_writing_hooks`          | 5 calls / 0 errors                        | 標 deprecated，改由 `run_quality_checks(action="writing_hooks")`                        |
+| `run_quality_audit`          | 2 calls / 1 error                         | 標 deprecated，改由 `run_quality_checks(action="quality_audit")`                        |
+| `validate_phase_gate`        | 2 calls / 0 errors                        | 標 deprecated，改由 `pipeline_action(action="validate_phase")`                          |
+| `pipeline_heartbeat`         | telemetry sparse but fully façade-covered | 主路徑改走 `pipeline_action(action="heartbeat")`                                        |
+| `start_review_round`         | 6 calls / 3 errors                        | 標 deprecated，改由 `pipeline_action(action="start_review")`                            |
+| `submit_review_round`        | 3 calls / 1 error                         | 標 deprecated，改由 `pipeline_action(action="submit_review")`                           |
+| `export_docx` / `export_pdf` | 各 1 call / 0 errors                      | 標 deprecated，改由 `export_document(action="docx")` 或 `export_document(action="pdf")` |
 
 ### 本次決定
 

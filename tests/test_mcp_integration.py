@@ -155,7 +155,9 @@ async def test_get_workspace_state_has_stable_empty_shapes(tmp_workspace: Path) 
 
 
 @pytest.mark.asyncio
-async def test_templates_catalog_resource_has_stable_schema_for_sparse_workspace(tmp_workspace: Path) -> None:
+async def test_templates_catalog_resource_has_stable_schema_for_sparse_workspace(
+    tmp_workspace: Path,
+) -> None:
     async with open_mcp_session(tmp_workspace) as session:
         templates = await session.read_resource(AnyUrl("medpaper://templates/catalog"))
 

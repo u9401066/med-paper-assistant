@@ -22,16 +22,16 @@
 
 這是一個 **Monorepo 工具包**，將醫學研究者需要的一切 — 從文獻搜尋到 Word/LaTeX 匯出 — 整合在一個 VS Code 環境中。
 
-| 元件 | 類型 | 工具數 | 說明 |
-| --- | --- | --- | --- |
-| **mdpaper** | 核心 MCP Server | 94（full）/ 44（compact 預設） | 論文寫作：88 個領域工具 + 6 個 facade 入口，另含 3 個 MCP prompts 與 3 個 MCP resources |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37 | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理 |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)** | MCP Server（子模組） | 13 | 創意發想：腦力激盪、深度思考、火花碰撞 |
-| **[VS Code Extension](vscode-extension/)** | 擴充功能 | 5 指令 + 10 chat | MCP 自動註冊、workspace 設定、`@mdpaper` 參與者 |
-| **[Dashboard](dashboard/)** | Next.js Web App | — | 專案管理 UI、圖表編輯器 |
-| **[Foam](https://foambubble.github.io/foam/)** | VS Code 擴充功能 | — | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖 |
-| **[Skills](.claude/skills/)** | Agent 工作流 | 26 | 引導式多工具工作流（文獻回顧、草稿寫作...） |
-| **[Prompts](.github/prompts/)** | Prompt Files | 15 | `/mdpaper.search`、`/mdpaper.draft` 等 |
+| 元件                                                               | 類型                 | 工具數                         | 說明                                                                                    |
+| ------------------------------------------------------------------ | -------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
+| **mdpaper**                                                        | 核心 MCP Server      | 94（full）/ 44（compact 預設） | 論文寫作：88 個領域工具 + 6 個 facade 入口，另含 3 個 MCP prompts 與 3 個 MCP resources |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37                             | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                               |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13                             | 創意發想：腦力激盪、深度思考、火花碰撞                                                  |
+| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 5 指令 + 10 chat               | MCP 自動註冊、workspace 設定、`@mdpaper` 參與者                                         |
+| **[Dashboard](dashboard/)**                                        | Next.js Web App      | —                              | 專案管理 UI、圖表編輯器                                                                 |
+| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —                              | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖                                             |
+| **[Skills](.claude/skills/)**                                      | Agent 工作流         | 26                             | 引導式多工具工作流（文獻回顧、草稿寫作...）                                             |
+| **[Prompts](.github/prompts/)**                                    | Prompt Files         | 15                             | `/mdpaper.search`、`/mdpaper.draft` 等                                                  |
 
 **外部 MCP Server**（選用，透過 uvx 安裝）：
 
@@ -356,23 +356,23 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 
 寫作、編輯、引用 — 內建驗證。
 
-| 關鍵工具 | 說明 |
-| --- | --- |
-| `draft_section` / `write_draft` | 建立和撰寫各章節 |
-| `list_drafts` / `read_draft` / `delete_draft` | 草稿生命週期 |
-| `get_available_citations` | 編輯前列出所有可用的 `[[citation_key]]` |
-| `patch_draft` | **Citation-aware** 部分編輯，自動驗證 wikilinks |
-| `insert_citation` / `suggest_citations` | 智慧引用插入 |
-| `scan_draft_citations` / `sync_references` | 引用管理 |
-| `count_words` | 段落、章節與全文字數檢查 |
+| 關鍵工具                                      | 說明                                            |
+| --------------------------------------------- | ----------------------------------------------- |
+| `draft_section` / `write_draft`               | 建立和撰寫各章節                                |
+| `list_drafts` / `read_draft` / `delete_draft` | 草稿生命週期                                    |
+| `get_available_citations`                     | 編輯前列出所有可用的 `[[citation_key]]`         |
+| `patch_draft`                                 | **Citation-aware** 部分編輯，自動驗證 wikilinks |
+| `insert_citation` / `suggest_citations`       | 智慧引用插入                                    |
+| `scan_draft_citations` / `sync_references`    | 引用管理                                        |
+| `count_words`                                 | 段落、章節與全文字數檢查                        |
 
 ### ✅ 驗證（3 工具）
 
-| 工具 | 說明 |
-| --- | --- |
-| `validate_concept` | 對目前 concept 做完整新穎性評估 |
-| `validate_wikilinks` | 自動修復 `[[12345678]]` → `[[author2024_12345678]]` |
-| `compare_with_literature` | 將研究想法與已存文獻做差異與重疊比較 |
+| 工具                      | 說明                                                |
+| ------------------------- | --------------------------------------------------- |
+| `validate_concept`        | 對目前 concept 做完整新穎性評估                     |
+| `validate_wikilinks`      | 自動修復 `[[12345678]]` → `[[author2024_12345678]]` |
+| `compare_with_literature` | 將研究想法與已存文獻做差異與重疊比較                |
 
 ### 📊 資料分析（10 工具）
 
@@ -408,9 +408,9 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 
 ### 🧩 MCP Prompts 與 Resources
 
-| 能力 | 名稱 / URI | 用途 |
-| --- | --- | --- |
-| **Prompts** | `project_bootstrap`、`draft_section_plan`、`word_export_checklist` | 透過官方 MCP prompt API 生成引導式工作流內容 |
+| 能力          | 名稱 / URI                                                                                    | 用途                                                  |
+| ------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Prompts**   | `project_bootstrap`、`draft_section_plan`、`word_export_checklist`                            | 透過官方 MCP prompt API 生成引導式工作流內容          |
 | **Resources** | `medpaper://workspace/state`、`medpaper://workspace/projects`、`medpaper://templates/catalog` | 透過 MCP resources 暴露工作區狀態、專案列表與模板資訊 |
 
 ### 🔍 pubmed-search MCP 工具（37 工具）
@@ -546,21 +546,21 @@ med-paper-assistant/
 
 ## 🗺️ 開發藍圖
 
-| 狀態 | 功能                        | 說明                                                |
-| ---- | --------------------------- | --------------------------------------------------- |
+| 狀態 | 功能                        | 說明                                                           |
+| ---- | --------------------------- | -------------------------------------------------------------- |
 | ✅   | **3 個 MCP Server**         | mdpaper（94 full / 44 compact）+ pubmed-search (37) + CGU (13) |
-| ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、專案隔離             |
-| ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                       |
-| ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                  |
-| ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                               |
-| ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                      |
-| ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                  |
-| ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...） |
-| 🔜   | **完整 VSX Extension**      | TreeView、CodeLens、Diagnostics（方向 C）           |
-| 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                 |
-| 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                     |
-| 📋   | **AI Writing Intelligence** | 引用智慧、連貫性引擎                                |
-| 📋   | **REST API 模式**           | 將工具公開為 REST API                               |
+| ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、專案隔離                        |
+| ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                  |
+| ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                             |
+| ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                                          |
+| ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                                 |
+| ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                             |
+| ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...）            |
+| 🔜   | **完整 VSX Extension**      | TreeView、CodeLens、Diagnostics（方向 C）                      |
+| 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                            |
+| 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                                |
+| 📋   | **AI Writing Intelligence** | 引用智慧、連貫性引擎                                           |
+| 📋   | **REST API 模式**           | 將工具公開為 REST API                                          |
 
 **架構方向**：[Direction C — Full VSX + Foam + Pandoc](ROADMAP.md)
 

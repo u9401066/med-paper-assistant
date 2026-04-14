@@ -28,15 +28,15 @@ inspect_export(action="list_templates")
 
 ## MCP Tools
 
-| Facade Call | 用途 | 關鍵參數 |
-| ----------- | ---- | -------- |
-| `inspect_export(action="list_templates")` | 列出可用模板 | 無 |
-| `inspect_export(action="read_template")` | 讀取模板結構（必先呼叫） | `template_name` |
-| `export_document(action="session_start")` | 開啟編輯 session | `template_name`, `session_id` |
-| `export_document(action="session_insert")` | 插入章節內容（自動修復 wikilink） | `session_id`, `section_name`, `content`, `mode` |
-| `inspect_export(action="verify_document")` | 驗證文件狀態與字數限制 | `session_id`, `limits_json` |
-| `export_document(action="session_save")` | 儲存並關閉 session | `session_id`, `output_filename` |
-| `export_document(action="docx")` / `export_document(action="pdf")` | 直接產出 DOCX / PDF | `draft_filename`, `output_filename`, `project` |
+| Facade Call                                                        | 用途                              | 關鍵參數                                        |
+| ------------------------------------------------------------------ | --------------------------------- | ----------------------------------------------- |
+| `inspect_export(action="list_templates")`                          | 列出可用模板                      | 無                                              |
+| `inspect_export(action="read_template")`                           | 讀取模板結構（必先呼叫）          | `template_name`                                 |
+| `export_document(action="session_start")`                          | 開啟編輯 session                  | `template_name`, `session_id`                   |
+| `export_document(action="session_insert")`                         | 插入章節內容（自動修復 wikilink） | `session_id`, `section_name`, `content`, `mode` |
+| `inspect_export(action="verify_document")`                         | 驗證文件狀態與字數限制            | `session_id`, `limits_json`                     |
+| `export_document(action="session_save")`                           | 儲存並關閉 session                | `session_id`, `output_filename`                 |
+| `export_document(action="docx")` / `export_document(action="pdf")` | 直接產出 DOCX / PDF               | `draft_filename`, `output_filename`, `project`  |
 
 > Legacy export verbs `list_templates`, `read_template`, `start_document_session`,
 > `insert_section`, `verify_document`, `save_document`, `export_docx`, `export_pdf`

@@ -907,7 +907,9 @@ def main() -> int:
     # Print summary
     print("📊 Repository Counts (dynamic)")
     print("=" * 50)
-    print(f"  MCP Tools (mdpaper) : {counts.mdpaper_total} full / {counts.mdpaper_compact_total} compact")
+    print(
+        f"  MCP Tools (mdpaper) : {counts.mdpaper_total} full / {counts.mdpaper_compact_total} compact"
+    )
     print(f"    domain tools      : {counts.mdpaper_domain_total}")
     print(f"    facade entrypoints: {counts.mdpaper_facade_tools}")
     for g in sorted(counts.tool_groups):

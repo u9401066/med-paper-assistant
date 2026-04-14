@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -73,7 +72,9 @@ def test_auto_paper_guidance_prefers_review_and_workspace_facades() -> None:
 
 
 def test_bundled_instructions_prefer_project_and_export_facades() -> None:
-    content = _read("vscode-extension/bundled/tool/med_paper_assistant/interfaces/mcp/instructions.py")
+    content = _read(
+        "vscode-extension/bundled/tool/med_paper_assistant/interfaces/mcp/instructions.py"
+    )
 
     assert 'project_action(action="current")' in content
     assert 'inspect_export(action="list_templates")' in content

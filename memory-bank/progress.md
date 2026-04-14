@@ -3,6 +3,7 @@
 ## Done
 
 - **v0.6.4 release prep (2026-04-14)**:
+
   - main mdpaper tool surface compactification landed (full 94 / compact 44 default)
   - workspace and setup defaults now inject `MEDPAPER_TOOL_SURFACE=compact`
   - VSX runtime defaults to compact surface and tests assert env behavior

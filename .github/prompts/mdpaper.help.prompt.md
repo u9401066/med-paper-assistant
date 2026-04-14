@@ -23,12 +23,12 @@ project → search → concept → draft → analysis → clarify → format
 
 ## MCP 工具集
 
-| Server        | 用途                                 |
-| ------------- | ------------------------------------ |
+| Server        | 用途                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------- |
 | mdpaper       | 專案/草稿/引用/分析/審查/匯出（94 full / 44 compact default + 3 prompts + 3 resources） |
-| pubmed-search | 文獻搜尋/全文/引用分析               |
-| cgu           | 創意發想（Novelty 不足時）           |
-| zotero-keeper | Zotero 整合（選用）                  |
+| pubmed-search | 文獻搜尋/全文/引用分析                                                                  |
+| cgu           | 創意發想（Novelty 不足時）                                                              |
+| zotero-keeper | Zotero 整合（選用）                                                                     |
 
 ## 核心規則
 

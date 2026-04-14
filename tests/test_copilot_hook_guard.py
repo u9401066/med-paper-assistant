@@ -73,7 +73,12 @@ def test_iter_patch_paths_handles_arrow_path_conversion() -> None:
     paths = iter_patch_paths(patch_text, WORKSPACE_ROOT)
 
     assert len(paths) == 1
-    assert paths[0] == (WORKSPACE_ROOT / "src" / "med_paper_assistant" / "interfaces" / "mcp" / "server.py").resolve()
+    assert (
+        paths[0]
+        == (
+            WORKSPACE_ROOT / "src" / "med_paper_assistant" / "interfaces" / "mcp" / "server.py"
+        ).resolve()
+    )
 
 
 def test_iter_patch_paths_handles_duplicate_workspace_name_prefix(tmp_path: Path) -> None:
@@ -85,9 +90,12 @@ def test_iter_patch_paths_handles_duplicate_workspace_name_prefix(tmp_path: Path
     paths = iter_patch_paths(patch_text, workspace_root)
 
     assert len(paths) == 1
-    assert paths[0] == (
-        workspace_root / "src" / "med_paper_assistant" / "interfaces" / "mcp" / "server.py"
-    ).resolve()
+    assert (
+        paths[0]
+        == (
+            workspace_root / "src" / "med_paper_assistant" / "interfaces" / "mcp" / "server.py"
+        ).resolve()
+    )
 
 
 def test_normal_mode_denies_protected_create_file() -> None:
@@ -107,7 +115,9 @@ def test_normal_mode_denies_protected_create_file() -> None:
     assert decision == "deny"
 
 
-def test_normal_mode_denies_protected_create_file_with_duplicate_workspace_name(tmp_path: Path) -> None:
+def test_normal_mode_denies_protected_create_file_with_duplicate_workspace_name(
+    tmp_path: Path,
+) -> None:
     workspace_root = tmp_path / "med-paper-assistant" / "med-paper-assistant"
     payload = {
         "tool_name": "create_file",

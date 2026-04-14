@@ -57,19 +57,19 @@ Pre-Commit Hooks（P1-P8 + G1-G7）定義於 `git-precommit/SKILL.md`。
 
 ### 必要 MCP Tool 呼叫
 
-| 時機                      | MCP Tool                                    | 說明                                                                                                        |
-| ------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 每個 Phase 完成後         | `pipeline_action(action="validate_phase", phase=...)` | 返回 PASS/FAIL + 缺少的 artifact，FAIL 則禁止進入下一 Phase                                     |
-| Phase 7 每輪開始          | `pipeline_action(action="start_review")`  | 啟動 AutonomousAuditLoop 狀態機，返回 round context                                                         |
-| Phase 7 每輪結束          | `pipeline_action(action="submit_review", scores=...)` | 提交分數，返回 verdict (CONTINUE/QUALITY_MET/MAX_ROUNDS/REWRITE_NEEDED)                           |
-| Phase 7 需要大幅重寫      | `pipeline_action(action="rewrite_section", sections=..., reason=...)` | 回退到 Phase 5 重寫指定 section，最多 2 次回退                            |
+| 時機                      | MCP Tool                                                               | 說明                                                                                                        |
+| ------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 每個 Phase 完成後         | `pipeline_action(action="validate_phase", phase=...)`                  | 返回 PASS/FAIL + 缺少的 artifact，FAIL 則禁止進入下一 Phase                                                 |
+| Phase 7 每輪開始          | `pipeline_action(action="start_review")`                               | 啟動 AutonomousAuditLoop 狀態機，返回 round context                                                         |
+| Phase 7 每輪結束          | `pipeline_action(action="submit_review", scores=...)`                  | 提交分數，返回 verdict (CONTINUE/QUALITY_MET/MAX_ROUNDS/REWRITE_NEEDED)                                     |
+| Phase 7 需要大幅重寫      | `pipeline_action(action="rewrite_section", sections=..., reason=...)`  | 回退到 Phase 5 重寫指定 section，最多 2 次回退                                                              |
 | Phase 5 每 section 完成後 | `pipeline_action(action="approve_section", section=..., decision=...)` | Autopilot: Agent 自我審閱後自動 approve。手動: 用戶審閱 → approve 或 revise。Phase 5 gate 要求全部 approved |
-| 用戶要求暫停時            | `pipeline_action(action="pause", reason=...)` | 暫停 pipeline，記錄 draft hash 以偵測用戶編輯                                                            |
-| 暫停後恢復                | `pipeline_action(action="resume")`        | 恢復 pipeline，偵測用戶修改並建議重新驗證                                                                   |
-| Pipeline 中途任意時刻     | `pipeline_action(action="heartbeat")`     | 返回全 Phase 狀態 + 剩餘工作項，Agent 無法自稱 "done"                                                       |
-| Phase 5 每次 Hook 評估後  | `record_hook_event(hook_id, event_type)`    | 記錄 A/B/C/E Hook 的 trigger/pass/fix/false_positive，Phase 6 gate 會驗證有實際記錄                         |
-| Phase 6 之前（審計階段）  | `run_quality_checks(action="quality_audit", scores=...)` | 設定 ≥4 維度品質分數 + 產生 scorecard/hook-effectiveness 報告，Phase 6 gate 驗證分數數據 |
-| Phase 10 之前（自我改進） | `run_quality_checks(action="meta_learning")` | 執行 D1-D6 分析 + 寫入 meta-learning-audit.json，Phase 10 gate 驗證分析數據                       |
+| 用戶要求暫停時            | `pipeline_action(action="pause", reason=...)`                          | 暫停 pipeline，記錄 draft hash 以偵測用戶編輯                                                               |
+| 暫停後恢復                | `pipeline_action(action="resume")`                                     | 恢復 pipeline，偵測用戶修改並建議重新驗證                                                                   |
+| Pipeline 中途任意時刻     | `pipeline_action(action="heartbeat")`                                  | 返回全 Phase 狀態 + 剩餘工作項，Agent 無法自稱 "done"                                                       |
+| Phase 5 每次 Hook 評估後  | `record_hook_event(hook_id, event_type)`                               | 記錄 A/B/C/E Hook 的 trigger/pass/fix/false_positive，Phase 6 gate 會驗證有實際記錄                         |
+| Phase 6 之前（審計階段）  | `run_quality_checks(action="quality_audit", scores=...)`               | 設定 ≥4 維度品質分數 + 產生 scorecard/hook-effectiveness 報告，Phase 6 gate 驗證分數數據                    |
+| Phase 10 之前（自我改進） | `run_quality_checks(action="meta_learning")`                           | 執行 D1-D6 分析 + 寫入 meta-learning-audit.json，Phase 10 gate 驗證分析數據                                 |
 
 ### 強制執行規則
 
@@ -1555,14 +1555,14 @@ Phase 轉換時：
 
 ### Hook A: post-write（每次寫完立即，最多 N rounds，N = `pipeline.hook_a_max_rounds`）
 
-| #   | 檢查項                | MCP Tool                         | 失敗行為                            | 閾值來源                              |
-| --- | --------------------- | -------------------------------- | ----------------------------------- | ------------------------------------- |
-| A1  | 字數在 target ±20%    | `count_words`                    | `patch_draft` 精簡/擴充             | `paper.sections[].word_limit`         |
-| A2  | 引用密度達標          | `get_available_citations`        | `suggest_citations` + `patch_draft` | `pipeline.writing.citation_density.*` |
+| #   | 檢查項                | MCP Tool                                                  | 失敗行為                            | 閾值來源                              |
+| --- | --------------------- | --------------------------------------------------------- | ----------------------------------- | ------------------------------------- |
+| A1  | 字數在 target ±20%    | `count_words`                                             | `patch_draft` 精簡/擴充             | `paper.sections[].word_limit`         |
+| A2  | 引用密度達標          | `get_available_citations`                                 | `suggest_citations` + `patch_draft` | `pipeline.writing.citation_density.*` |
 | A3  | 無 Anti-AI 模式       | `run_quality_checks(action="writing_hooks", hooks="A3")`  | `patch_draft` 改寫                  | `pipeline.writing.anti_ai_strictness` |
 | A3b | AI 結構信號偵測 🆕    | `run_quality_checks(action="writing_hooks", hooks="A3B")` | `patch_draft` 改寫                  | Code-Enforced（5 項結構分析）         |
 | A3c | 語音一致性偵測 🆕     | `run_quality_checks(action="writing_hooks", hooks="A3C")` | `patch_draft` 改寫                  | Code-Enforced（z-score 離群值）       |
-| A4  | Wikilink 格式正確     | `validate_wikilinks`             | 自動修復                            | —                                     |
+| A4  | Wikilink 格式正確     | `validate_wikilinks`                                      | 自動修復                            | —                                     |
 | A5  | 語言一致性（BrE/AmE） | `run_quality_checks(action="writing_hooks", hooks="A5")`  | `patch_draft` 統一拼法              | `pipeline.writing.prefer_language`    |
 | A6  | 段落重複偵測          | `run_quality_checks(action="writing_hooks", hooks="A6")`  | `patch_draft` 改寫重複段            | `pipeline.writing.overlap_threshold`  |
 | A7  | 文獻數量充足性 🆕     | `run_quality_checks(action="writing_hooks", hooks="A7")`  | BLOCK 寫作，提示擴大搜尋            | `DEFAULT_MINIMUM_REFERENCES` per type |
@@ -1737,29 +1737,29 @@ B7c 為 ADVISORY（順序偏離可接受）。
 - CI 寬度：Results 的 95% CI 須與 Methods 一致
 - 軟體：Results 提及的統計軟體須在 Methods 中宣告
 
-| #   | 檢查項             | MCP Tool                        | 失敗行為                           | 閾值來源                          |
-| --- | ------------------ | ------------------------------- | ---------------------------------- | --------------------------------- |
+| #   | 檢查項             | MCP Tool                                                 | 失敗行為                           | 閾值來源                          |
+| --- | ------------------ | -------------------------------------------------------- | ---------------------------------- | --------------------------------- |
 | B8  | 統計宣稱↔方法對齊 | `run_quality_checks(action="writing_hooks", hooks="B8")` | `patch_draft` Methods/Results 補齊 | `pipeline.writing.stat_alignment` |
 
 ---
 
 ### Hook C: post-manuscript（全稿完成後，含分層回溯，最多 N rounds，N = `pipeline.hook_c_max_rounds`）
 
-| #   | 檢查項                | MCP Tool                          | 失敗行為                             | 回溯層 | 閾值來源                                                 |
-| --- | --------------------- | --------------------------------- | ------------------------------------ | ------ | -------------------------------------------------------- |
-| C1  | 稿件一致性            | `check_formatting("consistency")` | `patch_draft`                        | → B4   | —                                                        |
-| C2  | 投稿清單              | `check_formatting("submission")`  | 定點修正                             | —      | `required_documents.*`                                   |
-| C3  | N 值跨 section 一致   | `read_draft` × N + 數字比對       | `patch_draft` 統一                   | → A    | —                                                        |
-| C4  | 縮寫首次定義          | `read_draft` + 全文掃描           | `patch_draft` 補定義                 | → A    | —                                                        |
-| C5  | Wikilinks 可解析      | `scan_draft_citations`            | `save_reference_mcp` 補存            | → A4   | —                                                        |
-| C6  | 總字數合規            | `count_words`                     | 精簡超長 section                     | → A1   | `word_limits.total_manuscript`                           |
-| C7  | 數量與交叉引用合規 🆕 | 見下方 C7 子項                    | 依子項處理                           | 依子項 | `assets.*`, `word_limits.*`, `references.max_references` |
-| C8  | 時間一致性            | `read_draft` × N + Agent 掃描     | `patch_draft` 更新過時描述           | → B    | —                                                        |
-| C9  | 補充材料交叉引用      | `run_quality_checks(action="writing_hooks", hooks="C9")`   | `patch_draft` 補引用                 | —      | —                                                        |
-| C10 | 文獻全文+分析驗證     | `run_quality_checks(action="writing_hooks", hooks="C10")`  | 補 fulltext/analysis                 | —      | —                                                        |
-| C11 | 引用分布均衡 🆕       | `run_quality_checks(action="writing_hooks", hooks="C11")`  | 重分配引用到缺引用 section           | → A2   | —                                                        |
-| C12 | 引用適切性審計 🆕     | `run_quality_checks(action="writing_hooks", hooks="C12")`  | 補決策紀錄到 citation_decisions.json | —      | —                                                        |
-| C13 | 圖表品質與排序 🆕     | `run_quality_checks(action="writing_hooks", hooks="C13")`  | 修正排序/補 caption                  | → C7d  | —                                                        |
+| #   | 檢查項                | MCP Tool                                                  | 失敗行為                             | 回溯層 | 閾值來源                                                 |
+| --- | --------------------- | --------------------------------------------------------- | ------------------------------------ | ------ | -------------------------------------------------------- |
+| C1  | 稿件一致性            | `check_formatting("consistency")`                         | `patch_draft`                        | → B4   | —                                                        |
+| C2  | 投稿清單              | `check_formatting("submission")`                          | 定點修正                             | —      | `required_documents.*`                                   |
+| C3  | N 值跨 section 一致   | `read_draft` × N + 數字比對                               | `patch_draft` 統一                   | → A    | —                                                        |
+| C4  | 縮寫首次定義          | `read_draft` + 全文掃描                                   | `patch_draft` 補定義                 | → A    | —                                                        |
+| C5  | Wikilinks 可解析      | `scan_draft_citations`                                    | `save_reference_mcp` 補存            | → A4   | —                                                        |
+| C6  | 總字數合規            | `count_words`                                             | 精簡超長 section                     | → A1   | `word_limits.total_manuscript`                           |
+| C7  | 數量與交叉引用合規 🆕 | 見下方 C7 子項                                            | 依子項處理                           | 依子項 | `assets.*`, `word_limits.*`, `references.max_references` |
+| C8  | 時間一致性            | `read_draft` × N + Agent 掃描                             | `patch_draft` 更新過時描述           | → B    | —                                                        |
+| C9  | 補充材料交叉引用      | `run_quality_checks(action="writing_hooks", hooks="C9")`  | `patch_draft` 補引用                 | —      | —                                                        |
+| C10 | 文獻全文+分析驗證     | `run_quality_checks(action="writing_hooks", hooks="C10")` | 補 fulltext/analysis                 | —      | —                                                        |
+| C11 | 引用分布均衡 🆕       | `run_quality_checks(action="writing_hooks", hooks="C11")` | 重分配引用到缺引用 section           | → A2   | —                                                        |
+| C12 | 引用適切性審計 🆕     | `run_quality_checks(action="writing_hooks", hooks="C12")` | 補決策紀錄到 citation_decisions.json | —      | —                                                        |
+| C13 | 圖表品質與排序 🆕     | `run_quality_checks(action="writing_hooks", hooks="C13")` | 修正排序/補 caption                  | → C7d  | —                                                        |
 
 #### Hook C Cascading Protocol
 
@@ -1860,8 +1860,8 @@ FOR section IN reverse(writing_order):
 - 補充材料中的每個項目至少被主稿引用一次（孤兒偵測）
 - e-prefix 引用（eTable, eFigure）也被追蹤
 
-| #   | 檢查項               | MCP Tool                        | 失敗行為                            | 閾值來源 |
-| --- | -------------------- | ------------------------------- | ----------------------------------- | -------- |
+| #   | 檢查項               | MCP Tool                                                 | 失敗行為                            | 閾值來源 |
+| --- | -------------------- | -------------------------------------------------------- | ----------------------------------- | -------- |
 | C9  | 補充材料交叉引用驗證 | `run_quality_checks(action="writing_hooks", hooks="C9")` | `patch_draft` 補引用 / 刪除孤兒引用 | —        |
 
 ---

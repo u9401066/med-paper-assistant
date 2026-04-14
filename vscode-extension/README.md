@@ -63,28 +63,28 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 ### Chat Commands (@mdpaper)
 
-| 指令 | 說明 |
-| --- | --- |
-| `@mdpaper /autopaper` | 🚀 全自動寫論文 |
-| `@mdpaper /search` | 搜尋 PubMed 文獻 |
-| `@mdpaper /draft` | 撰寫論文章節 |
-| `@mdpaper /concept` | 發展研究概念 |
-| `@mdpaper /project` | 管理研究專案 |
-| `@mdpaper /format` | 匯出 Word 文件 |
-| `@mdpaper /drawio` | 開啟 Draw.io 圖表 |
-| `@mdpaper /analysis` | 資料分析與統計 |
-| `@mdpaper /strategy` | 搜尋策略設定 |
-| `@mdpaper /help` | 顯示所有指令 |
+| 指令                  | 說明              |
+| --------------------- | ----------------- |
+| `@mdpaper /autopaper` | 🚀 全自動寫論文   |
+| `@mdpaper /search`    | 搜尋 PubMed 文獻  |
+| `@mdpaper /draft`     | 撰寫論文章節      |
+| `@mdpaper /concept`   | 發展研究概念      |
+| `@mdpaper /project`   | 管理研究專案      |
+| `@mdpaper /format`    | 匯出 Word 文件    |
+| `@mdpaper /drawio`    | 開啟 Draw.io 圖表 |
+| `@mdpaper /analysis`  | 資料分析與統計    |
+| `@mdpaper /strategy`  | 搜尋策略設定      |
+| `@mdpaper /help`      | 顯示所有指令      |
 
 ### Command Palette (Ctrl+Shift+P)
 
-| 指令 | 說明 |
-| --- | --- |
-| `MedPaper: Start MedPaper MCP Server` | 顯示 MCP 啟動說明 |
-| `MedPaper: Stop MedPaper MCP Server` | 顯示 MCP 停止說明 |
-| `MedPaper: Auto Paper` | 全自動寫論文 |
-| `MedPaper: Show Status` | 顯示擴充功能狀態 |
-| `MedPaper: Setup Workspace` | 複製 skills、prompts、agents、templates |
+| 指令                                  | 說明                                    |
+| ------------------------------------- | --------------------------------------- |
+| `MedPaper: Start MedPaper MCP Server` | 顯示 MCP 啟動說明                       |
+| `MedPaper: Stop MedPaper MCP Server`  | 顯示 MCP 停止說明                       |
+| `MedPaper: Auto Paper`                | 全自動寫論文                            |
+| `MedPaper: Show Status`               | 顯示擴充功能狀態                        |
+| `MedPaper: Setup Workspace`           | 複製 skills、prompts、agents、templates |
 
 ### Agent Mode 自然語言
 
@@ -120,13 +120,13 @@ Capability → Skill → Hook → MCP Tool
 
 The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, and **1 journal profile template**. The full repository still contains a broader authoring and maintenance surface.
 
-| 類別 | Skills |
-| --- | --- |
-| 核心 | auto-paper, draft-writing, project-management |
-| 搜尋 | literature-review, parallel-search, reference-management |
+| 類別       | Skills                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| 核心       | auto-paper, draft-writing, project-management                                                |
+| 搜尋       | literature-review, parallel-search, reference-management                                     |
 | 概念與審查 | concept-development, concept-validation, academic-debate, idea-validation, manuscript-review |
-| 交付 | word-export, submission-preparation |
-| 安全 | git-precommit |
+| 交付       | word-export, submission-preparation                                                          |
+| 安全       | git-precommit                                                                                |
 
 Bundled prompt workflows: `mdpaper.write-paper`, `mdpaper.literature-survey`, `mdpaper.manuscript-revision`, `mdpaper.search`, `mdpaper.concept`, `mdpaper.draft`, `mdpaper.project`, `mdpaper.format`, `mdpaper.strategy`, `mdpaper.analysis`, `mdpaper.clarify`, `mdpaper.help`, `mdpaper.audit`.
 

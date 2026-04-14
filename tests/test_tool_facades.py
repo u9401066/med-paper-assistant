@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from mcp.server.fastmcp import FastMCP
 import pytest
+from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.interfaces.mcp.tools.export.facade import register_export_facade_tools
 from med_paper_assistant.interfaces.mcp.tools.project.facade import register_project_facade_tools
