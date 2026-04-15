@@ -111,6 +111,16 @@ def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> 
     return loop
 
 
+def _require_project_info(project_info: dict | None) -> dict:
+    """Convert ensure_project_context output into an explicit runtime guard."""
+    if project_info is None:
+        raise RuntimeError(
+            "Project context resolved without project metadata. "
+            "Pass an explicit project slug or reselect the active project."
+        )
+    return project_info
+
+
 def _sync_to_workspace_state(
     slug: str,
     phase: int,
@@ -266,7 +276,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
@@ -340,7 +350,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
@@ -444,7 +454,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
@@ -573,7 +583,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
@@ -867,7 +877,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             project_dir = Path(project_info["project_path"])
 
             await report_tool_progress(ctx, 1, 2, "Validating project structure", end=95)
@@ -924,7 +934,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -1045,7 +1055,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -1113,7 +1123,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -1222,7 +1232,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
 
@@ -1329,7 +1339,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
 
             if action not in ("approve", "revoke"):
                 return "❌ Action must be 'approve' or 'revoke'."
@@ -1433,7 +1443,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 

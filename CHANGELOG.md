@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-04-15
+
+### Fixed
+
+- **Bandit-facing runtime guards**: Replaced release-blocking runtime `assert` usage in writing hook constants plus MCP stats and pipeline gate tools with explicit exceptions so security scans no longer flag `B101 assert_used` on these validation paths
+- **VS Marketplace banner rendering**: Switched the extension README banner image to an absolute GitHub raw URL so Marketplace stops rewriting the path against the repository root and dropping the `vscode-extension/` segment
+
 ## [0.6.6] - 2026-04-15
 
 ### Added

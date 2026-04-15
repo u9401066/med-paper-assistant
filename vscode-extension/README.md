@@ -2,7 +2,7 @@
 
 AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
 
-![MedPaper Assistant marketplace banner](resources/marketplace-banner.png)
+![MedPaper Assistant marketplace banner](https://raw.githubusercontent.com/u9401066/med-paper-assistant/master/vscode-extension/resources/marketplace-banner.png)
 
 ## Features
 
