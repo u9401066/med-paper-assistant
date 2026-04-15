@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1180" viewBox="0 0 1900 1180" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1900" y2="1180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#183E67"/>
+      <stop offset="1" stop-color="#0B1E31"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1900" height="1180" rx="36" fill="url(#bg)"/>
+
+  <g font-family="Segoe UI, DejaVu Sans, sans-serif">
+    <text x="104" y="130" fill="#F7FBFF" font-size="56" font-weight="800">Auto-Paper pipeline</text>
+    <text x="104" y="178" fill="#C8DCEB" font-size="26">A readable overview of the full writing loop, from journal setup to meta-learning.</text>
+
+    <rect x="104" y="222" width="700" height="50" rx="24" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.3"/>
+    <text x="132" y="254" fill="#FFE0A8" font-size="22" font-weight="700">Only manual checkpoint: approve the manuscript plan in Phase 4</text>
+
+    <g fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24">
+      <rect x="104" y="332" width="234" height="132" rx="26"/>
+      <rect x="380" y="332" width="234" height="132" rx="26"/>
+      <rect x="656" y="332" width="234" height="132" rx="26"/>
+      <rect x="932" y="332" width="234" height="132" rx="26"/>
+      <rect x="1208" y="332" width="234" height="132" rx="26" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.3"/>
+      <rect x="1484" y="332" width="234" height="132" rx="26"/>
+      <rect x="1208" y="676" width="234" height="132" rx="26"/>
+      <rect x="932" y="676" width="234" height="132" rx="26"/>
+      <rect x="656" y="676" width="234" height="132" rx="26"/>
+      <rect x="380" y="676" width="234" height="132" rx="26"/>
+      <rect x="104" y="676" width="234" height="132" rx="26" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.3"/>
+    </g>
+
+    <g>
+      <circle cx="158" cy="382" r="28" fill="#2CB5B0"/>
+      <text x="146" y="391" fill="#0B1E31" font-size="24" font-weight="800">0</text>
+      <text x="202" y="382" fill="#F7FBFF" font-size="28" font-weight="800">Pre-plan</text>
+      <text x="136" y="424" fill="#C8DCEB" font-size="18">Journal profile</text>
+
+      <circle cx="434" cy="382" r="28" fill="#2CB5B0"/>
+      <text x="422" y="391" fill="#0B1E31" font-size="24" font-weight="800">1</text>
+      <text x="478" y="382" fill="#F7FBFF" font-size="28" font-weight="800">Setup</text>
+      <text x="412" y="424" fill="#C8DCEB" font-size="18">Project and memory</text>
+
+      <circle cx="710" cy="382" r="28" fill="#2CB5B0"/>
+      <text x="698" y="391" fill="#0B1E31" font-size="24" font-weight="800">2</text>
+      <text x="754" y="382" fill="#F7FBFF" font-size="28" font-weight="800">Search</text>
+      <text x="688" y="424" fill="#C8DCEB" font-size="18">Search and save</text>
+
+      <circle cx="986" cy="382" r="28" fill="#2CB5B0"/>
+      <text x="974" y="391" fill="#0B1E31" font-size="24" font-weight="800">3</text>
+      <text x="1030" y="382" fill="#F7FBFF" font-size="28" font-weight="800">Concept</text>
+      <text x="964" y="424" fill="#C8DCEB" font-size="18">Gap and novelty</text>
+
+      <circle cx="1262" cy="382" r="28" fill="#F2A33A"/>
+      <text x="1250" y="391" fill="#0B1E31" font-size="24" font-weight="800">4</text>
+      <text x="1306" y="382" fill="#F7FBFF" font-size="28" font-weight="800">Plan</text>
+      <text x="1240" y="424" fill="#C8DCEB" font-size="18">Brief and approval</text>
+
+      <circle cx="1538" cy="382" r="28" fill="#2CB5B0"/>
+      <text x="1526" y="391" fill="#0B1E31" font-size="24" font-weight="800">5</text>
+      <text x="1582" y="382" fill="#F7FBFF" font-size="28" font-weight="800">Write</text>
+      <text x="1516" y="424" fill="#C8DCEB" font-size="18">Draft and Hook A/B</text>
+
+      <circle cx="1262" cy="726" r="28" fill="#2CB5B0"/>
+      <text x="1250" y="735" fill="#0B1E31" font-size="24" font-weight="800">6</text>
+      <text x="1306" y="726" fill="#F7FBFF" font-size="28" font-weight="800">Audit</text>
+      <text x="1240" y="768" fill="#C8DCEB" font-size="18">Hook C gate</text>
+
+      <circle cx="986" cy="726" r="28" fill="#2CB5B0"/>
+      <text x="974" y="735" fill="#0B1E31" font-size="24" font-weight="800">7</text>
+      <text x="1030" y="726" fill="#F7FBFF" font-size="28" font-weight="800">Review</text>
+      <text x="964" y="768" fill="#C8DCEB" font-size="18">Review rounds</text>
+
+      <circle cx="710" cy="726" r="28" fill="#2CB5B0"/>
+      <text x="698" y="735" fill="#0B1E31" font-size="24" font-weight="800">8</text>
+      <text x="754" y="726" fill="#F7FBFF" font-size="28" font-weight="800">Ref Sync</text>
+      <text x="688" y="768" fill="#C8DCEB" font-size="18">Sync citations</text>
+
+      <circle cx="434" cy="726" r="28" fill="#2CB5B0"/>
+      <text x="422" y="735" fill="#0B1E31" font-size="24" font-weight="800">9</text>
+      <text x="478" y="726" fill="#F7FBFF" font-size="28" font-weight="800">Export</text>
+      <text x="412" y="768" fill="#C8DCEB" font-size="18">docx and package</text>
+
+      <circle cx="158" cy="726" r="28" fill="#F2A33A"/>
+      <text x="140" y="735" fill="#0B1E31" font-size="22" font-weight="800">10</text>
+      <text x="202" y="726" fill="#F7FBFF" font-size="28" font-weight="800">Retro</text>
+      <text x="136" y="768" fill="#C8DCEB" font-size="18">Meta-learning</text>
+    </g>
+
+    <g stroke="#7AE6DD" stroke-width="8" stroke-linecap="round">
+      <path d="M338 398H380"/>
+      <path d="M614 398H656"/>
+      <path d="M890 398H932"/>
+      <path d="M1166 398H1208"/>
+      <path d="M1442 398H1484"/>
+      <path d="M1602 464V562H1326V676"/>
+      <path d="M1208 742H1166"/>
+      <path d="M932 742H890"/>
+      <path d="M656 742H614"/>
+      <path d="M380 742H338"/>
+    </g>
+
+    <g fill="#7AE6DD">
+      <circle cx="338" cy="398" r="10"/>
+      <circle cx="380" cy="398" r="10"/>
+      <circle cx="614" cy="398" r="10"/>
+      <circle cx="656" cy="398" r="10"/>
+      <circle cx="890" cy="398" r="10"/>
+      <circle cx="932" cy="398" r="10"/>
+      <circle cx="1166" cy="398" r="10"/>
+      <circle cx="1208" cy="398" r="10"/>
+      <circle cx="1442" cy="398" r="10"/>
+      <circle cx="1484" cy="398" r="10"/>
+      <circle cx="1602" cy="464" r="10"/>
+      <circle cx="1602" cy="562" r="10"/>
+      <circle cx="1326" cy="562" r="10"/>
+      <circle cx="1326" cy="676" r="10"/>
+      <circle cx="1208" cy="742" r="10"/>
+      <circle cx="1166" cy="742" r="10"/>
+      <circle cx="932" cy="742" r="10"/>
+      <circle cx="890" cy="742" r="10"/>
+      <circle cx="656" cy="742" r="10"/>
+      <circle cx="614" cy="742" r="10"/>
+      <circle cx="380" cy="742" r="10"/>
+      <circle cx="338" cy="742" r="10"/>
+    </g>
+
+    <rect x="104" y="930" width="1692" height="122" rx="30" fill="#F8FCFF" fill-opacity="0.05" stroke="#7AE6DD" stroke-opacity="0.22"/>
+    <text x="144" y="978" fill="#7AE6DD" font-size="22" font-weight="700">Quality gates</text>
+    <text x="144" y="1022" fill="#F7FBFF" font-size="22" font-weight="700">Hook A/B</text>
+    <text x="472" y="1022" fill="#F7FBFF" font-size="22" font-weight="700">Hook C</text>
+    <text x="736" y="1022" fill="#F7FBFF" font-size="22" font-weight="700">Review gates</text>
+    <text x="1036" y="1022" fill="#F7FBFF" font-size="22" font-weight="700">Hook D</text>
+    <text x="1268" y="1022" fill="#FFE0A8" font-size="22" font-weight="700">10+ refs · novelty 75+ · zero criticals</text>
+  </g>
+</svg>

@@ -2,8 +2,13 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "publisher": "u9401066",
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#0B1F35",
+    "theme": "dark"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

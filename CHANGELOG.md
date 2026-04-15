@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-04-15
+
+### Added
+
+- **Repository visual asset set**: Added overview, architecture, and Auto Paper flow SVG assets under `docs/assets/` so the repository now has first-party graphics for the main README and guide entrypoints
+- **VSX branding assets**: Added the MedPaper Assistant icon and marketplace banner assets under `vscode-extension/resources/` to give the extension listing a consistent visual system
+
+### Changed
+
+- **Bilingual documentation entrypoints**: Synced `README.md`, `README.zh-TW.md`, and `docs/auto-paper-guide.md` to use the new overview, architecture, and pipeline visuals instead of relying on text-only entrypoints
+- **VS Code extension marketplace presentation**: Updated `vscode-extension/README.md` and `vscode-extension/package.json` so the extension advertises the new icon plus gallery banner configuration in line with the repository visuals
+
 ## [0.6.5] - 2026-04-14
 
 ### Fixed

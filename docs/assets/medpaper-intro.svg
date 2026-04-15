@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#183E67"/>
+      <stop offset="1" stop-color="#0B1E31"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="936" y1="122" x2="1496" y2="794" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#173659"/>
+      <stop offset="1" stop-color="#102741"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" rx="36" fill="url(#bg)"/>
+
+  <g font-family="Segoe UI, DejaVu Sans, sans-serif">
+    <rect x="104" y="98" width="340" height="42" rx="21" fill="#D7F5F0" fill-opacity="0.08" stroke="#7AE6DD" stroke-opacity="0.28"/>
+    <text x="132" y="125" fill="#CFF7F1" font-size="20" font-weight="700">VS Code native medical writing system</text>
+
+    <text x="104" y="254" fill="#F7FBFF" font-size="80" font-weight="800">MedPaper</text>
+    <text x="104" y="334" fill="#F7FBFF" font-size="80" font-weight="800">Assistant</text>
+    <text x="104" y="402" fill="#C8DCEB" font-size="26" font-weight="500">One workspace for search, concept work,</text>
+    <text x="104" y="436" fill="#C8DCEB" font-size="26" font-weight="500">drafting, review, and export.</text>
+
+    <rect x="104" y="510" width="220" height="92" rx="26" fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24"/>
+    <text x="136" y="550" fill="#7AE6DD" font-size="18" font-weight="700">ORCHESTRATION</text>
+    <text x="136" y="590" fill="#F7FBFF" font-size="28" font-weight="800">3 MCP servers</text>
+
+    <rect x="352" y="510" width="220" height="92" rx="26" fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24"/>
+    <text x="384" y="550" fill="#7AE6DD" font-size="18" font-weight="700">WORKFLOWS</text>
+    <text x="384" y="590" fill="#F7FBFF" font-size="28" font-weight="800">26 skills</text>
+
+    <rect x="600" y="510" width="272" height="92" rx="26" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.3"/>
+    <text x="640" y="550" fill="#FFD289" font-size="18" font-weight="700">AUTO PAPER</text>
+    <text x="628" y="590" fill="#F7FBFF" font-size="26" font-weight="800">11 phases / 78 hooks</text>
+
+    <rect x="104" y="674" width="240" height="120" rx="28" fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24"/>
+    <text x="136" y="724" fill="#F7FBFF" font-size="30" font-weight="800">Search</text>
+    <text x="136" y="762" fill="#C8DCEB" font-size="20">PubMed search and</text>
+    <text x="136" y="788" fill="#C8DCEB" font-size="20">verified saves</text>
+
+    <rect x="366" y="674" width="240" height="120" rx="28" fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24"/>
+    <text x="398" y="724" fill="#F7FBFF" font-size="30" font-weight="800">Think</text>
+    <text x="398" y="762" fill="#C8DCEB" font-size="20">Concept and novelty</text>
+    <text x="398" y="788" fill="#C8DCEB" font-size="20">section plan</text>
+
+    <rect x="628" y="674" width="244" height="120" rx="28" fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24"/>
+    <text x="660" y="724" fill="#F7FBFF" font-size="30" font-weight="800">Write</text>
+    <text x="660" y="762" fill="#C8DCEB" font-size="20">Draft, review, sync,</text>
+    <text x="660" y="788" fill="#C8DCEB" font-size="20">and export</text>
+
+    <rect x="936" y="122" width="560" height="672" rx="34" fill="url(#panel)" stroke="#7AE6DD" stroke-opacity="0.24"/>
+    <text x="980" y="186" fill="#F7FBFF" font-size="40" font-weight="800">System map</text>
+
+    <rect x="980" y="242" width="472" height="112" rx="26" fill="#F8FCFF" fill-opacity="0.08" stroke="#7AE6DD" stroke-opacity="0.22"/>
+    <text x="1016" y="286" fill="#7AE6DD" font-size="18" font-weight="700">INSIDE VS CODE</text>
+    <text x="1016" y="326" fill="#F7FBFF" font-size="32" font-weight="800">Agent + extension</text>
+
+    <rect x="980" y="402" width="202" height="120" rx="26" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.3"/>
+    <text x="1016" y="446" fill="#FFD289" font-size="18" font-weight="700">CORE ENGINE</text>
+    <text x="1016" y="486" fill="#F7FBFF" font-size="26" font-weight="800">mdpaper</text>
+
+    <rect x="1248" y="402" width="204" height="120" rx="26" fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24"/>
+    <text x="1270" y="446" fill="#7AE6DD" font-size="18" font-weight="700">COMPANIONS</text>
+    <text x="1270" y="486" fill="#F7FBFF" font-size="24" font-weight="800">PubMed / CGU</text>
+
+    <rect x="980" y="570" width="472" height="148" rx="28" fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24"/>
+    <text x="1016" y="614" fill="#7AE6DD" font-size="18" font-weight="700">SHARED PROJECT STATE</text>
+    <text x="1016" y="654" fill="#F7FBFF" font-size="34" font-weight="800">projects/{slug}</text>
+    <text x="1016" y="694" fill="#C8DCEB" font-size="22">concept   drafts   refs   results   memory</text>
+
+    <path d="M1216 354V402" stroke="#7AE6DD" stroke-width="8" stroke-linecap="round"/>
+    <path d="M1216 522V570" stroke="#7AE6DD" stroke-width="8" stroke-linecap="round"/>
+    <path d="M1182 462H1248" stroke="#F2A33A" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="1216" cy="354" r="10" fill="#7AE6DD"/>
+    <circle cx="1216" cy="402" r="10" fill="#7AE6DD"/>
+    <circle cx="1216" cy="522" r="10" fill="#7AE6DD"/>
+    <circle cx="1216" cy="570" r="10" fill="#7AE6DD"/>
+    <circle cx="1182" cy="462" r="10" fill="#F2A33A"/>
+    <circle cx="1248" cy="462" r="10" fill="#F2A33A"/>
+
+    <rect x="980" y="748" width="286" height="28" rx="14" fill="#F2A33A" fill-opacity="0.14"/>
+    <text x="1004" y="768" fill="#FFE0A8" font-size="16" font-weight="700">Shared files, single conversation</text>
+  </g>
+</svg>

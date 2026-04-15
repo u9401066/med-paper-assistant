@@ -2,6 +2,8 @@
 
 AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
 
+![MedPaper Assistant marketplace banner](resources/marketplace-banner.png)
+
 ## Features
 
 - **Auto Paper** - 全自動 11-Phase 論文撰寫 + 3 層 Audit Hooks

@@ -16,6 +16,8 @@
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 78 Quality Hooks, Structured Review Loop
 
+![MedPaper Assistant overview](docs/assets/medpaper-intro.svg)
+
 ---
 
 ## 📦 What's in the Box
@@ -42,34 +44,7 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 ### How the Pieces Fit Together
 
-```mermaid
-flowchart LR
-    subgraph IDE["VS Code"]
-        Agent["Copilot Agent<br/>26 Skills · 15 Prompts"]
-        Foam[Foam Plugin]
-        Ext[MedPaper Extension]
-        Dash[Dashboard]
-    end
-
-    subgraph MCP["MCP Servers (~144 tools)"]
-      mdpaper["mdpaper<br/>94 full / 44 compact (default) + 3 prompts + 3 resources<br/>Draft · Export · Validate · Review"]
-        pubmed["pubmed-search<br/>37 tools<br/>Search · Metrics"]
-        cgu["CGU<br/>13 tools<br/>Deep Think · Ideas"]
-    end
-
-    subgraph Data["Project Data"]
-        proj[("projects/{slug}/<br/>· .memory/<br/>· references/<br/>· drafts/")]
-    end
-
-    Agent <-->|MCP| mdpaper
-    Agent <-->|MCP| pubmed
-    Agent <-->|MCP| cgu
-    mdpaper -->|HTTP API| pubmed
-    Foam <-->|Wikilinks| proj
-    mdpaper <--> proj
-    Ext --> mdpaper
-    Dash --> proj
-```
+![MedPaper Assistant architecture](docs/assets/medpaper-architecture.svg)
 
 ---
 

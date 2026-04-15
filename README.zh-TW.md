@@ -16,6 +16,8 @@
 
 > 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 11 階段 Pipeline、78 項品質檢查、結構化 Review Loop
 
+![MedPaper Assistant 概覽](docs/assets/medpaper-intro.svg)
+
 ---
 
 ## 📦 工具包內容一覽
@@ -42,34 +44,7 @@
 
 ### 各元件如何協作
 
-```mermaid
-flowchart LR
-    subgraph IDE["VS Code"]
-        Agent["Copilot Agent<br/>26 技能 · 15 Prompts"]
-        Foam[Foam Plugin]
-        Ext[MedPaper Extension]
-        Dash[Dashboard]
-    end
-
-    subgraph MCP["MCP Server（~144 工具）"]
-      mdpaper["mdpaper<br/>94 full / 44 compact（預設） + 3 prompts + 3 resources<br/>草稿 · 匯出 · 驗證 · 審查"]
-        pubmed["pubmed-search<br/>37 工具<br/>搜尋 · 指標"]
-        cgu["CGU<br/>13 工具<br/>深度思考 · 創意"]
-    end
-
-    subgraph Data["專案資料"]
-        proj[("projects/{slug}/<br/>· .memory/<br/>· references/<br/>· drafts/")]
-    end
-
-    Agent <-->|MCP| mdpaper
-    Agent <-->|MCP| pubmed
-    Agent <-->|MCP| cgu
-    mdpaper -->|HTTP API| pubmed
-    Foam <-->|Wikilinks| proj
-    mdpaper <--> proj
-    Ext --> mdpaper
-    Dash --> proj
-```
+![MedPaper Assistant 架構圖](docs/assets/medpaper-architecture.svg)
 
 ---
 
