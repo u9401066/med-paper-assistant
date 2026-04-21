@@ -200,6 +200,13 @@ class Reference:
             "mesh_terms": self.mesh_terms,
             "citations": self.citations,
             "has_pdf": self.has_pdf,
+            "fulltext_ingested": self.fulltext_ingested,
+            "fulltext_unavailable_reason": self.fulltext_unavailable_reason,
+            "asset_aware_doc_id": self.asset_aware_doc_id,
+            "fulltext_sections": self.fulltext_sections,
+            "analysis_completed": self.analysis_completed,
+            "analysis_summary": self.analysis_summary,
+            "usage_sections": self.usage_sections,
             "saved_at": self.saved_at.isoformat(),
         }
 
@@ -231,6 +238,13 @@ class Reference:
             mesh_terms=data.get("mesh_terms", []),
             citations=data.get("citations", data.get("citation", {})),
             has_pdf=data.get("has_pdf", False),
+            fulltext_ingested=data.get("fulltext_ingested", False),
+            fulltext_unavailable_reason=data.get("fulltext_unavailable_reason", ""),
+            asset_aware_doc_id=data.get("asset_aware_doc_id"),
+            fulltext_sections=data.get("fulltext_sections", []),
+            analysis_completed=data.get("analysis_completed", False),
+            analysis_summary=data.get("analysis_summary", ""),
+            usage_sections=data.get("usage_sections", []),
             saved_at=datetime.fromisoformat(data["saved_at"])
             if "saved_at" in data
             else datetime.now(),

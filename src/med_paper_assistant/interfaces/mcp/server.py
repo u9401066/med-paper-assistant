@@ -110,7 +110,13 @@ def create_server() -> FastMCP:
     register_project_tools(mcp, project_manager, tool_surface=tool_surface)
 
     logger.info("Registering reference tools...")
-    register_reference_tools(mcp, ref_manager, drafter, project_manager)
+    register_reference_tools(
+        mcp,
+        ref_manager,
+        drafter,
+        project_manager,
+        tool_surface=tool_surface,
+    )
 
     logger.info("Registering draft tools...")
     register_draft_tools(mcp, drafter)

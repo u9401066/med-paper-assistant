@@ -5,7 +5,7 @@ Contains the tool selection guide and server instructions for the AI agent.
 Separated from config.py for better maintainability.
 """
 
-TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
+TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 
 ### ⚠️ CRITICAL: PROJECT CONTEXT RULE
 **Before ANY operation that modifies project content, you MUST:**
@@ -103,6 +103,17 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 | `retry_pdf_download` | Retry failed PDF download |
 | `set_citation_style` | Set citation format |
 
+### 🧠 AGENT WIKI
+| Tool | When to use |
+|------|-------------|
+| `ingest_web_source` | Import fetched web/HTML/markdown snapshots into the canonical wiki pipeline |
+| `ingest_markdown_source` | Import markdown text or local markdown files into the canonical wiki pipeline |
+| `build_knowledge_map` | Materialize a Foam-friendly knowledge map page from saved references |
+| `build_synthesis_page` | Materialize a synthesis page from saved references and analysis summaries |
+| `materialize_agent_wiki` | Build the knowledge map + synthesis page bundle in one step |
+
+**Workflow:** intake source → `resolve_reference_identity` (when identifiers exist) → `save_reference_analysis` → `materialize_agent_wiki`
+
 ### ✍️ WRITING (⚠️ Requires concept validation first!)
 | Tool | When to use |
 |------|-------------|
@@ -166,6 +177,8 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (46 tools)
 - "just want to browse/explore papers" → `start_exploration`
 - "search/find papers" → `search_literature`
 - "save this paper" → `save_reference_mcp(pmid)` (auto-creates workspace if needed)
+- "import web/markdown into wiki" → `ingest_web_source` / `ingest_markdown_source`
+- "build agent wiki" → `materialize_agent_wiki` (or `build_knowledge_map` + `build_synthesis_page`)
 - "my saved papers" → `list_saved_references`
 - "ready to write, have references" → `convert_exploration_to_project` → `create_project`
 - "write/draft" → **`validate_concept` first!** → `write_draft`

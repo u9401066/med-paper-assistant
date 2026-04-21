@@ -24,7 +24,12 @@ from .._shared import (
 
 
 def register_reference_manager_tools(
-    mcp: FastMCP, ref_manager: ReferenceManager, drafter: Drafter, project_manager
+    mcp: FastMCP,
+    ref_manager: ReferenceManager,
+    drafter: Drafter,
+    project_manager,
+    *,
+    register_public_verbs: bool = True,
 ):
     """Register reference management tools."""
 
@@ -44,6 +49,28 @@ def register_reference_manager_tools(
         if result.get("success"):
             return "\n\n💡 *已自動建立文獻探索工作區。找到研究方向後，使用 `convert_exploration_to_project` 轉換為正式專案。*"
         return ""
+
+    def _parse_metadata_json(metadata_json: str) -> tuple[Optional[dict], Optional[str]]:
+        if not metadata_json.strip():
+            return {}, None
+
+        try:
+            parsed_metadata = json.loads(metadata_json)
+        except json.JSONDecodeError as exc:
+            return None, f"❌ Invalid metadata_json: {exc}"
+
+        if not isinstance(parsed_metadata, dict):
+            return None, "❌ metadata_json must decode to a JSON object."
+
+        return parsed_metadata, None
+
+    def _parse_reference_ids(reference_ids: str) -> list[str]:
+        return [
+            item.strip()
+            for line in reference_ids.splitlines()
+            for item in line.split(",")
+            if item.strip()
+        ]
 
     @mcp.tool()
     def save_reference(article: Union[dict, str], project: Optional[str] = None) -> str:
@@ -170,6 +197,364 @@ def register_reference_manager_tools(
         result = ref_manager.save_reference_mcp(pmid, agent_notes=agent_notes)
         log_tool_result("save_reference_mcp", result)
         return result + project_msg
+
+    if register_public_verbs:
+
+        @mcp.tool()
+        def import_local_papers(
+            paths: str, metadata_json: str = "", project: Optional[str] = None
+        ) -> str:
+            """
+            Import one or more local files into the MedPaper reference registry.
+
+            Args:
+                paths: One path or multiple newline/comma-separated paths
+                metadata_json: Optional JSON object or JSON list with extracted metadata
+                project: Project slug (default: current)
+            """
+            log_tool_call(
+                "import_local_papers",
+                {"paths": paths, "metadata_json": metadata_json, "project": project},
+            )
+
+            if project:
+                is_valid, msg, project_info = ensure_project_context(project)
+                if not is_valid:
+                    return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+
+            project_msg = _ensure_project_exists()
+
+            raw_paths = [p.strip() for chunk in paths.splitlines() for p in chunk.split(",")]
+            parsed_paths = [p for p in raw_paths if p]
+            if not parsed_paths:
+                return "❌ No valid paths provided."
+
+            metadata_items = []
+            if metadata_json.strip():
+                try:
+                    parsed_metadata = json.loads(metadata_json)
+                except json.JSONDecodeError as exc:
+                    return f"❌ Invalid metadata_json: {exc}"
+
+                if isinstance(parsed_metadata, list):
+                    if len(parsed_metadata) != len(parsed_paths):
+                        return "❌ metadata_json list length must match the number of provided paths."
+                    metadata_items = parsed_metadata
+                elif isinstance(parsed_metadata, dict):
+                    metadata_items = [parsed_metadata for _ in parsed_paths]
+                else:
+                    return "❌ metadata_json must decode to a JSON object or JSON list."
+            else:
+                metadata_items = [{} for _ in parsed_paths]
+
+            results = []
+            for file_path, metadata in zip(parsed_paths, metadata_items):
+                result = ref_manager.import_local_file(file_path, metadata=metadata)
+                results.append(f"- {Path(file_path).name}: {result}")
+
+            output = "\n".join(results)
+            log_tool_result("import_local_papers", output)
+            return output + project_msg
+
+        @mcp.tool()
+        def ingest_web_source(
+            url: str,
+            content: str,
+            metadata_json: str = "",
+            project: Optional[str] = None,
+        ) -> str:
+            """
+            Import a fetched web page snapshot into the canonical wiki pipeline.
+
+            Args:
+                url: Original source URL
+                content: Markdown/text content captured from the page
+                metadata_json: Optional JSON metadata object
+                project: Project slug (default: current)
+            """
+            log_tool_call(
+                "ingest_web_source",
+                {
+                    "url": url,
+                    "has_content": bool(content.strip()),
+                    "project": project,
+                },
+            )
+
+            if project:
+                is_valid, msg, project_info = ensure_project_context(project)
+                if not is_valid:
+                    return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+
+            if not url.strip():
+                return "❌ URL is required."
+            if not content.strip():
+                return "❌ content is required."
+
+            metadata, error = _parse_metadata_json(metadata_json)
+            if error:
+                return error
+
+            project_msg = _ensure_project_exists()
+            result = ref_manager.import_web_source(url, content, metadata=metadata)
+            log_tool_result("ingest_web_source", result)
+            return result + project_msg
+
+        @mcp.tool()
+        def ingest_markdown_source(
+            markdown_text: str = "",
+            source_path: str = "",
+            metadata_json: str = "",
+            project: Optional[str] = None,
+        ) -> str:
+            """
+            Import markdown text or a markdown file into the canonical wiki pipeline.
+
+            Args:
+                markdown_text: Raw markdown content
+                source_path: Optional local markdown path
+                metadata_json: Optional JSON metadata object
+                project: Project slug (default: current)
+            """
+            log_tool_call(
+                "ingest_markdown_source",
+                {
+                    "source_path": source_path,
+                    "has_markdown_text": bool(markdown_text.strip()),
+                    "project": project,
+                },
+            )
+
+            if project:
+                is_valid, msg, project_info = ensure_project_context(project)
+                if not is_valid:
+                    return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+
+            metadata, error = _parse_metadata_json(metadata_json)
+            if error:
+                return error
+
+            if not markdown_text.strip() and not source_path.strip():
+                return "❌ Provide either markdown_text or source_path."
+
+            project_msg = _ensure_project_exists()
+            if source_path.strip():
+                result = ref_manager.import_markdown_file(source_path, metadata=metadata)
+            else:
+                result = ref_manager.import_markdown_content(
+                    markdown_text,
+                    source_name=metadata.get("imported_from", "") if metadata else "",
+                    metadata=metadata,
+                )
+            log_tool_result("ingest_markdown_source", result)
+            return result + project_msg
+
+        @mcp.tool()
+        def resolve_reference_identity(
+            reference_id: str,
+            pmid: str = "",
+            verified_metadata_json: str = "",
+            agent_notes: str = "",
+            project: Optional[str] = None,
+        ) -> str:
+            """
+            Upgrade a local/extracted reference to a canonical verified identity.
+
+            Args:
+                reference_id: Existing local reference id (for example local_abcd1234)
+                pmid: Optional PubMed ID if MedPaper should fetch verified metadata directly
+                verified_metadata_json: Optional verified metadata JSON supplied by the harness
+                agent_notes: Optional notes to persist with the canonical record
+                project: Project slug (default: current)
+            """
+            log_tool_call(
+                "resolve_reference_identity",
+                {
+                    "reference_id": reference_id,
+                    "pmid": pmid,
+                    "project": project,
+                    "has_verified_metadata_json": bool(verified_metadata_json.strip()),
+                },
+            )
+
+            if project:
+                is_valid, msg, project_info = ensure_project_context(project)
+                if not is_valid:
+                    return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+
+            verified_article = None
+            if verified_metadata_json.strip():
+                try:
+                    verified_article = json.loads(verified_metadata_json)
+                except json.JSONDecodeError as exc:
+                    return f"❌ Invalid verified_metadata_json: {exc}"
+
+                if not isinstance(verified_article, dict):
+                    return "❌ verified_metadata_json must decode to a JSON object."
+
+            if not pmid and verified_article is None:
+                return "❌ Provide either pmid or verified_metadata_json."
+
+            result = ref_manager.resolve_reference_identity(
+                reference_id,
+                verified_article=verified_article,
+                pmid=pmid or None,
+                agent_notes=agent_notes,
+            )
+            log_tool_result("resolve_reference_identity", result)
+            return result
+
+        @mcp.tool()
+        def build_knowledge_map(
+            title: str,
+            reference_ids: str = "",
+            query: str = "",
+            limit: int = 12,
+            project: Optional[str] = None,
+        ) -> str:
+            """
+            Build a materialized knowledge map page from saved references.
+
+            Args:
+                title: Title of the map page
+                reference_ids: Optional comma/newline-separated reference ids
+                query: Optional local search query when reference_ids omitted
+                limit: Max references to include when selecting automatically
+                project: Project slug (default: current)
+            """
+            log_tool_call(
+                "build_knowledge_map",
+                {
+                    "title": title,
+                    "reference_ids": reference_ids,
+                    "query": query,
+                    "limit": limit,
+                    "project": project,
+                },
+            )
+
+            if project:
+                is_valid, msg, project_info = ensure_project_context(project)
+                if not is_valid:
+                    return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+
+            project_msg = _ensure_project_exists()
+            result = ref_manager.build_knowledge_map(
+                title,
+                reference_ids=_parse_reference_ids(reference_ids),
+                query=query,
+                limit=limit,
+            )
+            log_tool_result("build_knowledge_map", result)
+            return result + project_msg
+
+        @mcp.tool()
+        def build_synthesis_page(
+            title: str,
+            reference_ids: str = "",
+            query: str = "",
+            focus: str = "",
+            summary_markdown: str = "",
+            limit: int = 12,
+            project: Optional[str] = None,
+        ) -> str:
+            """
+            Build a materialized synthesis page from saved references.
+
+            Args:
+                title: Title of the synthesis page
+                reference_ids: Optional comma/newline-separated reference ids
+                query: Optional local search query when reference_ids omitted
+                focus: Optional synthesis focus
+                summary_markdown: Optional prewritten synthesis markdown
+                limit: Max references to include when selecting automatically
+                project: Project slug (default: current)
+            """
+            log_tool_call(
+                "build_synthesis_page",
+                {
+                    "title": title,
+                    "reference_ids": reference_ids,
+                    "query": query,
+                    "focus": focus,
+                    "has_summary_markdown": bool(summary_markdown.strip()),
+                    "limit": limit,
+                    "project": project,
+                },
+            )
+
+            if project:
+                is_valid, msg, project_info = ensure_project_context(project)
+                if not is_valid:
+                    return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+
+            project_msg = _ensure_project_exists()
+            result = ref_manager.build_synthesis_page(
+                title,
+                reference_ids=_parse_reference_ids(reference_ids),
+                query=query,
+                focus=focus,
+                summary_markdown=summary_markdown,
+                limit=limit,
+            )
+            log_tool_result("build_synthesis_page", result)
+            return result + project_msg
+
+        @mcp.tool()
+        def materialize_agent_wiki(
+            knowledge_map_title: str,
+            synthesis_title: str = "",
+            reference_ids: str = "",
+            query: str = "",
+            focus: str = "",
+            summary_markdown: str = "",
+            limit: int = 12,
+            project: Optional[str] = None,
+        ) -> str:
+            """
+            Materialize the second-stage agent wiki bundle in one step.
+
+            Args:
+                knowledge_map_title: Title for the knowledge map page
+                synthesis_title: Optional title for the synthesis page
+                reference_ids: Optional comma/newline-separated reference ids
+                query: Optional local search query when reference_ids omitted
+                focus: Optional synthesis focus
+                summary_markdown: Optional prewritten synthesis markdown
+                limit: Max references to include when selecting automatically
+                project: Project slug (default: current)
+            """
+            log_tool_call(
+                "materialize_agent_wiki",
+                {
+                    "knowledge_map_title": knowledge_map_title,
+                    "synthesis_title": synthesis_title,
+                    "reference_ids": reference_ids,
+                    "query": query,
+                    "focus": focus,
+                    "has_summary_markdown": bool(summary_markdown.strip()),
+                    "limit": limit,
+                    "project": project,
+                },
+            )
+
+            if project:
+                is_valid, msg, project_info = ensure_project_context(project)
+                if not is_valid:
+                    return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+
+            project_msg = _ensure_project_exists()
+            result = ref_manager.materialize_agent_wiki(
+                knowledge_map_title=knowledge_map_title,
+                synthesis_title=synthesis_title,
+                reference_ids=_parse_reference_ids(reference_ids),
+                query=query,
+                focus=focus,
+                summary_markdown=summary_markdown,
+                limit=limit,
+            )
+            log_tool_result("materialize_agent_wiki", result)
+            return result + project_msg
 
     @mcp.tool()
     def list_saved_references(project: Optional[str] = None) -> str:
@@ -568,7 +953,16 @@ def register_reference_manager_tools(
                     lines.append(text)
                 lines.append("")
 
-        # Check for asset-aware parsed sections
+        # Check for normalized asset-aware parsed sections first
+        normalized_sections_path = ref_dir / "artifacts" / "asset-aware" / "sections.md"
+        if normalized_sections_path.is_file():
+            content = normalized_sections_path.read_text(encoding="utf-8")
+            lines.append("## Fulltext (asset-aware parsed)")
+            lines.append(content[:10000])
+            lines.append("")
+            fulltext_available = True
+
+        # Legacy fallback: older parsed section layout
         analysis_sections_dir = ref_dir / "sections"
         if analysis_sections_dir.is_dir():
             for section_file in sorted(analysis_sections_dir.iterdir()):
@@ -642,10 +1036,6 @@ def register_reference_manager_tools(
             return f"❌ Reference PMID:{pmid} not found."
 
         ref_dir = Path(detail.get("ref_dir", ""))
-        meta_path = ref_dir / "metadata.json"
-
-        if not meta_path.is_file():
-            return f"❌ metadata.json not found for PMID:{pmid}"
 
         # Parse usage sections
         sections_list = (
@@ -671,18 +1061,14 @@ def register_reference_manager_tools(
             encoding="utf-8",
         )
 
-        # Update metadata.json with analysis status
-        try:
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            meta["analysis_completed"] = True
-            meta["analysis_summary"] = summary
-            meta["usage_sections"] = sections_list
-            meta_path.write_text(
-                json.dumps(meta, indent=2, ensure_ascii=False),
-                encoding="utf-8",
-            )
-        except (json.JSONDecodeError, OSError) as e:
-            return f"⚠️ Analysis saved but metadata update failed: {e}"
+        update_result = ref_manager.update_reference_analysis_status(
+            pmid,
+            summary,
+            usage_sections=sections_list,
+            analysis_completed=True,
+        )
+        if update_result != f"Updated {pmid}.":
+            return f"⚠️ Analysis saved but metadata update failed: {update_result}"
 
         result = (
             f"✅ Analysis saved for PMID:{pmid}\n"
