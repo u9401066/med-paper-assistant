@@ -51,7 +51,7 @@ PROMPT_ASSOCIATE = """基於以下概念，產生相關聯想：
 
 聯想方向說明：
 - similar: 相似的概念
-- opposite: 相反或對比的概念
+- opposite: 相反或對比的概念  
 - cross-domain: 跨領域的概念
 - random: 較遠但有潛力的連結"""
 

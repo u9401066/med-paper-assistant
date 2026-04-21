@@ -21,17 +21,17 @@ class ThinkingSpeed(str, Enum):
 
 class ThinkingMode(str, Enum):
     """思考模式 - 從 React 到 Creativity"""
-
+    
     # === Fast Thinking (System 1) ===
     REACT = "react"                    # 基本反應：輸入 → 輸出
     ASSOCIATE = "associate"            # 快速聯想：概念 → 相關概念
     PATTERN_MATCH = "pattern_match"    # 模式匹配：識別已知模式
-
+    
     # === Slow Thinking (System 2) ===
     ANALYZE = "analyze"                # 分析：拆解問題結構
     SYNTHESIZE = "synthesize"          # 綜合：組合多個概念
     EVALUATE = "evaluate"              # 評估：判斷品質與可行性
-
+    
     # === Creative Thinking (System 1 + 2) ===
     DIVERGE = "diverge"                # 發散：產生多種可能
     CONVERGE = "converge"              # 收斂：選擇最佳方案
@@ -40,18 +40,18 @@ class ThinkingMode(str, Enum):
 
 class ThinkingStep(BaseModel):
     """單一思考步驟"""
-
+    
     mode: ThinkingMode
     speed: ThinkingSpeed
     input_context: str = Field(description="輸入上下文")
     output: str | None = Field(default=None, description="思考輸出")
     confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="信心度")
     reasoning: str | None = Field(default=None, description="推理過程（慢思考才有）")
-
+    
     @property
     def is_fast(self) -> bool:
         return self.speed == ThinkingSpeed.FAST
-
+    
     @property
     def is_creative(self) -> bool:
         return self.mode in {
@@ -63,18 +63,18 @@ class ThinkingStep(BaseModel):
 
 class ThinkingChain(BaseModel):
     """思考鏈：多個步驟的組合"""
-
+    
     steps: list[ThinkingStep] = Field(default_factory=list)
     total_fast_steps: int = 0
     total_slow_steps: int = 0
-
+    
     def add_step(self, step: ThinkingStep) -> None:
         self.steps.append(step)
         if step.is_fast:
             self.total_fast_steps += 1
         else:
             self.total_slow_steps += 1
-
+    
     @property
     def fast_slow_ratio(self) -> float:
         """快慢比例 - 理想是多快少慢"""

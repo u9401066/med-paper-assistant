@@ -39,7 +39,7 @@ def should_continue(state: CGUState) -> Literal["continue", "finalize"]:
 def route_thinking(state: CGUState) -> str:
     """
     路由思考模式
-
+    
     核心邏輯：快思慢想
     - 先做多個快步驟
     - 再做慢步驟評估
@@ -48,11 +48,11 @@ def route_thinking(state: CGUState) -> str:
     # 檢查是否該停止
     if state.should_stop or state.error:
         return "finalize"
-
+    
     # 檢查是否已有足夠點子
     if len(state.final_ideas) >= state.target_count:
         return "finalize"
-
+    
     # 快思慢想邏輯
     if state.should_do_fast():
         # 快步驟：根據當前模式選擇
@@ -68,7 +68,7 @@ def route_thinking(state: CGUState) -> str:
         else:
             # 預設快步驟
             return "associate"
-
+    
     elif state.should_do_slow():
         # 慢步驟：分析、綜合、評估
         mode = state.current_mode
@@ -85,7 +85,7 @@ def route_thinking(state: CGUState) -> str:
         else:
             # 預設慢步驟
             return "evaluate"
-
+    
     else:
         # 週期完成，評估是否繼續
         if len(state.candidate_ideas) >= state.target_count:
@@ -108,7 +108,7 @@ async def reset_cycle_node(state: CGUState) -> dict:
 async def finalize_node(state: CGUState) -> dict:
     """
     最終化節點
-
+    
     整理最終輸出
     """
     # 如果 final_ideas 還沒填充，從 candidate_ideas 選取
@@ -120,16 +120,16 @@ async def finalize_node(state: CGUState) -> dict:
         )
         final = sorted_ideas[:state.target_count]
         return {"final_ideas": final, "should_stop": True}
-
+    
     return {"should_stop": True}
 
 
 def build_cgu_graph() -> StateGraph:
     """
     建構 CGU 思考圖
-
+    
     結構：
-
+    
         START
           │
           ▼
@@ -160,33 +160,33 @@ def build_cgu_graph() -> StateGraph:
     """
     # 建立圖
     graph = StateGraph(CGUState)
-
+    
     # === 添加節點 ===
-
+    
     # Fast Thinking (System 1)
     graph.add_node("react", react_node)
     graph.add_node("associate", associate_node)
     graph.add_node("pattern_match", pattern_match_node)
-
+    
     # Slow Thinking (System 2)
     graph.add_node("analyze", analyze_node)
     graph.add_node("synthesize", synthesize_node)
     graph.add_node("evaluate", evaluate_node)
-
+    
     # Creative Thinking
     graph.add_node("diverge", diverge_node)
     graph.add_node("converge", converge_node)
     graph.add_node("transform", transform_node)
-
+    
     # Control nodes
     graph.add_node("reset_cycle", reset_cycle_node)
     graph.add_node("finalize", finalize_node)
-
+    
     # === 設定入口點 ===
     graph.set_entry_point("react")
-
+    
     # === 添加邊 ===
-
+    
     # Fast thinking 流程
     graph.add_conditional_edges(
         "react",
@@ -198,7 +198,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     graph.add_conditional_edges(
         "associate",
         route_thinking,
@@ -209,7 +209,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     graph.add_conditional_edges(
         "pattern_match",
         route_thinking,
@@ -220,7 +220,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     # Diverge 節點
     graph.add_conditional_edges(
         "diverge",
@@ -234,7 +234,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     # Slow thinking 流程
     graph.add_conditional_edges(
         "analyze",
@@ -245,7 +245,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     graph.add_conditional_edges(
         "synthesize",
         route_thinking,
@@ -255,7 +255,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     graph.add_conditional_edges(
         "evaluate",
         route_thinking,
@@ -266,7 +266,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     graph.add_conditional_edges(
         "converge",
         route_thinking,
@@ -276,7 +276,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     graph.add_conditional_edges(
         "transform",
         route_thinking,
@@ -286,7 +286,7 @@ def build_cgu_graph() -> StateGraph:
             "finalize": "finalize",
         }
     )
-
+    
     # Reset cycle 後繼續
     graph.add_conditional_edges(
         "reset_cycle",
@@ -295,38 +295,38 @@ def build_cgu_graph() -> StateGraph:
             "diverge": "diverge",
         }
     )
-
+    
     # Finalize 結束
     graph.add_edge("finalize", END)
-
+    
     return graph
 
 
 def create_cgu_agent(pattern: str = "explore"):
     """
     創建 CGU Agent
-
+    
     Args:
         pattern: 快慢模式
             - sprint: 5 fast + 1 slow (快速嘗試)
             - explore: 3 fast + 1 slow (平衡探索)
             - refine: 2 fast + 2 slow (精煉模式)
             - deep: 1 fast + 3 slow (深度思考)
-
+    
     Returns:
         編譯後的 LangGraph Agent
     """
     graph = build_cgu_graph()
-
+    
     # 取得快慢配置
     fast_target, slow_target, description = FAST_SLOW_PATTERNS.get(
         pattern,
         FAST_SLOW_PATTERNS["explore"]
     )
-
+    
     # 編譯圖
     agent = graph.compile()
-
+    
     # 返回包裝的 agent 和配置
     return {
         "agent": agent,
@@ -346,21 +346,21 @@ async def run_cgu(
 ) -> dict:
     """
     執行 CGU 創意生成
-
+    
     Args:
         topic: 發想主題
         creativity_level: 創意層級 (1/2/3)
         target_count: 目標點子數量
         pattern: 快慢模式
         constraints: 限制條件
-
+    
     Returns:
         生成結果
     """
     # 創建 agent
     cgu = create_cgu_agent(pattern)
     agent = cgu["agent"]
-
+    
     # 準備初始狀態
     level = CreativityLevel(creativity_level)
     initial_state = CGUState(
@@ -372,10 +372,10 @@ async def run_cgu(
         fast_target=cgu["fast_target"],
         slow_target=cgu["slow_target"],
     )
-
+    
     # 執行圖
     final_state = await agent.ainvoke(initial_state.model_dump())
-
+    
     # 整理輸出
     return {
         "topic": topic,

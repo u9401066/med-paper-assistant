@@ -32,7 +32,7 @@ class ThinkingResult(TypedDict):
 async def react_task(topic: str, context: str = "") -> ThinkingResult:
     """
     REACT 任務 - 基本反應
-
+    
     Python 3.12 f-string 新特性：可嵌套、多行
     """
     # 多行 f-string with comments (PEP 701)
@@ -40,13 +40,13 @@ async def react_task(topic: str, context: str = "") -> ThinkingResult:
         主題: {topic}
         上下文: {context if context else "無"}
     """
-
+    
     associations = [
         f"{topic} 的核心概念",
-        f"{topic} 的常見應用",
+        f"{topic} 的常見應用", 
         f"{topic} 的相關領域",
     ]
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.REACT,
         speed=ThinkingSpeed.FAST,
@@ -54,7 +54,7 @@ async def react_task(topic: str, context: str = "") -> ThinkingResult:
         output=output.strip(),
         confidence=0.6,
     )
-
+    
     return {
         "ideas": [],
         "associations": associations,
@@ -77,7 +77,7 @@ async def associate_task(
             f"{concept} 的延伸",
             f"{concept} 的變體",
         ])
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.ASSOCIATE,
         speed=ThinkingSpeed.FAST,
@@ -85,7 +85,7 @@ async def associate_task(
         output=f"聯想擴展：產生 {len(new_associations)} 個新聯想",
         confidence=0.5,
     )
-
+    
     return {
         "ideas": [],
         "associations": new_associations,
@@ -110,7 +110,7 @@ async def pattern_match_task(
         )
         for i, assoc in enumerate(associations[-5:])
     ]
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.PATTERN_MATCH,
         speed=ThinkingSpeed.FAST,
@@ -118,7 +118,7 @@ async def pattern_match_task(
         output="識別到的模式：主題群聚、概念橋接",
         confidence=0.55,
     )
-
+    
     return {
         "ideas": ideas,
         "associations": [],
@@ -146,7 +146,7 @@ async def analyze_task(
 3. 已有點子：{len(ideas)}
 4. 關聯範圍：{creativity_level.association_range}
 """
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.ANALYZE,
         speed=ThinkingSpeed.SLOW,
@@ -155,7 +155,7 @@ async def analyze_task(
         confidence=0.7,
         reasoning=reasoning,
     )
-
+    
     return {
         "ideas": ideas,
         "associations": [],
@@ -174,16 +174,16 @@ async def evaluate_task(
     EVALUATE 任務 - 評估判斷
     """
     min_score, max_score = creativity_level.association_range
-
+    
     sorted_ideas = sorted(
         ideas,
         key=lambda x: x.association_score,
         reverse=True,
     )
-
+    
     final_count = min(target_count, len(sorted_ideas))
     final_ideas = sorted_ideas[:final_count]
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.EVALUATE,
         speed=ThinkingSpeed.SLOW,
@@ -192,9 +192,9 @@ async def evaluate_task(
         confidence=0.8,
         reasoning=f"根據分數範圍 {min_score}-{max_score} 進行篩選",
     )
-
+    
     should_continue = len(final_ideas) < target_count
-
+    
     return {
         "ideas": final_ideas,
         "associations": [],
@@ -214,13 +214,13 @@ async def cgu_workflow(
 ) -> dict:
     """
     CGU 創意生成工作流 - Functional API 入口點
-
+    
     Args:
         topic: 發想主題
         creativity_level: 創意層級 (1/2/3)
         target_count: 目標點子數量
         pattern: 快慢模式
-
+    
     Returns:
         生成結果
     """
@@ -228,57 +228,57 @@ async def cgu_workflow(
     all_steps: list[ThinkingStep] = []
     associations: AssociationList = []
     ideas: IdeaList = []
-
+    
     # === Fast Thinking Phase ===
-
+    
     # Step 1: React
     react_result = await react_task(topic)
     all_steps.append(react_result["step"])
     associations.extend(react_result["associations"])
-
+    
     # Step 2: Associate
     associate_result = await associate_task(topic, associations)
     all_steps.append(associate_result["step"])
     associations.extend(associate_result["associations"])
-
+    
     # Step 3: Pattern Match
     pattern_result = await pattern_match_task(associations)
     all_steps.append(pattern_result["step"])
     ideas.extend(pattern_result["ideas"])
-
+    
     # === Slow Thinking Phase ===
-
+    
     # Step 4: Analyze
     analyze_result = await analyze_task(topic, ideas, level)
     all_steps.append(analyze_result["step"])
-
+    
     # Step 5: Evaluate
     evaluate_result = await evaluate_task(ideas, target_count, level)
     all_steps.append(evaluate_result["step"])
     final_ideas = evaluate_result["ideas"]
-
+    
     # === Iteration if needed ===
     iteration = 1
     max_iterations = 3
-
+    
     while evaluate_result["should_continue"] and iteration < max_iterations:
         iteration += 1
-
+        
         # More association
         associate_result = await associate_task(topic, associations)
         all_steps.append(associate_result["step"])
         associations.extend(associate_result["associations"])
-
+        
         # Pattern match
         pattern_result = await pattern_match_task(associations)
         all_steps.append(pattern_result["step"])
         ideas.extend(pattern_result["ideas"])
-
+        
         # Re-evaluate
         evaluate_result = await evaluate_task(ideas, target_count, level)
         all_steps.append(evaluate_result["step"])
         final_ideas = evaluate_result["ideas"]
-
+    
     # === Format Output ===
     return {
         "topic": topic,
@@ -307,29 +307,29 @@ async def cgu_workflow_with_commands(
 ) -> dict:
     """
     使用 Command 進行更精細控制的工作流
-
+    
     展示 LangGraph 1.0 的 Command 和 interrupt 特性
     """
     level = CreativityLevel(creativity_level)
-
+    
     # 使用 Command 進行條件控制
     react_result = await react_task(topic)
-
+    
     if not react_result["associations"]:
         # 可以在這裡使用 interrupt 暫停等待人工輸入
         # user_input = interrupt("需要更多上下文，請提供...")
         pass
-
+    
     # 繼續處理...
     associate_result = await associate_task(topic, react_result["associations"])
     pattern_result = await pattern_match_task(associate_result["associations"])
-
+    
     evaluate_result = await evaluate_task(
         pattern_result["ideas"],
         target_count,
         level,
     )
-
+    
     return {
         "topic": topic,
         "ideas": [

@@ -33,10 +33,10 @@ def _init_llm():
     global _llm_client, _llm_available
     if not USE_LLM:
         return False
-
+    
     if _llm_client is not None:
         return _llm_available
-
+    
     try:
         from cgu.llm import get_llm_client
         _llm_client = get_llm_client()
@@ -62,12 +62,12 @@ def _get_llm_client():
 async def react_node(state: CGUState) -> dict:
     """
     REACT 節點 - 基本反應
-
+    
     最快速的思考：直接對輸入產生反應
     """
     output_text = f"初步反應：關於 '{state.topic}' 的第一印象"
     associations = []
-
+    
     client = _get_llm_client()
     if client is not None:
         try:
@@ -94,7 +94,7 @@ async def react_node(state: CGUState) -> dict:
             f"{state.topic} 的常見應用",
             f"{state.topic} 的相關領域",
         ]
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.REACT,
         speed=ThinkingSpeed.FAST,
@@ -102,7 +102,7 @@ async def react_node(state: CGUState) -> dict:
         output=output_text,
         confidence=0.6,
     )
-
+    
     return {
         "thinking_steps": [step],
         "raw_associations": associations,
@@ -114,14 +114,14 @@ async def react_node(state: CGUState) -> dict:
 async def associate_node(state: CGUState) -> dict:
     """
     ASSOCIATE 節點 - 快速聯想
-
+    
     從現有概念快速聯想到相關概念
     """
     # 從現有聯想擴展
     existing = state.raw_associations[-3:] if state.raw_associations else [state.topic]
     new_associations = []
     output_text = "聯想擴展中..."
-
+    
     client = _get_llm_client()
     if client is not None:
         try:
@@ -151,7 +151,7 @@ async def associate_node(state: CGUState) -> dict:
                 f"{concept} 的延伸",
                 f"{concept} 的變體",
             ])
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.ASSOCIATE,
         speed=ThinkingSpeed.FAST,
@@ -159,7 +159,7 @@ async def associate_node(state: CGUState) -> dict:
         output=output_text,
         confidence=0.5,
     )
-
+    
     return {
         "thinking_steps": [step],
         "raw_associations": new_associations,
@@ -171,7 +171,7 @@ async def associate_node(state: CGUState) -> dict:
 async def pattern_match_node(state: CGUState) -> dict:
     """
     PATTERN_MATCH 節點 - 模式匹配
-
+    
     識別聯想中的模式和規律
     """
     step = ThinkingStep(
@@ -181,7 +181,7 @@ async def pattern_match_node(state: CGUState) -> dict:
         output="識別到的模式：主題群聚、概念橋接",
         confidence=0.55,
     )
-
+    
     # 將聯想轉換為初步點子
     ideas = []
     for i, assoc in enumerate(state.raw_associations[-5:]):
@@ -190,7 +190,7 @@ async def pattern_match_node(state: CGUState) -> dict:
             association_score=0.6 - (i * 0.05),
             source_method="pattern_match",
         ))
-
+    
     return {
         "thinking_steps": [step],
         "candidate_ideas": ideas,
@@ -205,7 +205,7 @@ async def pattern_match_node(state: CGUState) -> dict:
 async def analyze_node(state: CGUState) -> dict:
     """
     ANALYZE 節點 - 慢速分析
-
+    
     深入分析問題結構和現有點子
     """
     reasoning = f"""
@@ -216,12 +216,12 @@ async def analyze_node(state: CGUState) -> dict:
 4. 關聯範圍：{state.creativity_level.association_range}
 """
     output_text = "結構化分析完成"
-
+    
     client = _get_llm_client()
     if client is not None:
         try:
             from cgu.llm import AnalysisOutput, SYSTEM_PROMPT_ANALYSIS, PROMPT_ANALYZE, format_ideas_list
-
+            
             ideas_text = format_ideas_list([i.content for i in state.candidate_ideas[:10]])
             prompt = PROMPT_ANALYZE.format(
                 topic=state.topic,
@@ -243,7 +243,7 @@ async def analyze_node(state: CGUState) -> dict:
             output_text = f"深度分析完成：識別 {len(result.key_dimensions)} 個維度，{len(result.gaps)} 個缺口"
         except Exception as e:
             logger.warning(f"LLM 分析失敗: {e}，使用預設分析")
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.ANALYZE,
         speed=ThinkingSpeed.SLOW,
@@ -252,7 +252,7 @@ async def analyze_node(state: CGUState) -> dict:
         confidence=0.7,
         reasoning=reasoning,
     )
-
+    
     return {
         "thinking_steps": [step],
         "current_mode": ThinkingMode.SYNTHESIZE,
@@ -263,7 +263,7 @@ async def analyze_node(state: CGUState) -> dict:
 async def synthesize_node(state: CGUState) -> dict:
     """
     SYNTHESIZE 節點 - 綜合整合
-
+    
     將多個概念和點子整合成更完整的創意
     """
     step = ThinkingStep(
@@ -274,7 +274,7 @@ async def synthesize_node(state: CGUState) -> dict:
         confidence=0.75,
         reasoning="將相似概念合併，創造更豐富的組合",
     )
-
+    
     # 嘗試合併點子產生新點子
     synthesized_ideas = []
     if len(state.candidate_ideas) >= 2:
@@ -287,7 +287,7 @@ async def synthesize_node(state: CGUState) -> dict:
                 source_method="synthesize",
                 reasoning=f"結合兩個概念的優勢",
             ))
-
+    
     return {
         "thinking_steps": [step],
         "candidate_ideas": synthesized_ideas,
@@ -299,12 +299,12 @@ async def synthesize_node(state: CGUState) -> dict:
 async def evaluate_node(state: CGUState) -> dict:
     """
     EVALUATE 節點 - 評估判斷
-
+    
     評估點子的品質和可行性
     """
     reasoning = f"根據關聯性分數和創意層級 {state.creativity_level.name} 進行篩選"
     output_text = "評估完成，篩選出高潛力點子"
-
+    
     # 預設根據創意層級篩選
     min_score, max_score = state.creativity_level.association_range
     sorted_ideas = sorted(
@@ -312,12 +312,12 @@ async def evaluate_node(state: CGUState) -> dict:
         key=lambda x: x.association_score,
         reverse=True
     )
-
+    
     client = _get_llm_client()
     if client is not None and len(state.candidate_ideas) > 0:
         try:
             from cgu.llm import EvaluationOutput, SYSTEM_PROMPT_EVALUATION, PROMPT_EVALUATE, format_ideas_list
-
+            
             ideas_text = format_ideas_list([i.content for i in state.candidate_ideas[:10]])
             prompt = PROMPT_EVALUATE.format(
                 topic=state.topic,
@@ -329,23 +329,23 @@ async def evaluate_node(state: CGUState) -> dict:
                 response_model=EvaluationOutput,
                 system_prompt=SYSTEM_PROMPT_EVALUATION,
             )
-
+            
             # 根據 LLM 評分重新排序
             score_map = {e.idea_index: e.score for e in result.evaluations}
             for i, idea in enumerate(sorted_ideas):
                 if i in score_map:
                     idea.association_score = score_map[i] / 10.0  # 轉換為 0-1 分數
-
+            
             sorted_ideas = sorted(sorted_ideas, key=lambda x: x.association_score, reverse=True)
             reasoning = f"LLM 評估完成，最佳點子：{result.best_ideas[:3]}"
             output_text = f"評估完成：{len(result.evaluations)} 個點子已評分"
         except Exception as e:
             logger.warning(f"LLM 評估失敗: {e}，使用預設排序")
-
+    
     # 取前 N 個作為最終點子
     final_count = min(state.target_count, len(sorted_ideas))
     final_ideas = sorted_ideas[:final_count]
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.EVALUATE,
         speed=ThinkingSpeed.SLOW,
@@ -354,7 +354,7 @@ async def evaluate_node(state: CGUState) -> dict:
         confidence=0.8,
         reasoning=reasoning,
     )
-
+    
     return {
         "thinking_steps": [step],
         "final_ideas": final_ideas,
@@ -369,7 +369,7 @@ async def evaluate_node(state: CGUState) -> dict:
 async def diverge_node(state: CGUState) -> dict:
     """
     DIVERGE 節點 - 發散思考
-
+    
     使用創意方法產生多種可能
     """
     # 選擇創意方法
@@ -377,11 +377,11 @@ async def diverge_node(state: CGUState) -> dict:
         creativity_level=state.creativity_level,
         prefer_fast=True,
     )
-
+    
     output_text = f"發散中: {method.value}"
     new_ideas = []
     config = METHOD_CONFIGS.get(method)
-
+    
     client = _get_llm_client()
     if client is not None:
         try:
@@ -409,7 +409,7 @@ async def diverge_node(state: CGUState) -> dict:
                             source_method="scamper",
                         ))
                 output_text = f"SCAMPER 發散完成：產生 {len(new_ideas)} 個點子"
-
+                
             elif method == CreativityMethod.SIX_HATS:
                 from cgu.llm import SixHatsOutput, SYSTEM_PROMPT_CREATIVITY
                 prompt = f"使用六頂思考帽方法分析主題「{state.topic}」，從白、紅、黑、黃、綠、藍六個角度思考。"
@@ -433,7 +433,7 @@ async def diverge_node(state: CGUState) -> dict:
                             source_method="six_hats",
                         ))
                 output_text = f"六頂思考帽分析完成：產生 {len(new_ideas)} 個觀點"
-
+                
             else:
                 # 通用創意產生
                 from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_GENERATE_IDEAS
@@ -455,14 +455,14 @@ async def diverge_node(state: CGUState) -> dict:
                         source_method=method.value,
                     ))
                 output_text = f"{method.value} 發散完成：產生 {len(new_ideas)} 個點子"
-
+                
         except Exception as e:
             logger.warning(f"LLM 發散失敗: {e}，使用模擬模式")
             new_ideas = _simulate_diverge(state.topic, method)
     else:
         # 模擬模式
         new_ideas = _simulate_diverge(state.topic, method)
-
+    
     step = ThinkingStep(
         mode=ThinkingMode.DIVERGE,
         speed=ThinkingSpeed.FAST,
@@ -470,7 +470,7 @@ async def diverge_node(state: CGUState) -> dict:
         output=output_text,
         confidence=0.5,
     )
-
+    
     return {
         "thinking_steps": [step],
         "candidate_ideas": new_ideas,
@@ -512,7 +512,7 @@ def _simulate_diverge(topic: str, method: CreativityMethod) -> list[Idea]:
 async def converge_node(state: CGUState) -> dict:
     """
     CONVERGE 節點 - 收斂思考
-
+    
     從多個可能中選擇最佳方案
     """
     step = ThinkingStep(
@@ -523,22 +523,22 @@ async def converge_node(state: CGUState) -> dict:
         confidence=0.7,
         reasoning="根據關聯性和創意層級進行收斂篩選",
     )
-
+    
     # 收斂邏輯：根據創意層級篩選合適的關聯性範圍
     min_score, max_score = state.creativity_level.association_range
-
+    
     filtered_ideas = [
         idea for idea in state.candidate_ideas
         if min_score <= idea.association_score <= max_score
     ]
-
+    
     # 如果篩選後太少，放寬條件
     if len(filtered_ideas) < state.target_count:
         filtered_ideas = sorted(
             state.candidate_ideas,
             key=lambda x: abs(x.association_score - (min_score + max_score) / 2)
         )[:state.target_count]
-
+    
     return {
         "thinking_steps": [step],
         "final_ideas": filtered_ideas[:state.target_count],
@@ -549,7 +549,7 @@ async def converge_node(state: CGUState) -> dict:
 async def transform_node(state: CGUState) -> dict:
     """
     TRANSFORM 節點 - 變革思考
-
+    
     打破規則，創造全新範式（Level 3 創意）
     """
     step = ThinkingStep(
@@ -560,7 +560,7 @@ async def transform_node(state: CGUState) -> dict:
         confidence=0.4,  # 變革性思考信心較低但潛力高
         reasoning="質疑所有假設，尋找顛覆性可能",
     )
-
+    
     # 變革性點子
     transform_ideas = [
         Idea(
@@ -582,7 +582,7 @@ async def transform_node(state: CGUState) -> dict:
             reasoning="強制跨域連結",
         ),
     ]
-
+    
     return {
         "thinking_steps": [step],
         "candidate_ideas": transform_ideas,

@@ -40,26 +40,26 @@ def get_llm_config() -> LLMConfig:
 class CGULLMClient:
     """
     CGU LLM 客戶端
-
+    
     整合 LangChain + Ollama，使用 with_structured_output 產生結構化輸出
     Ollama 服務持續運行（ollama serve），客戶端只是連接 API
     """
-
+    
     def __init__(self, config: LLMConfig | None = None):
         self.config = config or get_llm_config()
-
+        
         # 建立 LangChain Ollama 客戶端
         self._llm = ChatOllama(
             base_url=self.config.base_url,
             model=self.config.model,
             temperature=self.config.temperature,
         )
-
+    
     @property
     def llm(self) -> ChatOllama:
         """LangChain ChatOllama 實例"""
         return self._llm
-
+    
     def generate(
         self,
         prompt: str,
@@ -68,22 +68,22 @@ class CGULLMClient:
     ) -> str:
         """
         基本生成（非結構化）
-
+        
         Args:
             prompt: 使用者提示
             system_prompt: 系統提示
             temperature: 溫度（覆蓋預設）
-
+        
         Returns:
             生成的文字
         """
         from langchain_core.messages import SystemMessage, HumanMessage
-
+        
         messages = []
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=prompt))
-
+        
         # 如果需要不同溫度，創建臨時客戶端
         if temperature is not None and temperature != self.config.temperature:
             llm = ChatOllama(
@@ -94,12 +94,12 @@ class CGULLMClient:
             response = llm.invoke(messages)
         else:
             response = self._llm.invoke(messages)
-
+        
         content = response.content
         if isinstance(content, str):
             return content
         return str(content) if content else ""
-
+    
     def generate_structured(
         self,
         prompt: str,
@@ -109,23 +109,23 @@ class CGULLMClient:
     ) -> T:
         """
         結構化生成（使用 LangChain with_structured_output）
-
+        
         Args:
             prompt: 使用者提示
             response_model: Pydantic 模型類別
             system_prompt: 系統提示
             temperature: 溫度
-
+        
         Returns:
             Pydantic 模型實例
         """
         from langchain_core.messages import SystemMessage, HumanMessage
-
+        
         messages = []
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=prompt))
-
+        
         # 使用 with_structured_output 取得結構化輸出
         if temperature is not None and temperature != self.config.temperature:
             llm = ChatOllama(
@@ -136,15 +136,15 @@ class CGULLMClient:
             structured_llm = llm.with_structured_output(response_model)
         else:
             structured_llm = self._llm.with_structured_output(response_model)
-
+        
         response = structured_llm.invoke(messages)
         return response  # type: ignore[return-value]
-
+    
     # 保留同步別名以保持向後相容
     def generate_sync(self, *args, **kwargs) -> str:
         """同步版本（別名）"""
         return self.generate(*args, **kwargs)
-
+    
     def generate_structured_sync(self, *args, **kwargs):
         """同步版本（別名）"""
         return self.generate_structured(*args, **kwargs)
@@ -157,7 +157,7 @@ _llm_client: CGULLMClient | None = None
 def get_llm_client(config: LLMConfig | None = None) -> CGULLMClient:
     """
     取得全域 LLM 客戶端
-
+    
     Args:
         config: 可選的 LLM 配置，傳入時會重新創建客戶端
     """

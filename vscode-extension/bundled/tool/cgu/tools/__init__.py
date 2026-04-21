@@ -18,7 +18,7 @@ from cgu.tools.creativity_tools import (
 __all__ = [
     # Tools
     "ConceptExplorer",
-    "ConnectionFinder",
+    "ConnectionFinder", 
     "NoveltyChecker",
     "IdeaEvolver",
     "CreativityLogger",

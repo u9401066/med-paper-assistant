@@ -95,7 +95,7 @@ class MandalaOutput(BaseModel):
     extension_6: str = Field(description="延伸 6（左下）")
     extension_7: str = Field(description="延伸 7（左）")
     extension_8: str = Field(description="延伸 8（左上）")
-
+    
     @property
     def extensions(self) -> list[str]:
         return [
