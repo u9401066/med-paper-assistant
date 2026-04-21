@@ -16,7 +16,11 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 
-from .._shared import ensure_project_context, get_project_list_for_prompt
+from .._shared import (
+    ensure_project_context,
+    get_optional_tool_decorator,
+    get_project_list_for_prompt,
+)
 
 _TEXT_DIAGRAM_FORMATS = {"xml", "svg", "txt", "text"}
 _BINARY_DIAGRAM_FORMATS = {"png", "jpg", "jpeg", "gif", "webp", "pdf"}
@@ -92,10 +96,17 @@ def _save_companion_rendered_asset(
     return asset_path
 
 
-def register_diagram_tools(mcp: FastMCP, project_manager: ProjectManager):
+def register_diagram_tools(
+    mcp: FastMCP,
+    project_manager: ProjectManager,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register Draw.io integration tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def save_diagram(
         filename: str,
         content: str,
@@ -215,7 +226,7 @@ The diagram is now part of your research project and can be:
 💡 This diagram is not associated with any project.
 To associate with a project, use `save_diagram` with a project parameter."""
 
-    @mcp.tool()
+    @tool()
     def list_diagrams(project: Optional[str] = None) -> str:
         """
         List diagrams in project's results/figures directory.
@@ -258,3 +269,8 @@ To associate with a project, use `save_diagram` with a project parameter."""
         output.append(f"\n📂 Location: {figures_dir}")
 
         return "\n".join(output)
+
+    return {
+        "save_diagram": save_diagram,
+        "list_diagrams": list_diagrams,
+    }

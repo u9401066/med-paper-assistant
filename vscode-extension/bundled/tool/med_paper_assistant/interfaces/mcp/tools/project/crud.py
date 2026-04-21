@@ -12,13 +12,26 @@ from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.domain.paper_types import get_paper_type_dict
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 
-from .._shared import log_agent_misuse, log_tool_call, log_tool_error, log_tool_result
+from .._shared import (
+    get_optional_tool_decorator,
+    log_agent_misuse,
+    log_tool_call,
+    log_tool_error,
+    log_tool_result,
+)
 
 
-def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
+def register_crud_tools(
+    mcp: FastMCP,
+    project_manager: ProjectManager,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register project CRUD tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def create_project(
         name: str,
         description: str = "",
@@ -44,14 +57,15 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
         )
 
         # Parse authors
-        authors = []
+        authors: list[object] = []
         if authors_json:
             try:
-                authors = json.loads(authors_json)
-                if not isinstance(authors, list):
-                    return "❌ Error: authors_json must be a JSON array."
+                authors_payload = json.loads(authors_json)
             except json.JSONDecodeError as e:
                 return f"❌ Error parsing authors_json: {e}"
+            if not isinstance(authors_payload, list):
+                return "❌ Error: authors_json must be a JSON array."
+            authors = authors_payload
 
         try:
             result = project_manager.create_project(
@@ -105,9 +119,12 @@ def register_crud_tools(mcp: FastMCP, project_manager: ProjectManager):
             log_tool_error("create_project", e, {"name": name, "paper_type": paper_type})
             return f"❌ Error creating project: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def list_projects() -> str:
-        """List all research paper projects with status."""
+        """DEPRECATED public verb. Prefer `project_action(action="list")`.
+
+        List all research paper projects with status.
+        """
         log_tool_call("list_projects", {})
 
         result = project_manager.list_projects()
@@ -147,7 +164,7 @@ create_project(name="My Research Topic", description="Brief description")
         log_tool_result("list_projects", f"found {len(projects)} projects", success=True)
         return "\n".join(lines)
 
-    @mcp.tool()
+    @tool()
     def switch_project(slug: str) -> str:
         """
         Switch to a different project. All subsequent operations use this project.
@@ -192,9 +209,11 @@ create_project(name="My Research Topic", description="Brief description")
 Use `list_projects` to see all projects, or `create_project` to create a new one.
 """
 
-    @mcp.tool()
+    @tool()
     def get_current_project(include_files: bool = False) -> str:
         """
+        DEPRECATED public verb. Prefer `project_action(action="current")`.
+
         Get current project info including paths, statistics, and exploration status.
 
         Args:
@@ -311,7 +330,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
 4. `start_exploration()` - Browse literature without a project
 """
 
-    @mcp.tool()
+    @tool()
     def archive_project(slug: str, confirm: bool = False) -> str:
         """
         Archive project (soft delete). Data preserved, can restore manually.
@@ -388,7 +407,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
             log_tool_error("archive_project", e, {"slug": slug})
             return error_msg
 
-    @mcp.tool()
+    @tool()
     def delete_project(slug: str, confirm: bool = False) -> str:
         """
         ⚠️ PERMANENTLY delete project. Cannot undo! Use archive_project for soft delete.
@@ -445,3 +464,12 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
             error_msg = f"❌ {delete_result.get('error', '未知錯誤')}"
             log_tool_result("delete_project", error_msg, success=False)
             return error_msg
+
+    return {
+        "create_project": create_project,
+        "list_projects": list_projects,
+        "switch_project": switch_project,
+        "get_current_project": get_current_project,
+        "archive_project": archive_project,
+        "delete_project": delete_project,
+    }

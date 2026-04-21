@@ -294,6 +294,11 @@ describe('buildMcpEnv', () => {
         expect(envWith.PYTHONPATH).toBe('/some/path');
     });
 
+    it('uses explicit toolSurface when provided', () => {
+        const env = buildMcpEnv({ toolSurface: 'full' });
+        expect(env.MEDPAPER_TOOL_SURFACE).toBe('full');
+    });
+
     it('inherits and enriches PATH from current process', () => {
         const env = buildMcpEnv({});
         if (process.env.PATH) {

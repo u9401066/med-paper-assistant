@@ -525,6 +525,8 @@ BRIT_VS_AMER: dict[str, str] = {
 AMER_VS_BRIT: dict[str, str] = {v: k for k, v in BRIT_VS_AMER.items()}
 
 # Sanity check: mapping must be bijective (no ambiguous reversals)
-assert len(AMER_VS_BRIT) == len(BRIT_VS_AMER), (
-    f"BRIT_VS_AMER has duplicate values — reverse map lost {len(BRIT_VS_AMER) - len(AMER_VS_BRIT)} entries"
-)
+if len(AMER_VS_BRIT) != len(BRIT_VS_AMER):
+    raise ValueError(
+        "BRIT_VS_AMER has duplicate values — reverse map lost "
+        f"{len(BRIT_VS_AMER) - len(AMER_VS_BRIT)} entries"
+    )

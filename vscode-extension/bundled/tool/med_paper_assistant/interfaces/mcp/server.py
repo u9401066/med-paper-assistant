@@ -52,6 +52,7 @@ from med_paper_assistant.infrastructure.services import (
 from med_paper_assistant.interfaces.mcp.config import SERVER_INSTRUCTIONS
 from med_paper_assistant.interfaces.mcp.prompts import register_prompts
 from med_paper_assistant.interfaces.mcp.resources import register_resources
+from med_paper_assistant.interfaces.mcp.tool_surface import resolve_tool_surface
 from med_paper_assistant.interfaces.mcp.tools import (
     register_analysis_tools,
     register_draft_tools,
@@ -82,6 +83,7 @@ def create_server() -> FastMCP:
     # Setup logging
     logger = setup_logger()
     logger.info("Initializing MedPaper Assistant MCP Server...")
+    tool_surface = resolve_tool_surface()
 
     # Initialize core modules — use singleton to avoid dual-instance state bug.
     # get_project_manager() reads MEDPAPER_BASE_DIR env var (set by VSX extension)
@@ -105,10 +107,16 @@ def create_server() -> FastMCP:
 
     # Register all tools
     logger.info("Registering project tools (incl. diagrams)...")
-    register_project_tools(mcp, project_manager)
+    register_project_tools(mcp, project_manager, tool_surface=tool_surface)
 
     logger.info("Registering reference tools...")
-    register_reference_tools(mcp, ref_manager, drafter, project_manager)
+    register_reference_tools(
+        mcp,
+        ref_manager,
+        drafter,
+        project_manager,
+        tool_surface=tool_surface,
+    )
 
     logger.info("Registering draft tools...")
     register_draft_tools(mcp, drafter)
@@ -120,10 +128,22 @@ def create_server() -> FastMCP:
     register_analysis_tools(mcp, analyzer, drafter)
 
     logger.info("Registering review tools (incl. pipeline gates)...")
-    register_review_tools(mcp, drafter, ref_manager, project_manager=project_manager)
+    register_review_tools(
+        mcp,
+        drafter,
+        ref_manager,
+        project_manager=project_manager,
+        tool_surface=tool_surface,
+    )
 
     logger.info("Registering export tools...")
-    register_export_tools(mcp, formatter, template_reader, word_writer)
+    register_export_tools(
+        mcp,
+        formatter,
+        template_reader,
+        word_writer,
+        tool_surface=tool_surface,
+    )
 
     # Note: Skill tools removed - VS Code Copilot has built-in skill support
     # via .claude/skills/ directory attachment system
@@ -136,6 +156,7 @@ def create_server() -> FastMCP:
     register_resources(mcp, project_manager, template_reader)
 
     logger.info("MedPaper Assistant MCP Server initialized successfully!")
+    logger.info("Using tool surface: %s", tool_surface)
     logger.info("Note: Use pubmed-search MCP for literature search.")
     return mcp
 

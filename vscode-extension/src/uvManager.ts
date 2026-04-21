@@ -441,6 +441,7 @@ export function buildUvxCommand(
 export function buildMcpEnv(options: {
     workspaceDir?: string;
     pythonPath?: string;
+    toolSurface?: 'compact' | 'full';
 }): Record<string, string> {
     const env: Record<string, string> = {};
 
@@ -449,8 +450,8 @@ export function buildMcpEnv(options: {
         env.MEDPAPER_BASE_DIR = options.workspaceDir;
     }
 
-    // Default agent-facing runtime to the compact main mdpaper surface.
-    env.MEDPAPER_TOOL_SURFACE = process.env.MEDPAPER_TOOL_SURFACE || 'compact';
+    // Default agent-facing runtime to the compact main mdpaper surface unless overridden.
+    env.MEDPAPER_TOOL_SURFACE = options.toolSurface || process.env.MEDPAPER_TOOL_SURFACE || 'compact';
 
     // PYTHONPATH only for dev mode (bundled code)
     if (options.pythonPath) {

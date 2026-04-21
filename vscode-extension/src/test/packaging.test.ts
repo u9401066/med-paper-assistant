@@ -69,6 +69,7 @@ describe('package.json manifest', () => {
         const props = pkg.contributes?.configuration?.properties;
         expect(props).toBeDefined();
         expect(props['mdpaper.pythonPath']).toBeDefined();
+        expect(props['mdpaper.toolSurface']).toBeDefined();
         expect(props['mdpaper.defaultCitationStyle']).toBeDefined();
     });
 
@@ -106,6 +107,13 @@ describe('.vscodeignore', () => {
     it('excludes node_modules', () => {
         const content = fs.readFileSync(ignorePath, 'utf-8');
         expect(content).toContain('node_modules');
+    });
+});
+
+describe('release notes', () => {
+    it('includes CHANGELOG.md', () => {
+        const changelogPath = path.join(extDir, 'CHANGELOG.md');
+        expect(fs.existsSync(changelogPath)).toBe(true);
     });
 });
 

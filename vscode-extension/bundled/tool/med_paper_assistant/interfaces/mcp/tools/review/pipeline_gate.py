@@ -46,6 +46,7 @@ from med_paper_assistant.infrastructure.persistence.workspace_state_manager impo
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     log_tool_call,
     log_tool_error,
     log_tool_result,
@@ -108,6 +109,16 @@ def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> 
 
     _active_loops[slug] = loop
     return loop
+
+
+def _require_project_info(project_info: dict | None) -> dict:
+    """Convert ensure_project_context output into an explicit runtime guard."""
+    if project_info is None:
+        raise RuntimeError(
+            "Project context resolved without project metadata. "
+            "Pass an explicit project slug or reselect the active project."
+        )
+    return project_info
 
 
 def _sync_to_workspace_state(
@@ -211,16 +222,22 @@ def _count_review_report_issues(audit_dir: Path, round_num: int) -> dict[str, in
 def register_pipeline_tools(
     mcp: FastMCP,
     project_manager: ProjectManager,
+    *,
+    register_public_verbs: bool = True,
 ):
     """Register pipeline enforcement tools with the MCP server."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     async def validate_phase_gate(
         phase: int,
         project: Optional[str] = None,
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `pipeline_action(action="validate_phase", phase=...)`.
+
         🚧 HARD GATE: Validate all required artifacts for a pipeline phase.
 
         Call this AFTER completing a phase, BEFORE proceeding to the next.
@@ -259,7 +276,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
@@ -302,12 +319,14 @@ def register_pipeline_tools(
             log_tool_error("validate_phase_gate", e)
             return f"❌ Error validating phase gate: {e}"
 
-    @mcp.tool()
+    @tool()
     async def pipeline_heartbeat(
         project: Optional[str] = None,
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `pipeline_action(action="heartbeat")`.
+
         💓 Pipeline heartbeat — get full status across ALL phases.
 
         Returns:
@@ -331,7 +350,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
@@ -392,7 +411,7 @@ def register_pipeline_tools(
             log_tool_error("pipeline_heartbeat", e)
             return f"❌ Error getting pipeline heartbeat: {e}"
 
-    @mcp.tool()
+    @tool()
     async def start_review_round(
         project: Optional[str] = None,
         max_rounds: int = 3,
@@ -401,6 +420,8 @@ def register_pipeline_tools(
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `pipeline_action(action="start_review", ...)`.
+
         🔄 Start a new review round (Phase 7 state machine).
 
         This exposes the AutonomousAuditLoop as an MCP tool.
@@ -433,7 +454,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
@@ -522,7 +543,7 @@ def register_pipeline_tools(
             log_tool_error("start_review_round", e)
             return f"❌ Error starting review round: {e}"
 
-    @mcp.tool()
+    @tool()
     async def submit_review_round(
         scores: str,
         issues_found: int = 0,
@@ -531,6 +552,8 @@ def register_pipeline_tools(
         ctx: Context | None = None,
     ) -> str:
         """
+        DEPRECATED public verb. Prefer `pipeline_action(action="submit_review", ...)`.
+
         ✅ Submit a completed review round with quality scores.
 
         Call this AFTER writing review-report and author-response files,
@@ -560,7 +583,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 
@@ -830,7 +853,7 @@ def register_pipeline_tools(
             log_tool_error("submit_review_round", e)
             return f"❌ Error submitting review round: {e}"
 
-    @mcp.tool()
+    @tool()
     async def validate_project_structure(
         project: Optional[str] = None,
         ctx: Context | None = None,
@@ -854,7 +877,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             project_dir = Path(project_info["project_path"])
 
             await report_tool_progress(ctx, 1, 2, "Validating project structure", end=95)
@@ -874,7 +897,7 @@ def register_pipeline_tools(
 
     # ── New Flexibility Tools ─────────────────────────────────────
 
-    @mcp.tool()
+    @tool()
     def request_section_rewrite(
         sections: str,
         reason: str,
@@ -911,7 +934,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -1003,7 +1026,7 @@ def register_pipeline_tools(
             log_tool_error("request_section_rewrite", e)
             return f"❌ Error requesting section rewrite: {e}"
 
-    @mcp.tool()
+    @tool()
     def pause_pipeline(
         reason: str = "user_requested",
         project: Optional[str] = None,
@@ -1032,7 +1055,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -1079,7 +1102,7 @@ def register_pipeline_tools(
             log_tool_error("pause_pipeline", e)
             return f"❌ Error pausing pipeline: {e}"
 
-    @mcp.tool()
+    @tool()
     def resume_pipeline(
         project: Optional[str] = None,
     ) -> str:
@@ -1100,7 +1123,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -1171,7 +1194,7 @@ def register_pipeline_tools(
             log_tool_error("resume_pipeline", e)
             return f"❌ Error resuming pipeline: {e}"
 
-    @mcp.tool()
+    @tool()
     def approve_section(
         section: str,
         action: str = "approve",
@@ -1209,7 +1232,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
 
@@ -1279,7 +1302,7 @@ def register_pipeline_tools(
             log_tool_error("approve_section", e)
             return f"❌ Error processing section approval: {e}"
 
-    @mcp.tool()
+    @tool()
     def approve_concept_review(
         action: str = "approve",
         rationale: str = "",
@@ -1316,7 +1339,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
 
             if action not in ("approve", "revoke"):
                 return "❌ Action must be 'approve' or 'revoke'."
@@ -1388,7 +1411,7 @@ def register_pipeline_tools(
             log_tool_error("approve_concept_review", e)
             return f"❌ Error processing concept review approval: {e}"
 
-    @mcp.tool()
+    @tool()
     def reset_review_loop(
         project: Optional[str] = None,
         confirm: bool = False,
@@ -1420,7 +1443,7 @@ def register_pipeline_tools(
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return msg
-            assert project_info is not None
+            project_info = _require_project_info(project_info)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 

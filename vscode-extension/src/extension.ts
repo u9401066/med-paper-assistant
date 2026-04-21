@@ -255,6 +255,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
             const workspaceFolders = vscode.workspace.workspaceFolders;
             const wsRoot = workspaceFolders?.[0]?.uri.fsPath;
             const externalServers = getExternallyProvidedManagedServers(context);
+            const toolSurface = getToolSurface();
 
             // Detect development workspace (has src/med_paper_assistant/ source code)
             const isDevWorkspace = wsRoot ? checkIsDevWorkspace(wsRoot) : false;
@@ -264,6 +265,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
             const uvxPath = getUvxPath(uvPath);
 
             outputChannel.appendLine(`[MCP] Mode: ${isDevWorkspace ? 'development' : 'marketplace'}, uv: ${uvPath}, uvx: ${uvxPath}`);
+            outputChannel.appendLine(`[MCP] MedPaper tool surface: ${toolSurface}`);
 
             const definitions: vscode.McpServerDefinition[] = [];
 
@@ -283,13 +285,13 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 // Dev PYTHONPATH: workspace src + integrations + bundled
                 const pythonPathEnv = buildDevPythonPath(wsRoot, bundledToolPath);
 
-                mcpEnv = buildMcpEnv({ workspaceDir: wsRoot, pythonPath: pythonPathEnv });
+                mcpEnv = buildMcpEnv({ workspaceDir: wsRoot, pythonPath: pythonPathEnv, toolSurface });
             } else {
                 // Marketplace: prefer pre-installed tool, fallback to uvx
                 const [cmd, args, preInstalled] = buildMcpCommand(uvPath, 'med-paper-assistant');
                 mdpaperCommand = cmd;
                 mdpaperArgs = args;
-                mcpEnv = buildMcpEnv({ workspaceDir: wsRoot });
+                mcpEnv = buildMcpEnv({ workspaceDir: wsRoot, toolSurface });
                 if (preInstalled) {
                     outputChannel.appendLine(`[MCP] MedPaper: using pre-installed binary (skipping uvx)`);
                 }
@@ -703,6 +705,11 @@ function getPythonPath(context: vscode.ExtensionContext): string {
         wsRoot,
         extensionPath: context.extensionPath,
     });
+}
+
+function getToolSurface(): 'compact' | 'full' {
+    const config = vscode.workspace.getConfiguration('mdpaper');
+    return config.get<'compact' | 'full'>('toolSurface') || 'compact';
 }
 
 

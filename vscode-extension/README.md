@@ -19,7 +19,7 @@ AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
 ### From VSIX
 
 ```bash
-code --install-extension medpaper-assistant-0.6.3.vsix
+code --install-extension medpaper-assistant-0.6.9.vsix
 ```
 
 Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
@@ -134,15 +134,17 @@ Bundled prompt workflows: `mdpaper.write-paper`, `mdpaper.literature-survey`, `m
 
 Bundled reviewer/analysis agents: `concept-challenger`, `domain-reviewer`, `literature-searcher`, `meta-learner`, `methodology-reviewer`, `paper-reviewer`, `reference-analyzer`, `review-orchestrator`, `statistics-reviewer`.
 
-### MCP Tools (94 full / 44 compact default)
+### MCP Tools (101 full / 44 compact default)
 
 自動註冊 MCP Server：
 
-- **MedPaper Assistant** - 預設 compact 44 工具（可切換 full 94），另含 3 個 MCP prompts 與 3 個 MCP resources（88 個領域工具 + 6 個 facade 入口）
+- **MedPaper Assistant** - 預設 compact 44 工具（可切換 full 101），另含 3 個 MCP prompts 與 3 個 MCP resources（95 個領域工具 + 6 個 facade 入口）
 - **CGU Creativity** - 創意發想工具
 - **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Draw.io Diagrams** - 圖表繪製
+
+若你要在 VSIX 版直接跑 full-surface 的 agent wiki workflow，請把 `mdpaper.toolSurface` 切成 `full`。這會額外暴露 `import_local_papers`、`ingest_web_source`、`ingest_markdown_source`、`resolve_reference_identity`、`build_knowledge_map`、`build_synthesis_page`、`materialize_agent_wiki` 等 orchestration 工具；預設 `compact` 仍維持較乾淨的 agent tool list。
 
 MCP prompts: `project_bootstrap`, `draft_section_plan`, `word_export_checklist`.
 
@@ -154,6 +156,7 @@ MCP resources: `medpaper://workspace/state`, `medpaper://workspace/projects`, `m
 | ------------------------------ | --------------- | -------------------------------- |
 | `mdpaper.pythonPath`           | Python 執行路徑 | Auto-detect (uv > venv > system) |
 | `mdpaper.projectsDirectory`    | 專案目錄        | Workspace                        |
+| `mdpaper.toolSurface`          | MCP 工具面      | compact                          |
 | `mdpaper.defaultCitationStyle` | 引用風格        | vancouver                        |
 
 ## Development

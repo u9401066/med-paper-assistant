@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
-  "version": "0.6.7",
+  "version": "0.6.9",
   "publisher": "u9401066",
   "icon": "resources/icon.png",
   "galleryBanner": {
@@ -147,6 +147,15 @@
           "type": "string",
           "default": "",
           "description": "Default directory for research projects. Leave empty to use workspace."
+        },
+        "mdpaper.toolSurface": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "full"
+          ],
+          "default": "compact",
+          "description": "MedPaper MCP tool surface. Use full to expose advanced wiki/reference orchestration tools such as import_local_papers, ingest_web_source, ingest_markdown_source, resolve_reference_identity, and materialize_agent_wiki."
         },
         "mdpaper.defaultCitationStyle": {
           "type": "string",

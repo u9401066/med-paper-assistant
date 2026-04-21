@@ -14,6 +14,8 @@ from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 from med_paper_assistant.infrastructure.services import Formatter, TemplateReader, WordWriter
 
+from .._shared import get_optional_tool_decorator
+
 # Global state for document editing sessions
 _active_documents: dict[str, dict] = {}
 
@@ -24,11 +26,18 @@ def get_active_documents() -> dict:
 
 
 def register_word_export_tools(
-    mcp: FastMCP, formatter: Formatter, template_reader: TemplateReader, word_writer: WordWriter
+    mcp: FastMCP,
+    formatter: Formatter,
+    template_reader: TemplateReader,
+    word_writer: WordWriter,
+    *,
+    register_public_verbs: bool = True,
 ):
     """Register Word export tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def list_templates() -> str:
         """
         List all available Word templates in templates/ directory.
@@ -45,7 +54,7 @@ def register_word_export_tools(
         except Exception as e:
             return f"Error listing templates: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def read_template(template_name: str) -> str:
         """
         Read a Word template's structure (sections, styles, word limits).
@@ -58,7 +67,7 @@ def register_word_export_tools(
         except Exception as e:
             return f"Error reading template: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def start_document_session(template_name: str = "", session_id: str = "default") -> str:
         """
         Start a document editing session, optionally from a Word template.
@@ -90,7 +99,7 @@ def register_word_export_tools(
         except Exception as e:
             return f"Error starting session: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def insert_section(
         session_id: str, section_name: str, content: str, mode: str = "replace"
     ) -> str:
@@ -135,7 +144,7 @@ def register_word_export_tools(
         except Exception as e:
             return f"Error inserting section: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def verify_document(session_id: str, limits_json: Optional[str] = None) -> str:
         """
         Get document summary with all sections and word counts.
@@ -218,7 +227,7 @@ def register_word_export_tools(
         except Exception as e:
             return f"Error verifying document: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def save_document(session_id: str, output_filename: str) -> str:
         """
         Save the document to Word file and close session.
@@ -268,3 +277,12 @@ def register_word_export_tools(
             )
         except Exception as e:
             return f"Error saving document: {str(e)}"
+
+    return {
+        "list_templates": list_templates,
+        "read_template": read_template,
+        "start_document_session": start_document_session,
+        "insert_section": insert_section,
+        "verify_document": verify_document,
+        "save_document": save_document,
+    }

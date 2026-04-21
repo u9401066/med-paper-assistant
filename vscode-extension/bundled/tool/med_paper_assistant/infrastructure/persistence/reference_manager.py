@@ -1,6 +1,9 @@
 import json
 import os
+import hashlib
+import shutil
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from pathlib import Path
 
 import structlog
 
@@ -45,6 +48,806 @@ class ReferenceManager:
         self._pubmed_api_url = pubmed_api_url
         # Note: Directory is created on-demand when saving references,
         # not at initialization to avoid polluting root directory
+
+    def _project_root_dir(self) -> str:
+        """Get the current project root or best-effort workspace root."""
+        if self._project_manager:
+            try:
+                paths = self._project_manager.get_project_paths()
+                return paths.get("root", os.path.dirname(self.base_dir))
+            except (ValueError, KeyError):
+                pass
+
+        base_path = Path(self.base_dir).resolve()
+        return str(base_path.parent)
+
+    def _notes_dir(self) -> str:
+        return os.path.join(self._project_root_dir(), "notes")
+
+    def _knowledge_maps_dir(self) -> str:
+        return os.path.join(self._notes_dir(), "knowledge-maps")
+
+    def _synthesis_pages_dir(self) -> str:
+        return os.path.join(self._notes_dir(), "synthesis-pages")
+
+    def _dedupe_strings(self, values: Any) -> List[str]:
+        if isinstance(values, str):
+            candidates = [values]
+        elif isinstance(values, list):
+            candidates = values
+        else:
+            candidates = []
+
+        deduped: List[str] = []
+        seen: set[str] = set()
+        for value in candidates:
+            if not isinstance(value, str):
+                continue
+            normalized = value.strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            deduped.append(normalized)
+        return deduped
+
+    def _dedupe_provenance(self, entries: Any) -> List[Dict[str, Any]]:
+        if not isinstance(entries, list):
+            return []
+
+        deduped: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            marker = json.dumps(entry, sort_keys=True, ensure_ascii=False)
+            if marker in seen:
+                continue
+            seen.add(marker)
+            deduped.append(entry)
+        return deduped
+
+    def _remove_identity_registry_entries(
+        self, reference_id: str, payload: Optional[Dict[str, Any]] = None
+    ) -> None:
+        payload = payload or {}
+        registry_specs = [
+            (self._hash_registry_path(), [payload.get("content_hash")]),
+            (self._pmid_registry_path(), [str(payload.get("pmid"))] if payload.get("pmid") else []),
+            (
+                self._doi_registry_path(),
+                [str(payload.get("doi")).lower()] if payload.get("doi") else [],
+            ),
+        ]
+
+        for registry_path, explicit_keys in registry_specs:
+            registry = self._read_json_file(registry_path, {})
+            if not registry:
+                continue
+
+            changed = False
+            for key in explicit_keys:
+                if key and registry.get(key) == reference_id:
+                    registry.pop(key, None)
+                    changed = True
+
+            for key, value in list(registry.items()):
+                if value == reference_id:
+                    registry.pop(key, None)
+                    changed = True
+
+            if changed:
+                self._write_json_file(registry_path, registry)
+
+    def _registry_dir(self) -> str:
+        return os.path.join(self._project_root_dir(), "registry")
+
+    def _hash_registry_path(self) -> str:
+        return os.path.join(self._registry_dir(), "by-hash.json")
+
+    def _pmid_registry_path(self) -> str:
+        return os.path.join(self._registry_dir(), "by-pmid.json")
+
+    def _doi_registry_path(self) -> str:
+        return os.path.join(self._registry_dir(), "by-doi.json")
+
+    def _ensure_workspace_scaffolding(self) -> None:
+        """Create the minimal directories needed for notes and registries."""
+        os.makedirs(self.base_dir, exist_ok=True)
+        os.makedirs(self._notes_dir(), exist_ok=True)
+        os.makedirs(self._knowledge_maps_dir(), exist_ok=True)
+        os.makedirs(self._synthesis_pages_dir(), exist_ok=True)
+        os.makedirs(self._registry_dir(), exist_ok=True)
+
+    def _yaml_escape(self, value: str) -> str:
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
+    def _slugify(self, value: str, fallback: str = "untitled") -> str:
+        import re
+
+        normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+        return normalized or fallback
+
+    def _compute_text_hash(self, content: str) -> str:
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+    def _extract_markdown_headings(self, markdown_text: str) -> List[str]:
+        headings: List[str] = []
+        seen: set[str] = set()
+
+        for line in markdown_text.splitlines():
+            stripped = line.strip()
+            if not stripped.startswith("#"):
+                continue
+
+            heading = stripped.lstrip("#").strip()
+            if not heading or heading in seen:
+                continue
+
+            seen.add(heading)
+            headings.append(heading)
+
+        return headings
+
+    def _infer_markdown_title(self, markdown_text: str, fallback: str) -> str:
+        for line in markdown_text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                title = stripped.lstrip("#").strip()
+                if title:
+                    return title
+        return fallback
+
+    def _build_markdown_summary(self, markdown_text: str, max_chars: int = 400) -> str:
+        summary_parts: List[str] = []
+        current_length = 0
+
+        for line in markdown_text.splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+
+            summary_parts.append(stripped)
+            current_length += len(stripped) + 1
+            if current_length >= max_chars:
+                break
+
+        if not summary_parts:
+            return ""
+
+        summary = " ".join(summary_parts).strip()
+        if len(summary) > max_chars:
+            return summary[: max_chars - 3].rstrip() + "..."
+        return summary
+
+    def _write_text_source_artifact(self, ref_dir: str, file_name: str, content: str) -> str:
+        source_dir = os.path.join(ref_dir, "source")
+        os.makedirs(source_dir, exist_ok=True)
+        destination = os.path.join(source_dir, file_name)
+        with open(destination, "w", encoding="utf-8") as handle:
+            handle.write(content)
+        return destination
+
+    def _load_reference_analysis(self, reference_id: str) -> Dict[str, Any]:
+        analysis_path = Path(self.base_dir) / reference_id / "analysis.json"
+        if not analysis_path.is_file():
+            return {}
+
+        try:
+            return json.loads(analysis_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    def _resolve_reference_snapshots(
+        self,
+        reference_ids: Optional[List[str]] = None,
+        *,
+        query: str = "",
+        limit: int = 12,
+    ) -> List[Dict[str, Any]]:
+        selected_ids: List[str] = []
+        seen_ids: set[str] = set()
+
+        if reference_ids:
+            for ref_id in reference_ids:
+                normalized = str(ref_id).strip()
+                if not normalized or normalized in seen_ids:
+                    continue
+                seen_ids.add(normalized)
+                selected_ids.append(normalized)
+        elif query.strip():
+            for metadata in self.search_local(query):
+                ref_id = str(metadata.get("unique_id") or metadata.get("pmid") or "").strip()
+                if not ref_id or ref_id in seen_ids:
+                    continue
+                seen_ids.add(ref_id)
+                selected_ids.append(ref_id)
+                if len(selected_ids) >= limit:
+                    break
+        else:
+            all_metadata: List[Dict[str, Any]] = []
+            for ref_id in self.list_references():
+                metadata = self.get_metadata(ref_id)
+                if not metadata:
+                    continue
+                metadata = dict(metadata)
+                metadata["unique_id"] = metadata.get("unique_id") or ref_id
+                all_metadata.append(metadata)
+
+            all_metadata.sort(key=lambda item: item.get("saved_at", ""), reverse=True)
+            selected_ids = [
+                str(item.get("unique_id") or "").strip()
+                for item in all_metadata[:limit]
+                if str(item.get("unique_id") or "").strip()
+            ]
+
+        snapshots: List[Dict[str, Any]] = []
+        for ref_id in selected_ids:
+            metadata = self.get_metadata(ref_id)
+            if not metadata:
+                continue
+            snapshots.append(
+                {
+                    "reference_id": ref_id,
+                    "metadata": metadata,
+                    "analysis": self._load_reference_analysis(ref_id),
+                }
+            )
+
+        return snapshots
+
+    def _materialized_page_path(self, page_type: str, slug: str) -> str:
+        if page_type == "knowledge_map":
+            return os.path.join(self._knowledge_maps_dir(), f"{slug}.md")
+        return os.path.join(self._synthesis_pages_dir(), f"{slug}.md")
+
+    def _materialized_page_alias(self, page_type: str, slug: str) -> str:
+        prefix = "knowledge-map" if page_type == "knowledge_map" else "synthesis"
+        return f"{prefix}-{slug}"
+
+    def _read_materialized_page_title(self, file_path: str) -> str:
+        try:
+            with open(file_path, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    stripped = line.strip()
+                    if stripped.startswith('title:'):
+                        return stripped.split(":", 1)[1].strip().strip('"')
+                    if stripped.startswith("# "):
+                        return stripped[2:].strip()
+        except Exception:
+            pass
+        return Path(file_path).stem.replace("-", " ").title()
+
+    def _iter_materialized_pages(self, page_type: str) -> List[Dict[str, str]]:
+        page_dir = (
+            self._knowledge_maps_dir() if page_type == "knowledge_map" else self._synthesis_pages_dir()
+        )
+        if not os.path.isdir(page_dir):
+            return []
+
+        pages: List[Dict[str, str]] = []
+        for file_name in sorted(os.listdir(page_dir)):
+            if not file_name.endswith(".md"):
+                continue
+            slug = Path(file_name).stem
+            file_path = os.path.join(page_dir, file_name)
+            pages.append(
+                {
+                    "slug": slug,
+                    "alias": self._materialized_page_alias(page_type, slug),
+                    "title": self._read_materialized_page_title(file_path),
+                    "path": file_path,
+                }
+            )
+
+        return pages
+
+    def _write_materialized_page(
+        self,
+        *,
+        page_type: str,
+        title: str,
+        query: str,
+        focus: str,
+        reference_ids: List[str],
+        body: str,
+        log_event: str,
+    ) -> str:
+        self._ensure_workspace_scaffolding()
+
+        slug = self._slugify(title)
+        alias = self._materialized_page_alias(page_type, slug)
+        generated_at = __import__('datetime').datetime.now().isoformat()
+        page_path = self._materialized_page_path(page_type, slug)
+
+        lines = [
+            "---",
+            f'title: "{self._yaml_escape(title)}"',
+            f'type: "{page_type}"',
+            "aliases:",
+            f'  - "{alias}"',
+            f'generated_at: "{generated_at}"',
+            f"reference_count: {len(reference_ids)}",
+        ]
+        if query:
+            lines.append(f'query: "{self._yaml_escape(query)}"')
+        if focus:
+            lines.append(f'focus: "{self._yaml_escape(focus)}"')
+
+        if reference_ids:
+            lines.append("source_refs:")
+            for ref_id in reference_ids:
+                lines.append(f'  - "{self._yaml_escape(ref_id)}"')
+        else:
+            lines.append("source_refs: []")
+
+        lines.extend(["---", "", f"# {title}", "", body.strip(), ""])
+
+        with open(page_path, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(lines))
+
+        self._rebuild_index()
+        self._append_log(
+            log_event,
+            {
+                "unique_id": slug,
+                "title": title,
+                "source": page_type,
+                "trust_level": "agent",
+                "saved_at": generated_at,
+            },
+        )
+        return page_path
+
+    def _build_knowledge_map_body(
+        self,
+        snapshots: List[Dict[str, Any]],
+        *,
+        query: str = "",
+    ) -> str:
+        trust_counts: Dict[str, int] = {}
+        missing_analysis: List[str] = []
+        unresolved_identity: List[str] = []
+
+        lines = ["## Scope", ""]
+        if query:
+            lines.append(f"- Query: {query}")
+        lines.append(f"- References included: {len(snapshots)}")
+        lines.append("")
+        lines.append("## Coverage")
+        lines.append("")
+
+        for snapshot in snapshots:
+            metadata = snapshot["metadata"]
+            trust_level = metadata.get("trust_level", "unknown")
+            trust_counts[trust_level] = trust_counts.get(trust_level, 0) + 1
+            if not metadata.get("analysis_completed"):
+                missing_analysis.append(snapshot["reference_id"])
+            if str(snapshot["reference_id"]).startswith(("local_", "web_", "markdown_")):
+                unresolved_identity.append(snapshot["reference_id"])
+
+        if trust_counts:
+            for trust_level, count in sorted(trust_counts.items()):
+                lines.append(f"- {trust_level}: {count}")
+        else:
+            lines.append("- No references selected")
+
+        lines.extend(["", "## Reference Graph", ""])
+        for snapshot in snapshots:
+            metadata = snapshot["metadata"]
+            analysis = snapshot["analysis"]
+            citation_key = metadata.get("citation_key") or snapshot["reference_id"]
+            title = metadata.get("title", snapshot["reference_id"])
+            year = metadata.get("year", "")
+            year_text = f" ({year})" if year else ""
+            source = metadata.get("source", "")
+            trust_level = metadata.get("trust_level", "")
+            summary = (
+                analysis.get("summary")
+                or metadata.get("analysis_summary")
+                or metadata.get("abstract")
+                or "No summary available yet."
+            )
+            summary = summary.replace("\n", " ").strip()
+            if len(summary) > 260:
+                summary = summary[:257].rstrip() + "..."
+            lines.append(
+                f"- [[{citation_key}]]: {title}{year_text} [{source}/{trust_level}]"
+            )
+            lines.append(f"  Evidence: {summary}")
+
+        if missing_analysis or unresolved_identity:
+            lines.extend(["", "## Next Actions", ""])
+            if unresolved_identity:
+                lines.append(
+                    "- Resolve canonical identity for: "
+                    + ", ".join(sorted(set(unresolved_identity)))
+                )
+            if missing_analysis:
+                lines.append(
+                    "- Add structured analysis for: "
+                    + ", ".join(sorted(set(missing_analysis)))
+                )
+
+        return "\n".join(lines)
+
+    def _build_synthesis_body(
+        self,
+        snapshots: List[Dict[str, Any]],
+        *,
+        focus: str = "",
+        summary_markdown: str = "",
+    ) -> str:
+        if summary_markdown.strip():
+            synthesis_text = summary_markdown.strip()
+        else:
+            synthesis_lines = ["## Working Synthesis", ""]
+            if focus:
+                synthesis_lines.append(f"Focus: {focus}")
+                synthesis_lines.append("")
+
+            for snapshot in snapshots:
+                metadata = snapshot["metadata"]
+                analysis = snapshot["analysis"]
+                citation_key = metadata.get("citation_key") or snapshot["reference_id"]
+                contribution = (
+                    analysis.get("summary")
+                    or metadata.get("analysis_summary")
+                    or metadata.get("abstract")
+                    or "No synthesis text available."
+                )
+                contribution = contribution.replace("\n", " ").strip()
+                if len(contribution) > 320:
+                    contribution = contribution[:317].rstrip() + "..."
+                synthesis_lines.append(f"- [[{citation_key}]]: {contribution}")
+
+            synthesis_text = "\n".join(synthesis_lines)
+
+        gaps = [
+            snapshot["reference_id"]
+            for snapshot in snapshots
+            if not snapshot["metadata"].get("analysis_completed")
+        ]
+        no_fulltext = [
+            snapshot["reference_id"]
+            for snapshot in snapshots
+            if not snapshot["metadata"].get("fulltext_ingested")
+        ]
+
+        lines = [synthesis_text, "", "## Evidence Base", ""]
+        for snapshot in snapshots:
+            metadata = snapshot["metadata"]
+            citation_key = metadata.get("citation_key") or snapshot["reference_id"]
+            year = metadata.get("year", "")
+            title = metadata.get("title", snapshot["reference_id"])
+            year_text = f" ({year})" if year else ""
+            lines.append(f"- [[{citation_key}]]: {title}{year_text}")
+
+        if gaps or no_fulltext:
+            lines.extend(["", "## Gaps", ""])
+            if gaps:
+                lines.append("- Missing structured analysis: " + ", ".join(sorted(set(gaps))))
+            if no_fulltext:
+                lines.append("- Fulltext not yet ingested: " + ", ".join(sorted(set(no_fulltext))))
+
+        return "\n".join(lines)
+
+    def _read_json_file(self, file_path: str, default: Any) -> Any:
+        if not os.path.exists(file_path):
+            return default
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as handle:
+                return json.load(handle)
+        except Exception:
+            return default
+
+    def _write_json_file(self, file_path: str, payload: Any) -> None:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+
+    def _build_citation_key(self, article: Dict[str, Any], fallback_id: str) -> str:
+        """Build a Foam-friendly citation key for verified and local references."""
+        authors_full = article.get("authors_full", [])
+        authors = article.get("authors", [])
+        year = str(article.get("year", ""))
+
+        first_author = ""
+        if authors_full and isinstance(authors_full[0], dict):
+            first_author = authors_full[0].get("last_name", "").lower()
+        elif authors:
+            first_author = authors[0].split()[0].lower() if authors[0] else ""
+
+        import re
+
+        first_author = re.sub(r"[^a-z0-9]", "", first_author)
+        if not first_author:
+            first_author = "local"
+
+        return f"{first_author}{year}_{fallback_id}"
+
+    def _normalize_reference_payload(self, article: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize metadata so metadata.json and Foam note stay in sync."""
+        payload = dict(article)
+
+        citation = payload.get("citation") or payload.get("citations")
+        if not citation:
+            citation = self._format_citation(payload)
+        payload["citation"] = citation
+
+        verified = bool(payload.get("verified", payload.get("_verified", False)))
+        payload["verified"] = verified
+        payload["data_source"] = (
+            payload.get("data_source") or payload.get("_data_source") or payload.get("source", "agent")
+        )
+
+        payload["agent_notes"] = payload.get("agent_notes", payload.get("_agent_notes", ""))
+        payload["user_notes"] = payload.get("user_notes", payload.get("_user_notes", ""))
+        payload["user_tags"] = payload.get("user_tags", payload.get("_user_tags", []))
+
+        payload["content_hash"] = payload.get("content_hash", payload.get("_content_hash", ""))
+        payload["imported_from"] = payload.get("imported_from", "")
+        payload["fulltext_ingested"] = bool(payload.get("fulltext_ingested", False))
+        payload["fulltext_unavailable_reason"] = payload.get("fulltext_unavailable_reason", "")
+        payload["asset_aware_doc_id"] = payload.get("asset_aware_doc_id")
+        payload["fulltext_sections"] = payload.get("fulltext_sections", [])
+        payload["analysis_completed"] = bool(payload.get("analysis_completed", False))
+        payload["analysis_summary"] = payload.get("analysis_summary", "")
+        payload["usage_sections"] = payload.get("usage_sections", [])
+        payload["legacy_aliases"] = self._dedupe_strings(payload.get("legacy_aliases", []))
+        payload["note_materialized"] = True
+        payload["provenance"] = self._dedupe_provenance(payload.get("provenance", []))
+
+        saved_at = payload.get("saved_at")
+        if hasattr(saved_at, "isoformat"):
+            payload["saved_at"] = saved_at.isoformat()
+
+        if not payload.get("citation_key") and payload.get("unique_id"):
+            payload["citation_key"] = self._build_citation_key(payload, payload["unique_id"])
+
+        if "trust_level" not in payload:
+            if verified:
+                payload["trust_level"] = "verified"
+            elif payload.get("asset_aware_doc_id") or payload.get("fulltext_sections"):
+                payload["trust_level"] = "extracted"
+            elif payload.get("source") in {"manual", "local", "web", "markdown"}:
+                payload["trust_level"] = "user"
+            else:
+                payload["trust_level"] = "agent"
+
+        return payload
+
+    def _upsert_identity_registry(self, payload: Dict[str, Any]) -> None:
+        if payload.get("unique_id"):
+            self._remove_identity_registry_entries(payload["unique_id"])
+
+        if payload.get("content_hash"):
+            by_hash = self._read_json_file(self._hash_registry_path(), {})
+            by_hash[payload["content_hash"]] = payload["unique_id"]
+            self._write_json_file(self._hash_registry_path(), by_hash)
+
+        if payload.get("pmid"):
+            by_pmid = self._read_json_file(self._pmid_registry_path(), {})
+            by_pmid[str(payload["pmid"])] = payload["unique_id"]
+            self._write_json_file(self._pmid_registry_path(), by_pmid)
+
+        if payload.get("doi"):
+            by_doi = self._read_json_file(self._doi_registry_path(), {})
+            by_doi[str(payload["doi"]).lower()] = payload["unique_id"]
+            self._write_json_file(self._doi_registry_path(), by_doi)
+
+    def _append_log(self, event_type: str, payload: Dict[str, Any]) -> None:
+        log_path = os.path.join(self._notes_dir(), "log.md")
+        if not os.path.exists(log_path):
+            with open(log_path, "w", encoding="utf-8") as handle:
+                handle.write("# Knowledge Base Log\n\n")
+
+        title = payload.get("title", payload.get("unique_id", "unknown"))
+        entry = (
+            f"- {payload.get('saved_at', '') or __import__('datetime').datetime.now().isoformat()} "
+            f"[{event_type}] {payload.get('unique_id', '')} :: {title} "
+            f"(source={payload.get('source', '')}, trust={payload.get('trust_level', '')})\n"
+        )
+        with open(log_path, "a", encoding="utf-8") as handle:
+            handle.write(entry)
+
+    def _rebuild_index(self) -> None:
+        index_path = os.path.join(self._notes_dir(), "index.md")
+        lines = ["# Knowledge Base Index", "", "## References", ""]
+
+        for ref_id in sorted(self.list_references()):
+            metadata = self.get_metadata(ref_id)
+            if not metadata:
+                continue
+
+            citation_key = metadata.get("citation_key") or ref_id
+            title = metadata.get("title", ref_id)
+            year = metadata.get("year", "")
+            source = metadata.get("source", "")
+            trust_level = metadata.get("trust_level", "")
+            year_text = f" ({year})" if year else ""
+            lines.append(
+                f"- [[{citation_key}]]: {title}{year_text} [{source}/{trust_level}]"
+            )
+
+        knowledge_maps = self._iter_materialized_pages("knowledge_map")
+        lines.extend(["", "## Knowledge Maps", ""])
+        if knowledge_maps:
+            for page in knowledge_maps:
+                lines.append(f"- [[{page['alias']}]]: {page['title']} [knowledge_map]")
+        else:
+            lines.append("- None materialized yet")
+
+        synthesis_pages = self._iter_materialized_pages("synthesis_page")
+        lines.extend(["", "## Synthesis Pages", ""])
+        if synthesis_pages:
+            for page in synthesis_pages:
+                lines.append(f"- [[{page['alias']}]]: {page['title']} [synthesis_page]")
+        else:
+            lines.append("- None materialized yet")
+
+        with open(index_path, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
+
+    def _copy_source_artifact(self, file_path: str, ref_dir: str) -> str:
+        source_dir = os.path.join(ref_dir, "source")
+        os.makedirs(source_dir, exist_ok=True)
+        suffix = Path(file_path).suffix or ".bin"
+        destination = os.path.join(source_dir, f"original{suffix}")
+        shutil.copy2(file_path, destination)
+        return destination
+
+    def _persist_extracted_artifacts(self, ref_dir: str, payload: Dict[str, Any]) -> None:
+        extracted_markdown = payload.get("extracted_markdown", "")
+        manifest = payload.get("asset_aware_manifest")
+        artifact_dir = os.path.join(ref_dir, "artifacts", "asset-aware")
+
+        if extracted_markdown or manifest:
+            os.makedirs(artifact_dir, exist_ok=True)
+
+        if extracted_markdown:
+            with open(os.path.join(artifact_dir, "sections.md"), "w", encoding="utf-8") as handle:
+                handle.write(extracted_markdown)
+
+        if manifest:
+            self._write_json_file(os.path.join(artifact_dir, "manifest.json"), manifest)
+
+    def _files_have_same_content(self, source_path: str, target_path: str) -> bool:
+        if not os.path.exists(source_path) or not os.path.exists(target_path):
+            return False
+        if os.path.getsize(source_path) != os.path.getsize(target_path):
+            return False
+        return self.compute_content_hash(source_path) == self.compute_content_hash(target_path)
+
+    def _build_conflict_copy_path(self, target_path: str, source_ref_id: str) -> str:
+        target = Path(target_path)
+        suffix = "".join(target.suffixes)
+        stem = target.name[: -len(suffix)] if suffix else target.name
+        candidate = target.with_name(f"{stem}.from-{source_ref_id}{suffix}")
+        counter = 2
+
+        while candidate.exists():
+            candidate = target.with_name(f"{stem}.from-{source_ref_id}.{counter}{suffix}")
+            counter += 1
+
+        return str(candidate)
+
+    def _merge_artifact_tree(
+        self,
+        source_dir: str,
+        target_dir: str,
+        source_ref_id: str,
+        target_root_dir: str,
+    ) -> List[str]:
+        conflicts: List[str] = []
+
+        for root, _, files in os.walk(source_dir):
+            relative_root = os.path.relpath(root, source_dir)
+            destination_root = (
+                target_dir if relative_root == "." else os.path.join(target_dir, relative_root)
+            )
+            os.makedirs(destination_root, exist_ok=True)
+
+            for file_name in files:
+                source_path = os.path.join(root, file_name)
+                destination_path = os.path.join(destination_root, file_name)
+
+                if not os.path.exists(destination_path):
+                    shutil.copy2(source_path, destination_path)
+                    continue
+
+                if self._files_have_same_content(source_path, destination_path):
+                    continue
+
+                conflict_path = self._build_conflict_copy_path(destination_path, source_ref_id)
+                shutil.copy2(source_path, conflict_path)
+                conflicts.append(os.path.relpath(conflict_path, target_root_dir))
+
+        return conflicts
+
+    def _merge_reference_artifacts(self, source_ref_dir: str, target_ref_dir: str) -> List[str]:
+        """Merge durable artifacts from one reference directory into another."""
+        if not os.path.exists(source_ref_dir) or source_ref_dir == target_ref_dir:
+            return []
+
+        source_ref_id = os.path.basename(source_ref_dir)
+        conflicts: List[str] = []
+
+        for relative_dir in ("source", os.path.join("artifacts", "asset-aware")):
+            source_dir = os.path.join(source_ref_dir, relative_dir)
+            target_dir = os.path.join(target_ref_dir, relative_dir)
+            if os.path.isdir(source_dir):
+                os.makedirs(target_dir, exist_ok=True)
+                conflicts.extend(
+                    self._merge_artifact_tree(
+                        source_dir,
+                        target_dir,
+                        source_ref_id,
+                        target_ref_dir,
+                    )
+                )
+
+        source_analysis = os.path.join(source_ref_dir, "analysis.json")
+        target_analysis = os.path.join(target_ref_dir, "analysis.json")
+        if os.path.exists(source_analysis):
+            if not os.path.exists(target_analysis):
+                shutil.copy2(source_analysis, target_analysis)
+            elif not self._files_have_same_content(source_analysis, target_analysis):
+                conflict_path = self._build_conflict_copy_path(target_analysis, source_ref_id)
+                shutil.copy2(source_analysis, conflict_path)
+                conflicts.append(os.path.relpath(conflict_path, target_ref_dir))
+
+        return conflicts
+
+    def _persist_reference_payload(
+        self,
+        payload: Dict[str, Any],
+        log_event: str,
+        *,
+        rebuild_index: bool = True,
+    ) -> str:
+        self._ensure_workspace_scaffolding()
+        payload = self._normalize_reference_payload(payload)
+        ref_dir = os.path.join(self.base_dir, payload["unique_id"])
+        os.makedirs(ref_dir, exist_ok=True)
+
+        self._write_json_file(os.path.join(ref_dir, "metadata.json"), payload)
+        if payload.get("provenance"):
+            self._write_json_file(os.path.join(ref_dir, "provenance.json"), payload["provenance"])
+
+        content = self._generate_content_md(payload)
+        md_filename = f"{payload['citation_key']}.md"
+        with open(os.path.join(ref_dir, md_filename), "w", encoding="utf-8") as handle:
+            handle.write(content)
+
+        self._persist_extracted_artifacts(ref_dir, payload)
+        self._upsert_identity_registry(payload)
+        if rebuild_index:
+            self._rebuild_index()
+        self._append_log(log_event, payload)
+        return ref_dir
+
+    def _update_reference_metadata(
+        self, reference_id: str, updates: Dict[str, Any], log_event: str
+    ) -> str:
+        metadata = self.get_metadata(reference_id)
+        if not metadata:
+            return f"Reference {reference_id} not found."
+
+        metadata.update(updates)
+        if not metadata.get("saved_at"):
+            metadata["saved_at"] = __import__('datetime').datetime.now().isoformat()
+
+        self._persist_reference_payload(metadata, log_event=log_event)
+        return f"Updated {reference_id}."
+
+    def compute_content_hash(self, file_path: str) -> str:
+        """Compute a stable SHA256 hash for a local artifact."""
+        sha256 = hashlib.sha256()
+        with open(file_path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                sha256.update(chunk)
+        return sha256.hexdigest()
 
     @property
     def base_dir(self) -> str:
@@ -96,30 +899,492 @@ class ReferenceManager:
         if os.path.exists(ref_dir):
             return f"Reference {ref.unique_id} already exists."
 
-        # Create directory
-        os.makedirs(ref_dir, exist_ok=True)
-
         # Add pre-formatted citation strings to metadata
         ref_dict = ref.to_dict()
         ref_dict["citation"] = self._format_citation(ref_dict)
+        ref_dict["saved_at"] = __import__('datetime').datetime.now().isoformat()
 
-        # Save metadata.json (for programmatic access)
-        with open(os.path.join(ref_dir, "metadata.json"), "w", encoding="utf-8") as f:
-            json.dump(ref_dict, f, indent=2, ensure_ascii=False)
-
-        # Save main .md file with citation_key as filename (for Foam)
-        # This allows [[citation_key]] to work directly as a wikilink
-        content = self._generate_content_md(ref_dict)
-        md_filename = f"{ref.citation_key}.md"
-        with open(os.path.join(ref_dir, md_filename), "w", encoding="utf-8") as f:
-            f.write(content)
+        persisted_dir = self._persist_reference_payload(ref_dict, log_event="save_reference")
 
         # No need for separate alias file - aliases are in frontmatter
         # Foam will recognize [[citation_key]] via the filename and aliases
 
         foam_tip = f"\n💡 Foam: Use [[{ref.citation_key}]] to link this reference."
         source_info = f" (source: {ref.source})"
-        return f"Successfully saved reference {ref.unique_id} to {ref_dir}.{source_info}{foam_tip}"
+        return f"Successfully saved reference {ref.unique_id} to {persisted_dir}.{source_info}{foam_tip}"
+
+    def import_local_file(self, file_path: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+        """Import a local file into the canonical reference registry."""
+        if not os.path.exists(file_path):
+            return f"Error: Local file not found: {file_path}"
+
+        content_hash = self.compute_content_hash(file_path)
+        existing_ref_id = self._read_json_file(self._hash_registry_path(), {}).get(content_hash)
+        if existing_ref_id and self.check_reference_exists(existing_ref_id):
+            existing = self.get_metadata(existing_ref_id)
+            citation_key = existing.get("citation_key", existing_ref_id)
+            return (
+                f"Local source already imported as {existing_ref_id}. "
+                f"Foam link: [[{citation_key}]]"
+            )
+
+        source_metadata = dict(metadata or {})
+        source_metadata.setdefault("imported_from", os.path.abspath(file_path))
+        source_metadata.setdefault("content_hash", content_hash)
+        source_metadata.setdefault("saved_at", __import__('datetime').datetime.now().isoformat())
+
+        try:
+            standardized = self._converter.convert(source_metadata)
+            payload = standardized.to_dict()
+        except ValueError:
+            unique_id = f"local_{content_hash[:12]}"
+            payload = {
+                "unique_id": unique_id,
+                "citation_key": self._build_citation_key(source_metadata, unique_id),
+                "source": source_metadata.get("source", "manual"),
+                "pmid": source_metadata.get("pmid"),
+                "doi": source_metadata.get("doi") or source_metadata.get("DOI"),
+                "title": source_metadata.get("title", Path(file_path).stem),
+                "authors": source_metadata.get("authors", []),
+                "authors_full": source_metadata.get("authors_full", []),
+                "year": str(source_metadata.get("year", "")),
+                "journal": source_metadata.get("journal", ""),
+                "journal_abbrev": source_metadata.get("journal_abbrev", ""),
+                "volume": source_metadata.get("volume", ""),
+                "issue": source_metadata.get("issue", ""),
+                "pages": source_metadata.get("pages", ""),
+                "abstract": source_metadata.get("abstract", ""),
+                "keywords": source_metadata.get("keywords", []),
+                "mesh_terms": source_metadata.get("mesh_terms", []),
+            }
+
+        payload.update(source_metadata)
+        payload.setdefault("data_source", source_metadata.get("data_source", "local_import"))
+        payload.setdefault("provenance", [])
+        payload["provenance"] = list(payload["provenance"]) + [
+            {
+                "event": "local_import",
+                "source_path": os.path.abspath(file_path),
+                "content_hash": content_hash,
+                "data_source": payload.get("data_source", "local_import"),
+            }
+        ]
+        if payload.get("asset_aware_doc_id") or payload.get("fulltext_sections"):
+            payload["fulltext_ingested"] = True
+
+        self._ensure_workspace_scaffolding()
+        ref_dir = os.path.join(self.base_dir, payload["unique_id"])
+        os.makedirs(ref_dir, exist_ok=True)
+        payload["imported_from"] = self._copy_source_artifact(file_path, ref_dir)
+        self._persist_reference_payload(payload, log_event="local_import")
+
+        return (
+            f"Successfully imported local source into {payload['unique_id']}. "
+            f"Foam link: [[{payload['citation_key']}]]"
+        )
+
+    def _import_text_source(
+        self,
+        *,
+        source_kind: str,
+        locator: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        log_event: str,
+    ) -> str:
+        normalized_content = content.strip()
+        if not normalized_content:
+            return f"Error: Empty {source_kind} content."
+
+        content_hash = self._compute_text_hash(normalized_content)
+        existing_ref_id = self._read_json_file(self._hash_registry_path(), {}).get(content_hash)
+        if existing_ref_id and self.check_reference_exists(existing_ref_id):
+            existing = self.get_metadata(existing_ref_id)
+            citation_key = existing.get("citation_key", existing_ref_id)
+            return f"{source_kind.title()} source already imported as {existing_ref_id}. Foam link: [[{citation_key}]]"
+
+        source_metadata = dict(metadata or {})
+        fallback_title = Path(locator).stem if locator and source_kind == "markdown" else f"{source_kind.title()} source"
+        title = source_metadata.get("title") or self._infer_markdown_title(
+            normalized_content, fallback_title
+        )
+        headings = source_metadata.get("fulltext_sections") or self._extract_markdown_headings(
+            normalized_content
+        )
+        abstract = source_metadata.get("abstract") or self._build_markdown_summary(normalized_content)
+
+        payload = {
+            "unique_id": source_metadata.get("unique_id") or f"{source_kind}_{content_hash[:12]}",
+            "citation_key": source_metadata.get("citation_key"),
+            "source": source_metadata.get("source", source_kind),
+            "pmid": source_metadata.get("pmid"),
+            "doi": source_metadata.get("doi") or source_metadata.get("DOI"),
+            "title": title,
+            "authors": source_metadata.get("authors", []),
+            "authors_full": source_metadata.get("authors_full", []),
+            "year": str(source_metadata.get("year", "")),
+            "journal": source_metadata.get("journal", ""),
+            "journal_abbrev": source_metadata.get("journal_abbrev", ""),
+            "volume": source_metadata.get("volume", ""),
+            "issue": source_metadata.get("issue", ""),
+            "pages": source_metadata.get("pages", ""),
+            "abstract": abstract,
+            "keywords": source_metadata.get("keywords", []),
+            "mesh_terms": source_metadata.get("mesh_terms", []),
+        }
+
+        payload.update(source_metadata)
+        payload.setdefault("citation_key", self._build_citation_key(payload, payload["unique_id"]))
+        payload["content_hash"] = content_hash
+        payload["saved_at"] = payload.get("saved_at") or __import__('datetime').datetime.now().isoformat()
+        payload["data_source"] = payload.get("data_source") or f"{source_kind}_intake"
+        payload["fulltext_sections"] = headings
+        payload["fulltext_ingested"] = True
+        payload["extracted_markdown"] = normalized_content
+        payload["trust_level"] = payload.get("trust_level", "user")
+        payload["provenance"] = list(payload.get("provenance", [])) + [
+            {
+                "event": log_event,
+                "source_locator": locator,
+                "content_hash": content_hash,
+                "data_source": payload["data_source"],
+            }
+        ]
+
+        self._ensure_workspace_scaffolding()
+        ref_dir = os.path.join(self.base_dir, payload["unique_id"])
+        os.makedirs(ref_dir, exist_ok=True)
+        file_name = "original.md" if source_kind == "markdown" else "captured.md"
+        payload["imported_from"] = self._write_text_source_artifact(
+            ref_dir, file_name, normalized_content
+        )
+        self._persist_reference_payload(payload, log_event=log_event)
+
+        return (
+            f"Successfully imported {source_kind} source into {payload['unique_id']}. "
+            f"Foam link: [[{payload['citation_key']}]]"
+        )
+
+    def import_markdown_file(
+        self, file_path: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Import a markdown file into the canonical reference registry."""
+        if not os.path.exists(file_path):
+            return f"Error: Markdown source not found: {file_path}"
+
+        try:
+            content = Path(file_path).read_text(encoding="utf-8")
+        except Exception as exc:
+            return f"Error reading markdown source: {exc}"
+
+        source_metadata = dict(metadata or {})
+        source_metadata.setdefault("imported_from", os.path.abspath(file_path))
+        return self._import_text_source(
+            source_kind="markdown",
+            locator=os.path.abspath(file_path),
+            content=content,
+            metadata=source_metadata,
+            log_event="markdown_intake",
+        )
+
+    def import_markdown_content(
+        self,
+        markdown_text: str,
+        *,
+        source_name: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Import raw markdown text into the canonical reference registry."""
+        source_metadata = dict(metadata or {})
+        if source_name:
+            source_metadata.setdefault("imported_from", source_name)
+        return self._import_text_source(
+            source_kind="markdown",
+            locator=source_name,
+            content=markdown_text,
+            metadata=source_metadata,
+            log_event="markdown_intake",
+        )
+
+    def import_web_source(
+        self,
+        url: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Import a fetched web page snapshot into the canonical reference registry."""
+        if not url.strip():
+            return "Error: Web source URL is required."
+
+        source_metadata = dict(metadata or {})
+        source_metadata.setdefault("url", url)
+        source_metadata.setdefault("imported_from", url)
+        return self._import_text_source(
+            source_kind="web",
+            locator=url,
+            content=content,
+            metadata=source_metadata,
+            log_event="web_intake",
+        )
+
+    def build_knowledge_map(
+        self,
+        title: str,
+        *,
+        reference_ids: Optional[List[str]] = None,
+        query: str = "",
+        limit: int = 12,
+    ) -> str:
+        """Materialize a knowledge map note from selected references."""
+        clean_title = title.strip() or "Knowledge Map"
+        snapshots = self._resolve_reference_snapshots(reference_ids, query=query, limit=limit)
+        if not snapshots:
+            return "Error: No references available to build a knowledge map."
+
+        body = self._build_knowledge_map_body(snapshots, query=query)
+        page_path = self._write_materialized_page(
+            page_type="knowledge_map",
+            title=clean_title,
+            query=query,
+            focus="",
+            reference_ids=[snapshot["reference_id"] for snapshot in snapshots],
+            body=body,
+            log_event="knowledge_map_materialized",
+        )
+        alias = self._materialized_page_alias("knowledge_map", self._slugify(clean_title))
+        return f"Knowledge map materialized at {page_path}. Foam link: [[{alias}]]"
+
+    def build_synthesis_page(
+        self,
+        title: str,
+        *,
+        reference_ids: Optional[List[str]] = None,
+        query: str = "",
+        focus: str = "",
+        summary_markdown: str = "",
+        limit: int = 12,
+    ) -> str:
+        """Materialize a synthesis note from selected references."""
+        clean_title = title.strip() or "Synthesis Page"
+        snapshots = self._resolve_reference_snapshots(reference_ids, query=query, limit=limit)
+        if not snapshots:
+            return "Error: No references available to build a synthesis page."
+
+        body = self._build_synthesis_body(
+            snapshots,
+            focus=focus,
+            summary_markdown=summary_markdown,
+        )
+        page_path = self._write_materialized_page(
+            page_type="synthesis_page",
+            title=clean_title,
+            query=query,
+            focus=focus,
+            reference_ids=[snapshot["reference_id"] for snapshot in snapshots],
+            body=body,
+            log_event="synthesis_page_materialized",
+        )
+        alias = self._materialized_page_alias("synthesis_page", self._slugify(clean_title))
+        return f"Synthesis page materialized at {page_path}. Foam link: [[{alias}]]"
+
+    def materialize_agent_wiki(
+        self,
+        *,
+        knowledge_map_title: str,
+        synthesis_title: str = "",
+        reference_ids: Optional[List[str]] = None,
+        query: str = "",
+        focus: str = "",
+        summary_markdown: str = "",
+        limit: int = 12,
+    ) -> str:
+        """Materialize the second-stage agent wiki bundle for a reference set."""
+        clean_map_title = knowledge_map_title.strip() or "Knowledge Map"
+        clean_synthesis_title = synthesis_title.strip() or f"{clean_map_title} synthesis"
+
+        snapshots = self._resolve_reference_snapshots(reference_ids, query=query, limit=limit)
+        if not snapshots:
+            return "Error: No references available to materialize the agent wiki."
+
+        selected_ids = [snapshot["reference_id"] for snapshot in snapshots]
+        knowledge_map_result = self.build_knowledge_map(
+            clean_map_title,
+            reference_ids=selected_ids,
+            query=query,
+            limit=limit,
+        )
+        if knowledge_map_result.startswith("Error:"):
+            return knowledge_map_result
+
+        synthesis_result = self.build_synthesis_page(
+            clean_synthesis_title,
+            reference_ids=selected_ids,
+            query=query,
+            focus=focus,
+            summary_markdown=summary_markdown,
+            limit=limit,
+        )
+        if synthesis_result.startswith("Error:"):
+            return synthesis_result
+
+        knowledge_alias = self._materialized_page_alias(
+            "knowledge_map", self._slugify(clean_map_title)
+        )
+        synthesis_alias = self._materialized_page_alias(
+            "synthesis_page", self._slugify(clean_synthesis_title)
+        )
+        return (
+            "Agent wiki materialized. "
+            f"Knowledge map: [[{knowledge_alias}]]. "
+            f"Synthesis page: [[{synthesis_alias}]]."
+        )
+
+    def resolve_reference_identity(
+        self,
+        reference_id: str,
+        *,
+        verified_article: Optional[Dict[str, Any]] = None,
+        pmid: Optional[str] = None,
+        agent_notes: str = "",
+    ) -> str:
+        """Upgrade a local/extracted reference into a canonical verified identity."""
+        local_metadata = self.get_metadata(reference_id)
+        if not local_metadata:
+            return f"Reference {reference_id} not found."
+
+        if verified_article is None and not pmid:
+            return "Provide either verified_article metadata or a PMID."
+
+        target_id: str
+        if verified_article is not None:
+            article = dict(verified_article)
+            if agent_notes and not article.get("agent_notes"):
+                article["agent_notes"] = agent_notes
+
+            try:
+                standardized = self._converter.convert(article)
+            except ValueError as exc:
+                return f"Error: {exc}"
+
+            target_id = standardized.unique_id
+            save_result = self.save_reference(article)
+            if save_result.startswith("Error:"):
+                return save_result
+        else:
+            target_id = str(pmid)
+            save_result = self.save_reference_mcp(target_id, agent_notes=agent_notes)
+            if save_result.startswith("❌") or save_result.startswith("⚠️"):
+                return save_result
+
+        canonical_metadata = self.get_metadata(target_id)
+        if not canonical_metadata:
+            return f"Failed to load canonical reference {target_id} after resolution."
+
+        source_ref_dir = os.path.join(self.base_dir, reference_id)
+        target_ref_dir = os.path.join(self.base_dir, target_id)
+        merge_conflicts = self._merge_reference_artifacts(source_ref_dir, target_ref_dir)
+
+        merged_provenance = list(canonical_metadata.get("provenance", []))
+        merged_provenance.extend(local_metadata.get("provenance", []))
+        resolution_event = {
+            "event": "identity_resolved",
+            "from_reference_id": reference_id,
+            "to_reference_id": target_id,
+            "resolved_via": "verified_metadata" if verified_article is not None else "pmid",
+            "content_hash": local_metadata.get("content_hash", ""),
+        }
+        if merge_conflicts:
+            resolution_event["artifact_conflicts"] = merge_conflicts
+        merged_provenance.append(resolution_event)
+
+        merged = dict(canonical_metadata)
+        merged["provenance"] = self._dedupe_provenance(merged_provenance)
+
+        for field_name in (
+            "content_hash",
+            "imported_from",
+            "asset_aware_doc_id",
+            "fulltext_unavailable_reason",
+            "agent_notes",
+            "user_notes",
+        ):
+            if local_metadata.get(field_name) and not merged.get(field_name):
+                merged[field_name] = local_metadata[field_name]
+
+        merged["fulltext_ingested"] = bool(
+            merged.get("fulltext_ingested") or local_metadata.get("fulltext_ingested")
+        )
+        merged["analysis_completed"] = bool(
+            merged.get("analysis_completed") or local_metadata.get("analysis_completed")
+        )
+
+        for list_field in ("fulltext_sections", "usage_sections", "user_tags"):
+            merged_values = list(merged.get(list_field, []))
+            for value in local_metadata.get(list_field, []):
+                if value not in merged_values:
+                    merged_values.append(value)
+            merged[list_field] = merged_values
+
+        legacy_aliases = list(canonical_metadata.get("legacy_aliases", []))
+        legacy_aliases.extend(local_metadata.get("legacy_aliases", []))
+        legacy_aliases.extend([local_metadata.get("citation_key", ""), reference_id])
+        merged["legacy_aliases"] = [
+            alias
+            for alias in self._dedupe_strings(legacy_aliases)
+            if alias not in {merged.get("citation_key", ""), target_id}
+        ]
+
+        if local_metadata.get("analysis_summary") and not merged.get("analysis_summary"):
+            merged["analysis_summary"] = local_metadata["analysis_summary"]
+
+        self._persist_reference_payload(
+            merged,
+            log_event="identity_resolution",
+            rebuild_index=False,
+        )
+
+        if source_ref_dir != target_ref_dir and os.path.exists(source_ref_dir):
+            self._remove_identity_registry_entries(reference_id, local_metadata)
+            shutil.rmtree(source_ref_dir)
+
+        self._rebuild_index()
+
+        citation_key = merged.get("citation_key", target_id)
+        return f"Resolved {reference_id} -> {target_id}. Foam link: [[{citation_key}]]"
+
+    def update_fulltext_ingestion_status(
+        self,
+        reference_id: str,
+        fulltext_ingested: bool,
+        asset_aware_doc_id: Optional[str] = None,
+        fulltext_sections: Optional[List[str]] = None,
+        fulltext_unavailable_reason: str = "",
+    ) -> str:
+        """Centralized write path for fulltext ingestion metadata."""
+        updates = {
+            "fulltext_ingested": fulltext_ingested,
+            "asset_aware_doc_id": asset_aware_doc_id,
+            "fulltext_sections": fulltext_sections or [],
+            "fulltext_unavailable_reason": fulltext_unavailable_reason,
+        }
+        if fulltext_ingested:
+            updates["trust_level"] = "extracted"
+        return self._update_reference_metadata(reference_id, updates, log_event="fulltext_status")
+
+    def update_reference_analysis_status(
+        self,
+        reference_id: str,
+        analysis_summary: str,
+        usage_sections: Optional[List[str]] = None,
+        analysis_completed: bool = True,
+    ) -> str:
+        """Centralized write path for analysis status metadata."""
+        updates = {
+            "analysis_completed": analysis_completed,
+            "analysis_summary": analysis_summary,
+            "usage_sections": usage_sections or [],
+        }
+        return self._update_reference_metadata(reference_id, updates, log_event="analysis_status")
 
     def save_reference_by_pmid(self, pmid: str) -> str:
         """
@@ -503,16 +1768,17 @@ class ReferenceManager:
             Markdown formatted content string.
         """
         pmid = article.get("pmid", "")
-        article.get("unique_id", pmid)
+        unique_id = article.get("unique_id", pmid)
         title = article.get("title", "Unknown Title")
         citation_key = article.get("citation_key", "")
 
         # Check if this is MCP-to-MCP verified data
-        is_verified = article.get("_verified", False)
-        data_source = article.get("_data_source", "agent")
-        agent_notes = article.get("_agent_notes", "")
-        user_notes = article.get("_user_notes", "")
-        user_tags = article.get("_user_tags", [])
+        is_verified = article.get("verified", article.get("_verified", False))
+        data_source = article.get("data_source", article.get("_data_source", "agent"))
+        trust_level = article.get("trust_level", "agent")
+        agent_notes = article.get("agent_notes", article.get("_agent_notes", ""))
+        user_notes = article.get("user_notes", article.get("_user_notes", ""))
+        user_tags = article.get("user_tags", article.get("_user_tags", []))
 
         # YAML frontmatter for Foam (enables better linking)
         content = "---\n"
@@ -522,6 +1788,8 @@ class ReferenceManager:
         content += f'source: "{article.get("source", "pubmed")}"\n'
         content += f"verified: {str(is_verified).lower()}\n"
         content += f'data_source: "{data_source}"\n\n'
+        content += f'reference_id: "{unique_id}"\n'
+        content += f'trust_level: "{trust_level}"\n'
 
         # Title for Foam completion label display
         content += f'title: "{title}"\n'
@@ -530,9 +1798,16 @@ class ReferenceManager:
         content += "aliases:\n"
         if citation_key:
             content += f"  - {citation_key}\n"  # e.g., greer2017_27345583
+        if unique_id:
+            content += f'  - "{unique_id}"\n'
         if pmid:
             content += f'  - "PMID:{pmid}"\n'  # e.g., PMID:27345583
             content += f'  - "{pmid}"\n'  # e.g., 27345583
+        if article.get("doi"):
+            content += f'  - "DOI:{article["doi"]}"\n'
+        for alias in article.get("legacy_aliases", []):
+            escaped_alias = alias.replace('"', '\\"')
+            content += f'  - "{escaped_alias}"\n'
         content += "type: reference\n\n"
 
         # Bibliographic info
@@ -542,6 +1817,10 @@ class ReferenceManager:
             content += f'doi: "{article["doi"]}"\n'
         if article.get("pmc_id"):
             content += f'pmc: "{article["pmc_id"]}"\n'
+        if article.get("content_hash"):
+            content += f'content_hash: "{article["content_hash"]}"\n'
+        if article.get("imported_from"):
+            content += f'imported_from: "{article["imported_from"].replace("\\", "\\\\")}"\n'
 
         # First author last name for easy referencing
         authors_full = article.get("authors_full", [])
@@ -557,6 +1836,29 @@ class ReferenceManager:
             content += f'issue: "{article.get("issue")}"\n'
         if article.get("pages"):
             content += f'pages: "{article.get("pages")}"\n'
+
+        content += "\n# Ingestion status\n"
+        content += f"fulltext_ingested: {str(article.get('fulltext_ingested', False)).lower()}\n"
+        content += f'fulltext_unavailable_reason: "{article.get("fulltext_unavailable_reason", "")}"\n'
+        if article.get("asset_aware_doc_id"):
+            content += f'asset_aware_doc_id: "{article.get("asset_aware_doc_id")}"\n'
+        if article.get("fulltext_sections"):
+            content += "fulltext_sections:\n"
+            for section in article.get("fulltext_sections", []):
+                content += f'  - "{section}"\n'
+        else:
+            content += "fulltext_sections: []\n"
+
+        content += "\n# Analysis status\n"
+        content += f"analysis_completed: {str(article.get('analysis_completed', False)).lower()}\n"
+        content += f'analysis_summary: "{article.get("analysis_summary", "").replace("\"", "\\\"")}"\n'
+        if article.get("usage_sections"):
+            content += "usage_sections:\n"
+            for section in article.get("usage_sections", []):
+                content += f'  - "{section}"\n'
+        else:
+            content += "usage_sections: []\n"
+        content += f"note_materialized: {str(article.get('note_materialized', True)).lower()}\n"
 
         # Pre-formatted citations in frontmatter (easy to copy)
         citation = article.get("citation", {})
@@ -579,13 +1881,13 @@ class ReferenceManager:
 
         # ========== 🤖 AGENT SECTION (AI-generated, can be updated by AI) ==========
         content += "\n# 🤖 AGENT DATA (AI-generated, AI can update)\n"
-        content += f'agent_notes: "{agent_notes}"\n'
+        content += f'agent_notes: "{agent_notes.replace("\"", "\\\"")}"\n'
         content += 'agent_summary: ""\n'  # Can be filled by AI summarization
         content += "agent_relevance: null\n"  # 1-5 relevance score
 
         # ========== ✏️ USER SECTION (Human-only, never touched by AI) ==========
         content += "\n# ✏️ USER DATA (human-only, AI should never modify)\n"
-        content += f'user_notes: "{user_notes}"\n'
+        content += f'user_notes: "{user_notes.replace("\"", "\\\"")}"\n'
         if user_tags:
             content += "user_tags:\n"
             for tag in user_tags:
@@ -596,9 +1898,8 @@ class ReferenceManager:
         content += "user_read_status: unread  # unread, reading, read\n"
 
         # Metadata
-        import datetime
-
-        content += f'\nsaved_at: "{datetime.datetime.now().isoformat()}"\n'
+        saved_at = article.get("saved_at") or __import__('datetime').datetime.now().isoformat()
+        content += f'\nsaved_at: "{saved_at}"\n'
         content += "---\n\n"
 
         content += f"# {title}\n\n"
@@ -626,11 +1927,14 @@ class ReferenceManager:
         content += f"**Journal**: {journal_info}\n\n"
 
         # IDs
+        content += f"**Reference ID**: {unique_id}\n"
         content += f"**PMID**: {pmid}\n"
         if article.get("doi"):
             content += f"**DOI**: [{article['doi']}](https://doi.org/{article['doi']})\n"
         if article.get("pmc_id"):
             content += f"**PMC**: {article['pmc_id']}\n"
+        if article.get("content_hash"):
+            content += f"**Content Hash**: {article['content_hash']}\n"
         content += "\n"
 
         # Abstract FIRST - most useful for Foam hover preview!
@@ -723,6 +2027,39 @@ class ReferenceManager:
         # Reference not found locally
         return {}
 
+    def get_reference_details(self, pmid: str) -> Dict[str, Any]:
+        """
+        Get local reference details for downstream analysis workflows.
+
+        Args:
+            pmid: PubMed ID.
+
+        Returns:
+            Dict with metadata, reference directory, and optional analysis data.
+            Returns empty dict if the reference does not exist locally.
+        """
+        metadata = self.get_metadata(pmid)
+        if not metadata:
+            return {}
+
+        ref_dir = os.path.join(self.base_dir, pmid)
+        detail: Dict[str, Any] = {
+            "pmid": pmid,
+            "metadata": metadata,
+            "ref_dir": ref_dir,
+            "has_fulltext_pdf": self.has_fulltext(pmid),
+        }
+
+        analysis_path = os.path.join(ref_dir, "analysis.json")
+        if os.path.exists(analysis_path):
+            try:
+                with open(analysis_path, "r", encoding="utf-8") as f:
+                    detail["analysis"] = json.load(f)
+            except Exception as e:
+                detail["analysis_error"] = str(e)
+
+        return detail
+
     def search_local(self, query: str) -> List[Dict[str, Any]]:
         """
         Search within saved local references by keyword.
@@ -772,6 +2109,10 @@ class ReferenceManager:
         Returns:
             True if fulltext PDF exists.
         """
+        metadata = self.get_metadata(pmid)
+        if metadata.get("fulltext_ingested"):
+            return True
+
         pdf_path = os.path.join(self.base_dir, pmid, "fulltext.pdf")
         return os.path.exists(pdf_path)
 
@@ -834,6 +2175,7 @@ class ReferenceManager:
 
         summary = {
             "pmid": pmid,
+            "citation_key": meta.get("citation_key", pmid),
             "title": meta.get("title", ""),
             "authors": meta.get("authors", []),
             "journal": meta.get("journal", ""),
@@ -842,6 +2184,8 @@ class ReferenceManager:
             "has_abstract": bool(meta.get("abstract")),
             "has_fulltext_pdf": self.has_fulltext(pmid),
             "citation": meta.get("citation", {}),
+            "trust_level": meta.get("trust_level", ""),
+            "note_materialized": meta.get("note_materialized", False),
         }
 
         return summary
@@ -868,6 +2212,7 @@ class ReferenceManager:
         try:
             with open(pdf_path, "wb") as f:
                 f.write(pdf_content)
+            self._update_reference_metadata(pmid, {"has_pdf": True}, log_event="save_pdf")
             return f"Successfully saved PDF for {pmid}."
         except Exception as e:
             return f"Error saving PDF for {pmid}: {str(e)}"
@@ -924,7 +2269,12 @@ class ReferenceManager:
                     rel_path = os.path.relpath(os.path.join(root, f), ref_dir)
                     deleted_files.append(rel_path)
 
+            metadata = self.get_metadata(pmid)
+            self._remove_identity_registry_entries(pmid, metadata)
             shutil.rmtree(ref_dir)
+            self._rebuild_index()
+            if metadata:
+                self._append_log("delete_reference", metadata)
 
             return {
                 "success": True,

@@ -30,6 +30,15 @@ def _get_tracker(project_info: dict) -> DataArtifactTracker | None:
     return DataArtifactTracker(project_dir / ".audit", project_dir)
 
 
+def _require_project_info(project_info: dict | None) -> dict:
+    """Convert optional project metadata into an explicit runtime guard."""
+    if project_info is None:
+        raise RuntimeError(
+            "Project context resolved without project metadata while recording provenance."
+        )
+    return project_info
+
+
 def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
     """Register statistical analysis tools."""
 
@@ -254,7 +263,7 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
             # Record provenance — result is the output file path
             tracker = _get_tracker(project_info) if project_info else None
             if tracker and result and not result.startswith("Error"):
-                assert project_info is not None
+                project_info = _require_project_info(project_info)
                 # Compute relative path from project dir
                 try:
                     rel_path = str(Path(result).relative_to(Path(project_info["project_path"])))

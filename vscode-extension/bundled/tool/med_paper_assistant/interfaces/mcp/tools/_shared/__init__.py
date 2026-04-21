@@ -3,6 +3,11 @@ Shared utilities for MCP tools.
 """
 
 from .checkpoint import auto_checkpoint_writing
+from .facade_dispatch import (
+    get_optional_tool_decorator,
+    invoke_tool_handler,
+    normalize_facade_action,
+)
 from .progress import report_tool_progress
 from .project_context import (
     ensure_project_context,
@@ -25,6 +30,9 @@ from .tool_logging import (
 
 __all__ = [
     "auto_checkpoint_writing",
+    "get_optional_tool_decorator",
+    "invoke_tool_handler",
+    "normalize_facade_action",
     "report_tool_progress",
     "ensure_project_context",
     "validate_project_slug",
