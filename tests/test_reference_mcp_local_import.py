@@ -208,3 +208,12 @@ async def test_markdown_intake_and_agent_wiki_materialization_via_mcp(
     assert "[[synthesis-icu-sedation-map-synthesis]]" in index_text
     assert "## Reference Graph" in knowledge_map_text
     assert "## Evidence Base" in synthesis_text
+    assert "## Live Reference Table" in knowledge_map_text
+    assert "```foam-query" in knowledge_map_text
+    assert 'links_from: "$current"' in knowledge_map_text
+    assert "content-card![[" in knowledge_map_text
+    assert "#^key-findings" in knowledge_map_text
+    assert 'type: "knowledge-map"' in knowledge_map_text
+    assert 'type: "synthesis-page"' in synthesis_text
+    assert "## Live Evidence Table" in synthesis_text
+    assert "content-inline![[" in synthesis_text

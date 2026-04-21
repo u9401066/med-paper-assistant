@@ -321,6 +321,8 @@ Foam (VS Code extension) 提供論文引用的知識圖譜功能：
 - `foam_settings.py` 動態切換專案範圍（只顯示當前專案的引用圖譜）
 - Hover preview 顯示論文摘要，autocomplete 補全論文標題
 
+詳細的 upstream 對齊範圍、設定與待補能力見 [docs/reference/foam.md](docs/reference/foam.md)。
+
 ---
 
 ## Dashboard

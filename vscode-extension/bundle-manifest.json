@@ -62,6 +62,30 @@
       "source": ".copilot-mode.json",
       "destination": ".copilot-mode.json",
       "workspaceDestination": ".copilot-mode.json"
+    },
+    {
+      "name": "foam.md",
+      "source": "docs/reference/foam.md",
+      "destination": "docs/reference/foam.md",
+      "workspaceDestination": "docs/reference/foam.md"
+    },
+    {
+      "name": "llm-wiki-reference.md",
+      "source": "docs/reference/llm-wiki.md",
+      "destination": "docs/reference/llm-wiki.md",
+      "workspaceDestination": "docs/reference/llm-wiki.md"
+    },
+    {
+      "name": "llm-wiki-how-to.md",
+      "source": "docs/how-to/llm-wiki.md",
+      "destination": "docs/how-to/llm-wiki.md",
+      "workspaceDestination": "docs/how-to/llm-wiki.md"
+    },
+    {
+      "name": "medpaper-llm-wiki-workflow.png",
+      "source": "docs/assets/medpaper_llm_wiki_workflow_clean.png",
+      "destination": "docs/assets/medpaper_llm_wiki_workflow_clean.png",
+      "workspaceDestination": "docs/assets/medpaper_llm_wiki_workflow_clean.png"
     }
   ],
   "chatCommands": [
@@ -81,7 +105,8 @@
     "mdpaper.stopServer",
     "mdpaper.showStatus",
     "mdpaper.autoPaper",
-    "mdpaper.setupWorkspace"
+    "mdpaper.setupWorkspace",
+    "mdpaper.openLlmWikiGuide"
   ],
   "pythonSources": [
     {

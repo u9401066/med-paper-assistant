@@ -10,7 +10,7 @@
     "foam.links.hover.enable": true,
     "foam.links.sync.enable": true,
     "foam.openDailyNote.directory": "notes",
-    "foam.preview.embedNoteStyle": "full",
+    "foam.preview.embedNoteType": "full-card",
     "foam.preview.embedNoteMaxLength": 5000,
     "foam.files.exclude": [
         ".venv/**",

@@ -5,6 +5,8 @@
 - Added full-surface agent wiki stage 2 orchestration: `ingest_web_source`, `ingest_markdown_source`, `build_knowledge_map`, `build_synthesis_page`, and `materialize_agent_wiki`.
 - Extended canonical reference persistence so markdown/web intake, knowledge maps, synthesis pages, and `notes/index.md` all flow through the same durable writer.
 - Updated packaged instructions and VSIX README counts to reflect the current `101 full / 44 compact` MCP surface.
+- Bundled the Foam / LLM wiki reference docs and workflow figure into the VSIX so `MedPaper: Setup Workspace` can scaffold them into a user's `docs/` directory.
+- Added a command palette shortcut to open the bundled LLM wiki guide directly, and updated Setup Workspace to announce which `docs/` files were scaffolded.
 
 ## 0.6.8 - 2026-04-20
 

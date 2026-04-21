@@ -358,9 +358,11 @@ Export Phase:
     }
   },
   "foam.links.hover.enable": true,
-  "foam.preview.embedNoteStyle": "full"
+    "foam.preview.embedNoteType": "full-card"
 }
 ```
+
+更完整的 upstream 依賴對照與功能缺口見 [../reference/foam.md](../reference/foam.md)。
 
 ---
 

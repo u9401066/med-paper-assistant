@@ -131,7 +131,12 @@
       },
       {
         "command": "mdpaper.setupWorkspace",
-        "title": "Setup Workspace - 設定 Skills/Prompts/Instructions/Templates",
+        "title": "Setup Workspace - 設定 Skills/Prompts/Docs/Instructions/Templates",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.openLlmWikiGuide",
+        "title": "Open LLM Wiki Guide - 開啟 LLM Wiki 使用指南",
         "category": "MedPaper"
       }
     ],

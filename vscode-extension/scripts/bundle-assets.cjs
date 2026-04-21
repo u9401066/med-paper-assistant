@@ -80,7 +80,7 @@ function getPythonSourceSpecs(context = createContext()) {
 }
 
 function compareFileContents(leftPath, rightPath) {
-    return fs.readFileSync(leftPath, 'utf-8') === fs.readFileSync(rightPath, 'utf-8');
+    return fs.readFileSync(leftPath).equals(fs.readFileSync(rightPath));
 }
 
 function ensureParentDirectory(filePath) {

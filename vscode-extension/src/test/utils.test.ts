@@ -247,6 +247,28 @@ describe('validateBundledSupportFiles', () => {
         const result = validateBundledSupportFiles(extensionRootDir, repoRootDir);
         expect(result.synced).toContain(file.name);
     });
+
+    it('compares binary support files without utf-8 coercion', () => {
+        const binaryFile = BUNDLED_SUPPORT_FILES.find((file) => file.destination.endsWith('.png'));
+        expect(binaryFile).toBeDefined();
+
+        const srcFile = path.join(repoRootDir, binaryFile!.source);
+        const dstFile = path.join(extensionRootDir, binaryFile!.destination);
+        const srcBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0x7f, 0x0a]);
+        const dstBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xfe, 0x7f, 0x0a]);
+
+        fs.mkdirSync(path.dirname(srcFile), { recursive: true });
+        fs.mkdirSync(path.dirname(dstFile), { recursive: true });
+        fs.writeFileSync(srcFile, srcBytes);
+        fs.writeFileSync(dstFile, dstBytes);
+
+        let result = validateBundledSupportFiles(extensionRootDir, repoRootDir);
+        expect(result.missing).toContain(binaryFile!.name + ' (outdated)');
+
+        fs.writeFileSync(dstFile, srcBytes);
+        result = validateBundledSupportFiles(extensionRootDir, repoRootDir);
+        expect(result.synced).toContain(binaryFile!.name);
+    });
 });
 
 // ──────────────────────────────────────────────────────────

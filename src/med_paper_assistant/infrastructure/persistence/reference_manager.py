@@ -219,6 +219,169 @@ class ReferenceManager:
             return summary[: max_chars - 3].rstrip() + "..."
         return summary
 
+    def _normalize_foam_tag(self, value: str) -> str:
+        import re
+
+        normalized = str(value).strip().lower().lstrip("#")
+        normalized = normalized.replace("_", "-")
+        normalized = re.sub(r"\s+", "-", normalized)
+        normalized = re.sub(r"[^a-z0-9/-]+", "-", normalized)
+        normalized = re.sub(r"-{2,}", "-", normalized)
+        return normalized.strip("-/")
+
+    def _foam_note_type(self, page_type: str) -> str:
+        mapping = {
+            "knowledge_map": "knowledge-map",
+            "synthesis_page": "synthesis-page",
+        }
+        return mapping.get(page_type, page_type.replace("_", "-"))
+
+    def _build_reference_tags(self, payload: Dict[str, Any]) -> List[str]:
+        candidates = [
+            payload.get("foam_type") or "reference",
+            f"source/{payload.get('source', 'agent') or 'agent'}",
+            f"trust/{payload.get('trust_level', 'agent') or 'agent'}",
+            "analysis/completed" if payload.get("analysis_completed") else "analysis/pending",
+            "fulltext/ingested" if payload.get("fulltext_ingested") else "fulltext/missing",
+        ]
+        candidates.extend(self._dedupe_strings(payload.get("tags", [])))
+        candidates.extend(self._dedupe_strings(payload.get("user_tags", [])))
+
+        deduped: List[str] = []
+        seen: set[str] = set()
+        for candidate in candidates:
+            normalized = self._normalize_foam_tag(candidate)
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            deduped.append(normalized)
+
+        return deduped
+
+    def _build_materialized_page_tags(
+        self,
+        page_type: str,
+        *,
+        query: str = "",
+        focus: str = "",
+    ) -> List[str]:
+        candidates = [
+            self._foam_note_type(page_type),
+            "agent-wiki",
+            "materialized",
+            "reference-set",
+        ]
+        if query:
+            candidates.append("query-backed")
+        if focus:
+            candidates.append("focus-driven")
+
+        deduped: List[str] = []
+        seen: set[str] = set()
+        for candidate in candidates:
+            normalized = self._normalize_foam_tag(candidate)
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            deduped.append(normalized)
+
+        return deduped
+
+    def _extract_markdown_section_blocks(self, markdown_text: str) -> List[Dict[str, str]]:
+        if not markdown_text.strip():
+            return []
+
+        blocks: List[Dict[str, str]] = []
+        current_title = ""
+        current_lines: List[str] = []
+
+        def flush() -> None:
+            title = current_title.strip()
+            content = "\n".join(current_lines).strip()
+            if not title and not content:
+                return
+            blocks.append({"title": title or "Evidence Summary", "content": content})
+
+        for line in markdown_text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                heading = stripped.lstrip("#").strip()
+                if heading:
+                    flush()
+                    current_title = heading
+                    current_lines = []
+                    continue
+            current_lines.append(line.rstrip())
+
+        flush()
+        return blocks
+
+    def _key_findings_anchor(self) -> str:
+        return "^key-findings"
+
+    def _evidence_anchor(self, title: str) -> str:
+        return f"^evidence-{self._slugify(title, 'section')}"
+
+    def _build_evidence_block_specs(self, article: Dict[str, Any]) -> List[Dict[str, str]]:
+        article_title = str(article.get("title", "")).strip().lower()
+        parsed_blocks = self._extract_markdown_section_blocks(article.get("extracted_markdown", ""))
+
+        parsed_by_key: Dict[str, str] = {}
+        ordered_parsed: List[Dict[str, str]] = []
+        for block in parsed_blocks:
+            title = block.get("title", "").strip()
+            if not title or title.lower() == article_title:
+                continue
+
+            key = self._slugify(title, "section")
+            snippet = self._build_markdown_summary(block.get("content", ""), max_chars=480)
+            ordered_parsed.append({"title": title, "content": snippet})
+            parsed_by_key[key] = snippet
+
+        specs: List[Dict[str, str]] = []
+        seen: set[str] = set()
+        for section in self._dedupe_strings(article.get("fulltext_sections", [])):
+            if section.lower() == article_title:
+                continue
+
+            key = self._slugify(section, "section")
+            if key in seen:
+                continue
+
+            seen.add(key)
+            specs.append({"title": section, "content": parsed_by_key.get(key, "")})
+
+        for block in ordered_parsed:
+            key = self._slugify(block["title"], "section")
+            if key in seen:
+                continue
+
+            seen.add(key)
+            specs.append(block)
+
+        return specs[:6]
+
+    def _linked_reference_query_block(self, *, format_name: str) -> List[str]:
+        lines = [
+            "```foam-query",
+            "filter:",
+            "  and:",
+            '    - type: "reference"',
+            '    - links_from: "$current"',
+        ]
+        if format_name == "count":
+            lines.append("format: count")
+        else:
+            lines.extend(
+                [
+                    "select: [title, type, tags, backlink-count]",
+                    "sort: title ASC",
+                    f"format: {format_name}",
+                ]
+            )
+        lines.append("```")
+        return lines
+
     def _write_text_source_artifact(self, ref_dir: str, file_name: str, content: str) -> str:
         source_dir = os.path.join(ref_dir, "source")
         os.makedirs(source_dir, exist_ok=True)
@@ -356,18 +519,27 @@ class ReferenceManager:
 
         slug = self._slugify(title)
         alias = self._materialized_page_alias(page_type, slug)
+        foam_type = self._foam_note_type(page_type)
+        tags = self._build_materialized_page_tags(page_type, query=query, focus=focus)
         generated_at = __import__('datetime').datetime.now().isoformat()
         page_path = self._materialized_page_path(page_type, slug)
 
         lines = [
             "---",
             f'title: "{self._yaml_escape(title)}"',
-            f'type: "{page_type}"',
+            f'type: "{foam_type}"',
             "aliases:",
             f'  - "{alias}"',
-            f'generated_at: "{generated_at}"',
-            f"reference_count: {len(reference_ids)}",
         ]
+        lines.append("tags:")
+        for tag in tags:
+            lines.append(f'  - "{self._yaml_escape(tag)}"')
+        lines.extend(
+            [
+                f'generated_at: "{generated_at}"',
+                f"reference_count: {len(reference_ids)}",
+            ]
+        )
         if query:
             lines.append(f'query: "{self._yaml_escape(query)}"')
         if focus:
@@ -431,6 +603,11 @@ class ReferenceManager:
         else:
             lines.append("- No references selected")
 
+        lines.extend(["", "## Live Reference Count", ""])
+        lines.extend(self._linked_reference_query_block(format_name="count"))
+        lines.extend(["", "## Live Reference Table", ""])
+        lines.extend(self._linked_reference_query_block(format_name="table"))
+
         lines.extend(["", "## Reference Graph", ""])
         for snapshot in snapshots:
             metadata = snapshot["metadata"]
@@ -454,6 +631,22 @@ class ReferenceManager:
                 f"- [[{citation_key}]]: {title}{year_text} [{source}/{trust_level}]"
             )
             lines.append(f"  Evidence: {summary}")
+
+        if snapshots:
+            lines.extend(["", "## Embedded Evidence", ""])
+            for snapshot in snapshots[:4]:
+                metadata = snapshot["metadata"]
+                citation_key = metadata.get("citation_key") or snapshot["reference_id"]
+                evidence_blocks = self._build_evidence_block_specs(metadata)
+                lines.append(f"### [[{citation_key}]]")
+                lines.append("")
+                lines.append(f"content-card![[{citation_key}#{self._key_findings_anchor()}]]")
+                if evidence_blocks:
+                    lines.append("")
+                    lines.append(
+                        f"content-inline![[{citation_key}#{self._evidence_anchor(evidence_blocks[0]['title'])}]]"
+                    )
+                lines.append("")
 
         if missing_analysis or unresolved_identity:
             lines.extend(["", "## Next Actions", ""])
@@ -521,6 +714,25 @@ class ReferenceManager:
             title = metadata.get("title", snapshot["reference_id"])
             year_text = f" ({year})" if year else ""
             lines.append(f"- [[{citation_key}]]: {title}{year_text}")
+
+        lines.extend(["", "## Live Evidence Table", ""])
+        lines.extend(self._linked_reference_query_block(format_name="table"))
+
+        if snapshots:
+            lines.extend(["", "## Embedded Evidence", ""])
+            for snapshot in snapshots[:4]:
+                metadata = snapshot["metadata"]
+                citation_key = metadata.get("citation_key") or snapshot["reference_id"]
+                evidence_blocks = self._build_evidence_block_specs(metadata)
+                lines.append(f"### [[{citation_key}]]")
+                lines.append("")
+                lines.append(f"content-card![[{citation_key}#{self._key_findings_anchor()}]]")
+                if evidence_blocks:
+                    lines.append("")
+                    lines.append(
+                        f"content-inline![[{citation_key}#{self._evidence_anchor(evidence_blocks[0]['title'])}]]"
+                    )
+                lines.append("")
 
         if gaps or no_fulltext:
             lines.extend(["", "## Gaps", ""])
@@ -614,6 +826,9 @@ class ReferenceManager:
                 payload["trust_level"] = "user"
             else:
                 payload["trust_level"] = "agent"
+
+        payload["foam_type"] = payload.get("foam_type") or "reference"
+        payload["tags"] = self._build_reference_tags(payload)
 
         return payload
 
@@ -1808,7 +2023,11 @@ class ReferenceManager:
         for alias in article.get("legacy_aliases", []):
             escaped_alias = alias.replace('"', '\\"')
             content += f'  - "{escaped_alias}"\n'
-        content += "type: reference\n\n"
+        content += f'type: "{article.get("foam_type", "reference")}"\n'
+        content += "tags:\n"
+        for tag in article.get("tags", []):
+            content += f'  - "{tag}"\n'
+        content += "\n"
 
         # Bibliographic info
         content += f'pmid: "{pmid}"\n'
@@ -1943,6 +2162,28 @@ class ReferenceManager:
             content += "## Abstract\n\n"
             content += abstract
             content += "\n\n"
+
+        key_findings = (
+            article.get("analysis_summary")
+            or abstract
+            or self._build_markdown_summary(article.get("extracted_markdown", ""), max_chars=320)
+        ).strip()
+        if key_findings:
+            content += "## Key Findings\n\n"
+            content += key_findings.replace("\n", " ")
+            content += "\n\n"
+            content += self._key_findings_anchor() + "\n\n"
+
+        evidence_blocks = self._build_evidence_block_specs(article)
+        if evidence_blocks:
+            content += "## Evidence Blocks\n\n"
+            for block in evidence_blocks:
+                content += f"### {block['title']}\n\n"
+                if block["content"]:
+                    content += block["content"] + "\n\n"
+                else:
+                    content += "Section indexed from extracted fulltext.\n\n"
+                content += self._evidence_anchor(block["title"]) + "\n\n"
 
         # Keywords
         keywords = article.get("keywords", [])

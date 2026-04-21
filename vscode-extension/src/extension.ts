@@ -8,6 +8,33 @@ import { DrawioPanel } from './drawioPanel';
 
 let outputChannel: vscode.OutputChannel;
 let resolvedUvPath: string | null = null;
+const LLM_WIKI_GUIDE_RELATIVE_PATH = 'docs/how-to/llm-wiki.md';
+
+function getBundledWorkspaceDocs(): string[] {
+    return BUNDLED_SUPPORT_FILES
+        .map(file => file.workspaceDestination)
+        .filter(destination => destination.startsWith('docs/'));
+}
+
+async function openWorkspaceOrBundledDocument(
+    context: vscode.ExtensionContext,
+    relativePath: string,
+): Promise<void> {
+    const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const candidates = [
+        wsRoot ? path.join(wsRoot, relativePath) : null,
+        path.join(context.extensionPath, relativePath),
+    ].filter((candidate): candidate is string => Boolean(candidate));
+
+    const targetPath = candidates.find(candidate => fs.existsSync(candidate));
+    if (!targetPath) {
+        vscode.window.showErrorMessage(`MedPaper: 找不到 ${relativePath}。請先執行 Setup Workspace 或重新安裝擴充功能。`);
+        return;
+    }
+
+    const document = await vscode.workspace.openTextDocument(vscode.Uri.file(targetPath));
+    await vscode.window.showTextDocument(document, { preview: false });
+}
 
 function getExternallyProvidedManagedServers(context: vscode.ExtensionContext): { pubmed: boolean; zotero: boolean } {
     return detectExternallyProvidedMcpServers(vscode.extensions.all, context.extension.id);
@@ -73,6 +100,9 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('mdpaper.setupWorkspace', () => {
             setupWorkspace(context);
+        }),
+        vscode.commands.registerCommand('mdpaper.openLlmWikiGuide', async () => {
+            await openWorkspaceOrBundledDocument(context, LLM_WIKI_GUIDE_RELATIVE_PATH);
         })
     );
 
@@ -654,6 +684,9 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                     stream.markdown('| `/drawio` | 📐 Draw.io 圖表繪製（MCP 工具） |\n');
                     stream.markdown('| `/autopaper` | 🚀 全自動寫論文 |\n');
                     stream.markdown('| `/help` | 顯示本說明 |\n\n');
+                    stream.markdown('### 🗂️ Command Palette 快捷功能\n\n');
+                    stream.markdown('- `MedPaper: Setup Workspace` → 複製 bundled skills、prompts、docs、agents、templates 到 workspace\n');
+                    stream.markdown('- `MedPaper: Open LLM Wiki Guide` → 直接開啟 `docs/how-to/llm-wiki.md`\n\n');
                     stream.markdown('### 🔧 Agent Mode 自然語言\n\n');
                     stream.markdown('直接在 Agent Mode 輸入：\n');
                     stream.markdown('- 「全自動寫論文」「一鍵寫論文」→ Auto Paper Pipeline\n');
@@ -739,7 +772,7 @@ async function autoScaffoldIfNeeded(context: vscode.ExtensionContext): Promise<v
     );
 
     if (totalMissing === 0) {
-        outputChannel.appendLine('[AutoScaffold] Workspace already has all skills/agents/prompts.');
+        outputChannel.appendLine('[AutoScaffold] Workspace already has all bundled skills, prompts, agents, and support docs/files.');
         return;
     }
 
@@ -756,7 +789,7 @@ async function autoScaffoldIfNeeded(context: vscode.ExtensionContext): Promise<v
     if (missingSkills > 0) { detail.push(`${missingSkills} skills`); }
     if (missingAgents > 0) { detail.push(`${missingAgents} agents`); }
     if (missingPrompts > 0) { detail.push(`${missingPrompts} prompts`); }
-    if (missingSupportFiles > 0) { detail.push(`${missingSupportFiles} support files`); }
+    if (missingSupportFiles > 0) { detail.push(`${missingSupportFiles} support docs/files`); }
 
     const selection = await vscode.window.showInformationMessage(
         `MedPaper: 偵測到 workspace 缺少 ${detail.join('、')}。要設定嗎？`,
@@ -783,6 +816,7 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
     const wsRoot = workspaceFolders[0].uri.fsPath;
     const extPath = context.extensionPath;
     let copied = 0;
+    const copiedDocs: string[] = [];
 
     // 1. Copy skills → .claude/skills/
     for (const skill of BUNDLED_SKILLS) {
@@ -813,6 +847,9 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
         if (fs.existsSync(src) && !fs.existsSync(dst)) {
             fs.mkdirSync(path.dirname(dst), { recursive: true });
             fs.copyFileSync(src, dst);
+            if (file.workspaceDestination.startsWith('docs/')) {
+                copiedDocs.push(file.workspaceDestination);
+            }
             copied++;
         }
     }
@@ -846,16 +883,29 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
     }
 
     if (copied > 0) {
-        vscode.window.showInformationMessage(
-            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、agents、support files、templates）到 workspace。重新載入視窗以啟用全部功能。`,
-            '重新載入'
-        ).then(selection => {
-            if (selection === '重新載入') {
-                vscode.commands.executeCommand('workbench.action.reloadWindow');
+        if (copiedDocs.length > 0) {
+            const docsSelection = await vscode.window.showInformationMessage(
+                `MedPaper: 已新增 docs/ 內容：${copiedDocs.join('、')}。`,
+                '開啟 LLM Wiki Guide'
+            );
+            if (docsSelection === '開啟 LLM Wiki Guide') {
+                await openWorkspaceOrBundledDocument(context, LLM_WIKI_GUIDE_RELATIVE_PATH);
             }
-        });
+        }
+
+        const selection = await vscode.window.showInformationMessage(
+            `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、agents、support docs/files、templates）到 workspace。重新載入視窗以啟用全部功能。`,
+            '重新載入'
+        );
+        if (selection === '重新載入') {
+            vscode.commands.executeCommand('workbench.action.reloadWindow');
+        }
     } else {
-        vscode.window.showInformationMessage('MedPaper: Workspace 已是最新，無需更新。');
+        const docs = getBundledWorkspaceDocs();
+        const message = docs.length > 0
+            ? `MedPaper: Workspace 已是最新，無需更新。可用「MedPaper: Open LLM Wiki Guide」直接開啟 ${LLM_WIKI_GUIDE_RELATIVE_PATH}。`
+            : 'MedPaper: Workspace 已是最新，無需更新。';
+        vscode.window.showInformationMessage(message);
     }
 
     outputChannel.appendLine(`[Setup] Copied ${copied} files to workspace`);

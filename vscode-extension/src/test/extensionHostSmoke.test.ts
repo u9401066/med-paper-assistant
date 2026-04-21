@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
@@ -25,6 +26,7 @@ const commandHandlers = new Map<string, CommandHandler>();
 const executedCommands: Array<{ command: string; args: unknown[] }> = [];
 const outputLines: string[] = [];
 const outputShow = vi.fn();
+const openedDocumentPaths: string[] = [];
 
 let registeredProviderId: string | undefined;
 let registeredProvider: {
@@ -45,10 +47,15 @@ const mockVscode = {
         showInformationMessage: vi.fn(async () => undefined),
         showWarningMessage: vi.fn(async () => undefined),
         showErrorMessage: vi.fn(async () => undefined),
+        showTextDocument: vi.fn(async () => undefined),
         withProgress: vi.fn(async (_options: unknown, task: (progress: { report: (value: unknown) => void }) => Promise<unknown>) => task({ report: vi.fn() })),
     },
     workspace: {
         workspaceFolders: [{ uri: { fsPath: path.join(os.tmpdir(), 'medpaper-vsx-smoke-workspace') } }],
+        openTextDocument: vi.fn(async (uri: { fsPath: string }) => {
+            openedDocumentPaths.push(uri.fsPath);
+            return { uri };
+        }),
         getConfiguration: vi.fn(() => ({
             get: vi.fn(() => ''),
         })),
@@ -91,6 +98,7 @@ const mockVscode = {
     },
     Uri: {
         parse: vi.fn((value: string) => ({ value, fsPath: value })),
+        file: vi.fn((value: string) => ({ fsPath: value })),
         joinPath: vi.fn((base: { fsPath?: string }, ...parts: string[]) => ({
             fsPath: path.join(base.fsPath || '', ...parts),
         })),
@@ -140,7 +148,16 @@ vi.mock('../utils', () => ({
     BUNDLED_PROMPTS: [],
     BUNDLED_TEMPLATES: [],
     BUNDLED_AGENTS: [],
-    BUNDLED_SUPPORT_FILES: [],
+    BUNDLED_SUPPORT_FILES: [
+        {
+            destination: 'docs/reference/llm-wiki.md',
+            workspaceDestination: 'docs/reference/llm-wiki.md',
+        },
+        {
+            destination: 'docs/how-to/llm-wiki.md',
+            workspaceDestination: 'docs/how-to/llm-wiki.md',
+        },
+    ],
 }));
 
 vi.mock('../drawioPanel', () => ({
@@ -174,12 +191,17 @@ describe('extension host smoke', () => {
         commandHandlers.clear();
         executedCommands.length = 0;
         outputLines.length = 0;
+        openedDocumentPaths.length = 0;
         registeredProviderId = undefined;
         registeredProvider = undefined;
-        mockVscode.workspace.workspaceFolders = [{ uri: { fsPath: path.join(os.tmpdir(), 'medpaper-vsx-smoke-workspace') } }];
+        mockVscode.workspace.workspaceFolders = [{ uri: { fsPath: fs.mkdtempSync(path.join(os.tmpdir(), 'medpaper-vsx-smoke-workspace-')) } }];
     });
 
     afterEach(() => {
+        const wsRoot = mockVscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (wsRoot) {
+            fs.rmSync(wsRoot, { recursive: true, force: true });
+        }
         commandHandlers.clear();
     });
 
@@ -205,5 +227,35 @@ describe('extension host smoke', () => {
 
         expect(outputShow).toHaveBeenCalledOnce();
         expect(outputLines.some(line => line.includes('MedPaper Assistant Status: Active'))).toBe(true);
+    });
+
+    it('registers the LLM wiki guide command and opens the bundled guide', async () => {
+        const extension = await import('../extension');
+        const context = createExtensionContext();
+
+        await extension.activate(context as never);
+
+        expect(commandHandlers.has('mdpaper.openLlmWikiGuide')).toBe(true);
+
+        await mockVscode.commands.executeCommand('mdpaper.openLlmWikiGuide');
+
+        expect(openedDocumentPaths.some(filePath => filePath.endsWith(path.join('docs', 'how-to', 'llm-wiki.md')))).toBe(true);
+        expect(mockVscode.window.showTextDocument).toHaveBeenCalledOnce();
+    });
+
+    it('setupWorkspace copies bundled docs and announces which docs were added', async () => {
+        const extension = await import('../extension');
+        const context = createExtensionContext();
+        const wsRoot = mockVscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+        await extension.activate(context as never);
+        await mockVscode.commands.executeCommand('mdpaper.setupWorkspace');
+
+        expect(fs.existsSync(path.join(wsRoot, 'docs', 'how-to', 'llm-wiki.md'))).toBe(true);
+        expect(fs.existsSync(path.join(wsRoot, 'docs', 'reference', 'llm-wiki.md'))).toBe(true);
+        expect(mockVscode.window.showInformationMessage).toHaveBeenCalledWith(
+            expect.stringContaining('已新增 docs/ 內容：docs/reference/llm-wiki.md、docs/how-to/llm-wiki.md。'),
+            '開啟 LLM Wiki Guide'
+        );
     });
 });

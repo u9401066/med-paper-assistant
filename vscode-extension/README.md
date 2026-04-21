@@ -86,7 +86,8 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 | `MedPaper: Stop MedPaper MCP Server`  | 顯示 MCP 停止說明                       |
 | `MedPaper: Auto Paper`                | 全自動寫論文                            |
 | `MedPaper: Show Status`               | 顯示擴充功能狀態                        |
-| `MedPaper: Setup Workspace`           | 複製 skills、prompts、agents、templates |
+| `MedPaper: Setup Workspace`           | 複製 skills、prompts、agents、support docs/files、templates |
+| `MedPaper: Open LLM Wiki Guide`       | 直接開啟 `docs/how-to/llm-wiki.md`      |
 
 ### Agent Mode 自然語言
 
@@ -120,7 +121,7 @@ Capability → Skill → Hook → MCP Tool
 
 ### Bundled Assets
 
-The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, and **1 journal profile template**. The full repository still contains a broader authoring and maintenance surface.
+The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, **1 journal profile template**, and **7 support/reference files**. The full repository still contains a broader authoring and maintenance surface.
 
 | 類別       | Skills                                                                                       |
 | ---------- | -------------------------------------------------------------------------------------------- |
@@ -133,6 +134,10 @@ The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 revi
 Bundled prompt workflows: `mdpaper.write-paper`, `mdpaper.literature-survey`, `mdpaper.manuscript-revision`, `mdpaper.search`, `mdpaper.concept`, `mdpaper.draft`, `mdpaper.project`, `mdpaper.format`, `mdpaper.strategy`, `mdpaper.analysis`, `mdpaper.clarify`, `mdpaper.help`, `mdpaper.audit`.
 
 Bundled reviewer/analysis agents: `concept-challenger`, `domain-reviewer`, `literature-searcher`, `meta-learner`, `methodology-reviewer`, `paper-reviewer`, `reference-analyzer`, `review-orchestrator`, `statistics-reviewer`.
+
+Bundled support/reference files: `.github/prompts/_capability-index.md`, `.github/copilot-instructions.md`, `.copilot-mode.json`, `docs/reference/foam.md`, `docs/reference/llm-wiki.md`, `docs/how-to/llm-wiki.md`, `docs/assets/medpaper_llm_wiki_workflow_clean.png`.
+
+That means a VSIX-only user can now run `MedPaper: Setup Workspace` and receive the Foam dependency reference, the LLM wiki reference/how-to docs, and the workflow figure directly under `docs/` in their workspace.
 
 ### MCP Tools (101 full / 44 compact default)
 

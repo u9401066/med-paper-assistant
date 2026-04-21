@@ -66,12 +66,16 @@ def test_import_local_file_creates_reference_note_and_scaffolding(tmp_path) -> N
     assert metadata["asset_aware_doc_id"] == "doc_123"
     assert metadata["fulltext_ingested"] is True
     assert metadata["content_hash"]
+    assert metadata["foam_type"] == "reference"
+    assert "reference" in metadata["tags"]
+    assert "trust/extracted" in metadata["tags"]
 
     ref_dir = refs_dir / ref_id
     note_path = ref_dir / f"{metadata['citation_key']}.md"
     assert note_path.exists()
     assert (ref_dir / "source" / ".").exists()
     assert (ref_dir / "artifacts" / "asset-aware" / "sections.md").exists()
+    note_text = note_path.read_text(encoding="utf-8")
 
     index_path = tmp_path / "notes" / "index.md"
     log_path = tmp_path / "notes" / "log.md"
@@ -89,6 +93,13 @@ def test_import_local_file_creates_reference_note_and_scaffolding(tmp_path) -> N
     assert "local_import" in log_text
     assert "local_import_materialized" not in log_text
     assert hash_registry[metadata["content_hash"]] == ref_id
+    assert 'type: "reference"' in note_text
+    assert "tags:" in note_text
+    assert '  - "trust/extracted"' in note_text
+    assert "## Key Findings" in note_text
+    assert "^key-findings" in note_text
+    assert "## Evidence Blocks" in note_text
+    assert "^evidence-methods" in note_text
 
 
 def test_import_local_file_deduplicates_by_content_hash(tmp_path) -> None:
@@ -166,6 +177,16 @@ def test_materialize_agent_wiki_builds_indexed_pages_from_markdown_intake(tmp_pa
     assert "markdown_intake" in log_text
     assert "knowledge_map_materialized" in log_text
     assert "synthesis_page_materialized" in log_text
+    assert 'type: "knowledge-map"' in knowledge_map_text
+    assert '  - "agent-wiki"' in knowledge_map_text
+    assert "## Live Reference Table" in knowledge_map_text
+    assert "```foam-query" in knowledge_map_text
+    assert 'links_from: "$current"' in knowledge_map_text
+    assert "content-card![[" in knowledge_map_text
+    assert "#^key-findings" in knowledge_map_text
+    assert 'type: "synthesis-page"' in synthesis_text
+    assert "## Live Evidence Table" in synthesis_text
+    assert "content-inline![[" in synthesis_text
 
 
 def test_update_fulltext_and_analysis_status_rewrites_metadata_and_note(tmp_path) -> None:

@@ -247,9 +247,9 @@ export function validateBundledSupportFiles(
         } else if (!fs.existsSync(dstFile)) {
             missing.push(file.name);
         } else {
-            const srcContent = fs.readFileSync(srcFile, 'utf-8');
-            const dstContent = fs.readFileSync(dstFile, 'utf-8');
-            if (srcContent !== dstContent) {
+            const srcContent = fs.readFileSync(srcFile);
+            const dstContent = fs.readFileSync(dstFile);
+            if (!srcContent.equals(dstContent)) {
                 missing.push(file.name + ' (outdated)');
             } else {
                 synced.push(file.name);
