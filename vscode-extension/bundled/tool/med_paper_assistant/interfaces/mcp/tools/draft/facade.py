@@ -1,0 +1,179 @@
+"""Consolidated draft facade tools."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping
+from typing import Any, Optional
+
+from mcp.server.fastmcp import FastMCP
+
+from .._shared import invoke_tool_handler, normalize_facade_action
+
+ToolMap = Mapping[str, Callable[..., Any]]
+
+
+def register_draft_facade_tools(
+    mcp: FastMCP,
+    writing_tools: ToolMap,
+    template_tools: ToolMap,
+    editing_tools: ToolMap,
+    citation_tools: ToolMap,
+):
+    """Register stable public verbs for manuscript drafting workflows."""
+
+    writing_tools = writing_tools or {}
+    template_tools = template_tools or {}
+    editing_tools = editing_tools or {}
+    citation_tools = citation_tools or {}
+
+    @mcp.tool()
+    async def draft_action(
+        action: str,
+        filename: str = "",
+        content: str = "",
+        topic: str = "",
+        notes: str = "",
+        target_text: str = "",
+        pmid: str = "",
+        section: str = "",
+        old_text: str = "",
+        new_text: str = "",
+        claim_type: str = "general",
+        max_results: int = 5,
+        search_pubmed: bool = True,
+        confirm: bool = False,
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        Run manuscript drafting actions through one stable entrypoint.
+
+        Actions:
+        - check_order
+        - draft_section
+        - write
+        - list
+        - read
+        - delete
+        - insert_citation
+        - sync_references
+        - count_words
+        - list_citations
+        - patch
+        - suggest_citations
+        - scan_citations
+        """
+        aliases = {
+            "order": "check_order",
+            "check_writing_order": "check_order",
+            "section": "draft_section",
+            "create": "write",
+            "update": "write",
+            "write_draft": "write",
+            "list_drafts": "list",
+            "read_draft": "read",
+            "delete_draft": "delete",
+            "cite": "insert_citation",
+            "sync": "sync_references",
+            "words": "count_words",
+            "citations": "list_citations",
+            "available_citations": "list_citations",
+            "get_available_citations": "list_citations",
+            "edit": "patch",
+            "patch_draft": "patch",
+            "suggest": "suggest_citations",
+            "scan_draft_citations": "scan_citations",
+            "scan": "scan_citations",
+        }
+        normalized = normalize_facade_action(action, aliases)
+        action_specs: dict[str, tuple[ToolMap, str, dict[str, Any]]] = {
+            "check_order": (writing_tools, "check_writing_order", {"project": project}),
+            "draft_section": (
+                writing_tools,
+                "draft_section",
+                {"topic": topic, "notes": notes or content, "project": project},
+            ),
+            "write": (
+                writing_tools,
+                "write_draft",
+                {"filename": filename, "content": content, "project": project},
+            ),
+            "list": (writing_tools, "list_drafts", {"project": project}),
+            "read": (
+                writing_tools,
+                "read_draft",
+                {"filename": filename, "project": project},
+            ),
+            "delete": (
+                writing_tools,
+                "delete_draft",
+                {"filename": filename, "confirm": confirm, "project": project},
+            ),
+            "insert_citation": (
+                template_tools,
+                "insert_citation",
+                {
+                    "filename": filename,
+                    "target_text": target_text,
+                    "pmid": pmid,
+                    "project": project,
+                },
+            ),
+            "sync_references": (
+                template_tools,
+                "sync_references",
+                {"filename": filename, "project": project},
+            ),
+            "count_words": (
+                template_tools,
+                "count_words",
+                {"filename": filename, "section": section or None, "project": project},
+            ),
+            "list_citations": (
+                editing_tools,
+                "get_available_citations",
+                {"project": project},
+            ),
+            "patch": (
+                editing_tools,
+                "patch_draft",
+                {
+                    "filename": filename,
+                    "old_text": old_text,
+                    "new_text": new_text or content,
+                    "project": project,
+                },
+            ),
+            "suggest_citations": (
+                citation_tools,
+                "suggest_citations",
+                {
+                    "text": content or notes,
+                    "section": section,
+                    "claim_type": claim_type,
+                    "max_results": max_results,
+                    "search_pubmed": search_pubmed,
+                    "project": project,
+                },
+            ),
+            "scan_citations": (
+                citation_tools,
+                "scan_draft_citations",
+                {"filename": filename, "project": project},
+            ),
+        }
+
+        if normalized not in action_specs:
+            supported = ", ".join(sorted(action_specs))
+            return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
+
+        tool_group, handler_name, kwargs = action_specs[normalized]
+        handler = tool_group.get(handler_name)
+        if handler is None:
+            return f"❌ Draft facade misconfigured: missing handler '{handler_name}'"
+
+        return await invoke_tool_handler(handler, **kwargs)
+
+    return {"draft_action": draft_action}
+
+
+__all__ = ["register_draft_facade_tools"]

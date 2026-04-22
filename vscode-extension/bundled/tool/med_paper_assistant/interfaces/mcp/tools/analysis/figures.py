@@ -4,11 +4,12 @@ Figure & Table Insertion Tools
 insert_figure, insert_table — register assets in manifest and insert references into drafts.
 """
 
+from collections.abc import Callable
 import json
 import os
 import re
 from pathlib import Path
-from typing import Literal, Optional, cast
+from typing import Any, Literal, Optional, cast
 
 from mcp.server.fastmcp import FastMCP
 
@@ -20,9 +21,11 @@ from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     get_project_list_for_prompt,
     log_tool_call,
     log_tool_result,
+    resolve_project_context,
 )
 
 FIGURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".tiff", ".drawio"}
@@ -168,10 +171,17 @@ def _next_number(entries: list, key: str = "number") -> int:
     return max(existing, default=0) + 1
 
 
-def register_figure_tools(mcp: FastMCP, drafter: Drafter):
+def register_figure_tools(
+    mcp: FastMCP,
+    drafter: Drafter,
+    *,
+    register_public_verbs: bool = True,
+) -> dict[str, Callable[..., Any]]:
     """Register figure/table insertion tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def review_asset_for_insertion(
         asset_type: str,
         filename: str,
@@ -201,6 +211,13 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
             "review_asset_for_insertion",
             {"asset_type": asset_type, "filename": filename, "project": project},
         )
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         is_valid, msg, _ = ensure_project_context(project)
         if not is_valid:
@@ -245,7 +262,7 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
         log_tool_result("review_asset_for_insertion", receipt["id"], success=True)
         return result
 
-    @mcp.tool()
+    @tool()
     def insert_figure(
         filename: str,
         caption: str,
@@ -269,6 +286,13 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
             project: Project slug (uses current if omitted)
         """
         log_tool_call("insert_figure", {"filename": filename, "caption": caption})
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         is_valid, msg, _ = ensure_project_context(project)
         if not is_valid:
@@ -328,6 +352,7 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
         }
         manifest.setdefault("figures", []).append(entry)
         manifest_path = _save_manifest(project_path, manifest)
+        drafter.ref_manager.refresh_foam_graph()
 
         output = (
             f"✅ **Figure {num} Registered**\n\n"
@@ -363,7 +388,7 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
         log_tool_result("insert_figure", f"Figure {num} registered", success=True)
         return output
 
-    @mcp.tool()
+    @tool()
     def insert_table(
         filename: str,
         caption: str,
@@ -389,6 +414,13 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
             project: Project slug (uses current if omitted)
         """
         log_tool_call("insert_table", {"filename": filename, "caption": caption})
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         is_valid, msg, _ = ensure_project_context(project)
         if not is_valid:
@@ -480,6 +512,7 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
         }
         manifest.setdefault("tables", []).append(entry)
         manifest_path = _save_manifest(project_path, manifest)
+        drafter.ref_manager.refresh_foam_graph()
 
         output = (
             f"✅ **Table {num} Registered**\n\n"
@@ -507,7 +540,7 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
         log_tool_result("insert_table", f"Table {num} registered", success=True)
         return output
 
-    @mcp.tool()
+    @tool()
     def list_assets(project: Optional[str] = None) -> str:
         """
         List all registered figures and tables from the manifest.
@@ -516,6 +549,13 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
             project: Project slug (uses current if omitted)
         """
         log_tool_call("list_assets", {"project": project})
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         is_valid, msg, _ = ensure_project_context(project)
         if not is_valid:
@@ -560,6 +600,13 @@ def register_figure_tools(mcp: FastMCP, drafter: Drafter):
         output += f"**Total:** {len(figures)} figures, {len(tables)} tables"
         log_tool_result("list_assets", f"{len(figures)} figs, {len(tables)} tbls", success=True)
         return output
+
+    return {
+        "review_asset_for_insertion": review_asset_for_insertion,
+        "insert_figure": insert_figure,
+        "insert_table": insert_table,
+        "list_assets": list_assets,
+    }
 
 
 def _insert_into_draft(

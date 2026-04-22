@@ -1,6 +1,7 @@
 import json
 import os
 import hashlib
+import re
 import shutil
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from pathlib import Path
@@ -69,6 +70,31 @@ class ReferenceManager:
 
     def _synthesis_pages_dir(self) -> str:
         return os.path.join(self._notes_dir(), "synthesis-pages")
+
+    def _draft_section_notes_dir(self) -> str:
+        return os.path.join(self._notes_dir(), "draft-sections")
+
+    def _figure_notes_dir(self) -> str:
+        return os.path.join(self._notes_dir(), "figures")
+
+    def _table_notes_dir(self) -> str:
+        return os.path.join(self._notes_dir(), "tables")
+
+    def _context_notes_dir(self) -> str:
+        return os.path.join(self._notes_dir(), "context")
+
+    def _library_pages_dir(self) -> str:
+        return os.path.join(self._notes_dir(), "library")
+
+    def _current_project_slug(self) -> str:
+        if self._project_manager:
+            try:
+                slug = self._project_manager.get_current_project()
+                if slug:
+                    return str(slug)
+            except Exception:
+                pass
+        return Path(self._project_root_dir()).name
 
     def _dedupe_strings(self, values: Any) -> List[str]:
         if isinstance(values, str):
@@ -156,6 +182,11 @@ class ReferenceManager:
         os.makedirs(self._notes_dir(), exist_ok=True)
         os.makedirs(self._knowledge_maps_dir(), exist_ok=True)
         os.makedirs(self._synthesis_pages_dir(), exist_ok=True)
+        os.makedirs(self._draft_section_notes_dir(), exist_ok=True)
+        os.makedirs(self._figure_notes_dir(), exist_ok=True)
+        os.makedirs(self._table_notes_dir(), exist_ok=True)
+        os.makedirs(self._context_notes_dir(), exist_ok=True)
+        os.makedirs(self._library_pages_dir(), exist_ok=True)
         os.makedirs(self._registry_dir(), exist_ok=True)
 
     def _yaml_escape(self, value: str) -> str:
@@ -218,6 +249,690 @@ class ReferenceManager:
         if len(summary) > max_chars:
             return summary[: max_chars - 3].rstrip() + "..."
         return summary
+
+    def _append_frontmatter_field(self, lines: List[str], key: str, value: Any) -> None:
+        if value is None:
+            return
+
+        if isinstance(value, bool):
+            lines.append(f"{key}: {'true' if value else 'false'}")
+            return
+
+        if isinstance(value, (int, float)):
+            lines.append(f"{key}: {value}")
+            return
+
+        if isinstance(value, list):
+            if not value:
+                lines.append(f"{key}: []")
+                return
+            lines.append(f"{key}:")
+            for item in value:
+                lines.append(f'  - "{self._yaml_escape(str(item))}"')
+            return
+
+        lines.append(f'{key}: "{self._yaml_escape(str(value))}"')
+
+    def _write_graph_note(
+        self,
+        file_path: str,
+        *,
+        title: str,
+        note_type: str,
+        aliases: List[str],
+        tags: List[str],
+        extra_fields: Dict[str, Any],
+        body: str,
+    ) -> None:
+        lines = [
+            "---",
+            f'title: "{self._yaml_escape(title)}"',
+            f'type: "{self._yaml_escape(note_type)}"',
+        ]
+        self._append_frontmatter_field(lines, "aliases", aliases)
+        self._append_frontmatter_field(lines, "tags", tags)
+        for key, value in extra_fields.items():
+            self._append_frontmatter_field(lines, key, value)
+        lines.extend(["---", "", f"# {title}", ""])
+        if body.strip():
+            lines.append(body.strip())
+            lines.append("")
+
+        Path(file_path).write_text("\n".join(lines), encoding="utf-8")
+
+    def _prune_stale_graph_notes(self, directory: str, expected_paths: List[str]) -> None:
+        expected = {str(Path(path).resolve()) for path in expected_paths}
+        dir_path = Path(directory)
+        if not dir_path.exists():
+            return
+
+        for candidate in dir_path.glob("*.md"):
+            if str(candidate.resolve()) not in expected:
+                candidate.unlink()
+
+    def _extract_first_author_slug(self, payload: Dict[str, Any]) -> str:
+        authors_full = payload.get("authors_full", [])
+        authors = payload.get("authors", [])
+
+        candidate = ""
+        if authors_full and isinstance(authors_full[0], dict):
+            candidate = str(authors_full[0].get("last_name", ""))
+        elif authors:
+            candidate = str(authors[0]).split()[0]
+
+        return self._slugify(candidate, fallback="")
+
+    def _build_graph_note_tags(
+        self,
+        note_type: str,
+        note_domain: str,
+        extra_tags: Optional[List[str]] = None,
+    ) -> List[str]:
+        candidates = [note_type, f"domain/{note_domain}", "graph/materialized"]
+        project_slug = self._current_project_slug()
+        if project_slug:
+            candidates.append(f"project/{project_slug}")
+        if extra_tags:
+            candidates.extend(extra_tags)
+
+        deduped: List[str] = []
+        seen: set[str] = set()
+        for candidate in candidates:
+            normalized = self._normalize_foam_tag(candidate)
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            deduped.append(normalized)
+        return deduped
+
+    def _author_context_labels(self, payload: Dict[str, Any]) -> List[str]:
+        labels: List[str] = []
+        authors_full = payload.get("authors_full", [])
+        if isinstance(authors_full, list):
+            for author in authors_full:
+                if not isinstance(author, dict):
+                    continue
+                last_name = str(author.get("last_name", "")).strip()
+                fore_name = str(
+                    author.get("fore_name") or author.get("first_name") or author.get("name") or ""
+                ).strip()
+                label = " ".join(part for part in [last_name, fore_name] if part).strip()
+                if label:
+                    labels.append(label)
+
+        if not labels:
+            labels = self._dedupe_strings(payload.get("authors", []))
+
+        return self._dedupe_strings(labels)[:4]
+
+    def _context_alias(self, kind: str, label: str) -> str:
+        return f"{kind}-{self._slugify(label, fallback=kind)}"
+
+    def _reference_context_entries(self, payload: Dict[str, Any]) -> Dict[str, List[Dict[str, str]]]:
+        contexts: Dict[str, List[Dict[str, str]]] = {
+            "journal": [],
+            "authors": [],
+            "topics": [],
+            "mesh": [],
+            "sections": [],
+        }
+
+        journal = str(payload.get("journal", "")).strip()
+        if journal:
+            contexts["journal"].append(
+                {"kind": "journal", "label": journal, "alias": self._context_alias("journal", journal)}
+            )
+
+        for author in self._author_context_labels(payload):
+            contexts["authors"].append(
+                {"kind": "author", "label": author, "alias": self._context_alias("author", author)}
+            )
+
+        for keyword in self._dedupe_strings(payload.get("keywords", []))[:5]:
+            contexts["topics"].append(
+                {"kind": "topic", "label": keyword, "alias": self._context_alias("topic", keyword)}
+            )
+
+        for mesh_term in self._dedupe_strings(payload.get("mesh_terms", []))[:5]:
+            contexts["mesh"].append(
+                {"kind": "mesh", "label": mesh_term, "alias": self._context_alias("mesh", mesh_term)}
+            )
+
+        for section in self._dedupe_strings(payload.get("fulltext_sections", []))[:6]:
+            contexts["sections"].append(
+                {"kind": "section", "label": section, "alias": self._context_alias("section", section)}
+            )
+
+        return contexts
+
+    def _visible_graph_tags(self, payload: Dict[str, Any]) -> List[str]:
+        visible_prefixes = (
+            "project/",
+            "journal/",
+            "author/",
+            "topic/",
+            "mesh/",
+            "section/",
+            "study/",
+            "trust/",
+            "analysis/",
+            "fulltext/",
+            "usage/",
+        )
+        return [
+            tag
+            for tag in self._dedupe_strings(payload.get("tags", []))
+            if tag == "reference" or any(tag.startswith(prefix) for prefix in visible_prefixes)
+        ][:14]
+
+    def _build_reference_graph_context(self, payload: Dict[str, Any]) -> str:
+        contexts = self._reference_context_entries(payload)
+        lines: List[str] = []
+
+        if contexts["journal"]:
+            lines.append(f"- Journal hub: [[{contexts['journal'][0]['alias']}]]")
+        if contexts["authors"]:
+            lines.append(
+                "- Author hubs: " + ", ".join(f"[[{item['alias']}]]" for item in contexts["authors"])
+            )
+        if contexts["topics"]:
+            lines.append(
+                "- Topic hubs: " + ", ".join(f"[[{item['alias']}]]" for item in contexts["topics"])
+            )
+        if contexts["mesh"]:
+            lines.append(
+                "- MeSH hubs: " + ", ".join(f"[[{item['alias']}]]" for item in contexts["mesh"])
+            )
+        if contexts["sections"]:
+            lines.append(
+                "- Section hubs: " + ", ".join(f"[[{item['alias']}]]" for item in contexts["sections"])
+            )
+
+        visible_tags = self._visible_graph_tags(payload)
+        if visible_tags:
+            lines.append("- Graph tags: " + ", ".join(visible_tags))
+
+        return "\n".join(lines)
+
+    def _materialize_reference_context_notes(self) -> Dict[str, Any]:
+        context_nodes: Dict[str, Dict[str, Any]] = {}
+        expected_paths: List[str] = []
+        project_slug = self._current_project_slug()
+
+        for reference_id in sorted(self.list_references()):
+            metadata = self.get_metadata(reference_id)
+            if not metadata:
+                continue
+
+            citation_key = metadata.get("citation_key") or reference_id
+            title = metadata.get("title", reference_id)
+            year = str(metadata.get("year", "")).strip()
+            for items in self._reference_context_entries(metadata).values():
+                for item in items:
+                    node = context_nodes.setdefault(
+                        item["alias"],
+                        {
+                            "kind": item["kind"],
+                            "label": item["label"],
+                            "alias": item["alias"],
+                            "references": [],
+                        },
+                    )
+                    node["references"].append(
+                        {
+                            "citation_key": citation_key,
+                            "title": title,
+                            "year": year,
+                        }
+                    )
+
+        materialized_nodes: List[Dict[str, Any]] = []
+        for node in sorted(context_nodes.values(), key=lambda item: (item["kind"], item["label"].lower())):
+            note_path = os.path.join(self._context_notes_dir(), f"{node['alias']}.md")
+            expected_paths.append(note_path)
+            references = sorted(
+                node["references"],
+                key=lambda item: (item["title"].lower(), item["citation_key"]),
+            )
+            body_lines = [
+                f"- Context kind: {node['kind']}",
+                f"- Linked references: {len(references)}",
+                "",
+                "## References",
+                "",
+            ]
+            for reference in references:
+                year_text = f" ({reference['year']})" if reference["year"] else ""
+                body_lines.append(
+                    f"- [[{reference['citation_key']}]]: {reference['title']}{year_text}"
+                )
+
+            note_type = f"{node['kind']}-note"
+            self._write_graph_note(
+                note_path,
+                title=f"{node['kind'].title()}: {node['label']}",
+                note_type=note_type,
+                aliases=[node["alias"]],
+                tags=self._build_graph_note_tags(
+                    note_type,
+                    "taxonomy",
+                    [f"context/{node['kind']}", f"label/{self._slugify(node['label'], fallback=node['kind'])}"],
+                ),
+                extra_fields={
+                    "note_class": note_type,
+                    "note_domain": "taxonomy",
+                    "project": project_slug,
+                    "context_kind": node["kind"],
+                    "context_value": node["label"],
+                    "linked_references": [reference["citation_key"] for reference in references],
+                    "review_state": "n/a",
+                },
+                body="\n".join(body_lines),
+            )
+            materialized_nodes.append(
+                {
+                    "alias": node["alias"],
+                    "title": f"{node['kind'].title()}: {node['label']}",
+                    "kind": node["kind"],
+                    "reference_count": len(references),
+                }
+            )
+
+        self._prune_stale_graph_notes(self._context_notes_dir(), expected_paths)
+        return {"nodes": materialized_nodes, "count": len(materialized_nodes)}
+
+    def _materialize_library_overview(self, context_nodes: Dict[str, Any]) -> Dict[str, Any]:
+        note_path = os.path.join(self._library_pages_dir(), "overview.md")
+        project_slug = self._current_project_slug()
+
+        snapshots = self._resolve_reference_snapshots(limit=max(len(self.list_references()), 1))
+        total_references = len(snapshots)
+        analyzed_count = sum(
+            1 for snapshot in snapshots if snapshot["metadata"].get("analysis_completed")
+        )
+        fulltext_count = sum(
+            1 for snapshot in snapshots if snapshot["metadata"].get("fulltext_ingested")
+        )
+
+        trust_counts: Dict[str, int] = {}
+        source_counts: Dict[str, int] = {}
+        journal_counts: Dict[str, int] = {}
+        topic_counts: Dict[str, int] = {}
+        unresolved_identity: List[Dict[str, str]] = []
+        analysis_queue: List[Dict[str, str]] = []
+        fulltext_queue: List[Dict[str, str]] = []
+        recent_additions: List[Dict[str, str]] = []
+
+        for snapshot in snapshots:
+            metadata = snapshot["metadata"]
+            reference_id = snapshot["reference_id"]
+            citation_key = metadata.get("citation_key") or reference_id
+            title = metadata.get("title", reference_id)
+            year = str(metadata.get("year", "")).strip()
+
+            trust_level = str(metadata.get("trust_level", "unknown") or "unknown")
+            trust_counts[trust_level] = trust_counts.get(trust_level, 0) + 1
+
+            source = str(metadata.get("source", "unknown") or "unknown")
+            source_counts[source] = source_counts.get(source, 0) + 1
+
+            journal = str(metadata.get("journal", "")).strip()
+            if journal:
+                journal_counts[journal] = journal_counts.get(journal, 0) + 1
+
+            for topic in self._dedupe_strings(metadata.get("keywords", []))[:5]:
+                topic_counts[topic] = topic_counts.get(topic, 0) + 1
+
+            ref_entry = {
+                "citation_key": citation_key,
+                "title": title,
+                "year": year,
+            }
+            recent_additions.append(ref_entry)
+
+            if reference_id.startswith(("local_", "web_", "markdown_")) and not metadata.get("pmid"):
+                unresolved_identity.append(ref_entry)
+            if not metadata.get("analysis_completed"):
+                analysis_queue.append(ref_entry)
+            if not metadata.get("fulltext_ingested"):
+                fulltext_queue.append(ref_entry)
+
+        top_context_hubs = sorted(
+            context_nodes.get("nodes", []),
+            key=lambda node: (-int(node.get("reference_count", 0)), node.get("title", "")),
+        )[:8]
+        top_journals = sorted(journal_counts.items(), key=lambda item: (-item[1], item[0].lower()))[:8]
+        top_topics = sorted(topic_counts.items(), key=lambda item: (-item[1], item[0].lower()))[:8]
+
+        body_lines = [
+            "## Library Status",
+            "",
+            f"- Total references: {total_references}",
+            f"- Analysis completed: {analyzed_count}",
+            f"- Fulltext ingested: {fulltext_count}",
+            f"- Context hubs: {context_nodes.get('count', 0)}",
+            "",
+            "## Trust Distribution",
+            "",
+        ]
+
+        if trust_counts:
+            for trust_level, count in sorted(trust_counts.items(), key=lambda item: (-item[1], item[0])):
+                body_lines.append(f"- {trust_level}: {count}")
+        else:
+            body_lines.append("- No references in the library yet")
+
+        body_lines.extend(["", "## Source Mix", ""])
+        if source_counts:
+            for source, count in sorted(source_counts.items(), key=lambda item: (-item[1], item[0])):
+                body_lines.append(f"- {source}: {count}")
+        else:
+            body_lines.append("- No source mix available yet")
+
+        body_lines.extend(["", "## Identity Resolution Queue", ""])
+        if unresolved_identity:
+            for item in unresolved_identity[:10]:
+                year_text = f" ({item['year']})" if item["year"] else ""
+                body_lines.append(f"- [[{item['citation_key']}]]: {item['title']}{year_text}")
+        else:
+            body_lines.append("- No unresolved local identities")
+
+        body_lines.extend(["", "## Analysis Queue", ""])
+        if analysis_queue:
+            for item in analysis_queue[:10]:
+                year_text = f" ({item['year']})" if item["year"] else ""
+                body_lines.append(f"- [[{item['citation_key']}]]: {item['title']}{year_text}")
+        else:
+            body_lines.append("- All references have saved analysis")
+
+        body_lines.extend(["", "## Fulltext Queue", ""])
+        if fulltext_queue:
+            for item in fulltext_queue[:10]:
+                year_text = f" ({item['year']})" if item["year"] else ""
+                body_lines.append(f"- [[{item['citation_key']}]]: {item['title']}{year_text}")
+        else:
+            body_lines.append("- Fulltext available for all references")
+
+        body_lines.extend(["", "## Recent Additions", ""])
+        if recent_additions:
+            for item in recent_additions[:12]:
+                year_text = f" ({item['year']})" if item["year"] else ""
+                body_lines.append(f"- [[{item['citation_key']}]]: {item['title']}{year_text}")
+        else:
+            body_lines.append("- No references added yet")
+
+        body_lines.extend(["", "## Top Context Hubs", ""])
+        if top_context_hubs:
+            for node in top_context_hubs:
+                body_lines.append(
+                    f"- [[{node['alias']}]]: {node['title']} ({node.get('reference_count', 0)} refs)"
+                )
+        else:
+            body_lines.append("- No context hubs materialized yet")
+
+        body_lines.extend(["", "## Top Journals", ""])
+        if top_journals:
+            for journal, count in top_journals:
+                body_lines.append(f"- {journal}: {count}")
+        else:
+            body_lines.append("- No journal metadata yet")
+
+        body_lines.extend(["", "## Top Topics", ""])
+        if top_topics:
+            for topic, count in top_topics:
+                body_lines.append(f"- {topic}: {count}")
+        else:
+            body_lines.append("- No keyword topics yet")
+
+        self._write_graph_note(
+            note_path,
+            title="Library Overview",
+            note_type="library-overview",
+            aliases=["library-overview"],
+            tags=self._build_graph_note_tags(
+                "library-overview",
+                "library",
+                ["dashboard/library", "workflow/library-first"],
+            ),
+            extra_fields={
+                "note_class": "library-overview",
+                "note_domain": "library",
+                "project": project_slug,
+                "reference_count": total_references,
+                "analysis_completed_count": analyzed_count,
+                "analysis_pending_count": len(analysis_queue),
+                "fulltext_available_count": fulltext_count,
+                "fulltext_missing_count": len(fulltext_queue),
+                "identity_resolution_count": len(unresolved_identity),
+                "context_hub_count": context_nodes.get("count", 0),
+                "review_state": "n/a",
+            },
+            body="\n".join(body_lines),
+        )
+
+        return {"alias": "library-overview", "title": "Library Overview", "path": note_path}
+
+    def _normalize_foam_tag(self, value: str) -> str:
+        import re
+
+        normalized = str(value).strip().lower().lstrip("#")
+        normalized = normalized.replace("_", "-")
+        normalized = re.sub(r"\s+", "-", normalized)
+        normalized = re.sub(r"[^a-z0-9/-]+", "-", normalized)
+        normalized = re.sub(r"-{2,}", "-", normalized)
+        return normalized.strip("-/")
+
+    def _foam_note_type(self, page_type: str) -> str:
+        mapping = {
+            "knowledge_map": "knowledge-map",
+            "synthesis_page": "synthesis-page",
+        }
+        return mapping.get(page_type, page_type.replace("_", "-"))
+
+    def _build_reference_tags(self, payload: Dict[str, Any]) -> List[str]:
+        candidates = [
+            payload.get("foam_type") or "reference",
+            f"source/{payload.get('source', 'agent') or 'agent'}",
+            f"trust/{payload.get('trust_level', 'agent') or 'agent'}",
+            "analysis/completed" if payload.get("analysis_completed") else "analysis/pending",
+            "fulltext/ingested" if payload.get("fulltext_ingested") else "fulltext/missing",
+        ]
+        project_slug = payload.get("project") or self._current_project_slug()
+        if project_slug:
+            candidates.append(f"project/{project_slug}")
+
+        year = str(payload.get("year", "")).strip()
+        if year.isdigit():
+            candidates.append(f"year/{year}")
+
+        journal_slug = payload.get("journal_slug") or self._slugify(
+            payload.get("journal") or payload.get("journal_abbrev") or "", fallback=""
+        )
+        if journal_slug:
+            candidates.append(f"journal/{journal_slug}")
+
+        first_author = payload.get("first_author") or self._extract_first_author_slug(payload)
+        if first_author:
+            candidates.append(f"author/{first_author}")
+
+        for usage_section in self._dedupe_strings(payload.get("usage_sections", []))[:6]:
+            candidates.append(f"usage/{usage_section}")
+
+        for fulltext_section in self._dedupe_strings(payload.get("fulltext_sections", []))[:6]:
+            candidates.append(f"section/{fulltext_section}")
+
+        for keyword in self._dedupe_strings(payload.get("keywords", []))[:8]:
+            candidates.append(f"topic/{keyword}")
+
+        for mesh_term in self._dedupe_strings(payload.get("mesh_terms", []))[:8]:
+            candidates.append(f"mesh/{mesh_term}")
+
+        publication_types = payload.get("publication_types") or payload.get("publication_type") or []
+        for publication_type in self._dedupe_strings(publication_types)[:4]:
+            candidates.append(f"study/{publication_type}")
+
+        candidates.extend(self._dedupe_strings(payload.get("tags", [])))
+        candidates.extend(self._dedupe_strings(payload.get("user_tags", [])))
+
+        deduped: List[str] = []
+        seen: set[str] = set()
+        for candidate in candidates:
+            normalized = self._normalize_foam_tag(candidate)
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            deduped.append(normalized)
+
+        return deduped
+
+    def _build_materialized_page_tags(
+        self,
+        page_type: str,
+        *,
+        query: str = "",
+        focus: str = "",
+    ) -> List[str]:
+        candidates = [
+            self._foam_note_type(page_type),
+            "agent-wiki",
+            "materialized",
+            "reference-set",
+            "domain/synthesis",
+        ]
+        project_slug = self._current_project_slug()
+        if project_slug:
+            candidates.append(f"project/{project_slug}")
+        if query:
+            candidates.append("query-backed")
+        if focus:
+            candidates.append("focus-driven")
+            candidates.append(f"focus/{focus}")
+
+        deduped: List[str] = []
+        seen: set[str] = set()
+        for candidate in candidates:
+            normalized = self._normalize_foam_tag(candidate)
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            deduped.append(normalized)
+
+        return deduped
+
+    def _type_query_block(self, note_type: str, *, format_name: str = "count") -> List[str]:
+        lines = [
+            "```foam-query",
+            "filter:",
+            "  and:",
+            f'    - type: "{self._yaml_escape(note_type)}"',
+        ]
+        if format_name == "count":
+            lines.append("format: count")
+        else:
+            lines.extend(
+                [
+                    "select: [title, type, tags, backlink-count]",
+                    "sort: title ASC",
+                    f"format: {format_name}",
+                ]
+            )
+        lines.append("```")
+        return lines
+
+    def _extract_markdown_section_blocks(self, markdown_text: str) -> List[Dict[str, str]]:
+        if not markdown_text.strip():
+            return []
+
+        blocks: List[Dict[str, str]] = []
+        current_title = ""
+        current_lines: List[str] = []
+
+        def flush() -> None:
+            title = current_title.strip()
+            content = "\n".join(current_lines).strip()
+            if not title and not content:
+                return
+            blocks.append({"title": title or "Evidence Summary", "content": content})
+
+        for line in markdown_text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                heading = stripped.lstrip("#").strip()
+                if heading:
+                    flush()
+                    current_title = heading
+                    current_lines = []
+                    continue
+            current_lines.append(line.rstrip())
+
+        flush()
+        return blocks
+
+    def _key_findings_anchor(self) -> str:
+        return "^key-findings"
+
+    def _evidence_anchor(self, title: str) -> str:
+        return f"^evidence-{self._slugify(title, 'section')}"
+
+    def _build_evidence_block_specs(self, article: Dict[str, Any]) -> List[Dict[str, str]]:
+        article_title = str(article.get("title", "")).strip().lower()
+        parsed_blocks = self._extract_markdown_section_blocks(article.get("extracted_markdown", ""))
+
+        parsed_by_key: Dict[str, str] = {}
+        ordered_parsed: List[Dict[str, str]] = []
+        for block in parsed_blocks:
+            title = block.get("title", "").strip()
+            if not title or title.lower() == article_title:
+                continue
+
+            key = self._slugify(title, "section")
+            snippet = self._build_markdown_summary(block.get("content", ""), max_chars=480)
+            ordered_parsed.append({"title": title, "content": snippet})
+            parsed_by_key[key] = snippet
+
+        specs: List[Dict[str, str]] = []
+        seen: set[str] = set()
+        for section in self._dedupe_strings(article.get("fulltext_sections", [])):
+            if section.lower() == article_title:
+                continue
+
+            key = self._slugify(section, "section")
+            if key in seen:
+                continue
+
+            seen.add(key)
+            specs.append({"title": section, "content": parsed_by_key.get(key, "")})
+
+        for block in ordered_parsed:
+            key = self._slugify(block["title"], "section")
+            if key in seen:
+                continue
+
+            seen.add(key)
+            specs.append(block)
+
+        return specs[:6]
+
+    def _linked_reference_query_block(self, *, format_name: str) -> List[str]:
+        lines = [
+            "```foam-query",
+            "filter:",
+            "  and:",
+            '    - type: "reference"',
+            '    - links_from: "$current"',
+        ]
+        if format_name == "count":
+            lines.append("format: count")
+        else:
+            lines.extend(
+                [
+                    "select: [title, type, tags, backlink-count]",
+                    "sort: title ASC",
+                    f"format: {format_name}",
+                ]
+            )
+        lines.append("```")
+        return lines
 
     def _write_text_source_artifact(self, ref_dir: str, file_name: str, content: str) -> str:
         source_dir = os.path.join(ref_dir, "source")
@@ -356,18 +1071,36 @@ class ReferenceManager:
 
         slug = self._slugify(title)
         alias = self._materialized_page_alias(page_type, slug)
+        foam_type = self._foam_note_type(page_type)
+        tags = self._build_materialized_page_tags(page_type, query=query, focus=focus)
         generated_at = __import__('datetime').datetime.now().isoformat()
         page_path = self._materialized_page_path(page_type, slug)
 
         lines = [
             "---",
             f'title: "{self._yaml_escape(title)}"',
-            f'type: "{page_type}"',
+            f'type: "{foam_type}"',
             "aliases:",
             f'  - "{alias}"',
-            f'generated_at: "{generated_at}"',
-            f"reference_count: {len(reference_ids)}",
         ]
+        lines.append("tags:")
+        for tag in tags:
+            lines.append(f'  - "{self._yaml_escape(tag)}"')
+        lines.extend(
+            [
+                f'note_class: "{foam_type}"',
+                'note_domain: "synthesis"',
+                f'project: "{self._yaml_escape(self._current_project_slug())}"',
+                'source_kind: "materialized"',
+                f'query_state: "{"query-backed" if query else "static"}"',
+            ]
+        )
+        lines.extend(
+            [
+                f'generated_at: "{generated_at}"',
+                f"reference_count: {len(reference_ids)}",
+            ]
+        )
         if query:
             lines.append(f'query: "{self._yaml_escape(query)}"')
         if focus:
@@ -431,6 +1164,11 @@ class ReferenceManager:
         else:
             lines.append("- No references selected")
 
+        lines.extend(["", "## Live Reference Count", ""])
+        lines.extend(self._linked_reference_query_block(format_name="count"))
+        lines.extend(["", "## Live Reference Table", ""])
+        lines.extend(self._linked_reference_query_block(format_name="table"))
+
         lines.extend(["", "## Reference Graph", ""])
         for snapshot in snapshots:
             metadata = snapshot["metadata"]
@@ -454,6 +1192,22 @@ class ReferenceManager:
                 f"- [[{citation_key}]]: {title}{year_text} [{source}/{trust_level}]"
             )
             lines.append(f"  Evidence: {summary}")
+
+        if snapshots:
+            lines.extend(["", "## Embedded Evidence", ""])
+            for snapshot in snapshots[:4]:
+                metadata = snapshot["metadata"]
+                citation_key = metadata.get("citation_key") or snapshot["reference_id"]
+                evidence_blocks = self._build_evidence_block_specs(metadata)
+                lines.append(f"### [[{citation_key}]]")
+                lines.append("")
+                lines.append(f"content-card![[{citation_key}#{self._key_findings_anchor()}]]")
+                if evidence_blocks:
+                    lines.append("")
+                    lines.append(
+                        f"content-inline![[{citation_key}#{self._evidence_anchor(evidence_blocks[0]['title'])}]]"
+                    )
+                lines.append("")
 
         if missing_analysis or unresolved_identity:
             lines.extend(["", "## Next Actions", ""])
@@ -521,6 +1275,25 @@ class ReferenceManager:
             title = metadata.get("title", snapshot["reference_id"])
             year_text = f" ({year})" if year else ""
             lines.append(f"- [[{citation_key}]]: {title}{year_text}")
+
+        lines.extend(["", "## Live Evidence Table", ""])
+        lines.extend(self._linked_reference_query_block(format_name="table"))
+
+        if snapshots:
+            lines.extend(["", "## Embedded Evidence", ""])
+            for snapshot in snapshots[:4]:
+                metadata = snapshot["metadata"]
+                citation_key = metadata.get("citation_key") or snapshot["reference_id"]
+                evidence_blocks = self._build_evidence_block_specs(metadata)
+                lines.append(f"### [[{citation_key}]]")
+                lines.append("")
+                lines.append(f"content-card![[{citation_key}#{self._key_findings_anchor()}]]")
+                if evidence_blocks:
+                    lines.append("")
+                    lines.append(
+                        f"content-inline![[{citation_key}#{self._evidence_anchor(evidence_blocks[0]['title'])}]]"
+                    )
+                lines.append("")
 
         if gaps or no_fulltext:
             lines.extend(["", "## Gaps", ""])
@@ -594,6 +1367,11 @@ class ReferenceManager:
         payload["analysis_completed"] = bool(payload.get("analysis_completed", False))
         payload["analysis_summary"] = payload.get("analysis_summary", "")
         payload["usage_sections"] = payload.get("usage_sections", [])
+        payload["keywords"] = self._dedupe_strings(payload.get("keywords", []))
+        payload["mesh_terms"] = self._dedupe_strings(payload.get("mesh_terms", []))
+        payload["publication_types"] = self._dedupe_strings(
+            payload.get("publication_types") or payload.get("publication_type") or []
+        )
         payload["legacy_aliases"] = self._dedupe_strings(payload.get("legacy_aliases", []))
         payload["note_materialized"] = True
         payload["provenance"] = self._dedupe_provenance(payload.get("provenance", []))
@@ -614,6 +1392,19 @@ class ReferenceManager:
                 payload["trust_level"] = "user"
             else:
                 payload["trust_level"] = "agent"
+
+        payload["foam_type"] = payload.get("foam_type") or "reference"
+        payload["note_class"] = payload.get("note_class") or payload["foam_type"]
+        payload["note_domain"] = payload.get("note_domain") or "literature"
+        payload["project"] = payload.get("project") or self._current_project_slug()
+        payload["first_author"] = payload.get("first_author") or self._extract_first_author_slug(payload)
+        payload["journal_slug"] = payload.get("journal_slug") or self._slugify(
+            payload.get("journal") or payload.get("journal_abbrev") or "", fallback=""
+        )
+        payload["analysis_state"] = "completed" if payload.get("analysis_completed") else "pending"
+        payload["fulltext_state"] = "ingested" if payload.get("fulltext_ingested") else "missing"
+        payload["review_state"] = payload.get("review_state") or "n/a"
+        payload["tags"] = self._build_reference_tags(payload)
 
         return payload
 
@@ -651,9 +1442,665 @@ class ReferenceManager:
         with open(log_path, "a", encoding="utf-8") as handle:
             handle.write(entry)
 
-    def _rebuild_index(self) -> None:
+    def _extract_wikilinks(self, content: str) -> List[str]:
+        seen: set[str] = set()
+        links: List[str] = []
+        for match in re.findall(r"\[\[([^\]]+)\]\]", content):
+            normalized = str(match).strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            links.append(normalized)
+        return links
+
+    def _section_kind(self, title: str) -> str:
+        normalized = self._slugify(title, fallback="section")
+        aliases = {
+            "introduction": "introduction",
+            "background": "introduction",
+            "methods": "methods",
+            "materials-and-methods": "methods",
+            "method": "methods",
+            "results": "results",
+            "discussion": "discussion",
+            "conclusion": "conclusion",
+            "abstract": "abstract",
+            "title": "title",
+        }
+        return aliases.get(normalized, normalized)
+
+    def _extract_draft_sections(self, markdown_text: str, draft_filename: str) -> List[Dict[str, str]]:
+        sections: List[Dict[str, str]] = []
+        current_title = Path(draft_filename).stem.replace("_", " ").replace("-", " ").title()
+        current_lines: List[str] = []
+        saw_heading = False
+
+        def flush() -> None:
+            content = "\n".join(current_lines).strip()
+            if not content and saw_heading:
+                return
+            sections.append({"title": current_title, "content": content})
+
+        for line in markdown_text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("#"):
+                heading = stripped.lstrip("#").strip()
+                if heading:
+                    if current_lines or saw_heading:
+                        flush()
+                    current_title = heading
+                    current_lines = []
+                    saw_heading = True
+                    continue
+            current_lines.append(line.rstrip())
+
+        if current_lines or not saw_heading:
+            flush()
+
+        return [section for section in sections if section["title"].strip()]
+
+    def _load_asset_manifest(self) -> Dict[str, Any]:
+        manifest_path = os.path.join(self._project_root_dir(), "results", "manifest.json")
+        return self._read_json_file(manifest_path, {"figures": [], "tables": []})
+
+    def _read_text_preview(self, file_path: str, max_chars: int = 1200) -> str:
+        suffix = Path(file_path).suffix.lower()
+        if suffix not in {".md", ".csv", ".html", ".txt"}:
+            return ""
+        try:
+            content = Path(file_path).read_text(encoding="utf-8")
+        except Exception:
+            return ""
+        return content[:max_chars].strip()
+
+    def _asset_aware_artifact_dir(self, reference_id: str) -> Path:
+        return Path(self.base_dir) / reference_id / "artifacts" / "asset-aware"
+
+    def _normalize_match_text(self, value: str) -> str:
+        return re.sub(r"[^a-z0-9]+", " ", str(value).lower()).strip()
+
+    def _display_line_range(self, line_start: Any, line_end: Any) -> str:
+        if not isinstance(line_start, int):
+            return ""
+        if isinstance(line_end, int) and line_end >= line_start:
+            start_display = line_start + 1
+            end_display = max(start_display, line_end)
+            return str(start_display) if start_display == end_display else f"{start_display}-{end_display}"
+        return str(line_start + 1)
+
+    def _segment_bbox(self, segment: Dict[str, Any]) -> List[float]:
+        left = segment.get("left")
+        top = segment.get("top")
+        width = segment.get("width")
+        height = segment.get("height")
+        if all(isinstance(value, (int, float)) for value in (left, top, width, height)):
+            return [float(left), float(top), float(left + width), float(top + height)]
+        return []
+
+    def _section_path_from_hierarchy(self, value: Any) -> List[str]:
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        if isinstance(value, dict):
+            ordered_keys = sorted(value.keys(), key=lambda item: int(str(item)) if str(item).isdigit() else str(item))
+            return [str(value[key]).strip() for key in ordered_keys if str(value[key]).strip()]
+        if isinstance(value, str) and value.strip():
+            return [value.strip()]
+        return []
+
+    def _load_reference_asset_contexts(self) -> List[Dict[str, Any]]:
+        contexts: List[Dict[str, Any]] = []
+        for reference_id in self.list_references():
+            metadata = self.get_metadata(reference_id)
+            if not metadata:
+                continue
+
+            artifact_dir = self._asset_aware_artifact_dir(reference_id)
+            manifest = self._read_json_file(str(artifact_dir / "manifest.json"), {})
+            blocks = self._read_json_file(str(artifact_dir / "blocks.json"), [])
+            segmentation = self._read_json_file(str(artifact_dir / "segmentation.json"), {})
+            if not manifest and not blocks and not segmentation:
+                continue
+
+            contexts.append(
+                {
+                    "reference_id": reference_id,
+                    "metadata": metadata,
+                    "manifest": manifest,
+                    "blocks": blocks if isinstance(blocks, list) else [],
+                    "segmentation": segmentation if isinstance(segmentation, dict) else {},
+                }
+            )
+        return contexts
+
+    def _score_asset_manifest_candidate(
+        self,
+        *,
+        filename: str,
+        caption: str,
+        source_asset: Dict[str, Any],
+    ) -> int:
+        score = 0
+        registered_stem = self._normalize_match_text(Path(filename).stem)
+        registered_caption = self._normalize_match_text(caption)
+        source_caption = self._normalize_match_text(source_asset.get("caption", ""))
+        source_id = self._normalize_match_text(source_asset.get("id", ""))
+        source_path_stem = self._normalize_match_text(Path(str(source_asset.get("path", ""))).stem)
+        source_preview = self._normalize_match_text(source_asset.get("preview", ""))
+
+        if registered_caption and source_caption:
+            if registered_caption == source_caption:
+                score += 20
+            elif registered_caption in source_caption or source_caption in registered_caption:
+                score += 10
+
+        if registered_stem and source_path_stem:
+            if registered_stem == source_path_stem:
+                score += 12
+            elif registered_stem in source_path_stem or source_path_stem in registered_stem:
+                score += 6
+
+        if registered_stem and source_id:
+            if registered_stem == source_id:
+                score += 8
+            elif registered_stem in source_id or source_id in registered_stem:
+                score += 4
+
+        if registered_stem and source_preview and registered_stem in source_preview:
+            score += 3
+
+        return score
+
+    def _find_asset_source_block(
+        self,
+        blocks: List[Dict[str, Any]],
+        source_block_id: str,
+    ) -> Dict[str, Any]:
+        if not source_block_id:
+            return {}
+        for block in blocks:
+            if str(block.get("block_id") or "") == source_block_id:
+                return block
+        return {}
+
+    def _find_segmentation_segment(
+        self,
+        segmentation: Dict[str, Any],
+        source_asset: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        segments = segmentation.get("segments", [])
+        if not isinstance(segments, list):
+            return {}
+
+        source_block_id = str(source_asset.get("source_block_id") or "")
+        source_asset_id = str(source_asset.get("id") or "")
+        for segment in segments:
+            if not isinstance(segment, dict):
+                continue
+            metadata = segment.get("metadata") or {}
+            if source_block_id and (
+                str(segment.get("segment_id") or "") == source_block_id
+                or str(metadata.get("source_block_id") or "") == source_block_id
+            ):
+                return segment
+
+        for segment in segments:
+            if not isinstance(segment, dict):
+                continue
+            if source_asset_id and str(segment.get("asset_id") or "") == source_asset_id:
+                return segment
+
+        return {}
+
+    def _resolve_asset_source_fragment(
+        self,
+        asset_type: str,
+        filename: str,
+        caption: str,
+        reference_contexts: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        manifest_key = "figures" if asset_type == "figure" else "tables"
+        best_match: Dict[str, Any] = {}
+        best_score = 0
+
+        for context in reference_contexts:
+            manifest_assets = ((context.get("manifest") or {}).get("assets") or {}).get(manifest_key, [])
+            if not isinstance(manifest_assets, list):
+                continue
+
+            for source_asset in manifest_assets:
+                if not isinstance(source_asset, dict):
+                    continue
+
+                score = self._score_asset_manifest_candidate(
+                    filename=filename,
+                    caption=caption,
+                    source_asset=source_asset,
+                )
+                if score <= best_score:
+                    continue
+
+                source_block_id = str(source_asset.get("source_block_id") or "")
+                block = self._find_asset_source_block(context.get("blocks", []), source_block_id)
+                segment = self._find_segmentation_segment(context.get("segmentation", {}), source_asset)
+
+                line_start = None
+                line_end = None
+                block_metadata = block.get("metadata") or {}
+                if isinstance(block_metadata.get("line_start"), int):
+                    line_start = int(block_metadata["line_start"])
+                elif isinstance(segment.get("line_start"), int):
+                    line_start = int(segment["line_start"])
+                elif isinstance(source_asset.get("line_start"), int):
+                    line_start = int(source_asset["line_start"])
+
+                if isinstance(block_metadata.get("line_end"), int):
+                    line_end = int(block_metadata["line_end"])
+                elif isinstance(segment.get("line_end"), int):
+                    line_end = int(segment["line_end"])
+                elif isinstance(source_asset.get("line_end"), int):
+                    line_end = int(source_asset["line_end"])
+
+                section_path = self._section_path_from_hierarchy(block.get("section_hierarchy"))
+                if not section_path:
+                    section_path = self._section_path_from_hierarchy(segment.get("section_hierarchy"))
+                if not section_path and source_asset.get("section_title"):
+                    section_path = [str(source_asset.get("section_title"))]
+
+                bbox = block.get("bbox") if isinstance(block.get("bbox"), list) else []
+                if not bbox:
+                    bbox = self._segment_bbox(segment)
+
+                snippet = str(block.get("text") or "").strip()
+                if not snippet:
+                    snippet = str(segment.get("text") or "").strip()
+                if not snippet:
+                    snippet = str(source_asset.get("markdown") or source_asset.get("preview") or source_asset.get("caption") or "").strip()
+
+                best_score = score
+                best_match = {
+                    "reference_id": context["reference_id"],
+                    "citation_key": context["metadata"].get("citation_key", context["reference_id"]),
+                    "doc_id": context["metadata"].get("asset_aware_doc_id")
+                    or (context.get("manifest") or {}).get("doc_id", ""),
+                    "asset_id": str(source_asset.get("id") or ""),
+                    "source_block_id": source_block_id,
+                    "page": block.get("page") or segment.get("page_number") or source_asset.get("page"),
+                    "bbox": bbox,
+                    "line_start": line_start,
+                    "line_end": line_end,
+                    "line_range": self._display_line_range(line_start, line_end),
+                    "section_path": section_path,
+                    "snippet": snippet,
+                }
+
+        return best_match if best_score >= 10 else {}
+
+    def _asset_anchor(self, label: str, fallback: str = "fragment") -> str:
+        return f"^{self._slugify(label, fallback)}"
+
+    def _build_table_preview_fragments(self, preview: str) -> List[Dict[str, str]]:
+        lines = [line.rstrip() for line in preview.splitlines() if line.strip()]
+        if len(lines) < 3:
+            return []
+
+        if "|" in lines[0] and "|" in lines[1]:
+            header = lines[0]
+            separator = lines[1]
+            rows = [line for line in lines[2:] if "|" in line]
+            return [
+                {
+                    "title": f"Row {index}",
+                    "content": "\n".join([header, separator, row]),
+                    "anchor": f"^table-row-{index}",
+                }
+                for index, row in enumerate(rows[:5], start=1)
+            ]
+
+        if "," in lines[0]:
+            header = lines[0]
+            rows = lines[1:6]
+            return [
+                {
+                    "title": f"Row {index}",
+                    "content": "\n".join([header, row]),
+                    "anchor": f"^table-row-{index}",
+                }
+                for index, row in enumerate(rows, start=1)
+            ]
+
+        return []
+
+    def _materialize_asset_graph_notes(self) -> Dict[str, Any]:
+        manifest = self._load_asset_manifest()
+        project_root = Path(self._project_root_dir())
+        project_slug = self._current_project_slug()
+        reference_asset_contexts = self._load_reference_asset_contexts()
+        expected_figure_paths: List[str] = []
+        expected_table_paths: List[str] = []
+        figures: List[Dict[str, Any]] = []
+        tables: List[Dict[str, Any]] = []
+        aliases: Dict[str, Dict[str, str]] = {"figure": {}, "table": {}}
+
+        from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
+
+        tracker = DataArtifactTracker(project_root / ".audit", project_root)
+
+        for asset_type, entries, notes_dir, folder in [
+            ("figure", manifest.get("figures", []), self._figure_notes_dir(), "figures"),
+            ("table", manifest.get("tables", []), self._table_notes_dir(), "tables"),
+        ]:
+            for entry in entries:
+                number = int(entry.get("number", 0) or 0)
+                filename = str(entry.get("filename", "")).strip()
+                if number <= 0 or not filename:
+                    continue
+
+                slug = self._slugify(f"{asset_type}-{number}-{Path(filename).stem}")
+                alias = f"{asset_type}-{number}"
+                aliases[asset_type][str(number)] = alias
+                note_path = os.path.join(notes_dir, f"{slug}.md")
+                expected = expected_figure_paths if asset_type == "figure" else expected_table_paths
+                expected.append(note_path)
+
+                relative_asset_path = f"results/{folder}/{filename}"
+                asset_path = project_root / relative_asset_path
+                review = tracker.get_asset_review(relative_asset_path, asset_type=asset_type)
+                review_state = "reviewed" if review else "pending"
+                fragment_anchors: List[str] = []
+                source_fragment = self._resolve_asset_source_fragment(
+                    asset_type,
+                    filename,
+                    str(entry.get("caption", filename)),
+                    reference_asset_contexts,
+                )
+
+                extra_tags = [
+                    f"asset/{asset_type}",
+                    f"review/{review_state}",
+                    f"number/{number}",
+                    f"format/{Path(filename).suffix.lstrip('.').lower() or 'unknown'}",
+                ]
+                title_prefix = "Figure" if asset_type == "figure" else "Table"
+                title = f"{title_prefix} {number}: {entry.get('caption', filename)}"
+                summary_anchor = self._asset_anchor("asset-summary")
+                fragment_anchors.append(summary_anchor)
+                body_lines = [
+                    "## Asset Summary",
+                    "",
+                    f"Caption: {entry.get('caption', filename)}",
+                    f"Source asset: {relative_asset_path}",
+                    f"Review state: {review_state}",
+                    "",
+                    summary_anchor,
+                ]
+
+                if asset_type == "figure" and asset_path.exists():
+                    relative_embed = os.path.relpath(asset_path, Path(note_path).parent).replace("\\", "/")
+                    preview_anchor = self._asset_anchor("asset-preview")
+                    fragment_anchors.append(preview_anchor)
+                    body_lines.extend([
+                        "",
+                        "## Figure Preview",
+                        "",
+                        f"![{title}]({relative_embed})",
+                        "",
+                        preview_anchor,
+                    ])
+
+                preview = self._read_text_preview(str(asset_path)) if asset_path.exists() else ""
+                if preview:
+                    preview_anchor = self._asset_anchor("data-preview")
+                    fragment_anchors.append(preview_anchor)
+                    body_lines.extend(["", "## Data Preview", "", preview, "", preview_anchor])
+
+                    if asset_type == "table":
+                        table_fragments = self._build_table_preview_fragments(preview)
+                        if table_fragments:
+                            body_lines.extend(["", "## Table Fragments", ""])
+                            for fragment in table_fragments:
+                                fragment_anchors.append(fragment["anchor"])
+                                body_lines.extend(
+                                    [
+                                        f"### {fragment['title']}",
+                                        "",
+                                        fragment["content"],
+                                        "",
+                                        fragment["anchor"],
+                                        "",
+                                    ]
+                                )
+
+                if review:
+                    observations = [str(item) for item in review.get("observations", [])]
+                    if observations:
+                        body_lines.extend(["", "## Review Observations", ""])
+                        for index, item in enumerate(observations, start=1):
+                            anchor = f"^review-observation-{index}"
+                            fragment_anchors.append(anchor)
+                            body_lines.extend(
+                                [
+                                    f"### Observation {index}",
+                                    "",
+                                    item,
+                                    "",
+                                    anchor,
+                                    "",
+                                ]
+                            )
+                    evidence_excerpt = str(review.get("evidence_excerpt", "")).strip()
+                    if evidence_excerpt:
+                        excerpt_anchor = self._asset_anchor("evidence-excerpt")
+                        fragment_anchors.append(excerpt_anchor)
+                        body_lines.extend(
+                            [
+                                "",
+                                "## Evidence Excerpt",
+                                "",
+                                evidence_excerpt,
+                                "",
+                                excerpt_anchor,
+                            ]
+                        )
+
+                if source_fragment:
+                    source_fragment_anchor = self._asset_anchor("source-fragment")
+                    source_bbox_anchor = self._asset_anchor("source-bbox")
+                    source_snippet_anchor = self._asset_anchor("source-snippet")
+                    fragment_anchors.extend(
+                        [source_fragment_anchor, source_bbox_anchor, source_snippet_anchor]
+                    )
+                    body_lines.extend(
+                        [
+                            "",
+                            "## Source Fragment",
+                            "",
+                            f"- Reference: [[{source_fragment['citation_key']}]]",
+                            f"- Doc ID: {source_fragment['doc_id'] or 'unknown'}",
+                            f"- Asset ID: {source_fragment['asset_id'] or 'unknown'}",
+                            f"- Source Block: {source_fragment['source_block_id'] or 'unknown'}",
+                            f"- Page: {source_fragment['page'] or 'unknown'}",
+                        ]
+                    )
+                    if source_fragment.get("line_range"):
+                        body_lines.append(f"- Lines: {source_fragment['line_range']}")
+                    if source_fragment.get("section_path"):
+                        body_lines.append(
+                            f"- Section: {' > '.join(source_fragment['section_path'])}"
+                        )
+                    body_lines.extend(["", source_fragment_anchor, ""])
+
+                    if source_fragment.get("bbox"):
+                        body_lines.extend(
+                            [
+                                "### Source Bounding Box",
+                                "",
+                                f"{source_fragment['bbox']}",
+                                "",
+                                source_bbox_anchor,
+                                "",
+                            ]
+                        )
+
+                    if source_fragment.get("snippet"):
+                        body_lines.extend(
+                            [
+                                "### Source Snippet",
+                                "",
+                                source_fragment["snippet"],
+                                "",
+                                source_snippet_anchor,
+                                "",
+                            ]
+                        )
+
+                self._write_graph_note(
+                    note_path,
+                    title=title,
+                    note_type=f"{asset_type}-note",
+                    aliases=[alias, slug],
+                    tags=self._build_graph_note_tags(f"{asset_type}-note", "asset", extra_tags),
+                    extra_fields={
+                        "note_class": f"{asset_type}-note",
+                        "note_domain": "asset",
+                        "project": project_slug,
+                        "asset_type": asset_type,
+                        "asset_number": number,
+                        "asset_filename": filename,
+                        "source_path": relative_asset_path,
+                        "review_state": review_state,
+                        "fragment_anchors": fragment_anchors,
+                        "source_doc_id": source_fragment.get("doc_id") if source_fragment else None,
+                        "source_asset_id": source_fragment.get("asset_id") if source_fragment else None,
+                        "source_block_id": source_fragment.get("source_block_id") if source_fragment else None,
+                        "source_reference": source_fragment.get("citation_key") if source_fragment else None,
+                        "source_page": source_fragment.get("page") if source_fragment else None,
+                        "source_bbox": source_fragment.get("bbox") if source_fragment else None,
+                        "source_line_range": source_fragment.get("line_range") if source_fragment else None,
+                        "source_section_path": source_fragment.get("section_path") if source_fragment else None,
+                    },
+                    body="\n".join(body_lines),
+                )
+
+                target_collection = figures if asset_type == "figure" else tables
+                target_collection.append({"alias": alias, "title": title, "filename": filename})
+
+        self._prune_stale_graph_notes(self._figure_notes_dir(), expected_figure_paths)
+        self._prune_stale_graph_notes(self._table_notes_dir(), expected_table_paths)
+        return {"figures": figures, "tables": tables, "aliases": aliases}
+
+    def _materialize_draft_section_notes(self, asset_aliases: Dict[str, Dict[str, str]]) -> List[Dict[str, Any]]:
+        drafts_dir = Path(self._project_root_dir()) / "drafts"
+        if not drafts_dir.exists():
+            self._prune_stale_graph_notes(self._draft_section_notes_dir(), [])
+            return []
+
+        expected_paths: List[str] = []
+        nodes: List[Dict[str, Any]] = []
+        project_slug = self._current_project_slug()
+
+        for draft_path in sorted(drafts_dir.glob("*.md")):
+            try:
+                content = draft_path.read_text(encoding="utf-8")
+            except Exception:
+                continue
+
+            for section in self._extract_draft_sections(content, draft_path.name):
+                section_title = section["title"]
+                section_content = section["content"]
+                section_kind = self._section_kind(section_title)
+                section_slug = self._slugify(f"{draft_path.stem}-{section_title}")
+                alias = f"draft-section-{section_slug}"
+                note_path = os.path.join(self._draft_section_notes_dir(), f"{section_slug}.md")
+                expected_paths.append(note_path)
+
+                linked_notes = self._extract_wikilinks(section_content)
+                linked_figures = [
+                    asset_aliases["figure"].get(match)
+                    for match in re.findall(r"\bFigure\s+(\d+)\b", section_content, flags=re.IGNORECASE)
+                ]
+                linked_tables = [
+                    asset_aliases["table"].get(match)
+                    for match in re.findall(r"\bTable\s+(\d+)\b", section_content, flags=re.IGNORECASE)
+                ]
+                asset_links = [link for link in linked_figures + linked_tables if link]
+
+                excerpt = self._build_markdown_summary(section_content, max_chars=900)
+                body_lines = [
+                    f"- Draft file: drafts/{draft_path.name}",
+                    f"- Section kind: {section_kind}",
+                    f"- Linked notes: {len(linked_notes)}",
+                    f"- Linked assets: {len(asset_links)}",
+                ]
+
+                if linked_notes:
+                    body_lines.extend(["", "## Linked Notes", ""])
+                    body_lines.extend(f"- [[{link}]]" for link in linked_notes)
+
+                if asset_links:
+                    body_lines.extend(["", "## Linked Assets", ""])
+                    body_lines.extend(f"- [[{link}]]" for link in asset_links)
+                    body_lines.extend(["", "## Linked Asset Evidence", ""])
+                    body_lines.extend(f"- [[{link}#^asset-summary]]" for link in asset_links)
+
+                if excerpt:
+                    body_lines.extend(["", "## Excerpt", "", excerpt])
+
+                self._write_graph_note(
+                    note_path,
+                    title=f"{section_title} ({draft_path.stem})",
+                    note_type="draft-section",
+                    aliases=[alias],
+                    tags=self._build_graph_note_tags(
+                        "draft-section",
+                        "writing",
+                        [
+                            f"draft/{draft_path.stem}",
+                            f"section/{section_kind}",
+                        ],
+                    ),
+                    extra_fields={
+                        "note_class": "draft-section",
+                        "note_domain": "writing",
+                        "project": project_slug,
+                        "draft_file": draft_path.name,
+                        "section_title": section_title,
+                        "section_kind": section_kind,
+                        "review_state": "pending",
+                        "linked_notes": linked_notes,
+                        "linked_assets": asset_links,
+                    },
+                    body="\n".join(body_lines),
+                )
+                nodes.append({"alias": alias, "title": f"{section_title} ({draft_path.stem})"})
+
+        self._prune_stale_graph_notes(self._draft_section_notes_dir(), expected_paths)
+        return nodes
+
+    def _rebuild_index(self) -> Dict[str, Any]:
         index_path = os.path.join(self._notes_dir(), "index.md")
-        lines = ["# Knowledge Base Index", "", "## References", ""]
+        context_nodes = self._materialize_reference_context_notes()
+        library_overview = self._materialize_library_overview(context_nodes)
+        asset_nodes = self._materialize_asset_graph_notes()
+        draft_section_nodes = self._materialize_draft_section_notes(asset_nodes.get("aliases", {}))
+        lines = [
+            "# Knowledge Base Index",
+            "",
+            "## Live Graph Counts",
+            "",
+            "### References",
+            "",
+        ]
+        lines.extend(self._type_query_block("reference", format_name="count"))
+        lines.extend(["", "### Draft Sections", ""])
+        lines.extend(self._type_query_block("draft-section", format_name="count"))
+        lines.extend(["", "### Figures", ""])
+        lines.extend(self._type_query_block("figure-note", format_name="count"))
+        lines.extend(["", "### Tables", ""])
+        lines.extend(self._type_query_block("table-note", format_name="count"))
+        lines.extend(["", "### Library Views", ""])
+        lines.extend(self._type_query_block("library-overview", format_name="count"))
+        lines.extend(["", f"- Context hubs: {context_nodes['count']}"])
+        lines.extend(["", "## References", ""])
 
         for ref_id in sorted(self.list_references()):
             metadata = self.get_metadata(ref_id)
@@ -686,8 +2133,52 @@ class ReferenceManager:
         else:
             lines.append("- None materialized yet")
 
+        lines.extend(["", "## Draft Sections", ""])
+        if draft_section_nodes:
+            for node in sorted(draft_section_nodes, key=lambda item: item["title"]):
+                lines.append(f"- [[{node['alias']}]]: {node['title']} [draft-section]")
+        else:
+            lines.append("- No draft sections materialized yet")
+
+        lines.extend(["", "## Context Hubs", ""])
+        if context_nodes["nodes"]:
+            for node in sorted(context_nodes["nodes"], key=lambda item: (item["kind"], item["title"])):
+                lines.append(f"- [[{node['alias']}]]: {node['title']} [{node['kind']}]")
+        else:
+            lines.append("- No context hubs materialized yet")
+
+        lines.extend(["", "## Library Views", ""])
+        lines.append(f"- [[{library_overview['alias']}]]: {library_overview['title']} [library]")
+
+        lines.extend(["", "## Figures", ""])
+        if asset_nodes["figures"]:
+            for node in sorted(asset_nodes["figures"], key=lambda item: item["title"]):
+                lines.append(f"- [[{node['alias']}]]: {node['title']} [figure]")
+        else:
+            lines.append("- No figures registered yet")
+
+        lines.extend(["", "## Tables", ""])
+        if asset_nodes["tables"]:
+            for node in sorted(asset_nodes["tables"], key=lambda item: item["title"]):
+                lines.append(f"- [[{node['alias']}]]: {node['title']} [table]")
+        else:
+            lines.append("- No tables registered yet")
+
         with open(index_path, "w", encoding="utf-8") as handle:
             handle.write("\n".join(lines) + "\n")
+        return {
+            "references": len(self.list_references()),
+            "draft_sections": len(draft_section_nodes),
+            "context_hubs": context_nodes["count"],
+            "library_views": 1,
+            "figures": len(asset_nodes["figures"]),
+            "tables": len(asset_nodes["tables"]),
+        }
+
+    def refresh_foam_graph(self) -> Dict[str, Any]:
+        """Regenerate index and graph-facing note nodes for the active project."""
+        self._ensure_workspace_scaffolding()
+        return self._rebuild_index()
 
     def _copy_source_artifact(self, file_path: str, ref_dir: str) -> str:
         source_dir = os.path.join(ref_dir, "source")
@@ -700,9 +2191,11 @@ class ReferenceManager:
     def _persist_extracted_artifacts(self, ref_dir: str, payload: Dict[str, Any]) -> None:
         extracted_markdown = payload.get("extracted_markdown", "")
         manifest = payload.get("asset_aware_manifest")
+        blocks = payload.get("asset_aware_blocks")
+        segmentation = payload.get("asset_aware_segmentation")
         artifact_dir = os.path.join(ref_dir, "artifacts", "asset-aware")
 
-        if extracted_markdown or manifest:
+        if extracted_markdown or manifest or blocks or segmentation:
             os.makedirs(artifact_dir, exist_ok=True)
 
         if extracted_markdown:
@@ -711,6 +2204,12 @@ class ReferenceManager:
 
         if manifest:
             self._write_json_file(os.path.join(artifact_dir, "manifest.json"), manifest)
+
+        if blocks:
+            self._write_json_file(os.path.join(artifact_dir, "blocks.json"), blocks)
+
+        if segmentation:
+            self._write_json_file(os.path.join(artifact_dir, "segmentation.json"), segmentation)
 
     def _files_have_same_content(self, source_path: str, target_path: str) -> bool:
         if not os.path.exists(source_path) or not os.path.exists(target_path):
@@ -1808,7 +3307,22 @@ class ReferenceManager:
         for alias in article.get("legacy_aliases", []):
             escaped_alias = alias.replace('"', '\\"')
             content += f'  - "{escaped_alias}"\n'
-        content += "type: reference\n\n"
+        content += f'type: "{article.get("foam_type", "reference")}"\n'
+        content += "tags:\n"
+        for tag in article.get("tags", []):
+            content += f'  - "{tag}"\n'
+        content += "\n"
+        content += f'note_class: "{article.get("note_class", article.get("foam_type", "reference"))}"\n'
+        content += f'note_domain: "{article.get("note_domain", "literature")}"\n'
+        if article.get("project"):
+            content += f'project: "{article.get("project")}"\n'
+        content += f'source_kind: "{article.get("source", "pubmed")}"\n'
+        content += f'trust_state: "{trust_level}"\n'
+        content += f'analysis_state: "{"completed" if article.get("analysis_completed", False) else "pending"}"\n'
+        content += f'fulltext_state: "{"ingested" if article.get("fulltext_ingested", False) else "missing"}"\n'
+        content += f'review_state: "{article.get("review_state", "n/a")}"\n'
+        if article.get("journal_slug"):
+            content += f'journal_slug: "{article.get("journal_slug")}"\n'
 
         # Bibliographic info
         content += f'pmid: "{pmid}"\n'
@@ -1937,12 +3451,40 @@ class ReferenceManager:
             content += f"**Content Hash**: {article['content_hash']}\n"
         content += "\n"
 
+        graph_context = self._build_reference_graph_context(article)
+        if graph_context:
+            content += "## Graph Context\n\n"
+            content += graph_context
+            content += "\n\n"
+
         # Abstract FIRST - most useful for Foam hover preview!
         abstract = article.get("abstract", "")
         if abstract:
             content += "## Abstract\n\n"
             content += abstract
             content += "\n\n"
+
+        key_findings = (
+            article.get("analysis_summary")
+            or abstract
+            or self._build_markdown_summary(article.get("extracted_markdown", ""), max_chars=320)
+        ).strip()
+        if key_findings:
+            content += "## Key Findings\n\n"
+            content += key_findings.replace("\n", " ")
+            content += "\n\n"
+            content += self._key_findings_anchor() + "\n\n"
+
+        evidence_blocks = self._build_evidence_block_specs(article)
+        if evidence_blocks:
+            content += "## Evidence Blocks\n\n"
+            for block in evidence_blocks:
+                content += f"### {block['title']}\n\n"
+                if block["content"]:
+                    content += block["content"] + "\n\n"
+                else:
+                    content += "Section indexed from extracted fulltext.\n\n"
+                content += self._evidence_anchor(block["title"]) + "\n\n"
 
         # Keywords
         keywords = article.get("keywords", [])

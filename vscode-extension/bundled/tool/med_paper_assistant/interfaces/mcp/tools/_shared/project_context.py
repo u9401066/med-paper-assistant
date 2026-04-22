@@ -9,6 +9,7 @@ import os
 from typing import Any, Dict, Optional, Tuple
 
 from med_paper_assistant.infrastructure.persistence import get_project_manager
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
 
 
 class ProjectContextError(Exception):
@@ -190,3 +191,75 @@ def validate_project_for_tool(project: Optional[str] = None) -> tuple[bool, str]
     if not is_valid:
         return False, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
     return True, ""
+
+
+def validate_project_for_workflow(
+    project: Optional[str] = None,
+    *,
+    required_mode: str,
+) -> tuple[bool, str]:
+    """Validate project context and enforce a specific workflow mode."""
+    project_info, error_msg = resolve_project_context(
+        project,
+        required_mode=required_mode,
+    )
+    if error_msg:
+        return False, error_msg
+
+    if project_info is None:
+        return False, "❌ Project context could not be resolved."
+
+    return True, ""
+
+
+def _format_workflow_mode_error(current_mode: str, required_mode: str) -> str:
+    """Build a stable workflow mismatch message."""
+    current_mode_name = WORKFLOW_MODES.get(current_mode, {}).get("name", current_mode)
+    required_mode_name = WORKFLOW_MODES.get(required_mode, {}).get("name", required_mode)
+    return (
+        "❌ This tool is only available for "
+        f"{required_mode_name} projects.\n\n"
+        f"Current workflow: {current_mode_name}.\n"
+        "Switch project or update the current project workflow before retrying.\n\n"
+        "Suggested fix:\n"
+        f"- `project_action(action=\"update\", workflow_mode=\"{required_mode}\")`\n"
+        "- or switch to a project that already uses the required workflow mode."
+    )
+
+
+def resolve_project_context(
+    project: Optional[str] = None,
+    *,
+    required_mode: Optional[str] = None,
+    project_manager: Any | None = None,
+) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """Resolve project metadata through a single shared guard entrypoint."""
+    if project_manager is None:
+        is_valid, msg, project_info = ensure_project_context(project)
+        if not is_valid or project_info is None:
+            return None, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+    else:
+        pm = project_manager
+        target_slug = project or pm.get_current_project()
+        if not target_slug:
+            available = pm.list_projects().get("projects", [])
+            available_slugs = ", ".join(p.get("slug", "") for p in available if p.get("slug"))
+            if available_slugs:
+                return None, f"❌ No active project. Please specify one of: {available_slugs}"
+            return None, "❌ No projects exist. Create one first with create_project()."
+
+        if project and pm.get_current_project() != project:
+            switch_result = pm.switch_project(project)
+            if not switch_result.get("success"):
+                return None, f"❌ {switch_result.get('error', 'Unable to switch project.')}"
+
+        project_info = pm.get_project_info(target_slug)
+        if not project_info.get("success"):
+            return None, f"❌ {project_info.get('error', 'Project not found.')}"
+
+    if required_mode is not None:
+        current_mode = project_info.get("workflow_mode", DEFAULT_WORKFLOW_MODE)
+        if current_mode != required_mode:
+            return None, _format_workflow_mode_error(current_mode, required_mode)
+
+    return project_info, None

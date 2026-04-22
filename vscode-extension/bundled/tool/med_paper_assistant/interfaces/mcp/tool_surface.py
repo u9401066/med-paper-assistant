@@ -8,6 +8,10 @@ from typing import Literal, cast
 ToolSurface = Literal["full", "compact"]
 
 _SURFACE_ENV_VAR = "MEDPAPER_TOOL_SURFACE"
+EXPECTED_TOOL_COUNTS: dict[ToolSurface, int] = {
+    "full": 115,
+    "compact": 21,
+}
 
 
 def resolve_tool_surface(explicit: str | None = None) -> ToolSurface:
@@ -23,4 +27,9 @@ def uses_compact_tool_surface(explicit: str | None = None) -> bool:
     return resolve_tool_surface(explicit) == "compact"
 
 
-__all__ = ["ToolSurface", "resolve_tool_surface", "uses_compact_tool_surface"]
+__all__ = [
+    "EXPECTED_TOOL_COUNTS",
+    "ToolSurface",
+    "resolve_tool_surface",
+    "uses_compact_tool_surface",
+]

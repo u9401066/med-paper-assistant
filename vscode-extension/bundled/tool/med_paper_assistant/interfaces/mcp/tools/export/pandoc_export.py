@@ -17,6 +17,7 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
 )
 
 
@@ -134,6 +135,13 @@ def register_pandoc_export_tools(
                 "project": project,
             },
         )
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         # Ensure project context
         is_valid, msg, _ = ensure_project_context(project)
@@ -258,6 +266,13 @@ def register_pandoc_export_tools(
             {"draft": draft_filename, "style": csl_style, "project": project},
         )
 
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
+
         is_valid, msg, _ = ensure_project_context(project)
         if not is_valid:
             return msg
@@ -362,6 +377,13 @@ def register_pandoc_export_tools(
         """
         log_tool_call("preview_citations", {"draft": draft_filename, "project": project})
 
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
+
         is_valid, msg, _ = ensure_project_context(project)
         if not is_valid:
             return msg
@@ -436,6 +458,13 @@ def register_pandoc_export_tools(
             project: Project slug (uses current project if omitted)
         """
         log_tool_call("build_bibliography", {"draft": draft_filename, "project": project})
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         is_valid, msg, _ = ensure_project_context(project)
         if not is_valid:

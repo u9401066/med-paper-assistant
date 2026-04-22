@@ -17,13 +17,12 @@ from med_paper_assistant.infrastructure.persistence import ReferenceManager
 from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
-    ensure_project_context,
     get_drafts_dir,
     get_optional_tool_decorator,
-    get_project_list_for_prompt,
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
 )
 
 # Import consistency check helpers
@@ -101,10 +100,12 @@ def register_formatting_tools(
             },
         )
 
-        if project:
-            is_valid, msg, _ = ensure_project_context(project)
-            if not is_valid:
-                return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+        _project_info, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         # Get journal requirements
         journal_key = journal.lower().replace(" ", "_").replace("-", "_")

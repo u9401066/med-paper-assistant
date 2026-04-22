@@ -18,11 +18,13 @@ def register_project_facade_tools(
     settings_tools: ToolMap,
     exploration_tools: ToolMap,
     workspace_state_tools: ToolMap,
+    library_tools: ToolMap | None = None,
     diagram_tools: ToolMap | None = None,
     workspace_tools: ToolMap | None = None,
 ):
     """Register stable public verbs for project and workspace state management."""
 
+    library_tools = library_tools or {}
     diagram_tools = diagram_tools or {}
     workspace_tools = workspace_tools or {}
 
@@ -34,6 +36,7 @@ def register_project_facade_tools(
         description: str = "",
         target_journal: str = "",
         paper_type: str = "",
+        workflow_mode: str = "",
         authors_json: str = "",
         memo: str = "",
         status: str = "",
@@ -95,6 +98,7 @@ def register_project_facade_tools(
                     "description": description,
                     "target_journal": target_journal,
                     "paper_type": paper_type,
+                    "workflow_mode": workflow_mode,
                     "authors_json": authors_json,
                     "memo": memo,
                 },
@@ -118,6 +122,7 @@ def register_project_facade_tools(
                     "memo": memo,
                     "status": status,
                     "citation_style": citation_style,
+                    **({"workflow_mode": workflow_mode} if workflow_mode else {}),
                 },
             ),
             "setup": (
@@ -138,6 +143,7 @@ def register_project_facade_tools(
                     "name": name,
                     "description": description,
                     "paper_type": paper_type,
+                    "workflow_mode": workflow_mode,
                     "target_journal": target_journal,
                     "keep_exploration": keep_exploration,
                 },
@@ -188,6 +194,174 @@ def register_project_facade_tools(
         handler = tool_group.get(handler_name)
         if handler is None:
             return f"❌ Project facade misconfigured: missing handler '{handler_name}'"
+
+        return await invoke_tool_handler(handler, **kwargs)
+
+    @mcp.tool()
+    async def library_action(
+        action: str,
+        section: str = "all",
+        from_section: str = "",
+        to_section: str = "",
+        filename: str = "",
+        content: str = "",
+        title: str = "",
+        tags_csv: str = "",
+        add_tags_csv: str = "",
+        remove_tags_csv: str = "",
+        related_notes_csv: str = "",
+        note_type: str = "",
+        status: str = "",
+        query: str = "",
+        queue: str = "all",
+        view: str = "overview",
+        limit: int = 10,
+        source_note: str = "",
+        target_note: str = "",
+        project: Optional[str] = None,
+    ) -> str:
+        """
+        Run library-wiki note and dashboard actions through one stable entrypoint.
+
+        Actions:
+        - list_notes
+        - read_note
+        - write_note
+        - move_note
+        - triage_note
+        - update_metadata
+        - search_notes
+        - show_queues
+        - create_concept
+        - materialize_concept
+        - explain_path
+        - build_dashboard
+        """
+        aliases = {
+            "list": "list_notes",
+            "read": "read_note",
+            "write": "write_note",
+            "move": "move_note",
+            "triage": "triage_note",
+            "metadata": "update_metadata",
+            "frontmatter": "update_metadata",
+            "search": "search_notes",
+            "queues": "show_queues",
+            "concept": "create_concept",
+            "materialize": "materialize_concept",
+            "path": "explain_path",
+            "dashboard": "build_dashboard",
+        }
+        normalized = normalize_facade_action(action, aliases)
+        action_specs: dict[str, tuple[str, dict[str, Any]]] = {
+            "list_notes": (
+                "list_library_notes",
+                {"section": section, "project": project},
+            ),
+            "read_note": (
+                "read_library_note",
+                {"section": section, "filename": filename, "project": project},
+            ),
+            "write_note": (
+                "write_library_note",
+                {
+                    "section": section,
+                    "filename": filename,
+                    "content": content,
+                    "title": title,
+                    "tags_csv": tags_csv,
+                    "status": status,
+                    "project": project,
+                },
+            ),
+            "move_note": (
+                "move_library_note",
+                {
+                    "filename": filename,
+                    "from_section": from_section,
+                    "to_section": to_section,
+                    "project": project,
+                },
+            ),
+            "triage_note": (
+                "triage_library_note",
+                {
+                    "note_ref": source_note or filename,
+                    "target_section": to_section or (section if section != "all" else ""),
+                    "status": status,
+                    "tags_csv": tags_csv,
+                    "related_notes_csv": related_notes_csv,
+                    "project": project,
+                },
+            ),
+            "update_metadata": (
+                "update_library_note_metadata",
+                {
+                    "note_ref": source_note or filename,
+                    "title": title,
+                    "status": status,
+                    "tags_csv": tags_csv,
+                    "add_tags_csv": add_tags_csv,
+                    "remove_tags_csv": remove_tags_csv,
+                    "related_notes_csv": related_notes_csv,
+                    "note_type": note_type,
+                    "project": project,
+                },
+            ),
+            "search_notes": (
+                "search_library_notes",
+                {"query": query, "section": section, "project": project},
+            ),
+            "show_queues": (
+                "show_reading_queues",
+                {"queue": queue, "limit": limit, "project": project},
+            ),
+            "create_concept": (
+                "create_concept_page",
+                {
+                    "filename": filename,
+                    "title": title,
+                    "summary": content,
+                    "source_notes_csv": query,
+                    "tags_csv": tags_csv,
+                    "open_questions": status,
+                    "project": project,
+                },
+            ),
+            "materialize_concept": (
+                "materialize_concept_page",
+                {
+                    "filename": filename,
+                    "title": title,
+                    "summary": content,
+                    "source_notes_csv": query or source_note or filename,
+                    "tags_csv": tags_csv,
+                    "open_questions": status,
+                    "project": project,
+                },
+            ),
+            "explain_path": (
+                "explain_library_path",
+                {
+                    "source_note": source_note or filename,
+                    "target_note": target_note or query,
+                    "project": project,
+                },
+            ),
+            "build_dashboard": (
+                "build_library_dashboard",
+                {"view": view, "limit": limit, "project": project},
+            ),
+        }
+
+        if normalized not in action_specs:
+            supported = ", ".join(sorted(action_specs))
+            return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
+
+        handler_name, kwargs = action_specs[normalized]
+        handler = library_tools.get(handler_name)
+        if handler is None:
+            return f"❌ Library facade misconfigured: missing handler '{handler_name}'"
 
         return await invoke_tool_handler(handler, **kwargs)
 
@@ -256,6 +430,7 @@ def register_project_facade_tools(
         }
 
     return {
+        "library_action": library_action,
         "project_action": project_action,
         "workspace_state_action": workspace_state_action,
     }

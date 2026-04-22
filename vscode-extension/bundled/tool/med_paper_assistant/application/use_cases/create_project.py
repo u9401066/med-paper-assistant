@@ -1,15 +1,11 @@
-"""
-Create Project Use Case.
+"""Create Project Use Case."""
 
-Handles the creation of a new research paper project.
-"""
-
-import re
 from dataclasses import dataclass
 from datetime import datetime
 
 from med_paper_assistant.domain.entities.project import Project, ProjectStatus
 from med_paper_assistant.infrastructure.persistence import ProjectRepository
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
 
 
 @dataclass
@@ -19,6 +15,7 @@ class CreateProjectInput:
     name: str
     description: str = ""
     paper_type: str = ""
+    workflow_mode: str = DEFAULT_WORKFLOW_MODE
     target_journal: str = ""
     memo: str = ""
 
@@ -60,8 +57,9 @@ class CreateProjectUseCase:
         Raises:
             ProjectAlreadyExistsError: If project slug already exists.
         """
-        # Generate slug
-        slug = self._generate_slug(input_data.name)
+        # Build a project entity, but delegate creation semantics to the
+        # repository's runtime lifecycle owner.
+        slug = Project.generate_slug(input_data.name)
 
         # Create project entity
         project = Project(
@@ -69,6 +67,7 @@ class CreateProjectUseCase:
             name=input_data.name,
             description=input_data.description,
             paper_type=input_data.paper_type,
+            workflow_mode=input_data.workflow_mode,
             target_journal=input_data.target_journal,
             status=ProjectStatus.CONCEPT.value,  # Use .value to get string
             memo=input_data.memo,
@@ -86,36 +85,3 @@ class CreateProjectUseCase:
             path=str(created.path),
             message=f"Project '{created.name}' created successfully.",
         )
-
-    def _generate_slug(self, name: str) -> str:
-        """
-        Generate a URL-friendly slug from project name.
-
-        Args:
-            name: Project name.
-
-        Returns:
-            Slug string.
-        """
-        # Convert to lowercase
-        slug = name.lower()
-
-        # Replace spaces and special chars with hyphens
-        slug = re.sub(r"[^\w\s-]", "", slug)
-        slug = re.sub(r"[\s_]+", "-", slug)
-
-        # Remove leading/trailing hyphens
-        slug = slug.strip("-")
-
-        # Ensure not empty
-        if not slug:
-            slug = "untitled"
-
-        # Handle duplicates
-        original_slug = slug
-        counter = 1
-        while (self.repository.projects_dir / slug).exists():
-            slug = f"{original_slug}-{counter}"
-            counter += 1
-
-        return slug

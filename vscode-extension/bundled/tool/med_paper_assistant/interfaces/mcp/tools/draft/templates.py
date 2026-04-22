@@ -15,14 +15,23 @@ from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
     get_drafts_dir,
+    get_optional_tool_decorator,
     validate_project_for_tool,
+    validate_project_for_workflow,
 )
 
 
-def register_template_tools(mcp: FastMCP, drafter: Drafter):
+def register_template_tools(
+    mcp: FastMCP,
+    drafter: Drafter,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register template and utility tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def insert_citation(
         filename: str, target_text: str, pmid: str, project: Optional[str] = None
     ) -> str:
@@ -39,13 +48,20 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
         if not is_valid:
             return error_msg
 
+        is_valid, error_msg = validate_project_for_workflow(
+            project,
+            required_mode="manuscript",
+        )
+        if not is_valid:
+            return error_msg
+
         try:
             path = drafter.insert_citation(filename, target_text, pmid)
             return f"Citation inserted successfully in: {path}"
         except Exception as e:
             return f"Error inserting citation: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def sync_references(filename: str, project: Optional[str] = None) -> str:
         """
         Scan [[wikilinks]] and generate References section (like EndNote/Zotero).
@@ -55,6 +71,13 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
             project: Project slug (uses current if omitted)
         """
         is_valid, error_msg = validate_project_for_tool(project)
+        if not is_valid:
+            return error_msg
+
+        is_valid, error_msg = validate_project_for_workflow(
+            project,
+            required_mode="manuscript",
+        )
         if not is_valid:
             return error_msg
 
@@ -89,7 +112,7 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
         except Exception as e:
             return f"❌ Error syncing references: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def count_words(
         filename: str, section: Optional[str] = None, project: Optional[str] = None
     ) -> str:
@@ -106,6 +129,13 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
             project: Project slug (uses current if omitted)
         """
         is_valid, error_msg = validate_project_for_tool(project)
+        if not is_valid:
+            return error_msg
+
+        is_valid, error_msg = validate_project_for_workflow(
+            project,
+            required_mode="manuscript",
+        )
         if not is_valid:
             return error_msg
 
@@ -198,3 +228,9 @@ def register_template_tools(mcp: FastMCP, drafter: Drafter):
 
         except Exception as e:
             return f"Error counting words: {str(e)}"
+
+    return {
+        "insert_citation": insert_citation,
+        "sync_references": sync_references,
+        "count_words": count_words,
+    }

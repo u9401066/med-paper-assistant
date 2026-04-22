@@ -5,9 +5,10 @@ Generate baseline characteristics tables for medical papers.
 Every tool call records provenance to data-artifacts.yaml for reproducibility.
 """
 
+from collections.abc import Callable
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -16,10 +17,12 @@ from med_paper_assistant.infrastructure.services.analyzer import Analyzer
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     get_project_list_for_prompt,
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
 )
 
 
@@ -31,10 +34,17 @@ def _get_tracker(project_info: dict) -> DataArtifactTracker | None:
     return DataArtifactTracker(project_dir / ".audit", project_dir)
 
 
-def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
+def register_table_one_tools(
+    mcp: FastMCP,
+    analyzer: Analyzer,
+    *,
+    register_public_verbs: bool = True,
+) -> dict[str, Callable[..., Any]]:
     """Register Table 1 generation tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def generate_table_one(
         filename: str,
         group_col: str,
@@ -64,6 +74,13 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
                 "project": project,
             },
         )
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         project_info = None
         if project:
@@ -151,7 +168,7 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
             log_tool_error("generate_table_one", e, {"filename": filename})
             return error_msg
 
-    @mcp.tool()
+    @tool()
     def detect_variable_types(filename: str, project: Optional[str] = None) -> str:
         """
         Analyze CSV and suggest variable types for Table 1 (continuous vs categorical).
@@ -163,6 +180,13 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         import pandas as pd
 
         log_tool_call("detect_variable_types", {"filename": filename, "project": project})
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         if project:
             is_valid, msg, _ = ensure_project_context(project)
@@ -263,7 +287,7 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         log_tool_result("detect_variable_types", "success", success=True)
         return output
 
-    @mcp.tool()
+    @tool()
     def list_data_files(project: Optional[str] = None) -> str:
         """
         List all CSV/Excel files in data/ directory with row/column counts.
@@ -274,6 +298,13 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
         import pandas as pd
 
         log_tool_call("list_data_files", {"project": project})
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         if project:
             is_valid, msg, _ = ensure_project_context(project)
@@ -315,3 +346,9 @@ def register_table_one_tools(mcp: FastMCP, analyzer: Analyzer):
 
         log_tool_result("list_data_files", f"found {len(files)} files", success=True)
         return output
+
+    return {
+        "generate_table_one": generate_table_one,
+        "detect_variable_types": detect_variable_types,
+        "list_data_files": list_data_files,
+    }

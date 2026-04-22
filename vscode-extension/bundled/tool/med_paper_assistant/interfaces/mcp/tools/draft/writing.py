@@ -25,11 +25,13 @@ from .._shared import (
     auto_checkpoint_writing,
     get_concept_path,
     get_drafts_dir,
+    get_optional_tool_decorator,
     get_project_path,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
     validate_project_for_tool,
 )
 
@@ -332,10 +334,17 @@ def _run_embedded_post_write_hooks(content: str, section_name: str = "manuscript
         return ""  # Silently fail — don't block writing due to hook errors
 
 
-def register_writing_tools(mcp: FastMCP, drafter: Drafter):
+def register_writing_tools(
+    mcp: FastMCP,
+    drafter: Drafter,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register draft writing tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def check_writing_order(project: Optional[str] = None) -> str:
         """
         Check the recommended writing order and current progress for the active project.
@@ -351,6 +360,19 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         is_valid, error_msg = validate_project_for_tool(project)
         if not is_valid:
             return error_msg
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            log_agent_misuse(
+                "check_writing_order",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         from med_paper_assistant.domain.paper_types import WRITING_ORDER, _format_writing_order
         from med_paper_assistant.infrastructure.persistence import get_project_manager
@@ -424,7 +446,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         log_tool_result("check_writing_order", f"showed progress for {paper_type}", success=True)
         return output
 
-    @mcp.tool()
+    @tool()
     def draft_section(
         topic: str, notes: str, project: Optional[str] = None, skip_validation: bool = False
     ) -> str:
@@ -453,6 +475,19 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 "draft_section", "valid project context required", {"project": project}, error_msg
             )
             return error_msg
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            log_agent_misuse(
+                "draft_section",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         # 1. Enforce Concept Validation
         if not skip_validation:
@@ -549,7 +584,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         log_tool_result("draft_section", f"prepared context for {topic}", success=True)
         return output
 
-    @mcp.tool()
+    @tool()
     def write_draft(
         filename: str, content: str, project: Optional[str] = None, skip_validation: bool = False
     ) -> str:
@@ -579,6 +614,19 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                 "write_draft", "valid project context required", {"project": project}, error_msg
             )
             return error_msg
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            log_agent_misuse(
+                "write_draft",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         is_concept_file = "concept" in filename.lower()
 
@@ -659,7 +707,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             log_tool_error("write_draft", e, {"filename": filename, "content_len": len(content)})
             return f"Error creating draft: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def list_drafts(project: Optional[str] = None) -> str:
         """
         List all draft files in drafts/ with section and word counts.
@@ -676,6 +724,19 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                     "list_drafts", "valid project context required", {"project": project}, error_msg
                 )
                 return error_msg
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            log_agent_misuse(
+                "list_drafts",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         drafts_dir = get_drafts_dir()
         if not drafts_dir:
@@ -712,7 +773,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
         log_tool_result("list_drafts", f"found {len(drafts)} drafts", success=True)
         return output
 
-    @mcp.tool()
+    @tool()
     def read_draft(filename: str, project: Optional[str] = None) -> str:
         """
         Read a draft file's structure and content by sections.
@@ -730,6 +791,19 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                     "read_draft", "valid project context required", {"project": project}, error_msg
                 )
                 return error_msg
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            log_agent_misuse(
+                "read_draft",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         if not os.path.isabs(filename):
             drafts_dir = get_drafts_dir() or "drafts"
@@ -788,7 +862,7 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             log_tool_error("read_draft", e, {"filename": filename})
             return f"Error reading draft: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def delete_draft(filename: str, confirm: bool = False, project: Optional[str] = None) -> str:
         """
         ⚠️ DESTRUCTIVE: Delete a draft file permanently.
@@ -812,6 +886,19 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
                     error_msg,
                 )
                 return error_msg
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            log_agent_misuse(
+                "delete_draft",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         # Resolve the full path
         if not os.path.isabs(filename):
@@ -863,3 +950,12 @@ def register_writing_tools(mcp: FastMCP, drafter: Drafter):
             error_msg = f"❌ 刪除失敗: {str(e)}"
             log_tool_error("delete_draft", e, {"filename": filename})
             return error_msg
+
+    return {
+        "check_writing_order": check_writing_order,
+        "draft_section": draft_section,
+        "write_draft": write_draft,
+        "list_drafts": list_drafts,
+        "read_draft": read_draft,
+        "delete_draft": delete_draft,
+    }

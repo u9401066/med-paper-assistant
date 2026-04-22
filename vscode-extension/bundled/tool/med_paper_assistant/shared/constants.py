@@ -41,6 +41,19 @@ PAPER_TYPES = {
     },
 }
 
+WORKFLOW_MODES = {
+    "manuscript": {
+        "name": "Manuscript Path",
+        "description": "Concept -> draft -> review -> export",
+    },
+    "library-wiki": {
+        "name": "Library Wiki Path",
+        "description": "Ingest -> organize -> analyze -> synthesize -> query",
+    },
+}
+
+DEFAULT_WORKFLOW_MODE = "manuscript"
+
 # Default word limits for journal sections
 DEFAULT_WORD_LIMITS = {
     "Abstract": 250,
@@ -54,6 +67,7 @@ DEFAULT_WORD_LIMITS = {
 
 # Project directory structure
 PROJECT_DIRECTORIES = ["drafts", "references", "data", "results", ".memory"]
+LIBRARY_DIRECTORIES = ["inbox", "concepts", "projects", "references", ".memory"]
 
 # Citation styles
 CITATION_STYLES = ["vancouver", "apa", "harvard", "nature", "ama", "nlm", "mdpi"]

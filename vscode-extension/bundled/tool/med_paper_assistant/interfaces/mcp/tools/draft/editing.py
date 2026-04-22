@@ -29,12 +29,14 @@ from .._shared import (
     auto_checkpoint_writing,
     ensure_project_context,
     get_drafts_dir,
+    get_optional_tool_decorator,
     get_project_list_for_prompt,
     get_project_path,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
 )
 
 
@@ -46,10 +48,17 @@ def _get_references_dir() -> Optional[str]:
     return None
 
 
-def register_editing_tools(mcp: FastMCP, drafter: Drafter):
+def register_editing_tools(
+    mcp: FastMCP,
+    drafter: Drafter,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register citation-aware editing tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def get_available_citations(project: Optional[str] = None) -> str:
         """
         List all valid citation keys from saved references.
@@ -74,6 +83,19 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
                     error_msg,
                 )
                 return error_msg
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            log_agent_misuse(
+                "get_available_citations",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         refs_dir = _get_references_dir()
         if not refs_dir or not os.path.exists(refs_dir):
@@ -140,7 +162,7 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
         )
         return output
 
-    @mcp.tool()
+    @tool()
     def patch_draft(
         filename: str,
         old_text: str,
@@ -180,6 +202,19 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
                     error_msg,
                 )
                 return error_msg
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            log_agent_misuse(
+                "patch_draft",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         # 1. Resolve file path
         drafts_dir = get_drafts_dir()
@@ -350,3 +385,8 @@ def register_editing_tools(mcp: FastMCP, drafter: Drafter):
 
         log_tool_result("patch_draft", f"patched {filepath}", success=True)
         return output
+
+    return {
+        "get_available_citations": get_available_citations,
+        "patch_draft": patch_draft,
+    }

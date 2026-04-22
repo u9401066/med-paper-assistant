@@ -119,13 +119,13 @@ def create_server() -> FastMCP:
     )
 
     logger.info("Registering draft tools...")
-    register_draft_tools(mcp, drafter)
+    register_draft_tools(mcp, drafter, tool_surface=tool_surface)
 
     logger.info("Registering validation tools...")
-    register_validation_tools(mcp, ref_manager)
+    register_validation_tools(mcp, ref_manager, tool_surface=tool_surface)
 
     logger.info("Registering analysis tools...")
-    register_analysis_tools(mcp, analyzer, drafter)
+    register_analysis_tools(mcp, analyzer, drafter, tool_surface=tool_surface)
 
     logger.info("Registering review tools (incl. pipeline gates)...")
     register_review_tools(

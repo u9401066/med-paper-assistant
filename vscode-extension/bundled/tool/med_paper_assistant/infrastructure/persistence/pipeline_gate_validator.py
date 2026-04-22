@@ -35,6 +35,7 @@ import structlog
 import yaml
 
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
 
 logger = structlog.get_logger()
 
@@ -302,6 +303,20 @@ class PipelineGateValidator:
 
         return False
 
+    def _get_workflow_mode(self) -> str:
+        """Read workflow_mode from project.json, defaulting to manuscript."""
+        project_json = self._project_dir / "project.json"
+        if not project_json.is_file():
+            return DEFAULT_WORKFLOW_MODE
+
+        try:
+            data = json.loads(project_json.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return DEFAULT_WORKFLOW_MODE
+
+        workflow_mode = str(data.get("workflow_mode") or DEFAULT_WORKFLOW_MODE).strip()
+        return workflow_mode or DEFAULT_WORKFLOW_MODE
+
     def validate_phase(self, phase: int) -> GateResult:
         """
         Validate all required artifacts for a given phase.
@@ -348,6 +363,28 @@ class PipelineGateValidator:
                 ],
                 timestamp=datetime.now().isoformat(),
             )
+
+        workflow_mode = self._get_workflow_mode()
+        if workflow_mode == "library-wiki" and phase >= 3:
+            result = GateResult(
+                phase=phase,
+                phase_name=f"Phase {phase} (Library Wiki Path)",
+                passed=True,
+                checks=[
+                    GateCheck(
+                        name="workflow_mode:library-wiki",
+                        description="Manuscript-only phase gates are not required in library-wiki mode.",
+                        passed=True,
+                        details=(
+                            "Switch workflow_mode to manuscript when you want concept, drafting, "
+                            "review, and export gates to apply."
+                        ),
+                    )
+                ],
+                timestamp=datetime.now().isoformat(),
+            )
+            self._log_gate_result(result)
+            return result
 
         result = validator()
 

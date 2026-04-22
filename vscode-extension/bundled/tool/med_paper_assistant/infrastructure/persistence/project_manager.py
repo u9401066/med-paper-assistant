@@ -23,6 +23,7 @@ from ...domain.paper_types import (
     is_valid_paper_type,
     list_paper_types,
 )
+from ...shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES, PROJECT_DIRECTORIES, LIBRARY_DIRECTORIES
 from ..services.concept_template_reader import ConceptTemplateReader
 from .project_memory_manager import ProjectMemoryManager
 
@@ -49,7 +50,6 @@ class ProjectManager:
     """
 
     # Subdirectories for each project
-    PROJECT_DIRS = ["drafts", "references", "data", "results", ".memory"]
 
     # Current project state file
     STATE_FILE = ".current_project"
@@ -80,6 +80,39 @@ class ProjectManager:
         # Ensure projects directory exists
         self.projects_dir.mkdir(parents=True, exist_ok=True)
 
+    def _directories_for_workflow(self, workflow_mode: str) -> List[str]:
+        """Return the directory layout for a workflow mode."""
+        return LIBRARY_DIRECTORIES if workflow_mode == "library-wiki" else PROJECT_DIRECTORIES
+
+    def _build_structure_paths(self, project_path: Path, workflow_mode: str) -> Dict[str, str]:
+        """Build mode-aware path mappings for a project."""
+        paths = {
+            "root": str(project_path),
+            "concept": str(project_path / "concept.md"),
+            "memory": str(project_path / ".memory"),
+            "references": str(project_path / "references"),
+            "config": str(project_path / "project.json"),
+        }
+
+        if workflow_mode == "library-wiki":
+            paths.update(
+                {
+                    "inbox": str(project_path / "inbox"),
+                    "concepts": str(project_path / "concepts"),
+                    "projects": str(project_path / "projects"),
+                }
+            )
+        else:
+            paths.update(
+                {
+                    "drafts": str(project_path / "drafts"),
+                    "data": str(project_path / "data"),
+                    "results": str(project_path / "results"),
+                }
+            )
+
+        return paths
+
     # =========================================================================
     # Project CRUD Operations
     # =========================================================================
@@ -91,6 +124,7 @@ class ProjectManager:
         authors: Optional[List[Any]] = None,
         target_journal: str = "",
         paper_type: str = "",
+        workflow_mode: str = DEFAULT_WORKFLOW_MODE,
         interaction_preferences: Optional[Dict[str, Any]] = None,
         memo: str = "",
     ) -> Dict[str, Any]:
@@ -103,22 +137,15 @@ class ProjectManager:
             authors: List of author names.
             target_journal: Target journal for submission.
             paper_type: Type of paper (original-research, meta-analysis, etc.)
+            workflow_mode: Workflow mode (manuscript or library-wiki).
             interaction_preferences: User preferences for AI interaction.
             memo: Additional notes and reminders.
 
         Returns:
             Project info dictionary.
         """
-        slug = self._slugify(name)
+        slug = self._make_unique_slug(name)
         project_path = self.projects_dir / slug
-
-        # Validation
-        if project_path.exists():
-            return {
-                "success": False,
-                "error": f"Project '{slug}' already exists. Use switch_project to switch to it.",
-                "slug": slug,
-            }
 
         if paper_type and not is_valid_paper_type(paper_type):
             return {
@@ -126,9 +153,15 @@ class ProjectManager:
                 "error": f"Invalid paper type '{paper_type}'. Valid types: {list_paper_types()}",
             }
 
+        if workflow_mode not in WORKFLOW_MODES:
+            return {
+                "success": False,
+                "error": f"Invalid workflow mode '{workflow_mode}'. Valid modes: {list(WORKFLOW_MODES)}",
+            }
+
         # Create directory structure
         project_path.mkdir(parents=True)
-        for subdir in self.PROJECT_DIRS:
+        for subdir in self._directories_for_workflow(workflow_mode):
             (project_path / subdir).mkdir()
 
         # Create project config
@@ -139,22 +172,28 @@ class ProjectManager:
             authors,
             target_journal,
             paper_type,
+            workflow_mode,
             interaction_preferences,
             memo,
         )
         self._save_config(project_path, project_config)
 
-        # Create concept.md
-        concept_content = self.template_reader.get_concept_template(
-            project_name=name, paper_type=paper_type, target_journal=target_journal, memo=memo
+        # Create concept.md or library workspace seed
+        seed_content = self._build_workspace_seed_document(
+            project_name=name,
+            paper_type=paper_type,
+            target_journal=target_journal,
+            memo=memo,
+            workflow_mode=workflow_mode,
         )
-        (project_path / "concept.md").write_text(concept_content, encoding="utf-8")
+        (project_path / "concept.md").write_text(seed_content, encoding="utf-8")
 
         # Create memory files
         memory_manager = ProjectMemoryManager(project_path)
         memory_manager.create_memory_files(
             project_name=name,
             paper_type=paper_type,
+            workflow_mode=workflow_mode,
             interaction_preferences=interaction_preferences,
             memo=memo,
         )
@@ -162,19 +201,17 @@ class ProjectManager:
         # Set as current project
         self._save_current_project(slug)
 
+        # Update Foam settings immediately so named views and graph scope exist
+        self._update_foam_settings(slug)
+        self._refresh_foam_graph()
+
         return {
             "success": True,
             "message": f"Project '{name}' created successfully!",
             "slug": slug,
             "path": str(project_path),
-            "structure": {
-                "concept": str(project_path / "concept.md"),
-                "memory": str(project_path / ".memory"),
-                "drafts": str(project_path / "drafts"),
-                "references": str(project_path / "references"),
-                "data": str(project_path / "data"),
-                "results": str(project_path / "results"),
-            },
+            "workflow_mode": workflow_mode,
+            "structure": self._build_structure_paths(project_path, workflow_mode),
         }
 
     def switch_project(self, slug: str) -> Dict[str, Any]:
@@ -190,6 +227,10 @@ class ProjectManager:
         Returns:
             Project info or error.
         """
+        return self.set_current_project(slug, refresh_foam=True)
+
+    def set_current_project(self, slug: str, *, refresh_foam: bool = False) -> Dict[str, Any]:
+        """Set the active project and optionally refresh Foam integration."""
         project_path = self.projects_dir / slug
 
         if not project_path.exists():
@@ -202,10 +243,14 @@ class ProjectManager:
 
         self._save_current_project(slug)
 
+        project_info = self.get_project_info(slug)
+
+        if not refresh_foam:
+            return project_info
+
         # Update Foam settings for project isolation
         foam_result = self._update_foam_settings(slug)
-
-        project_info = self.get_project_info(slug)
+        graph_result = self._refresh_foam_graph()
 
         # Add Foam update info
         if foam_result.get("success"):
@@ -213,6 +258,10 @@ class ProjectManager:
                 "enabled": True,
                 "ignored_projects": foam_result.get("ignored_projects", []),
             }
+            project_info["foam_views"] = foam_result.get("graph_views", [])
+
+        if graph_result.get("success"):
+            project_info["foam_graph"] = graph_result
 
         return project_info
 
@@ -236,6 +285,18 @@ class ProjectManager:
         except Exception as e:
             # Non-fatal: log but don't fail the switch
             logger.warning("Foam settings update failed", error=str(e))
+            return {"success": False, "error": str(e)}
+
+    def _refresh_foam_graph(self) -> Dict[str, Any]:
+        """Refresh Foam-facing graph nodes and index for the active project."""
+        try:
+            from .reference_manager import ReferenceManager
+
+            ref_manager = ReferenceManager(project_manager=self)
+            stats = ref_manager.refresh_foam_graph()
+            return {"success": True, **stats}
+        except Exception as e:
+            logger.warning("Foam graph refresh failed", error=str(e))
             return {"success": False, "error": str(e)}
 
     def delete_project(self, slug: str, confirm: bool = False) -> Dict[str, Any]:
@@ -339,17 +400,10 @@ class ProjectManager:
                 raise ValueError("No project selected")
 
         project_path = self.projects_dir / slug
+        config = self._load_config(project_path) or {}
+        workflow_mode = config.get("workflow_mode", DEFAULT_WORKFLOW_MODE)
 
-        return {
-            "root": str(project_path),
-            "concept": str(project_path / "concept.md"),
-            "memory": str(project_path / ".memory"),
-            "drafts": str(project_path / "drafts"),
-            "references": str(project_path / "references"),
-            "data": str(project_path / "data"),
-            "results": str(project_path / "results"),
-            "config": str(project_path / "project.json"),
-        }
+        return self._build_structure_paths(project_path, workflow_mode)
 
     def list_projects(self) -> Dict[str, Any]:
         """List all projects."""
@@ -380,6 +434,7 @@ class ProjectManager:
                         "name": config.get("name", project_dir.name),
                         "status": config.get("status", "unknown"),
                         "paper_type": config.get("paper_type", ""),
+                        "workflow_mode": config.get("workflow_mode", DEFAULT_WORKFLOW_MODE),
                         "created_at": config.get("created_at", ""),
                         "is_current": project_dir.name == current,
                     }
@@ -429,6 +484,7 @@ class ProjectManager:
         self,
         slug: Optional[str] = None,
         paper_type: Optional[str] = None,
+        workflow_mode: Optional[str] = None,
         target_journal: Optional[str] = None,
         interaction_preferences: Optional[Dict[str, Any]] = None,
         memo: Optional[str] = None,
@@ -442,6 +498,7 @@ class ProjectManager:
         Args:
             slug: Project slug. If None, uses current project.
             paper_type: Type of paper.
+            workflow_mode: Project workflow mode.
             target_journal: Target journal.
             interaction_preferences: User preferences for AI interaction.
             memo: Additional notes.
@@ -477,6 +534,18 @@ class ProjectManager:
             config["paper_type_info"] = get_paper_type_dict(paper_type)
             updated_fields.append("paper_type")
 
+        if workflow_mode is not None:
+            if workflow_mode not in WORKFLOW_MODES:
+                return {
+                    "success": False,
+                    "error": f"Invalid workflow mode '{workflow_mode}'. Valid modes: {list(WORKFLOW_MODES)}",
+                }
+            config["workflow_mode"] = workflow_mode
+            config["workflow_mode_info"] = WORKFLOW_MODES[workflow_mode]
+            for subdir in self._directories_for_workflow(workflow_mode):
+                (project_path / subdir).mkdir(exist_ok=True)
+            updated_fields.append("workflow_mode")
+
         # Update other fields
         if target_journal is not None:
             config["target_journal"] = target_journal
@@ -511,7 +580,16 @@ class ProjectManager:
         self._save_config(project_path, config)
 
         # Update memory files if needed
-        if interaction_preferences is not None or memo is not None:
+        if workflow_mode is not None or paper_type is not None:
+            memory_manager = ProjectMemoryManager(project_path)
+            memory_manager.create_memory_files(
+                project_name=config.get("name", slug),
+                paper_type=config.get("paper_type", ""),
+                workflow_mode=config.get("workflow_mode", DEFAULT_WORKFLOW_MODE),
+                interaction_preferences=config.get("interaction_preferences", {}),
+                memo=config.get("memo", ""),
+            )
+        elif interaction_preferences is not None or memo is not None:
             memory_manager = ProjectMemoryManager(project_path)
             memory_manager.update_preferences(
                 config.get("interaction_preferences", {}), config.get("memo", "")
@@ -547,6 +625,18 @@ class ProjectManager:
         slug = slug.strip("-")
         return slug or "untitled"
 
+    def _make_unique_slug(self, name: str) -> str:
+        """Generate a unique slug by appending a counter when needed."""
+        slug = self._slugify(name)
+        candidate = slug
+        counter = 1
+
+        while (self.projects_dir / candidate).exists():
+            candidate = f"{slug}-{counter}"
+            counter += 1
+
+        return candidate
+
     def _save_current_project(self, slug: str) -> None:
         """Save current project to .current_project file."""
         self.state_file.write_text(slug)
@@ -559,6 +649,7 @@ class ProjectManager:
         authors: Optional[List[Any]],
         target_journal: str,
         paper_type: str,
+        workflow_mode: str,
         interaction_preferences: Optional[Dict[str, Any]],
         memo: str,
     ) -> Dict[str, Any]:
@@ -579,12 +670,80 @@ class ProjectManager:
             "target_journal": target_journal,
             "paper_type": paper_type,
             "paper_type_info": get_paper_type_dict(paper_type) if paper_type else {},
+            "workflow_mode": workflow_mode,
+            "workflow_mode_info": WORKFLOW_MODES.get(workflow_mode, {}),
             "interaction_preferences": interaction_preferences or {},
             "memo": memo,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
             "status": "concept",
         }
+
+    def _build_workspace_seed_document(
+        self,
+        project_name: str,
+        paper_type: str,
+        target_journal: str,
+        memo: str,
+        workflow_mode: str,
+    ) -> str:
+        """Create the initial concept/library workspace document."""
+        if workflow_mode == "library-wiki":
+            return self._build_library_workspace_seed(project_name, memo)
+
+        return self.template_reader.get_concept_template(
+            project_name=project_name,
+            paper_type=paper_type,
+            target_journal=target_journal,
+            memo=memo,
+        )
+
+    def _build_library_workspace_seed(self, project_name: str, memo: str) -> str:
+        """Create the initial library/wiki workspace document."""
+        notes_block = memo.strip() if memo.strip() else "[No memo yet]"
+        return f"""# Library Workspace: {project_name}
+
+## Scope
+<!-- What literature domain, corpus, or topic family should this workspace cover? -->
+
+## Intake Priorities
+<!-- Which papers, feeds, or local sources should be ingested first? -->
+
+## Reading Queues
+- Inbox
+- Active reading
+- Synthesis targets
+
+## Knowledge Threads
+<!-- Themes, methods, interventions, datasets, or claims to connect -->
+
+## Open Questions
+<!-- Questions the agent should answer from this library -->
+
+## Optional Manuscript Paths
+<!-- If a paper idea emerges later, outline it here before switching workflow_mode -->
+
+## Author Notes
+{notes_block}
+"""
+
+    def _build_conversion_message(self, workflow_mode: str, stats: Dict[str, int]) -> str:
+        """Build a workflow-aware conversion summary for exploration workspaces."""
+        if workflow_mode == "library-wiki":
+            lines = [
+                f"   - References: {stats.get('references', 0)}",
+                f"   - Inbox notes: {stats.get('inbox', 0)}",
+                f"   - Concept notes: {stats.get('concepts', 0)}",
+                f"   - Synthesis projects: {stats.get('projects', 0)}",
+            ]
+        else:
+            lines = [
+                f"   - References: {stats.get('references', 0)}",
+                f"   - Drafts: {stats.get('drafts', 0)}",
+                f"   - Data files: {stats.get('data_files', 0)}",
+            ]
+
+        return "\n".join(lines)
 
     @staticmethod
     def _normalize_authors(authors: List[Any]) -> List[Dict[str, Any]]:
@@ -667,15 +826,31 @@ class ProjectManager:
 
     def _get_project_stats(self, project_path: Path) -> Dict[str, int]:
         """Get project content statistics."""
-        return {
-            "drafts": len(list((project_path / "drafts").glob("*.md"))),
-            "references": len([d for d in (project_path / "references").iterdir() if d.is_dir()])
-            if (project_path / "references").exists()
-            else 0,
-            "data_files": len(list((project_path / "data").glob("*.*")))
-            if (project_path / "data").exists()
-            else 0,
-        }
+        stats = {}
+
+        # Manuscript mode stats
+        if (project_path / "drafts").exists():
+            stats["drafts"] = len(list((project_path / "drafts").glob("*.md")))
+        if (project_path / "data").exists():
+            stats["data_files"] = len(list((project_path / "data").glob("*.*")))
+
+        # Library mode stats
+        if (project_path / "inbox").exists():
+            stats["inbox"] = len(list((project_path / "inbox").glob("*.md")))
+        if (project_path / "concepts").exists():
+            stats["concepts"] = len(list((project_path / "concepts").glob("*.md")))
+        if (project_path / "projects").exists():
+            stats["projects"] = len(list((project_path / "projects").glob("*.md")))
+
+        # Common stats
+        if (project_path / "references").exists():
+            stats["references"] = len(
+                [d for d in (project_path / "references").iterdir() if d.is_dir()]
+            )
+        else:
+            stats["references"] = 0
+
+        return stats
 
     # =========================================================================
     # Temporary Project Operations (for literature exploration)
@@ -711,7 +886,7 @@ class ProjectManager:
 
         # Create new temp project
         temp_path.mkdir(parents=True)
-        for subdir in self.PROJECT_DIRS:
+        for subdir in self._directories_for_workflow("library-wiki"):
             (temp_path / subdir).mkdir(exist_ok=True)
 
         # Create minimal config
@@ -723,6 +898,8 @@ class ProjectManager:
             "target_journal": "",
             "paper_type": "",
             "paper_type_info": {},
+            "workflow_mode": "library-wiki",
+            "workflow_mode_info": WORKFLOW_MODES["library-wiki"],
             "interaction_preferences": {},
             "memo": "這是一個暫存專案，用於文獻探索。使用 convert_temp_to_project 可將內容轉移到正式專案。",
             "created_at": datetime.now().isoformat(),
@@ -732,26 +909,11 @@ class ProjectManager:
         }
         self._save_config(temp_path, config)
 
-        # Create simple concept.md
-        concept_content = """# Literature Exploration Workspace
-
-這是一個臨時探索空間，用於：
-- 🔍 搜尋和保存有興趣的文獻
-- 📝 記錄初步想法和筆記
-- 💡 尋找研究靈感
-
-## Saved References
-
-使用 `save_reference` 保存的文獻會存在這裡。
-
-## Notes
-
-（在這裡記錄你的想法）
-
----
-
-**當你找到研究方向後**，使用 `convert_temp_to_project` 將這些內容轉移到正式專案！
-"""
+        # Create library-oriented workspace seed
+        concept_content = self._build_library_workspace_seed(
+            "Literature Exploration",
+            "這是一個暫存專案，用於文獻探索與 wiki 整理。",
+        )
         (temp_path / "concept.md").write_text(concept_content, encoding="utf-8")
 
         # Set as current project
@@ -775,6 +937,7 @@ class ProjectManager:
         name: str,
         description: str = "",
         paper_type: str = "",
+        workflow_mode: str = "",
         target_journal: str = "",
         keep_temp: bool = False,
     ) -> Dict[str, Any]:
@@ -787,6 +950,7 @@ class ProjectManager:
             name: Name for the new project (in English for slug generation).
             description: Project description.
             paper_type: Type of paper.
+            workflow_mode: Workflow mode for the converted project.
             target_journal: Target journal.
             keep_temp: If True, copy instead of move (keep temp project).
 
@@ -821,6 +985,13 @@ class ProjectManager:
                 "error": f"Invalid paper type '{paper_type}'. Valid types: {list_paper_types()}",
             }
 
+        resolved_workflow_mode = workflow_mode or ("manuscript" if paper_type else "library-wiki")
+        if resolved_workflow_mode not in WORKFLOW_MODES:
+            return {
+                "success": False,
+                "error": f"Invalid workflow mode '{resolved_workflow_mode}'. Valid modes: {list(WORKFLOW_MODES)}",
+            }
+
         import shutil
 
         if keep_temp:
@@ -839,17 +1010,24 @@ class ProjectManager:
             authors=None,
             target_journal=target_journal,
             paper_type=paper_type,
+            workflow_mode=resolved_workflow_mode,
             interaction_preferences=None,
             memo=f"Originally explored as temp project. Converted on {datetime.now().strftime('%Y-%m-%d')}.",
         )
         self._save_config(new_path, config)
 
-        # Update concept.md
-        concept_content = self.template_reader.get_concept_template(
+        # Ensure the target workflow layout exists even when the source exploration
+        # workspace was created with a different directory shape.
+        for subdir in self._directories_for_workflow(resolved_workflow_mode):
+            (new_path / subdir).mkdir(exist_ok=True)
+
+        # Update concept.md or library workspace seed
+        concept_content = self._build_workspace_seed_document(
             project_name=name,
             paper_type=paper_type,
             target_journal=target_journal,
             memo=f"Converted from exploration workspace.\nReferences: {temp_stats['references']}",
+            workflow_mode=resolved_workflow_mode,
         )
         (new_path / "concept.md").write_text(concept_content, encoding="utf-8")
 
@@ -858,6 +1036,7 @@ class ProjectManager:
         memory_manager.create_memory_files(
             project_name=name,
             paper_type=paper_type,
+            workflow_mode=resolved_workflow_mode,
             interaction_preferences=None,
             memo=f"Converted from temp exploration project with {temp_stats['references']} references.",
         )
@@ -865,17 +1044,23 @@ class ProjectManager:
         # Switch to new project
         self._save_current_project(new_slug)
 
+        # Keep Foam project isolation and graph nodes aligned with the converted project.
+        self._update_foam_settings(new_slug)
+        self._refresh_foam_graph()
+
+        converted_stats = self._get_project_stats(new_path)
+        conversion_summary = self._build_conversion_message(resolved_workflow_mode, converted_stats)
+
         return {
             "success": True,
             "message": f"✅ 成功將探索工作區轉換為正式專案！\n\n"
             f"📁 新專案: **{name}**\n"
             f"📚 轉移內容:\n"
-            f"   - References: {temp_stats['references']}\n"
-            f"   - Drafts: {temp_stats['drafts']}\n"
-            f"   - Data files: {temp_stats['data_files']}",
+            f"{conversion_summary}",
             "slug": new_slug,
             "path": str(new_path),
-            "stats": temp_stats,
+            "workflow_mode": resolved_workflow_mode,
+            "stats": converted_stats,
             "paths": self.get_project_paths(new_slug),
         }
 

@@ -5,8 +5,9 @@ Expose statistical analysis capabilities for medical papers.
 Every tool call records provenance to data-artifacts.yaml for reproducibility.
 """
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -15,10 +16,12 @@ from med_paper_assistant.infrastructure.services.analyzer import Analyzer
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     get_project_list_for_prompt,
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
 )
 
 
@@ -39,10 +42,17 @@ def _require_project_info(project_info: dict | None) -> dict:
     return project_info
 
 
-def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
+def register_stats_tools(
+    mcp: FastMCP,
+    analyzer: Analyzer,
+    *,
+    register_public_verbs: bool = True,
+) -> dict[str, Callable[..., Any]]:
     """Register statistical analysis tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def analyze_dataset(filename: str, project: Optional[str] = None) -> str:
         """
         Get descriptive statistics for a CSV dataset (count, mean, std, missing values).
@@ -52,6 +62,13 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
             project: Project slug (uses current if omitted)
         """
         log_tool_call("analyze_dataset", {"filename": filename, "project": project})
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         project_info = None
         if project:
@@ -92,7 +109,7 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
             log_tool_error("analyze_dataset", e, {"filename": filename})
             return error_msg
 
-    @mcp.tool()
+    @tool()
     def run_statistical_test(
         filename: str,
         test_type: str,
@@ -120,6 +137,13 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
                 "project": project,
             },
         )
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         project_info = None
         if project:
@@ -199,7 +223,7 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
             log_tool_error("run_statistical_test", e, {"test_type": test_type})
             return error_msg
 
-    @mcp.tool()
+    @tool()
     def create_plot(
         filename: str,
         plot_type: str,
@@ -235,6 +259,13 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
                 "project": project,
             },
         )
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
 
         project_info = None
         if project:
@@ -311,3 +342,9 @@ def register_stats_tools(mcp: FastMCP, analyzer: Analyzer):
             error_msg = f"❌ Error creating plot: {str(e)}"
             log_tool_error("create_plot", e, {"plot_type": plot_type})
             return error_msg
+
+    return {
+        "analyze_dataset": analyze_dataset,
+        "run_statistical_test": run_statistical_test,
+        "create_plot": create_plot,
+    }
