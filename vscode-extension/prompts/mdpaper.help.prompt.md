@@ -4,6 +4,16 @@ description: "❓ mdpaper.help - 指令與工作流程參考"
 
 # 指令參考
 
+## 兩條路
+
+### Library Wiki Path
+
+`project_action(action="create", name="...", workflow_mode="library-wiki")` → `search` → `save_reference_mcp` / ingest sources → `write_library_note` → `show_reading_queues` → `create_concept_page` / `move_library_note` → `build_library_dashboard` → query / synthesize → 覺得值得寫稿時再切去 manuscript
+
+### Manuscript Path
+
+`project_action(action="create", name="...", workflow_mode="manuscript", paper_type="...")` → `search` → `concept` → `draft` → `analysis` → `clarify` → `format`
+
 ## 可用指令
 
 | 指令                | 用途          |
@@ -19,7 +29,9 @@ description: "❓ mdpaper.help - 指令與工作流程參考"
 
 ## 建議順序
 
-project → search → concept → draft → analysis → clarify → format
+Library Wiki Path: project → search → capture notes → review queues → concept pages / dashboards → query → optional manuscript transition
+
+Manuscript Path: project → search → concept → draft → analysis → clarify → format
 
 ## MCP 工具集
 
@@ -33,5 +45,6 @@ project → search → concept → draft → analysis → clarify → format
 ## 核心規則
 
 - 儲存文獻：`save_reference_mcp(pmid)` 優先
-- 草稿前：`validate_concept()` 必須 Novelty ≥ 75
+- 只有 Manuscript Path 的草稿前：`validate_concept()` 必須 Novelty ≥ 75
+- 路徑切換：`project_action(action="update", workflow_mode="manuscript|library-wiki", paper_type="...")`
 - 🔒 內容：NOVELTY + SELLING POINTS 不可刪改

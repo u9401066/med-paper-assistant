@@ -159,7 +159,12 @@ def register_review_facade_tools(
             "domain_constraints": (
                 audit_tools,
                 "check_domain_constraints",
-                {"content": content, "section": section, "paper_type": paper_type},
+                {
+                    "content": content,
+                    "section": section,
+                    "paper_type": paper_type,
+                    "project": project,
+                },
             ),
             "evolve_constraint": (
                 audit_tools,
@@ -172,6 +177,7 @@ def register_review_facade_tools(
                     "severity": severity,
                     "reason": reason,
                     "source_hook": source_hook,
+                    "project": project,
                 },
             ),
             "pending_evolutions": (

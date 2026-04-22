@@ -14,16 +14,34 @@ from med_paper_assistant.infrastructure.services.citation_assistant import Citat
 from .._shared import (
     ensure_project_context,
     get_project_list_for_prompt,
+    get_optional_tool_decorator,
     log_agent_misuse,
     log_tool_call,
     log_tool_result,
+    validate_project_for_workflow,
 )
 
 
-def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant):
+def register_citation_tools(
+    mcp: FastMCP,
+    citation_assistant: CitationAssistant,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register citation-related tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    def _require_manuscript_project(project: Optional[str]) -> Optional[str]:
+        is_valid, error_msg = validate_project_for_workflow(
+            project,
+            required_mode="manuscript",
+        )
+        if is_valid:
+            return None
+        return error_msg
+
+    @tool()
     def suggest_citations(
         text: str,
         section: str = "",
@@ -65,6 +83,16 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
                     error_msg,
                 )
                 return error_msg
+
+        workflow_error = _require_manuscript_project(project)
+        if workflow_error:
+            log_agent_misuse(
+                "suggest_citations",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
 
         # Apply claim type suffix for specialized search
         type_suffixes = {
@@ -116,7 +144,7 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
         log_tool_result("suggest_citations", f"analyzed {len(text)} chars", success=True)
         return result_text
 
-    @mcp.tool()
+    @tool()
     def scan_draft_citations(
         filename: str,
         project: Optional[str] = None,
@@ -145,6 +173,16 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
                 )
                 return error_msg
 
+        workflow_error = _require_manuscript_project(project)
+        if workflow_error:
+            log_agent_misuse(
+                "scan_draft_citations",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
+            return workflow_error
+
         # Resolve file path
         from med_paper_assistant.infrastructure.persistence import get_project_manager
 
@@ -165,6 +203,11 @@ def register_citation_tools(mcp: FastMCP, citation_assistant: CitationAssistant)
         result = citation_assistant.scan_draft_for_citations(draft_path)
         log_tool_result("scan_draft_citations", f"scanned {draft_path}", success=True)
         return result
+
+    return {
+        "suggest_citations": suggest_citations,
+        "scan_draft_citations": scan_draft_citations,
+    }
 
 
 __all__ = ["register_citation_tools"]

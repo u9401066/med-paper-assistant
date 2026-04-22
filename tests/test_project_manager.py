@@ -6,6 +6,7 @@ to silently fall back to relative paths and fail.
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -148,6 +149,42 @@ class TestCreateProject:
             config = json.load(f)
         assert config["name"] == "New"
         assert config["paper_type"] == "review-article"
+
+    def test_persists_workflow_mode_and_library_templates(self, pm):
+        pm.create_project(name="Library", workflow_mode="library-wiki")
+
+        info = pm.get_project_info()
+        assert info["workflow_mode"] == "library-wiki"
+        assert "inbox" in info["paths"]
+        assert "concepts" in info["paths"]
+        assert "projects" in info["paths"]
+        assert "drafts" not in info["paths"]
+
+        config_path = info["paths"]["config"]
+        with open(config_path) as f:
+            config = json.load(f)
+
+        assert config["workflow_mode"] == "library-wiki"
+        assert config["workflow_mode_info"]["name"] == "Library Wiki Path"
+
+        concept = open(info["paths"]["concept"], encoding="utf-8").read()
+        progress = open(info["paths"]["memory"] + "/progress.md", encoding="utf-8").read()
+
+        assert "# Library Workspace" in concept
+        assert "Workflow Mode:** Library Wiki Path" in progress
+
+    def test_updates_workflow_mode(self, pm):
+        pm.create_project(name="Switchable")
+
+        result = pm.update_project_settings(workflow_mode="library-wiki")
+
+        assert result["success"] is True
+        assert "workflow_mode" in result["updated_fields"]
+        info = pm.get_project_info()
+        assert info["workflow_mode"] == "library-wiki"
+        assert Path(info["paths"]["inbox"]).is_dir()
+        assert Path(info["paths"]["concepts"]).is_dir()
+        assert Path(info["paths"]["projects"]).is_dir()
 
 
 class TestAuthorManagement:

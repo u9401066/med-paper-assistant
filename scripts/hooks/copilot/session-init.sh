@@ -29,6 +29,7 @@ mkdir -p "$STATE_DIR"
 rm -f "$STATE_DIR/session_context.json" 2>/dev/null
 
 CONTEXT_PARTS=()
+WORKFLOW_MODE=""
 
 # --- 1. Read mode ---
 MODE_FILE="$WORKSPACE_ROOT/.copilot-mode.json"
@@ -86,6 +87,18 @@ if [ -d "$PROJECTS_DIR" ]; then
     CONTEXT_PARTS+=("PROJECTS: $PROJECT_COUNT active")
 fi
 
+if [ -z "$ACTIVE_PROJECT" ] && [ -f "$WORKSPACE_ROOT/.current_project" ]; then
+    ACTIVE_PROJECT="$(tr -d '\n' < "$WORKSPACE_ROOT/.current_project")"
+fi
+
+if [ -n "$ACTIVE_PROJECT" ] && [ "$ACTIVE_PROJECT" != "null" ]; then
+    PROJECT_CONFIG="$WORKSPACE_ROOT/projects/$ACTIVE_PROJECT/project.json"
+    if [ -f "$PROJECT_CONFIG" ]; then
+        WORKFLOW_MODE=$(jq -r '.workflow_mode // "manuscript"' "$PROJECT_CONFIG" 2>/dev/null) || WORKFLOW_MODE="manuscript"
+        CONTEXT_PARTS+=("WORKFLOW MODE: $WORKFLOW_MODE")
+    fi
+fi
+
 # --- Build output ---
 if [ ${#CONTEXT_PARTS[@]} -eq 0 ]; then
     exit 0
@@ -108,8 +121,9 @@ jq -n \
 jq -n \
     --arg mode "${MODE:-normal}" \
     --arg active_project "${ACTIVE_PROJECT:-}" \
+    --arg workflow_mode "${WORKFLOW_MODE:-}" \
     --arg started_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    '{mode: $mode, active_project: $active_project, started_at: $started_at}' \
+    '{mode: $mode, active_project: $active_project, workflow_mode: $workflow_mode, started_at: $started_at}' \
     > "$STATE_DIR/session_context.json" 2>/dev/null || true
 
 # Output additionalContext

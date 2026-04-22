@@ -75,7 +75,11 @@ def register_export_facade_tools(
             "session_start": (
                 word_tools,
                 "start_document_session",
-                {"template_name": template_name, "session_id": session_id},
+                {
+                    "template_name": template_name,
+                    "session_id": session_id,
+                    "project": project,
+                },
             ),
             "session_insert": (
                 word_tools,
@@ -85,12 +89,17 @@ def register_export_facade_tools(
                     "section_name": section_name,
                     "content": content,
                     "mode": mode,
+                    "project": project,
                 },
             ),
             "session_save": (
                 word_tools,
                 "save_document",
-                {"session_id": session_id, "output_filename": output_filename},
+                {
+                    "session_id": session_id,
+                    "output_filename": output_filename,
+                    "project": project,
+                },
             ),
         }
 
@@ -143,7 +152,11 @@ def register_export_facade_tools(
             "verify_document": (
                 word_tools,
                 "verify_document",
-                {"session_id": session_id, "limits_json": limits_json or None},
+                {
+                    "session_id": session_id,
+                    "limits_json": limits_json or None,
+                    "project": project,
+                },
             ),
             "preview_citations": (
                 pandoc_tools,

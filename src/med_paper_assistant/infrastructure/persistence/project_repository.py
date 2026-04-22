@@ -8,12 +8,14 @@ from pathlib import Path
 from typing import List, Optional
 
 from med_paper_assistant.domain.entities.project import Project
-from med_paper_assistant.shared.constants import PAPER_TYPES, PROJECT_DIRECTORIES
+from med_paper_assistant.shared.constants import PAPER_TYPES, PROJECT_DIRECTORIES, LIBRARY_DIRECTORIES, WORKFLOW_MODES
 from med_paper_assistant.shared.exceptions import (
     InvalidPaperTypeError,
     ProjectAlreadyExistsError,
     ProjectNotFoundError,
 )
+
+from .project_memory_manager import ProjectMemoryManager
 
 
 class ProjectRepository:
@@ -52,9 +54,17 @@ class ProjectRepository:
         if project.paper_type and project.paper_type not in PAPER_TYPES:
             raise InvalidPaperTypeError(f"Invalid paper type '{project.paper_type}'.")
 
+        if project.workflow_mode not in WORKFLOW_MODES:
+            raise ValueError(f"Invalid workflow mode '{project.workflow_mode}'.")
+
         # Create directory structure
         project.path.mkdir(parents=True)
-        for subdir in PROJECT_DIRECTORIES:
+        dirs_to_create = (
+            LIBRARY_DIRECTORIES 
+            if project.workflow_mode == "library-wiki" 
+            else PROJECT_DIRECTORIES
+        )
+        for subdir in dirs_to_create:
             (project.path / subdir).mkdir()
 
         # Save config
@@ -155,55 +165,26 @@ class ProjectRepository:
 
     def _create_concept_file(self, project: Project):
         """Create initial concept.md file."""
-        template = self._get_concept_template(project.paper_type)
+        template = self._get_seed_document_template(project.paper_type, project.workflow_mode)
         concept_path = project.path / "concept.md"
         concept_path.write_text(template, encoding="utf-8")
 
     def _create_memory_files(self, project: Project):
         """Create .memory files."""
-        memory_dir = project.path / ".memory"
+        memory_manager = ProjectMemoryManager(project.path)
+        memory_manager.create_memory_files(
+            project_name=project.name,
+            paper_type=project.paper_type,
+            interaction_preferences=project.interaction_preferences,
+            memo=project.memo,
+            workflow_mode=project.workflow_mode,
+        )
 
-        # activeContext.md
-        active_context = f"""# Active Context: {project.name}
-
-## Current Focus
-- Setting up project structure
-- Defining research concept
-
-## Recent Changes
-- Project created: {datetime.now().strftime("%Y-%m-%d")}
-
-## Next Steps
-1. Complete concept.md with research details
-2. Search and save relevant literature
-3. Begin drafting
-
-## Notes
-{project.memo or "(Add your notes here)"}
-"""
-        (memory_dir / "activeContext.md").write_text(active_context, encoding="utf-8")
-
-        # progress.md
-        progress = f"""# Progress: {project.name}
-
-## Timeline
-- **Created**: {datetime.now().strftime("%Y-%m-%d")}
-- **Status**: {project.status}
-
-## Milestones
-- [ ] Concept defined
-- [ ] Literature review complete
-- [ ] Data analysis complete
-- [ ] First draft complete
-- [ ] Revisions complete
-- [ ] Submitted
-
-## Statistics
-- References saved: 0
-- Drafts created: 0
-- Word count: 0
-"""
-        (memory_dir / "progress.md").write_text(progress, encoding="utf-8")
+    def _get_seed_document_template(self, paper_type: str, workflow_mode: str) -> str:
+        """Get the initial workspace document based on workflow mode."""
+        if workflow_mode == "library-wiki":
+            return self._get_library_workspace_template()
+        return self._get_concept_template(paper_type)
 
     def _get_concept_template(self, paper_type: str) -> str:
         """Get concept template based on paper type."""
@@ -253,3 +234,31 @@ class ProjectRepository:
 """
         )
         return template
+
+    def _get_library_workspace_template(self) -> str:
+        """Get the library/wiki workspace seed document."""
+        return """# Library Workspace
+
+## Scope
+<!-- What literature domain, corpus, or topic family should this workspace cover? -->
+
+## Intake Priorities
+<!-- Which papers, sources, or feeds should be ingested first? -->
+
+## Reading Queues
+- Inbox
+- Active reading
+- Synthesis targets
+
+## Knowledge Threads
+<!-- Themes, methods, interventions, datasets, or claims to connect across notes -->
+
+## Open Questions
+<!-- Retrieval questions the agent should answer from the library -->
+
+## Optional Manuscript Paths
+<!-- If a paper idea emerges later, outline it here before switching workflow_mode -->
+
+## Author Notes
+<!-- Private notes for curation strategy, dashboards, or follow-up tasks -->
+"""

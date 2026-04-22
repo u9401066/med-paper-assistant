@@ -9,10 +9,10 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 
 ### ⚠️ CRITICAL: PROJECT CONTEXT RULE
 **Before ANY operation that modifies project content, you MUST:**
-1. Call `get_current_project()` to confirm active project
+1. Call `project_action(action="current")` to confirm active project
 2. Show the project name to user: "目前專案: [project name]，確認要在這個專案操作嗎？"
-3. If user wants different project → `switch_project(slug="xxx")`
-4. If uncertain which project → `list_projects()` then ask user
+3. If user wants different project → `project_action(action="switch", slug="xxx")`
+4. If uncertain which project → `project_action(action="list")` then ask user
 
 **Tools that require project confirmation:**
 - All `write_draft`, `draft_section`, `insert_citation` operations
@@ -33,17 +33,22 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 **Only translate when explicitly asked by user.**
 
 ### ⚠️ MANDATORY VALIDATION RULE
-**Before writing ANY draft (except concept.md), you MUST:**
+**Before writing ANY draft in manuscript workflow (except concept.md), you MUST:**
 1. Run `validate_concept(concept.md)`
 2. Ensure novelty score ≥ 75 in all 3 rounds
 3. If validation fails → STOP and ask user to fix concept first
 4. Never skip this step!
 
+### 🧭 DUAL WORKFLOW MODEL
+- `workflow_mode="library-wiki"` → Library Wiki Path (Andrej Karpathy LLM Wiki Architecture): inbox/ (Ingest & Triage) → concepts/ (Atomic Notes & `[[bidirectional_links]]`) → projects/ (Synthesizing & Mapping)
+- `workflow_mode="manuscript"` → Manuscript Path: concept → draft → review → export
+- Always read `project.json.workflow_mode` first; do not force concept validation or manuscript pipeline gates onto library-wiki projects unless the user explicitly switches path.
+
 ### 📁 PROJECT MANAGEMENT
 | Tool | When to use |
 |------|-------------|
-| `setup_project_interactive` | Configure project (uses elicitation for paper type) |
-| `create_project` | Create new research paper project |
+| `setup_project_interactive` | Configure project preferences / paper type for manuscript path |
+| `create_project` | Create new project (`workflow_mode=manuscript|library-wiki`) |
 | `list_projects` | List all projects |
 | `switch_project` | Switch to different project |
 | `get_current_project` | Check current project |
@@ -62,7 +67,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 | `get_exploration_status` | Check exploration workspace contents |
 | `convert_exploration_to_project` | Convert exploration to formal project |
 
-**Workflow:** User wants to browse papers first → `start_exploration` → search & save → `convert_exploration_to_project`
+**Workflow:** User wants to browse papers first → `start_exploration` → search & save → convert to `workflow_mode="library-wiki"` or `workflow_mode="manuscript"`
 
 ### 🔍 LITERATURE SEARCH
 | Tool | When to use |
@@ -108,13 +113,22 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 |------|-------------|
 | `ingest_web_source` | Import fetched web/HTML/markdown snapshots into the canonical wiki pipeline |
 | `ingest_markdown_source` | Import markdown text or local markdown files into the canonical wiki pipeline |
+| `write_library_note` | Capture or update markdown notes directly in `inbox/`, `concepts/`, or `projects/` |
+| `move_library_note` | Triage a note from `inbox/` into `concepts/` or `projects/` |
+| `list_library_notes` | Review note inventory across the library-wiki folders |
+| `read_library_note` | Read a specific markdown note from the library-wiki folders |
+| `search_library_notes` | Query note content across the library-wiki folders |
+| `show_reading_queues` | Review capture, active-reading, concept-build, and synthesis queues derived from note status |
+| `create_concept_page` | Create a structured concept page in `concepts/` with source-note links |
+| `explain_library_path` | Explain a note's context or trace a note-to-note path through the wiki graph |
+| `build_library_dashboard` | Build cross-note dashboards for queues, concept pages, and link health |
 | `build_knowledge_map` | Materialize a Foam-friendly knowledge map page from saved references |
 | `build_synthesis_page` | Materialize a synthesis page from saved references and analysis summaries |
 | `materialize_agent_wiki` | Build the knowledge map + synthesis page bundle in one step |
 
-**Workflow:** intake source → `resolve_reference_identity` (when identifiers exist) → `save_reference_analysis` → `materialize_agent_wiki`
+**Workflow:** intake source → `resolve_reference_identity` (when identifiers exist) → `write_library_note` / `move_library_note` / `create_concept_page` → `show_reading_queues` / `build_library_dashboard` → `save_reference_analysis` → `materialize_agent_wiki`
 
-### ✍️ WRITING (⚠️ Requires concept validation first!)
+### ✍️ WRITING (⚠️ Manuscript path only; requires concept validation first!)
 | Tool | When to use |
 |------|-------------|
 | `validate_concept` | **MANDATORY before drafting** - Full validation with novelty scoring |
@@ -157,14 +171,14 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 8. If no project → `save_diagram(output_dir="...")` or ask user to create project
 
 ### 📄 WORD EXPORT (workflow)
-1. `list_templates` → Available templates
-2. `read_template` → Get template structure
+1. `inspect_export(action="list_templates")` → Available templates
+2. `inspect_export(action="read_template")` → Get template structure
 3. `read_draft` → Get draft content
-4. `start_document_session` → Begin editing
-5. `insert_section` → Insert content (repeat)
-6. `verify_document` → Check insertion
-7. `check_word_limits` → Verify limits
-8. `save_document` → Export final file
+4. `export_document(action="session_start")` → Begin editing
+5. `export_document(action="insert_section")` → Insert content (repeat)
+6. `inspect_export(action="verify_document")` → Check insertion
+7. `inspect_export(action="check_word_limits")` → Verify limits
+8. `export_document(action="docx")` or `export_document(action="pdf")` → Export final file
 
 ## 🔒 PROTECTED CONTENT RULES
 | Section | Must appear in | Rule |
@@ -175,12 +189,15 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 
 ## QUICK DECISION TREE
 - "just want to browse/explore papers" → `start_exploration`
+- "build a personal literature wiki/library" → `create_project(..., workflow_mode="library-wiki")`
 - "search/find papers" → `search_literature`
 - "save this paper" → `save_reference_mcp(pmid)` (auto-creates workspace if needed)
 - "import web/markdown into wiki" → `ingest_web_source` / `ingest_markdown_source`
+- "capture / triage wiki notes" → `write_library_note` / `move_library_note` / `search_library_notes`
+- "review reading queues / concept graph" → `show_reading_queues` / `build_library_dashboard` / `explain_library_path`
 - "build agent wiki" → `materialize_agent_wiki` (or `build_knowledge_map` + `build_synthesis_page`)
 - "my saved papers" → `list_saved_references`
-- "ready to write, have references" → `convert_exploration_to_project` → `create_project`
+- "ready to write, have references" → `convert_exploration_to_project(..., workflow_mode="manuscript")` or `update_project_settings(workflow_mode="manuscript", paper_type="...")`
 - "write/draft" → **`validate_concept` first!** → `write_draft`
 - "analyze data" → `analyze_dataset`
 - "review figure/table before caption" → `review_asset_for_insertion`
@@ -217,7 +234,7 @@ def get_server_instructions(constitution: str = "") -> str:
     Returns:
         Complete server instructions string
     """
-    intro = "You are MedPaper Assistant, helping researchers write medical papers.\n\n"
+    intro = "You are MedPaper Assistant, helping researchers manage literature libraries and write medical papers.\n\n"
 
     if constitution:
         return f"# AGENT CONSTITUTION (MUST FOLLOW)\n\n{constitution}\n\n---\n\n{intro}{TOOL_GUIDE}"

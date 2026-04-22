@@ -29,6 +29,7 @@ mkdir -p "$STATE_DIR"
 MODE="normal"
 ACTIVE_PROJECT=""
 WRITING_SECTION=""
+WORKFLOW_MODE=""
 
 MODE_FILE="$WORKSPACE_ROOT/.copilot-mode.json"
 if [ -f "$MODE_FILE" ]; then
@@ -41,10 +42,24 @@ if [ -f "$STATE_FILE" ]; then
     WRITING_SECTION=$(jq -r '.writing_session.section // empty' "$STATE_FILE" 2>/dev/null) || true
 fi
 
+if [ -z "$ACTIVE_PROJECT" ] && [ -f "$WORKSPACE_ROOT/.current_project" ]; then
+    ACTIVE_PROJECT="$(tr -d '\n' < "$WORKSPACE_ROOT/.current_project")"
+fi
+
+if [ -n "$ACTIVE_PROJECT" ] && [ "$ACTIVE_PROJECT" != "null" ]; then
+    PROJECT_CONFIG="$WORKSPACE_ROOT/projects/$ACTIVE_PROJECT/project.json"
+    if [ -f "$PROJECT_CONFIG" ]; then
+        WORKFLOW_MODE=$(jq -r '.workflow_mode // "manuscript"' "$PROJECT_CONFIG" 2>/dev/null) || WORKFLOW_MODE="manuscript"
+    fi
+fi
+
 # Build subagent context
 CONTEXT="[SUBAGENT CONTEXT] Agent: $AGENT_NAME | Mode: $MODE"
 if [ -n "$ACTIVE_PROJECT" ]; then
     CONTEXT="$CONTEXT | Project: $ACTIVE_PROJECT"
+fi
+if [ -n "$WORKFLOW_MODE" ]; then
+    CONTEXT="$CONTEXT | Workflow: $WORKFLOW_MODE"
 fi
 if [ -n "$WRITING_SECTION" ]; then
     CONTEXT="$CONTEXT | Writing: $WRITING_SECTION"
@@ -65,6 +80,10 @@ case "$AGENT_NAME" in
         CONTEXT="$CONTEXT\nBe critical and constructive. Challenge novelty claims with evidence."
         ;;
 esac
+
+if [ "$WORKFLOW_MODE" = "library-wiki" ]; then
+    CONTEXT="$CONTEXT\nWORKFLOW NOTE: active project is library-wiki. Prioritize ingestion, organization, synthesis, and evidence traversal unless the user explicitly requests a manuscript transition."
+fi
 
 # Mode-specific restriction reminder
 if [ "$MODE" = "normal" ] || [ "$MODE" = "research" ]; then

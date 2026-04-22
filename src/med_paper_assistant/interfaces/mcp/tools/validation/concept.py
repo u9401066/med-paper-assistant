@@ -15,11 +15,13 @@ from med_paper_assistant.domain.services.wikilink_validator import (
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
 
 from .._shared import (
+    get_optional_tool_decorator,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
     log_tool_result,
     validate_project_for_tool,
+    validate_project_for_workflow,
 )
 from .._shared.guidance import build_guidance_hint
 
@@ -27,10 +29,16 @@ from .._shared.guidance import build_guidance_hint
 _concept_validator = ConceptValidator()
 
 
-def register_concept_validation_tools(mcp: FastMCP):
+def register_concept_validation_tools(
+    mcp: FastMCP,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register concept validation tools."""
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def validate_concept(
         filename: str,
         project: Optional[str] = None,
@@ -64,6 +72,19 @@ def register_concept_validation_tools(mcp: FastMCP):
             log_agent_misuse(
                 "validate_concept",
                 "valid project context required",
+                {"project": project},
+                error_msg,
+            )
+            return error_msg
+
+        is_valid, error_msg = validate_project_for_workflow(
+            project,
+            required_mode="manuscript",
+        )
+        if not is_valid:
+            log_agent_misuse(
+                "validate_concept",
+                "manuscript workflow required",
                 {"project": project},
                 error_msg,
             )
@@ -175,7 +196,7 @@ def register_concept_validation_tools(mcp: FastMCP):
             log_tool_error("validate_concept", e, {"filename": filename})
             return f"❌ Error validating concept: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def validate_wikilinks(
         filename: str, project: Optional[str] = None, auto_fix: bool = True
     ) -> str:
@@ -250,3 +271,8 @@ def register_concept_validation_tools(mcp: FastMCP):
         except Exception as e:
             log_tool_error("validate_wikilinks", e, {"filename": filename})
             return f"❌ Error: {str(e)}"
+
+    return {
+        "validate_concept": validate_concept,
+        "validate_wikilinks": validate_wikilinks,
+    }

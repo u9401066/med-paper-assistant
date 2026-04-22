@@ -289,6 +289,25 @@ class TestPhase2:
         assert r.passed
 
 
+class TestWorkflowModeShortCircuit:
+    def test_library_wiki_skips_manuscript_phase_gates(self, project_dir):
+        (project_dir / "project.json").write_text(
+            json.dumps({"slug": "test", "workflow_mode": "library-wiki"})
+        )
+
+        validator = PipelineGateValidator(project_dir)
+        result = validator.validate_phase(7)
+
+        assert result.passed
+        check = next(c for c in result.checks if c.name == "workflow_mode:library-wiki")
+        assert check.passed
+
+        phase_two = validator.validate_phase(2)
+        assert not phase_two.passed
+        ref_check = next(c for c in phase_two.checks if c.name == "references_count")
+        assert "need 20 more" in ref_check.details
+
+
 class TestPhase3And4:
     def test_phase3_fails_without_concept_review_artifact(self, validator, project_dir):
         _add_prerequisites(project_dir, up_to_phase=3)

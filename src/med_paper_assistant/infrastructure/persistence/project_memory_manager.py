@@ -1,32 +1,17 @@
-"""
-Project Memory Manager - Manages project-specific memory files.
-
-Handles creation and updating of .memory/ files for AI context.
-"""
+"""Project-specific memory file generation and updates."""
 
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ...domain.paper_types import PaperTypeInfo, get_paper_type
+from ...shared.constants import DEFAULT_WORKFLOW_MODE
 
 
 class ProjectMemoryManager:
-    """
-    Manages project memory files for AI context persistence.
-
-    Memory files:
-    - activeContext.md: Current research focus, preferences, blockers
-    - progress.md: Research milestones and task tracking
-    """
+    """Manage .memory files for project context persistence."""
 
     def __init__(self, project_path: Path):
-        """
-        Initialize memory manager for a project.
-
-        Args:
-            project_path: Root path of the project.
-        """
         self.project_path = Path(project_path)
         self.memory_dir = self.project_path / ".memory"
 
@@ -36,32 +21,19 @@ class ProjectMemoryManager:
         paper_type: str = "",
         interaction_preferences: Optional[Dict[str, Any]] = None,
         memo: str = "",
+        workflow_mode: str = DEFAULT_WORKFLOW_MODE,
     ) -> None:
-        """
-        Create initial memory files for a new project.
-
-        Args:
-            project_name: Name of the project.
-            paper_type: Type of paper.
-            interaction_preferences: User preferences for AI interaction.
-            memo: Initial memo/notes.
-        """
+        """Create initial memory files for a new project."""
         self.memory_dir.mkdir(parents=True, exist_ok=True)
 
         type_info = get_paper_type(paper_type)
         prefs = interaction_preferences or {}
 
-        self._write_active_context(project_name, type_info, prefs, memo)
-        self._write_progress(project_name, paper_type, type_info)
+        self._write_active_context(project_name, type_info, prefs, memo, workflow_mode)
+        self._write_progress(project_name, paper_type, type_info, workflow_mode)
 
     def update_preferences(self, interaction_preferences: Dict[str, Any], memo: str = "") -> None:
-        """
-        Update preferences and memo in activeContext.md.
-
-        Args:
-            interaction_preferences: Updated preferences.
-            memo: Updated memo.
-        """
+        """Update preferences and memo in activeContext.md."""
         active_context_path = self.memory_dir / "activeContext.md"
         if not active_context_path.exists():
             return
@@ -70,7 +42,6 @@ class ProjectMemoryManager:
 
         content = active_context_path.read_text(encoding="utf-8")
 
-        # Update User Preferences section
         prefs = interaction_preferences
         new_prefs_section = f"""## User Preferences
 
@@ -87,7 +58,6 @@ class ProjectMemoryManager:
         if re.search(pattern, content, re.DOTALL):
             content = re.sub(pattern, new_prefs_section + "\n\n", content, flags=re.DOTALL)
 
-        # Update memo section
         new_memo_section = f"""## Memo / Notes
 {memo if memo else "[No memo yet]"}"""
 
@@ -95,7 +65,6 @@ class ProjectMemoryManager:
         if re.search(memo_pattern, content, re.DOTALL):
             content = re.sub(memo_pattern, new_memo_section + "\n\n", content, flags=re.DOTALL)
 
-        # Update timestamp
         content = re.sub(
             r"\*Last Updated:.*?\*",
             f"*Last Updated: {datetime.now().strftime('%Y-%m-%d')}*",
@@ -105,10 +74,58 @@ class ProjectMemoryManager:
         active_context_path.write_text(content, encoding="utf-8")
 
     def _write_active_context(
-        self, project_name: str, type_info: PaperTypeInfo, prefs: Dict[str, Any], memo: str
+        self,
+        project_name: str,
+        type_info: PaperTypeInfo,
+        prefs: Dict[str, Any],
+        memo: str,
+        workflow_mode: str,
     ) -> None:
         """Write activeContext.md file."""
-        content = f"""# Active Context: {project_name}
+        if workflow_mode == "library-wiki":
+            content = f"""# Active Context: {project_name}
+
+## Workspace Settings
+
+| Setting | Value |
+|---------|-------|
+| **Workflow Mode** | Library Wiki Path |
+| **Focus** | Agent-maintained literature library |
+| **Target Journal** | Optional later |
+
+## User Preferences
+
+### Interaction Style
+{prefs.get("interaction_style", "- [Not specified - ask user how they prefer to interact]")}
+
+### Language Preferences
+{prefs.get("language", "- [Not specified]")}
+
+### Writing Style Notes
+{prefs.get("writing_style", "- [Not specified]")}
+
+## Current Focus
+- [Capture incoming papers, notes, and questions]
+
+## Reading Queues
+- Inbox
+- Active reading
+- Synthesis targets
+
+## Knowledge Threads
+- [Themes, methods, or claims worth linking]
+
+## Blockers / Questions
+- [Identity resolution, missing PDFs, comparison targets]
+
+## Memo / Notes
+{memo if memo else "[No memo yet]"}
+
+---
+*Last Updated: {datetime.now().strftime("%Y-%m-%d")}*
+"""
+        else:
+            content = f"""# Active Context: {project_name}
 
 ## Project Settings
 
@@ -148,11 +165,20 @@ class ProjectMemoryManager:
 ---
 *Last Updated: {datetime.now().strftime("%Y-%m-%d")}*
 """
+
         (self.memory_dir / "activeContext.md").write_text(content, encoding="utf-8")
 
-    def _write_progress(self, project_name: str, paper_type: str, type_info: PaperTypeInfo) -> None:
-        """Write progress.md file based on paper type."""
-        if paper_type == "meta-analysis":
+    def _write_progress(
+        self,
+        project_name: str,
+        paper_type: str,
+        type_info: PaperTypeInfo,
+        workflow_mode: str,
+    ) -> None:
+        """Write progress.md based on workflow mode and paper type."""
+        if workflow_mode == "library-wiki":
+            content = self._get_library_progress(project_name)
+        elif paper_type == "meta-analysis":
             content = self._get_meta_analysis_progress(project_name)
         elif paper_type == "case-report":
             content = self._get_case_report_progress(project_name)
@@ -162,7 +188,6 @@ class ProjectMemoryManager:
         (self.memory_dir / "progress.md").write_text(content, encoding="utf-8")
 
     def _get_meta_analysis_progress(self, project_name: str) -> str:
-        """Get progress template for meta-analysis."""
         return f"""# Research Progress: {project_name}
 
 **Paper Type:** Meta-Analysis
@@ -218,7 +243,6 @@ class ProjectMemoryManager:
 """
 
     def _get_case_report_progress(self, project_name: str) -> str:
-        """Get progress template for case report."""
         return f"""# Research Progress: {project_name}
 
 **Paper Type:** Case Report
@@ -254,7 +278,6 @@ class ProjectMemoryManager:
 """
 
     def _get_default_progress(self, project_name: str, type_info: PaperTypeInfo) -> str:
-        """Get default progress template."""
         return f"""# Research Progress: {project_name}
 
 **Paper Type:** {type_info.name}
@@ -288,6 +311,47 @@ class ProjectMemoryManager:
   - [ ] Format for target journal
   - [ ] Co-author review
   - [ ] Submit manuscript
+
+---
+*Created: {datetime.now().strftime("%Y-%m-%d")}*
+"""
+
+    def _get_library_progress(self, project_name: str) -> str:
+        return f"""# Research Progress: {project_name}
+
+**Workflow Mode:** Library Wiki Path
+
+## Milestones
+
+- **Ingestion** (IN PROGRESS):
+  - [ ] Search and save key references
+  - [ ] Import notes / markdown / web sources
+  - [ ] Resolve duplicate identities
+
+- **Organization** (NOT STARTED):
+  - [ ] Link related papers, authors, and themes
+  - [ ] Build reading queues
+  - [ ] Tag high-value evidence
+
+- **Analysis** (NOT STARTED):
+  - [ ] Summarize methods and outcomes
+  - [ ] Compare claims across papers
+  - [ ] Track contradictions or open questions
+
+- **Synthesis** (NOT STARTED):
+  - [ ] Build synthesis pages
+  - [ ] Refresh library dashboards
+  - [ ] Materialize graph context for navigation
+
+- **Query & Retrieval** (NOT STARTED):
+  - [ ] Test key questions against the library
+  - [ ] Validate source anchors and fragments
+  - [ ] Prepare reusable topic overviews
+
+- **Optional Manuscript Transition** (NOT STARTED):
+  - [ ] Choose a paper direction
+  - [ ] Switch workflow_mode to manuscript
+  - [ ] Define concept and start drafting
 
 ---
 *Created: {datetime.now().strftime("%Y-%m-%d")}*

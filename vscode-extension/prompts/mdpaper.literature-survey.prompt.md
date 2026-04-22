@@ -2,9 +2,14 @@
 description: "📚 literature-survey - 系統性文獻調查"
 ---
 
-# 系統性文獻調查
+# 系統性文獻調查 / Library Landscape Survey
 
 編排：parallel-search → literature-review → reference-management
+
+適用兩種輸出：
+
+- Library Wiki Path：建立可查詢的主題地景、比較頁、synthesis page、dashboard
+- Manuscript Path：建立可追溯的 review corpus，之後進 concept / draft / PRISMA
 
 ## Phase 1: 定義搜尋範圍
 
@@ -34,6 +39,12 @@ description: "📚 literature-survey - 系統性文獻調查"
 ## Phase 5: 儲存
 
 `save_reference_mcp(pmid, agent_notes)` ✅ → 記錄搜尋策略（日期+查詢+結果數）→ `format_references()` + `prepare_export(format="ris")`
+
+## 分流輸出
+
+Library Wiki Path：保存後繼續做 knowledge map / synthesis pages / dashboard notes
+
+Manuscript Path：保存後更新 concept、規劃 PRISMA、準備後續 drafting
 
 ## PRISMA（系統性回顧）
 

@@ -18,13 +18,19 @@ from mcp.server.fastmcp import FastMCP
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     get_project_list_for_prompt,
     log_tool_call,
     log_tool_result,
 )
 
 
-def register_idea_validation_tools(mcp: FastMCP, ref_manager=None):
+def register_idea_validation_tools(
+    mcp: FastMCP,
+    ref_manager=None,
+    *,
+    register_public_verbs: bool = True,
+):
     """Register idea validation tools that require service access.
 
     Only `compare_with_literature` remains as an MCP tool because it needs
@@ -39,7 +45,9 @@ def register_idea_validation_tools(mcp: FastMCP, ref_manager=None):
             Optional — tool degrades gracefully if None.
     """
 
-    @mcp.tool()
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    @tool()
     def compare_with_literature(
         idea: str,
         project: Optional[str] = None,
@@ -219,3 +227,7 @@ def register_idea_validation_tools(mcp: FastMCP, ref_manager=None):
 
         log_tool_result("compare_with_literature", "comparison generated", success=True)
         return output
+
+    return {
+        "compare_with_literature": compare_with_literature,
+    }

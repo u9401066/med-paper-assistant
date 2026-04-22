@@ -21,6 +21,8 @@ from typing import Literal, Optional, cast
 
 from mcp.server.fastmcp import Context, FastMCP
 
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
+
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import (
     DataArtifactTracker,
 )
@@ -73,6 +75,28 @@ def register_audit_hook_tools(
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
+    def _require_manuscript_project(project: Optional[str] = None) -> tuple[Optional[dict], Optional[str]]:
+        is_valid, msg, project_info = ensure_project_context(project)
+        if not is_valid or project_info is None:
+            return None, f"❌ {msg}"
+
+        current_mode = (project_info or {}).get("workflow_mode", DEFAULT_WORKFLOW_MODE)
+        if current_mode != "manuscript":
+            current_mode_name = WORKFLOW_MODES.get(current_mode, {}).get("name", current_mode)
+            required_mode_name = WORKFLOW_MODES["manuscript"]["name"]
+            return (
+                None,
+                "❌ This tool is only available for "
+                f"{required_mode_name} projects.\n\n"
+                f"Current workflow: {current_mode_name}.\n"
+                "Switch project or update the current project workflow before retrying.\n\n"
+                "Suggested fix:\n"
+                '- `project_action(action="update", workflow_mode="manuscript")`\n'
+                "- or switch to a project that already uses the required workflow mode.",
+            )
+
+        return project_info, None
+
     @tool()
     def record_hook_event(
         hook_id: str,
@@ -109,9 +133,9 @@ def register_audit_hook_tools(
             if not re.match(r"^[A-Z]\d{1,2}$", hook_id):
                 return f"❌ Invalid hook_id '{hook_id}'. Must be a letter + 1-2 digits (e.g., 'A1', 'B5', 'C3')"
 
-            is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid or project_info is None:
-                return f"❌ {msg}"
+            project_info, workflow_error = _require_manuscript_project(project)
+            if workflow_error:
+                return workflow_error
 
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -179,6 +203,10 @@ def register_audit_hook_tools(
         """
         log_tool_call("run_quality_audit", {"project": project})
         try:
+            project_info, workflow_error = _require_manuscript_project(project)
+            if workflow_error:
+                return workflow_error
+
             await report_tool_progress(ctx, 0, 4, "Parsing quality audit scores", end=95)
             # Parse scores
             try:
@@ -212,10 +240,6 @@ def register_audit_hook_tools(
                 )
 
             await report_tool_progress(ctx, 1, 4, "Resolving project context", end=95)
-            is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid or project_info is None:
-                return f"❌ {msg}"
-
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -338,11 +362,11 @@ def register_audit_hook_tools(
         """
         log_tool_call("run_meta_learning", {"project": project})
         try:
-            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
-            is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid or project_info is None:
-                return f"❌ {msg}"
+            project_info, workflow_error = _require_manuscript_project(project)
+            if workflow_error:
+                return workflow_error
 
+            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -477,11 +501,11 @@ def register_audit_hook_tools(
         """
         log_tool_call("validate_data_artifacts", {"project": project})
         try:
-            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
-            is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid or project_info is None:
-                return f"❌ {msg}"
+            project_info, workflow_error = _require_manuscript_project(project)
+            if workflow_error:
+                return workflow_error
 
+            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -611,11 +635,11 @@ def register_audit_hook_tools(
         """
         log_tool_call("run_writing_hooks", {"hooks": hooks, "project": project})
         try:
-            await report_tool_progress(ctx, 0, 6, "Resolving project context", end=95)
-            is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid or project_info is None:
-                return f"❌ {msg}"
+            project_info, workflow_error = _require_manuscript_project(project)
+            if workflow_error:
+                return workflow_error
 
+            await report_tool_progress(ctx, 0, 6, "Resolving project context", end=95)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -1130,6 +1154,7 @@ def register_audit_hook_tools(
         content: str,
         section: str = "manuscript",
         paper_type: str = "",
+        project: Optional[str] = None,
     ) -> str:
         """
         🔒 Validate content against domain constraints (Sand Spreader).
@@ -1148,12 +1173,12 @@ def register_audit_hook_tools(
         """
         log_tool_call(
             "check_domain_constraints",
-            {"section": section, "paper_type": paper_type},
+            {"section": section, "paper_type": paper_type, "project": project},
         )
         try:
-            is_valid, msg, project_info = ensure_project_context()
-            if not is_valid or project_info is None:
-                return f"❌ {msg}"
+            project_info, workflow_error = _require_manuscript_project(project)
+            if workflow_error:
+                return workflow_error
             project_dir = str(project_info["project_path"])
 
             # Determine paper type
@@ -1223,6 +1248,7 @@ def register_audit_hook_tools(
         severity: str = "WARNING",
         reason: str = "",
         source_hook: str = "",
+        project: Optional[str] = None,
     ) -> str:
         """
         📈 Add a learned constraint from recurring hook pattern.
@@ -1246,12 +1272,12 @@ def register_audit_hook_tools(
         """
         log_tool_call(
             "evolve_constraint",
-            {"constraint_id": constraint_id, "rule": rule},
+            {"constraint_id": constraint_id, "rule": rule, "project": project},
         )
         try:
-            is_valid, msg, project_info = ensure_project_context()
-            if not is_valid or project_info is None:
-                return f"❌ {msg}"
+            project_info, workflow_error = _require_manuscript_project(project)
+            if workflow_error:
+                return workflow_error
             project_dir = str(project_info["project_path"])
 
             # Validate category
@@ -1456,11 +1482,11 @@ def register_audit_hook_tools(
         """
         log_tool_call("run_review_hooks", {"round_num": round_num, "hooks": hooks})
         try:
-            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
-            is_valid, msg, project_info = ensure_project_context(project)
-            if not is_valid or project_info is None:
-                return f"❌ {msg}"
+            project_info, workflow_error = _require_manuscript_project(project)
+            if workflow_error:
+                return workflow_error
 
+            await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
 

@@ -33,6 +33,29 @@ mkdir -p "$STATE_DIR"
 CONTEXT=""
 CROSS_PLATFORM_REGEX='(^|/)(\.github/workflows/|vscode-extension/|scripts/setup(\.ps1|\.sh)?$|scripts/setup-integrations(\.ps1|\.sh)$|scripts/start-drawio(\.ps1|\.sh)$|src/med_paper_assistant/infrastructure/config\.py$|src/med_paper_assistant/infrastructure/services/template_reader\.py$|tests/test_config_paths\.py$)'
 
+get_active_workflow_mode() {
+    local active_project=""
+
+    if [ -f "$WORKSPACE_ROOT/.current_project" ]; then
+        active_project="$(tr -d '\n' < "$WORKSPACE_ROOT/.current_project")"
+    fi
+
+    if [ -z "$active_project" ] && [ -f "$WORKSPACE_ROOT/.mdpaper-state.json" ]; then
+        active_project=$(jq -r '.active_project // empty' "$WORKSPACE_ROOT/.mdpaper-state.json" 2>/dev/null) || true
+    fi
+
+    if [ -z "$active_project" ] || [ "$active_project" = "null" ]; then
+        return 0
+    fi
+
+    local config="$WORKSPACE_ROOT/projects/$active_project/project.json"
+    if [ -f "$config" ]; then
+        jq -r '.workflow_mode // "manuscript"' "$config" 2>/dev/null || true
+    fi
+}
+
+ACTIVE_WORKFLOW_MODE="$(get_active_workflow_mode)"
+
 extract_paths_from_patch() {
     echo "$TOOL_INPUT" | jq -r '.input // empty' 2>/dev/null | \
         grep -E '^\*\*\* (Update|Add|Delete) File:' | \
@@ -42,7 +65,11 @@ extract_paths_from_patch() {
 
 # ── 1. After MCP write_draft / patch_draft / draft_section ──
 if echo "$TOOL_NAME" | grep -qiE 'mcp_mdpaper_(write_draft|patch_draft|draft_section)'; then
-    CONTEXT="[WRITING HOOKS REQUIRED] Draft modified via $TOOL_NAME. You MUST run run_writing_hooks(hooks='post-write') to check A1-A6 + A3b before proceeding. This is Code-Enforced and cannot be skipped."
+    if [ "$ACTIVE_WORKFLOW_MODE" = "library-wiki" ]; then
+        CONTEXT="[LIBRARY-WIKI NOTE] Draft tool used while the active project is library-wiki. Confirm manuscript transition before requiring writing hooks or concept-validation gates."
+    else
+        CONTEXT="[WRITING HOOKS REQUIRED] Draft modified via $TOOL_NAME. You MUST run run_writing_hooks(hooks='post-write') to check A1-A6 + A3b before proceeding. This is Code-Enforced and cannot be skipped."
+    fi
 fi
 
 # ── 2. After file edits to draft files ──
@@ -53,13 +80,21 @@ if echo "$TOOL_NAME" | grep -qiE 'apply_patch|editFiles|replace_string|multi_rep
         # Draft file edited directly (bypass MCP tool)
         if echo "$FILE_PATH" | grep -qE 'projects/.*/drafts/.*\.md$'; then
             if [ -z "$CONTEXT" ]; then
-                CONTEXT="[WRITING HOOKS REQUIRED] Draft file '$FILE_PATH' was edited directly. Run run_writing_hooks(hooks='post-write') to check A1-A6 + A3b."
+                if [ "$ACTIVE_WORKFLOW_MODE" = "library-wiki" ]; then
+                    CONTEXT="[LIBRARY-WIKI NOTE] Draft-area note '$FILE_PATH' was edited while the active project is library-wiki. Manuscript writing hooks are optional until workflow_mode switches to manuscript."
+                else
+                    CONTEXT="[WRITING HOOKS REQUIRED] Draft file '$FILE_PATH' was edited directly. Run run_writing_hooks(hooks='post-write') to check A1-A6 + A3b."
+                fi
             fi
         fi
 
         # Concept file edited
         if echo "$FILE_PATH" | grep -qE 'projects/.*/concept\.md$'; then
-            CONTEXT="[CONCEPT CHANGED] concept.md was modified. Remember: validate_concept() must pass (novelty ≥ 75) before any draft writing."
+            if [ "$ACTIVE_WORKFLOW_MODE" = "library-wiki" ]; then
+                CONTEXT="[LIBRARY WORKSPACE UPDATED] concept.md is acting as the library workspace seed in library-wiki mode. Novelty validation is not required unless you switch to manuscript."
+            else
+                CONTEXT="[CONCEPT CHANGED] concept.md was modified. Remember: validate_concept() must pass (novelty ≥ 75) before any draft writing."
+            fi
         fi
 
         # Project config edited
@@ -92,7 +127,11 @@ fi
 
 # ── 4. After save_reference / save_reference_mcp ──
 if echo "$TOOL_NAME" | grep -qiE 'mcp_mdpaper_save_reference'; then
-    CONTEXT="[REFERENCE SAVED] Reference saved. Use get_available_citations() to see citation keys for use in drafts."
+    if [ "$ACTIVE_WORKFLOW_MODE" = "library-wiki" ]; then
+        CONTEXT="[REFERENCE SAVED] Reference saved into a library-wiki project. Consider refreshing knowledge pages, synthesis notes, or dashboard views next."
+    else
+        CONTEXT="[REFERENCE SAVED] Reference saved. Use get_available_citations() to see citation keys for use in drafts."
+    fi
 fi
 
 # ── 5. After git commit ──
@@ -105,7 +144,11 @@ fi
 
 # ── 6. After validate_concept ──
 if echo "$TOOL_NAME" | grep -qiE 'mcp_mdpaper_validate_concept$'; then
-    CONTEXT="[CONCEPT VALIDATED] Check the novelty score. If < 75, concept needs improvement before drafting. Consider CGU tools (deep_think, spark_collision) for enhancement."
+    if [ "$ACTIVE_WORKFLOW_MODE" = "library-wiki" ]; then
+        CONTEXT="[MANUSCRIPT CHECK IN LIBRARY MODE] validate_concept() was run inside a library-wiki project. If you are moving toward drafting, switch workflow_mode to manuscript so later gates apply."
+    else
+        CONTEXT="[CONCEPT VALIDATED] Check the novelty score. If < 75, concept needs improvement before drafting. Consider CGU tools (deep_think, spark_collision) for enhancement."
+    fi
 fi
 
 # ── 7. Audit trail ──

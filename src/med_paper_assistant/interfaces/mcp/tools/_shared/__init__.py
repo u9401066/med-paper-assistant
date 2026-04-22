@@ -16,6 +16,7 @@ from .project_context import (
     get_project_list_for_prompt,
     get_project_path,
     validate_project_for_tool,
+    validate_project_for_workflow,
     validate_project_slug,
 )
 from .tool_logging import (
@@ -42,6 +43,7 @@ __all__ = [
     "get_drafts_dir",
     "get_concept_path",
     "validate_project_for_tool",
+    "validate_project_for_workflow",
     # Logging utilities
     "get_tool_logger",
     "initialize_tool_tracking",

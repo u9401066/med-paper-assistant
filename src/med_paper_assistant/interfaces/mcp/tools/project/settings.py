@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from med_paper_assistant.domain.paper_types import get_paper_type_dict
 from med_paper_assistant.domain.value_objects.author import Author, generate_author_block
 from med_paper_assistant.infrastructure.persistence import ProjectManager
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
 
 from .._shared import get_optional_tool_decorator
 
@@ -69,6 +70,7 @@ def register_settings_tools(
     @tool()
     def update_project_settings(
         paper_type: str = "",
+        workflow_mode: str = "",
         target_journal: str = "",
         interaction_style: str = "",
         language_preference: str = "",
@@ -82,6 +84,7 @@ def register_settings_tools(
 
         Args:
             paper_type: Paper type (use get_paper_types)
+            workflow_mode: manuscript|library-wiki
             target_journal: Target journal
             interaction_style: AI interaction style
             language_preference: Language notes
@@ -123,6 +126,7 @@ def register_settings_tools(
 
         result = project_manager.update_project_settings(
             paper_type=paper_type if paper_type else None,
+            workflow_mode=workflow_mode if workflow_mode else None,
             target_journal=target_journal if target_journal else None,
             interaction_preferences=interaction_preferences if interaction_preferences else None,
             memo=memo if memo else None,
@@ -134,6 +138,10 @@ def register_settings_tools(
             # Get current project info for display
             info = project_manager.get_project_info()
             prefs = info.get("interaction_preferences", {})
+            current_workflow_mode = info.get("workflow_mode", DEFAULT_WORKFLOW_MODE)
+            workflow_name = WORKFLOW_MODES.get(current_workflow_mode, {}).get(
+                "name", current_workflow_mode
+            )
 
             output = f"""✅ Project Settings Updated!
 
@@ -143,6 +151,7 @@ def register_settings_tools(
 
 | Setting | Value |
 |---------|-------|
+| Workflow Mode | {workflow_name} |
 | Paper Type | {info.get("paper_type", "Not set")} |
 | Target Journal | {info.get("target_journal", "Not set")} |
 
@@ -180,8 +189,39 @@ Please first select or create a project:
         info = project_manager.get_project_info(current)
         project_name = info.get("name", current)
         paper_type = info.get("paper_type", "")
+        workflow_mode = info.get("workflow_mode", DEFAULT_WORKFLOW_MODE)
+        workflow_name = WORKFLOW_MODES.get(workflow_mode, {}).get("name", workflow_mode)
         prefs = info.get("interaction_preferences", {})
         stats = info.get("stats", {})
+
+        if workflow_mode == "library-wiki":
+            return f"""## 📚 專案: {project_name}
+
+| 設定 | 值 |
+|------|-----|
+| **Workflow Mode** | {workflow_name} |
+| **Status** | {info.get("status", "concept")} |
+| **Target Journal** | {info.get("target_journal", "Optional later")} |
+
+### 專案內容
+- 📚 References: {stats.get("references", 0)} saved
+- 📥 Inbox notes: {stats.get("inbox", 0)} files
+- 🧠 Concept notes: {stats.get("concepts", 0)} files
+- 🗂️ Synthesis projects: {stats.get("projects", 0)} files
+
+### 互動偏好
+- **Style:** {prefs.get("interaction_style", "Default")}
+
+### Memo
+{info.get("memo", "[No memo]")}
+
+---
+**Library Wiki Path 建議順序**
+1. `/mdpaper.search` 搜尋並保存文獻
+2. `save_reference_mcp` / 匯入 markdown 或 web source 到 inbox
+3. 整理成 `concepts/` 原子筆記，並補上 tags / wikilinks
+4. 如果要開始寫論文，再用 `update_project_settings(workflow_mode="manuscript", paper_type="...")`
+"""
 
         # Check if project is already configured (has paper_type set)
         if paper_type:
@@ -191,6 +231,7 @@ Please first select or create a project:
 
 | 設定 | 值 |
 |------|-----|
+| **Workflow Mode** | {workflow_name} |
 | **Paper Type** | {paper_type_info.get("name", paper_type)} |
 | **Status** | {info.get("status", "concept")} |
 | **Target Journal** | {info.get("target_journal", "Not set")} |
@@ -269,6 +310,7 @@ Please first select or create a project:
 
 | Setting | Value |
 |---------|-------|
+| **Workflow Mode** | {workflow_name} |
 | **Paper Type** | {paper_type_info.get("name", paper_type)} |
 | **Typical Sections** | {paper_type_info.get("sections", "N/A")} |
 | **Target Journal** | {final_info.get("target_journal", "Not set")} |

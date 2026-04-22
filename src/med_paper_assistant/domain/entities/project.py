@@ -9,7 +9,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Union
 
 from med_paper_assistant.domain.value_objects.author import Author
-from med_paper_assistant.shared.constants import PAPER_TYPES
+from med_paper_assistant.shared.constants import (
+    DEFAULT_WORKFLOW_MODE,
+    PAPER_TYPES,
+    WORKFLOW_MODES,
+)
 
 
 class ProjectStatus(Enum):
@@ -40,6 +44,7 @@ class Project:
     authors: List[Union[str, Author]] = field(default_factory=list)
     target_journal: str = ""
     paper_type: str = ""
+    workflow_mode: str = DEFAULT_WORKFLOW_MODE
 
     # Status tracking
     status: str = "concept"  # concept → drafting → review → submitted → published
@@ -54,6 +59,11 @@ class Project:
     def paper_type_info(self) -> Dict[str, Any]:
         """Get paper type configuration."""
         return PAPER_TYPES.get(self.paper_type, {})
+
+    @property
+    def workflow_mode_info(self) -> Dict[str, Any]:
+        """Get workflow mode configuration."""
+        return WORKFLOW_MODES.get(self.workflow_mode, {})
 
     @property
     def sections(self) -> List[str]:
@@ -77,6 +87,21 @@ class Project:
         return self.path / "results"
 
     @property
+    def inbox_dir(self) -> Path:
+        """Inbox directory for raw unorganized notes (Library Wiki mode)."""
+        return self.path / "inbox"
+
+    @property
+    def concepts_dir(self) -> Path:
+        """Concepts directory for atomic knowledge notes (Library Wiki mode)."""
+        return self.path / "concepts"
+
+    @property
+    def projects_dir(self) -> Path:
+        """Projects directory for synthesis/actionable notes (Library Wiki mode)."""
+        return self.path / "projects"
+
+    @property
     def memory_dir(self) -> Path:
         return self.path / ".memory"
 
@@ -98,6 +123,8 @@ class Project:
             "target_journal": self.target_journal,
             "paper_type": self.paper_type,
             "paper_type_info": self.paper_type_info,
+            "workflow_mode": self.workflow_mode,
+            "workflow_mode_info": self.workflow_mode_info,
             "status": self.status,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
@@ -116,6 +143,7 @@ class Project:
             authors=data.get("authors", []),
             target_journal=data.get("target_journal", ""),
             paper_type=data.get("paper_type", ""),
+            workflow_mode=data.get("workflow_mode", DEFAULT_WORKFLOW_MODE),
             status=data.get("status", "concept"),
             created_at=datetime.fromisoformat(data["created_at"])
             if "created_at" in data

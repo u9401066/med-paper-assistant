@@ -9,6 +9,7 @@ import os
 from typing import Any, Dict, Optional, Tuple
 
 from med_paper_assistant.infrastructure.persistence import get_project_manager
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
 
 
 class ProjectContextError(Exception):
@@ -190,3 +191,32 @@ def validate_project_for_tool(project: Optional[str] = None) -> tuple[bool, str]
     if not is_valid:
         return False, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
     return True, ""
+
+
+def validate_project_for_workflow(
+    project: Optional[str] = None,
+    *,
+    required_mode: str,
+) -> tuple[bool, str]:
+    """Validate project context and enforce a specific workflow mode."""
+    is_valid, error_msg = validate_project_for_tool(project)
+    if not is_valid:
+        return False, error_msg
+
+    _ok, _msg, project_info = ensure_project_context(project)
+    current_mode = (project_info or {}).get("workflow_mode", DEFAULT_WORKFLOW_MODE)
+    if current_mode == required_mode:
+        return True, ""
+
+    current_mode_name = WORKFLOW_MODES.get(current_mode, {}).get("name", current_mode)
+    required_mode_name = WORKFLOW_MODES.get(required_mode, {}).get("name", required_mode)
+    return (
+        False,
+        "❌ This tool is only available for "
+        f"{required_mode_name} projects.\n\n"
+        f"Current workflow: {current_mode_name}.\n"
+        "Switch project or update the current project workflow before retrying.\n\n"
+        "Suggested fix:\n"
+        f"- `project_action(action=\"update\", workflow_mode=\"{required_mode}\")`\n"
+        "- or switch to a project that already uses the required workflow mode."
+    )

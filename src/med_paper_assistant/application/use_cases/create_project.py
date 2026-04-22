@@ -10,6 +10,7 @@ from datetime import datetime
 
 from med_paper_assistant.domain.entities.project import Project, ProjectStatus
 from med_paper_assistant.infrastructure.persistence import ProjectRepository
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
 
 
 @dataclass
@@ -19,6 +20,7 @@ class CreateProjectInput:
     name: str
     description: str = ""
     paper_type: str = ""
+    workflow_mode: str = DEFAULT_WORKFLOW_MODE
     target_journal: str = ""
     memo: str = ""
 
@@ -69,6 +71,7 @@ class CreateProjectUseCase:
             name=input_data.name,
             description=input_data.description,
             paper_type=input_data.paper_type,
+            workflow_mode=input_data.workflow_mode,
             target_journal=input_data.target_journal,
             status=ProjectStatus.CONCEPT.value,  # Use .value to get string
             memo=input_data.memo,

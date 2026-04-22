@@ -14,7 +14,12 @@ from mcp.server.fastmcp import FastMCP
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 from med_paper_assistant.infrastructure.services import Formatter, TemplateReader, WordWriter
 
-from .._shared import get_optional_tool_decorator
+from .._shared import (
+    ensure_project_context,
+    get_optional_tool_decorator,
+    get_project_list_for_prompt,
+    validate_project_for_workflow,
+)
 
 # Global state for document editing sessions
 _active_documents: dict[str, dict] = {}
@@ -36,6 +41,42 @@ def register_word_export_tools(
     """Register Word export tools."""
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    def _require_manuscript_project(project: Optional[str]) -> tuple[Optional[dict], Optional[str]]:
+        is_valid, error_msg = validate_project_for_workflow(
+            project,
+            required_mode="manuscript",
+        )
+        if not is_valid:
+            return None, error_msg
+
+        is_valid, msg, project_info = ensure_project_context(project)
+        if not is_valid or project_info is None:
+            return None, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+        return project_info, None
+
+    def _resolve_session_project(
+        session_id: str,
+        project: Optional[str],
+    ) -> tuple[Optional[dict], Optional[str]]:
+        session = _active_documents.get(session_id)
+        if session is None:
+            return None, f"Error: No active session '{session_id}'. Use start_document_session first."
+
+        session_project = session.get("project")
+        requested_project = project or session_project
+        project_info, error_msg = _require_manuscript_project(requested_project)
+        if error_msg:
+            return None, error_msg
+
+        if session_project and project_info and project_info.get("slug") != session_project:
+            return (
+                None,
+                "❌ This document session is bound to a different active project. "
+                "Resume it from the original manuscript project or start a new session.",
+            )
+
+        return project_info, None
 
     @tool()
     def list_templates() -> str:
@@ -68,14 +109,23 @@ def register_word_export_tools(
             return f"Error reading template: {str(e)}"
 
     @tool()
-    def start_document_session(template_name: str = "", session_id: str = "default") -> str:
+    def start_document_session(
+        template_name: str = "",
+        session_id: str = "default",
+        project: Optional[str] = None,
+    ) -> str:
         """
         Start a document editing session, optionally from a Word template.
 
         Args:
             template_name: Template filename. If empty, creates a blank document.
             session_id: Unique session identifier (default: "default")
+            project: Project slug (uses current if omitted)
         """
+        project_info, error_msg = _require_manuscript_project(project)
+        if error_msg:
+            return error_msg
+
         try:
             if template_name:
                 template_path = os.path.join(template_reader.templates_dir, template_name)
@@ -89,19 +139,32 @@ def register_word_export_tools(
                 "doc": doc,
                 "template": template_name or "(blank)",
                 "modifications": [],
+                "project": (project_info or {}).get("slug"),
             }
 
             if template_name:
                 structure = template_reader.get_template_summary(template_name)
-                return f"✅ Document session '{session_id}' started with template: {template_name}\n\n{structure}"
+                return (
+                    f"✅ Document session '{session_id}' started with template: {template_name}\n\n"
+                    f"Project: {(project_info or {}).get('name', (project_info or {}).get('slug', 'Unknown'))}\n\n"
+                    f"{structure}"
+                )
             else:
-                return f"✅ Document session '{session_id}' started with blank document. Use insert_section to add content."
+                return (
+                    f"✅ Document session '{session_id}' started with blank document. "
+                    f"Project: {(project_info or {}).get('name', (project_info or {}).get('slug', 'Unknown'))}. "
+                    "Use insert_section to add content."
+                )
         except Exception as e:
             return f"Error starting session: {str(e)}"
 
     @tool()
     def insert_section(
-        session_id: str, section_name: str, content: str, mode: str = "replace"
+        session_id: str,
+        section_name: str,
+        content: str,
+        mode: str = "replace",
+        project: Optional[str] = None,
     ) -> str:
         """
         Insert content into a document section.
@@ -111,9 +174,11 @@ def register_word_export_tools(
             section_name: Target section (e.g., "Introduction")
             content: Text content to insert
             mode: "replace" or "append"
+            project: Project slug (uses the session project if omitted)
         """
-        if session_id not in _active_documents:
-            return f"Error: No active session '{session_id}'. Use start_document_session first."
+        project_info, error_msg = _resolve_session_project(session_id, project)
+        if error_msg:
+            return error_msg
 
         try:
             session = _active_documents[session_id]
@@ -140,12 +205,19 @@ def register_word_export_tools(
 
             word_count = word_writer.count_words_in_section(doc, section_name)
 
-            return f"✅ Inserted {count} paragraphs into '{section_name}' ({word_count} words){wikilink_note}"
+            return (
+                f"✅ Inserted {count} paragraphs into '{section_name}' ({word_count} words)"
+                f" for project {(project_info or {}).get('slug', 'unknown')}{wikilink_note}"
+            )
         except Exception as e:
             return f"Error inserting section: {str(e)}"
 
     @tool()
-    def verify_document(session_id: str, limits_json: Optional[str] = None) -> str:
+    def verify_document(
+        session_id: str,
+        limits_json: Optional[str] = None,
+        project: Optional[str] = None,
+    ) -> str:
         """
         Get document summary with all sections and word counts.
         Optionally check against word limits per section.
@@ -153,9 +225,11 @@ def register_word_export_tools(
         Args:
             session_id: Session ID from start_document_session
             limits_json: Optional JSON with section word limits (e.g., '{"Abstract": 300, "Introduction": 800}')
+            project: Project slug (uses the session project if omitted)
         """
-        if session_id not in _active_documents:
-            return f"Error: No active session '{session_id}'."
+        project_info, error_msg = _resolve_session_project(session_id, project)
+        if error_msg:
+            return error_msg
 
         try:
             session = _active_documents[session_id]
@@ -163,7 +237,10 @@ def register_word_export_tools(
 
             counts = word_writer.get_all_word_counts(doc)
 
-            output = f"📊 **Document Verification: {session['template']}**\n\n"
+            output = (
+                f"📊 **Document Verification: {session['template']}**\n\n"
+                f"Project: {(project_info or {}).get('name', (project_info or {}).get('slug', 'Unknown'))}\n\n"
+            )
             output += "| Section | Word Count |\n"
             output += "|---------|------------|\n"
 
@@ -228,7 +305,11 @@ def register_word_export_tools(
             return f"Error verifying document: {str(e)}"
 
     @tool()
-    def save_document(session_id: str, output_filename: str) -> str:
+    def save_document(
+        session_id: str,
+        output_filename: str,
+        project: Optional[str] = None,
+    ) -> str:
         """
         Save the document to Word file and close session.
 
@@ -239,9 +320,11 @@ def register_word_export_tools(
         Args:
             session_id: Session ID from start_document_session
             output_filename: Output file path
+            project: Project slug (uses the session project if omitted)
         """
-        if session_id not in _active_documents:
-            return f"Error: No active session '{session_id}'."
+        project_info, error_msg = _resolve_session_project(session_id, project)
+        if error_msg:
+            return error_msg
 
         try:
             session = _active_documents[session_id]
@@ -273,6 +356,7 @@ def register_word_export_tools(
 
             return (
                 f"✅ Document saved successfully to: {path}\n\n"
+                f"Project: {(project_info or {}).get('name', (project_info or {}).get('slug', 'Unknown'))}\n"
                 f"Session '{session_id}' closed.{warning_msg}"
             )
         except Exception as e:
