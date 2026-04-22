@@ -6,7 +6,7 @@ description: "❓ mdpaper.help - 指令與工作流程參考"
 
 ## 兩條路
 
-### Library Wiki Path
+### Library Wiki Path (LLM Wiki / Karpathy Style)
 
 `project_action(action="create", name="...", workflow_mode="library-wiki")` → `search` → `save_reference_mcp` / ingest sources → `write_library_note` → `show_reading_queues` → `create_concept_page` / `move_library_note` → `build_library_dashboard` → query / synthesize → 覺得值得寫稿時再切去 manuscript
 
@@ -29,7 +29,7 @@ description: "❓ mdpaper.help - 指令與工作流程參考"
 
 ## 建議順序
 
-Library Wiki Path: project → search → capture notes → review queues → concept pages / dashboards → query → optional manuscript transition
+Library Wiki Path (LLM Wiki / Karpathy Style): project → search → capture notes → review queues → concept pages / synthesis pages → dashboard / path explain → query → optional manuscript transition
 
 Manuscript Path: project → search → concept → draft → analysis → clarify → format
 

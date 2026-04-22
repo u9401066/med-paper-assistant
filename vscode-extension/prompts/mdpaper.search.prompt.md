@@ -20,15 +20,13 @@ description: "🔍 mdpaper.search - 智能文獻搜尋與探索"
 2. 搜尋：快速 `search_literature(query)` / PICO `parse_pico()→generate_queries()` / MeSH `generate_search_queries()` / 擴展 `find_related_articles(pmid)` / 引用 `find_citing_articles(pmid)`
 3. `save_reference_mcp(pmid, agent_notes)` ✅
 
-## 情境 B: Library Wiki Loop
+## 情境 B: Library Wiki Loop (LLM Wiki Architecture)
 
 1. `project_action(action="current")` → 確認是 `workflow_mode="library-wiki"`
-2. `search_literature(query)` → `save_reference_mcp(pmid)`
-3. 視需要匯入 markdown / web source，並用 `write_library_note(section="inbox", ...)` 捕捉原始筆記
-4. 用 `show_reading_queues()` 看 queue，再用 `create_concept_page(...)` 或 `move_library_note(...)` 整理到 `concepts/` / `projects/`
-5. 用 `build_library_dashboard()` / `explain_library_path()` 檢查跨筆記連結
-6. `materialize_agent_wiki` / `build_knowledge_map` / `build_synthesis_page`
-7. 反覆做 ingest → organize → analyze → synthesize → query
+2. 搜尋並 `save_reference_mcp(pmid)` (自動建立對應 reference 檔)
+3. Triage & Tagging (inbox)：用 `write_library_note(section="inbox", ...)` 捕捉原始筆記，再用 `show_reading_queues()` 看目前 queue 狀態
+4. Concept Building (concepts)：用 `create_concept_page(...)` 或 `move_library_note(...)` 把成熟想法整理成 concept pages，並補上 `[[concept]]` 雙向連結
+5. Project Synthesis (projects)：把較高階的比較頁、workstream、review outline 移到 `projects/`，必要時用 `build_library_dashboard()` / `explain_library_path()` 回查知識網路
 
 ## 情境 C: 探索式
 

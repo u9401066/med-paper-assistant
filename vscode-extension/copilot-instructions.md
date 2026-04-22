@@ -6,6 +6,15 @@
 
 **逐步多輪演進**：寫論文是人類多年累積、多輪訓練的結果。Agent + MCP 框架必須實現類似的螺旋式進步。三層架構：L1 Hook（即時品質）→ L2 Code（結構約束）→ L3 CI（長期演進）。每輪可審計，每輪更好。（CONSTITUTION §25-26）
 
+## 雙模式心智模型
+
+先讀 `project.json.workflow_mode`，再決定路徑：
+
+- `library-wiki` = **Library Wiki Path**：ingest → organize → analyze → synthesize → query。目標是維護可被 agent 管理的個人文獻庫 / wiki。這條路不強制 concept validation，也不套用 manuscript pipeline gates。
+- `manuscript` = **Manuscript Path**：concept → draft → review → export。目標是產出投稿稿件。這條路才套用 novelty / concept validation、writing hooks、review loop、export gates。
+
+如果用戶從 library/wiki 轉向寫稿，先把 `workflow_mode` 切到 `manuscript`，再要求 `paper_type`、`concept.md`、draft/review/export。
+
 ## 模式（操作前必查 `.copilot-mode.json`）
 
 | 模式          | 可修改檔案          | 技能範圍            |
@@ -19,11 +28,13 @@ Normal/Research 下 `.claude/` `.github/` `src/` `tests/` `integrations/` `AGENT
 
 ## 關鍵規則
 
+**Path Selection**: 先看 `workflow_mode`。建 library/wiki 時優先 `workflow_mode="library-wiki"`；要寫論文時才用 `workflow_mode="manuscript"`。
+
 **儲存文獻**: `save_reference_mcp(pmid)` 永遠優先（MCP-to-MCP 驗證）。`save_reference()` 僅 API 不可用時 fallback。
 
 **草稿引用**: `get_available_citations()` → `patch_draft()` → `sync_references()`。禁止直接 `replace_string_in_file` 改引用。
 
-**Novelty Check**: 犀利回饋 + 給選項（「直接寫？修正？用 CGU？」）。禁止討好式回饋或自動改 NOVELTY。
+**Novelty Check**: 僅適用於 `manuscript` 路徑。犀利回饋 + 給選項（「直接寫？修正？用 CGU？」）。禁止討好式回饋或自動改 NOVELTY。
 
 **Workspace State**: 新對話 → `get_workspace_state()`。重要操作 → `sync_workspace_state()`。
 
@@ -86,12 +97,12 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 
 | Event            | 腳本                | 功能                                   |
 | ---------------- | ------------------- | -------------------------------------- |
-| SessionStart     | session-init.sh     | 載入模式/recovery/pending evolutions   |
-| UserPromptSubmit | prompt-analyzer.sh  | 意圖偵測（mode-switch/commit/writing） |
+| SessionStart     | session-init.sh     | 載入模式/recovery/workflow mode/pending evolutions |
+| UserPromptSubmit | prompt-analyzer.sh  | 意圖偵測（mode-switch/commit/library/manuscript） |
 | PreToolUse       | pre-tool-guard.sh   | 模式保護 + 破壞性指令攔截              |
-| PostToolUse      | post-tool-check.sh  | Hook 提醒（draft→writing hooks 等）    |
+| PostToolUse      | post-tool-check.sh  | Workflow-aware 提醒（library vs manuscript） |
 | PreCompact       | pre-compact-save.sh | Context 壓縮前 checkpoint              |
-| SubagentStart    | subagent-init.sh    | 注入專案/模式至 subagent               |
+| SubagentStart    | subagent-init.sh    | 注入專案/模式/workflow mode 至 subagent |
 | Stop             | session-stop.sh     | 審計 + 清理 + memory sync 提醒         |
 
 補強層：`.github/hooks/mode-guard.json` 會在 `PreToolUse` 階段額外執行 `scripts/copilot_hook_guard.py`。它負責 Python/Windows-safe 的工具路徑解析，特別是 `apply_patch` 這類 shell hook 不易精準判斷的編輯入口。

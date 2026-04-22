@@ -6,6 +6,7 @@ const {
     evaluateAssetSync,
     formatSpec,
     getBundleAssetSpecs,
+    getCheckSpecs,
     getExtensionDir,
     loadBundleManifest,
 } = require('./bundle-assets.cjs');
@@ -69,6 +70,7 @@ function createValidationRuntime(overrides = {}) {
         platform: overrides.platform ?? process.platform,
         evaluateAssetSync: overrides.evaluateAssetSync ?? evaluateAssetSync,
         getBundleAssetSpecs: overrides.getBundleAssetSpecs ?? getBundleAssetSpecs,
+        getCheckSpecs: overrides.getCheckSpecs ?? getCheckSpecs,
     };
 }
 
@@ -84,12 +86,16 @@ function formatFileSize(bytes) {
     return `${bytes} B`;
 }
 
-function validateAssetGroup(title, type, reporter, runtime) {
+function validateAssetGroup(title, type, reporter, runtime, specSet = 'bundle') {
     runtime.log('');
     runtime.log(title);
 
+    const getSpecs = specSet === 'check'
+        ? runtime.getCheckSpecs
+        : runtime.getBundleAssetSpecs;
+
     const report = runtime.evaluateAssetSync(
-        runtime.getBundleAssetSpecs({
+        getSpecs({
             extensionDir: runtime.extensionDir,
             repoRoot: runtime.repoRoot,
             manifest: runtime.manifest,
@@ -273,6 +279,7 @@ function main(overrides = {}) {
     validateAssetGroup('📋 V3a: Support Files Sync', 'support-file', reporter, runtime);
     validateAssetGroup('📄 V3b: Templates Sync', 'template', reporter, runtime);
     validateAssetGroup('🤖 V3c: Agents Sync', 'agent', reporter, runtime);
+    validateAssetGroup('🐍 V3d: Bundled Python Sync', 'python-source', reporter, runtime, 'check');
     const version = validatePackageJson(reporter, runtime);
     validateVsixPackage(version, reporter, runtime);
     validateTests(reporter, runtime);

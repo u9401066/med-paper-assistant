@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 - 2026-04-22
+
+- Centralized MCP workflow guard resolution behind `resolve_project_context` so manuscript and library-wiki tools share one validation entrypoint instead of duplicating local helpers.
+- Delegated legacy project creation flows through `ProjectManager`, keeping repository and use-case layers thin while preserving workflow-aware exploration conversion behavior.
+- Tightened drafter git repo binding so the auto-committer refreshes when the active project changes.
+- Expanded bundle drift detection to cover mirrored Python source directories and re-synced packaged prompts / support files so VSIX validation catches real source-to-bundle drift.
+
 ## 0.6.9 - 2026-04-21
 
 - Added full-surface agent wiki stage 2 orchestration: `ingest_web_source`, `ingest_markdown_source`, `build_knowledge_map`, `build_synthesis_page`, and `materialize_agent_wiki`.

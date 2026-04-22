@@ -79,8 +79,75 @@ function getPythonSourceSpecs(context = createContext()) {
     }));
 }
 
+function getCheckSpecs(context = createContext()) {
+    return [...getBundleAssetSpecs(context), ...getPythonSourceSpecs(context)];
+}
+
 function compareFileContents(leftPath, rightPath) {
     return fs.readFileSync(leftPath).equals(fs.readFileSync(rightPath));
+}
+
+function collectDirectoryEntries(rootDir, relativePath = '') {
+    const currentDir = relativePath ? path.join(rootDir, relativePath) : rootDir;
+    const dirEntries = fs.readdirSync(currentDir, { withFileTypes: true })
+        .sort((left, right) => left.name.localeCompare(right.name));
+    const entries = [];
+
+    for (const dirEntry of dirEntries) {
+        const entryPath = relativePath ? path.join(relativePath, dirEntry.name) : dirEntry.name;
+        const normalizedPath = entryPath.split(path.sep).join('/');
+
+        if (dirEntry.isDirectory()) {
+            entries.push({ path: normalizedPath, type: 'dir' });
+            entries.push(...collectDirectoryEntries(rootDir, entryPath));
+            continue;
+        }
+
+        entries.push({ path: normalizedPath, type: 'file' });
+    }
+
+    return entries;
+}
+
+function compareDirectoryContents(leftDir, rightDir) {
+    const leftEntries = collectDirectoryEntries(leftDir);
+    const rightEntries = collectDirectoryEntries(rightDir);
+
+    if (leftEntries.length !== rightEntries.length) {
+        return false;
+    }
+
+    for (let index = 0; index < leftEntries.length; index += 1) {
+        const leftEntry = leftEntries[index];
+        const rightEntry = rightEntries[index];
+
+        if (leftEntry.path !== rightEntry.path || leftEntry.type !== rightEntry.type) {
+            return false;
+        }
+
+        if (leftEntry.type === 'file') {
+            if (!compareFileContents(path.join(leftDir, leftEntry.path), path.join(rightDir, rightEntry.path))) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+function compareSpecContents(spec) {
+    const sourceStats = fs.statSync(spec.source);
+    const destinationStats = fs.statSync(spec.destination);
+
+    if (sourceStats.isDirectory() && destinationStats.isDirectory()) {
+        return compareDirectoryContents(spec.source, spec.destination);
+    }
+
+    if (sourceStats.isFile() && destinationStats.isFile()) {
+        return compareFileContents(spec.source, spec.destination);
+    }
+
+    return false;
 }
 
 function ensureParentDirectory(filePath) {
@@ -101,6 +168,9 @@ function evaluateAssetSync(specs) {
 
     for (const spec of specs) {
         if (!fs.existsSync(spec.source)) {
+            if (spec.required === false) {
+                continue;
+            }
             report.missingSources.push(spec);
             continue;
         }
@@ -110,7 +180,7 @@ function evaluateAssetSync(specs) {
             continue;
         }
 
-        if (compareFileContents(spec.source, spec.destination)) {
+        if (compareSpecContents(spec)) {
             report.synced.push(spec);
             continue;
         }
@@ -163,30 +233,30 @@ function syncPythonSourceSpecs(specs) {
     return { copied, missingSources, skippedOptional };
 }
 
-function printProblemList(header, specs) {
+function printProblemList(header, specs, log = console.error) {
     if (specs.length === 0) {
         return;
     }
 
-    console.error(header);
+    log(header);
     for (const spec of specs) {
-        console.error(`  - ${formatSpec(spec)}`);
+        log(`  - ${formatSpec(spec)}`);
     }
 }
 
-function runCheckCommand() {
-    const specs = getBundleAssetSpecs();
+function runCheckCommand(context = createContext(), output = console) {
+    const specs = getCheckSpecs(context);
     const report = evaluateAssetSync(specs);
     const hasProblems = report.missingSources.length > 0 || report.missingDestinations.length > 0 || report.outdated.length > 0;
 
     if (!hasProblems) {
-        console.log(`✅ Committed bundle is in sync (${report.synced.length} assets).`);
+        output.log(`✅ Committed bundle is in sync (${report.synced.length} assets).`);
         return 0;
     }
 
-    printProblemList('❌ Missing source assets:', report.missingSources);
-    printProblemList('❌ Missing bundled assets:', report.missingDestinations);
-    printProblemList('❌ Outdated bundled assets:', report.outdated);
+    printProblemList('❌ Missing source assets:', report.missingSources, output.error ?? console.error);
+    printProblemList('❌ Missing bundled assets:', report.missingDestinations, output.error ?? console.error);
+    printProblemList('❌ Outdated bundled assets:', report.outdated, output.error ?? console.error);
     return 1;
 }
 
@@ -240,15 +310,20 @@ if (require.main === module) {
 }
 
 module.exports = {
+    collectDirectoryEntries,
+    compareDirectoryContents,
     compareFileContents,
+    compareSpecContents,
     createContext,
     evaluateAssetSync,
     formatSpec,
     getBundleAssetSpecs,
+    getCheckSpecs,
     getExtensionDir,
     getPythonSourceSpecs,
     getRepoRoot,
     loadBundleManifest,
+    runCheckCommand,
     syncAssetSpecs,
     syncPythonSourceSpecs,
 };

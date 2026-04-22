@@ -8,6 +8,7 @@ const buildScriptPath = path.join(extensionRoot, 'scripts', 'build.sh');
 const packageJsonPath = path.join(extensionRoot, 'package.json');
 const validateShellPath = path.join(extensionRoot, 'scripts', 'validate-build.sh');
 const validatePowerShellPath = path.join(extensionRoot, 'scripts', 'validate-build.ps1');
+const bundleAssets = require('../../scripts/bundle-assets.cjs');
 const validateBuild = require('../../scripts/validate-build.cjs');
 const runValidateBuild = require('../../scripts/run-validate-build.cjs');
 
@@ -153,6 +154,7 @@ describe('validate-build core', () => {
             extensionDir: tempDir,
             manifest: { chatCommands: [], paletteCommands: [] },
             getBundleAssetSpecs: () => [],
+            getCheckSpecs: () => [],
             skipTests: true,
         };
 
@@ -186,6 +188,34 @@ describe('validate-build core', () => {
         expect(collector.lines.some((line) => line.includes('Bundled skill: literature-review missing'))).toBe(true);
     });
 
+    it('validate-build checks bundled python sources through check specs', () => {
+        const collector = createLogCollector();
+        const reporter = validateBuild.createReporter(collector.log);
+        const runtime = validateBuild.createValidationRuntime({
+            log: collector.log,
+            manifest: { chatCommands: [], paletteCommands: [] },
+            getBundleAssetSpecs: () => [],
+            getCheckSpecs: () => [{ type: 'python-source', name: 'med_paper_assistant' }],
+            evaluateAssetSync: (specs: Array<{ type: string; name: string }>) => ({
+                missingSources: [],
+                missingDestinations: [],
+                outdated: specs.filter((spec) => spec.type === 'python-source'),
+                synced: [],
+            }),
+        });
+
+        validateBuild.validateAssetGroup(
+            '🐍 V3d: Bundled Python Sync',
+            'python-source',
+            reporter,
+            runtime,
+            'check',
+        );
+
+        expect(reporter.getCounts().warnCount).toBe(1);
+        expect(collector.lines.some((line) => line.includes('python-source: med_paper_assistant outdated'))).toBe(true);
+    });
+
     it('shell wrappers delegate to the shared validate-build.cjs entrypoint', () => {
         const shellWrapper = fs.readFileSync(validateShellPath, 'utf-8');
         const powerShellWrapper = fs.readFileSync(validatePowerShellPath, 'utf-8');
@@ -211,5 +241,99 @@ describe('validate-build core', () => {
         expect(buildScript).not.toContain('BUNDLED_AGENTS=(');
         expect(buildScript).not.toContain('for skill in literature-review');
         expect(buildScript).not.toContain('for prompt in mdpaper.write-paper');
+    });
+
+    it('bundle drift check covers python source mirrors', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-python-drift-'));
+        const repoRoot = path.join(tempDir, 'repo');
+        const extensionDir = path.join(repoRoot, 'vscode-extension');
+        const sourceDir = path.join(repoRoot, 'src', 'pkg');
+        const bundledDir = path.join(extensionDir, 'bundled', 'tool', 'pkg');
+
+        fs.mkdirSync(sourceDir, { recursive: true });
+        fs.mkdirSync(bundledDir, { recursive: true });
+        fs.writeFileSync(path.join(sourceDir, '__init__.py'), 'VALUE = 1\n', 'utf-8');
+        fs.writeFileSync(path.join(bundledDir, '__init__.py'), 'VALUE = 2\n', 'utf-8');
+
+        const context = {
+            extensionDir,
+            repoRoot,
+            manifest: {
+                skills: [],
+                prompts: [],
+                agents: [],
+                templates: [],
+                supportFiles: [],
+                pythonSources: [
+                    {
+                        name: 'pkg',
+                        source: 'src/pkg',
+                        destination: 'bundled/tool/pkg',
+                        required: true,
+                    },
+                ],
+            },
+        };
+        const errors: string[] = [];
+
+        const specs = bundleAssets.getCheckSpecs(context);
+        const report = bundleAssets.evaluateAssetSync(specs);
+        const exitCode = bundleAssets.runCheckCommand(context, {
+            log: () => {},
+            error: (message: string) => errors.push(message),
+        });
+
+        expect(specs).toHaveLength(1);
+        expect(specs[0].type).toBe('python-source');
+        expect(report.outdated).toHaveLength(1);
+        expect(report.outdated[0].type).toBe('python-source');
+        expect(exitCode).toBe(1);
+        expect(errors.some((line) => line.includes('python-source: pkg'))).toBe(true);
+
+        fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it('bundle drift check skips missing optional python sources', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-python-optional-'));
+        const repoRoot = path.join(tempDir, 'repo');
+        const extensionDir = path.join(repoRoot, 'vscode-extension');
+
+        fs.mkdirSync(extensionDir, { recursive: true });
+
+        const context = {
+            extensionDir,
+            repoRoot,
+            manifest: {
+                skills: [],
+                prompts: [],
+                agents: [],
+                templates: [],
+                supportFiles: [],
+                pythonSources: [
+                    {
+                        name: 'cgu',
+                        source: 'integrations/cgu/src/cgu',
+                        destination: 'bundled/tool/cgu',
+                        required: false,
+                    },
+                ],
+            },
+        };
+
+        const specs = bundleAssets.getCheckSpecs(context);
+        const report = bundleAssets.evaluateAssetSync(specs);
+        const exitCode = bundleAssets.runCheckCommand(context, {
+            log: () => {},
+            error: () => {},
+        });
+
+        expect(specs).toHaveLength(1);
+        expect(specs[0].type).toBe('python-source');
+        expect(report.missingSources).toHaveLength(0);
+        expect(report.missingDestinations).toHaveLength(0);
+        expect(report.outdated).toHaveLength(0);
+        expect(exitCode).toBe(0);
+
+        fs.rmSync(tempDir, { recursive: true, force: true });
     });
 });
