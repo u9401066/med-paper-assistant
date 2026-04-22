@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-  <b>🔬 醫學論文寫作的整合式 AI 工具包</b><br>
-  <i>3 個 MCP Server · ~144 個工具 · 26 個技能 · 15 個 Prompt 工作流 — 全在 VS Code 裡</i>
+  <b>🔬 醫學論文寫作與 LLM Wiki 的整合式 AI 工具包</b><br>
+  <i>3 個 MCP Server · 165+ 個工具 · 26 個技能 · 15 個 Prompt 工作流 — 全在 VS Code 裡</i>
 </p>
 
 > 📖 [English Version](README.md)
@@ -26,10 +26,10 @@
 
 | 元件                                                               | 類型                 | 工具數                         | 說明                                                                                    |
 | ------------------------------------------------------------------ | -------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
-| **mdpaper**                                                        | 核心 MCP Server      | 94（full）/ 44（compact 預設） | 論文寫作：88 個領域工具 + 6 個 facade 入口，另含 3 個 MCP prompts 與 3 個 MCP resources |
+| **mdpaper**                                                        | 核心 MCP Server      | 115（full）/ 21（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37                             | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                               |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13                             | 創意發想：腦力激盪、深度思考、火花碰撞                                                  |
-| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 5 指令 + 10 chat               | MCP 自動註冊、workspace 設定、`@mdpaper` 參與者                                         |
+| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 10 指令 + 10 chat              | MCP 自動註冊、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者       |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App      | —                              | 專案管理 UI、圖表編輯器                                                                 |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —                              | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖                                             |
 | **[Skills](.claude/skills/)**                                      | Agent 工作流         | 26                             | 引導式多工具工作流（文獻回顧、草稿寫作...）                                             |
@@ -62,7 +62,7 @@
 | 傳統工具                   | Medical Paper Assistant          |
 | -------------------------- | -------------------------------- |
 | 固定模板、僵化流程         | 彈性、探索式方法                 |
-| 搜尋/寫作/引用分開多個 App | 一站式：~144 個工具在 VS Code 裡 |
+| 搜尋/寫作/引用分開多個 App | 一站式：165+ 個工具在 VS Code 裡 |
 | 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料       |
 | 匯出後再排版               | 直接匯出符合期刊格式的 Word      |
 | 學習複雜介面               | 自然語言對話                     |
@@ -144,7 +144,21 @@ Windows PowerShell：
 | `/mdpaper.strategy` | ⚙️ 設定搜尋策略（日期、篩選）          |
 | `/mdpaper.help`     | ❓ 顯示所有可用指令                    |
 
-> 💡 **建議工作流程**：`/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
+### 兩條工作流路徑
+
+**Library Wiki Path**
+
+- 先建立 `workflow_mode="library-wiki"` 專案
+- 走 `search/save_reference_mcp` → `write_library_note` / `move_library_note` → `show_reading_queues` / `build_library_dashboard`
+- 需要時再用 `materialize_agent_wiki`、Foam graph views 與 `docs/how-to/llm-wiki.md` 做跨筆記合成與巡覽
+
+**Manuscript Path**
+
+- 建立 `workflow_mode="manuscript"` 專案
+- 走 `/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
+- 只有這條路才套用 concept validation、review loop、export gates
+
+> 💡 **建議用法**：先用 Library Wiki Path 收斂文獻與概念，再切去 Manuscript Path 進入正式寫稿。
 
 ---
 
@@ -170,7 +184,9 @@ Windows PowerShell：
 
 ### 專案記憶
 
-每個專案維持自己的 `.memory/` 資料夾，讓 AI 跨 session 連貫地延續研究：
+每個專案維持自己的 `.memory/` 資料夾，讓 AI 跨 session 連貫地延續研究；實際目錄會依 workflow mode 分流：
+
+**Manuscript Path**
 
 ```
 projects/{slug}/
@@ -184,6 +200,20 @@ projects/{slug}/
 └── results/               ← 圖表、.docx 匯出
 ```
 
+**Library Wiki Path**
+
+```
+projects/{slug}/
+├── .memory/
+│   ├── activeContext.md   ← 文獻庫目前焦點與 triage 狀態
+│   └── progress.md        ← ingest / organize / synthesize 進度
+├── concept.md             ← library workspace seed
+├── references/            ← 物化的 reference notes
+├── inbox/                 ← 原始筆記與捕捉區
+├── concepts/              ← 原子概念頁與雙向連結
+└── projects/              ← synthesis pages / workstreams
+```
+
 ---
 
 ## ✨ 主要功能
@@ -195,6 +225,8 @@ projects/{slug}/
 - **MCP-to-MCP 驗證資料** — 只傳 PMID，杜絕 Agent 幻覺
 - 分層信任：🔒 VERIFIED（PubMed）· 🤖 AGENT（AI 筆記）· ✏️ USER（你的筆記）
 - Foam wikilink：`[[author2024_12345678]]` 含懸停預覽和反向連結
+- **Library Wiki Path** — `inbox/`、`concepts/`、`projects/` 三層筆記流，支援 reading queues 與 cross-note dashboard
+- **LLM wiki 物化** — 自動生成 `notes/index.md`、`notes/library/overview.md`、context hubs、draft section / figure / table graph notes
 
 ### 寫作與編輯
 
@@ -226,6 +258,7 @@ projects/{slug}/
 - **Workspace State** 跨 session 狀態恢復
 - **uv** 管理所有 Python 套件
 - **已實際啟用的 MCP SDK 能力** — tools、elicitation，以及長任務 audit/review 的 progress notifications
+- **受管 Foam graph views** — Default、Evidence、Writing、Assets、Review 五個命名圖譜切片
 
 ---
 
@@ -418,13 +451,21 @@ CGU 執行說明：
 
 ## 🔗 Foam 整合
 
-| 功能          | 使用方式                            | 好處                       |
-| ------------- | ----------------------------------- | -------------------------- |
-| **Wikilinks** | `[[greer2017_27345583]]`            | 在草稿中連結參考文獻       |
-| **懸停預覽**  | 滑鼠移到 `[[連結]]`                 | 不用開檔案就能看摘要       |
-| **反向連結**  | 開啟參考文獻檔案                    | 查看哪些草稿引用了這篇論文 |
-| **圖譜視圖**  | `Ctrl+Shift+P` → `Foam: Show Graph` | 視覺化論文關聯             |
-| **專案隔離**  | `switch_project` 自動切換           | 只看到當前專案的引用       |
+| 功能          | 使用方式                                                | 好處                                                     |
+| ------------- | ------------------------------------------------------- | -------------------------------------------------------- |
+| **Wikilinks** | `[[greer2017_27345583]]`                                | 在草稿、concept pages、synthesis pages 間互連            |
+| **懸停預覽**  | 滑鼠移到 `[[連結]]`                                     | 不用開檔案就能看摘要                                     |
+| **反向連結**  | 開啟參考文獻檔案                                        | 查看哪些草稿或 wiki 筆記引用了這篇論文                   |
+| **圖譜視圖**  | `Ctrl+Shift+P` → `MedPaper: Show Foam Graph: ...`       | 直接切到 Default / Evidence / Writing / Assets / Review |
+| **物化索引**  | `notes/index.md`、`notes/library/overview.md`           | 查看 live counts、context hubs、asset/draft graph nodes |
+| **專案隔離**  | `switch_project` 自動切換                               | 只看到當前專案的引用                                     |
+
+### LLM Wiki 補強點
+
+- `notes/index.md` 會輸出 live Foam query counts
+- registered figures / tables 會 materialize 成一級 graph notes
+- draft sections 與 journal/author/topic/context hubs 會帶 graph-friendly frontmatter
+- library dashboard 支援 `overview`、`queues`、`concepts`、`links`、`synthesis` 五種 cross-note 視圖
 
 ### 引用自動補全
 
@@ -488,7 +529,7 @@ med-paper-assistant/
 │   ├── domain/                    #   業務邏輯、實體、值物件
 │   ├── application/               #   用例、服務
 │   ├── infrastructure/            #   DAL、外部服務
-│   └── interfaces/mcp/            #   MCP Server，94 full / 44 compact 工具 + 3 prompts + 3 resources
+│   └── interfaces/mcp/            #   MCP Server，115 full / 21 compact 工具 + 3 prompts + 3 resources
 │
 ├── integrations/                  # 內建 MCP Server
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（37 工具）
@@ -505,9 +546,12 @@ med-paper-assistant/
 ├── projects/                      # 研究專案（獨立工作區）
 │   └── {slug}/
 │       ├── .memory/               #   跨 session AI 記憶
-│       ├── concept.md             #   研究構想
+│       ├── concept.md             #   研究構想或 library workspace seed
 │       ├── references/            #   本地文獻庫
-│       ├── drafts/                #   Markdown 草稿
+│       ├── drafts/                #   Markdown 草稿（manuscript path）
+│       ├── inbox/                 #   原始筆記（library-wiki path）
+│       ├── concepts/              #   原子概念頁（library-wiki path）
+│       ├── projects/              #   合成頁 / workstreams（library-wiki path）
 │       └── results/               #   圖表、匯出
 │
 ├── .claude/skills/                # 26 個 Agent 技能定義
@@ -523,8 +567,8 @@ med-paper-assistant/
 
 | 狀態 | 功能                        | 說明                                                           |
 | ---- | --------------------------- | -------------------------------------------------------------- |
-| ✅   | **3 個 MCP Server**         | mdpaper（94 full / 44 compact）+ pubmed-search (37) + CGU (13) |
-| ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、專案隔離                        |
+| ✅   | **3 個 MCP Server**         | mdpaper（115 full / 21 compact）+ pubmed-search (37) + CGU (13) |
+| ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、命名 graph views、專案隔離      |
 | ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                  |
 | ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                             |
 | ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                                          |

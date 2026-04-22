@@ -1,6 +1,6 @@
 # MedPaper Assistant - VS Code Extension
 
-AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
+AI-powered medical paper writing and literature wiki assistant with MCP tools, prompts, and skills.
 
 ![MedPaper Assistant marketplace banner](https://raw.githubusercontent.com/u9401066/med-paper-assistant/master/vscode-extension/resources/marketplace-banner.png)
 
@@ -12,6 +12,7 @@ AI-powered medical paper writing assistant with MCP tools, prompts, and skills.
 - 💡 **Concept Development** - Develop and validate research novelty
 - 📊 **Data Analysis** - Statistical tests, Table 1, visualizations
 - 📄 **Word Export** - Export to journal-ready Word documents
+- 📚 **LLM Wiki / Library Wiki Path** - inbox/concepts/projects note triage, dashboards, and managed Foam graph views
 - 🔔 **Dual-Hook Architecture** - 78 個品質檢查（55 Code-Enforced / 23 Agent-Driven）
 
 ## Installation
@@ -88,6 +89,11 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 | `MedPaper: Show Status`               | 顯示擴充功能狀態                        |
 | `MedPaper: Setup Workspace`           | 複製 skills、prompts、agents、support docs/files、templates |
 | `MedPaper: Open LLM Wiki Guide`       | 直接開啟 `docs/how-to/llm-wiki.md`      |
+| `MedPaper: Show Foam Graph: Default`  | 開啟預設 Foam 圖譜切片                  |
+| `MedPaper: Show Foam Graph: Evidence` | 開啟 evidence 導向圖譜切片              |
+| `MedPaper: Show Foam Graph: Writing`  | 開啟 writing 導向圖譜切片               |
+| `MedPaper: Show Foam Graph: Assets`   | 開啟 figure/table 資產圖譜切片          |
+| `MedPaper: Show Foam Graph: Review`   | 開啟 review / pending 狀態圖譜切片      |
 
 ### Agent Mode 自然語言
 
@@ -97,6 +103,12 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 - 「找論文」「搜尋 PubMed」→ 文獻搜尋
 - 「寫 Introduction」→ 草稿撰寫
 - 「驗證 novelty」→ 概念驗證
+
+### Workflow Modes
+
+- **Library Wiki Path**：建立 `workflow_mode="library-wiki"` 專案後，先做文獻保存、筆記 triage、dashboard 與 Foam graph 巡覽。
+- **Manuscript Path**：建立 `workflow_mode="manuscript"` 專案後，走 concept → draft → review → export。
+- 建議順序：先用 Library Wiki Path 累積與整理知識，再切去 Manuscript Path 正式寫稿。
 
 ## Architecture
 
@@ -139,17 +151,17 @@ Bundled support/reference files: `.github/prompts/_capability-index.md`, `.githu
 
 That means a VSIX-only user can now run `MedPaper: Setup Workspace` and receive the Foam dependency reference, the LLM wiki reference/how-to docs, and the workflow figure directly under `docs/` in their workspace.
 
-### MCP Tools (101 full / 44 compact default)
+### MCP Tools (115 full / 21 compact default)
 
 自動註冊 MCP Server：
 
-- **MedPaper Assistant** - 預設 compact 44 工具（可切換 full 101），另含 3 個 MCP prompts 與 3 個 MCP resources（95 個領域工具 + 6 個 facade 入口）
+- **MedPaper Assistant** - 預設 compact 21 工具（可切換 full 115），另含 3 個 MCP prompts 與 3 個 MCP resources
 - **CGU Creativity** - 創意發想工具
 - **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Draw.io Diagrams** - 圖表繪製
 
-若你要在 VSIX 版直接跑 full-surface 的 agent wiki workflow，請把 `mdpaper.toolSurface` 切成 `full`。這會額外暴露 `import_local_papers`、`ingest_web_source`、`ingest_markdown_source`、`resolve_reference_identity`、`build_knowledge_map`、`build_synthesis_page`、`materialize_agent_wiki` 等 orchestration 工具；預設 `compact` 仍維持較乾淨的 agent tool list。
+預設 `compact` 走 facade-first surface，保留 `project_action`、`library_action`、`draft_action`、`validation_action`、`run_quality_checks`、`pipeline_action`、`export_document`、`inspect_export` 等高階入口。若你要在 VSIX 版直接跑 full-surface 的 agent wiki workflow，請把 `mdpaper.toolSurface` 切成 `full`；這會額外暴露 `import_local_papers`、`ingest_web_source`、`ingest_markdown_source`、`resolve_reference_identity`、`build_knowledge_map`、`build_synthesis_page`、`materialize_agent_wiki` 等 granular orchestration 工具。
 
 MCP prompts: `project_bootstrap`, `draft_section_plan`, `word_export_checklist`.
 

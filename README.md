@@ -9,9 +9,9 @@
 ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 ![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)
 
-## 🔬 An Integrated AI Toolkit for Medical Paper Writing
+## 🔬 An Integrated AI Toolkit for Medical Paper Writing and LLM Wiki Workflows
 
-3 MCP Servers · ~144 Tools · 26 Skills · 15 Prompts Workflows — All in VS Code
+3 MCP Servers · 165+ Tools · 26 Skills · 15 Prompts Workflows — All in VS Code
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 78 Quality Hooks, Structured Review Loop
@@ -26,10 +26,10 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 | Component                                                          | Type                   | Tools                            | Description                                                                                   |
 | ------------------------------------------------------------------ | ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------- |
-| **mdpaper**                                                        | Core MCP Server        | 94 (full) / 44 (compact default) | Paper writing: 88 domain tools + 6 facade entrypoints, plus 3 MCP prompts and 3 MCP resources |
+| **mdpaper**                                                        | Core MCP Server        | 115 (full) / 21 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37                               | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                           |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13                               | Creative generation: brainstorm, deep think, spark collision                                  |
-| **[VS Code Extension](vscode-extension/)**                         | Extension              | 5 cmds + 10 chat                 | MCP auto-registration, workspace setup, `@mdpaper` chat participant                           |
+| **[VS Code Extension](vscode-extension/)**                         | Extension              | 10 cmds + 10 chat                | MCP auto-registration, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                | Project management UI, diagram editor                                                         |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                | `[[wikilink]]` citation linking, hover preview, graph view                                    |
 | **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26                               | Guided multi-tool workflows (literature review, draft writing...)                             |
@@ -62,7 +62,7 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 | Traditional Tools                   | Medical Paper Assistant                |
 | ----------------------------------- | -------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach         |
-| Separate apps for search/write/cite | All-in-one: ~144 tools in VS Code      |
+| Separate apps for search/write/cite | All-in-one: 165+ tools in VS Code      |
 | Manual reference management         | Auto-save with verified PubMed data    |
 | Export then format                  | Direct Word export with journal styles |
 | Learn complex UI                    | Natural language conversation          |
@@ -144,7 +144,21 @@ In Copilot Chat, type these prompts to trigger guided workflows:
 | `/mdpaper.strategy` | ⚙️ Configure search strategy (dates, filters)       |
 | `/mdpaper.help`     | ❓ Show all available commands                      |
 
-> 💡 **Recommended Workflow**: `/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
+### Two Workflow Paths
+
+**Library Wiki Path**
+
+- Create a project with `workflow_mode="library-wiki"`
+- Move through `search/save_reference_mcp` → `write_library_note` / `move_library_note` → `show_reading_queues` / `build_library_dashboard`
+- Use `materialize_agent_wiki`, Foam graph views, and `docs/how-to/llm-wiki.md` for cross-note synthesis and traversal
+
+**Manuscript Path**
+
+- Create a project with `workflow_mode="manuscript"`
+- Move through `/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.format`
+- Only this path enforces concept validation, review loops, and export gates
+
+> 💡 **Recommended usage**: converge your literature and concepts in Library Wiki Path first, then switch to Manuscript Path for formal drafting.
 
 ---
 
@@ -170,7 +184,9 @@ Skill = Complete knowledge (how to combine tools to accomplish tasks)
 
 ### Project Memory
 
-Each project maintains its own `.memory/` folder, so the AI continues previous research coherently:
+Each project maintains its own `.memory/` folder so the AI can continue previous research coherently. The directory layout now splits by workflow mode:
+
+**Manuscript Path**
 
 ```text
 projects/{slug}/
@@ -184,6 +200,20 @@ projects/{slug}/
 └── results/               ← Figures, .docx exports
 ```
 
+**Library Wiki Path**
+
+```text
+projects/{slug}/
+├── .memory/
+│   ├── activeContext.md   ← Current library/wiki focus and triage state
+│   └── progress.md        ← ingest / organize / synthesize milestones
+├── concept.md             ← library workspace seed
+├── references/            ← materialized reference notes
+├── inbox/                 ← raw notes and capture queue
+├── concepts/              ← atomic concept pages and backlinks
+└── projects/              ← synthesis pages / workstreams
+```
+
 ---
 
 ## ✨ Key Features
@@ -195,6 +225,8 @@ projects/{slug}/
 - **MCP-to-MCP verified data** — PMID sent directly, no agent hallucination
 - Layered trust: 🔒 VERIFIED (PubMed) · 🤖 AGENT (AI notes) · ✏️ USER (your notes)
 - Foam wikilinks: `[[author2024_12345678]]` with hover preview & backlinks
+- **Library Wiki Path** — `inbox/`, `concepts/`, and `projects/` note flow with reading queues and cross-note dashboards
+- **LLM wiki materialization** — auto-generated `notes/index.md`, `notes/library/overview.md`, context hubs, and draft / figure / table graph notes
 
 ### Writing & Editing
 
@@ -226,6 +258,7 @@ projects/{slug}/
 - **Workspace State** recovery for cross-session continuity
 - **uv** for all Python package management
 - **MCP SDK features in active use** — tools, elicitation, and progress notifications for long-running audit/review operations
+- **Managed Foam graph views** — named Default, Evidence, Writing, Assets, and Review graph slices
 
 ---
 
@@ -418,13 +451,21 @@ CGU runtime notes:
 
 ## 🔗 Foam Integration
 
-| Feature               | How to Use                          | Benefit                               |
-| --------------------- | ----------------------------------- | ------------------------------------- |
-| **Wikilinks**         | `[[greer2017_27345583]]`            | Link references in drafts             |
-| **Hover Preview**     | Mouse over any `[[link]]`           | See abstract without opening file     |
-| **Backlinks Panel**   | Open reference file                 | See which drafts cite this paper      |
-| **Graph View**        | `Ctrl+Shift+P` → `Foam: Show Graph` | Visualize paper connections           |
-| **Project Isolation** | Auto-switches on `switch_project`   | Only see current project's references |
+| Feature               | How to Use                                        | Benefit                                                       |
+| --------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| **Wikilinks**         | `[[greer2017_27345583]]`                          | Link drafts, concept pages, and synthesis notes               |
+| **Hover Preview**     | Mouse over any `[[link]]`                         | See abstract without opening file                             |
+| **Backlinks Panel**   | Open reference file                               | See which drafts or wiki notes cite this paper                |
+| **Graph View**        | `Ctrl+Shift+P` → `MedPaper: Show Foam Graph: ...` | Jump directly to Default / Evidence / Writing / Assets / Review |
+| **Materialized Views**| `notes/index.md`, `notes/library/overview.md`     | Review live counts, context hubs, and asset/draft graph nodes |
+| **Project Isolation** | Auto-switches on `switch_project`                 | Only see current project's references                         |
+
+### LLM Wiki Enhancements
+
+- `notes/index.md` emits live Foam query counts
+- registered figures and tables materialize as first-class graph notes
+- draft sections plus journal/author/topic/context hubs carry graph-friendly frontmatter
+- the library dashboard now exposes `overview`, `queues`, `concepts`, `links`, and `synthesis` cross-note views
 
 ### Citation Autocomplete
 
@@ -488,7 +529,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 94 full / 44 compact tools + 3 prompts + 3 resources
+│   └── interfaces/mcp/            #   MCP server, 115 full / 21 compact tools + 3 prompts + 3 resources
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
@@ -505,9 +546,12 @@ med-paper-assistant/
 ├── projects/                      # Research projects (isolated workspaces)
 │   └── {slug}/
 │       ├── .memory/               #   Cross-session AI memory
-│       ├── concept.md             #   Research concept
+│       ├── concept.md             #   Research concept or library workspace seed
 │       ├── references/            #   Local reference library
-│       ├── drafts/                #   Markdown drafts
+│       ├── drafts/                #   Markdown drafts (manuscript path)
+│       ├── inbox/                 #   Raw notes (library-wiki path)
+│       ├── concepts/              #   Atomic concept pages (library-wiki path)
+│       ├── projects/              #   Synthesis pages / workstreams (library-wiki path)
 │       └── results/               #   Figures, exports
 │
 ├── .claude/skills/                # 26 Agent skill definitions
@@ -523,8 +567,8 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                                    |
 | ------ | --------------------------- | -------------------------------------------------------------- |
-| ✅     | **3 MCP Servers**           | mdpaper (94 full / 44 compact) + pubmed-search (37) + CGU (13) |
-| ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, project isolation         |
+| ✅     | **3 MCP Servers**           | mdpaper (115 full / 21 compact) + pubmed-search (37) + CGU (13) |
+| ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                        |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                         |
 | ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                          |
