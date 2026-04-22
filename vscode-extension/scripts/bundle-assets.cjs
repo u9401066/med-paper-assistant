@@ -87,9 +87,14 @@ function compareFileContents(leftPath, rightPath) {
     return fs.readFileSync(leftPath).equals(fs.readFileSync(rightPath));
 }
 
+function shouldIgnoreDirectoryEntry(dirEntry) {
+    return dirEntry.name === '__pycache__' || dirEntry.name.endsWith('.pyc');
+}
+
 function collectDirectoryEntries(rootDir, relativePath = '') {
     const currentDir = relativePath ? path.join(rootDir, relativePath) : rootDir;
     const dirEntries = fs.readdirSync(currentDir, { withFileTypes: true })
+        .filter((dirEntry) => !shouldIgnoreDirectoryEntry(dirEntry))
         .sort((left, right) => left.name.localeCompare(right.name));
     const entries = [];
 

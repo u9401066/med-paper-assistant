@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-04-22
+
+### Fixed
+
+- **Foam-visible reversible citations**: Switched synced draft citations and reference anchors to visible wikilinks so Foam graph edges are created again while preserving backward compatibility with legacy HTML-comment reversible citations
+- **Cross-line citation parsing**: Centralized reversible citation restoration in the shared citation converter and narrowed whitespace matching to same-line spaces or tabs so stray line breaks are not misread as synced citations
+- **Bundle drift false positives**: Updated the VS Code extension bundle drift checker to ignore `__pycache__` and `.pyc` artifacts so local pytest runs no longer produce release-blocking mirror mismatches
+
+### Added
+
+- **Regression coverage for citation resync**: Added tests for legacy reversible draft resync, APA visible reversible resync, newline edge cases, mixed legacy plus visible key extraction, and byte-for-byte Python bundled mirror parity
+
 ## [0.6.7] - 2026-04-15
 
 ### Fixed

@@ -211,7 +211,9 @@ function validateVsixPackage(version, reporter, runtime) {
         return;
     }
 
-    const vsixFile = vsixFiles[0];
+    const versionNeedle = `-${version}.vsix`;
+    const vsixFile = vsixFiles.find((filePath) => path.basename(filePath).includes(versionNeedle))
+        ?? vsixFiles[0];
     const stats = runtime.fs.statSync(vsixFile);
     reporter.pass(`VSIX exists: ${path.basename(vsixFile)} (${formatFileSize(stats.size)})`);
 

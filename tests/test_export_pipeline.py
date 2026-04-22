@@ -120,6 +120,12 @@ class TestPrepareForPandoc:
         assert result["bibliography"] == []
 
     def test_reversible_format(self, pipeline):
+        content = "Text [1] [[tang2023_38049909]]."
+        result = pipeline.prepare_for_pandoc(content)
+        assert "[@tang2023_38049909]" in result["content"]
+        assert len(result["bibliography"]) == 1
+
+    def test_reversible_format_legacy(self, pipeline):
         content = "Text [1]<!-- [[tang2023_38049909]] -->."
         result = pipeline.prepare_for_pandoc(content)
         assert "[@tang2023_38049909]" in result["content"]

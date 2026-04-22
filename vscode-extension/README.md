@@ -20,7 +20,7 @@ AI-powered medical paper writing and literature wiki assistant with MCP tools, p
 ### From VSIX
 
 ```bash
-code --install-extension medpaper-assistant-0.7.0.vsix
+code --install-extension medpaper-assistant-0.7.1.vsix
 ```
 
 Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`

@@ -5,7 +5,7 @@ import pytest
 
 from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
-from med_paper_assistant.infrastructure.services.drafter import Drafter
+from med_paper_assistant.infrastructure.services.drafter import CitationStyle, Drafter
 
 
 @pytest.mark.integration
@@ -204,6 +204,21 @@ class TestFormatBibliographyEntry:
 class TestSyncReferencesBlankLines:
     """Test that sync_references_from_wikilinks produces blank lines between entries."""
 
+    @staticmethod
+    def _write_reference(refs_dir, pmid, key, title, authors=None, year="2024"):
+        import json
+
+        ref_dir = refs_dir / pmid
+        ref_dir.mkdir(parents=True)
+        meta = {
+            "title": title,
+            "authors": authors or ["Author A"],
+            "journal": "J Test",
+            "year": year,
+            "citation_key": key,
+        }
+        (ref_dir / "metadata.json").write_text(json.dumps(meta))
+
     def test_references_separated_by_blank_lines(self, tmp_path):
         """References section should have blank lines between entries."""
         # Setup minimal references
@@ -211,22 +226,11 @@ class TestSyncReferencesBlankLines:
         drafts_dir = tmp_path / "drafts"
         drafts_dir.mkdir()
 
-        import json
-
         for pmid, key, title in [
             ("11111111", "smith2024_11111111", "Paper One"),
             ("22222222", "doe2024_22222222", "Paper Two"),
         ]:
-            ref_dir = refs_dir / pmid
-            ref_dir.mkdir(parents=True)
-            meta = {
-                "title": title,
-                "authors": ["Author A"],
-                "journal": "J Test",
-                "year": "2024",
-                "citation_key": key,
-            }
-            (ref_dir / "metadata.json").write_text(json.dumps(meta))
+            self._write_reference(refs_dir, pmid, key, title)
 
         # Create draft with wikilinks
         draft = "# Test\n\nSome text [[smith2024_11111111]] and [[doe2024_22222222]].\n"
@@ -257,6 +261,82 @@ class TestSyncReferencesBlankLines:
                 found_blank_between = True
                 break
         assert found_blank_between, "No blank line between reference entries"
+
+    def test_resync_visible_reversible_citations_does_not_duplicate_prefixes(self, tmp_path):
+        refs_dir = tmp_path / "refs"
+        drafts_dir = tmp_path / "drafts"
+        drafts_dir.mkdir()
+
+        self._write_reference(refs_dir, "11111111", "smith2024_11111111", "Paper One")
+
+        draft = "# Test\n\nSome text [1] [[smith2024_11111111]].\n"
+        (drafts_dir / "test.md").write_text(draft)
+
+        ref = ReferenceManager(base_dir=str(refs_dir))
+        drafter = Drafter(ref, drafts_dir=str(drafts_dir))
+
+        result = drafter.sync_references_from_wikilinks("test.md")
+        assert result["success"]
+
+        content = (drafts_dir / "test.md").read_text()
+        body_content = content.split("## References")[0]
+        assert "[1] [1] [[smith2024_11111111]]" not in body_content
+        assert body_content.count("[1] [[smith2024_11111111]]") == 1
+
+        references_content = content.split("## References")[1]
+        assert "[[smith2024_11111111]]" in references_content
+
+    def test_resync_legacy_reversible_citations_upgrades_to_visible_format(self, tmp_path):
+        refs_dir = tmp_path / "refs"
+        drafts_dir = tmp_path / "drafts"
+        drafts_dir.mkdir()
+
+        self._write_reference(refs_dir, "11111111", "smith2024_11111111", "Paper One")
+
+        draft = "# Test\n\nSome text [1]<!-- [[smith2024_11111111]] -->.\n"
+        (drafts_dir / "test.md").write_text(draft)
+
+        ref = ReferenceManager(base_dir=str(refs_dir))
+        drafter = Drafter(ref, drafts_dir=str(drafts_dir))
+
+        result = drafter.sync_references_from_wikilinks("test.md")
+        assert result["success"]
+
+        content = (drafts_dir / "test.md").read_text()
+        body_content = content.split("## References")[0]
+        assert "<!-- [[smith2024_11111111]] -->" not in body_content
+        assert body_content.count("[1] [[smith2024_11111111]]") == 1
+
+    def test_resync_visible_apa_reversible_citations_does_not_duplicate_prefixes(self, tmp_path):
+        refs_dir = tmp_path / "refs"
+        drafts_dir = tmp_path / "drafts"
+        drafts_dir.mkdir()
+
+        self._write_reference(
+            refs_dir,
+            "11111111",
+            "smith2024_11111111",
+            "Paper One",
+            authors=["Smith John", "Doe Jane", "Lee Kay"],
+        )
+
+        draft = "# Test\n\nSome text (Smith et al., 2024) [[smith2024_11111111]].\n"
+        (drafts_dir / "test.md").write_text(draft)
+
+        ref = ReferenceManager(base_dir=str(refs_dir))
+        drafter = Drafter(
+            ref,
+            drafts_dir=str(drafts_dir),
+            citation_style=CitationStyle.APA.value,
+        )
+
+        result = drafter.sync_references_from_wikilinks("test.md")
+        assert result["success"]
+
+        content = (drafts_dir / "test.md").read_text()
+        body_content = content.split("## References")[0]
+        assert "(Smith et al., 2024) (Smith et al., 2024) [[smith2024_11111111]]" not in body_content
+        assert body_content.count("(Smith et al., 2024) [[smith2024_11111111]]") == 1
 
 
 def test_create_draft_refreshes_draft_section_graph_notes(tmp_path):

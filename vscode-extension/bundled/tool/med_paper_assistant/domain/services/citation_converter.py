@@ -2,10 +2,12 @@
 Citation Converter — Bidirectional conversion between wikilink and Pandoc citation formats.
 
 Conversion directions:
-  [[key]]                           → [@key]          (for Pandoc --citeproc)
-  [1]<!-- [[key]] -->               → [@key]          (reversible format → Pandoc)
-  (Author, 2024)<!-- [[key]] -->    → [@key]          (APA reversible → Pandoc)
-  [@key]                            → [[key]]         (Pandoc → wikilink for editing)
+    [[key]]                           → [@key]          (for Pandoc --citeproc)
+    [1] [[key]]                       → [@key]          (Foam-visible reversible format → Pandoc)
+    [1]<!-- [[key]] -->               → [@key]          (legacy reversible format → Pandoc)
+    (Author, 2024) [[key]]            → [@key]          (APA reversible → Pandoc)
+    (Author, 2024)<!-- [[key]] -->    → [@key]          (legacy APA reversible → Pandoc)
+    [@key]                            → [[key]]         (Pandoc → wikilink for editing)
 
 Multiple citations:
   [[a]] and [[b]]                   → [@a; @b] only when adjacent
@@ -29,9 +31,13 @@ from dataclasses import dataclass, field
 _WIKILINK_RE = re.compile(r"\[\[([^\]\[]+?)\]\]")
 
 # Reversible format from sync_references_from_wikilinks():
+#   [1] [[citation_key]]
 #   [1]<!-- [[citation_key]] -->
+#   (Author et al., 2024) [[citation_key]]
 #   (Author et al., 2024)<!-- [[citation_key]] -->
-_REVERSIBLE_RE = re.compile(r"(?:\[\d+\]|\([^)]+,\s*\d{4}\))<!-- \[\[([^\]]+)\]\] -->")
+_REVERSIBLE_RE = re.compile(
+    r"(?:\[\d+\]|\([^)]+,\s*\d{4}\))(?:<!--\s*|[ \t]+)\[\[([^\]]+)\]\](?:\s*-->)?"
+)
 
 # Pandoc citation: [@key] or [@key1; @key2; ...]
 _PANDOC_SINGLE_RE = re.compile(r"\[@([^\];]+)\]")
@@ -142,6 +148,18 @@ def pandoc_to_wikilinks(content: str) -> ConversionResult:
     )
 
 
+def restore_reversible_citations_to_wikilinks(content: str) -> str:
+    """
+    Restore reversible citations back to raw wikilinks before re-syncing.
+
+    Supports both the Foam-visible format and the legacy HTML-comment format.
+    The separator intentionally matches only same-line spaces or tabs so a
+    bracketed citation marker on one line does not consume a wikilink on the next.
+    """
+
+    return _REVERSIBLE_RE.sub(r"[[\1]]", content)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
@@ -197,7 +215,7 @@ def extract_citation_keys(content: str) -> list[str]:
     """
     Extract all citation keys from content, regardless of format.
 
-    Detects: [[key]], [@key], [1]<!-- [[key]] -->
+    Detects: [[key]], [@key], [1] [[key]], [1]<!-- [[key]] -->
     Returns deduplicated list in order of first appearance.
     """
     keys: list[str] = []

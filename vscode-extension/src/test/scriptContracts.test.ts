@@ -141,6 +141,29 @@ describe('validate-build core', () => {
         fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
+    it('prefers the VSIX matching package.json when multiple artifacts exist', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-multi-vsix-'));
+        const collector = createLogCollector();
+        const reporter = validateBuild.createReporter(collector.log);
+
+        fs.writeFileSync(path.join(tempDir, 'medpaper-assistant-0.7.0.vsix'), 'old', 'utf-8');
+        fs.writeFileSync(path.join(tempDir, 'medpaper-assistant-0.7.1.vsix'), 'new', 'utf-8');
+
+        const runtime = validateBuild.createValidationRuntime({
+            extensionDir: tempDir,
+            manifest: { chatCommands: [], paletteCommands: [] },
+            log: collector.log,
+        });
+
+        validateBuild.validateVsixPackage('0.7.1', reporter, runtime);
+
+        expect(reporter.getCounts().warnCount).toBe(0);
+        expect(collector.lines.some((line) => line.includes('medpaper-assistant-0.7.1.vsix'))).toBe(true);
+        expect(collector.lines.some((line) => line.includes('VSIX version matches package.json: 0.7.1'))).toBe(true);
+
+        fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
     it('returns the same verdict on win32 and linux for identical inputs', () => {
         const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-parity-'));
         fs.mkdirSync(path.join(tempDir, 'out'), { recursive: true });

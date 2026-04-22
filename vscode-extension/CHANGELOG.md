@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 - 2026-04-22
+
+- Fixed Foam graph citation visibility by emitting reversible citation wikilinks in visible form while preserving compatibility with legacy HTML-comment anchors.
+- Centralized reversible citation restoration in the shared converter and restricted whitespace parsing to same-line spaces or tabs so cross-line text is not misread as synced citations.
+- Added regression coverage for legacy and APA resync flows plus bundled Python mirror parity, and updated bundle drift detection to ignore Python cache artifacts.
+
 ## 0.7.0 - 2026-04-22
 
 - Centralized MCP workflow guard resolution behind `resolve_project_context` so manuscript and library-wiki tools share one validation entrypoint instead of duplicating local helpers.

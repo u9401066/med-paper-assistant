@@ -32,14 +32,27 @@ class TestWikilinksToPandoc:
         assert result.citations_converted == 2
         assert len(result.citation_keys) == 2
 
-    def test_reversible_format_numbered(self):
+    def test_reversible_format_numbered_visible(self):
+        content = "Some text [1] [[tang2023_38049909]] here."
+        result = wikilinks_to_pandoc(content)
+        assert "[@tang2023_38049909]" in result.content
+        assert "[1] [[tang2023_38049909]]" not in result.content
+        assert result.citations_converted == 1
+
+    def test_reversible_format_numbered_legacy(self):
         content = "Some text [1]<!-- [[tang2023_38049909]] --> here."
         result = wikilinks_to_pandoc(content)
         assert "[@tang2023_38049909]" in result.content
         assert "[1]<!-- [[tang2023_38049909]] -->" not in result.content
         assert result.citations_converted == 1
 
-    def test_reversible_format_apa(self):
+    def test_reversible_format_apa_visible(self):
+        content = "Some text (Tang et al., 2023) [[tang2023_38049909]] here."
+        result = wikilinks_to_pandoc(content)
+        assert "[@tang2023_38049909]" in result.content
+        assert result.citations_converted == 1
+
+    def test_reversible_format_apa_legacy(self):
         content = "Some text (Tang et al., 2023)<!-- [[tang2023_38049909]] --> here."
         result = wikilinks_to_pandoc(content)
         assert "[@tang2023_38049909]" in result.content
@@ -47,11 +60,17 @@ class TestWikilinksToPandoc:
 
     def test_mixed_formats(self):
         """Both reversible and raw wikilinks should be converted."""
-        content = "[1]<!-- [[tang2023_38049909]] --> and [[lee2024_12345678]]."
+        content = "[1] [[tang2023_38049909]] and [[lee2024_12345678]]."
         result = wikilinks_to_pandoc(content)
         assert "[@tang2023_38049909]" in result.content
         assert "[@lee2024_12345678]" in result.content
         assert result.citations_converted == 2
+
+    def test_newline_separated_marker_is_not_treated_as_reversible(self):
+        content = "Some text [1]\n[[tang2023_38049909]] here."
+        result = wikilinks_to_pandoc(content)
+        assert "[1]\n[@tang2023_38049909]" in result.content
+        assert result.citations_converted == 1
 
     def test_duplicate_key_counted_once_in_keys(self):
         content = "First [[tang2023_38049909]] and again [[tang2023_38049909]]."
@@ -253,15 +272,26 @@ class TestExtractCitationKeys:
         assert "lee2024_12345678" in keys
 
     def test_reversible_format(self):
+        keys = extract_citation_keys("[1] [[tang2023_38049909]]")
+        assert "tang2023_38049909" in keys
+
+    def test_reversible_format_legacy(self):
         keys = extract_citation_keys("[1]<!-- [[tang2023_38049909]] -->")
         assert "tang2023_38049909" in keys
 
     def test_mixed_formats(self):
-        content = "[[a2023_111]] and [@b2024_222] and [1]<!-- [[c2025_333]] -->"
+        content = "[[a2023_111]] and [@b2024_222] and [1] [[c2025_333]]"
         keys = extract_citation_keys(content)
         assert "a2023_111" in keys
         assert "b2024_222" in keys
         assert "c2025_333" in keys
+
+    def test_mixed_visible_and_legacy_reversible_formats(self):
+        content = (
+            "[1] [[a2023_111]] and [2]<!-- [[b2024_222]] --> and [[a2023_111]]"
+        )
+        keys = extract_citation_keys(content)
+        assert keys == ["a2023_111", "b2024_222"]
 
     def test_deduplication(self):
         keys = extract_citation_keys("[[tang2023_38049909]] and [[tang2023_38049909]]")

@@ -5,6 +5,9 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import structlog
 
+from med_paper_assistant.domain.services.citation_converter import (
+    restore_reversible_citations_to_wikilinks,
+)
 from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
     DraftSnapshotManager,
 )
@@ -487,10 +490,9 @@ class Drafter:
         else:
             body_content = content.rstrip()
 
-        # 2. First, restore any previously synced citations back to wikilinks
-        #    Pattern: [1]<!-- [[citation_key]] --> or (Author, Year)<!-- [[citation_key]] -->
-        restore_pattern = r"(?:\[\d+\]|\([^)]+,\s*\d{4}\))<!-- \[\[([^\]]+)\]\] -->"
-        body_content = re.sub(restore_pattern, r"[[\1]]", body_content)
+        # 2. Restore any previously synced reversible citations back to raw
+        #    wikilinks so re-syncing never duplicates the in-text prefix.
+        body_content = restore_reversible_citations_to_wikilinks(body_content)
 
         # 3. Find all wikilinks: [[citation_key]] or [[PMID:12345]]
         wikilink_pattern = r"\[\[([^\]]+)\]\]"
@@ -553,15 +555,16 @@ class Drafter:
             }
 
         # 4. Replace wikilinks with formatted in-text citations (REVERSIBLE)
-        #    Format: [1]<!-- [[citation_key]] --> so it can be restored later
+        #    Format: [1] [[citation_key]] so Foam graph can detect links.
+        #    Older drafts may still contain the legacy HTML-comment format.
         new_body = body_content
         citation_map = {pmid: i + 1 for i, (_, pmid, _) in enumerate(citations)}
 
         for wikilink, pmid, metadata in citations:
             number = citation_map[pmid]
             in_text = self._format_citation_in_text(number, metadata)
-            # REVERSIBLE format: [1]<!-- [[wikilink]] -->
-            reversible_citation = f"{in_text}<!-- [[{wikilink}]] -->"
+            # REVERSIBLE format: [1] [[wikilink]]
+            reversible_citation = f"{in_text} [[{wikilink}]]"
             new_body = new_body.replace(f"[[{wikilink}]]", reversible_citation)
 
         # 5. Generate References section
@@ -570,9 +573,9 @@ class Drafter:
         for wikilink, pmid, metadata in citations:
             number = citation_map[pmid]
             entry = self._format_bibliography_entry(number, metadata, pmid)
-            # Add wikilink back as invisible anchor for bidirectional linking
+            # Add wikilink anchor for bidirectional linking and Foam graph edges
             # Blank line between entries for readability
-            references_section += f"{entry.rstrip()} <!-- [[{wikilink}]] -->\n\n"
+            references_section += f"{entry.rstrip()} [[{wikilink}]]\n\n"
 
         # 6. Assemble final content
         final_content = new_body + references_section
