@@ -17,7 +17,7 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
-    validate_project_for_workflow,
+    resolve_project_context,
 )
 
 
@@ -29,15 +29,6 @@ def register_pandoc_export_tools(
     """Register Pandoc-based export tools."""
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
-
-    def _require_manuscript_workflow(project: Optional[str]) -> Optional[str]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if is_valid:
-            return None
-        return error_msg
 
     def _get_pipeline():
         """Lazy-initialize ExportPipeline with current project context."""
@@ -145,7 +136,10 @@ def register_pandoc_export_tools(
             },
         )
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -272,7 +266,10 @@ def register_pandoc_export_tools(
             {"draft": draft_filename, "style": csl_style, "project": project},
         )
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -380,7 +377,10 @@ def register_pandoc_export_tools(
         """
         log_tool_call("preview_citations", {"draft": draft_filename, "project": project})
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -459,7 +459,10 @@ def register_pandoc_export_tools(
         """
         log_tool_call("build_bibliography", {"draft": draft_filename, "project": project})
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 

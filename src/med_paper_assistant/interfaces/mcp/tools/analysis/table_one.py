@@ -22,7 +22,7 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
-    validate_project_for_workflow,
+    resolve_project_context,
 )
 
 
@@ -43,15 +43,6 @@ def register_table_one_tools(
     """Register Table 1 generation tools."""
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
-
-    def _require_manuscript_workflow(project: Optional[str]) -> Optional[str]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if is_valid:
-            return None
-        return error_msg
 
     @tool()
     def generate_table_one(
@@ -84,7 +75,10 @@ def register_table_one_tools(
             },
         )
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -187,7 +181,10 @@ def register_table_one_tools(
 
         log_tool_call("detect_variable_types", {"filename": filename, "project": project})
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -302,7 +299,10 @@ def register_table_one_tools(
 
         log_tool_call("list_data_files", {"project": project})
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 

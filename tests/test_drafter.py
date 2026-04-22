@@ -1,7 +1,9 @@
 import os
+import subprocess
 
 import pytest
 
+from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 from med_paper_assistant.infrastructure.services.drafter import Drafter
 
@@ -276,3 +278,42 @@ def test_create_draft_refreshes_draft_section_graph_notes(tmp_path):
     assert 'type: "draft-section"' in graph_text
     assert 'section_kind: "results"' in graph_text
     assert "[[figure-1]]" in graph_text
+
+
+def test_git_committer_refreshes_when_project_switches(tmp_path):
+    def init_git_repo(repo_path):
+        subprocess.run(["git", "init"], cwd=str(repo_path), capture_output=True, check=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@test.com"],
+            cwd=str(repo_path),
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=str(repo_path),
+            capture_output=True,
+            check=True,
+        )
+
+    pm = ProjectManager(base_path=str(tmp_path))
+    pm.create_project(name="Alpha")
+    alpha_repo = tmp_path / "projects" / "alpha"
+    init_git_repo(alpha_repo)
+
+    ref = ReferenceManager(base_dir=str(tmp_path / "projects" / "alpha" / "references"))
+    drafter = Drafter(ref, project_manager=pm)
+
+    first_committer = drafter.git_committer
+    first_repo = first_committer._repo_dir
+
+    pm.create_project(name="Beta")
+    beta_repo = tmp_path / "projects" / "beta"
+    init_git_repo(beta_repo)
+    second_committer = drafter.git_committer
+    second_repo = second_committer._repo_dir
+
+    assert first_repo == tmp_path / "projects" / "alpha"
+    assert second_repo == tmp_path / "projects" / "beta"
+    assert first_committer.enabled is True
+    assert second_committer.enabled is True

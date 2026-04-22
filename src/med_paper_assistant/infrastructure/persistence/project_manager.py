@@ -144,16 +144,8 @@ class ProjectManager:
         Returns:
             Project info dictionary.
         """
-        slug = self._slugify(name)
+        slug = self._make_unique_slug(name)
         project_path = self.projects_dir / slug
-
-        # Validation
-        if project_path.exists():
-            return {
-                "success": False,
-                "error": f"Project '{slug}' already exists. Use switch_project to switch to it.",
-                "slug": slug,
-            }
 
         if paper_type and not is_valid_paper_type(paper_type):
             return {
@@ -235,6 +227,10 @@ class ProjectManager:
         Returns:
             Project info or error.
         """
+        return self.set_current_project(slug, refresh_foam=True)
+
+    def set_current_project(self, slug: str, *, refresh_foam: bool = False) -> Dict[str, Any]:
+        """Set the active project and optionally refresh Foam integration."""
         project_path = self.projects_dir / slug
 
         if not project_path.exists():
@@ -247,11 +243,14 @@ class ProjectManager:
 
         self._save_current_project(slug)
 
+        project_info = self.get_project_info(slug)
+
+        if not refresh_foam:
+            return project_info
+
         # Update Foam settings for project isolation
         foam_result = self._update_foam_settings(slug)
         graph_result = self._refresh_foam_graph()
-
-        project_info = self.get_project_info(slug)
 
         # Add Foam update info
         if foam_result.get("success"):
@@ -626,6 +625,18 @@ class ProjectManager:
         slug = slug.strip("-")
         return slug or "untitled"
 
+    def _make_unique_slug(self, name: str) -> str:
+        """Generate a unique slug by appending a counter when needed."""
+        slug = self._slugify(name)
+        candidate = slug
+        counter = 1
+
+        while (self.projects_dir / candidate).exists():
+            candidate = f"{slug}-{counter}"
+            counter += 1
+
+        return candidate
+
     def _save_current_project(self, slug: str) -> None:
         """Save current project to .current_project file."""
         self.state_file.write_text(slug)
@@ -715,6 +726,24 @@ class ProjectManager:
 ## Author Notes
 {notes_block}
 """
+
+    def _build_conversion_message(self, workflow_mode: str, stats: Dict[str, int]) -> str:
+        """Build a workflow-aware conversion summary for exploration workspaces."""
+        if workflow_mode == "library-wiki":
+            lines = [
+                f"   - References: {stats.get('references', 0)}",
+                f"   - Inbox notes: {stats.get('inbox', 0)}",
+                f"   - Concept notes: {stats.get('concepts', 0)}",
+                f"   - Synthesis projects: {stats.get('projects', 0)}",
+            ]
+        else:
+            lines = [
+                f"   - References: {stats.get('references', 0)}",
+                f"   - Drafts: {stats.get('drafts', 0)}",
+                f"   - Data files: {stats.get('data_files', 0)}",
+            ]
+
+        return "\n".join(lines)
 
     @staticmethod
     def _normalize_authors(authors: List[Any]) -> List[Dict[str, Any]]:
@@ -987,6 +1016,11 @@ class ProjectManager:
         )
         self._save_config(new_path, config)
 
+        # Ensure the target workflow layout exists even when the source exploration
+        # workspace was created with a different directory shape.
+        for subdir in self._directories_for_workflow(resolved_workflow_mode):
+            (new_path / subdir).mkdir(exist_ok=True)
+
         # Update concept.md or library workspace seed
         concept_content = self._build_workspace_seed_document(
             project_name=name,
@@ -1010,18 +1044,23 @@ class ProjectManager:
         # Switch to new project
         self._save_current_project(new_slug)
 
+        # Keep Foam project isolation and graph nodes aligned with the converted project.
+        self._update_foam_settings(new_slug)
+        self._refresh_foam_graph()
+
+        converted_stats = self._get_project_stats(new_path)
+        conversion_summary = self._build_conversion_message(resolved_workflow_mode, converted_stats)
+
         return {
             "success": True,
             "message": f"✅ 成功將探索工作區轉換為正式專案！\n\n"
             f"📁 新專案: **{name}**\n"
             f"📚 轉移內容:\n"
-            f"   - References: {temp_stats['references']}\n"
-            f"   - Drafts: {temp_stats['drafts']}\n"
-            f"   - Data files: {temp_stats['data_files']}",
+            f"{conversion_summary}",
             "slug": new_slug,
             "path": str(new_path),
             "workflow_mode": resolved_workflow_mode,
-            "stats": temp_stats,
+            "stats": converted_stats,
             "paths": self.get_project_paths(new_slug),
         }
 

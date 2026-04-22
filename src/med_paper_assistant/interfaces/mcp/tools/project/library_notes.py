@@ -11,7 +11,6 @@ from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
-from med_paper_assistant.shared.constants import WORKFLOW_MODES
 
 from .._shared import (
     get_optional_tool_decorator,
@@ -19,6 +18,7 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
 )
 
 ALLOWED_LIBRARY_SECTIONS = ("inbox", "concepts", "projects")
@@ -482,42 +482,12 @@ def register_library_note_tools(
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
     def _resolve_library_project(project: Optional[str]) -> tuple[Optional[dict[str, Any]], str]:
-        target_slug = project or project_manager.get_current_project()
-        if not target_slug:
-            available = project_manager.list_projects().get("projects", [])
-            available_slugs = ", ".join(p.get("slug", "") for p in available if p.get("slug"))
-            return (
-                None,
-                "❌ No active project. "
-                + (
-                    f"Specify a project or switch to one of: {available_slugs}"
-                    if available_slugs
-                    else "Create a library-wiki project first."
-                ),
-            )
-
-        if project and project_manager.get_current_project() != project:
-            switch_result = project_manager.switch_project(project)
-            if not switch_result.get("success"):
-                return None, f"❌ {switch_result.get('error', 'Unable to switch project.')}"
-
-        info = project_manager.get_project_info(target_slug)
-        if not info.get("success"):
-            return None, f"❌ {info.get('error', 'Project not found.')}"
-
-        workflow_mode = info.get("workflow_mode", "manuscript")
-        if workflow_mode != "library-wiki":
-            workflow_name = WORKFLOW_MODES.get(workflow_mode, {}).get("name", workflow_mode)
-            required_name = WORKFLOW_MODES["library-wiki"]["name"]
-            return (
-                None,
-                "❌ Library note tools are only available for "
-                f"{required_name} projects.\n\n"
-                f"Current workflow: {workflow_name}.\n"
-                "Switch the project workflow to `library-wiki` before managing inbox/concepts/projects notes.",
-            )
-
-        return info, ""
+        info, error_msg = resolve_project_context(
+            project,
+            required_mode="library-wiki",
+            project_manager=project_manager,
+        )
+        return info, error_msg or ""
 
     def _resolve_section_dir(info: dict[str, Any], section: str) -> tuple[Optional[Path], str]:
         normalized = _normalize_section(section)

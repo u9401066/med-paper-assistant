@@ -21,8 +21,6 @@ from typing import Literal, Optional, cast
 
 from mcp.server.fastmcp import Context, FastMCP
 
-from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
-
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import (
     DataArtifactTracker,
 )
@@ -51,11 +49,11 @@ from med_paper_assistant.infrastructure.persistence.writing_hooks import (
 )
 
 from .._shared import (
-    ensure_project_context,
     get_optional_tool_decorator,
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
     report_tool_progress,
 )
 from .._shared.guidance import build_guidance_hint
@@ -74,28 +72,6 @@ def register_audit_hook_tools(
     """Register audit hook enforcement tools with the MCP server."""
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
-
-    def _require_manuscript_project(project: Optional[str] = None) -> tuple[Optional[dict], Optional[str]]:
-        is_valid, msg, project_info = ensure_project_context(project)
-        if not is_valid or project_info is None:
-            return None, f"❌ {msg}"
-
-        current_mode = (project_info or {}).get("workflow_mode", DEFAULT_WORKFLOW_MODE)
-        if current_mode != "manuscript":
-            current_mode_name = WORKFLOW_MODES.get(current_mode, {}).get("name", current_mode)
-            required_mode_name = WORKFLOW_MODES["manuscript"]["name"]
-            return (
-                None,
-                "❌ This tool is only available for "
-                f"{required_mode_name} projects.\n\n"
-                f"Current workflow: {current_mode_name}.\n"
-                "Switch project or update the current project workflow before retrying.\n\n"
-                "Suggested fix:\n"
-                '- `project_action(action="update", workflow_mode="manuscript")`\n'
-                "- or switch to a project that already uses the required workflow mode.",
-            )
-
-        return project_info, None
 
     @tool()
     def record_hook_event(
@@ -133,7 +109,10 @@ def register_audit_hook_tools(
             if not re.match(r"^[A-Z]\d{1,2}$", hook_id):
                 return f"❌ Invalid hook_id '{hook_id}'. Must be a letter + 1-2 digits (e.g., 'A1', 'B5', 'C3')"
 
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -203,7 +182,10 @@ def register_audit_hook_tools(
         """
         log_tool_call("run_quality_audit", {"project": project})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -362,7 +344,10 @@ def register_audit_hook_tools(
         """
         log_tool_call("run_meta_learning", {"project": project})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -501,7 +486,10 @@ def register_audit_hook_tools(
         """
         log_tool_call("validate_data_artifacts", {"project": project})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -635,7 +623,10 @@ def register_audit_hook_tools(
         """
         log_tool_call("run_writing_hooks", {"hooks": hooks, "project": project})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -1176,7 +1167,10 @@ def register_audit_hook_tools(
             {"section": section, "paper_type": paper_type, "project": project},
         )
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
             project_dir = str(project_info["project_path"])
@@ -1275,7 +1269,10 @@ def register_audit_hook_tools(
             {"constraint_id": constraint_id, "rule": rule, "project": project},
         )
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
             project_dir = str(project_info["project_path"])
@@ -1482,7 +1479,10 @@ def register_audit_hook_tools(
         """
         log_tool_call("run_review_hooks", {"round_num": round_num, "hooks": hooks})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 

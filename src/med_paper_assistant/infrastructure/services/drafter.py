@@ -90,6 +90,7 @@ class Drafter:
         self._project_manager = project_manager
         self._snapshot_manager: Optional[DraftSnapshotManager] = None
         self._git_committer: Optional[GitAutoCommitter] = None
+        self._git_committer_root: Optional[str] = None
         # Note: Directory is created on-demand when writing drafts,
         # not at initialization to avoid polluting root directory
 
@@ -118,10 +119,12 @@ class Drafter:
     @property
     def git_committer(self) -> GitAutoCommitter:
         """Lazy-initialized git auto-committer tied to project root."""
-        if self._git_committer is None:
-            # Use parent of drafts_dir (project root) as the repo dir
-            project_root = os.path.dirname(self.drafts_dir)
+        # Use parent of drafts_dir (project root) as the repo dir.
+        # This must refresh when the active project changes.
+        project_root = os.path.dirname(self.drafts_dir)
+        if self._git_committer is None or self._git_committer_root != project_root:
             self._git_committer = GitAutoCommitter(project_root)
+            self._git_committer_root = project_root
         return self._git_committer
 
     def set_citation_style(self, style: str):

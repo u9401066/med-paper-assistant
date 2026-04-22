@@ -17,14 +17,12 @@ from med_paper_assistant.infrastructure.persistence import ReferenceManager
 from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
-    ensure_project_context,
     get_drafts_dir,
     get_optional_tool_decorator,
-    get_project_list_for_prompt,
     log_tool_call,
     log_tool_error,
     log_tool_result,
-    validate_project_for_workflow,
+    resolve_project_context,
 )
 
 # Import consistency check helpers
@@ -56,19 +54,6 @@ def register_formatting_tools(
     """Register formatting check tools."""
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
-
-    def _require_manuscript_project(project: Optional[str]) -> tuple[Optional[dict], Optional[str]]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if not is_valid:
-            return None, error_msg
-
-        is_valid, msg, project_info = ensure_project_context(project)
-        if not is_valid or project_info is None:
-            return None, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-        return project_info, None
 
     @tool()
     def check_formatting(
@@ -115,7 +100,10 @@ def register_formatting_tools(
             },
         )
 
-        _project_info, workflow_error = _require_manuscript_project(project)
+        _project_info, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 

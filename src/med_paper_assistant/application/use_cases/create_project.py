@@ -1,10 +1,5 @@
-"""
-Create Project Use Case.
+"""Create Project Use Case."""
 
-Handles the creation of a new research paper project.
-"""
-
-import re
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -62,8 +57,9 @@ class CreateProjectUseCase:
         Raises:
             ProjectAlreadyExistsError: If project slug already exists.
         """
-        # Generate slug
-        slug = self._generate_slug(input_data.name)
+        # Build a project entity, but delegate creation semantics to the
+        # repository's runtime lifecycle owner.
+        slug = Project.generate_slug(input_data.name)
 
         # Create project entity
         project = Project(
@@ -89,36 +85,3 @@ class CreateProjectUseCase:
             path=str(created.path),
             message=f"Project '{created.name}' created successfully.",
         )
-
-    def _generate_slug(self, name: str) -> str:
-        """
-        Generate a URL-friendly slug from project name.
-
-        Args:
-            name: Project name.
-
-        Returns:
-            Slug string.
-        """
-        # Convert to lowercase
-        slug = name.lower()
-
-        # Replace spaces and special chars with hyphens
-        slug = re.sub(r"[^\w\s-]", "", slug)
-        slug = re.sub(r"[\s_]+", "-", slug)
-
-        # Remove leading/trailing hyphens
-        slug = slug.strip("-")
-
-        # Ensure not empty
-        if not slug:
-            slug = "untitled"
-
-        # Handle duplicates
-        original_slug = slug
-        counter = 1
-        while (self.repository.projects_dir / slug).exists():
-            slug = f"{original_slug}-{counter}"
-            counter += 1
-
-        return slug

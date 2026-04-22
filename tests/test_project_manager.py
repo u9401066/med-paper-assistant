@@ -186,6 +186,52 @@ class TestCreateProject:
         assert Path(info["paths"]["concepts"]).is_dir()
         assert Path(info["paths"]["projects"]).is_dir()
 
+    def test_convert_exploration_to_library_project_reports_library_stats(self, pm):
+        pm.get_or_create_temp_project()
+
+        result = pm.convert_temp_to_project(
+            name="Library Converted",
+            workflow_mode="library-wiki",
+        )
+
+        assert result["success"] is True
+        assert result["workflow_mode"] == "library-wiki"
+        assert "Inbox notes" in result["message"]
+        assert "Concept notes" in result["message"]
+        assert "Synthesis projects" in result["message"]
+        assert result["stats"]["references"] == 0
+        assert result["stats"]["inbox"] == 0
+        assert result["stats"]["concepts"] == 0
+        assert result["stats"]["projects"] == 0
+
+    def test_convert_exploration_to_manuscript_project_creates_required_dirs(self, pm):
+        pm.get_or_create_temp_project()
+
+        result = pm.convert_temp_to_project(
+            name="Paper Converted",
+            workflow_mode="manuscript",
+            paper_type="original-research",
+        )
+
+        assert result["success"] is True
+        assert result["workflow_mode"] == "manuscript"
+        assert "Drafts" in result["message"]
+        assert "Data files" in result["message"]
+        assert Path(result["paths"]["drafts"]).is_dir()
+        assert Path(result["paths"]["data"]).is_dir()
+        assert Path(result["paths"]["results"]).is_dir()
+        assert result["stats"]["drafts"] == 0
+        assert result["stats"]["data_files"] == 0
+
+    def test_create_project_deduplicates_duplicate_names(self, pm):
+        first = pm.create_project(name="Repeated Name")
+        second = pm.create_project(name="Repeated Name")
+
+        assert first["success"] is True
+        assert first["slug"] == "repeated-name"
+        assert second["success"] is True
+        assert second["slug"] == "repeated-name-1"
+
 
 class TestAuthorManagement:
     """Tests for structured author info in project config."""

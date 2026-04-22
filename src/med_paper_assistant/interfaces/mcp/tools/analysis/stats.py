@@ -21,7 +21,7 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
-    validate_project_for_workflow,
+    resolve_project_context,
 )
 
 
@@ -52,15 +52,6 @@ def register_stats_tools(
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
-    def _require_manuscript_workflow(project: Optional[str]) -> Optional[str]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if is_valid:
-            return None
-        return error_msg
-
     @tool()
     def analyze_dataset(filename: str, project: Optional[str] = None) -> str:
         """
@@ -72,7 +63,10 @@ def register_stats_tools(
         """
         log_tool_call("analyze_dataset", {"filename": filename, "project": project})
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -144,7 +138,10 @@ def register_stats_tools(
             },
         )
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -263,7 +260,10 @@ def register_stats_tools(
             },
         )
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 

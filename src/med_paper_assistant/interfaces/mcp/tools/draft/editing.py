@@ -36,7 +36,7 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
-    validate_project_for_workflow,
+    resolve_project_context,
 )
 
 
@@ -57,15 +57,6 @@ def register_editing_tools(
     """Register citation-aware editing tools."""
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
-
-    def _require_manuscript_project(project: Optional[str]) -> Optional[str]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if is_valid:
-            return None
-        return error_msg
 
     @tool()
     def get_available_citations(project: Optional[str] = None) -> str:
@@ -93,7 +84,10 @@ def register_editing_tools(
                 )
                 return error_msg
 
-        workflow_error = _require_manuscript_project(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             log_agent_misuse(
                 "get_available_citations",
@@ -209,7 +203,10 @@ def register_editing_tools(
                 )
                 return error_msg
 
-        workflow_error = _require_manuscript_project(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             log_agent_misuse(
                 "patch_draft",

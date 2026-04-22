@@ -45,13 +45,12 @@ from med_paper_assistant.infrastructure.persistence.workspace_state_manager impo
 )
 
 from .._shared import (
-    ensure_project_context,
     get_optional_tool_decorator,
     log_tool_call,
     log_tool_error,
     log_tool_result,
     report_tool_progress,
-    validate_project_for_workflow,
+    resolve_project_context,
 )
 
 # Phase name mapping (shared across tools)
@@ -230,19 +229,6 @@ def register_pipeline_tools(
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
-    def _require_manuscript_project(project: Optional[str] = None) -> tuple[Optional[dict], Optional[str]]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if not is_valid:
-            return None, error_msg
-
-        is_valid, msg, project_info = ensure_project_context(project)
-        if not is_valid or project_info is None:
-            return None, msg
-        return project_info, None
-
     @tool()
     async def validate_phase_gate(
         phase: int,
@@ -284,7 +270,10 @@ def register_pipeline_tools(
         """
         log_tool_call("validate_phase_gate", {"phase": phase, "project": project})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -361,7 +350,10 @@ def register_pipeline_tools(
         """
         log_tool_call("pipeline_heartbeat", {"project": project})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -466,7 +458,10 @@ def register_pipeline_tools(
             {"project": project, "max_rounds": max_rounds, "min_rounds": min_rounds},
         )
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -596,7 +591,10 @@ def register_pipeline_tools(
         """
         log_tool_call("submit_review_round", {"scores": scores, "issues_found": issues_found})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -891,7 +889,10 @@ def register_pipeline_tools(
         """
         log_tool_call("validate_project_structure", {"project": project})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
 
@@ -950,7 +951,10 @@ def register_pipeline_tools(
         """
         log_tool_call("request_section_rewrite", {"sections": sections, "reason": reason})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
             project_info = _require_project_info(project_info)
@@ -1071,7 +1075,10 @@ def register_pipeline_tools(
         """
         log_tool_call("pause_pipeline", {"reason": reason})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
             project_info = _require_project_info(project_info)
@@ -1139,7 +1146,10 @@ def register_pipeline_tools(
         """
         log_tool_call("resume_pipeline", {"project": project})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
             project_info = _require_project_info(project_info)
@@ -1248,7 +1258,10 @@ def register_pipeline_tools(
         """
         log_tool_call("approve_section", {"section": section, "action": action})
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
             project_info = _require_project_info(project_info)
@@ -1355,7 +1368,10 @@ def register_pipeline_tools(
             {"action": action, "project": project, "approved_by": approved_by},
         )
         try:
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
             project_info = _require_project_info(project_info)
@@ -1459,7 +1475,10 @@ def register_pipeline_tools(
                     "Call again with `confirm=True` to proceed."
                 )
 
-            project_info, workflow_error = _require_manuscript_project(project)
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
             if workflow_error:
                 return workflow_error
             project_info = _require_project_info(project_info)

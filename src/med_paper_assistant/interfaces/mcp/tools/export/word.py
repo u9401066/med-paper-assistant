@@ -15,10 +15,8 @@ from med_paper_assistant.domain.services.wikilink_validator import validate_wiki
 from med_paper_assistant.infrastructure.services import Formatter, TemplateReader, WordWriter
 
 from .._shared import (
-    ensure_project_context,
     get_optional_tool_decorator,
-    get_project_list_for_prompt,
-    validate_project_for_workflow,
+    resolve_project_context,
 )
 
 # Global state for document editing sessions
@@ -42,19 +40,6 @@ def register_word_export_tools(
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
-    def _require_manuscript_project(project: Optional[str]) -> tuple[Optional[dict], Optional[str]]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if not is_valid:
-            return None, error_msg
-
-        is_valid, msg, project_info = ensure_project_context(project)
-        if not is_valid or project_info is None:
-            return None, f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-        return project_info, None
-
     def _resolve_session_project(
         session_id: str,
         project: Optional[str],
@@ -65,7 +50,10 @@ def register_word_export_tools(
 
         session_project = session.get("project")
         requested_project = project or session_project
-        project_info, error_msg = _require_manuscript_project(requested_project)
+        project_info, error_msg = resolve_project_context(
+            requested_project,
+            required_mode="manuscript",
+        )
         if error_msg:
             return None, error_msg
 
@@ -122,7 +110,10 @@ def register_word_export_tools(
             session_id: Unique session identifier (default: "default")
             project: Project slug (uses current if omitted)
         """
-        project_info, error_msg = _require_manuscript_project(project)
+        project_info, error_msg = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if error_msg:
             return error_msg
 

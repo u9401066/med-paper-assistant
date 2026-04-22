@@ -15,6 +15,7 @@ from .project_context import (
     get_drafts_dir,
     get_project_list_for_prompt,
     get_project_path,
+    resolve_project_context,
     validate_project_for_tool,
     validate_project_for_workflow,
     validate_project_slug,
@@ -38,6 +39,7 @@ __all__ = [
     "ensure_project_context",
     "validate_project_slug",
     "get_project_list_for_prompt",
+    "resolve_project_context",
     # Project path helpers
     "get_project_path",
     "get_drafts_dir",

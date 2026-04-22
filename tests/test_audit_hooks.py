@@ -70,7 +70,7 @@ def engine(audit_dir, tracker, scorecard):
 
 
 def _mock_project_context(project_dir: Path):
-    """Return a mock for ensure_project_context that always succeeds with the given dir."""
+    """Return a mock for resolve_project_context that always succeeds with the given dir."""
     project_info = {
         "slug": "test-project",
         "name": "Test Project",
@@ -78,8 +78,8 @@ def _mock_project_context(project_dir: Path):
         "success": True,
     }
     return patch(
-        "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.ensure_project_context",
-        return_value=(True, "Working on project: Test Project", project_info),
+        "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.resolve_project_context",
+        return_value=(project_info, None),
     )
 
 
@@ -202,8 +202,8 @@ class TestRecordHookEventTool:
         """No project active → error message."""
         fn = tool_funcs["record_hook_event"]
         with patch(
-            "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.ensure_project_context",
-            return_value=(False, "No project selected", None),
+            "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.resolve_project_context",
+            return_value=(None, "❌ No project selected"),
         ):
             result = fn(hook_id="A1", event_type="trigger")
         assert "❌" in result
@@ -411,8 +411,8 @@ class TestRunMetaLearningTool:
         """No project active → error."""
         fn = tool_funcs["run_meta_learning"]
         with patch(
-            "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.ensure_project_context",
-            return_value=(False, "No project selected", None),
+            "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.resolve_project_context",
+            return_value=(None, "❌ No project selected"),
         ):
             result = fn()
         assert "❌" in result

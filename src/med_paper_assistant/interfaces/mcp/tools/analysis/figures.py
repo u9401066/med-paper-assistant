@@ -25,7 +25,7 @@ from .._shared import (
     get_project_list_for_prompt,
     log_tool_call,
     log_tool_result,
-    validate_project_for_workflow,
+    resolve_project_context,
 )
 
 FIGURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".tiff", ".drawio"}
@@ -181,15 +181,6 @@ def register_figure_tools(
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
-    def _require_manuscript_workflow(project: Optional[str]) -> Optional[str]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if is_valid:
-            return None
-        return error_msg
-
     @tool()
     def review_asset_for_insertion(
         asset_type: str,
@@ -221,7 +212,10 @@ def register_figure_tools(
             {"asset_type": asset_type, "filename": filename, "project": project},
         )
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -293,7 +287,10 @@ def register_figure_tools(
         """
         log_tool_call("insert_figure", {"filename": filename, "caption": caption})
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -418,7 +415,10 @@ def register_figure_tools(
         """
         log_tool_call("insert_table", {"filename": filename, "caption": caption})
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 
@@ -550,7 +550,10 @@ def register_figure_tools(
         """
         log_tool_call("list_assets", {"project": project})
 
-        workflow_error = _require_manuscript_workflow(project)
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
             return workflow_error
 

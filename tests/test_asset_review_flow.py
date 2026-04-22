@@ -61,8 +61,11 @@ def figure_tool_funcs(tmp_path: Path, monkeypatch):
         lambda project=None: str(project_dir),
     )
     monkeypatch.setattr(
-        "med_paper_assistant.interfaces.mcp.tools.analysis.figures.validate_project_for_workflow",
-        lambda project=None, required_mode="manuscript": (True, ""),
+        "med_paper_assistant.interfaces.mcp.tools.analysis.figures.resolve_project_context",
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            {"slug": "project", "project_path": str(project_dir)},
+            None,
+        ),
     )
 
     mock_mcp = MagicMock()

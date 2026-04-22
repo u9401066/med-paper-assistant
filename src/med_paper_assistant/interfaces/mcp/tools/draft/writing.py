@@ -31,8 +31,8 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
+    resolve_project_context,
     validate_project_for_tool,
-    validate_project_for_workflow,
 )
 
 # Global validator instance
@@ -344,22 +344,6 @@ def register_writing_tools(
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
-    def _require_manuscript_project(project: Optional[str], tool_name: str) -> Optional[str]:
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if is_valid:
-            return None
-
-        log_agent_misuse(
-            tool_name,
-            "manuscript workflow required",
-            {"project": project},
-            error_msg,
-        )
-        return error_msg
-
     @tool()
     def check_writing_order(project: Optional[str] = None) -> str:
         """
@@ -377,8 +361,17 @@ def register_writing_tools(
         if not is_valid:
             return error_msg
 
-        workflow_error = _require_manuscript_project(project, "check_writing_order")
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
+            log_agent_misuse(
+                "check_writing_order",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
             return workflow_error
 
         from med_paper_assistant.domain.paper_types import WRITING_ORDER, _format_writing_order
@@ -483,8 +476,17 @@ def register_writing_tools(
             )
             return error_msg
 
-        workflow_error = _require_manuscript_project(project, "draft_section")
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
+            log_agent_misuse(
+                "draft_section",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
             return workflow_error
 
         # 1. Enforce Concept Validation
@@ -613,8 +615,17 @@ def register_writing_tools(
             )
             return error_msg
 
-        workflow_error = _require_manuscript_project(project, "write_draft")
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
+            log_agent_misuse(
+                "write_draft",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
             return workflow_error
 
         is_concept_file = "concept" in filename.lower()
@@ -714,8 +725,17 @@ def register_writing_tools(
                 )
                 return error_msg
 
-        workflow_error = _require_manuscript_project(project, "list_drafts")
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
+            log_agent_misuse(
+                "list_drafts",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
             return workflow_error
 
         drafts_dir = get_drafts_dir()
@@ -772,8 +792,17 @@ def register_writing_tools(
                 )
                 return error_msg
 
-        workflow_error = _require_manuscript_project(project, "read_draft")
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
+            log_agent_misuse(
+                "read_draft",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
             return workflow_error
 
         if not os.path.isabs(filename):
@@ -858,8 +887,17 @@ def register_writing_tools(
                 )
                 return error_msg
 
-        workflow_error = _require_manuscript_project(project, "delete_draft")
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
         if workflow_error:
+            log_agent_misuse(
+                "delete_draft",
+                "manuscript workflow required",
+                {"project": project},
+                workflow_error,
+            )
             return workflow_error
 
         # Resolve the full path
