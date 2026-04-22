@@ -60,6 +60,14 @@ class FoamSettingsManager:
         "results/**",
     ]
 
+    MANAGED_GRAPH_VIEW_NAMES = [
+        "Default",
+        "Evidence",
+        "Writing",
+        "Assets",
+        "Review",
+    ]
+
     def __init__(self, workspace_root: Path):
         """
         Initialize Foam settings manager.
@@ -91,9 +99,14 @@ class FoamSettingsManager:
 
             # Build new ignore list
             ignore_list = self._build_ignore_list(current_slug)
+            graph_views = self._merge_graph_views(
+                settings.get("foam.graph.views"), self._build_graph_views(current_slug)
+            )
 
             # Update foam.files.ignore
             settings["foam.files.ignore"] = ignore_list
+            settings["foam.graph.views"] = graph_views
+            settings["foam.graph.navigateToPreview"] = True
 
             # Write back (preserving some formatting)
             self._write_settings(settings)
@@ -101,6 +114,7 @@ class FoamSettingsManager:
             return {
                 "success": True,
                 "message": f"Foam settings updated for project '{current_slug}'",
+                "graph_views": [view["name"] for view in graph_views],
                 "ignored_projects": [
                     p
                     for p in ignore_list
@@ -143,6 +157,139 @@ class FoamSettingsManager:
                     ignore_list.append(f"projects/{project_dir.name}/**")
 
         return ignore_list
+
+    def _merge_graph_views(self, existing: Any, generated: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Preserve non-MedPaper custom views while replacing managed ones."""
+        preserved: List[Dict[str, Any]] = []
+        if isinstance(existing, list):
+            for view in existing:
+                if not isinstance(view, dict):
+                    continue
+                name = str(view.get("name", "")).strip()
+                if not name or name in self.MANAGED_GRAPH_VIEW_NAMES:
+                    continue
+                preserved.append(view)
+
+        return generated + preserved
+
+    def _build_graph_views(self, current_slug: str) -> List[Dict[str, Any]]:
+        """Generate MedPaper-managed Foam named views for the active project."""
+        groups = self._build_graph_groups(current_slug)
+        default_show = {
+            "tag": {"enabled": False, "color": "#f4d35e"},
+            "placeholder": {"enabled": False, "color": "#c7ced6"},
+            "attachment": {"enabled": False, "color": "#7d8597"},
+            "image": {"enabled": False, "color": "#ff99c8"},
+        }
+
+        return [
+            {
+                "name": "Default",
+                "colorBy": "type",
+                "background": "#fbfcff",
+                "lineColor": "#7a8ca5",
+                "fontSize": 12,
+                "show": default_show,
+                "groups": groups,
+            },
+            {
+                "name": "Evidence",
+                "colorBy": "type",
+                "background": "#fcfffd",
+                "lineColor": "#7f9c8d",
+                "fontSize": 12,
+                "show": default_show,
+                "groups": [
+                    *groups,
+                    self._group("hide-writing", "note_domain", "writing", "#d9d9d9", enabled=False),
+                    self._group("hide-assets", "note_domain", "asset", "#d9d9d9", enabled=False),
+                ],
+            },
+            {
+                "name": "Writing",
+                "colorBy": "type",
+                "background": "#fffdf7",
+                "lineColor": "#c49a5a",
+                "fontSize": 12,
+                "show": default_show,
+                "groups": [
+                    *groups,
+                    self._group("hide-literature", "note_domain", "literature", "#d9d9d9", enabled=False),
+                    self._group("hide-synthesis", "note_domain", "synthesis", "#d9d9d9", enabled=False),
+                ],
+            },
+            {
+                "name": "Assets",
+                "colorBy": "type",
+                "background": "#fffafc",
+                "lineColor": "#b86c8b",
+                "fontSize": 12,
+                "show": {
+                    **default_show,
+                    "attachment": {"enabled": True, "color": "#7d8597"},
+                    "image": {"enabled": True, "color": "#ff99c8"},
+                },
+                "groups": [
+                    *groups,
+                    self._group("hide-literature", "note_domain", "literature", "#d9d9d9", enabled=False),
+                    self._group("hide-writing", "note_domain", "writing", "#d9d9d9", enabled=False),
+                    self._group("hide-synthesis", "note_domain", "synthesis", "#d9d9d9", enabled=False),
+                ],
+            },
+            {
+                "name": "Review",
+                "colorBy": "type",
+                "background": "#fffdfb",
+                "lineColor": "#ae7f5a",
+                "fontSize": 12,
+                "show": default_show,
+                "groups": [
+                    *groups,
+                    self._group("review-pending", "review_state", "pending", "#f07167"),
+                    self._group("review-reviewed", "review_state", "reviewed", "#2a9d8f"),
+                    self._group("analysis-pending", "analysis_state", "pending", "#f4a261"),
+                    self._group("fulltext-missing", "fulltext_state", "missing", "#e76f51"),
+                ],
+            },
+        ]
+
+    def _build_graph_groups(self, current_slug: str) -> List[Dict[str, Any]]:
+        """Define reusable graph groups for MedPaper note taxonomy."""
+        return [
+            self._group("project", "project", current_slug, "#1d3557"),
+            self._group("reference", "type", "reference", "#2c7da0"),
+            self._group("knowledge-map", "type", "knowledge-map", "#588157"),
+            self._group("synthesis-page", "type", "synthesis-page", "#6a4c93"),
+            self._group("draft-section", "type", "draft-section", "#ffb703"),
+            self._group("figure-note", "type", "figure-note", "#e76f51"),
+            self._group("table-note", "type", "table-note", "#8d99ae"),
+            self._group("literature", "note_domain", "literature", "#277da1"),
+            self._group("writing", "note_domain", "writing", "#f4a261"),
+            self._group("asset", "note_domain", "asset", "#c9184a"),
+            self._group("synthesis", "note_domain", "synthesis", "#6d597a"),
+            self._group("methods", "section_kind", "methods", "#bc6c25"),
+            self._group("results", "section_kind", "results", "#2a9d8f"),
+            self._group("discussion", "section_kind", "discussion", "#9b5de5"),
+            self._group("figure-assets", "asset_type", "figure", "#ef476f"),
+            self._group("table-assets", "asset_type", "table", "#118ab2"),
+        ]
+
+    def _group(
+        self,
+        group_id: str,
+        property_name: str,
+        value: str,
+        color: str,
+        *,
+        enabled: bool = True,
+    ) -> Dict[str, Any]:
+        return {
+            "id": group_id,
+            "label": f"{property_name}={value}",
+            "color": color,
+            "enabled": enabled,
+            "match": {"property": property_name, "value": value},
+        }
 
     def _parse_jsonc(self, text: str) -> Dict[str, Any]:
         """

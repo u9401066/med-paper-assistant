@@ -243,6 +243,19 @@ describe('extension host smoke', () => {
         expect(mockVscode.window.showTextDocument).toHaveBeenCalledOnce();
     });
 
+    it('registers Foam graph view commands and forwards the correct named view', async () => {
+        const extension = await import('../extension');
+        const context = createExtensionContext();
+
+        await extension.activate(context as never);
+
+        expect(commandHandlers.has('mdpaper.showGraphEvidence')).toBe(true);
+
+        await mockVscode.commands.executeCommand('mdpaper.showGraphEvidence');
+
+        expect(mockVscode.commands.executeCommand).toHaveBeenCalledWith('foam-vscode.show-graph', { view: 'Evidence' });
+    });
+
     it('setupWorkspace copies bundled docs and announces which docs were added', async () => {
         const extension = await import('../extension');
         const context = createExtensionContext();

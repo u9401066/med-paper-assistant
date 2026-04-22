@@ -157,6 +157,8 @@ class Drafter:
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(final_content)
 
+        self.ref_manager.refresh_foam_graph()
+
         # Auto-commit after successful write
         self.git_committer.commit_draft(filename, reason="create_draft")
 
@@ -235,6 +237,8 @@ class Drafter:
 
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(final_content)
+
+        self.ref_manager.refresh_foam_graph()
 
         # Auto-commit after successful write
         self.git_committer.commit_draft(filename, reason="insert_citation")
@@ -573,6 +577,8 @@ class Drafter:
         # 7. Write back
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(final_content)
+
+        self.ref_manager.refresh_foam_graph()
 
         # Auto-commit after sync
         self.git_committer.commit_draft(filename, reason="sync_references")

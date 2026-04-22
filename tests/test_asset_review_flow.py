@@ -9,6 +9,7 @@ import pytest
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager, _reset_project_manager
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
+from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 from med_paper_assistant.interfaces.mcp.tools.analysis.figures import register_figure_tools
 
 
@@ -59,6 +60,10 @@ def figure_tool_funcs(tmp_path: Path, monkeypatch):
         "med_paper_assistant.interfaces.mcp.tools.analysis.figures._get_project_path",
         lambda project=None: str(project_dir),
     )
+    monkeypatch.setattr(
+        "med_paper_assistant.interfaces.mcp.tools.analysis.figures.validate_project_for_workflow",
+        lambda project=None, required_mode="manuscript": (True, ""),
+    )
 
     mock_mcp = MagicMock()
     captured = {}
@@ -74,6 +79,7 @@ def figure_tool_funcs(tmp_path: Path, monkeypatch):
 
     mock_drafter = MagicMock()
     mock_drafter.drafts_dir = str(project_dir / "drafts")
+    mock_drafter.ref_manager = ReferenceManager(base_dir=str(project_dir / "references"))
     register_figure_tools(mock_mcp, mock_drafter)
 
     yield captured, project_dir
@@ -114,6 +120,11 @@ def test_review_then_insert_figure_passes(figure_tool_funcs):
     )
     assert "Figure 1 Registered" in insert_result
     assert (project_dir / "results" / "manifest.json").exists()
+    figure_note = project_dir / "notes" / "figures" / "figure-1-consort.md"
+    assert figure_note.exists()
+    figure_note_text = figure_note.read_text(encoding="utf-8")
+    assert "^asset-summary" in figure_note_text
+    assert "^review-observation-1" in figure_note_text
 
 
 def test_insert_table_blocked_when_caption_differs_from_review(figure_tool_funcs):

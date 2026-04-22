@@ -255,3 +255,24 @@ class TestSyncReferencesBlankLines:
                 found_blank_between = True
                 break
         assert found_blank_between, "No blank line between reference entries"
+
+
+def test_create_draft_refreshes_draft_section_graph_notes(tmp_path):
+    refs_dir = tmp_path / "refs"
+    drafts_dir = tmp_path / "drafts"
+    drafts_dir.mkdir()
+
+    ref = ReferenceManager(base_dir=str(refs_dir))
+    drafter = Drafter(ref, drafts_dir=str(drafts_dir))
+
+    drafter.create_draft(
+        "results.md",
+        "# Results\n\nThis section mentions [[figure-1]] and reports the main outcome.",
+    )
+
+    graph_note = tmp_path / "notes" / "draft-sections" / "results-results.md"
+    assert graph_note.exists()
+    graph_text = graph_note.read_text(encoding="utf-8")
+    assert 'type: "draft-section"' in graph_text
+    assert 'section_kind: "results"' in graph_text
+    assert "[[figure-1]]" in graph_text

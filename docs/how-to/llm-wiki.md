@@ -205,13 +205,17 @@ The LLM writes the wiki, but you still own:
 
 These are the main limits that still matter in day-to-day use:
 
-- `notes/index.md` is still static and does not yet expose live `foam-query`
-  blocks
-- table and figure snippets are not yet first-class block-anchor targets
-- topic and methodology tags are still lighter than they should be for richer
-  filtered graph views
-- embedded evidence currently favors the key findings block and the first
-  evidence block, not every possible evidence fragment
+- registered figure/table notes now expose summary, review, bbox, and matched
+  source-fragment anchors, but not every underlying layout-level snippet is
+  anchored yet
+- imported reference notes now link out to materialized journal/author/topic
+  context hubs, but those taxonomy notes are still intentionally lightweight
+- asset graph notes currently summarize registered figures/tables, not every
+  possible fragment-level evidence card
+- managed graph views are exposed as MedPaper commands, but fully custom inline
+  graph configs still rely on native Foam keybindings
+- embedded evidence currently favors the key findings block and summary
+  excerpts, not every possible evidence fragment
 
 ## Related References
 

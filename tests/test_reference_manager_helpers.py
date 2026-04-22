@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 
 
@@ -80,26 +81,50 @@ def test_import_local_file_creates_reference_note_and_scaffolding(tmp_path) -> N
     index_path = tmp_path / "notes" / "index.md"
     log_path = tmp_path / "notes" / "log.md"
     hash_registry_path = tmp_path / "registry" / "by-hash.json"
+    library_overview_path = tmp_path / "notes" / "library" / "overview.md"
 
     assert index_path.exists()
     assert log_path.exists()
     assert hash_registry_path.exists()
+    assert library_overview_path.exists()
 
     index_text = index_path.read_text(encoding="utf-8")
     log_text = log_path.read_text(encoding="utf-8")
     hash_registry = json.loads(hash_registry_path.read_text(encoding="utf-8"))
+    author_context_path = tmp_path / "notes" / "context" / "author-chen-eric.md"
+    section_context_path = tmp_path / "notes" / "context" / "section-methods.md"
 
     assert metadata["citation_key"] in index_text
     assert "local_import" in log_text
     assert "local_import_materialized" not in log_text
     assert hash_registry[metadata["content_hash"]] == ref_id
     assert 'type: "reference"' in note_text
+    assert 'note_domain: "literature"' in note_text
+    assert 'analysis_state: "pending"' in note_text
+    assert 'fulltext_state: "ingested"' in note_text
     assert "tags:" in note_text
     assert '  - "trust/extracted"' in note_text
+    assert "## Graph Context" in note_text
+    assert "[[author-chen-eric]]" in note_text
+    assert "[[section-methods]]" in note_text
+    assert "Graph tags:" in note_text
+    library_overview_text = library_overview_path.read_text(encoding="utf-8")
+    assert 'type: "library-overview"' in library_overview_text
+    assert "## Library Status" in library_overview_text
+    assert "## Identity Resolution Queue" in library_overview_text
+    assert metadata["citation_key"] in library_overview_text
     assert "## Key Findings" in note_text
     assert "^key-findings" in note_text
     assert "## Evidence Blocks" in note_text
     assert "^evidence-methods" in note_text
+    assert author_context_path.exists()
+    assert section_context_path.exists()
+    assert metadata["citation_key"] in author_context_path.read_text(encoding="utf-8")
+    assert metadata["citation_key"] in section_context_path.read_text(encoding="utf-8")
+    assert "## Context Hubs" in index_text
+    assert "## Library Views" in index_text
+    assert "[[author-chen-eric]]" in index_text
+    assert "[[library-overview]]" in index_text
 
 
 def test_import_local_file_deduplicates_by_content_hash(tmp_path) -> None:
@@ -178,6 +203,7 @@ def test_materialize_agent_wiki_builds_indexed_pages_from_markdown_intake(tmp_pa
     assert "knowledge_map_materialized" in log_text
     assert "synthesis_page_materialized" in log_text
     assert 'type: "knowledge-map"' in knowledge_map_text
+    assert 'note_domain: "synthesis"' in knowledge_map_text
     assert '  - "agent-wiki"' in knowledge_map_text
     assert "## Live Reference Table" in knowledge_map_text
     assert "```foam-query" in knowledge_map_text
@@ -185,8 +211,252 @@ def test_materialize_agent_wiki_builds_indexed_pages_from_markdown_intake(tmp_pa
     assert "content-card![[" in knowledge_map_text
     assert "#^key-findings" in knowledge_map_text
     assert 'type: "synthesis-page"' in synthesis_text
+    assert 'note_domain: "synthesis"' in synthesis_text
     assert "## Live Evidence Table" in synthesis_text
     assert "content-inline![[" in synthesis_text
+
+
+def test_refresh_foam_graph_materializes_draft_sections_and_assets(tmp_path) -> None:
+    refs_dir = tmp_path / "references"
+    drafts_dir = tmp_path / "drafts"
+    figures_dir = tmp_path / "results" / "figures"
+    tables_dir = tmp_path / "results" / "tables"
+    drafts_dir.mkdir(parents=True)
+    figures_dir.mkdir(parents=True)
+    tables_dir.mkdir(parents=True)
+
+    manager = ReferenceManager(base_dir=str(refs_dir))
+
+    draft_text = """# Results
+
+This section cites [[smith2024_11111111]] and discusses Figure 1 and Table 1.
+"""
+    (drafts_dir / "draft.md").write_text(draft_text, encoding="utf-8")
+    (figures_dir / "consort.png").write_bytes(b"png")
+    (tables_dir / "baseline.md").write_text("|A|B|\n|---|---|\n|1|2|", encoding="utf-8")
+    (tmp_path / "results" / "manifest.json").write_text(
+        json.dumps(
+            {
+                "figures": [{"number": 1, "filename": "consort.png", "caption": "CONSORT flow"}],
+                "tables": [{"number": 1, "filename": "baseline.md", "caption": "Baseline summary"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    tracker = DataArtifactTracker(tmp_path / ".audit", tmp_path)
+    tracker.record_asset_review(
+        asset_type="figure",
+        asset_path="results/figures/consort.png",
+        observations=["Flow branches shown", "Enrollment counts visible"],
+        rationale="Caption matches the flow diagram.",
+        proposed_caption="CONSORT flow",
+        evidence_excerpt="Allocation counts are visible in the rendered figure.",
+    )
+
+    stats = manager.refresh_foam_graph()
+
+    draft_note = tmp_path / "notes" / "draft-sections" / "draft-results.md"
+    figure_note = tmp_path / "notes" / "figures" / "figure-1-consort.md"
+    table_note = tmp_path / "notes" / "tables" / "table-1-baseline.md"
+    index_text = (tmp_path / "notes" / "index.md").read_text(encoding="utf-8")
+
+    assert stats["draft_sections"] == 1
+    assert stats["figures"] == 1
+    assert stats["tables"] == 1
+    assert draft_note.exists()
+    assert figure_note.exists()
+    assert table_note.exists()
+
+    draft_note_text = draft_note.read_text(encoding="utf-8")
+    figure_note_text = figure_note.read_text(encoding="utf-8")
+    table_note_text = table_note.read_text(encoding="utf-8")
+
+    assert 'type: "draft-section"' in draft_note_text
+    assert 'note_domain: "writing"' in draft_note_text
+    assert "[[smith2024_11111111]]" in draft_note_text
+    assert "[[figure-1]]" in draft_note_text
+    assert "[[table-1]]" in draft_note_text
+    assert "[[figure-1#^asset-summary]]" in draft_note_text
+    assert "[[table-1#^asset-summary]]" in draft_note_text
+    assert 'type: "figure-note"' in figure_note_text
+    assert 'review_state: "reviewed"' in figure_note_text
+    assert 'asset_type: "figure"' in figure_note_text
+    assert "fragment_anchors:" in figure_note_text
+    assert "^asset-summary" in figure_note_text
+    assert "^asset-preview" in figure_note_text
+    assert "^review-observation-1" in figure_note_text
+    assert "^review-observation-2" in figure_note_text
+    assert "^evidence-excerpt" in figure_note_text
+    assert 'type: "table-note"' in table_note_text
+    assert 'asset_type: "table"' in table_note_text
+    assert "^data-preview" in table_note_text
+    assert "^table-row-1" in table_note_text
+    assert "## Live Graph Counts" in index_text
+    assert "[[draft-section-draft-results]]" in index_text
+    assert "[[figure-1]]" in index_text
+    assert "[[table-1]]" in index_text
+
+
+def test_refresh_foam_graph_materializes_asset_aware_source_fragments(tmp_path) -> None:
+    refs_dir = tmp_path / "references"
+    manager = ReferenceManager(base_dir=str(refs_dir))
+
+    source_file = tmp_path / "layout-source.pdf"
+    source_file.write_bytes(b"layout-source")
+
+    manager.import_local_file(
+        str(source_file),
+        metadata={
+            "title": "Layout-aware source",
+            "authors": ["Chen Eric"],
+            "year": "2026",
+            "asset_aware_doc_id": "doc_layout_001",
+            "fulltext_sections": ["Results"],
+            "extracted_markdown": "# Results\n\nLayout-aware evidence extracted.",
+            "asset_aware_manifest": {
+                "doc_id": "doc_layout_001",
+                "assets": {
+                    "figures": [
+                        {
+                            "id": "fig_1_1",
+                            "page": 3,
+                            "path": "images/consort.png",
+                            "caption": "CONSORT flow",
+                            "width": 640,
+                            "height": 480,
+                            "source": "marker",
+                            "source_block_id": "blk_fig_1",
+                            "line_start": 10,
+                            "line_end": 12,
+                            "section_title": "Results",
+                        }
+                    ],
+                    "tables": [
+                        {
+                            "id": "tab_1",
+                            "page": 4,
+                            "caption": "Baseline summary",
+                            "preview": "Baseline characteristics for enrolled patients",
+                            "markdown": "|Group|n|\n|---|---|\n|A|10|",
+                            "row_count": 1,
+                            "col_count": 2,
+                            "source": "marker",
+                            "source_block_id": "blk_tab_1",
+                            "line_start": 20,
+                            "line_end": 23,
+                            "section_title": "Results",
+                        }
+                    ],
+                    "sections": [],
+                },
+            },
+            "asset_aware_blocks": [
+                {
+                    "block_id": "blk_fig_1",
+                    "block_type": "Figure",
+                    "page": 3,
+                    "text": "CONSORT diagram with enrollment and allocation branches.",
+                    "bbox": [10, 20, 110, 120],
+                    "section_hierarchy": {"1": "Results"},
+                    "metadata": {"line_start": 10, "line_end": 12},
+                },
+                {
+                    "block_id": "blk_tab_1",
+                    "block_type": "Table",
+                    "page": 4,
+                    "text": "Baseline characteristics for enrolled patients.",
+                    "bbox": [15, 130, 215, 260],
+                    "section_hierarchy": {"1": "Results"},
+                    "metadata": {"line_start": 20, "line_end": 23},
+                },
+            ],
+            "asset_aware_segmentation": {
+                "doc_id": "doc_layout_001",
+                "segments": [
+                    {
+                        "segment_id": "blk_fig_1",
+                        "segment_type": "Picture",
+                        "page_number": 3,
+                        "left": 10,
+                        "top": 20,
+                        "width": 100,
+                        "height": 100,
+                        "text": "CONSORT diagram with enrollment and allocation branches.",
+                        "asset_id": "fig_1_1",
+                        "line_start": 10,
+                        "line_end": 12,
+                        "section_hierarchy": ["Results"],
+                        "metadata": {"source_block_id": "blk_fig_1"},
+                    },
+                    {
+                        "segment_id": "blk_tab_1",
+                        "segment_type": "Table",
+                        "page_number": 4,
+                        "left": 15,
+                        "top": 130,
+                        "width": 200,
+                        "height": 130,
+                        "text": "Baseline characteristics for enrolled patients.",
+                        "asset_id": "tab_1",
+                        "line_start": 20,
+                        "line_end": 23,
+                        "section_hierarchy": ["Results"],
+                        "metadata": {"source_block_id": "blk_tab_1"},
+                    },
+                ],
+            },
+        },
+    )
+
+    ref_id = manager.list_references()[0]
+    artifact_dir = refs_dir / ref_id / "artifacts" / "asset-aware"
+    assert (artifact_dir / "blocks.json").exists()
+    assert (artifact_dir / "segmentation.json").exists()
+
+    (tmp_path / "results" / "figures").mkdir(parents=True)
+    (tmp_path / "results" / "tables").mkdir(parents=True)
+    (tmp_path / "results" / "figures" / "consort.png").write_bytes(b"png")
+    (tmp_path / "results" / "tables" / "baseline.md").write_text(
+        "|Group|n|\n|---|---|\n|A|10|", encoding="utf-8"
+    )
+    (tmp_path / "results" / "manifest.json").write_text(
+        json.dumps(
+            {
+                "figures": [{"number": 1, "filename": "consort.png", "caption": "CONSORT flow"}],
+                "tables": [{"number": 1, "filename": "baseline.md", "caption": "Baseline summary"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manager.refresh_foam_graph()
+
+    figure_note_text = (tmp_path / "notes" / "figures" / "figure-1-consort.md").read_text(
+        encoding="utf-8"
+    )
+    table_note_text = (tmp_path / "notes" / "tables" / "table-1-baseline.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'source_doc_id: "doc_layout_001"' in figure_note_text
+    assert 'source_asset_id: "fig_1_1"' in figure_note_text
+    assert 'source_block_id: "blk_fig_1"' in figure_note_text
+    assert 'source_line_range: "11-12"' in figure_note_text
+    assert "^source-fragment" in figure_note_text
+    assert "^source-bbox" in figure_note_text
+    assert "^source-snippet" in figure_note_text
+    assert "Reference: [[chen2026_local" in figure_note_text
+    assert "[10, 20, 110, 120]" in figure_note_text
+    assert "CONSORT diagram with enrollment and allocation branches." in figure_note_text
+
+    assert 'source_doc_id: "doc_layout_001"' in table_note_text
+    assert 'source_asset_id: "tab_1"' in table_note_text
+    assert 'source_block_id: "blk_tab_1"' in table_note_text
+    assert 'source_line_range: "21-23"' in table_note_text
+    assert "^source-fragment" in table_note_text
+    assert "[15, 130, 215, 260]" in table_note_text
+    assert "Baseline characteristics for enrolled patients." in table_note_text
 
 
 def test_update_fulltext_and_analysis_status_rewrites_metadata_and_note(tmp_path) -> None:

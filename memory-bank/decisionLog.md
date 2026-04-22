@@ -22,6 +22,34 @@
 - root README、zh-TW README、VSX README、CHANGELOG、memory-bank 已對齊
 - hook guard regression 已補測，避免外部絕對路徑被誤判成受保護 workspace 路徑
 
+## [2026-04-22] Ownership Boundary Hardening + Validation Surface Compression + Library Synthesis View
+
+### 背景
+
+在 dual-workflow 穩定後，仍有三個收斂點：
+
+1. `library-wiki` 的 cross-note dashboard 缺高階 synthesis 視圖，難以直接判斷「可合成」候選。
+2. compact surface 仍暴露多個 validation 細粒度 verbs（`validate_concept`、`validate_wikilinks`、`compare_with_literature`），與 façade-first 原則不完全一致。
+3. manuscript 與 library-wiki 的 ownership boundary 需要持續以可追蹤決策固定，避免後續回滲。
+
+### 本次決定
+
+1. **Validation compact surface 進一步 façade 化**
+  - compact 下隱藏三個 validation granular verbs。
+  - 新增 `validation_action`（compact only）承接 `concept / wikilinks / literature` 三類操作。
+2. **Library dashboard 新增 synthesis 視圖**
+  - `build_library_dashboard(view="synthesis")` 提供 throughput、tag cluster 候選與 ready-to-synthesize 列表。
+3. **Ownership boundary 固定原則**
+  - manuscript-only：concept validation、drafting、review gates、export。
+  - library-wiki-only：library note triage/metadata/path/dashboard/materialization。
+  - façade 優先做公共入口，granular verbs 以 full surface 做相容，不回滲 compact 主路徑。
+
+### 成果
+
+- `EXPECTED_TOOL_COUNTS`: full 115 維持不變；compact 23 → 21。
+- compact 主路徑新增 `validation_action`，並移除三個 validation granular public verbs。
+- library dashboard 可直接輸出 synthesis 候選訊號，提升 Foam/wiki 操作可觀測性。
+
 ## [2026-04-10] Facade-First Orchestration + Telemetry-Guided Legacy Deprecation
 
 ### 本次背景

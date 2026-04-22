@@ -106,7 +106,12 @@
     "mdpaper.showStatus",
     "mdpaper.autoPaper",
     "mdpaper.setupWorkspace",
-    "mdpaper.openLlmWikiGuide"
+    "mdpaper.openLlmWikiGuide",
+    "mdpaper.showGraphDefault",
+    "mdpaper.showGraphEvidence",
+    "mdpaper.showGraphWriting",
+    "mdpaper.showGraphAssets",
+    "mdpaper.showGraphReview"
   ],
   "pythonSources": [
     {

@@ -138,6 +138,31 @@
         "command": "mdpaper.openLlmWikiGuide",
         "title": "Open LLM Wiki Guide - 開啟 LLM Wiki 使用指南",
         "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.showGraphDefault",
+        "title": "Show Foam Graph: Default",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.showGraphEvidence",
+        "title": "Show Foam Graph: Evidence",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.showGraphWriting",
+        "title": "Show Foam Graph: Writing",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.showGraphAssets",
+        "title": "Show Foam Graph: Assets",
+        "category": "MedPaper"
+      },
+      {
+        "command": "mdpaper.showGraphReview",
+        "title": "Show Foam Graph: Review",
+        "category": "MedPaper"
       }
     ],
     "configuration": {

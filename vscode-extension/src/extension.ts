@@ -9,6 +9,15 @@ import { DrawioPanel } from './drawioPanel';
 let outputChannel: vscode.OutputChannel;
 let resolvedUvPath: string | null = null;
 const LLM_WIKI_GUIDE_RELATIVE_PATH = 'docs/how-to/llm-wiki.md';
+const MANAGED_FOAM_GRAPH_VIEWS = ['Default', 'Evidence', 'Writing', 'Assets', 'Review'] as const;
+
+async function showFoamGraphView(view: (typeof MANAGED_FOAM_GRAPH_VIEWS)[number]): Promise<void> {
+    try {
+        await vscode.commands.executeCommand('foam-vscode.show-graph', { view });
+    } catch {
+        vscode.window.showErrorMessage(`MedPaper: 無法開啟 Foam graph view「${view}」。請確認 Foam 已安裝且 workspace 已載入 foam.graph.views。`);
+    }
+}
 
 function getBundledWorkspaceDocs(): string[] {
     return BUNDLED_SUPPORT_FILES
@@ -103,6 +112,21 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('mdpaper.openLlmWikiGuide', async () => {
             await openWorkspaceOrBundledDocument(context, LLM_WIKI_GUIDE_RELATIVE_PATH);
+        }),
+        vscode.commands.registerCommand('mdpaper.showGraphDefault', async () => {
+            await showFoamGraphView('Default');
+        }),
+        vscode.commands.registerCommand('mdpaper.showGraphEvidence', async () => {
+            await showFoamGraphView('Evidence');
+        }),
+        vscode.commands.registerCommand('mdpaper.showGraphWriting', async () => {
+            await showFoamGraphView('Writing');
+        }),
+        vscode.commands.registerCommand('mdpaper.showGraphAssets', async () => {
+            await showFoamGraphView('Assets');
+        }),
+        vscode.commands.registerCommand('mdpaper.showGraphReview', async () => {
+            await showFoamGraphView('Review');
         })
     );
 

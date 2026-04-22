@@ -45,17 +45,19 @@ more explicit:
 - Local or extracted sources can be upgraded into verified canonical identities.
 - Reference notes now materialize stable block anchors for key findings and
   evidence sections.
+- Reference notes also materialize explicit context links to journal, author,
+  topic, MeSH, and section hub notes for graph traversal.
 - Knowledge maps and synthesis pages now emit Foam-friendly queries and embeds.
 
 ## Known Practical Limits
 
 These are relevant when applying the LLM wiki pattern in this repository:
 
-- `notes/index.md` is still static and does not yet emit `foam-query` blocks.
-- Table / figure snippets are not yet materialized as their own block-anchor
-  targets.
-- Current tags are standardized for note class and status, but not yet rich
-  enough for deep topic-level filtering.
+- Table / figure notes now materialize matched source-fragment anchors backed
+  by asset-aware blocks and segmentation when those artifacts are available,
+  but not every underlying layout fragment is surfaced yet.
+- Context hub notes are currently lightweight registry pages, not full semantic
+  ontology or concept-synthesis layers.
 - For larger corpora, deterministic retrieval layers beyond a plain markdown
   index may still be needed.
 

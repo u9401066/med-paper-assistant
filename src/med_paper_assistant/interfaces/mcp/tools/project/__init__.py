@@ -4,6 +4,7 @@ Project Management Tools Module
 Provides tools for managing research paper projects.
 Split into submodules for maintainability:
 - crud: create_project, list_projects, switch_project, get_current_project (with include_files)
+- library_notes: list/read/write/move/search markdown notes under inbox/concepts/projects
 - settings: update_project_settings (with status, citation_style)
 - exploration: start_exploration, convert_exploration_to_project
 - diagrams: save_diagram (with output_dir for standalone), list_diagrams
@@ -20,6 +21,7 @@ from .crud import register_crud_tools
 from .diagrams import register_diagram_tools
 from .exploration import register_exploration_tools
 from .facade import register_project_facade_tools
+from .library_notes import register_library_note_tools
 from .settings import register_settings_tools
 from .workspace import register_workspace_tools
 from .workspace_state import register_workspace_state_tools
@@ -42,6 +44,9 @@ def register_project_tools(
     exploration_tools = register_exploration_tools(
         mcp, project_manager, register_public_verbs=register_public_verbs
     )
+    library_tools = register_library_note_tools(
+        mcp, project_manager, register_public_verbs=register_public_verbs
+    )
     diagram_tools = register_diagram_tools(
         mcp, project_manager, register_public_verbs=register_public_verbs
     )
@@ -56,6 +61,7 @@ def register_project_tools(
         crud_tools=crud_tools,
         settings_tools=settings_tools,
         exploration_tools=exploration_tools,
+        library_tools=library_tools,
         diagram_tools=diagram_tools,
         workspace_tools=workspace_tools,
         workspace_state_tools=workspace_state_tools,
