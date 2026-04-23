@@ -21,25 +21,34 @@ from .._shared import (
     resolve_project_context,
 )
 
-ALLOWED_LIBRARY_SECTIONS = ("inbox", "concepts", "projects")
+ALLOWED_LIBRARY_SECTIONS = ("inbox", "concepts", "projects", "review", "daily")
 SECTION_ALIASES = {
     "inbox": "inbox",
     "concept": "concepts",
     "concepts": "concepts",
     "project": "projects",
     "projects": "projects",
+    "review": "review",
+    "reviews": "review",
+    "daily": "daily",
+    "day": "daily",
+    "journal": "daily",
 }
 QUEUE_LABELS = {
     "capture": "Capture Queue",
     "active-reading": "Active Reading",
     "concept-build": "Concept Building",
     "synthesis": "Synthesis Queue",
+    "review": "Review Queue",
+    "daily": "Daily Capture",
     "blocked": "Blocked",
 }
 TRIAGE_PROGRESSION = {
     "inbox": "concepts",
     "concepts": "projects",
-    "projects": "projects",
+    "projects": "review",
+    "review": "review",
+    "daily": "inbox",
 }
 FRONTMATTER_FIELD_ORDER = (
     "title",
@@ -49,6 +58,32 @@ FRONTMATTER_FIELD_ORDER = (
     "tags",
     "related_notes",
     "updated_at",
+)
+TEMPLATE_ALIASES = {
+    "capture": "capture",
+    "inbox": "capture",
+    "inbox-capture": "capture",
+    "concept": "concept",
+    "concept-page": "concept",
+    "review": "review",
+    "review-note": "review",
+    "daily": "daily",
+    "daily-note": "daily",
+    "journal": "daily",
+}
+TEMPLATE_NOTE_TYPES = {
+    "capture": "library-capture",
+    "concept": "library-concept",
+    "review": "library-review",
+    "daily": "library-daily",
+}
+PLACEHOLDER_PATTERN = re.compile(
+    r"\b(?:TODO|TBD|FIXME|PLACEHOLDER)\b|\[(?:Add|TODO|TBD|Claim|Gap|Open question|Question)[^\]]*\]",
+    flags=re.IGNORECASE,
+)
+ASSET_LINK_PATTERN = re.compile(
+    r"(?:content-(?:card|inline)!|!)?\[\[([^\]]+)\]\]",
+    flags=re.IGNORECASE,
 )
 
 
@@ -131,6 +166,8 @@ def _default_status(section: str) -> str:
         "inbox": "captured",
         "concepts": "curated",
         "projects": "synthesized",
+        "review": "reviewing",
+        "daily": "logged",
     }.get(section, "active")
 
 
@@ -139,7 +176,36 @@ def _default_queue_bucket(section: str) -> str:
         "inbox": "capture",
         "concepts": "concept-build",
         "projects": "synthesis",
+        "review": "review",
+        "daily": "daily",
     }.get(section, "capture")
+
+
+def _normalize_template_name(template: str, section: str = "") -> str:
+    normalized = str(template).strip().lower().replace("_", "-")
+    if not normalized or normalized == "none":
+        return ""
+    if normalized == "auto":
+        section_map = {
+            "inbox": "capture",
+            "concepts": "concept",
+            "review": "review",
+            "daily": "daily",
+        }
+        return section_map.get(_normalize_section(section), "")
+    return TEMPLATE_ALIASES.get(normalized, normalized)
+
+
+def _default_note_type(section: str, template: str = "") -> str:
+    normalized_template = _normalize_template_name(template, section)
+    if normalized_template in TEMPLATE_NOTE_TYPES:
+        return TEMPLATE_NOTE_TYPES[normalized_template]
+    return {
+        "concepts": "library-concept",
+        "projects": "library-synthesis",
+        "review": "library-review",
+        "daily": "library-daily",
+    }.get(section, "library-note")
 
 
 def _extract_title(content: str, fallback: str) -> str:
@@ -310,6 +376,172 @@ def _extract_links(content: str) -> list[str]:
     return links
 
 
+def _extract_placeholder_markers(content: str) -> list[str]:
+    markers: list[str] = []
+    seen: set[str] = set()
+    for match in PLACEHOLDER_PATTERN.findall(content):
+        marker = str(match).strip()
+        if not marker:
+            continue
+        normalized = marker.lower()
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        markers.append(marker)
+    return markers
+
+
+def _extract_asset_links(content: str) -> list[str]:
+    assets: list[str] = []
+    seen: set[str] = set()
+    for match in ASSET_LINK_PATTERN.findall(content):
+        candidate = str(match).split("|", 1)[0].split("#", 1)[0].strip()
+        lowered = candidate.lower()
+        if not candidate:
+            continue
+        if not (
+            lowered.startswith(("figure-", "table-", "asset-", "img-"))
+            or lowered.endswith((".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".pdf", ".csv", ".md"))
+        ):
+            continue
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        assets.append(candidate)
+    return assets
+
+
+def _refs_to_links(values: list[str]) -> list[str]:
+    links: list[str] = []
+    for value in values:
+        normalized = _normalize_note_reference(value)
+        if not normalized:
+            continue
+        links.append(f"[[{normalized.split(':', 1)[-1]}]]")
+    return links
+
+
+def _render_template_body(
+    template: str,
+    *,
+    title: str,
+    content: str,
+    source_refs: list[str],
+    related_refs: list[str],
+) -> str:
+    normalized_template = _normalize_template_name(template)
+    note_links = _refs_to_links(source_refs or related_refs)
+    summary = content.strip()
+
+    if normalized_template == "capture":
+        lines = [
+            f"# {title}",
+            "",
+            "## Capture",
+            "",
+            summary or "[Add captured insight]",
+            "",
+            "## Signals",
+            "",
+            "- [Key finding or claim]",
+            "",
+            "## Follow-Up Links",
+            "",
+        ]
+        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append("- [Add linked note]")
+        lines.extend([
+            "",
+            "## Next Moves",
+            "",
+            "- [Promote this note into concepts after linking evidence]",
+        ])
+        return "\n".join(lines)
+
+    if normalized_template == "concept":
+        lines = [
+            f"# {title}",
+            "",
+            "## Summary",
+            "",
+            summary or "[Add concept summary]",
+            "",
+            "## Source Notes",
+            "",
+        ]
+        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append("- [Add linked source notes]")
+        lines.extend([
+            "",
+            "## Key Claims",
+            "",
+            "- [Claim 1]",
+            "",
+            "## Evidence Gaps",
+            "",
+            "- [Gap or contradiction]",
+            "",
+            "## Open Questions",
+            "",
+            "- [Open question]",
+        ])
+        return "\n".join(lines)
+
+    if normalized_template == "review":
+        lines = [
+            f"# {title}",
+            "",
+            "## Review Goal",
+            "",
+            summary or "[Describe what should be reviewed or repaired]",
+            "",
+            "## Repair Checklist",
+            "",
+            "- [ ] Resolve orphan or missing links",
+            "- [ ] Confirm tags, status, and note type",
+            "- [ ] Connect this note to a concept or synthesis page",
+            "",
+            "## Related Notes",
+            "",
+        ]
+        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append("- [Add related note]")
+        lines.extend([
+            "",
+            "## Decision",
+            "",
+            "- [Keep / merge / retire]",
+        ])
+        return "\n".join(lines)
+
+    if normalized_template == "daily":
+        lines = [
+            f"# {title}",
+            "",
+            "## Date",
+            "",
+            f"- {datetime.now().date().isoformat()}",
+            "",
+            "## Captures",
+            "",
+            summary or "- [Observation, quote, or intake note]",
+            "",
+            "## Reading Log",
+            "",
+        ]
+        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append("- [Paper or note reviewed today]")
+        lines.extend([
+            "",
+            "## Follow-Ups",
+            "",
+            "- [Next action]",
+        ])
+        return "\n".join(lines)
+
+    if summary and not summary.startswith("#"):
+        return f"# {title}\n\n{summary}"
+    if summary:
+        return summary
+    return f"# {title}\n"
+
+
 def _note_lookup_keys(note: dict[str, Any]) -> set[str]:
     filename = note["filename"].lower()
     stem = note["stem"].lower()
@@ -326,6 +558,10 @@ def _queue_bucket_for_note(note: dict[str, Any]) -> str:
     status = str(note.get("status", "")).strip().lower()
     if status in {"blocked", "waiting", "on-hold"}:
         return "blocked"
+    if note["section"] == "daily" or status in {"logged", "journaled"}:
+        return "daily"
+    if note["section"] == "review" or status in {"reviewing", "needs-review", "pending-review"}:
+        return "review"
     if status in {"reading", "reviewing", "active", "in-progress"}:
         return "active-reading"
     if note["section"] == "projects" or status in {"synthesized", "ready", "drafting"}:
@@ -368,6 +604,8 @@ def _collect_notes(info: dict[str, Any], sections: tuple[str, ...]) -> list[dict
             )
             body_links = _extract_links(body)
             links = list(dict.fromkeys([*body_links, *related_notes]))
+            placeholder_markers = _extract_placeholder_markers(body)
+            asset_links = _extract_asset_links(body)
 
             note = {
                 "id": f"{current_section}:{note_path.stem.lower()}",
@@ -386,6 +624,8 @@ def _collect_notes(info: dict[str, Any], sections: tuple[str, ...]) -> list[dict
                 "excerpt": _body_excerpt(content),
                 "body_links": body_links,
                 "links": links,
+                "placeholder_markers": placeholder_markers,
+                "asset_links": asset_links,
             }
             notes.append(note)
 
@@ -397,18 +637,58 @@ def _collect_notes(info: dict[str, Any], sections: tuple[str, ...]) -> list[dict
     backlinks: dict[str, set[str]] = defaultdict(set)
     for note in notes:
         resolved_links: list[str] = []
+        unresolved_links: list[str] = []
         for link in note["links"]:
             target = lookup.get(link)
             if target and target["id"] != note["id"]:
                 resolved_links.append(target["id"])
                 backlinks[target["id"]].add(note["id"])
+            elif not target:
+                unresolved_links.append(link)
         note["linked_note_ids"] = list(dict.fromkeys(resolved_links))
+        note["unresolved_links"] = list(dict.fromkeys(unresolved_links))
 
     for note in notes:
         note["backlink_ids"] = sorted(backlinks.get(note["id"], set()))
         note["queue_bucket"] = _queue_bucket_for_note(note)
+        note["is_orphan"] = not note.get("linked_note_ids") and not note.get("backlink_ids")
 
     return notes
+
+
+def _materialize_dashboard_note(
+    info: dict[str, Any],
+    *,
+    directory: str,
+    slug: str,
+    title: str,
+    body_lines: list[str],
+    note_type: str,
+    tags: list[str],
+    extra_fields: Optional[dict[str, Any]] = None,
+) -> Path:
+    project_root = Path(info.get("paths", {}).get("root", "."))
+    target_dir = project_root / "notes" / directory
+    target_dir.mkdir(parents=True, exist_ok=True)
+    note_path = target_dir / f"{slug}.md"
+
+    frontmatter = {
+        "title": title,
+        "type": note_type,
+        "section": directory,
+        "status": "generated",
+        "tags": _dedupe_text_values(tags),
+        "related_notes": [],
+        "updated_at": _current_timestamp(),
+        "project": info.get("slug", ""),
+        "source_kind": "materialized",
+    }
+    if extra_fields:
+        frontmatter.update(extra_fields)
+
+    body = "\n".join(body_lines).strip()
+    note_path.write_text(_render_note_content(frontmatter, body), encoding="utf-8")
+    return note_path
 
 
 def _resolve_note_reference_or_error(
@@ -594,6 +874,9 @@ def register_library_note_tools(
         content: str,
         title: str = "",
         tags_csv: str = "",
+        template: str = "",
+        source_notes_csv: str = "",
+        related_notes_csv: str = "",
         status: str = "",
         project: Optional[str] = None,
     ) -> str:
@@ -626,41 +909,34 @@ def register_library_note_tools(
         note_exists = note_path.exists()
         resolved_title = title.strip() or _default_title_from_filename(normalized_filename)
         resolved_status = status.strip() or _default_status(section_dir.name)
+        normalized_template = _normalize_template_name(template, section_dir.name)
         tags = _dedupe_text_values(_split_multivalue(tags_csv))
+        if normalized_template:
+            tags = _dedupe_text_values([*tags, f"template/{normalized_template}"])
+        source_refs = _normalize_related_note_refs(_split_multivalue(source_notes_csv))
+        related_refs = _normalize_related_note_refs(_split_multivalue(related_notes_csv))
+        merged_related = _normalize_related_note_refs([*source_refs, *related_refs])
 
         if content.lstrip().startswith("---\n"):
             final_content = content
         else:
-            lines = [
-                "---",
-                f'title: "{_yaml_escape(resolved_title)}"',
-                'type: "library-note"',
-                f'section: "{section_dir.name}"',
-                f'status: "{_yaml_escape(resolved_status)}"',
-            ]
-            if tags:
-                lines.append("tags:")
-                for tag in tags:
-                    lines.append(f'  - "{_yaml_escape(tag)}"')
-            else:
-                lines.append("tags: []")
-            lines.extend(
-                [
-                    f'updated_at: "{_current_timestamp()}"',
-                    "---",
-                    "",
-                ]
+            frontmatter = {
+                "title": resolved_title,
+                "type": _default_note_type(section_dir.name, normalized_template),
+                "section": section_dir.name,
+                "status": resolved_status,
+                "tags": tags,
+                "related_notes": merged_related,
+                "updated_at": _current_timestamp(),
+            }
+            body = _render_template_body(
+                normalized_template,
+                title=resolved_title,
+                content=content,
+                source_refs=source_refs,
+                related_refs=related_refs,
             )
-
-            body = content.strip()
-            if body and not body.startswith("#"):
-                body = f"# {resolved_title}\n\n{body}"
-            elif not body:
-                body = f"# {resolved_title}\n"
-
-            final_content = "\n".join(lines) + body
-            if not final_content.endswith("\n"):
-                final_content += "\n"
+            final_content = _render_note_content(frontmatter, body)
 
         try:
             note_path.write_text(final_content, encoding="utf-8")
@@ -676,11 +952,16 @@ def register_library_note_tools(
                 "\n\nNext step: review the note and move it into `concepts/` or `projects/` using "
                 "`move_library_note` when it has been triaged."
             )
+        elif section_dir.name == "daily":
+            next_step = (
+                "\n\nNext step: promote durable insights into `inbox/`, `concepts/`, or `review/` once the daily capture is ready."
+            )
+        template_text = f"\n**Template:** {normalized_template}" if normalized_template else ""
         return (
             f"✅ Library note {action} successfully.\n\n"
             f"**Section:** {section_dir.name}\n"
             f"**File:** {note_path.name}\n"
-            f"**Path:** {note_path}{next_step}"
+            f"**Path:** {note_path}{template_text}{next_step}"
         )
 
     @tool()
@@ -1513,8 +1794,22 @@ def register_library_note_tools(
             return "No library notes yet. Use `write_library_note` or `create_concept_page` first."
 
         view_name = view.strip().lower() or "overview"
-        if view_name not in {"overview", "queues", "concepts", "links", "synthesis"}:
-            return "❌ Invalid view. Use one of: overview, queues, concepts, links, synthesis."
+        valid_views = {
+            "overview",
+            "queues",
+            "concepts",
+            "links",
+            "synthesis",
+            "graph-health",
+            "unread",
+            "metadata",
+            "review",
+            "assets",
+        }
+        if view_name not in valid_views:
+            return (
+                "❌ Invalid view. Use one of: overview, queues, concepts, links, synthesis, graph-health, unread, metadata, review, assets."
+            )
 
         notes_by_id = {note["id"]: note for note in notes}
         section_counts = Counter(note["section"] for note in notes)
@@ -1535,6 +1830,30 @@ def register_library_note_tools(
             for linked_note_id in note.get("linked_note_ids", []):
                 if notes_by_id[linked_note_id]["section"] != note["section"]:
                     cross_section_edges += 1
+        unresolved_notes = [note for note in notes if note.get("unresolved_links")]
+        placeholder_notes = [note for note in notes if note.get("placeholder_markers")]
+        metadata_gaps = [
+            note
+            for note in notes
+            if not note.get("tags")
+            or not note.get("related_notes")
+            or not note.get("updated_at")
+            or note.get("type", "") == "library-note"
+        ]
+        unread_notes = [
+            note
+            for note in notes
+            if note["queue_bucket"] in {"capture", "active-reading", "daily"}
+        ]
+        review_notes = [
+            note
+            for note in notes
+            if note["queue_bucket"] in {"review", "blocked"} or note["section"] == "review"
+        ]
+        asset_notes = [note for note in notes if note.get("asset_links")]
+
+        dashboard_path: Optional[Path] = None
+        repair_path: Optional[Path] = None
 
         lines = [
             f"# Library Dashboard: {info.get('name', info.get('slug', 'Unknown'))}",
@@ -1589,6 +1908,7 @@ def register_library_note_tools(
             lines.extend(["## Link Health", ""])
             lines.append(f"- Cross-section edges: {cross_section_edges}")
             lines.append(f"- Orphan notes: {len(orphans)}")
+            lines.append(f"- Unresolved wikilinks: {sum(len(note.get('unresolved_links', [])) for note in unresolved_notes)}")
             lines.extend(["", "## Most Connected Notes", ""])
             lines.extend(_format_note_label(note) for note in connected_notes[: max(1, limit)])
 
@@ -1629,6 +1949,169 @@ def register_library_note_tools(
                 lines.extend(_format_note_label(note) for note in synthesis_notes[: max(1, limit)])
             else:
                 lines.append("- [No synthesis notes yet]")
+
+        if view_name == "graph-health":
+            lines.extend(["## Graph Health", ""])
+            lines.append(f"- Orphan notes: {len(orphans)}")
+            lines.append(
+                f"- Unresolved wikilinks: {sum(len(note.get('unresolved_links', [])) for note in unresolved_notes)}"
+            )
+            lines.append(
+                f"- Placeholder markers: {sum(len(note.get('placeholder_markers', [])) for note in placeholder_notes)}"
+            )
+            lines.append(f"- Metadata gaps: {len(metadata_gaps)}")
+            lines.extend(["", "## Repair Priority", ""])
+
+            repair_candidates = sorted(
+                notes,
+                key=lambda note: (
+                    len(note.get("unresolved_links", [])) * 3
+                    + len(note.get("placeholder_markers", [])) * 2
+                    + (2 if note.get("is_orphan") else 0)
+                    + (1 if not note.get("tags") else 0),
+                    note["title"],
+                ),
+                reverse=True,
+            )
+            for note in repair_candidates[: max(1, limit)]:
+                reasons: list[str] = []
+                if note.get("is_orphan"):
+                    reasons.append("orphan")
+                if note.get("unresolved_links"):
+                    reasons.append(f"missing links: {', '.join(note['unresolved_links'][:3])}")
+                if note.get("placeholder_markers"):
+                    reasons.append(f"placeholders: {', '.join(note['placeholder_markers'][:2])}")
+                if not note.get("tags"):
+                    reasons.append("missing tags")
+                if not reasons:
+                    continue
+                lines.append(f"- [{note['section']}] {note['title']} -> {'; '.join(reasons)}")
+
+            lines.extend(["", "## Unresolved Wikilinks", ""])
+            if unresolved_notes:
+                for note in unresolved_notes[: max(1, limit)]:
+                    lines.append(
+                        f"- [{note['section']}] {note['filename']}: {', '.join(note['unresolved_links'][:4])}"
+                    )
+            else:
+                lines.append("- [No unresolved wikilinks]")
+
+            lines.extend(["", "## Placeholder Markers", ""])
+            if placeholder_notes:
+                for note in placeholder_notes[: max(1, limit)]:
+                    lines.append(
+                        f"- [{note['section']}] {note['filename']}: {', '.join(note['placeholder_markers'][:4])}"
+                    )
+            else:
+                lines.append("- [No placeholder markers]")
+
+            dashboard_path = _materialize_dashboard_note(
+                info,
+                directory="library",
+                slug="dashboard-graph-health",
+                title="Graph Health Dashboard",
+                body_lines=lines,
+                note_type="library-dashboard",
+                tags=["dashboard/library", "dashboard/graph-health", "workflow/library-first"],
+                extra_fields={"note_class": "library-dashboard", "note_domain": "library"},
+            )
+
+            repair_lines = [
+                "# Graph Repair Worklist",
+                "",
+                "## Highest Priority Notes",
+                "",
+            ]
+            for note in repair_candidates[: max(1, limit)]:
+                checklist: list[str] = []
+                if note.get("is_orphan"):
+                    checklist.append("link this note to at least one concept, project, or review page")
+                if note.get("unresolved_links"):
+                    checklist.append(f"resolve missing wikilinks: {', '.join(note['unresolved_links'][:4])}")
+                if note.get("placeholder_markers"):
+                    checklist.append(f"replace placeholders: {', '.join(note['placeholder_markers'][:3])}")
+                if not note.get("tags"):
+                    checklist.append("add tags")
+                if not checklist:
+                    continue
+                repair_lines.append(f"## [{note['section']}] {note['title']}")
+                repair_lines.append("")
+                repair_lines.extend(f"- [ ] {item}" for item in checklist)
+                repair_lines.append("")
+
+            repair_path = _materialize_dashboard_note(
+                info,
+                directory="review",
+                slug="graph-repair-worklist",
+                title="Graph Repair Worklist",
+                body_lines=repair_lines,
+                note_type="library-review",
+                tags=["workflow/review", "dashboard/graph-health", "repair-worklist"],
+                extra_fields={"note_class": "library-review", "note_domain": "library", "review_state": "pending"},
+            )
+
+        if view_name == "unread":
+            lines.extend(["## Unread / Intake Backlog", ""])
+            if unread_notes:
+                for note in sorted(unread_notes, key=lambda item: (item.get("updated_at", ""), item["filename"]), reverse=True)[: max(1, limit)]:
+                    lines.append(_format_note_label(note))
+            else:
+                lines.append("- [No unread intake notes]")
+
+        if view_name == "metadata":
+            lines.extend(["## Metadata Gaps", ""])
+            if metadata_gaps:
+                for note in metadata_gaps[: max(1, limit)]:
+                    gaps: list[str] = []
+                    if not note.get("tags"):
+                        gaps.append("tags")
+                    if not note.get("related_notes"):
+                        gaps.append("related_notes")
+                    if not note.get("updated_at"):
+                        gaps.append("updated_at")
+                    if note.get("type", "") == "library-note":
+                        gaps.append("specialized note type")
+                    lines.append(f"- [{note['section']}] {note['filename']}: {', '.join(gaps)}")
+            else:
+                lines.append("- [No metadata gaps]")
+
+        if view_name == "review":
+            lines.extend(["## Review Queue", ""])
+            if review_notes:
+                for note in review_notes[: max(1, limit)]:
+                    lines.append(_format_note_label(note))
+            else:
+                lines.append("- [No review notes yet]")
+            lines.extend(["", "## Review Inputs", ""])
+            lines.append(f"- Blocked notes: {sum(1 for note in notes if note['queue_bucket'] == 'blocked')}")
+            lines.append(f"- Placeholder-bearing notes: {len(placeholder_notes)}")
+
+        if view_name == "assets":
+            lines.extend(["## Asset-Linked Notes", ""])
+            if asset_notes:
+                for note in asset_notes[: max(1, limit)]:
+                    lines.append(
+                        f"- [{note['section']}] {note['filename']}: {', '.join(note['asset_links'][:4])}"
+                    )
+            else:
+                lines.append("- [No asset links yet]")
+
+        if dashboard_path is None and view_name in valid_views:
+            dashboard_path = _materialize_dashboard_note(
+                info,
+                directory="library",
+                slug=f"dashboard-{view_name}",
+                title=f"{view_name.replace('-', ' ').title()} Dashboard",
+                body_lines=lines,
+                note_type="library-dashboard",
+                tags=["dashboard/library", f"dashboard/{view_name}", "workflow/library-first"],
+                extra_fields={"note_class": "library-dashboard", "note_domain": "library"},
+            )
+
+        if dashboard_path is not None:
+            lines.extend(["", f"Materialized note: {dashboard_path}"])
+        if repair_path is not None:
+            lines.append(f"Repair Worklist: {repair_path}")
 
         log_tool_result("build_library_dashboard", f"dashboard {view_name}", success=True)
         return "\n".join(lines).strip()

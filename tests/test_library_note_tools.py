@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
@@ -202,3 +204,71 @@ def test_library_note_tools_reject_manuscript_projects(tmp_path):
     result = funcs["list_library_notes"]()
 
     assert "only available for Library Wiki Path projects" in result
+
+
+def test_template_capture_and_graph_health_dashboards(tmp_path):
+    pm = ProjectManager(base_path=str(tmp_path))
+    created = pm.create_project(name="Library", workflow_mode="library-wiki")
+
+    assert Path(created["structure"]["review"]).exists()
+    assert Path(created["structure"]["daily"]).exists()
+
+    funcs = register_library_note_tools(FastMCP("library-template-test"), pm)
+
+    daily_result = funcs["write_library_note"](
+        section="daily",
+        filename="2026-04-22-log",
+        title="2026-04-22 Sedation Log",
+        content="Observed a remimazolam signal worth promoting.",
+        template="daily",
+        tags_csv="sedation,icu",
+    )
+    assert "Library note created successfully" in daily_result
+    assert "**Template:** daily" in daily_result
+
+    review_result = funcs["write_library_note"](
+        section="review",
+        filename="sedation-review",
+        title="Sedation Repair Review",
+        content="Check unresolved claim links before synthesis.",
+        template="review",
+        source_notes_csv="daily:2026-04-22-log",
+    )
+    assert "**Template:** review" in review_result
+
+    funcs["write_library_note"](
+        section="inbox",
+        filename="orphan-signal",
+        content="Need to connect [[missing-signal-map]].\n\nTODO: resolve sedation contradiction.",
+        template="capture",
+        tags_csv="sedation",
+    )
+
+    graph_health = funcs["build_library_dashboard"](view="graph-health")
+    assert "Graph Health" in graph_health
+    assert "Unresolved Wikilinks" in graph_health
+    assert "Placeholder Markers" in graph_health
+    assert "Repair Worklist" in graph_health
+
+    review_note = tmp_path / "projects" / "library" / "review" / "sedation-review.md"
+    daily_note = tmp_path / "projects" / "library" / "daily" / "2026-04-22-log.md"
+    graph_dashboard = tmp_path / "projects" / "library" / "notes" / "library" / "dashboard-graph-health.md"
+    graph_worklist = tmp_path / "projects" / "library" / "notes" / "review" / "graph-repair-worklist.md"
+
+    assert review_note.exists()
+    assert daily_note.exists()
+    assert graph_dashboard.exists()
+    assert graph_worklist.exists()
+
+    review_text = review_note.read_text(encoding="utf-8")
+    daily_text = daily_note.read_text(encoding="utf-8")
+    graph_text = graph_dashboard.read_text(encoding="utf-8")
+    worklist_text = graph_worklist.read_text(encoding="utf-8")
+
+    assert 'type: "library-review"' in review_text
+    assert "## Repair Checklist" in review_text
+    assert 'type: "library-daily"' in daily_text
+    assert "## Reading Log" in daily_text
+    assert 'type: "library-dashboard"' in graph_text
+    assert "## Graph Health" in graph_text
+    assert "## Highest Priority Notes" in worklist_text

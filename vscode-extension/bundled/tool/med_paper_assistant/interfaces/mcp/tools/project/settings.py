@@ -75,6 +75,7 @@ def register_settings_tools(
         interaction_style: str = "",
         language_preference: str = "",
         writing_style: str = "",
+        graph_views_json: str = "",
         memo: str = "",
         status: str = "",
         citation_style: str = "",
@@ -89,6 +90,7 @@ def register_settings_tools(
             interaction_style: AI interaction style
             language_preference: Language notes
             writing_style: Writing style notes
+            graph_views_json: JSON array describing custom Foam graph views
             memo: Project notes/reminders
             status: Project status (concept|drafting|review|submitted|published)
             citation_style: Citation style (vancouver|apa|harvard|nature|ama)
@@ -124,12 +126,25 @@ def register_settings_tools(
                 interaction_preferences = {}
             interaction_preferences["citation_style"] = citation_style
 
+        settings_payload = None
+        if graph_views_json.strip():
+            try:
+                parsed_graph_views = json.loads(graph_views_json)
+            except json.JSONDecodeError as exc:
+                return f"❌ Error parsing graph_views_json: {exc}"
+
+            if not isinstance(parsed_graph_views, list):
+                return "❌ graph_views_json must be a JSON array of view specifications."
+
+            settings_payload = {"custom_graph_views": parsed_graph_views}
+
         result = project_manager.update_project_settings(
             paper_type=paper_type if paper_type else None,
             workflow_mode=workflow_mode if workflow_mode else None,
             target_journal=target_journal if target_journal else None,
             interaction_preferences=interaction_preferences if interaction_preferences else None,
             memo=memo if memo else None,
+            settings=settings_payload,
         )
 
         if result.get("success"):
@@ -138,6 +153,8 @@ def register_settings_tools(
             # Get current project info for display
             info = project_manager.get_project_info()
             prefs = info.get("interaction_preferences", {})
+            settings = info.get("settings", {})
+            custom_graph_views = settings.get("custom_graph_views", [])
             current_workflow_mode = info.get("workflow_mode", DEFAULT_WORKFLOW_MODE)
             workflow_name = WORKFLOW_MODES.get(current_workflow_mode, {}).get(
                 "name", current_workflow_mode
@@ -159,6 +176,9 @@ def register_settings_tools(
 - **Style:** {prefs.get("interaction_style", "Not set")}
 - **Language:** {prefs.get("language", "Not set")}
 - **Writing:** {prefs.get("writing_style", "Not set")}
+
+## Foam Graph Views
+- **Custom Views:** {len(custom_graph_views)}
 
 ## Memo
 {info.get("memo", "[No memo]")}
@@ -251,7 +271,7 @@ Please first select or create a project:
 **[AGENT: 請詢問用戶想要進行什麼操作]**
 
 建議選項:
-1. 📚 搜尋文獻 (`search_literature`)
+1. 📚 搜尋文獻 (`unified_search`)
 2. ✍️ 撰寫論文段落 (`/mdpaper.draft`)
 3. 📊 分析資料 (`/mdpaper.analysis`)
 4. 📄 匯出 Word (`/mdpaper.format`)
@@ -328,7 +348,7 @@ Please first select or create a project:
 1. 📋 設定期刊 profile — 請 Copilot 讀取 `templates/journal-profiles/` 內建期刊設定，
    或提供投稿指南 URL，自動產生 `journal-profile.yaml`
 2. Edit `concept.md` to define your research concept
-3. Use `search_literature` to find relevant papers
+3. Use `unified_search` to find relevant papers
 4. Use `write_draft` to start writing sections
 
 💡 **Tip**: 系統內建麻醉學前 20 大期刊投稿設定，直接告訴 Copilot 目標期刊名稱即可自動套用。

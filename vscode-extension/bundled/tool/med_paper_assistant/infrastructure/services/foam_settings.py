@@ -99,8 +99,10 @@ class FoamSettingsManager:
 
             # Build new ignore list
             ignore_list = self._build_ignore_list(current_slug)
+            custom_views = self._load_project_custom_graph_views(current_slug)
             graph_views = self._merge_graph_views(
-                settings.get("foam.graph.views"), self._build_graph_views(current_slug)
+                settings.get("foam.graph.views"),
+                self._build_graph_views(current_slug, custom_views),
             )
 
             # Update foam.files.ignore
@@ -161,18 +163,23 @@ class FoamSettingsManager:
     def _merge_graph_views(self, existing: Any, generated: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Preserve non-MedPaper custom views while replacing managed ones."""
         preserved: List[Dict[str, Any]] = []
+        generated_names = {str(view.get("name", "")).strip() for view in generated if isinstance(view, dict)}
         if isinstance(existing, list):
             for view in existing:
                 if not isinstance(view, dict):
                     continue
                 name = str(view.get("name", "")).strip()
-                if not name or name in self.MANAGED_GRAPH_VIEW_NAMES:
+                if not name or name in generated_names or name in self.MANAGED_GRAPH_VIEW_NAMES:
                     continue
                 preserved.append(view)
 
         return generated + preserved
 
-    def _build_graph_views(self, current_slug: str) -> List[Dict[str, Any]]:
+    def _build_graph_views(
+        self,
+        current_slug: str,
+        custom_views: List[Dict[str, Any]] | None = None,
+    ) -> List[Dict[str, Any]]:
         """Generate MedPaper-managed Foam named views for the active project."""
         groups = self._build_graph_groups(current_slug)
         default_show = {
@@ -182,7 +189,7 @@ class FoamSettingsManager:
             "image": {"enabled": False, "color": "#ff99c8"},
         }
 
-        return [
+        managed_views = [
             {
                 "name": "Default",
                 "colorBy": "type",
@@ -252,6 +259,7 @@ class FoamSettingsManager:
                 ],
             },
         ]
+        return managed_views + self._build_custom_graph_views(current_slug, groups, default_show, custom_views or [])
 
     def _build_graph_groups(self, current_slug: str) -> List[Dict[str, Any]]:
         """Define reusable graph groups for MedPaper note taxonomy."""
@@ -260,6 +268,12 @@ class FoamSettingsManager:
             self._group("reference", "type", "reference", "#2c7da0"),
             self._group("knowledge-map", "type", "knowledge-map", "#588157"),
             self._group("synthesis-page", "type", "synthesis-page", "#6a4c93"),
+            self._group("library-overview", "type", "library-overview", "#457b9d"),
+            self._group("library-dashboard", "type", "library-dashboard", "#5a7d9a"),
+            self._group("library-review", "type", "library-review", "#c46b48"),
+            self._group("library-daily", "type", "library-daily", "#6c757d"),
+            self._group("publish-index", "type", "publish-index", "#264653"),
+            self._group("publish-links", "type", "publish-links", "#2a9d8f"),
             self._group("draft-section", "type", "draft-section", "#ffb703"),
             self._group("figure-note", "type", "figure-note", "#e76f51"),
             self._group("table-note", "type", "table-note", "#8d99ae"),
@@ -267,12 +281,87 @@ class FoamSettingsManager:
             self._group("writing", "note_domain", "writing", "#f4a261"),
             self._group("asset", "note_domain", "asset", "#c9184a"),
             self._group("synthesis", "note_domain", "synthesis", "#6d597a"),
+            self._group("library", "note_domain", "library", "#457b9d"),
+            self._group("export", "note_domain", "export", "#2a9d8f"),
             self._group("methods", "section_kind", "methods", "#bc6c25"),
             self._group("results", "section_kind", "results", "#2a9d8f"),
             self._group("discussion", "section_kind", "discussion", "#9b5de5"),
             self._group("figure-assets", "asset_type", "figure", "#ef476f"),
             self._group("table-assets", "asset_type", "table", "#118ab2"),
         ]
+
+    def _load_project_custom_graph_views(self, current_slug: str) -> List[Dict[str, Any]]:
+        project_config_path = self.projects_dir / current_slug / "project.json"
+        if not project_config_path.exists():
+            return []
+
+        try:
+            config = json.loads(project_config_path.read_text(encoding="utf-8"))
+        except Exception:
+            logger.debug("Failed to load project config for custom graph views", exc_info=True)
+            return []
+
+        settings = config.get("settings", {}) if isinstance(config, dict) else {}
+        custom_views = settings.get("custom_graph_views", []) if isinstance(settings, dict) else []
+        if not isinstance(custom_views, list):
+            return []
+        return [view for view in custom_views if isinstance(view, dict)]
+
+    def _build_custom_graph_views(
+        self,
+        current_slug: str,
+        base_groups: List[Dict[str, Any]],
+        default_show: Dict[str, Any],
+        custom_views: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        generated: List[Dict[str, Any]] = []
+        for index, spec in enumerate(custom_views, start=1):
+            name = str(spec.get("name", "")).strip()
+            match = spec.get("match") if isinstance(spec.get("match"), dict) else {}
+            property_name = str(match.get("property") or spec.get("property") or "").strip()
+            value = str(match.get("value") or spec.get("value") or "").strip()
+            if not name or not property_name or not value:
+                continue
+
+            color = str(spec.get("color") or "#457b9d")
+            background = str(spec.get("background") or "#f8fbff")
+            line_color = str(spec.get("lineColor") or "#7a8ca5")
+            group_id = f"custom-{self._slugify(name)}-{index}"
+            view_groups = [*base_groups, self._group(group_id, property_name, value, color)]
+
+            hide_specs = spec.get("hide", []) if isinstance(spec.get("hide"), list) else []
+            for hide_index, hide_spec in enumerate(hide_specs, start=1):
+                if not isinstance(hide_spec, dict):
+                    continue
+                hide_property = str(hide_spec.get("property") or "").strip()
+                hide_value = str(hide_spec.get("value") or "").strip()
+                if not hide_property or not hide_value:
+                    continue
+                hide_color = str(hide_spec.get("color") or "#d9d9d9")
+                hide_id = f"{group_id}-hide-{hide_index}"
+                view_groups.append(
+                    self._group(hide_id, hide_property, hide_value, hide_color, enabled=False)
+                )
+
+            generated.append(
+                {
+                    "name": name,
+                    "colorBy": str(spec.get("colorBy") or "type"),
+                    "background": background,
+                    "lineColor": line_color,
+                    "fontSize": int(spec.get("fontSize") or 12),
+                    "show": default_show,
+                    "groups": view_groups,
+                }
+            )
+
+        return generated
+
+    def _slugify(self, value: str) -> str:
+        import re
+
+        normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+        return normalized or "view"
 
     def _group(
         self,

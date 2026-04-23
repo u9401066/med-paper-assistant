@@ -32,12 +32,13 @@ materialized wiki pages.
 | Backlinks | Shows inbound references to the active note | Used to inspect draft-to-reference usage |
 | Graph visualization | Visual graph over notes and note types | Used as the reference and concept graph surface |
 | Note properties | YAML frontmatter with `title`, `type`, `tags`, `alias(es)` | Used for reference metadata and graph labeling |
-| Link reference definitions | Standard Markdown references generated from wikilinks | Enabled in workspace settings for export compatibility |
-| Daily notes | Timestamped note workflow | Routed to `notes/` for research journaling |
+| Link reference definitions | Standard Markdown references generated from wikilinks | Enabled in workspace settings and materialized as publish-safe notes under `notes/publish/` |
+| Daily notes | Timestamped note workflow | Library Wiki Path now provisions `daily/` templates plus `notes/` journaling |
 | Note embeds | `![[note]]`, section, and block embeds | Used for figures/assets plus embedded evidence cards in knowledge maps and synthesis pages |
 | Block anchors | `[[note#^block-id]]` and `![[note#^block-id]]` | Materialized for key findings and extracted/fulltext evidence blocks in reference notes |
 | Foam queries | Dynamic lists/tables in preview via `foam-query` | Emitted in knowledge maps and synthesis pages for live counts and linked-reference tables |
 | Resource filters | Filter commands/graph scope by tag/type/path | Standardized `type`, `tags`, and custom frontmatter now support project/domain/status-driven graph slices |
+| Custom graph configs | Named graph views and group-based coloring/filtering | Managed views plus project-specific `graph_views_json` slices are written into `foam.graph.views` |
 
 ## Current Local Alignment
 
@@ -58,12 +59,22 @@ Aligned:
   reference counts/tables and note-to-note evidence embeds.
 - `notes/index.md` now emits live `foam-query` counts for references, draft
   sections, figures, and tables.
+- Library Wiki Path now provisions `review/` and `daily/`, and
+  `write_library_note` supports `capture`, `review`, and `daily` templates.
+- `build_library_dashboard` now materializes graph-health, unread, metadata,
+  review, assets, and synthesis dashboards, including a repair worklist under
+  `notes/review/graph-repair-worklist.md`.
 - Draft sections plus registered figures/tables are materialized as first-class
   graph notes under `notes/draft-sections/`, `notes/figures/`, and
   `notes/tables/`.
 - Managed `foam.graph.views` are written automatically for Default, Evidence,
   Writing, Assets, and Review slices, and the VSIX exposes matching command
   palette commands.
+- Project-specific `graph_views_json` values now flow into
+  `settings.custom_graph_views` in `project.json` and are merged into the
+  active `foam.graph.views` set.
+- Publish-safe knowledge-base notes are now materialized under
+  `notes/publish/reference-links.md` and `notes/publish/knowledge-base.md`.
 - Reference tags now project project, journal, author, year, topic, MeSH,
   study-design, and lifecycle state metadata for richer graph grouping.
 - Reference notes now emit explicit Graph Context links to materialized
@@ -82,8 +93,27 @@ Needs follow-up:
   block, bbox, and snippet.
 - Cross-note embeds still favor key findings and summary excerpts rather than a
   broader multi-fragment embed strategy.
-- VSIX graph commands cover the managed named views; ad hoc inline graph config
+- VSIX graph commands cover the managed named views, and MedPaper now writes
+  project-specific graph slices; fully ad hoc one-off inline Foam graph config
   shortcuts still rely on native Foam keybindings when needed.
+
+## Recently Closed Copilot Alignments
+
+| Upstream Foam feature | Current MedPaper state | Entry point |
+| --- | --- | --- |
+| Orphans / placeholders panels | Graph-health dashboards now surface orphan notes, unresolved wikilinks, placeholders, and metadata gaps | `build_library_dashboard(view="graph-health")` |
+| Templates / daily notes | Inbox, review, and daily templates now ship through the MedPaper note writer | `write_library_note(template="capture|review|daily")` |
+| Foam queries | Library dashboards now emit more live operational views | `build_library_dashboard(view="unread|metadata|review|assets|synthesis")` |
+| Link reference definitions / publishing | Publish-safe reference packs are materialized for non-Foam renderers | `notes/publish/reference-links.md`, `notes/publish/knowledge-base.md` |
+| Custom graph configs | Project-specific graph slices are merged into `foam.graph.views` | `update_project_settings(graph_views_json="...")` |
+
+## Remaining Alignment Work
+
+| Area | Remaining gap | Likely next step |
+| --- | --- | --- |
+| Asset fragments | Best-effort anchors still stop at the matched source block rather than a broader verified fragment set | Expand ETL-backed fragment identity and multi-block anchor emission |
+| Taxonomy hubs | Journal/author/topic/MeSH nodes exist but are still intentionally lightweight | Add richer hub-note summaries and cross-hub navigation pages |
+| Embed strategy | Embedded evidence still favors key findings and first-fragment summaries | Expand multi-fragment embeds and source-artifact embeds where note paths stay stable |
 
 ## Workspace Settings We Intentionally Use
 
@@ -99,6 +129,10 @@ Needs follow-up:
 
 `foam.preview.embedNoteType` matches the current Foam docs. Older references to
 `foam.preview.embedNoteStyle` in this repo should be considered outdated.
+
+Project-specific graph slices are stored in `project.json` under
+`settings.custom_graph_views` and merged into `.vscode/settings.json` during
+project switches or settings updates.
 
 ## Recommended Next Alignment Work
 

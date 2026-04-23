@@ -29,6 +29,14 @@ The recent adjustments made the wiki more usable inside Foam:
   and `^evidence-methods`
 - knowledge maps and synthesis pages now emit `foam-query` blocks
 - knowledge maps and synthesis pages now embed note-to-note evidence blocks
+- Library Wiki Path now provisions `review/` and `daily/`
+- `write_library_note` now supports template-driven capture for `capture`,
+  `review`, and `daily`
+- `build_library_dashboard` now materializes graph-health, unread, metadata,
+  review, assets, and synthesis dashboards
+- reference graph rebuild now emits publish-safe notes under `notes/publish/`
+- `update_project_settings(graph_views_json="...")` now writes project-specific
+  Foam graph slices
 
 ## Before You Start
 
@@ -50,6 +58,102 @@ Relevant orchestration tools:
 - `build_knowledge_map`
 - `build_synthesis_page`
 - `materialize_agent_wiki`
+
+## What Copilot Now Adds On Top Of Foam
+
+The current integration already covers wikilinks, managed graph views,
+block-anchor embeds, and `foam-query` dashboards. The new library-facing
+additions close the biggest gap between a note graph and an operational
+research workspace:
+
+| Capability | What you can do now | Materialized output |
+| --- | --- | --- |
+| Template-driven capture | Create `capture`, `review`, or `daily` notes with normalized frontmatter | `projects/{slug}/inbox/`, `review/`, `daily/` |
+| Graph-health repair loop | Run `build_library_dashboard(view="graph-health")` to surface orphans, unresolved wikilinks, placeholders, and metadata gaps | `notes/library/dashboard-graph-health.md`, `notes/review/graph-repair-worklist.md` |
+| Richer dashboards | Run `build_library_dashboard` with `unread`, `metadata`, `review`, `assets`, `synthesis`, or `queues` | `notes/library/dashboard-*.md` |
+| Publish-safe references | Regenerate graph notes and export-safe reference definitions for non-Foam renderers | `notes/publish/reference-links.md`, `notes/publish/knowledge-base.md` |
+| Project-specific graph slices | Write custom `graph_views_json` into project settings and let MedPaper refresh `foam.graph.views` | `project.json` + `.vscode/settings.json` |
+
+## Working `graph_views_json` Example
+
+If your current question is:
+
+> Does remimazolam reduce delirium compared with propofol during ICU sedation?
+
+Use a graph-slice bundle like this:
+
+```json
+[
+  {
+    "name": "ICU Sedation Evidence",
+    "property": "tags",
+    "value": "topic/remimazolam",
+    "color": "#1d3557",
+    "background": "#f7fbff",
+    "lineColor": "#6c8aa3",
+    "hide": [
+      {
+        "property": "note_domain",
+        "value": "asset",
+        "color": "#d9d9d9"
+      }
+    ]
+  },
+  {
+    "name": "Delirium Review Queue",
+    "property": "tags",
+    "value": "topic/delirium",
+    "color": "#9c6644",
+    "background": "#fffaf5",
+    "lineColor": "#b08968",
+    "hide": [
+      {
+        "property": "analysis_state",
+        "value": "completed",
+        "color": "#d9d9d9"
+      }
+    ]
+  },
+  {
+    "name": "Propofol Comparison",
+    "property": "tags",
+    "value": "topic/propofol",
+    "color": "#264653",
+    "background": "#f6fffb",
+    "lineColor": "#4f6d7a",
+    "hide": [
+      {
+        "property": "note_domain",
+        "value": "writing",
+        "color": "#d9d9d9"
+      }
+    ]
+  }
+]
+```
+
+Apply it through `update_project_settings(graph_views_json="...")`. The JSON
+is stored in `project.json` under `settings.custom_graph_views`, and MedPaper
+rewrites the active Foam graph views automatically.
+
+If your library uses MeSH or different keyword tags, replace
+`topic/remimazolam`, `topic/delirium`, and `topic/propofol` with the actual
+normalized tag values present in your notes.
+
+## Library-Wiki Operating Manual
+
+1. Create a project with `workflow_mode="library-wiki"`.
+2. Capture notes into `inbox/` or `daily/` with `write_library_note`, using
+   `template="capture"`, `template="review"`, or `template="daily"`.
+3. Promote durable notes with `move_library_note`, `triage_library_note`,
+   `create_concept_page`, or `materialize_concept_page`.
+4. Run `build_library_dashboard(view="graph-health")` after each ingest or
+   triage batch, then open the generated dashboard and repair worklist notes in
+   Foam.
+5. Add project-specific graph views with `update_project_settings` once the
+   main topic tags are stable.
+6. Materialize or refresh synthesis pages with `materialize_agent_wiki`, then
+   use the publish-safe notes under `notes/publish/` when sharing outside Foam.
 
 ## The Practical Operating Loop
 
@@ -115,7 +219,9 @@ Resulting files typically land under:
 
 - `projects/{slug}/notes/index.md`
 - `projects/{slug}/notes/log.md`
+- `projects/{slug}/notes/library/`
 - `projects/{slug}/notes/knowledge-maps/`
+- `projects/{slug}/notes/publish/`
 - `projects/{slug}/notes/synthesis-pages/`
 
 ## How To Read The Output In Foam
@@ -212,10 +318,27 @@ These are the main limits that still matter in day-to-day use:
   context hubs, but those taxonomy notes are still intentionally lightweight
 - asset graph notes currently summarize registered figures/tables, not every
   possible fragment-level evidence card
-- managed graph views are exposed as MedPaper commands, but fully custom inline
-  graph configs still rely on native Foam keybindings
+- managed graph views are exposed as MedPaper commands, and project-specific
+  `graph_views_json` slices now flow through project settings, but fully ad hoc
+  inline Foam graph configs still rely on native Foam keybindings
 - embedded evidence currently favors the key findings block and summary
   excerpts, not every possible evidence fragment
+
+## What Makes A Personal Knowledge Base Feel Complete
+
+In practice, a MedPaper + Foam knowledge base starts to feel complete when:
+
+- every kept source becomes a canonical note or is explicitly discarded
+- every reusable claim graduates from a raw reference note into a concept,
+  knowledge-map, or synthesis page
+- every important note carries enough frontmatter to appear correctly in graph,
+  queries, and tag-driven navigation
+- every critical evidence fragment has a stable anchor that can be linked or
+  embedded later
+- every orphan, placeholder, and contradiction cluster is turned into an
+  explicit review note instead of remaining implicit
+- daily capture plus periodic triage keeps `inbox/`, `daily/`, and
+  `graph-repair-worklist.md` from becoming dead storage
 
 ## Related References
 

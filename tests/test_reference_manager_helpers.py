@@ -82,11 +82,15 @@ def test_import_local_file_creates_reference_note_and_scaffolding(tmp_path) -> N
     log_path = tmp_path / "notes" / "log.md"
     hash_registry_path = tmp_path / "registry" / "by-hash.json"
     library_overview_path = tmp_path / "notes" / "library" / "overview.md"
+    publish_links_path = tmp_path / "notes" / "publish" / "reference-links.md"
+    publish_index_path = tmp_path / "notes" / "publish" / "knowledge-base.md"
 
     assert index_path.exists()
     assert log_path.exists()
     assert hash_registry_path.exists()
     assert library_overview_path.exists()
+    assert publish_links_path.exists()
+    assert publish_index_path.exists()
 
     index_text = index_path.read_text(encoding="utf-8")
     log_text = log_path.read_text(encoding="utf-8")
@@ -109,10 +113,18 @@ def test_import_local_file_creates_reference_note_and_scaffolding(tmp_path) -> N
     assert "[[section-methods]]" in note_text
     assert "Graph tags:" in note_text
     library_overview_text = library_overview_path.read_text(encoding="utf-8")
+    publish_links_text = publish_links_path.read_text(encoding="utf-8")
+    publish_index_text = publish_index_path.read_text(encoding="utf-8")
     assert 'type: "library-overview"' in library_overview_text
     assert "## Library Status" in library_overview_text
     assert "## Identity Resolution Queue" in library_overview_text
+    assert "## Live Analysis Queue" in library_overview_text
+    assert "```foam-query" in library_overview_text
     assert metadata["citation_key"] in library_overview_text
+    assert 'type: "publish-links"' in publish_links_text
+    assert metadata["citation_key"] in publish_links_text
+    assert 'type: "publish-index"' in publish_index_text
+    assert "Publish-Safe Reference Links" in publish_index_text
     assert "## Key Findings" in note_text
     assert "^key-findings" in note_text
     assert "## Evidence Blocks" in note_text
@@ -123,8 +135,10 @@ def test_import_local_file_creates_reference_note_and_scaffolding(tmp_path) -> N
     assert metadata["citation_key"] in section_context_path.read_text(encoding="utf-8")
     assert "## Context Hubs" in index_text
     assert "## Library Views" in index_text
+    assert "## Publish-Safe Views" in index_text
     assert "[[author-chen-eric]]" in index_text
     assert "[[library-overview]]" in index_text
+    assert "[[publish-reference-links]]" in index_text
 
 
 def test_import_local_file_deduplicates_by_content_hash(tmp_path) -> None:
@@ -191,6 +205,7 @@ def test_materialize_agent_wiki_builds_indexed_pages_from_markdown_intake(tmp_pa
     log_text = (tmp_path / "notes" / "log.md").read_text(encoding="utf-8")
     knowledge_map_text = knowledge_map_path.read_text(encoding="utf-8")
     synthesis_text = synthesis_path.read_text(encoding="utf-8")
+    publish_index_text = (tmp_path / "notes" / "publish" / "knowledge-base.md").read_text(encoding="utf-8")
 
     assert "Agent wiki materialized" in result
     assert knowledge_map_path.exists()
@@ -214,6 +229,8 @@ def test_materialize_agent_wiki_builds_indexed_pages_from_markdown_intake(tmp_pa
     assert 'note_domain: "synthesis"' in synthesis_text
     assert "## Live Evidence Table" in synthesis_text
     assert "content-inline![[" in synthesis_text
+    assert "ICU Sedation Map" in publish_index_text
+    assert "ICU Sedation Map synthesis" in publish_index_text
 
 
 def test_refresh_foam_graph_materializes_draft_sections_and_assets(tmp_path) -> None:

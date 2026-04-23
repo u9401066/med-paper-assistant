@@ -86,6 +86,9 @@ class ReferenceManager:
     def _library_pages_dir(self) -> str:
         return os.path.join(self._notes_dir(), "library")
 
+    def _publish_notes_dir(self) -> str:
+        return os.path.join(self._notes_dir(), "publish")
+
     def _current_project_slug(self) -> str:
         if self._project_manager:
             try:
@@ -187,6 +190,7 @@ class ReferenceManager:
         os.makedirs(self._table_notes_dir(), exist_ok=True)
         os.makedirs(self._context_notes_dir(), exist_ok=True)
         os.makedirs(self._library_pages_dir(), exist_ok=True)
+        os.makedirs(self._publish_notes_dir(), exist_ok=True)
         os.makedirs(self._registry_dir(), exist_ok=True)
 
     def _yaml_escape(self, value: str) -> str:
@@ -637,6 +641,23 @@ class ReferenceManager:
         else:
             body_lines.append("- No unresolved local identities")
 
+        body_lines.extend(["", "## Live Analysis Queue", ""])
+        body_lines.extend(self._property_query_block("analysis_state", "pending", format_name="table"))
+
+        body_lines.extend(["", "## Live Fulltext Queue", ""])
+        body_lines.extend(self._property_query_block("fulltext_state", "missing", format_name="table"))
+
+        body_lines.extend(["", "## Live Review Queue", ""])
+        body_lines.extend(self._property_query_block("review_state", "pending", format_name="table"))
+
+        body_lines.extend(["", "## Live Asset Counts", ""])
+        body_lines.extend(self._type_query_block("figure-note", format_name="count"))
+        body_lines.extend([""])
+        body_lines.extend(self._type_query_block("table-note", format_name="count"))
+
+        body_lines.extend(["", "## Live Library Dashboard Count", ""])
+        body_lines.extend(self._type_query_block("library-dashboard", format_name="count"))
+
         body_lines.extend(["", "## Analysis Queue", ""])
         if analysis_queue:
             for item in analysis_queue[:10]:
@@ -819,12 +840,18 @@ class ReferenceManager:
 
         return deduped
 
-    def _type_query_block(self, note_type: str, *, format_name: str = "count") -> List[str]:
+    def _property_query_block(
+        self,
+        property_name: str,
+        value: str,
+        *,
+        format_name: str = "count",
+    ) -> List[str]:
         lines = [
             "```foam-query",
             "filter:",
             "  and:",
-            f'    - type: "{self._yaml_escape(note_type)}"',
+            f'    - {self._yaml_escape(property_name)}: "{self._yaml_escape(value)}"',
         ]
         if format_name == "count":
             lines.append("format: count")
@@ -838,6 +865,175 @@ class ReferenceManager:
             )
         lines.append("```")
         return lines
+
+    def _type_query_block(self, note_type: str, *, format_name: str = "count") -> List[str]:
+        return self._property_query_block("type", note_type, format_name=format_name)
+
+    def _iter_library_pages(self) -> List[Dict[str, str]]:
+        page_dir = self._library_pages_dir()
+        if not os.path.isdir(page_dir):
+            return []
+
+        pages: List[Dict[str, str]] = []
+        for file_name in sorted(os.listdir(page_dir)):
+            if not file_name.endswith(".md"):
+                continue
+            slug = Path(file_name).stem
+            file_path = os.path.join(page_dir, file_name)
+            pages.append(
+                {
+                    "slug": slug,
+                    "alias": "library-overview" if slug == "overview" else slug,
+                    "title": self._read_materialized_page_title(file_path),
+                    "path": file_path,
+                }
+            )
+        return pages
+
+    def _write_publish_safe_bundle(
+        self,
+        *,
+        library_pages: List[Dict[str, str]],
+        knowledge_maps: List[Dict[str, str]],
+        synthesis_pages: List[Dict[str, str]],
+        draft_section_nodes: List[Dict[str, str]],
+        asset_nodes: Dict[str, Any],
+    ) -> List[Dict[str, str]]:
+        publish_dir = self._publish_notes_dir()
+        entries: List[Dict[str, str]] = []
+
+        for ref_id in sorted(self.list_references()):
+            metadata = self.get_metadata(ref_id)
+            if not metadata:
+                continue
+            citation_key = metadata.get("citation_key") or ref_id
+            note_path = os.path.join(self.base_dir, ref_id, f"{citation_key}.md")
+            if not os.path.exists(note_path):
+                continue
+            entries.append(
+                {
+                    "alias": citation_key,
+                    "title": metadata.get("title", ref_id),
+                    "path": note_path,
+                }
+            )
+
+        entries.extend(library_pages)
+        entries.extend(knowledge_maps)
+        entries.extend(synthesis_pages)
+        entries.extend(draft_section_nodes)
+        entries.extend(asset_nodes.get("figures", []))
+        entries.extend(asset_nodes.get("tables", []))
+
+        deduped_entries: List[Dict[str, str]] = []
+        seen_aliases: set[str] = set()
+        for entry in entries:
+            alias = str(entry.get("alias", "")).strip()
+            path = str(entry.get("path", "")).strip()
+            if not alias or not path or alias in seen_aliases:
+                continue
+            seen_aliases.add(alias)
+            deduped_entries.append(entry)
+
+        link_lines = [
+            "## How To Use",
+            "",
+            "- Copy the definitions below into any plain Markdown export that cannot resolve wikilinks.",
+            "",
+            "## Reference Definitions",
+            "",
+        ]
+        for entry in deduped_entries:
+            relative_path = os.path.relpath(entry["path"], publish_dir).replace(os.sep, "/")
+            link_lines.append(
+                f'[{entry["alias"]}]: {relative_path} "{self._yaml_escape(entry["title"])}"'
+            )
+
+        link_note_path = os.path.join(publish_dir, "reference-links.md")
+        self._write_graph_note(
+            link_note_path,
+            title="Publish-Safe Reference Links",
+            note_type="publish-links",
+            aliases=["publish-reference-links"],
+            tags=self._build_graph_note_tags(
+                "publish-links",
+                "export",
+                ["publish-safe", "export/links"],
+            ),
+            extra_fields={
+                "note_class": "publish-links",
+                "note_domain": "export",
+                "project": self._current_project_slug(),
+                "reference_count": len(deduped_entries),
+                "review_state": "n/a",
+            },
+            body="\n".join(link_lines),
+        )
+
+        index_lines = [
+            "## Core Pages",
+            "",
+            "- [Knowledge Base Index](../index.md)",
+        ]
+        for page in library_pages:
+            relative_path = os.path.relpath(page["path"], publish_dir).replace(os.sep, "/")
+            index_lines.append(f'- [{page["title"]}]({relative_path})')
+
+        if knowledge_maps:
+            index_lines.extend(["", "## Knowledge Maps", ""])
+            for page in knowledge_maps:
+                relative_path = os.path.relpath(page["path"], publish_dir).replace(os.sep, "/")
+                index_lines.append(f'- [{page["title"]}]({relative_path})')
+
+        if synthesis_pages:
+            index_lines.extend(["", "## Synthesis Pages", ""])
+            for page in synthesis_pages:
+                relative_path = os.path.relpath(page["path"], publish_dir).replace(os.sep, "/")
+                index_lines.append(f'- [{page["title"]}]({relative_path})')
+
+        index_lines.extend(
+            [
+                "",
+                "## Reference Link Pack",
+                "",
+                "- [Publish-Safe Reference Links](reference-links.md)",
+                "- [[publish-reference-links]]",
+            ]
+        )
+
+        publish_index_path = os.path.join(publish_dir, "knowledge-base.md")
+        self._write_graph_note(
+            publish_index_path,
+            title="Publish-Safe Knowledge Base",
+            note_type="publish-index",
+            aliases=["publish-knowledge-base"],
+            tags=self._build_graph_note_tags(
+                "publish-index",
+                "export",
+                ["publish-safe", "export/index"],
+            ),
+            extra_fields={
+                "note_class": "publish-index",
+                "note_domain": "export",
+                "project": self._current_project_slug(),
+                "reference_count": len(deduped_entries),
+                "review_state": "n/a",
+            },
+            body="\n".join(index_lines),
+        )
+
+        return [
+            {
+                "alias": "publish-reference-links",
+                "title": "Publish-Safe Reference Links",
+                "path": link_note_path,
+            },
+            {
+                "alias": "publish-knowledge-base",
+                "title": "Publish-Safe Knowledge Base",
+                "path": publish_index_path,
+            },
+        ]
 
     def _extract_markdown_section_blocks(self, markdown_text: str) -> List[Dict[str, str]]:
         if not markdown_text.strip():
@@ -2082,6 +2278,7 @@ class ReferenceManager:
         library_overview = self._materialize_library_overview(context_nodes)
         asset_nodes = self._materialize_asset_graph_notes()
         draft_section_nodes = self._materialize_draft_section_notes(asset_nodes.get("aliases", {}))
+        library_pages = self._iter_library_pages()
         lines = [
             "# Knowledge Base Index",
             "",
@@ -2099,6 +2296,12 @@ class ReferenceManager:
         lines.extend(self._type_query_block("table-note", format_name="count"))
         lines.extend(["", "### Library Views", ""])
         lines.extend(self._type_query_block("library-overview", format_name="count"))
+        lines.extend([""])
+        lines.extend(self._type_query_block("library-dashboard", format_name="count"))
+        lines.extend([""])
+        lines.extend(self._type_query_block("publish-index", format_name="count"))
+        lines.extend([""])
+        lines.extend(self._type_query_block("publish-links", format_name="count"))
         lines.extend(["", f"- Context hubs: {context_nodes['count']}"])
         lines.extend(["", "## References", ""])
 
@@ -2148,7 +2351,11 @@ class ReferenceManager:
             lines.append("- No context hubs materialized yet")
 
         lines.extend(["", "## Library Views", ""])
-        lines.append(f"- [[{library_overview['alias']}]]: {library_overview['title']} [library]")
+        if library_pages:
+            for page in library_pages:
+                lines.append(f"- [[{page['alias']}]]: {page['title']} [library]")
+        else:
+            lines.append(f"- [[{library_overview['alias']}]]: {library_overview['title']} [library]")
 
         lines.extend(["", "## Figures", ""])
         if asset_nodes["figures"]:
@@ -2164,15 +2371,27 @@ class ReferenceManager:
         else:
             lines.append("- No tables registered yet")
 
+        publish_pages = self._write_publish_safe_bundle(
+            library_pages=library_pages,
+            knowledge_maps=knowledge_maps,
+            synthesis_pages=synthesis_pages,
+            draft_section_nodes=draft_section_nodes,
+            asset_nodes=asset_nodes,
+        )
+        lines.extend(["", "## Publish-Safe Views", ""])
+        for page in publish_pages:
+            lines.append(f"- [[{page['alias']}]]: {page['title']} [publish]")
+
         with open(index_path, "w", encoding="utf-8") as handle:
             handle.write("\n".join(lines) + "\n")
         return {
             "references": len(self.list_references()),
             "draft_sections": len(draft_section_nodes),
             "context_hubs": context_nodes["count"],
-            "library_views": 1,
+            "library_views": len(library_pages),
             "figures": len(asset_nodes["figures"]),
             "tables": len(asset_nodes["tables"]),
+            "publish_pages": len(publish_pages),
         }
 
     def refresh_foam_graph(self) -> Dict[str, Any]:
@@ -2977,7 +3196,7 @@ class ReferenceManager:
             return (
                 f"❌ Article PMID:{pmid} not found.\n\n"
                 f"Please search for it first using pubmed-search MCP, then try again.\n"
-                f"Example: search_literature(query='{pmid}[pmid]')"
+                f"Example: unified_search(query='{pmid}[pmid]')"
             )
 
         # Add layered trust metadata

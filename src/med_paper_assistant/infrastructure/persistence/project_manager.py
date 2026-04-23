@@ -100,6 +100,8 @@ class ProjectManager:
                     "inbox": str(project_path / "inbox"),
                     "concepts": str(project_path / "concepts"),
                     "projects": str(project_path / "projects"),
+                    "review": str(project_path / "review"),
+                    "daily": str(project_path / "daily"),
                 }
             )
         else:
@@ -595,12 +597,19 @@ class ProjectManager:
                 config.get("interaction_preferences", {}), config.get("memo", "")
             )
 
-        return {
+        foam_result = None
+        if slug == self.get_current_project():
+            foam_result = self._update_foam_settings(slug)
+
+        result = {
             "success": True,
             "message": "Project settings updated successfully",
             "slug": slug,
             "updated_fields": updated_fields,
         }
+        if foam_result and foam_result.get("success"):
+            result["foam_views"] = foam_result.get("graph_views", [])
+        return result
 
     # =========================================================================
     # Paper Types (delegated to domain)
@@ -712,7 +721,11 @@ class ProjectManager:
 ## Reading Queues
 - Inbox
 - Active reading
+- Review worklists
 - Synthesis targets
+
+## Daily Capture
+<!-- Use daily/ for journal-style capture pages and short-lived intake notes -->
 
 ## Knowledge Threads
 <!-- Themes, methods, interventions, datasets, or claims to connect -->
@@ -735,6 +748,8 @@ class ProjectManager:
                 f"   - Inbox notes: {stats.get('inbox', 0)}",
                 f"   - Concept notes: {stats.get('concepts', 0)}",
                 f"   - Synthesis projects: {stats.get('projects', 0)}",
+                f"   - Review notes: {stats.get('review', 0)}",
+                f"   - Daily notes: {stats.get('daily', 0)}",
             ]
         else:
             lines = [
@@ -841,6 +856,10 @@ class ProjectManager:
             stats["concepts"] = len(list((project_path / "concepts").glob("*.md")))
         if (project_path / "projects").exists():
             stats["projects"] = len(list((project_path / "projects").glob("*.md")))
+        if (project_path / "review").exists():
+            stats["review"] = len(list((project_path / "review").glob("*.md")))
+        if (project_path / "daily").exists():
+            stats["daily"] = len(list((project_path / "daily").glob("*.md")))
 
         # Common stats
         if (project_path / "references").exists():
@@ -925,7 +944,14 @@ class ProjectManager:
             "is_temp": True,
             "message": "✅ 已建立文獻探索工作區！\n\n現在可以自由搜尋和保存文獻。找到研究方向後，使用 convert_temp_to_project 將內容轉移到正式專案。",
             "paths": self.get_project_paths(self.TEMP_PROJECT_SLUG),
-            "stats": {"drafts": 0, "references": 0, "data_files": 0},
+            "stats": {
+                "references": 0,
+                "inbox": 0,
+                "concepts": 0,
+                "projects": 0,
+                "review": 0,
+                "daily": 0,
+            },
         }
 
     def is_temp_project_active(self) -> bool:
