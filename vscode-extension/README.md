@@ -1,11 +1,12 @@
 # MedPaper Assistant - VS Code Extension
 
-AI-powered medical paper writing and literature wiki assistant with MCP tools, prompts, and skills.
+Compact-first MCP research workspace for manuscript and library-wiki workflows, with managed tools, prompts, Foam graph views, and bundled guides.
 
 ![MedPaper Assistant marketplace banner](https://raw.githubusercontent.com/u9401066/med-paper-assistant/master/vscode-extension/resources/marketplace-banner.png)
 
 ## Features
 
+- 🧭 **Dual Workflow Workspace** - Manuscript Path + Library Wiki Path with the same `@mdpaper` entrypoint
 - **Auto Paper** - 全自動 11-Phase 論文撰寫 + 3 層 Audit Hooks
 - 🔍 **PubMed Literature Search** - Search and save references
 - ✍️ **Draft Writing** - Write paper sections with citation-aware editing
@@ -15,12 +16,23 @@ AI-powered medical paper writing and literature wiki assistant with MCP tools, p
 - 📚 **LLM Wiki / Library Wiki Path** - inbox/concepts/projects note triage, dashboards, and managed Foam graph views
 - 🔔 **Dual-Hook Architecture** - 78 個品質檢查（55 Code-Enforced / 23 Agent-Driven）
 
+## What This VSIX Actually Ships
+
+This extension is the packaged end-user surface, not the entire monorepo authoring workspace.
+
+| Included in the VSIX | Details |
+| -------------------- | ------- |
+| **MCP runtime** | `mdpaper` compact-first surface by default: 21 tools, with optional full 115-tool mode |
+| **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 1 journal template, and 7 support/reference files |
+| **Workspace UX** | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs |
+| **Not the full repo** | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface |
+
 ## Installation
 
 ### From VSIX
 
 ```bash
-code --install-extension medpaper-assistant-0.7.1.vsix
+code --install-extension medpaper-assistant-0.7.2.vsix
 ```
 
 Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
@@ -110,6 +122,23 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 - **Manuscript Path**：建立 `workflow_mode="manuscript"` 專案後，走 concept → draft → review → export。
 - 建議順序：先用 Library Wiki Path 累積與整理知識，再切去 Manuscript Path 正式寫稿。
 
+If you want the broader repository workflow surface, use the main repository checkout. The VSIX is intentionally the narrower packaged path.
+
+## Foam + Copilot Knowledge Base
+
+MedPaper uses Foam as the reading and graph layer, while Copilot handles ingest, identity resolution, knowledge-map and synthesis generation, evidence-anchor materialization, and the managed Foam graph views.
+
+The current Foam/Copilot layer now includes orphan / placeholder cleanup loops, template-driven capture into `inbox/`, `review/`, and `daily/`, richer `foam-query` dashboards, publish-safe wikilink reference packs under `notes/publish/`, and project-specific `graph_views_json` slices.
+
+Docs shipped with `MedPaper: Setup Workspace`:
+
+- [docs/how-to/llm-wiki.md](docs/how-to/llm-wiki.md)
+- [docs/reference/foam.md](docs/reference/foam.md)
+
+You can also open the main guide directly with `MedPaper: Open LLM Wiki Guide`.
+
+The bundled LLM Wiki guide now includes a ready-to-paste `graph_views_json` example for an ICU sedation / delirium review workflow.
+
 ## Architecture
 
 ```text
@@ -133,7 +162,9 @@ Capability → Skill → Hook → MCP Tool
 
 ### Bundled Assets
 
-The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, **1 journal profile template**, and **7 support/reference files**. The full repository still contains a broader authoring and maintenance surface.
+The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, **1 journal profile template**, **7 support/reference files**, **10 chat commands**, and **11 palette commands**. The full repository still contains a broader authoring and maintenance surface.
+
+These counts are release-gated against `bundle-manifest.json` and `tool-surface-authority.json`, so the marketplace docs stay aligned with the packaged surface.
 
 | 類別       | Skills                                                                                       |
 | ---------- | -------------------------------------------------------------------------------------------- |
@@ -152,6 +183,8 @@ Bundled support/reference files: `.github/prompts/_capability-index.md`, `.githu
 That means a VSIX-only user can now run `MedPaper: Setup Workspace` and receive the Foam dependency reference, the LLM wiki reference/how-to docs, and the workflow figure directly under `docs/` in their workspace.
 
 ### MCP Tools (115 full / 21 compact default)
+
+The 115/21 tool counts plus the 3 MCP prompts and 3 MCP resources are runtime-validated through `tool-surface-authority.json` during validate/release gates.
 
 自動註冊 MCP Server：
 

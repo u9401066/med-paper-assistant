@@ -18,14 +18,14 @@ description: "📚 literature-survey - 系統性文獻調查"
 ## Phase 2: 多維度搜尋
 
 1. `parse_pico()` / `generate_search_queries(topic, strategy="comprehensive")` → 5 組查詢
-2. 並行 `search_literature()` 各 100 篇
-3. `merge_search_results()` 去重
+2. 並行 `unified_search(query)` 各 100 篇或不同來源
+3. 若需要整併多批結果，再用 `merge_search_results()` 去重
 
 ## Phase 3: 評估擴展
 
 | 結果數  | 行動                      |
 | ------- | ------------------------- |
-| < 20    | `expand_search_queries()` |
+| < 20    | `generate_search_queries(topic, strategy="exploratory")` / `expand_search_queries()` |
 | 20-100  | 適中                      |
 | 100-300 | 篩選                      |
 | > 300   | 縮小                      |

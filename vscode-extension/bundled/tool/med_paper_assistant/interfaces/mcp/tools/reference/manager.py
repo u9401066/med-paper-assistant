@@ -142,7 +142,7 @@ def register_reference_manager_tools(
             error_msg = (
                 "❌ Article metadata must contain 'pmid' field.\n\n"
                 "Ensure you're using metadata from pubmed-search MCP's "
-                "`fetch_article_details()` or `search_literature()` tools."
+                "`fetch_article_details()` or `unified_search()` tools."
             )
             log_agent_misuse(
                 "save_reference",

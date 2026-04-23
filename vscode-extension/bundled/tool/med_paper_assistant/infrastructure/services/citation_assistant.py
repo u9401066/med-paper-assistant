@@ -121,7 +121,7 @@ class CitationAnalysisResult:
             output += "### 🔎 Suggested PubMed Searches\n\n"
             output += "Use `pubmed-search` MCP to find new references:\n\n"
             for i, query in enumerate(self.pubmed_search_queries[:3], 1):
-                output += f'{i}. `search_literature("{query}")`\n'
+                output += f'{i}. `unified_search(query="{query}")`\n'
             output += "\n"
 
         # 5. 總結

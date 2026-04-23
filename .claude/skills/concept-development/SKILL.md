@@ -39,7 +39,7 @@ description: 發展研究概念並驗證創新性。觸發：concept、發展概
 
 ### Phase 1: 文獻搜尋
 
-`search_literature()` → `fetch_article_details()` → 分析 Research Gap
+`unified_search()` → `fetch_article_details()` → 分析 Research Gap
 
 ### Phase 2: 專案建立
 

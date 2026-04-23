@@ -386,7 +386,7 @@ projects/{slug}/
 ### 1. 文獻搜尋 → 儲存
 
 ```
-pubmed-search: search_literature(query)
+pubmed-search: unified_search(query)
     → Agent 選擇文獻
     → mdpaper: save_reference_mcp(pmid) → Direct API → 驗證資料存入 references/
 ```
@@ -407,7 +407,7 @@ mdpaper: get_section_template(section)
 mdpaper: list_templates() → read_template()
     → mdpaper: start_document_session()
     → mdpaper: insert_section() × N
-    → mdpaper: check_word_limits()
+    → mdpaper: count_words(filename="manuscript.md")
     → mdpaper: save_document()
 ```
 

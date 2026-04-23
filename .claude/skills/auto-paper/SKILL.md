@@ -231,7 +231,7 @@ pipeline:
 **外部 MCP**: `pubmed-search`, `zotero-keeper`（optional）
 
 1. `generate_search_queries(topic, strategy="comprehensive")`
-2. 並行 `search_literature()` × 3-5 組
+2. 並行 `unified_search()` × 3-5 組
 3. `merge_search_results()`
 4. `get_citation_metrics(sort_by="relative_citation_ratio")`
 5. 選前 15-20 篇 → `save_reference_mcp(pmid, agent_notes)`

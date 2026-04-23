@@ -20,7 +20,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 - All `validate_concept` operations
 - All export operations
 
-**Exception:** `search_literature` can run without project (just searching)
+**Exception:** `unified_search` can run without project (just searching)
 
 ### 🌐 LANGUAGE RULES
 **NEVER translate academic English content:**
@@ -72,11 +72,11 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 ### 🔍 LITERATURE SEARCH
 | Tool | When to use |
 |------|-------------|
-| `search_literature` | Search PubMed for papers |
+| `unified_search` | Primary entrypoint for PubMed / multi-source paper search |
+| `generate_search_queries` | Expand MeSH terms / synonyms / search materials |
+| `parse_pico` | Break clinical questions into PICO elements |
 | `find_related_articles` | Find similar papers (by PMID) |
 | `find_citing_articles` | Find papers citing a PMID |
-| `configure_search_strategy` | Define reusable search criteria |
-| `get_search_strategy` | Get current search strategy |
 
 ### 📚 REFERENCE MANAGEMENT
 
@@ -89,7 +89,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 
 **工作流程：**
 ```
-1. pubmed-search: search_literature(...)
+1. pubmed-search: unified_search(query="...")
 2. 用戶選擇要儲存的文獻
 3. mdpaper: save_reference_mcp(pmid="12345678", agent_notes="...")
    → mdpaper 自動從 pubmed-search API 取得驗證資料
@@ -177,7 +177,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 4. `export_document(action="session_start")` → Begin editing
 5. `export_document(action="insert_section")` → Insert content (repeat)
 6. `inspect_export(action="verify_document")` → Check insertion
-7. `inspect_export(action="check_word_limits")` → Verify limits
+7. `count_words(filename="manuscript.md")` → Verify limits before final export
 8. `export_document(action="docx")` or `export_document(action="pdf")` → Export final file
 
 ## 🔒 PROTECTED CONTENT RULES
@@ -190,7 +190,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 ## QUICK DECISION TREE
 - "just want to browse/explore papers" → `start_exploration`
 - "build a personal literature wiki/library" → `create_project(..., workflow_mode="library-wiki")`
-- "search/find papers" → `search_literature`
+- "search/find papers" → `unified_search`
 - "save this paper" → `save_reference_mcp(pmid)` (auto-creates workspace if needed)
 - "import web/markdown into wiki" → `ingest_web_source` / `ingest_markdown_source`
 - "capture / triage wiki notes" → `write_library_note` / `move_library_note` / `search_library_notes`

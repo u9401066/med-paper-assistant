@@ -12,7 +12,7 @@ description: "📝 mdpaper.concept - 發展研究概念與文獻缺口分析"
 
 ## Step 2: 文獻搜尋
 
-`search_literature(query)` → `fetch_article_details(pmids)` → 5-10 篇關鍵論文 → 分析 Gap
+`unified_search(query)` → `fetch_article_details(pmids)` → 5-10 篇關鍵論文 → 分析 Gap
 
 ## Step 3: 儲存文獻
 
@@ -35,7 +35,7 @@ description: "📝 mdpaper.concept - 發展研究概念與文獻缺口分析"
 
 ## Step 5: 驗證
 
-`validate_concept("concept.md")` → 結構 + Novelty 評分（3 輪 ≥ 75）+ 一致性
+`validation_action(action="concept", filename="concept.md")` → 結構 + Novelty 評分（3 輪 ≥ 75）+ 一致性
 ✅ → `/mdpaper.draft` | ❌ → 修改
 
 ## Novelty Check 規則

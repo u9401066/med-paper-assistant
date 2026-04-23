@@ -49,7 +49,7 @@ def register_exploration_tools(
 
 1. **Search Literature**
    ```
-   search_literature(query="your topic of interest")
+    unified_search(query="your topic of interest")
    ```
 
 2. **Save Interesting Papers**

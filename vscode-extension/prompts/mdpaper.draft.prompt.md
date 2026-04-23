@@ -6,7 +6,7 @@ description: "✍️ mdpaper.draft - 撰寫論文草稿"
 
 技能：draft-writing + concept-validation
 
-⚠️ **前置條件**：`validate_concept("concept.md")` → Novelty ≥ 75 才能寫
+⚠️ **前置條件**：`validation_action(action="concept", filename="concept.md")` → Novelty ≥ 75 才能寫
 
 ## Step 0: 寫作順序
 
@@ -14,7 +14,7 @@ description: "✍️ mdpaper.draft - 撰寫論文草稿"
 
 ## Step 1: 確認專案 + 驗證
 
-`project_action(action="current")` → `validate_for_section(section)` → ✅ CAN WRITE / ❌ 缺區塊
+`project_action(action="current")` → `validation_action(action="concept", filename="concept.md", target_section=section)` → ✅ CAN WRITE / ❌ 缺區塊
 
 ## Step 2: 讀 Concept
 

@@ -432,7 +432,7 @@ Use `list_projects` to see all projects, or `create_project` to create a new one
                     elif ref_count > 0:
                         output += f"## 💡 {ref_count} references saved. Keep exploring or convert when ready.\n"
                     else:
-                        output += '## 💡 Start by searching literature:\n```\nsearch_literature(query="your topic")\n```\n'
+                        output += '## 💡 Start by searching literature:\n```\nunified_search(query="your topic")\n```\n'
 
                     log_tool_result("get_current_project", "exploration workspace", success=True)
                     return output

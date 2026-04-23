@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-  <b>🔬 醫學論文寫作與 LLM Wiki 的整合式 AI 工具包</b><br>
-  <i>3 個 MCP Server · 165+ 個工具 · 26 個技能 · 15 個 Prompt 工作流 — 全在 VS Code 裡</i>
+  <b>🔬 以 MCP 協調的醫學研究工作區：論文寫作與 LLM Wiki 雙工作流</b><br>
+  <i>3 個 MCP Server · 165+ 個工具 · 26 個技能 · 15 個 Prompt 工作流 — Monorepo 作者面與 VSIX 打包面共用同一套 VS Code 生態</i>
 </p>
 
 > 📖 [English Version](README.md)
@@ -22,20 +22,31 @@
 
 ## 📦 工具包內容一覽
 
-這是一個 **Monorepo 工具包**，將醫學研究者需要的一切 — 從文獻搜尋到 Word/LaTeX 匯出 — 整合在一個 VS Code 環境中。
+這個 repository 是 MedPaper Assistant 的**完整作者面與整合工作區**。它把核心 MCP runtime、可安裝的 VSIX 擴充功能、bundled 教學文件，以及釘選的整合子模組放在同一個地方維護。
 
 | 元件                                                               | 類型                 | 工具數                         | 說明                                                                                    |
 | ------------------------------------------------------------------ | -------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
 | **mdpaper**                                                        | 核心 MCP Server      | 115（full）/ 21（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37                             | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                               |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13                             | 創意發想：腦力激盪、深度思考、火花碰撞                                                  |
-| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 10 指令 + 10 chat              | MCP 自動註冊、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者       |
+| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 11 指令 + 10 chat             | MCP 自動註冊、compact-first 打包面、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者       |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App      | —                              | 專案管理 UI、圖表編輯器                                                                 |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —                              | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖                                             |
 | **[Skills](.claude/skills/)**                                      | Agent 工作流         | 26                             | 引導式多工具工作流（文獻回顧、草稿寫作...）                                             |
 | **[Prompts](.github/prompts/)**                                    | Prompt Files         | 15                             | `/mdpaper.search`、`/mdpaper.draft` 等                                                  |
 
 **外部 MCP Server**（選用，透過 uvx 安裝）：
+
+上表與 MCP tool surface 的計數以 `tool-surface-authority.json` 與 `vscode-extension/bundle-manifest.json` 為單一來源，release / validate gate 會自動驗證。
+
+### 如何選擇安裝面
+
+| 安裝面 | 適合誰 | 你會拿到什麼 |
+| ------ | ------ | ------------ |
+| **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、26 個 skills、15 個 prompt workflows、repo scripts、tests 與作者文件 |
+| **VSIX 擴充功能** | 想直接用打包體驗的終端使用者 | `@mdpaper`、11 個 palette commands、compact-first `mdpaper` runtime（預設 21 工具 / 可切 115）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
+
+也就是說：repository 是較寬的工程面；VSIX 是較收斂的終端使用者面。
 
 - **drawio** — CONSORT/PRISMA 流程圖生成
 - **zotero-keeper** — 從 Zotero 匯入參考文獻
@@ -52,7 +63,7 @@
 
 **傳統論文寫作工具**要求你在開始前就知道確切的方向。但研究很少是這麼線性的。
 
-**Medical Paper Assistant** 不一樣：
+**Medical Paper Assistant** 不只是寫作助手，而是研究工作區協調器：
 
 - 🔍 **先探索，後決定** — 自由瀏覽文獻、儲存有興趣的論文，再決定研究方向
 - 💬 **對話式工作流程** — 用自然語言與 AI 對話來精煉想法，不用填表單
@@ -62,7 +73,7 @@
 | 傳統工具                   | Medical Paper Assistant          |
 | -------------------------- | -------------------------------- |
 | 固定模板、僵化流程         | 彈性、探索式方法                 |
-| 搜尋/寫作/引用分開多個 App | 一站式：165+ 個工具在 VS Code 裡 |
+| 搜尋/寫作/引用分開多個 App | 同一個協調工作區：165+ 個工具與打包工作流都在 VS Code 裡 |
 | 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料       |
 | 匯出後再排版               | 直接匯出符合期刊格式的 Word      |
 | 學習複雜介面               | 自然語言對話                     |
@@ -160,6 +171,18 @@ Windows PowerShell：
 
 > 💡 **建議用法**：先用 Library Wiki Path 收斂文獻與概念，再切去 Manuscript Path 進入正式寫稿。
 
+## Foam + Copilot 個人知識庫
+
+MedPaper 目前已把 Foam 放在瀏覽與圖譜層，讓 Copilot 專注於 ingest、身份正規化、knowledge map / synthesis page 生成、evidence block anchors，以及受管的 graph views。
+
+目前這層整合已經包含 orphan / placeholder 修復流程、寫入 `inbox/` / `review/` / `daily/` 的模板化 capture、更豐富的 `foam-query` dashboard、輸出到 `notes/publish/` 的 publish-safe wikilink reference pack，以及專案專用的 `graph_views_json` graph slice。
+
+教學與參考文件：
+
+- [MedPaper LLM Wiki 使用指南](docs/how-to/llm-wiki.md)
+- [Foam 相依層參考](docs/reference/foam.md)
+- [ICU sedation / delirium graph view 範例](docs/how-to/llm-wiki.md)
+
 ---
 
 ## 🧠 技能系統 + 專案記憶
@@ -173,7 +196,7 @@ Windows PowerShell：
 技能 (Skill) = 完整知識（如何組合工具完成任務）
 ```
 
-**26 個技能**涵蓋完整研究生命週期：
+以下是 26 個技能中的代表性技能家族：
 
 | 分類    | 技能                                                                                | 觸發語                                      |
 | ------- | ----------------------------------------------------------------------------------- | ------------------------------------------- |
@@ -211,6 +234,8 @@ projects/{slug}/
 ├── references/            ← 物化的 reference notes
 ├── inbox/                 ← 原始筆記與捕捉區
 ├── concepts/              ← 原子概念頁與雙向連結
+├── review/                ← graph 修復工作單與審閱筆記
+├── daily/                 ← 模板化每日捕捉頁
 └── projects/              ← synthesis pages / workstreams
 ```
 
@@ -284,7 +309,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 外部 MCPs   │
-│  94/44 工具   │  │  search       │  │  13 工具      │  │   (uvx)       │
+│ 115/21 工具   │  │  search       │  │  13 工具      │  │   (uvx)       │
 │               │  │  37 工具      │  │               │  │               │
 │ • 專案管理    │  │ • PubMed      │  │ • 腦力激盪    │  │ 🎨 drawio     │
 │ • 參考文獻    │  │ • Europe PMC  │  │ • 深度思考    │  │ • 流程圖      │
@@ -330,13 +355,13 @@ pubmed-search: GET /api/cached_article/24891204
 
 ## 🛠️ mdpaper MCP 工具
 
-**94 個工具（full）/ 44 個工具（compact 預設）**，另加 **3 個 MCP prompts** 與 **3 個 MCP resources**。
+**115 個工具（full）/ 21 個工具（compact 預設）**，另加 **3 個 MCP prompts** 與 **3 個 MCP resources**。
+
+這些數字由 `tool-surface-authority.json` 與 `scripts/check_tool_surface_authority.py` 依實際 runtime 註冊結果驗證；只要文件與權威數據漂移，validate / release gate 就會失敗。
 
 compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/export），隱藏多數細粒度 public verbs；若要完整 surface，設定 `MEDPAPER_TOOL_SURFACE=full`。
 
-下方七個章節描述的是 88 個細粒度 domain tools；剩下 6 個 full-surface 入口則是 facade verbs（`project_action`、`workspace_state_action`、`run_quality_checks`、`pipeline_action`、`export_document`、`inspect_export`）。
-
-### 📁 專案管理（17 工具）
+### 📁 專案管理
 
 專案、探索模式、工作區狀態恢復、圖表管理。
 
@@ -349,7 +374,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 | `setup_project_interactive`                            | 互動式論文類型設定  |
 | `update_authors`                                       | 管理結構化作者資訊  |
 
-### 📚 參考文獻管理（12 工具）
+### 📚 參考文獻管理
 
 儲存、搜尋、格式化、管理參考文獻，整合 Foam。
 
@@ -360,7 +385,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 | `format_references` / `set_citation_style`          | Vancouver / APA / Nature                              |
 | `sync_references`                                   | 將 `[[wikilinks]]` 同步為編號引用                     |
 
-### ✍️ 草稿與編輯（13 工具）
+### ✍️ 草稿與編輯
 
 寫作、編輯、引用 — 內建驗證。
 
@@ -374,7 +399,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 | `scan_draft_citations` / `sync_references`    | 引用管理                                        |
 | `count_words`                                 | 段落、章節與全文字數檢查                        |
 
-### ✅ 驗證（3 工具）
+### ✅ 驗證
 
 | 工具                      | 說明                                                |
 | ------------------------- | --------------------------------------------------- |
@@ -382,7 +407,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 | `validate_wikilinks`      | 自動修復 `[[12345678]]` → `[[author2024_12345678]]` |
 | `compare_with_literature` | 將研究想法與已存文獻做差異與重疊比較                |
 
-### 📊 資料分析（10 工具）
+### 📊 資料分析
 
 | 工具                   | 說明                          |
 | ---------------------- | ----------------------------- |
@@ -394,7 +419,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 | `insert_table`         | 插入表格至草稿，含歸檔驗證    |
 | `list_assets`          | 列出專案 results 中的圖表資源 |
 
-### 🔍 審查與審計（23 工具）
+### 🔍 審查與審計
 
 | 分類              | 關鍵工具                                                                  |
 | ----------------- | ------------------------------------------------------------------------- |
@@ -406,7 +431,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 | **領域約束**      | `check_domain_constraints`、`evolve_constraint`                           |
 | **資料與健康**    | `validate_data_artifacts`、`diagnose_tool_health`、`check_formatting`     |
 
-### 📄 匯出與投稿（10 工具）
+### 📄 匯出與投稿
 
 | 分類            | 關鍵工具                                                                     |
 | --------------- | ---------------------------------------------------------------------------- |
@@ -425,7 +450,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 
 | 分類            | 關鍵工具                                                                  |
 | --------------- | ------------------------------------------------------------------------- |
-| **搜尋**        | `search_literature`、`generate_search_queries`、`parse_pico`              |
+| **搜尋**        | `unified_search`、`generate_search_queries`、`parse_pico`                 |
 | **資料庫**      | PubMed、Europe PMC（全文 + 文本挖掘）、CORE（2 億+ 開放取用）             |
 | **基因/化合物** | `search_gene`、`get_gene_details`、`search_compound`、`search_clinvar`    |
 | **探索**        | `find_related_articles`、`find_citing_articles`、`get_article_references` |
@@ -535,9 +560,11 @@ med-paper-assistant/
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（37 工具）
 │   └── cgu/                       #   創意發想（13 工具）
 │
-├── vscode-extension/              # VS Code 擴充功能
+├── vscode-extension/              # 打包後的 VSIX surface
 │   ├── src/                       #   擴充功能原始碼
-│   ├── skills/                    #   Agent 技能定義
+│   ├── bundled/tool/              #   marketplace 安裝用 Python runtime mirror
+│   ├── skills/                    #   bundled skills
+│   ├── docs/                      #   bundled Foam / LLM wiki 文件
 │   └── prompts/                   #   快速操作 Prompts
 │
 ├── dashboard/                     # Next.js 專案管理 UI
@@ -575,7 +602,7 @@ med-paper-assistant/
 | ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                                 |
 | ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                             |
 | ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...）            |
-| 🔜   | **完整 VSX Extension**      | TreeView、CodeLens、Diagnostics（方向 C）                      |
+| 🔜   | **更完整的 VSX UX**         | TreeView、CodeLens、Diagnostics 與更深入的編輯器內表面（方向 C） |
 | 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                            |
 | 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                                |
 | 📋   | **AI Writing Intelligence** | 引用智慧、連貫性引擎                                           |

@@ -78,18 +78,21 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 **Code-Enforced** = `run_writing_hooks` / `run_review_hooks` / `run_meta_learning` 內有確定性程式碼邏輯。
 **Agent-Driven** = 僅靠 Agent 閱讀 SKILL.md 並自行執行，無程式碼強制。
 
-## MCP Server（101 full / 44 compact default + 3 prompts + 3 resources, verified 2026-04-21）
+## MCP Server（runtime-validated authority）
 
-| 模組        | 工具數 | 重點                                                                                         |
-| ----------- | ------ | -------------------------------------------------------------------------------------------- |
-| project/    | 17     | CRUD + exploration + workspace state + writing checkpoint                                    |
-| reference/  | 19     | save_reference_mcp 優先 + subagent analysis + local/web/markdown intake + canonical identity + wiki materialization（full） |
-| draft/      | 13     | writing + citation + editing (patch_draft)                                                   |
-| validation/ | 3      | validate_concept + wikilinks                                                                 |
-| analysis/   | 10     | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）        |
-| review/     | 23     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept |
-| export/     | 10     | word + pandoc (docx/pdf/bib)                                                                 |
-| facade/     | 6      | project/workspace/review/pipeline/export stable entrypoints                                  |
+目前 authority：115 full / 21 compact default + 3 prompts + 3 resources。
+單一來源：`tool-surface-authority.json`。`scripts/check_tool_surface_authority.py`、release workflow、`npm run validate` 都會驗證這些數字。
+
+| 模組        | 重點                                                                                         |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| project/    | CRUD + exploration + workspace state + writing checkpoint                                    |
+| reference/  | save_reference_mcp 優先 + subagent analysis + local/web/markdown intake + canonical identity + wiki materialization（full） |
+| draft/      | writing + citation + editing (patch_draft)                                                   |
+| validation/ | validate_concept + wikilinks                                                                 |
+| analysis/   | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）        |
+| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept |
+| export/     | word + pandoc (docx/pdf/bib)                                                                 |
+| facade/     | project/workspace/review/pipeline/export stable entrypoints                                  |
 
 ## VS Code Copilot Lifecycle Hooks
 

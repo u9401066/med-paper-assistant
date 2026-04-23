@@ -52,7 +52,7 @@
 
 ```
 ┌─────────────┐     save_reference     ┌─────────────┐
-│             │    search_literature   │             │
+│             │      unified_search    │             │
 │    EMPTY    │ ─────────────────────► │ EXPLORATION │
 │             │    import_pdf          │             │
 └─────────────┘                        └──────┬──────┘
@@ -236,7 +236,7 @@ sequenceDiagram
     participant M as MedPaper MCP
 
     U->>A: 幫我找 remimazolam 的文獻
-    A->>M: search_literature("remimazolam")
+    A->>M: unified_search("remimazolam")
     M-->>A: 10 results
     A-->>U: 找到 10 篇，要儲存哪些？
 

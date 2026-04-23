@@ -9,9 +9,9 @@
 ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 ![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)
 
-## 🔬 An Integrated AI Toolkit for Medical Paper Writing and LLM Wiki Workflows
+## 🔬 An MCP-Orchestrated Research Workspace for Medical Paper Writing and LLM Wiki Workflows
 
-3 MCP Servers · 165+ Tools · 26 Skills · 15 Prompts Workflows — All in VS Code
+3 MCP Servers · 165+ Tools · 26 Skills · 15 Prompt Workflows — monorepo authoring surface plus packaged VSIX surface in one VS Code ecosystem
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 78 Quality Hooks, Structured Review Loop
@@ -22,14 +22,14 @@
 
 ## 📦 What's in the Box
 
-This is a **monorepo toolkit** that bundles everything a medical researcher needs — from literature search to Word/LaTeX export — into one integrated VS Code environment.
+This repository is the **full authoring and integration workspace** behind MedPaper Assistant. It combines the core MCP runtime, the packaged VSIX extension, bundled guides, and pinned integration submodules in one place.
 
 | Component                                                          | Type                   | Tools                            | Description                                                                                   |
 | ------------------------------------------------------------------ | ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------- |
 | **mdpaper**                                                        | Core MCP Server        | 115 (full) / 21 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37                               | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                           |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13                               | Creative generation: brainstorm, deep think, spark collision                                  |
-| **[VS Code Extension](vscode-extension/)**                         | Extension              | 10 cmds + 10 chat                | MCP auto-registration, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
+| **[VS Code Extension](vscode-extension/)**                         | Extension              | 11 cmds + 10 chat               | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                | Project management UI, diagram editor                                                         |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                | `[[wikilink]]` citation linking, hover preview, graph view                                    |
 | **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26                               | Guided multi-tool workflows (literature review, draft writing...)                             |
@@ -39,6 +39,17 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 - **drawio** — CONSORT/PRISMA flowchart generation
 - **zotero-keeper** — Import references from Zotero library
+
+Counts in these tables are release-gated via `tool-surface-authority.json` and `vscode-extension/bundle-manifest.json`.
+
+### Choose Your Install Surface
+
+| Surface | Best for | What you get |
+| ------- | -------- | ------------ |
+| **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 26 skills, 15 prompt workflows, repo scripts, tests, and authoring docs |
+| **VSIX extension** | End users who want the packaged experience | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (21 tools by default / 115 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
+
+The repository is the broader engineering surface. The VSIX is the curated end-user surface.
 
 **VSX note**: The MedPaper VS Code extension installs Python MCP tools persistently per machine via `uv tool install`, attempts `uv tool upgrade` on later activations, and skips duplicate PubMed Search / Zotero Keeper registration when another installed VS Code extension already provides those MCP servers. CI smoke now covers `ubuntu-latest`, `windows-latest`, `macos-13`, and `macos-14`, including official MCP client checks plus VSX validation smoke.
 
@@ -52,7 +63,7 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 
 **Traditional paper writing tools** require you to know exactly what you want before you start. But research is rarely that linear.
 
-**Medical Paper Assistant** is different:
+**Medical Paper Assistant** is not just a writing assistant. It is a research workspace orchestrator:
 
 - 🔍 **Explore First, Decide Later** — Browse literature freely, save interesting papers, then decide your research direction
 - 💬 **Conversational Workflow** — Chat naturally with AI to refine your ideas, not fight with forms
@@ -62,7 +73,7 @@ This is a **monorepo toolkit** that bundles everything a medical researcher need
 | Traditional Tools                   | Medical Paper Assistant                |
 | ----------------------------------- | -------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach         |
-| Separate apps for search/write/cite | All-in-one: 165+ tools in VS Code      |
+| Separate apps for search/write/cite | One orchestrated workspace: 165+ tools and packaged workflows in VS Code |
 | Manual reference management         | Auto-save with verified PubMed data    |
 | Export then format                  | Direct Word export with journal styles |
 | Learn complex UI                    | Natural language conversation          |
@@ -160,6 +171,18 @@ In Copilot Chat, type these prompts to trigger guided workflows:
 
 > 💡 **Recommended usage**: converge your literature and concepts in Library Wiki Path first, then switch to Manuscript Path for formal drafting.
 
+## Foam + Copilot Knowledge Base
+
+MedPaper already uses Foam as the browse-and-graph layer while Copilot drives ingestion, identity resolution, knowledge-map generation, synthesis pages, block-anchor embeds, and managed graph slices.
+
+The current Foam/Copilot layer now includes orphan / placeholder repair loops, template-driven capture into `inbox/`, `review/`, and `daily/`, richer `foam-query` dashboards, publish-safe wikilink reference packs under `notes/publish/`, and project-specific `graph_views_json` slices.
+
+Docs and tutorials:
+
+- [Using the MedPaper LLM Wiki](docs/how-to/llm-wiki.md)
+- [Foam Dependency Reference](docs/reference/foam.md)
+- [Graph-view example for ICU sedation / delirium review](docs/how-to/llm-wiki.md)
+
 ---
 
 ## 🧠 Skill System + Project Memory
@@ -173,7 +196,7 @@ Tool  = Single capability (search, save, analyze...)
 Skill = Complete knowledge (how to combine tools to accomplish tasks)
 ```
 
-**26 Skills** covering the full research lifecycle:
+Representative skill families across the 26 skills:
 
 | Category       | Skills                                                                              | Triggers                                  |
 | -------------- | ----------------------------------------------------------------------------------- | ----------------------------------------- |
@@ -211,6 +234,8 @@ projects/{slug}/
 ├── references/            ← materialized reference notes
 ├── inbox/                 ← raw notes and capture queue
 ├── concepts/              ← atomic concept pages and backlinks
+├── review/                ← graph repair worklists and review notes
+├── daily/                 ← templated daily capture pages
 └── projects/              ← synthesis pages / workstreams
 ```
 
@@ -284,7 +309,7 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│  94/44 tools  │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│ 115/21 tools  │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
@@ -330,13 +355,13 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-**94 tools (full surface) / 44 tools (compact default)**, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
+**115 tools (full surface) / 21 tools (compact default)**, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
+
+These counts are runtime-validated via `tool-surface-authority.json` and `scripts/check_tool_surface_authority.py`, and the validate/release gates fail if the docs drift from that authority.
 
 Compact mode keeps the main facade entrypoints (project/workspace/review/pipeline/export) and hides most granular public verbs; set `MEDPAPER_TOOL_SURFACE=full` to expose the complete surface.
 
-The seven sections below describe the 88 granular domain tools. The remaining six full-surface entrypoints are the facade verbs (`project_action`, `workspace_state_action`, `run_quality_checks`, `pipeline_action`, `export_document`, `inspect_export`).
-
-### 📁 Project Management (17 tools)
+### 📁 Project Management
 
 Projects, exploration mode, workspace state recovery, diagram management.
 
@@ -349,7 +374,7 @@ Projects, exploration mode, workspace state recovery, diagram management.
 | `setup_project_interactive`                            | Interactive paper type configuration |
 | `update_authors`                                       | Manage structured author metadata    |
 
-### 📚 Reference Management (12 tools)
+### 📚 Reference Management
 
 Save, search, format, and manage references with Foam integration.
 
@@ -360,7 +385,7 @@ Save, search, format, and manage references with Foam integration.
 | `format_references` / `set_citation_style`          | Vancouver / APA / Nature                                      |
 | `sync_references`                                   | Sync `[[wikilinks]]` to numbered references                   |
 
-### ✍️ Draft & Editing (13 tools)
+### ✍️ Draft & Editing
 
 Write, edit, cite — with built-in validation.
 
@@ -374,7 +399,7 @@ Write, edit, cite — with built-in validation.
 | `scan_draft_citations` / `sync_references`    | Citation management                                      |
 | `count_words`                                 | Section and manuscript word-count checks                 |
 
-### ✅ Validation (3 tools)
+### ✅ Validation
 
 | Tool                      | Description                                         |
 | ------------------------- | --------------------------------------------------- |
@@ -382,7 +407,7 @@ Write, edit, cite — with built-in validation.
 | `validate_wikilinks`      | Auto-fix `[[12345678]]` → `[[author2024_12345678]]` |
 | `compare_with_literature` | Compare the current idea against saved references   |
 
-### 📊 Data Analysis (10 tools)
+### 📊 Data Analysis
 
 | Tool                   | Description                                           |
 | ---------------------- | ----------------------------------------------------- |
@@ -394,7 +419,7 @@ Write, edit, cite — with built-in validation.
 | `insert_table`         | Insert table into draft with archive validation       |
 | `list_assets`          | List figures and tables in project results            |
 
-### 🔍 Review & Audit (23 tools)
+### 🔍 Review & Audit
 
 | Category               | Key Tools                                                                 |
 | ---------------------- | ------------------------------------------------------------------------- |
@@ -406,7 +431,7 @@ Write, edit, cite — with built-in validation.
 | **Domain Constraints** | `check_domain_constraints`, `evolve_constraint`                           |
 | **Data & Health**      | `validate_data_artifacts`, `diagnose_tool_health`, `check_formatting`     |
 
-### 📄 Export & Submission (10 tools)
+### 📄 Export & Submission
 
 | Category          | Key Tools                                                                    |
 | ----------------- | ---------------------------------------------------------------------------- |
@@ -425,7 +450,7 @@ Write, edit, cite — with built-in validation.
 
 | Category        | Key Tools                                                                 |
 | --------------- | ------------------------------------------------------------------------- |
-| **Search**      | `search_literature`, `generate_search_queries`, `parse_pico`              |
+| **Search**      | `unified_search`, `generate_search_queries`, `parse_pico`                 |
 | **Databases**   | PubMed, Europe PMC (fulltext + text mining), CORE (200M+ open access)     |
 | **Gene/Chem**   | `search_gene`, `get_gene_details`, `search_compound`, `search_clinvar`    |
 | **Exploration** | `find_related_articles`, `find_citing_articles`, `get_article_references` |
@@ -535,9 +560,11 @@ med-paper-assistant/
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
 │   └── cgu/                       #   Creative generation (13 tools)
 │
-├── vscode-extension/              # VS Code Extension
+├── vscode-extension/              # Packaged VSIX surface
 │   ├── src/                       #   Extension source
-│   ├── skills/                    #   Agent skill definitions
+│   ├── bundled/tool/              #   Mirrored Python runtime for marketplace installs
+│   ├── skills/                    #   Bundled skill definitions
+│   ├── docs/                      #   Bundled Foam / LLM wiki docs
 │   └── prompts/                   #   Quick-action prompts
 │
 ├── dashboard/                     # Next.js project management UI
@@ -575,7 +602,7 @@ med-paper-assistant/
 | ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                         |
 | ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                           |
 | ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)             |
-| 🔜     | **Full VSX Extension**      | TreeView, CodeLens, Diagnostics (Direction C)                  |
+| 🔜     | **Richer VSX UX**           | TreeView, CodeLens, Diagnostics, and deeper in-editor surfaces (Direction C) |
 | 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations                    |
 | 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis                       |
 | 📋     | **AI Writing Intelligence** | Citation intelligence, coherence engine                        |

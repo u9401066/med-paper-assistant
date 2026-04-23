@@ -202,7 +202,7 @@ def register_idea_validation_tools(
                         else:
                             output += "✅ **Low overlap** — Your idea appears to address a gap in saved references.\n"
                             output += (
-                                "Verify with broader PubMed search using `search_literature`.\n\n"
+                                "Verify with broader PubMed search using `unified_search`.\n\n"
                             )
                     else:
                         output += "ℹ️ No saved references match the idea keywords.\n"
@@ -222,7 +222,7 @@ def register_idea_validation_tools(
 
         output += "---\n"
         output += (
-            "💡 Use `search_literature` for comprehensive PubMed search beyond saved references.\n"
+            "💡 Use `unified_search` for comprehensive PubMed / multi-source search beyond saved references.\n"
         )
 
         log_tool_result("compare_with_literature", "comparison generated", success=True)

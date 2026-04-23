@@ -22,12 +22,12 @@ Response template 格式：> Comment → **Response** → **Changes made** (Page
 
 ## Phase 3: 補充（如需）
 
-文獻：`search_literature()` → `save_reference_mcp(pmid)`
+文獻：`unified_search(query)` → `save_reference_mcp(pmid)`
 分析：討論數據是否可回答、如何呈現
 
 ## Phase 4: 驗證
 
-`validate_concept("concept.md")` — 確認 🔒 NOVELTY 未弱化、🔒 SELLING POINTS 保留、各 section 不矛盾
+`validation_action(action="concept", filename="concept.md")` — 確認 🔒 NOVELTY 未弱化、🔒 SELLING POINTS 保留、各 section 不矛盾
 
 ## Phase 5: 匯出
 
