@@ -23,7 +23,7 @@ def register_draft_facade_tools(
     template_tools: ToolMap,
     editing_tools: ToolMap,
     citation_tools: ToolMap,
-    figure_tools: ToolMap,
+    figure_tools: Optional[ToolMap] = None,
 ):
     """Register stable public verbs for manuscript drafting workflows."""
 
