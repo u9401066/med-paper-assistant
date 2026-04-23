@@ -1,8 +1,8 @@
 {
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
-  "description": "AI-powered medical paper writing assistant with MCP tools, prompts, and skills",
-  "version": "0.7.1",
+  "description": "Compact-first MCP research workspace for manuscript and library-wiki workflows in VS Code",
+  "version": "0.7.2",
   "publisher": "u9401066",
   "icon": "resources/icon.png",
   "galleryBanner": {
@@ -47,16 +47,16 @@
         "id": "medpaper.assistant",
         "name": "mdpaper",
         "fullName": "MedPaper Assistant",
-        "description": "幫助撰寫醫學論文、搜尋文獻、發展研究概念",
+        "description": "協助文獻探索、LLM wiki 整理、研究概念驗證、稿件撰寫與匯出",
         "isSticky": true,
         "commands": [
           {
             "name": "search",
-            "description": "搜尋 PubMed 文獻"
+            "description": "搜尋 PubMed 與延伸研究"
           },
           {
             "name": "draft",
-            "description": "撰寫論文章節"
+            "description": "撰寫與修訂論文章節"
           },
           {
             "name": "concept",
@@ -64,11 +64,11 @@
           },
           {
             "name": "project",
-            "description": "管理研究專案"
+            "description": "管理 manuscript / library-wiki 專案"
           },
           {
             "name": "format",
-            "description": "匯出為 Word 文件"
+            "description": "匯出 Word 與投稿文件"
           },
           {
             "name": "autopaper",
@@ -76,19 +76,19 @@
           },
           {
             "name": "drawio",
-            "description": "📐 Draw.io 圖表繪製（WebviewPanel 嵌入）"
+            "description": "📐 Draw.io 圖表與流程圖（Webview + MCP）"
           },
           {
             "name": "analysis",
-            "description": "資料分析與統計"
+            "description": "資料分析、Table 1 與圖表"
           },
           {
             "name": "strategy",
-            "description": "搜尋策略設定"
+            "description": "搜尋策略與工作流設定"
           },
           {
             "name": "help",
-            "description": "顯示所有可用指令"
+            "description": "顯示 @mdpaper 指令與工作流"
           }
         ],
         "disambiguation": [

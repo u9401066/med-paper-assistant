@@ -1,7 +1,7 @@
 [project]
 name = "med-paper-assistant"
-version = "0.7.1"
-description = "A medical paper writing assistant using MCP support"
+version = "0.7.2"
+description = "An MCP-orchestrated research workspace for manuscript and library-wiki workflows"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"

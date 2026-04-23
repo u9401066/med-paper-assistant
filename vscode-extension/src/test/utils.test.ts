@@ -434,6 +434,25 @@ describe('Source ↔ VSX Sync', () => {
         expect(result.missing, `Out of sync prompts: ${result.missing.join(', ')}`).toHaveLength(0);
     });
 
+    it('bundled prompts README uses the current slash namespace', () => {
+        const promptReadmePath = path.join(bundledPromptsDir, 'README.md');
+        const readme = fs.readFileSync(promptReadmePath, 'utf-8');
+
+        expect(readme).toContain('/mdpaper.search');
+        expect(readme).toContain('/mdpaper.audit');
+        expect(readme).not.toContain('/mcp.mdpaper.');
+    });
+
+    it('help prompt documents advanced prompt workflows', () => {
+        const helpPromptPath = path.join(sourcePromptsDir, 'mdpaper.help.prompt.md');
+        const helpPrompt = fs.readFileSync(helpPromptPath, 'utf-8');
+
+        expect(helpPrompt).toContain('/mdpaper.write-paper');
+        expect(helpPrompt).toContain('/mdpaper.literature-survey');
+        expect(helpPrompt).toContain('/mdpaper.manuscript-revision');
+        expect(helpPrompt).toContain('/mdpaper.audit');
+    });
+
     it('bundled support files are in sync with source (after build)', () => {
         const result = validateBundledSupportFiles(bundledSupportRoot, rootDir);
         expect(result.missing, `Out of sync support files: ${result.missing.join(', ')}`).toHaveLength(0);

@@ -1,0 +1,51 @@
+{
+  "mcpServer": {
+    "fullTools": 115,
+    "compactTools": 21,
+    "prompts": 3,
+    "resources": 3
+  },
+  "repository": {
+    "skills": 26,
+    "promptWorkflows": 15
+  },
+  "bundle": {
+    "skills": 14,
+    "promptWorkflows": 13,
+    "agents": 9,
+    "templates": 1,
+    "supportFiles": 7,
+    "chatCommands": 10,
+    "paletteCommands": 11
+  },
+  "docs": {
+    "README.md": [
+      "115 (full) / 21 (compact default)",
+      "11 cmds + 10 chat",
+      "tool-surface-authority.json"
+    ],
+    "README.zh-TW.md": [
+      "115（full）/ 21（compact 預設）",
+      "11 指令 + 10 chat",
+      "tool-surface-authority.json"
+    ],
+    "vscode-extension/README.md": [
+      "14 skills",
+      "13 prompt workflows",
+      "9 reviewer/analysis agents",
+      "7 support/reference files",
+      "10 chat commands",
+      "11 palette commands",
+      "115 full / 21 compact default",
+      "tool-surface-authority.json"
+    ],
+    ".github/copilot-instructions.md": [
+      "115 full / 21 compact default + 3 prompts + 3 resources",
+      "tool-surface-authority.json"
+    ],
+    "vscode-extension/copilot-instructions.md": [
+      "115 full / 21 compact default + 3 prompts + 3 resources",
+      "tool-surface-authority.json"
+    ]
+  }
+}

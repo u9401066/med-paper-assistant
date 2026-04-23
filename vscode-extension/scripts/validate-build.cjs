@@ -64,6 +64,7 @@ function createValidationRuntime(overrides = {}) {
         repoRoot: overrides.repoRoot ?? path.resolve(extensionDir, '..'),
         manifest: overrides.manifest ?? loadBundleManifest(extensionDir),
         skipTests: overrides.skipTests ?? process.argv.includes('--skip-tests'),
+        skipToolSurfaceAuthority: overrides.skipToolSurfaceAuthority ?? false,
         fs: overrides.fs ?? fs,
         log: overrides.log ?? console.log,
         spawnSync: overrides.spawnSync ?? spawnSync,
@@ -156,6 +157,115 @@ function readPackageJson(runtime) {
             packageJson: null,
             error: `Unable to read package.json: ${message}`,
         };
+    }
+}
+
+function loadToolSurfaceAuthority(runtime) {
+    const authorityPath = path.join(runtime.repoRoot, 'tool-surface-authority.json');
+    try {
+        return {
+            authority: JSON.parse(runtime.fs.readFileSync(authorityPath, 'utf-8')),
+            error: null,
+        };
+    } catch (error) {
+        if (error instanceof SyntaxError) {
+            return {
+                authority: null,
+                error: `Invalid tool-surface-authority.json JSON: ${error.message}`,
+            };
+        }
+
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+            authority: null,
+            error: `Unable to read tool-surface-authority.json: ${message}`,
+        };
+    }
+}
+
+function countRepositorySkills(runtime) {
+    const skillsDir = path.join(runtime.repoRoot, '.claude', 'skills');
+    return runtime.fs.readdirSync(skillsDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .filter((entry) => runtime.fs.existsSync(path.join(skillsDir, entry.name, 'SKILL.md')))
+        .length;
+}
+
+function countRepositoryPromptWorkflows(runtime) {
+    const promptsDir = path.join(runtime.repoRoot, '.github', 'prompts');
+    return runtime.fs.readdirSync(promptsDir)
+        .filter((entry) => entry.endsWith('.prompt.md'))
+        .length;
+}
+
+function validateToolSurfaceAuthority(reporter, runtime) {
+    runtime.log('');
+    runtime.log('🧭 V3e: Tool Surface Authority');
+
+    const { authority, error } = loadToolSurfaceAuthority(runtime);
+    if (!authority || error) {
+        reporter.fail(error ?? 'Unable to load tool-surface authority');
+        return;
+    }
+
+    const authorityChecks = [
+        ['Repository skills', countRepositorySkills(runtime), authority.repository?.skills],
+        ['Repository prompt workflows', countRepositoryPromptWorkflows(runtime), authority.repository?.promptWorkflows],
+        ['Bundled skills', runtime.manifest.skills?.length ?? 0, authority.bundle?.skills],
+        ['Bundled prompt workflows', runtime.manifest.prompts?.length ?? 0, authority.bundle?.promptWorkflows],
+        ['Bundled agents', runtime.manifest.agents?.length ?? 0, authority.bundle?.agents],
+        ['Bundled templates', runtime.manifest.templates?.length ?? 0, authority.bundle?.templates],
+        ['Bundled support files', runtime.manifest.supportFiles?.length ?? 0, authority.bundle?.supportFiles],
+        ['Bundled chat commands', runtime.manifest.chatCommands?.length ?? 0, authority.bundle?.chatCommands],
+        ['Bundled palette commands', runtime.manifest.paletteCommands?.length ?? 0, authority.bundle?.paletteCommands],
+    ];
+
+    for (const [label, actual, expected] of authorityChecks) {
+        if (actual === expected) {
+            reporter.pass(`${label}: ${actual}`);
+        } else {
+            reporter.fail(`${label}: expected ${expected}, got ${actual}`);
+        }
+    }
+
+    const { packageJson, error: packageError } = readPackageJson(runtime);
+    if (!packageJson || packageError) {
+        reporter.warn(`Tool surface authority skipped package.json checks (${packageError ?? 'package.json unavailable'})`);
+    } else {
+        const packageChatCommands = packageJson.contributes?.chatParticipants?.[0]?.commands?.length ?? 0;
+        const packagePaletteCommands = packageJson.contributes?.commands?.length ?? 0;
+
+        if (packageChatCommands === authority.bundle?.chatCommands) {
+            reporter.pass(`package.json chat commands: ${packageChatCommands}`);
+        } else {
+            reporter.fail(`package.json chat commands: expected ${authority.bundle?.chatCommands}, got ${packageChatCommands}`);
+        }
+
+        if (packagePaletteCommands === authority.bundle?.paletteCommands) {
+            reporter.pass(`package.json palette commands: ${packagePaletteCommands}`);
+        } else {
+            reporter.fail(`package.json palette commands: expected ${authority.bundle?.paletteCommands}, got ${packagePaletteCommands}`);
+        }
+    }
+
+    for (const [relativePath, snippets] of Object.entries(authority.docs ?? {})) {
+        const fullPath = path.join(runtime.repoRoot, relativePath);
+
+        if (!runtime.fs.existsSync(fullPath)) {
+            reporter.fail(`Authority doc missing: ${relativePath}`);
+            continue;
+        }
+
+        const content = runtime.fs.readFileSync(fullPath, 'utf-8');
+        const missingSnippets = snippets.filter((snippet) => !content.includes(snippet));
+        if (missingSnippets.length > 0) {
+            for (const snippet of missingSnippets) {
+                reporter.fail(`${relativePath} missing authority snippet: ${snippet}`);
+            }
+            continue;
+        }
+
+        reporter.pass(`Docs authority synced: ${relativePath}`);
     }
 }
 
@@ -282,6 +392,9 @@ function main(overrides = {}) {
     validateAssetGroup('📄 V3b: Templates Sync', 'template', reporter, runtime);
     validateAssetGroup('🤖 V3c: Agents Sync', 'agent', reporter, runtime);
     validateAssetGroup('🐍 V3d: Bundled Python Sync', 'python-source', reporter, runtime, 'check');
+    if (!runtime.skipToolSurfaceAuthority) {
+        validateToolSurfaceAuthority(reporter, runtime);
+    }
     const version = validatePackageJson(reporter, runtime);
     validateVsixPackage(version, reporter, runtime);
     validateTests(reporter, runtime);
@@ -296,11 +409,13 @@ module.exports = {
     createReporter,
     createValidationRuntime,
     formatFileSize,
+    loadToolSurfaceAuthority,
     main,
     readPackageJson,
     validateAssetGroup,
     validateCompilation,
     validatePackageJson,
+    validateToolSurfaceAuthority,
     validateTests,
     validateVsixPackage,
 };

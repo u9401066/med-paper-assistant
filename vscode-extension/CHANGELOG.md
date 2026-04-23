@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2 - 2026-04-22
+
+- Guarded `insert_citation()` against drafts already synced from citation wikilinks so numbered-bibliography workflows cannot silently contaminate library-wiki drafts.
+- Added deterministic and UTF-8-safe wikilink validation, plus a `resolve_project_context()` regression fix for project info payloads that omit a `success` flag.
+- Added machine-checked tool-surface authority validation, wired it into extension validation and release gating, and synchronized the published counts across repo and VSIX docs.
+
 ## 0.7.1 - 2026-04-22
 
 - Fixed Foam graph citation visibility by emitting reversible citation wikilinks in visible form while preserving compatibility with legacy HTML-comment anchors.

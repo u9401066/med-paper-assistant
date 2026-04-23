@@ -147,7 +147,7 @@ describe('validate-build core', () => {
         const reporter = validateBuild.createReporter(collector.log);
 
         fs.writeFileSync(path.join(tempDir, 'medpaper-assistant-0.7.0.vsix'), 'old', 'utf-8');
-        fs.writeFileSync(path.join(tempDir, 'medpaper-assistant-0.7.1.vsix'), 'new', 'utf-8');
+        fs.writeFileSync(path.join(tempDir, 'medpaper-assistant-0.7.2.vsix'), 'new', 'utf-8');
 
         const runtime = validateBuild.createValidationRuntime({
             extensionDir: tempDir,
@@ -155,11 +155,11 @@ describe('validate-build core', () => {
             log: collector.log,
         });
 
-        validateBuild.validateVsixPackage('0.7.1', reporter, runtime);
+        validateBuild.validateVsixPackage('0.7.2', reporter, runtime);
 
         expect(reporter.getCounts().warnCount).toBe(0);
-        expect(collector.lines.some((line) => line.includes('medpaper-assistant-0.7.1.vsix'))).toBe(true);
-        expect(collector.lines.some((line) => line.includes('VSIX version matches package.json: 0.7.1'))).toBe(true);
+        expect(collector.lines.some((line) => line.includes('medpaper-assistant-0.7.2.vsix'))).toBe(true);
+        expect(collector.lines.some((line) => line.includes('VSIX version matches package.json: 0.7.2'))).toBe(true);
 
         fs.rmSync(tempDir, { recursive: true, force: true });
     });
@@ -179,6 +179,7 @@ describe('validate-build core', () => {
             getBundleAssetSpecs: () => [],
             getCheckSpecs: () => [],
             skipTests: true,
+            skipToolSurfaceAuthority: true,
         };
 
         const winExit = validateBuild.main({ ...runtimeOverrides, platform: 'win32', log: winLog.log });
@@ -237,6 +238,68 @@ describe('validate-build core', () => {
 
         expect(reporter.getCounts().warnCount).toBe(1);
         expect(collector.lines.some((line) => line.includes('python-source: med_paper_assistant outdated'))).toBe(true);
+    });
+
+    it('reports tool-surface authority doc drift as a readable failure', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-tool-authority-'));
+        const repoRoot = path.join(tempDir, 'repo');
+        const extensionDir = path.join(repoRoot, 'vscode-extension');
+
+        fs.mkdirSync(path.join(repoRoot, '.claude', 'skills', 'demo'), { recursive: true });
+        fs.mkdirSync(path.join(repoRoot, '.github', 'prompts'), { recursive: true });
+        fs.mkdirSync(extensionDir, { recursive: true });
+
+        fs.writeFileSync(path.join(repoRoot, '.claude', 'skills', 'demo', 'SKILL.md'), '# demo', 'utf-8');
+        fs.writeFileSync(path.join(repoRoot, '.github', 'prompts', 'demo.prompt.md'), '# demo', 'utf-8');
+        fs.writeFileSync(path.join(repoRoot, 'README.md'), 'no authority snippet here', 'utf-8');
+        fs.writeFileSync(
+            path.join(repoRoot, 'tool-surface-authority.json'),
+            JSON.stringify({
+                repository: { skills: 1, promptWorkflows: 1 },
+                bundle: {
+                    skills: 0,
+                    promptWorkflows: 0,
+                    agents: 0,
+                    templates: 0,
+                    supportFiles: 0,
+                    chatCommands: 0,
+                    paletteCommands: 0,
+                },
+                docs: {
+                    'README.md': ['expected authority snippet'],
+                },
+            }),
+            'utf-8',
+        );
+        fs.writeFileSync(
+            path.join(extensionDir, 'package.json'),
+            JSON.stringify({ contributes: { chatParticipants: [{ commands: [] }], commands: [] } }),
+            'utf-8',
+        );
+
+        const collector = createLogCollector();
+        const reporter = validateBuild.createReporter(collector.log);
+        const runtime = validateBuild.createValidationRuntime({
+            extensionDir,
+            repoRoot,
+            log: collector.log,
+            manifest: {
+                skills: [],
+                prompts: [],
+                agents: [],
+                templates: [],
+                supportFiles: [],
+                chatCommands: [],
+                paletteCommands: [],
+            },
+        });
+
+        validateBuild.validateToolSurfaceAuthority(reporter, runtime);
+
+        expect(reporter.getCounts().failCount).toBe(1);
+        expect(collector.lines.some((line) => line.includes('README.md missing authority snippet'))).toBe(true);
+
+        fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     it('shell wrappers delegate to the shared validate-build.cjs entrypoint', () => {

@@ -146,6 +146,9 @@ jobs:
           uv pip install -e integrations/pubmed-search-mcp
           uv pip install -e integrations/cgu
 
+      - name: Validate tool-surface authority
+        run: uv run python scripts/check_tool_surface_authority.py
+
       - name: Run tests
         run: uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
 
