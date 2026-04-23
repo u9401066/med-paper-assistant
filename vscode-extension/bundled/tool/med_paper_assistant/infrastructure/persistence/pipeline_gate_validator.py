@@ -326,7 +326,7 @@ class PipelineGateValidator:
         For phases > 1, also validates prerequisite structure.
 
         Args:
-            phase: Phase number (0-10, 65 for Phase 6.5)
+            phase: Phase number (0-11, 65 for Phase 6.5)
 
         Returns:
             GateResult with pass/fail and specific missing items
@@ -1177,7 +1177,6 @@ class PipelineGateValidator:
             )
 
             if has_fig_refs or has_tbl_refs or has_stat_claims:
-                tracker = DataArtifactTracker(self._audit_dir, self._project_dir)
                 artifacts = tracker.get_artifacts()
                 artifact_count = len(artifacts)
                 da_has_data = artifact_count > 0

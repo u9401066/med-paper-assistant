@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-04-23
+
+### Fixed
+
+- Synced VS Code bundled assets and Python mirror before release to resolve `bundle:check`/`test_bundled_python_mirror` drift failures.
+- Restored `pipeline` and `analysis` asset workflows compatibility for 11-phase execution under release-validated code paths.
+- Rebuilt release artifacts after fixing bundled source parity and CI mirror validation.
+
 ## [0.7.4] - 2026-04-23
 
 ### Added

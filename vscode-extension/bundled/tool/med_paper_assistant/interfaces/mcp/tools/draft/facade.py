@@ -252,10 +252,7 @@ def register_draft_facade_tools(
 
         if normalized not in action_specs:
             supported = ", ".join(sorted(action_specs))
-            if normalized in {
-                "review_asset",
-                "review_asset_for_insertion",
-            }:
+            if normalized in {"review_asset", "review_asset_for_insertion"}:
                 return (
                     f"❌ Unsupported draft action '{action}'. "
                     "Use `analysis_action(action=\"review_asset\")` for "
