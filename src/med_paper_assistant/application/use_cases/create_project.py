@@ -6,6 +6,7 @@ from datetime import datetime
 from med_paper_assistant.domain.entities.project import Project, ProjectStatus
 from med_paper_assistant.infrastructure.persistence import ProjectRepository
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
+from med_paper_assistant.shared.path_guard import resolve_child_path
 
 
 @dataclass
@@ -71,7 +72,7 @@ class CreateProjectUseCase:
             target_journal=input_data.target_journal,
             status=ProjectStatus.CONCEPT.value,  # Use .value to get string
             memo=input_data.memo,
-            path=self.repository.projects_dir / slug,
+            path=resolve_child_path(self.repository.projects_dir, slug, field_name="project slug"),
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )

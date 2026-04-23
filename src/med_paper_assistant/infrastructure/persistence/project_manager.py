@@ -24,6 +24,7 @@ from ...domain.paper_types import (
     list_paper_types,
 )
 from ...shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES, PROJECT_DIRECTORIES, LIBRARY_DIRECTORIES
+from ...shared.path_guard import normalize_relative_filename, resolve_child_path
 from ..services.concept_template_reader import ConceptTemplateReader
 from .project_memory_manager import ProjectMemoryManager
 
@@ -115,6 +116,13 @@ class ProjectManager:
 
         return paths
 
+    def _normalize_project_slug(self, slug: str) -> str:
+        return normalize_relative_filename(slug, field_name="project slug")
+
+    def _project_path_for_slug(self, slug: str) -> tuple[str, Path]:
+        safe_slug = self._normalize_project_slug(slug)
+        return safe_slug, resolve_child_path(self.projects_dir, safe_slug, field_name="project slug")
+
     # =========================================================================
     # Project CRUD Operations
     # =========================================================================
@@ -147,7 +155,7 @@ class ProjectManager:
             Project info dictionary.
         """
         slug = self._make_unique_slug(name)
-        project_path = self.projects_dir / slug
+        slug, project_path = self._project_path_for_slug(slug)
 
         if paper_type and not is_valid_paper_type(paper_type):
             return {
@@ -233,7 +241,10 @@ class ProjectManager:
 
     def set_current_project(self, slug: str, *, refresh_foam: bool = False) -> Dict[str, Any]:
         """Set the active project and optionally refresh Foam integration."""
-        project_path = self.projects_dir / slug
+        try:
+            slug, project_path = self._project_path_for_slug(slug)
+        except ValueError as exc:
+            return {"success": False, "error": f"Invalid project slug: {exc}"}
 
         if not project_path.exists():
             available = self.list_projects()
@@ -318,10 +329,15 @@ class ProjectManager:
                 "error": "Deletion requires confirm=True. This will permanently delete all project data!",
             }
 
-        project_path = self.projects_dir / slug
+        try:
+            slug, project_path = self._project_path_for_slug(slug)
+        except ValueError as exc:
+            return {"success": False, "error": f"Invalid project slug: {exc}"}
 
         if not project_path.exists():
             return {"success": False, "error": f"Project '{slug}' not found"}
+        if not (project_path / "project.json").exists():
+            return {"success": False, "error": f"Project '{slug}' is missing project.json; refusing deletion."}
 
         import shutil
 
@@ -367,7 +383,10 @@ class ProjectManager:
                     "error": "No project selected. Use create_project or switch_project first.",
                 }
 
-        project_path = self.projects_dir / slug
+        try:
+            slug, project_path = self._project_path_for_slug(slug)
+        except ValueError as exc:
+            return {"success": False, "error": f"Invalid project slug: {exc}"}
         config = self._load_config(project_path)
 
         if config is None:
@@ -401,7 +420,7 @@ class ProjectManager:
             if slug is None:
                 raise ValueError("No project selected")
 
-        project_path = self.projects_dir / slug
+        slug, project_path = self._project_path_for_slug(slug)
         config = self._load_config(project_path) or {}
         workflow_mode = config.get("workflow_mode", DEFAULT_WORKFLOW_MODE)
 
@@ -470,7 +489,10 @@ class ProjectManager:
                 "error": f"Invalid status. Must be one of: {self.VALID_STATUSES}",
             }
 
-        project_path = self.projects_dir / slug
+        try:
+            slug, project_path = self._project_path_for_slug(slug)
+        except ValueError as exc:
+            return {"success": False, "error": f"Invalid project slug: {exc}"}
         config = self._load_config(project_path)
 
         if config is None:
@@ -516,7 +538,10 @@ class ProjectManager:
             if slug is None:
                 return {"success": False, "error": "No project selected"}
 
-        project_path = self.projects_dir / slug
+        try:
+            slug, project_path = self._project_path_for_slug(slug)
+        except ValueError as exc:
+            return {"success": False, "error": f"Invalid project slug: {exc}"}
         config = self._load_config(project_path)
 
         if config is None:
@@ -805,7 +830,10 @@ class ProjectManager:
             if slug is None:
                 return {"success": False, "error": "No project selected."}
 
-        project_path = self.projects_dir / slug
+        try:
+            slug, project_path = self._project_path_for_slug(slug)
+        except ValueError as exc:
+            return {"success": False, "error": f"Invalid project slug: {exc}"}
         config = self._load_config(project_path)
         if config is None:
             return {"success": False, "error": f"Project '{slug}' not found."}

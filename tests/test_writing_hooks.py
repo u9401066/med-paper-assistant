@@ -314,6 +314,19 @@ class TestHookA5:
         assert "randomised" in found_words
         assert "colour" in found_words
 
+    def test_journal_profile_locale_en_gb_prefers_british(self, project_dir: Path):
+        (project_dir / "journal-profile.yaml").write_text(
+            yaml.dump({"locale": "en-GB", "journal": {"name": "British Journal of Anaesthesia"}}),
+            encoding="utf-8",
+        )
+        engine = WritingHooksEngine(project_dir)
+        text = "The randomised trial analysed paediatric anaesthesia outcomes."
+
+        r = engine.check_language_consistency(text, prefer="american")
+
+        assert r.passed is True
+        assert r.stats["preferred_variant"] == "british"
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Hook A6: Overlap Detection
@@ -561,6 +574,59 @@ class TestHookF:
         r = engine.validate_data_artifacts("See Figure 1 for the primary outcome.")
         assert r.passed is False
         assert any(i.hook_id == "F1" and "review receipt" in i.message for i in r.issues)
+
+    def test_user_manifest_schema_is_recognised(self, project_dir: Path):
+        """Root data-artifacts.yaml plus data-artifacts/manifest.yaml should be accepted."""
+        (project_dir / "results" / "figures").mkdir(parents=True)
+        (project_dir / "results" / "figures" / "flow.png").write_bytes(b"png")
+        (project_dir / "data-artifacts").mkdir()
+        (project_dir / "data-artifacts" / "manifest.yaml").write_text(
+            yaml.dump(
+                {
+                    "figures": [
+                        {
+                            "number": 1,
+                            "filename": "flow.png",
+                            "caption": "Participant flow diagram",
+                        }
+                    ],
+                    "tables": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        (project_dir / "data-artifacts.yaml").write_text(
+            yaml.dump(
+                {
+                    "figures": [
+                        {
+                            "filename": "flow.png",
+                            "caption": "Participant flow diagram",
+                            "output_path": "results/figures/flow.png",
+                            "provenance_code": "print('manual manifest')",
+                        }
+                    ],
+                    "asset_reviews": [
+                        {
+                            "asset_type": "figure",
+                            "asset_path": "results/figures/flow.png",
+                            "observations": ["Two-arm flow", "Counts are shown"],
+                            "rationale": "Caption matches the displayed flow.",
+                            "proposed_caption": "Participant flow diagram",
+                            "timestamp": "2026-04-23T00:00:00",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+        validation = tracker.validate_cross_references("See Figure 1.")
+
+        assert validation["summary"]["total_artifacts"] == 1
+        assert validation["summary"]["manifest_figures"] == 1
+        assert not any(i["category"] == "phantom_reference" for i in validation["issues"])
 
 
 # ──────────────────────────────────────────────────────────────────────────────

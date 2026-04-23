@@ -12,6 +12,8 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence.writing_hooks import BODY_SECTIONS
 from med_paper_assistant.infrastructure.services import Drafter
+from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
+from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .._shared import (
     get_drafts_dir,
@@ -139,11 +141,23 @@ def register_template_tools(
         if not is_valid:
             return error_msg
 
-        if not os.path.isabs(filename):
+        try:
+            safe_filename = normalize_draft_filename(filename)
+        except ValueError as e:
+            return f"❌ Invalid draft filename: {e}"
+
+        if True:
             drafts_dir = get_drafts_dir()
             if not drafts_dir:
                 drafts_dir = "drafts"
-            filename = os.path.join(drafts_dir, filename)
+            filename = str(
+                resolve_child_path(
+                    drafts_dir,
+                    safe_filename,
+                    field_name="Draft filename",
+                    allowed_suffixes={".md"},
+                )
+            )
 
         if not os.path.exists(filename):
             return f"Error: File not found: {filename}"

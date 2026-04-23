@@ -5,7 +5,11 @@ import pytest
 
 from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
-from med_paper_assistant.infrastructure.services.drafter import CitationStyle, Drafter
+from med_paper_assistant.infrastructure.services.drafter import (
+    CitationStyle,
+    Drafter,
+    draft_filename_from_section,
+)
 
 
 @pytest.mark.integration
@@ -57,6 +61,50 @@ Recent studies have shown significant economic burden [PMID:{pmid}].
 
 
 # ── Unit Tests (no network, no integration mark) ──────────────────────────
+
+
+class TestDraftFilenameValidation:
+    """Tests for cross-platform-safe draft filenames."""
+
+    def _make_drafter(self, tmp_path):
+        ref = ReferenceManager(base_dir=str(tmp_path / "refs"))
+        return Drafter(ref, drafts_dir=str(tmp_path / "drafts"))
+
+    @pytest.mark.parametrize(
+        "bad_filename",
+        [
+            "",
+            "   ",
+            ".md",
+            "../escape",
+            r"..\escape",
+            "/tmp/escape",
+            r"C:\tmp\escape",
+            "folder/file",
+            "bad:name",
+            "CON",
+        ],
+    )
+    def test_create_draft_rejects_unsafe_filename(self, tmp_path, bad_filename):
+        drafter = self._make_drafter(tmp_path)
+
+        with pytest.raises(ValueError, match="Draft filename"):
+            drafter.create_draft(bad_filename, "# Methods\n\nContent.")
+
+        assert not (tmp_path / "drafts" / ".md").exists()
+
+    def test_create_draft_normalizes_missing_suffix(self, tmp_path):
+        drafter = self._make_drafter(tmp_path)
+
+        path = drafter.create_draft("methods", "# Methods\n\nWe analysed data.")
+
+        assert os.path.basename(path) == "methods.md"
+        assert os.path.exists(path)
+
+    def test_section_filename_derivation(self):
+        assert draft_filename_from_section("Methods") == "methods.md"
+        assert draft_filename_from_section("Title Page") == "title_page.md"
+        assert draft_filename_from_section("!!!") == ""
 
 
 class TestFormatAuthorsVancouver:

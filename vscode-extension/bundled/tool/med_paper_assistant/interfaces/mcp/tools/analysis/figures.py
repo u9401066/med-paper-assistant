@@ -18,6 +18,8 @@ from med_paper_assistant.infrastructure.persistence import (
     get_project_manager,
 )
 from med_paper_assistant.infrastructure.services import Drafter
+from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
+from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
 
 from .._shared import (
     ensure_project_context,
@@ -101,6 +103,11 @@ def _resolve_exportable_figure_path(project_path: str, filename: str) -> Optiona
         Absolute path to an exportable figure asset, or ``None`` when only the
         source ``.drawio`` file exists and no rendered companion asset is found.
     """
+    filename = normalize_relative_filename(
+        filename,
+        field_name="Figure filename",
+        allowed_suffixes=FIGURE_EXTENSIONS,
+    )
     figures_dir = Path(project_path) / "results" / "figures"
     figure_path = figures_dir / filename
 
@@ -226,6 +233,15 @@ def register_figure_tools(
         if asset_type not in {"figure", "table"}:
             return "❌ asset_type must be `figure` or `table`."
 
+        try:
+            filename = normalize_relative_filename(
+                filename,
+                field_name=f"{asset_type.title()} filename",
+                allowed_suffixes=FIGURE_EXTENSIONS if asset_type == "figure" else TABLE_EXTENSIONS,
+            )
+        except ValueError as e:
+            return f"❌ Invalid {asset_type} filename: {e}"
+
         valid_inputs, error_msg = _validate_review_inputs(observations, rationale, proposed_caption)
         if not valid_inputs:
             return error_msg
@@ -235,7 +251,14 @@ def register_figure_tools(
             return "❌ No active project."
 
         folder = "figures" if asset_type == "figure" else "tables"
-        asset_path = os.path.join(project_path, "results", folder, filename)
+        asset_path = str(
+            resolve_child_path(
+                Path(project_path) / "results" / folder,
+                filename,
+                field_name=f"{asset_type.title()} filename",
+                allowed_suffixes=FIGURE_EXTENSIONS if asset_type == "figure" else TABLE_EXTENSIONS,
+            )
+        )
         if not os.path.isfile(asset_path):
             return f"❌ File '{filename}' not found in results/{folder}/."
 
@@ -302,9 +325,25 @@ def register_figure_tools(
         if not project_path:
             return "❌ No active project."
 
+        try:
+            filename = normalize_relative_filename(
+                filename,
+                field_name="Figure filename",
+                allowed_suffixes=FIGURE_EXTENSIONS,
+            )
+            if draft_filename:
+                draft_filename = normalize_draft_filename(draft_filename)
+        except ValueError as e:
+            return f"❌ Invalid filename: {e}"
+
         # Validate file exists
-        figures_dir = os.path.join(project_path, "results", "figures")
-        file_path = os.path.join(figures_dir, filename)
+        figures_dir = Path(project_path) / "results" / "figures"
+        file_path = resolve_child_path(
+            figures_dir,
+            filename,
+            field_name="Figure filename",
+            allowed_suffixes=FIGURE_EXTENSIONS,
+        )
         if not os.path.isfile(file_path):
             available = [
                 f
@@ -352,6 +391,21 @@ def register_figure_tools(
         }
         manifest.setdefault("figures", []).append(entry)
         manifest_path = _save_manifest(project_path, manifest)
+        output_rel = _relative_asset_path(project_path, "figure", filename)
+        if not tracker.get_artifact_by_output(output_rel):
+            tracker.record_artifact(
+                tool_name="insert_figure",
+                artifact_type="figure",
+                parameters={"filename": filename, "caption": caption, "figure_number": num},
+                output_path=output_rel,
+                data_source=filename,
+                provenance_code=(
+                    "# Manual figure registration via insert_figure\n"
+                    f"figure_path = '{output_rel}'\n"
+                    "# Preserve the registered source asset for reproducibility."
+                ),
+                result_summary=f"Registered Figure {num}: {caption}",
+            )
         drafter.ref_manager.refresh_foam_graph()
 
         output = (
@@ -430,8 +484,25 @@ def register_figure_tools(
         if not project_path:
             return "❌ No active project."
 
-        tables_dir = os.path.join(project_path, "results", "tables")
-        file_path = os.path.join(tables_dir, filename)
+        try:
+            filename = normalize_relative_filename(
+                filename,
+                field_name="Table filename",
+                default_suffix=".md" if table_content else None,
+                allowed_suffixes=TABLE_EXTENSIONS,
+            )
+            if draft_filename:
+                draft_filename = normalize_draft_filename(draft_filename)
+        except ValueError as e:
+            return f"❌ Invalid filename: {e}"
+
+        tables_dir = Path(project_path) / "results" / "tables"
+        file_path = resolve_child_path(
+            tables_dir,
+            filename,
+            field_name="Table filename",
+            allowed_suffixes=TABLE_EXTENSIONS,
+        )
 
         # If content provided, write the file and auto-record review receipt.
         # The agent has literal access to the content (passed as argument),
@@ -512,6 +583,22 @@ def register_figure_tools(
         }
         manifest.setdefault("tables", []).append(entry)
         manifest_path = _save_manifest(project_path, manifest)
+        tracker = _get_tracker(project_path)
+        output_rel = _relative_asset_path(project_path, "table", filename)
+        if not tracker.get_artifact_by_output(output_rel):
+            tracker.record_artifact(
+                tool_name="insert_table",
+                artifact_type="table",
+                parameters={"filename": filename, "caption": caption, "table_number": num},
+                output_path=output_rel,
+                data_source=filename,
+                provenance_code=(
+                    "# Manual table registration via insert_table\n"
+                    f"table_path = '{output_rel}'\n"
+                    "# Preserve the registered source asset for reproducibility."
+                ),
+                result_summary=f"Registered Table {num}: {caption}",
+            )
         drafter.ref_manager.refresh_foam_graph()
 
         output = (
@@ -616,7 +703,11 @@ def _insert_into_draft(
     after_section: Optional[str] = None,
 ) -> str:
     """Insert text into a draft after a specified section heading."""
-    filepath = os.path.join(drafter.drafts_dir, draft_filename)
+    try:
+        draft_filename = normalize_draft_filename(draft_filename)
+        filepath = str(resolve_child_path(drafter.drafts_dir, draft_filename, field_name="Draft filename"))
+    except ValueError as e:
+        return f"⚠️ Invalid draft filename — skipping insertion: {e}"
     if not os.path.isfile(filepath):
         return f"⚠️ Draft '{draft_filename}' not found — skipping insertion."
 

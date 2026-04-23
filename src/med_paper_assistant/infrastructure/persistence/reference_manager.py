@@ -14,6 +14,11 @@ if TYPE_CHECKING:
 from med_paper_assistant.domain.services.reference_converter import (
     ReferenceConverter,
 )
+from med_paper_assistant.shared.path_guard import (
+    PathGuardError,
+    normalize_relative_filename,
+    resolve_child_path,
+)
 
 logger = structlog.get_logger()
 
@@ -61,6 +66,24 @@ class ReferenceManager:
 
         base_path = Path(self.base_dir).resolve()
         return str(base_path.parent)
+
+    def _normalize_reference_id(self, reference_id: str, *, field_name: str = "reference id") -> str:
+        return normalize_relative_filename(reference_id, field_name=field_name)
+
+    def _reference_dir(self, reference_id: str, *, field_name: str = "reference id") -> Path:
+        safe_id = self._normalize_reference_id(reference_id, field_name=field_name)
+        return resolve_child_path(self.base_dir, safe_id, field_name=field_name)
+
+    def _normalize_citation_key(self, citation_key: str) -> str:
+        return normalize_relative_filename(citation_key, field_name="citation key")
+
+    def _citation_note_filename(self, citation_key: str) -> str:
+        safe_key = self._normalize_citation_key(citation_key)
+        return normalize_relative_filename(
+            f"{safe_key}.md",
+            field_name="citation filename",
+            allowed_suffixes={".md"},
+        )
 
     def _notes_dir(self) -> str:
         return os.path.join(self._project_root_dir(), "notes")
@@ -907,14 +930,17 @@ class ReferenceManager:
             if not metadata:
                 continue
             citation_key = metadata.get("citation_key") or ref_id
-            note_path = os.path.join(self.base_dir, ref_id, f"{citation_key}.md")
+            try:
+                note_path = self._reference_dir(ref_id) / self._citation_note_filename(citation_key)
+            except (PathGuardError, ValueError):
+                continue
             if not os.path.exists(note_path):
                 continue
             entries.append(
                 {
                     "alias": citation_key,
                     "title": metadata.get("title", ref_id),
-                    "path": note_path,
+                    "path": str(note_path),
                 }
             )
 
@@ -1139,7 +1165,10 @@ class ReferenceManager:
         return destination
 
     def _load_reference_analysis(self, reference_id: str) -> Dict[str, Any]:
-        analysis_path = Path(self.base_dir) / reference_id / "analysis.json"
+        try:
+            analysis_path = self._reference_dir(reference_id) / "analysis.json"
+        except (PathGuardError, ValueError):
+            return {}
         if not analysis_path.is_file():
             return {}
 
@@ -1578,6 +1607,10 @@ class ReferenceManager:
 
         if not payload.get("citation_key") and payload.get("unique_id"):
             payload["citation_key"] = self._build_citation_key(payload, payload["unique_id"])
+        if payload.get("unique_id"):
+            payload["unique_id"] = self._normalize_reference_id(payload["unique_id"])
+        if payload.get("citation_key"):
+            payload["citation_key"] = self._normalize_citation_key(payload["citation_key"])
 
         if "trust_level" not in payload:
             if verified:
@@ -1710,7 +1743,7 @@ class ReferenceManager:
         return content[:max_chars].strip()
 
     def _asset_aware_artifact_dir(self, reference_id: str) -> Path:
-        return Path(self.base_dir) / reference_id / "artifacts" / "asset-aware"
+        return self._reference_dir(reference_id) / "artifacts" / "asset-aware"
 
     def _normalize_match_text(self, value: str) -> str:
         return re.sub(r"[^a-z0-9]+", " ", str(value).lower()).strip()
@@ -1987,8 +2020,21 @@ class ReferenceManager:
         ]:
             for entry in entries:
                 number = int(entry.get("number", 0) or 0)
-                filename = str(entry.get("filename", "")).strip()
-                if number <= 0 or not filename:
+                raw_filename = str(entry.get("filename", "")).strip()
+                if number <= 0 or not raw_filename:
+                    continue
+                try:
+                    filename = normalize_relative_filename(
+                        raw_filename,
+                        field_name=f"{asset_type} filename",
+                    )
+                except PathGuardError as exc:
+                    logger.warning(
+                        "invalid_asset_manifest_filename",
+                        asset_type=asset_type,
+                        filename=raw_filename,
+                        error=str(exc),
+                    )
                     continue
 
                 slug = self._slugify(f"{asset_type}-{number}-{Path(filename).stem}")
@@ -2526,7 +2572,7 @@ class ReferenceManager:
     ) -> str:
         self._ensure_workspace_scaffolding()
         payload = self._normalize_reference_payload(payload)
-        ref_dir = os.path.join(self.base_dir, payload["unique_id"])
+        ref_dir = self._reference_dir(payload["unique_id"])
         os.makedirs(ref_dir, exist_ok=True)
 
         self._write_json_file(os.path.join(ref_dir, "metadata.json"), payload)
@@ -2534,7 +2580,7 @@ class ReferenceManager:
             self._write_json_file(os.path.join(ref_dir, "provenance.json"), payload["provenance"])
 
         content = self._generate_content_md(payload)
-        md_filename = f"{payload['citation_key']}.md"
+        md_filename = self._citation_note_filename(payload["citation_key"])
         with open(os.path.join(ref_dir, md_filename), "w", encoding="utf-8") as handle:
             handle.write(content)
 
@@ -2543,7 +2589,7 @@ class ReferenceManager:
         if rebuild_index:
             self._rebuild_index()
         self._append_log(log_event, payload)
-        return ref_dir
+        return str(ref_dir)
 
     def _update_reference_metadata(
         self, reference_id: str, updates: Dict[str, Any], log_event: str
@@ -2613,7 +2659,7 @@ class ReferenceManager:
             return f"Error: {str(e)}"
 
         # Check if already exists
-        ref_dir = os.path.join(self.base_dir, ref.unique_id)
+        ref_dir = self._reference_dir(ref.unique_id)
         if os.path.exists(ref_dir):
             return f"Reference {ref.unique_id} already exists."
 
@@ -2691,7 +2737,7 @@ class ReferenceManager:
             payload["fulltext_ingested"] = True
 
         self._ensure_workspace_scaffolding()
-        ref_dir = os.path.join(self.base_dir, payload["unique_id"])
+        ref_dir = self._reference_dir(payload["unique_id"])
         os.makedirs(ref_dir, exist_ok=True)
         payload["imported_from"] = self._copy_source_artifact(file_path, ref_dir)
         self._persist_reference_payload(payload, log_event="local_import")
@@ -2770,7 +2816,7 @@ class ReferenceManager:
         ]
 
         self._ensure_workspace_scaffolding()
-        ref_dir = os.path.join(self.base_dir, payload["unique_id"])
+        ref_dir = self._reference_dir(payload["unique_id"])
         os.makedirs(ref_dir, exist_ok=True)
         file_name = "original.md" if source_kind == "markdown" else "captured.md"
         payload["imported_from"] = self._write_text_source_artifact(
@@ -2998,8 +3044,11 @@ class ReferenceManager:
         if not canonical_metadata:
             return f"Failed to load canonical reference {target_id} after resolution."
 
-        source_ref_dir = os.path.join(self.base_dir, reference_id)
-        target_ref_dir = os.path.join(self.base_dir, target_id)
+        try:
+            source_ref_dir = self._reference_dir(reference_id)
+            target_ref_dir = self._reference_dir(target_id)
+        except (PathGuardError, ValueError) as exc:
+            return f"Invalid reference id during resolution: {exc}"
         merge_conflicts = self._merge_reference_artifacts(source_ref_dir, target_ref_dir)
 
         merged_provenance = list(canonical_metadata.get("provenance", []))
@@ -3253,7 +3302,12 @@ class ReferenceManager:
             pmid: PubMed ID.
             citation_key: Human-friendly citation key with PMID (e.g., 'smith2023_41285088').
         """
-        alias_path = os.path.join(self.base_dir, f"{citation_key}.md")
+        try:
+            alias_filename = self._citation_note_filename(citation_key)
+            alias_path = os.path.join(self.base_dir, alias_filename)
+            ref_dir = self._reference_dir(pmid)
+        except (PathGuardError, ValueError):
+            return
 
         # Since citation_key now includes PMID, collisions are impossible
         # But still check just in case
@@ -3262,7 +3316,6 @@ class ReferenceManager:
 
         # Create a redirect file that includes the content
         # This way Foam can preview it directly
-        ref_dir = os.path.join(self.base_dir, pmid)
         content_path = os.path.join(ref_dir, "content.md")
 
         if os.path.exists(content_path):
@@ -3774,7 +3827,10 @@ class ReferenceManager:
         Returns:
             Dictionary containing metadata, or empty dict if not found locally.
         """
-        ref_dir = os.path.join(self.base_dir, pmid)
+        try:
+            ref_dir = self._reference_dir(pmid)
+        except (PathGuardError, ValueError):
+            return {}
         metadata_path = os.path.join(ref_dir, "metadata.json")
 
         if os.path.exists(metadata_path):
@@ -3803,11 +3859,14 @@ class ReferenceManager:
         if not metadata:
             return {}
 
-        ref_dir = os.path.join(self.base_dir, pmid)
+        try:
+            ref_dir = self._reference_dir(pmid)
+        except (PathGuardError, ValueError):
+            return {}
         detail: Dict[str, Any] = {
             "pmid": pmid,
             "metadata": metadata,
-            "ref_dir": ref_dir,
+            "ref_dir": str(ref_dir),
             "has_fulltext_pdf": self.has_fulltext(pmid),
         }
 
@@ -3857,7 +3916,10 @@ class ReferenceManager:
         Returns:
             True if reference exists locally.
         """
-        ref_dir = os.path.join(self.base_dir, pmid)
+        try:
+            ref_dir = self._reference_dir(pmid)
+        except (PathGuardError, ValueError):
+            return False
         return os.path.exists(ref_dir)
 
     def has_fulltext(self, pmid: str) -> bool:
@@ -3874,7 +3936,11 @@ class ReferenceManager:
         if metadata.get("fulltext_ingested"):
             return True
 
-        pdf_path = os.path.join(self.base_dir, pmid, "fulltext.pdf")
+        try:
+            ref_dir = self._reference_dir(pmid)
+        except (PathGuardError, ValueError):
+            return False
+        pdf_path = os.path.join(ref_dir, "fulltext.pdf")
         return os.path.exists(pdf_path)
 
     def get_fulltext_path(self, pmid: str) -> Optional[str]:
@@ -3887,7 +3953,11 @@ class ReferenceManager:
         Returns:
             Path to PDF file, or None if not available.
         """
-        pdf_path = os.path.join(self.base_dir, pmid, "fulltext.pdf")
+        try:
+            ref_dir = self._reference_dir(pmid)
+        except (PathGuardError, ValueError):
+            return None
+        pdf_path = os.path.join(ref_dir, "fulltext.pdf")
         if os.path.exists(pdf_path):
             return pdf_path
         return None
@@ -3962,7 +4032,10 @@ class ReferenceManager:
         Returns:
             Status message.
         """
-        ref_dir = os.path.join(self.base_dir, pmid)
+        try:
+            ref_dir = self._reference_dir(pmid)
+        except (PathGuardError, ValueError) as exc:
+            return f"Invalid reference id: {exc}"
         if not os.path.exists(ref_dir):
             return f"Reference {pmid} not found. Save metadata first."
 
@@ -3991,12 +4064,21 @@ class ReferenceManager:
         """
         import shutil
 
-        ref_dir = os.path.join(self.base_dir, pmid)
+        try:
+            ref_dir = self._reference_dir(pmid)
+        except (PathGuardError, ValueError) as exc:
+            return {"success": False, "error": f"Invalid reference id: {exc}"}
 
         if not os.path.exists(ref_dir):
             return {
                 "success": False,
                 "error": f"Reference {pmid} not found in local library.",
+            }
+
+        if not os.path.exists(os.path.join(ref_dir, "metadata.json")):
+            return {
+                "success": False,
+                "error": f"Reference {pmid} is missing metadata.json; refusing deletion.",
             }
 
         # Get reference info before deletion for confirmation

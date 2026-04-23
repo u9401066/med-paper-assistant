@@ -48,6 +48,7 @@ def test_compact_surface_reduces_main_mdpaper_tool_count(tmp_path) -> None:
         "project_action",
         "workspace_state_action",
         "validation_action",
+        "analysis_action",
         "run_quality_checks",
         "pipeline_action",
         "export_document",
@@ -65,6 +66,7 @@ def test_compact_surface_reduces_main_mdpaper_tool_count(tmp_path) -> None:
     assert "generate_table_one" not in compact_tools
     assert "insert_figure" in full_tools
     assert "insert_figure" not in compact_tools
+    assert "analysis_action" not in full_tools
     assert "import_local_papers" in full_tools
     assert "import_local_papers" not in compact_tools
     assert "resolve_reference_identity" in full_tools

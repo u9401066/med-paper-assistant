@@ -36,6 +36,19 @@ def test_get_reference_details_returns_empty_dict_for_missing_reference(tmp_path
     assert manager.get_reference_details("99999999") == {}
 
 
+def test_reference_id_path_guard_rejects_traversal_for_read_write_delete(tmp_path) -> None:
+    refs_dir = tmp_path / "references"
+    refs_dir.mkdir()
+    manager = ReferenceManager(base_dir=str(refs_dir))
+
+    assert manager.get_metadata("../escape") == {}
+    assert manager.check_reference_exists("../escape") is False
+    assert manager.save_pdf("../escape", b"%PDF").startswith("Invalid reference id:")
+    delete_result = manager.delete_reference("../escape", confirm=True)
+    assert delete_result["success"] is False
+    assert "Invalid reference id" in delete_result["error"]
+
+
 def test_import_local_file_creates_reference_note_and_scaffolding(tmp_path) -> None:
     refs_dir = tmp_path / "references"
     manager = ReferenceManager(base_dir=str(refs_dir))

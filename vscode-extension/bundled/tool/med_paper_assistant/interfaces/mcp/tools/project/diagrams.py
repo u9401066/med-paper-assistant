@@ -15,6 +15,11 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
+from med_paper_assistant.shared.path_guard import (
+    normalize_relative_filename,
+    resolve_child_directory,
+    resolve_child_path,
+)
 
 from .._shared import (
     ensure_project_context,
@@ -88,9 +93,20 @@ def _save_companion_rendered_asset(
     fmt = rendered_format.lower().lstrip(".")
     if not fmt:
         raise ValueError("rendered_format is required when rendered_content is provided")
+    allowed_suffixes = {f".{fmt}"}
 
-    asset_name = rendered_filename or f"{diagram_path.stem}.{fmt}"
-    asset_path = diagram_path.with_name(asset_name)
+    asset_name = normalize_relative_filename(
+        rendered_filename or f"{diagram_path.stem}.{fmt}",
+        field_name="Rendered diagram filename",
+        default_suffix=f".{fmt}",
+        allowed_suffixes=allowed_suffixes,
+    )
+    asset_path = resolve_child_path(
+        diagram_path.parent,
+        asset_name,
+        field_name="Rendered diagram filename",
+        allowed_suffixes=allowed_suffixes,
+    )
     asset_bytes = _decode_rendered_content(rendered_content, rendered_content_format, fmt)
     asset_path.write_bytes(asset_bytes)
     return asset_path
@@ -134,8 +150,15 @@ def register_diagram_tools(
             rendered_content_format: text|base64|auto
             rendered_filename: Optional explicit rendered asset filename
         """
-        if not filename.endswith(".drawio"):
-            filename = f"{filename}.drawio"
+        try:
+            filename = normalize_relative_filename(
+                filename,
+                field_name="Diagram filename",
+                default_suffix=".drawio",
+                allowed_suffixes={".drawio"},
+            )
+        except ValueError as e:
+            return f"❌ Invalid diagram filename: {e}"
 
         if content_format == "base64":
             try:
@@ -155,7 +178,12 @@ def register_diagram_tools(
                 figures_dir = Path(project_path) / "results" / "figures"
                 figures_dir.mkdir(parents=True, exist_ok=True)
 
-                output_path = figures_dir / filename
+                output_path = resolve_child_path(
+                    figures_dir,
+                    filename,
+                    field_name="Diagram filename",
+                    allowed_suffixes={".drawio"},
+                )
                 try:
                     output_path.write_text(content, encoding="utf-8")
                 except Exception as e:
@@ -194,8 +222,21 @@ The diagram is now part of your research project and can be:
 - Referenced in your drafts"""
 
         # No project context — save standalone
-        save_dir = Path(output_dir) if output_dir else Path(".")
-        output_path = save_dir / filename
+        try:
+            save_dir = resolve_child_directory(
+                Path.cwd(),
+                output_dir or ".",
+                field_name="Output directory",
+                allow_current=True,
+            )
+            output_path = resolve_child_path(
+                save_dir,
+                filename,
+                field_name="Diagram filename",
+                allowed_suffixes={".drawio"},
+            )
+        except ValueError as e:
+            return f"❌ Invalid diagram path: {e}"
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(content, encoding="utf-8")

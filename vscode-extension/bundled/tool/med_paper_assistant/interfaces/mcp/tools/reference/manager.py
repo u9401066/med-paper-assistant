@@ -6,13 +6,14 @@ save_reference, list, search, format, citation management, analysis
 
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Optional, Union
 
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
 from med_paper_assistant.infrastructure.services import Drafter
+from med_paper_assistant.shared.path_guard import PathGuardError
 
 from .._shared import (
     ensure_project_context,
@@ -71,6 +72,38 @@ def register_reference_manager_tools(
             for item in line.split(",")
             if item.strip()
         ]
+
+    def _resolve_local_import_path(file_path: str) -> Path:
+        """Resolve a local import path under the workspace root."""
+        raw = str(file_path or "").strip()
+        if not raw:
+            raise PathGuardError("local import path is required.")
+        if any(ord(ch) < 32 for ch in raw):
+            raise PathGuardError("local import path contains invalid control character(s).")
+        windows_path = PureWindowsPath(raw)
+        if windows_path.is_absolute() or windows_path.drive or "\\" in raw or ":" in raw:
+            raise PathGuardError("local import path must not use Windows absolute/drive syntax.")
+        if ".." in Path(raw).parts:
+            raise PathGuardError("local import path must not contain traversal segments.")
+
+        workspace_root = Path(os.environ.get("MEDPAPER_BASE_DIR") or Path.cwd()).resolve()
+        candidate = Path(raw)
+        if not candidate.is_absolute():
+            candidate = workspace_root / candidate
+        resolved = candidate.resolve()
+        try:
+            relative = resolved.relative_to(workspace_root)
+        except ValueError as exc:
+            raise PathGuardError("local import path must stay within the workspace root.") from exc
+
+        for segment in relative.parts:
+            if segment in {"", "."}:
+                continue
+            stem = Path(segment).stem.rstrip(" .").upper()
+            if not stem:
+                raise PathGuardError("local import path contains an invalid segment.")
+
+        return resolved
 
     @mcp.tool()
     def save_reference(article: Union[dict, str], project: Optional[str] = None) -> str:
@@ -249,8 +282,13 @@ def register_reference_manager_tools(
 
             results = []
             for file_path, metadata in zip(parsed_paths, metadata_items):
-                result = ref_manager.import_local_file(file_path, metadata=metadata)
-                results.append(f"- {Path(file_path).name}: {result}")
+                try:
+                    resolved_path = _resolve_local_import_path(file_path)
+                except PathGuardError as exc:
+                    results.append(f"- {Path(file_path).name}: ❌ Invalid local import path: {exc}")
+                    continue
+                result = ref_manager.import_local_file(str(resolved_path), metadata=metadata)
+                results.append(f"- {resolved_path.name}: {result}")
 
             output = "\n".join(results)
             log_tool_result("import_local_papers", output)

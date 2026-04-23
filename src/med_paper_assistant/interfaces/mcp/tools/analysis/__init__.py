@@ -11,6 +11,7 @@ from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.analyzer import Analyzer
 from med_paper_assistant.interfaces.mcp.tool_surface import ToolSurface, uses_compact_tool_surface
 
+from .facade import register_analysis_facade_tools
 from .figures import register_figure_tools
 from .stats import register_stats_tools
 from .table_one import register_table_one_tools
@@ -41,11 +42,20 @@ def register_analysis_tools(
         drafter,
         register_public_verbs=register_public_verbs,
     )
+    facade_tools = {}
+    if uses_compact_tool_surface(tool_surface):
+        facade_tools = register_analysis_facade_tools(
+            mcp,
+            stats_tools=stats_tools,
+            table_one_tools=table_one_tools,
+            figure_tools=figure_tools,
+        )
 
     return {
         **table_one_tools,
         **stats_tools,
         **figure_tools,
+        **facade_tools,
     }
 
 

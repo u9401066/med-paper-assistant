@@ -4,6 +4,7 @@ import asyncio
 import inspect
 from unittest.mock import MagicMock
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.interfaces.mcp.tools.analysis import figures as figures_tools
@@ -12,6 +13,7 @@ from med_paper_assistant.interfaces.mcp.tools.analysis import table_one as table
 from med_paper_assistant.interfaces.mcp.tools.export import pandoc_export
 from med_paper_assistant.interfaces.mcp.tools.export import word as word_export
 from med_paper_assistant.interfaces.mcp.tools.review import audit_hooks as audit_hook_tools
+from med_paper_assistant.interfaces.mcp.tools.review import consistency as consistency_tools
 from med_paper_assistant.interfaces.mcp.tools.review import formatting as formatting_tools
 from med_paper_assistant.interfaces.mcp.tools.review import pipeline_gate as pipeline_tools
 
@@ -170,6 +172,64 @@ def test_review_formatting_tools_guard_library_workflow(monkeypatch):
     )
 
     assert result == "workflow-guard"
+
+
+@pytest.mark.parametrize(
+    "draft_filename",
+    [
+        "../secret.md",
+        r"..\secret.md",
+        "safe/evil.md",
+        r"C:\tmp\secret.md",
+        "CON.md",
+    ],
+)
+def test_review_formatting_rejects_unsafe_draft_filename(
+    monkeypatch,
+    tmp_path,
+    draft_filename,
+):
+    monkeypatch.setattr(
+        formatting_tools,
+        "resolve_project_context",
+        lambda project=None, required_mode="manuscript", project_manager=None: (None, None),
+    )
+    monkeypatch.setattr(formatting_tools, "get_drafts_dir", lambda: str(tmp_path))
+
+    captured = _capture_tool_functions(
+        lambda mcp: formatting_tools.register_formatting_tools(
+            mcp,
+            drafter=MagicMock(drafts_dir=str(tmp_path)),
+            ref_manager=MagicMock(),
+        )
+    )
+
+    result = captured["check_formatting"](draft_filename=draft_filename)
+
+    assert result.startswith("❌ Invalid draft filename:")
+
+
+def test_review_consistency_rejects_unsafe_manifest_filenames(tmp_path):
+    results_dir = tmp_path / "results"
+    (results_dir / "figures").mkdir(parents=True)
+    (results_dir / "tables").mkdir(parents=True)
+    (results_dir / "manifest.json").write_text(
+        """
+        {
+          "figures": [{"number": 1, "filename": "../evil.png"}],
+          "tables": [{"number": 1, "filename": "CON.csv"}]
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    report = consistency_tools.ConsistencyReport()
+
+    consistency_tools._check_figure_table_archive("Figure 1 and Table 1.", str(tmp_path), report)
+
+    descriptions = [issue.description for issue in report.issues]
+    assert any("Invalid figure filename in manifest" in item for item in descriptions)
+    assert any("Invalid table filename in manifest" in item for item in descriptions)
 
 
 def test_review_audit_tools_guard_library_workflow(monkeypatch):

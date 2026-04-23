@@ -4,7 +4,7 @@ File Storage - General file storage operations.
 
 import shutil
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import List, Optional
 
 
@@ -20,6 +20,15 @@ class FileStorage:
 
     def _safe_path(self, filename: str) -> Path:
         """Resolve filename and ensure it stays within base_dir (path traversal protection)."""
+        raw = str(filename or "").strip()
+        if not raw:
+            raise ValueError("File path is required")
+        if raw == ".":
+            raise ValueError("Refusing to target storage root")
+        if ".." in Path(raw).parts:
+            raise ValueError(f"Path traversal blocked: {filename}")
+        if PureWindowsPath(raw).is_absolute() or "\\" in raw or ":" in raw:
+            raise ValueError(f"Unsafe cross-platform path blocked: {filename}")
         path = (self.base_dir / filename).resolve()
         if not path.is_relative_to(self.base_dir):
             raise ValueError(f"Path traversal blocked: {filename}")
@@ -54,6 +63,8 @@ class FileStorage:
     def delete(self, filename: str):
         """Delete a file."""
         path = self._safe_path(filename)
+        if path == self.base_dir:
+            raise ValueError("Refusing to delete storage root")
         if path.exists():
             if path.is_dir():
                 shutil.rmtree(path)
@@ -62,7 +73,14 @@ class FileStorage:
 
     def list_files(self, pattern: str = "*") -> List[Path]:
         """List files matching a pattern."""
-        return list(self.base_dir.glob(pattern))
+        raw = str(pattern or "*").strip()
+        if any(ord(ch) < 32 for ch in raw):
+            raise ValueError("Glob pattern contains invalid control character(s)")
+        if PureWindowsPath(raw).is_absolute() or "\\" in raw or ":" in raw:
+            raise ValueError(f"Unsafe cross-platform glob pattern blocked: {pattern}")
+        if Path(raw).is_absolute() or ".." in Path(raw).parts:
+            raise ValueError(f"Path traversal blocked in glob pattern: {pattern}")
+        return [p for p in self.base_dir.glob(raw) if p.resolve().is_relative_to(self.base_dir)]
 
     def list_dirs(self) -> List[Path]:
         """List subdirectories."""
@@ -87,8 +105,8 @@ class FileStorage:
 
     def move(self, src: str, dst: str) -> Path:
         """Move a file."""
-        src_path = self.base_dir / src
-        dst_path = self.base_dir / dst
+        src_path = self._safe_path(src)
+        dst_path = self._safe_path(dst)
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(src_path, dst_path)
         return dst_path

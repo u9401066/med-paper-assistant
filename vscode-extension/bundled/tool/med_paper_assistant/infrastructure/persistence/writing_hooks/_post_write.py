@@ -726,6 +726,7 @@ class PostWriteHooksMixin:
         Returns:
             HookResult with issues listing each non-preferred word found.
         """
+        prefer = self._get_language_preference(prefer)
         issues: list[HookIssue] = []
 
         if prefer == "american":

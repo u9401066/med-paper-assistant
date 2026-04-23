@@ -10,6 +10,7 @@ import structlog
 
 from med_paper_assistant.domain.entities.reference import Reference
 from med_paper_assistant.shared.exceptions import ReferenceNotFoundError
+from med_paper_assistant.shared.path_guard import resolve_child_path
 
 logger = structlog.get_logger()
 
@@ -24,6 +25,9 @@ class ReferenceRepository:
     def __init__(self, base_dir: Path):
         self.base_dir = base_dir
 
+    def _reference_dir(self, reference_id: str) -> Path:
+        return resolve_child_path(self.base_dir, reference_id, field_name="reference id")
+
     def save(self, reference: Reference) -> Reference:
         """
         Save a reference to disk.
@@ -34,7 +38,7 @@ class ReferenceRepository:
         Returns:
             Saved reference.
         """
-        ref_dir = self.base_dir / reference.unique_id
+        ref_dir = self._reference_dir(reference.unique_id)
         ref_dir.mkdir(parents=True, exist_ok=True)
 
         # Save metadata
@@ -75,7 +79,7 @@ class ReferenceRepository:
         Raises:
             ReferenceNotFoundError: If reference not found.
         """
-        ref_dir = self.base_dir / pmid
+        ref_dir = self._reference_dir(pmid)
         metadata_path = ref_dir / "metadata.json"
 
         if not metadata_path.exists():
@@ -91,7 +95,10 @@ class ReferenceRepository:
 
     def exists(self, pmid: str) -> bool:
         """Check if a reference exists."""
-        return (self.base_dir / pmid / "metadata.json").exists()
+        try:
+            return (self._reference_dir(pmid) / "metadata.json").exists()
+        except ValueError:
+            return False
 
     def list_all(self) -> List[Reference]:
         """List all saved references."""
@@ -135,18 +142,23 @@ class ReferenceRepository:
         """Delete a reference."""
         import shutil
 
-        ref_dir = self.base_dir / pmid
+        ref_dir = self._reference_dir(pmid)
         if ref_dir.exists():
+            if not (ref_dir / "metadata.json").exists():
+                raise ReferenceNotFoundError(f"Reference {pmid} has no metadata file.")
             shutil.rmtree(ref_dir)
 
     def get_pdf_path(self, pmid: str) -> Optional[Path]:
         """Get the PDF path for a reference."""
-        pdf_path = self.base_dir / pmid / "fulltext.pdf"
+        try:
+            pdf_path = self._reference_dir(pmid) / "fulltext.pdf"
+        except ValueError:
+            return None
         return pdf_path if pdf_path.exists() else None
 
     def save_pdf(self, pmid: str, pdf_content: bytes) -> Path:
         """Save PDF content for a reference."""
-        ref_dir = self.base_dir / pmid
+        ref_dir = self._reference_dir(pmid)
         ref_dir.mkdir(parents=True, exist_ok=True)
 
         pdf_path = ref_dir / "fulltext.pdf"

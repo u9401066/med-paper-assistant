@@ -1,6 +1,7 @@
 import os
 import re
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import structlog
@@ -13,6 +14,11 @@ from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager impor
 )
 from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
+from med_paper_assistant.shared.path_guard import (
+    PathGuardError,
+    normalize_relative_filename,
+    resolve_child_path,
+)
 
 if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
@@ -68,6 +74,30 @@ JOURNAL_CITATION_CONFIGS = {
         "et_al_threshold": 3,
     },
 }
+
+
+def draft_filename_from_section(section: str | None) -> str:
+    """Derive a stable draft filename from a paper section label."""
+    if not section:
+        return ""
+
+    slug = re.sub(r"[^a-z0-9]+", "_", str(section).strip().lower()).strip("_")
+    if not slug:
+        return ""
+    return f"{slug}.md"
+
+
+def normalize_draft_filename(filename: str | None) -> str:
+    """Validate and normalize a draft filename for cross-platform safety."""
+    try:
+        return normalize_relative_filename(
+            filename,
+            field_name="Draft filename",
+            default_suffix=".md",
+            allowed_suffixes={".md"},
+        )
+    except PathGuardError as e:
+        raise ValueError(str(e)) from e
 
 
 class Drafter:
@@ -149,13 +179,18 @@ class Drafter:
         Returns:
             Path to the created draft file.
         """
+        filename = normalize_draft_filename(filename)
+
         final_content = self._compile_draft(content)
 
-        # Save file
-        if not filename.endswith(".md"):
-            filename += ".md"
-
-        filepath = os.path.join(self.drafts_dir, filename)
+        drafts_path = Path(self.drafts_dir).resolve()
+        drafts_path.mkdir(parents=True, exist_ok=True)
+        filepath = resolve_child_path(
+            drafts_path,
+            filename,
+            field_name="Draft filename",
+            allowed_suffixes={".md"},
+        )
 
         # Auto-snapshot before overwrite
         self.snapshot_manager.snapshot_before_write(filename, reason="create_draft")
@@ -168,7 +203,7 @@ class Drafter:
         # Auto-commit after successful write
         self.git_committer.commit_draft(filename, reason="create_draft")
 
-        return filepath
+        return str(filepath)
 
     def insert_citation(self, filename: str, target_text: str, pmid: str) -> str:
         """
@@ -182,10 +217,9 @@ class Drafter:
         Returns:
             Path to the updated draft file.
         """
-        if not filename.endswith(".md"):
-            filename += ".md"
+        filename = normalize_draft_filename(filename)
 
-        filepath = os.path.join(self.drafts_dir, filename)
+        filepath = str(resolve_child_path(self.drafts_dir, filename, field_name="Draft filename"))
 
         if not os.path.exists(filepath):
             raise FileNotFoundError(f"Draft file {filename} not found.")
@@ -468,8 +502,7 @@ class Drafter:
         Returns:
             Dict with processing results including citations found and generated.
         """
-        if not filename.endswith(".md"):
-            filename += ".md"
+        filename = normalize_draft_filename(filename)
 
         # Determine project root directory
         project_root = None

@@ -14,6 +14,11 @@ from typing import Optional
 import structlog
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
+from med_paper_assistant.shared.path_guard import (
+    PathGuardError,
+    normalize_relative_filename,
+    resolve_child_path,
+)
 
 logger = structlog.get_logger()
 
@@ -275,9 +280,35 @@ def _check_figure_table_archive(
     # --- Orphan file detection ---
     manifest_files = set()
     for entry in manifest.get("figures", []):
-        manifest_files.add(entry.get("filename", ""))
+        raw_fname = str(entry.get("filename", "")).strip()
+        if not raw_fname:
+            continue
+        try:
+            manifest_files.add(
+                normalize_relative_filename(raw_fname, field_name="figure filename")
+            )
+        except (PathGuardError, ValueError) as exc:
+            report.add(
+                category="Figure/Table Archive",
+                severity="error",
+                description=f"Invalid figure filename in manifest: {raw_fname}",
+                suggestion=f"Regenerate the figure manifest entry ({exc})",
+            )
     for entry in manifest.get("tables", []):
-        manifest_files.add(entry.get("filename", ""))
+        raw_fname = str(entry.get("filename", "")).strip()
+        if not raw_fname:
+            continue
+        try:
+            manifest_files.add(
+                normalize_relative_filename(raw_fname, field_name="table filename")
+            )
+        except (PathGuardError, ValueError) as exc:
+            report.add(
+                category="Figure/Table Archive",
+                severity="error",
+                description=f"Invalid table filename in manifest: {raw_fname}",
+                suggestion=f"Regenerate the table manifest entry ({exc})",
+            )
 
     orphan_figures = [f for f in figure_files if f not in manifest_files] if manifest else []
     orphan_tables = [f for f in table_files if f not in manifest_files] if manifest else []
@@ -299,8 +330,15 @@ def _check_figure_table_archive(
 
     # --- Missing file detection (manifest entry but file gone) ---
     for entry in manifest.get("figures", []):
-        fname = entry.get("filename", "")
-        if fname and not os.path.isfile(os.path.join(figures_dir, fname)):
+        raw_fname = str(entry.get("filename", "")).strip()
+        if not raw_fname:
+            continue
+        try:
+            fname = normalize_relative_filename(raw_fname, field_name="figure filename")
+            figure_path = resolve_child_path(figures_dir, fname, field_name="figure filename")
+        except (PathGuardError, ValueError):
+            continue
+        if not os.path.isfile(figure_path):
             report.add(
                 category="Figure/Table Archive",
                 severity="error",
@@ -308,8 +346,15 @@ def _check_figure_table_archive(
                 suggestion="Recreate the figure or remove from manifest",
             )
     for entry in manifest.get("tables", []):
-        fname = entry.get("filename", "")
-        if fname and not os.path.isfile(os.path.join(tables_dir, fname)):
+        raw_fname = str(entry.get("filename", "")).strip()
+        if not raw_fname:
+            continue
+        try:
+            fname = normalize_relative_filename(raw_fname, field_name="table filename")
+            table_path = resolve_child_path(tables_dir, fname, field_name="table filename")
+        except (PathGuardError, ValueError):
+            continue
+        if not os.path.isfile(table_path):
             report.add(
                 category="Figure/Table Archive",
                 severity="error",

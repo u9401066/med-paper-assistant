@@ -1,6 +1,14 @@
-# Progress (Updated: 2026-04-14)
+# Progress (Updated: 2026-04-23)
 
 ## Done
+
+- **v0.7.3 path guard + MCP surface release prep (2026-04-23)**:
+
+  - Added central cross-platform filename/path guard and applied it across draft, analysis assets, data artifacts, validation, project/library/reference/export/storage/review entrypoints
+  - Fixed `draft_action(write section=...)` empty filename regression, restored compact `analysis_action` asset routes, repaired data-artifact manifest detection, aligned `validation_action` aliases, and removed BJA/en-GB A5 false positives
+  - Synced source and VS Code bundled Python runtime with zero mirror drift
+  - Updated authority-driven docs/counts to 115 full / 22 compact + 3 prompts + 3 resources
+  - Validation completed: compileall, tool-surface authority, repo count sync, source/bundled parity, targeted path-guard suite 479 passed, full non-integration suite 1208 passed
 
 - **v0.6.4 release prep (2026-04-14)**:
 
@@ -65,12 +73,11 @@
 
 ## Doing
 
-- Weak model resilience: remaining 20 Agent-Driven hooks still need code enforcement or simplification
-
-(none)
+- Publishing v0.7.3: changelog/version/memory/roadmap update, commit, push branch, create and push tag
 
 ## Next
 
+- Watch release tag CI and package publication status
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

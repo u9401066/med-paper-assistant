@@ -22,7 +22,7 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import structlog
 import yaml
@@ -72,18 +72,98 @@ class DataArtifactTracker:
                 return candidate.as_posix()
         return candidate.as_posix()
 
+    def _candidate_data_paths(self) -> list[Path]:
+        """Return supported data-artifact manifest locations in priority order."""
+        return [
+            self._data_path,
+            self._project_dir / "data-artifacts.yaml",
+            self._project_dir / "data-artifacts.yml",
+            self._project_dir / "data-artifacts" / "manifest.yaml",
+            self._project_dir / "data-artifacts" / "manifest.yml",
+        ]
+
+    def _coerce_asset_entry(
+        self,
+        entry: dict[str, Any],
+        artifact_type: ArtifactType,
+    ) -> dict[str, Any]:
+        """Coerce figure/table/statistics manifest entries into artifact entries."""
+        folder = "figures" if artifact_type == "figure" else "tables"
+        filename = (
+            entry.get("filename")
+            or entry.get("file")
+            or entry.get("name")
+            or entry.get("path")
+            or entry.get("asset_path")
+            or entry.get("output_path")
+        )
+        output_path = entry.get("output_path") or entry.get("path") or entry.get("asset_path")
+        if not output_path and filename and artifact_type in ("figure", "table"):
+            output_path = f"results/{folder}/{Path(str(filename)).name}"
+
+        return {
+            "id": str(entry.get("id") or ""),
+            "tool_name": entry.get("tool_name") or entry.get("tool") or "manual_manifest",
+            "artifact_type": artifact_type,
+            "parameters": entry.get("parameters") or {},
+            "data_source": entry.get("data_source") or entry.get("source") or entry.get("filename"),
+            "output_path": self._normalize_path(str(output_path)) if output_path else None,
+            "provenance_code": entry.get("provenance_code") or entry.get("code"),
+            "result_summary": entry.get("result_summary") or entry.get("caption") or entry.get("summary"),
+            "timestamp": entry.get("timestamp") or datetime.now().isoformat(),
+        }
+
+    def _coerce_loaded_data(self, loaded: dict[str, Any]) -> dict[str, Any]:
+        """Normalize legacy/user-authored schemas to the canonical tracker schema."""
+        data = dict(loaded)
+        artifacts = data.get("artifacts")
+        if not isinstance(artifacts, list):
+            artifacts = []
+
+        for key, artifact_type in (
+            ("figures", "figure"),
+            ("tables", "table"),
+            ("statistics", "statistics"),
+            ("stats", "statistics"),
+            ("descriptives", "descriptive"),
+        ):
+            entries = data.get(key, [])
+            if isinstance(entries, dict):
+                entries = entries.get("items", [])
+            if isinstance(entries, list):
+                for entry in entries:
+                    if isinstance(entry, dict):
+                        artifacts.append(
+                            self._coerce_asset_entry(entry, cast(ArtifactType, artifact_type))
+                        )
+
+        for idx, artifact in enumerate(artifacts, 1):
+            artifact.setdefault("id", f"DA-{idx:03d}")
+            if artifact.get("output_path"):
+                artifact["output_path"] = self._normalize_path(str(artifact["output_path"]))
+
+        data["version"] = data.get("version", 1)
+        data["artifacts"] = artifacts
+        data["asset_reviews"] = data.get("asset_reviews") or data.get("reviews") or []
+        data.setdefault("created_at", datetime.now().isoformat())
+        return data
+
     def _load(self) -> dict[str, Any]:
         """Load or initialize tracking data."""
         if self._data is not None:
             return self._data
 
-        if self._data_path.is_file():
+        for data_path in self._candidate_data_paths():
+            if not data_path.is_file():
+                continue
             try:
-                loaded = yaml.safe_load(self._data_path.read_text(encoding="utf-8"))
+                loaded = yaml.safe_load(data_path.read_text(encoding="utf-8"))
                 if loaded is None:
                     loaded = {}
-                self._data = loaded
-                return loaded
+                if not isinstance(loaded, dict):
+                    loaded = {}
+                self._data = self._coerce_loaded_data(loaded)
+                return self._data
             except (yaml.YAMLError, OSError) as e:
                 logger.warning("Failed to load data artifact tracker: %s", e)
 
@@ -137,7 +217,7 @@ class DataArtifactTracker:
             "artifact_type": artifact_type,
             "parameters": parameters,
             "data_source": data_source,
-            "output_path": output_path,
+            "output_path": self._normalize_path(output_path),
             "provenance_code": provenance_code,
             "result_summary": result_summary,
             "timestamp": datetime.now().isoformat(),
@@ -243,8 +323,9 @@ class DataArtifactTracker:
 
     def get_artifact_by_output(self, output_path: str) -> dict[str, Any] | None:
         """Find artifact by output path."""
+        normalized_output = self._normalize_path(output_path)
         for a in self.get_artifacts():
-            if a.get("output_path") == output_path:
+            if self._normalize_path(a.get("output_path")) == normalized_output:
                 return a
         return None
 
@@ -589,11 +670,35 @@ class DataArtifactTracker:
         return report_text
 
     def _load_manifest(self) -> dict[str, Any]:
-        """Load manifest.json from results/."""
-        manifest_path = self._project_dir / "results" / "manifest.json"
-        if manifest_path.is_file():
+        """Load figure/table manifest from supported project locations."""
+        manifest_paths = [
+            self._project_dir / "results" / "manifest.json",
+            self._project_dir / "results" / "manifest.yaml",
+            self._project_dir / "results" / "manifest.yml",
+            self._project_dir / "data-artifacts" / "manifest.yaml",
+            self._project_dir / "data-artifacts" / "manifest.yml",
+        ]
+        for manifest_path in manifest_paths:
+            if not manifest_path.is_file():
+                continue
             try:
-                return json.loads(manifest_path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                pass
+                text = manifest_path.read_text(encoding="utf-8")
+                if manifest_path.suffix.lower() == ".json":
+                    loaded = json.loads(text)
+                else:
+                    loaded = yaml.safe_load(text) or {}
+                if isinstance(loaded, dict):
+                    return {
+                        "figures": loaded.get("figures", []),
+                        "tables": loaded.get("tables", []),
+                    }
+            except (json.JSONDecodeError, yaml.YAMLError, OSError):
+                continue
+
+        data = self._load()
+        if data.get("figures") or data.get("tables"):
+            return {
+                "figures": data.get("figures", []),
+                "tables": data.get("tables", []),
+            }
         return {"figures": [], "tables": []}

@@ -5,14 +5,15 @@ Full Word export workflow with session management.
 """
 
 import json
-import os
 import re
+from pathlib import Path
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 from med_paper_assistant.infrastructure.services import Formatter, TemplateReader, WordWriter
+from med_paper_assistant.shared.path_guard import PathGuardError, resolve_child_path
 
 from .._shared import (
     get_optional_tool_decorator,
@@ -92,7 +93,16 @@ def register_word_export_tools(
             template_name: Template filename (e.g., "Type of the Paper.docx")
         """
         try:
-            return template_reader.get_template_summary(template_name)
+            template_path = resolve_child_path(
+                template_reader.templates_dir,
+                template_name,
+                field_name="template name",
+                default_suffix=".docx",
+                allowed_suffixes={".docx"},
+            )
+            return template_reader.get_template_summary(template_path.name)
+        except PathGuardError as e:
+            return f"Error: Invalid template name: {e}"
         except Exception as e:
             return f"Error reading template: {str(e)}"
 
@@ -119,24 +129,32 @@ def register_word_export_tools(
 
         try:
             if template_name:
-                template_path = os.path.join(template_reader.templates_dir, template_name)
-                if not os.path.exists(template_path):
+                template_path = resolve_child_path(
+                    template_reader.templates_dir,
+                    template_name,
+                    field_name="template name",
+                    default_suffix=".docx",
+                    allowed_suffixes={".docx"},
+                )
+                if not template_path.exists():
                     return f"Error: Template not found: {template_name}"
-                doc = word_writer.create_document_from_template(template_path)
+                doc = word_writer.create_document_from_template(str(template_path))
+                safe_template_name = template_path.name
             else:
                 doc = word_writer.create_blank_document()
+                safe_template_name = ""
 
             _active_documents[session_id] = {
                 "doc": doc,
-                "template": template_name or "(blank)",
+                "template": safe_template_name or "(blank)",
                 "modifications": [],
                 "project": (project_info or {}).get("slug"),
             }
 
-            if template_name:
-                structure = template_reader.get_template_summary(template_name)
+            if safe_template_name:
+                structure = template_reader.get_template_summary(safe_template_name)
                 return (
-                    f"✅ Document session '{session_id}' started with template: {template_name}\n\n"
+                    f"✅ Document session '{session_id}' started with template: {safe_template_name}\n\n"
                     f"Project: {(project_info or {}).get('name', (project_info or {}).get('slug', 'Unknown'))}\n\n"
                     f"{structure}"
                 )
@@ -146,6 +164,8 @@ def register_word_export_tools(
                     f"Project: {(project_info or {}).get('name', (project_info or {}).get('slug', 'Unknown'))}. "
                     "Use insert_section to add content."
                 )
+        except PathGuardError as e:
+            return f"Error: Invalid template name: {e}"
         except Exception as e:
             return f"Error starting session: {str(e)}"
 
@@ -320,6 +340,17 @@ def register_word_export_tools(
         try:
             session = _active_documents[session_id]
             doc = session["doc"]
+            project_paths = (project_info or {}).get("paths", {})
+            project_root = Path(project_paths.get("root") or Path.cwd())
+            exports_dir = project_root / "exports"
+            output_path = resolve_child_path(
+                exports_dir,
+                output_filename,
+                field_name="output filename",
+                default_suffix=".docx",
+                allowed_suffixes={".docx"},
+            )
+            output_path.parent.mkdir(parents=True, exist_ok=True)
 
             # ── Safety check: scan for residual [[wikilink]] citations ──
             residual_wikilinks: list[str] = []
@@ -341,7 +372,7 @@ def register_word_export_tools(
                     "\nConsider using `sync_references()` to convert wikilinks before export."
                 )
 
-            path = word_writer.save_document(doc, output_filename)
+            path = word_writer.save_document(doc, str(output_path))
 
             del _active_documents[session_id]
 
@@ -350,6 +381,8 @@ def register_word_export_tools(
                 f"Project: {(project_info or {}).get('name', (project_info or {}).get('slug', 'Unknown'))}\n"
                 f"Session '{session_id}' closed.{warning_msg}"
             )
+        except PathGuardError as e:
+            return f"Error: Invalid output filename: {e}"
         except Exception as e:
             return f"Error saving document: {str(e)}"
 

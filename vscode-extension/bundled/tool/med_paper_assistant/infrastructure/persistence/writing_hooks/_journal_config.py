@@ -71,6 +71,42 @@ class JournalConfigMixin:
                 return int(val)
         return DEFAULT_CITATION_DENSITY.get(section_name.lower(), 0)
 
+    def _get_language_preference(self, fallback: str = "american") -> str:
+        """Get preferred English variant from journal-profile.yaml when available."""
+        if not self._journal_profile:
+            return fallback
+
+        profile = self._journal_profile
+        candidates = [
+            profile.get("locale"),
+            profile.get("language"),
+            profile.get("language_preference"),
+            profile.get("prefer_language"),
+            profile.get("journal", {}).get("locale") if isinstance(profile.get("journal"), dict) else None,
+            profile.get("journal", {}).get("language") if isinstance(profile.get("journal"), dict) else None,
+            profile.get("pipeline", {}).get("writing", {}).get("prefer_language")
+            if isinstance(profile.get("pipeline"), dict)
+            else None,
+        ]
+
+        journal = profile.get("journal", {})
+        journal_name = ""
+        if isinstance(journal, dict):
+            journal_name = str(journal.get("name") or journal.get("abbreviation") or "")
+        else:
+            journal_name = str(journal or "")
+        if "british journal of anaesthesia" in journal_name.lower() or journal_name.lower() == "bja":
+            return "british"
+
+        for candidate in candidates:
+            value = str(candidate or "").strip().lower().replace("_", "-")
+            if value in {"british", "uk", "en-gb", "en-uk"}:
+                return "british"
+            if value in {"american", "us", "en-us"}:
+                return "american"
+
+        return fallback
+
     def _get_total_word_limit(self) -> int | None:
         """Get total manuscript word limit."""
         if self._journal_profile:

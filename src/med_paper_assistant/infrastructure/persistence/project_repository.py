@@ -13,6 +13,7 @@ from med_paper_assistant.shared.exceptions import (
     ProjectAlreadyExistsError,
     ProjectNotFoundError,
 )
+from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .project_manager import ProjectManager
 
@@ -53,6 +54,9 @@ class ProjectRepository:
     def _ensure_dir(self):
         """Ensure projects directory exists."""
         self.projects_dir.mkdir(parents=True, exist_ok=True)
+
+    def _project_path(self, slug: str) -> Path:
+        return resolve_child_path(self.projects_dir, slug, field_name="project slug")
 
     def create(self, project: Project) -> Project:
         """
@@ -96,7 +100,7 @@ class ProjectRepository:
         Raises:
             ProjectNotFoundError: If project not found.
         """
-        path = self.projects_dir / slug
+        path = self._project_path(slug)
         if not path.exists():
             raise ProjectNotFoundError(f"Project '{slug}' not found.")
 
@@ -137,8 +141,10 @@ class ProjectRepository:
         """Delete a project."""
         import shutil
 
-        path = self.projects_dir / slug
+        path = self._project_path(slug)
         if path.exists():
+            if not (path / "project.json").exists():
+                raise ProjectNotFoundError(f"Project '{slug}' has no configuration file.")
             shutil.rmtree(path)
 
     def get_current(self) -> Optional[Project]:

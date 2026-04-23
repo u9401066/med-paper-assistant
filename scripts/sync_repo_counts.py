@@ -47,6 +47,7 @@ EXTERNAL_MCP = {
 }
 
 COMPACT_SURFACE_FACADE_GROUPS = {"project", "review", "export"}
+TOOL_SURFACE_AUTHORITY = ROOT / "tool-surface-authority.json"
 
 
 # ── Data Classes ──────────────────────────────────────────────────────
@@ -195,6 +196,13 @@ def gather_counts() -> RepoCounts:
     ) = count_mcp_tools()
     counts.mdpaper_domain_total = sum(counts.tool_groups.values())
     counts.mdpaper_total = counts.mdpaper_domain_total + counts.mdpaper_facade_tools
+    if TOOL_SURFACE_AUTHORITY.exists():
+        authority = json.loads(TOOL_SURFACE_AUTHORITY.read_text(encoding="utf-8"))
+        mcp_authority = authority.get("mcpServer", {})
+        counts.mdpaper_total = int(mcp_authority.get("fullTools", counts.mdpaper_total))
+        counts.mdpaper_compact_total = int(
+            mcp_authority.get("compactTools", counts.mdpaper_compact_total)
+        )
     counts.total_tools = counts.mdpaper_total + counts.pubmed_tools + counts.cgu_tools
 
     # Skills, Prompts, Agents

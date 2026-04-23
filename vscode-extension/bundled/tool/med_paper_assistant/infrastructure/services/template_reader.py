@@ -11,6 +11,8 @@ from typing import List, Optional
 
 from docx import Document
 
+from med_paper_assistant.shared.path_guard import resolve_child_path
+
 
 def _find_project_templates_dir() -> Path:
     """Locate the repository templates directory regardless of caller or bundle depth."""
@@ -73,10 +75,13 @@ class TemplateReader:
         Returns:
             TemplateStructure with all sections and their properties.
         """
-        resolved_template_path = Path(template_path)
-        if not resolved_template_path.is_absolute():
-            resolved_template_path = self.templates_dir / resolved_template_path
-        resolved_template_path = resolved_template_path.resolve()
+        resolved_template_path = resolve_child_path(
+            self.templates_dir,
+            template_path,
+            field_name="template name",
+            default_suffix=".docx",
+            allowed_suffixes={".docx"},
+        )
 
         if not resolved_template_path.exists():
             raise FileNotFoundError(f"Template not found: {resolved_template_path}")

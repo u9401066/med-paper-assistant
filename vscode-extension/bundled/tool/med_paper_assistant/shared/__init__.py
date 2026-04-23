@@ -27,6 +27,7 @@ from .exceptions import (
     SearchError,
     ValidationError,
 )
+from .path_guard import PathGuardError, normalize_relative_filename, resolve_child_path
 
 __all__ = [
     # Constants
@@ -52,4 +53,7 @@ __all__ = [
     "ReferenceNotFoundError",
     "SearchError",
     "ValidationError",
+    "PathGuardError",
+    "normalize_relative_filename",
+    "resolve_child_path",
 ]

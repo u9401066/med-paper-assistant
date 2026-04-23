@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-04-23
+
+### Added
+
+- **Repository-wide cross-platform path guard**: Added one shared path guard for filename and child-path entrypoints, covering POSIX/Windows absolute paths, drive/UNC paths, traversal, hidden names, reserved Windows device names, invalid filename characters, trailing dot/space names, and case-insensitive collisions
+- **Analysis asset facade restoration**: Exposed the compact `analysis_action` surface and restored review/list/insert routes for figure and table assets so Phase 5 asset provenance workflows have real MCP entrypoints instead of documentation-only verbs
+- **Path-guard regression coverage**: Added focused tests for draft/storage/library/reference import/diagram/Word export path handling plus bundled-source parity checks for the VS Code extension runtime
+
+### Fixed
+
+- **Draft section write routing**: Fixed `draft_action(action="write", section=...)` so known sections such as `methods` map to `drafts/methods.md` instead of falling through to `drafts/.md`
+- **Data artifact provenance manifests**: Made data-artifact validation recognize canonical project, audit, and data-artifact manifest locations, including legacy/custom manifest shapes, so artifact counts no longer collapse to zero when a valid manifest exists
+- **Validation facade parity**: Added list/help aliases for `validation_action` and aligned the documented validation types with the implemented `concept`, `literature`, and `wikilinks` routes
+- **British English hook locale handling**: Adjusted the A5 language-consistency hook so BJA-style `en-GB` journal profiles do not produce false-positive American spelling warnings
+
+### Changed
+
+- **Authority-driven tool count sync**: Synced repository and VS Code extension documentation to the authoritative `115 full / 22 compact` MCP tool surface with 3 prompts and 3 resources
+- **Release validation baseline**: Revalidated source/bundled Python parity, tool-surface authority, repository-count sync, targeted path-guard suites, and the full non-integration pytest suite before tagging
+
 ## [0.7.1] - 2026-04-22
 
 ### Fixed

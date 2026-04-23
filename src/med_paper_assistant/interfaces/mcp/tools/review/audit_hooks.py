@@ -504,6 +504,14 @@ def register_audit_hook_tools(
             manuscript = project_dir / "drafts" / "manuscript.md"
             if manuscript.is_file():
                 draft_content = manuscript.read_text(encoding="utf-8")
+            else:
+                draft_files = sorted((project_dir / "drafts").glob("*.md"))
+                parts = [
+                    p.read_text(encoding="utf-8")
+                    for p in draft_files
+                    if p.name != "concept.md" and p.is_file()
+                ]
+                draft_content = "\n\n".join(parts) if parts else None
 
             # Run cross-reference validation
             await report_tool_progress(ctx, 2, 4, "Cross-validating data artifacts", end=95)

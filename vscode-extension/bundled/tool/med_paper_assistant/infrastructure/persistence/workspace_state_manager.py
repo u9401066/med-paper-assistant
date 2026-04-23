@@ -19,6 +19,8 @@ from typing import Any, Optional
 
 import structlog
 
+from med_paper_assistant.shared.path_guard import resolve_child_path
+
 logger = structlog.get_logger()
 
 
@@ -49,6 +51,9 @@ class WorkspaceStateManager:
         self.base_path = Path(base_path).resolve()
         self.projects_dir = self.base_path / "projects"
 
+    def _project_dir(self, slug: str) -> Path:
+        return resolve_child_path(self.projects_dir, slug, field_name="project slug")
+
     # =========================================================================
     # State File Resolution
     # =========================================================================
@@ -63,14 +68,17 @@ class WorkspaceStateManager:
         """
         slug = self._get_current_project_slug()
         if slug:
-            project_dir = self.projects_dir / slug
-            if project_dir.is_dir():
+            try:
+                project_dir = self._project_dir(slug)
+            except ValueError:
+                project_dir = None
+            if project_dir is not None and project_dir.is_dir():
                 return project_dir / self.STATE_FILE
         return self.base_path / self.STATE_FILE
 
     def state_file_for_project(self, slug: str) -> Path:
         """Get state file path for a specific project."""
-        return self.projects_dir / slug / self.STATE_FILE
+        return self._project_dir(slug) / self.STATE_FILE
 
     def _get_current_project_slug(self) -> Optional[str]:
         """Read current project slug from .current_project file."""
@@ -155,7 +163,10 @@ class WorkspaceStateManager:
         if not slug:
             return
 
-        target = self.projects_dir / slug / self.STATE_FILE
+        try:
+            target = self._project_dir(slug) / self.STATE_FILE
+        except ValueError:
+            return
         if target.exists():
             return
 
@@ -306,8 +317,11 @@ class WorkspaceStateManager:
         sections_on_disk = []
         slug = self._get_current_project_slug()
         if slug:
-            drafts_dir = self.projects_dir / slug / "drafts"
-            if drafts_dir.is_dir():
+            try:
+                drafts_dir = self._project_dir(slug) / "drafts"
+            except ValueError:
+                drafts_dir = None
+            if drafts_dir is not None and drafts_dir.is_dir():
                 for f in sorted(drafts_dir.iterdir()):
                     if f.suffix == ".md":
                         name = f.stem.replace("-", " ").replace("_", " ").title()

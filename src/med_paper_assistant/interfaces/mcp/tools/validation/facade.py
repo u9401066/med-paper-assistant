@@ -39,6 +39,9 @@ def register_validation_facade_tools(
         - literature
         """
         aliases = {
+            "actions": "list",
+            "help": "list",
+            "supported": "list",
             "validate_concept": "concept",
             "concept_validation": "concept",
             "validate_wikilinks": "wikilinks",
@@ -47,6 +50,14 @@ def register_validation_facade_tools(
             "compare_with_literature": "literature",
         }
         normalized = normalize_facade_action(action, aliases)
+
+        supported_actions = ("concept", "wikilinks", "literature", "list")
+        if normalized == "list":
+            return (
+                "validation_action supports: "
+                "concept, wikilinks, literature. "
+                "Aliases: validate_concept, validate_wikilinks, compare, compare_with_literature."
+            )
 
         action_specs: dict[str, tuple[ToolMap, str, dict[str, Any]]] = {
             "concept": (
@@ -80,7 +91,7 @@ def register_validation_facade_tools(
         }
 
         if normalized not in action_specs:
-            supported = ", ".join(sorted(action_specs))
+            supported = ", ".join(supported_actions)
             return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
 
         tool_group, handler_name, kwargs = action_specs[normalized]

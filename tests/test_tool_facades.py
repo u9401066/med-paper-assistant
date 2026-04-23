@@ -137,6 +137,7 @@ async def test_project_action_routes_update_settings() -> None:
         "memo": "",
         "status": "",
         "citation_style": "vancouver",
+        "graph_views_json": "",
     }
 
 
@@ -343,3 +344,18 @@ async def test_validation_action_routes_literature_compare() -> None:
         "idea": "Does remimazolam reduce hypotension risk?",
         "project": "demo",
     }
+
+
+@pytest.mark.asyncio
+async def test_validation_action_lists_supported_actions() -> None:
+    funcs = register_validation_facade_tools(
+        FastMCP("validation-list-test"),
+        concept_tools={},
+        idea_tools={},
+    )
+
+    result = await funcs["validation_action"](action="list")
+
+    assert "concept" in result
+    assert "wikilinks" in result
+    assert "literature" in result

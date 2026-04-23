@@ -24,6 +24,8 @@ from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager impor
 )
 from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
 from med_paper_assistant.infrastructure.services import Drafter
+from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
+from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .._shared import (
     auto_checkpoint_writing,
@@ -221,12 +223,21 @@ def register_editing_tools(
         if not drafts_dir:
             drafts_dir = "drafts"
 
-        if os.path.isabs(filename):
-            filepath = filename
-        else:
-            filepath = os.path.join(drafts_dir, filename)
-            if not filepath.endswith(".md"):
-                filepath += ".md"
+        try:
+            safe_filename = normalize_draft_filename(filename)
+        except ValueError as e:
+            error_msg = f"❌ Invalid draft filename: {e}"
+            log_tool_result("patch_draft", "invalid filename", success=False)
+            return error_msg
+
+        filepath = str(
+            resolve_child_path(
+                drafts_dir,
+                safe_filename,
+                field_name="Draft filename",
+                allowed_suffixes={".md"},
+            )
+        )
 
         if not os.path.exists(filepath):
             error_msg = f"❌ Draft file not found: {filepath}"

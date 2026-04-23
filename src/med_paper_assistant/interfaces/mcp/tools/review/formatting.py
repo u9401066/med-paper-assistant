@@ -15,6 +15,8 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
 from med_paper_assistant.infrastructure.services import Drafter
+from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
+from med_paper_assistant.shared.path_guard import PathGuardError, resolve_child_path
 
 from .._shared import (
     get_drafts_dir,
@@ -116,19 +118,20 @@ def register_formatting_tools(
         filenames = [f.strip() for f in draft_filename.split(",") if f.strip()]
         all_content = ""
         file_contents: dict[str, str] = {}
+        drafts_dir = get_drafts_dir() or drafter.drafts_dir
 
-        for fname in filenames:
+        for raw_fname in filenames:
             try:
-                if not fname.endswith(".md"):
-                    fname += ".md"
-                drafts_dir = get_drafts_dir() or drafter.drafts_dir
-                fpath = os.path.join(drafts_dir, fname) if not os.path.isabs(fname) else fname
+                fname = normalize_draft_filename(raw_fname)
+                fpath = resolve_child_path(drafts_dir, fname, field_name="draft filename")
                 if not os.path.exists(fpath):
                     raise FileNotFoundError(f"Draft file {fname} not found in {drafts_dir}.")
                 with open(fpath, "r", encoding="utf-8") as f:
                     content = f.read()
                 all_content += content + "\n\n"
                 file_contents[fname] = content
+            except (PathGuardError, ValueError) as e:
+                return f"❌ Invalid draft filename: {e}"
             except FileNotFoundError:
                 return f"❌ Draft not found: {fname}. Use `list_drafts` to see available files."
             except Exception as e:

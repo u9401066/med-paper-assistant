@@ -11,6 +11,7 @@ from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
+from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
 
 from .._shared import (
     get_optional_tool_decorator,
@@ -149,12 +150,21 @@ def _normalize_section(section: str, *, allow_all: bool = False) -> str:
 
 
 def _normalize_filename(filename: str) -> str:
-    candidate = filename.strip().replace("\\", "/").split("/")[-1]
-    if not candidate:
-        raise ValueError("filename cannot be empty")
-    if not candidate.endswith(".md"):
-        candidate += ".md"
-    return candidate
+    return normalize_relative_filename(
+        filename,
+        field_name="Library note filename",
+        default_suffix=".md",
+        allowed_suffixes={".md"},
+    )
+
+
+def _resolve_note_path(section_dir: Path, filename: str) -> Path:
+    return resolve_child_path(
+        section_dir,
+        filename,
+        field_name="Library note filename",
+        allowed_suffixes={".md"},
+    )
 
 
 def _default_title_from_filename(filename: str) -> str:
@@ -843,7 +853,7 @@ def register_library_note_tools(
             return error_msg
 
         try:
-            note_path = section_dir / _normalize_filename(filename)
+            note_path = _resolve_note_path(section_dir, _normalize_filename(filename))
         except ValueError as exc:
             return f"❌ {exc}"
 
@@ -905,7 +915,7 @@ def register_library_note_tools(
         except ValueError as exc:
             return f"❌ {exc}"
 
-        note_path = section_dir / normalized_filename
+        note_path = _resolve_note_path(section_dir, normalized_filename)
         note_exists = note_path.exists()
         resolved_title = title.strip() or _default_title_from_filename(normalized_filename)
         resolved_status = status.strip() or _default_status(section_dir.name)
@@ -999,8 +1009,8 @@ def register_library_note_tools(
         except ValueError as exc:
             return f"❌ {exc}"
 
-        source_path = from_dir / normalized_filename
-        target_path = to_dir / normalized_filename
+        source_path = _resolve_note_path(from_dir, normalized_filename)
+        target_path = _resolve_note_path(to_dir, normalized_filename)
         if not source_path.exists():
             result = f"❌ Note not found: {source_path.name} in {from_dir.name}/"
             log_tool_result("move_library_note", result, success=False)
@@ -1411,7 +1421,7 @@ def register_library_note_tools(
         except ValueError as exc:
             return f"❌ {exc}"
 
-        note_path = concepts_dir / normalized_filename
+        note_path = _resolve_note_path(concepts_dir, normalized_filename)
         note_exists = note_path.exists()
         tags = _dedupe_text_values(_split_multivalue(tags_csv))
         source_refs = _normalize_related_note_refs(_split_multivalue(source_notes_csv))

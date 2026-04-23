@@ -24,10 +24,21 @@ from typing import Any
 
 import structlog
 
+from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
+
 logger = structlog.get_logger()
 
 # Default: keep last 20 snapshots per file
 _DEFAULT_MAX_SNAPSHOTS = 20
+
+
+def _normalize_snapshot_draft_filename(filename: str) -> str:
+    return normalize_relative_filename(
+        filename,
+        field_name="Draft filename",
+        default_suffix=".md",
+        allowed_suffixes={".md"},
+    )
 
 
 class DraftSnapshotManager:
@@ -71,12 +82,17 @@ class DraftSnapshotManager:
         Returns:
             Path to the snapshot file, or None if the draft doesn't exist yet.
         """
-        source = self._drafts_dir / filename
+        filename = _normalize_snapshot_draft_filename(filename)
+        source = resolve_child_path(self._drafts_dir, filename, field_name="Draft filename")
         if not source.is_file():
             return None  # Nothing to snapshot — new file
 
         # Create snapshot directory
-        file_snap_dir = self._snapshots_dir / Path(filename).stem
+        file_snap_dir = resolve_child_path(
+            self._snapshots_dir,
+            Path(filename).stem,
+            field_name="Snapshot directory",
+        )
         file_snap_dir.mkdir(parents=True, exist_ok=True)
 
         # Timestamp-based filename (microseconds for uniqueness)
@@ -118,7 +134,12 @@ class DraftSnapshotManager:
         Returns:
             List of dicts: {path, timestamp, reason, size_bytes}
         """
-        file_snap_dir = self._snapshots_dir / Path(filename).stem
+        filename = _normalize_snapshot_draft_filename(filename)
+        file_snap_dir = resolve_child_path(
+            self._snapshots_dir,
+            Path(filename).stem,
+            field_name="Snapshot directory",
+        )
         if not file_snap_dir.is_dir():
             return []
 
@@ -149,7 +170,8 @@ class DraftSnapshotManager:
         if not snap.is_file():
             raise FileNotFoundError(f"Snapshot not found: {snapshot_path}")
 
-        target = self._drafts_dir / filename
+        filename = _normalize_snapshot_draft_filename(filename)
+        target = resolve_child_path(self._drafts_dir, filename, field_name="Draft filename")
 
         # Snapshot the current version before restoring
         if target.is_file():
@@ -168,7 +190,8 @@ class DraftSnapshotManager:
         Returns:
             Dict with added_lines, removed_lines, unchanged_lines counts.
         """
-        current = self._drafts_dir / filename
+        filename = _normalize_snapshot_draft_filename(filename)
+        current = resolve_child_path(self._drafts_dir, filename, field_name="Draft filename")
         snap = Path(snapshot_path)
 
         if not current.is_file() or not snap.is_file():
@@ -190,14 +213,24 @@ class DraftSnapshotManager:
 
     def snapshot_count(self, filename: str) -> int:
         """How many snapshots exist for a file."""
-        file_snap_dir = self._snapshots_dir / Path(filename).stem
+        filename = _normalize_snapshot_draft_filename(filename)
+        file_snap_dir = resolve_child_path(
+            self._snapshots_dir,
+            Path(filename).stem,
+            field_name="Snapshot directory",
+        )
         if not file_snap_dir.is_dir():
             return 0
         return len(list(file_snap_dir.glob("*.meta.json")))
 
     def _cleanup(self, filename: str) -> int:
         """Remove oldest snapshots beyond max_snapshots limit. Returns count removed."""
-        file_snap_dir = self._snapshots_dir / Path(filename).stem
+        filename = _normalize_snapshot_draft_filename(filename)
+        file_snap_dir = resolve_child_path(
+            self._snapshots_dir,
+            Path(filename).stem,
+            field_name="Snapshot directory",
+        )
         if not file_snap_dir.is_dir():
             return 0
 

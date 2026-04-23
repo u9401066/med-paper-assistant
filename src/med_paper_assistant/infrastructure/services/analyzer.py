@@ -1,10 +1,17 @@
 import os
+from pathlib import Path
 from typing import List, Optional
 
 import pandas as pd
 import structlog
 
+from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
+
 logger = structlog.get_logger()
+
+DATA_SUFFIXES = {".csv", ".tsv", ".txt"}
+FIGURE_SUFFIXES = {".png"}
+TABLE_SUFFIXES = {".md"}
 
 
 class Analyzer:
@@ -25,10 +32,16 @@ class Analyzer:
 
     def load_data(self, filename: str) -> pd.DataFrame:
         """Load data from a CSV file."""
-        filepath = os.path.join(self.data_dir, filename)
+        safe_filename = normalize_relative_filename(
+            filename,
+            field_name="Data filename",
+            allowed_suffixes=DATA_SUFFIXES,
+        )
+        filepath = str(resolve_child_path(self.data_dir, safe_filename, field_name="Data filename"))
         if not os.path.exists(filepath):
-            raise FileNotFoundError(f"Data file {filename} not found in {self.data_dir}")
-        return pd.read_csv(filepath)
+            raise FileNotFoundError(f"Data file {safe_filename} not found in {self.data_dir}")
+        sep = "\t" if Path(safe_filename).suffix.lower() == ".tsv" else ","
+        return pd.read_csv(filepath, sep=sep)
 
     def describe_data(self, filename: str) -> str:
         """Return descriptive statistics for the dataset."""
@@ -232,13 +245,24 @@ class Analyzer:
 
         if not output_name:
             output_name = f"{plot_type}_{x_col}_{y_col or 'dist'}.png"
-        if not output_name.endswith(".png"):
-            output_name += ".png"
+        output_name = normalize_relative_filename(
+            output_name,
+            field_name="Plot output filename",
+            default_suffix=".png",
+            allowed_suffixes=FIGURE_SUFFIXES,
+        )
 
         # Ensure directory exists
         os.makedirs(self.figures_dir, exist_ok=True)
 
-        output_path = os.path.join(self.figures_dir, output_name)
+        output_path = str(
+            resolve_child_path(
+                self.figures_dir,
+                output_name,
+                field_name="Plot output filename",
+                allowed_suffixes=FIGURE_SUFFIXES,
+            )
+        )
         plt.savefig(output_path)
         plt.close()
 
@@ -377,9 +401,20 @@ class Analyzer:
 
         # Save to file if output_name specified
         if output_name:
-            if not output_name.endswith(".md"):
-                output_name += ".md"
-            output_path = os.path.join(self.tables_dir, output_name)
+            output_name = normalize_relative_filename(
+                output_name,
+                field_name="Table output filename",
+                default_suffix=".md",
+                allowed_suffixes=TABLE_SUFFIXES,
+            )
+            output_path = str(
+                resolve_child_path(
+                    self.tables_dir,
+                    output_name,
+                    field_name="Table output filename",
+                    allowed_suffixes=TABLE_SUFFIXES,
+                )
+            )
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(table_output)

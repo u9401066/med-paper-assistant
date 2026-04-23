@@ -11,6 +11,9 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
+from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
+from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
+
 from .._shared import (
     ensure_project_context,
     get_optional_tool_decorator,
@@ -104,6 +107,44 @@ def register_pandoc_export_tools(
             f"Export cannot proceed without completing the review loop."
         )
 
+    def _resolve_draft_path(drafts_dir: str, draft_filename: str) -> tuple[str, str]:
+        safe_draft = normalize_draft_filename(draft_filename)
+        return (
+            safe_draft,
+            str(
+                resolve_child_path(
+                    drafts_dir,
+                    safe_draft,
+                    field_name="Draft filename",
+                    allowed_suffixes={".md"},
+                )
+            ),
+        )
+
+    def _resolve_output_path(
+        exports_dir: str,
+        output_filename: str,
+        suffix: str,
+        field_name: str = "Output filename",
+    ) -> tuple[str, str]:
+        safe_output = normalize_relative_filename(
+            output_filename,
+            field_name=field_name,
+            default_suffix=suffix,
+            allowed_suffixes={suffix},
+        )
+        return (
+            safe_output,
+            str(
+                resolve_child_path(
+                    exports_dir,
+                    safe_output,
+                    field_name=field_name,
+                    allowed_suffixes={suffix},
+                )
+            ),
+        )
+
     @tool()
     def export_docx(
         draft_filename: str,
@@ -163,10 +204,10 @@ def register_pandoc_export_tools(
             # Resolve paths
             paths = pm.get_project_paths()
             drafts_dir = paths.get("drafts", "drafts")
-            draft_path = os.path.join(drafts_dir, draft_filename)
+            safe_draft_filename, draft_path = _resolve_draft_path(drafts_dir, draft_filename)
 
             if not os.path.exists(draft_path):
-                return f"❌ Draft file not found: `{draft_filename}`"
+                return f"❌ Draft file not found: `{safe_draft_filename}`"
 
             # ── HARD GATE: C5 Wikilink Resolvable ──
             with open(draft_path, "r", encoding="utf-8") as f:
@@ -190,12 +231,12 @@ def register_pandoc_export_tools(
 
             # Determine output path
             if not output_filename:
-                base = os.path.splitext(draft_filename)[0]
+                base = os.path.splitext(safe_draft_filename)[0]
                 output_filename = f"{base}.docx"
 
             exports_dir = os.path.join(os.path.dirname(drafts_dir), "exports")
             os.makedirs(exports_dir, exist_ok=True)
-            output_path = os.path.join(exports_dir, output_filename)
+            _, output_path = _resolve_output_path(exports_dir, output_filename, ".docx")
 
             # Extract project metadata for title/author injection
             project_info = pm.get_project_info()
@@ -290,10 +331,10 @@ def register_pandoc_export_tools(
 
             paths = pm.get_project_paths()
             drafts_dir = paths.get("drafts", "drafts")
-            draft_path = os.path.join(drafts_dir, draft_filename)
+            safe_draft_filename, draft_path = _resolve_draft_path(drafts_dir, draft_filename)
 
             if not os.path.exists(draft_path):
-                return f"❌ Draft file not found: `{draft_filename}`"
+                return f"❌ Draft file not found: `{safe_draft_filename}`"
 
             # ── HARD GATE: C5 Wikilink Resolvable ──
             with open(draft_path, "r", encoding="utf-8") as f:
@@ -314,12 +355,12 @@ def register_pandoc_export_tools(
                 return review_error
 
             if not output_filename:
-                base = os.path.splitext(draft_filename)[0]
+                base = os.path.splitext(safe_draft_filename)[0]
                 output_filename = f"{base}.pdf"
 
             exports_dir = os.path.join(os.path.dirname(drafts_dir), "exports")
             os.makedirs(exports_dir, exist_ok=True)
-            output_path = os.path.join(exports_dir, output_filename)
+            _, output_path = _resolve_output_path(exports_dir, output_filename, ".pdf")
 
             # Extract project metadata for title/author injection
             project_info = pm.get_project_info()
@@ -394,10 +435,10 @@ def register_pandoc_export_tools(
             # Resolve paths
             paths = pm.get_project_paths()
             drafts_dir = paths.get("drafts", "drafts")
-            draft_path = os.path.join(drafts_dir, draft_filename)
+            safe_draft_filename, draft_path = _resolve_draft_path(drafts_dir, draft_filename)
 
             if not os.path.exists(draft_path):
-                return f"❌ Draft file not found: `{draft_filename}`"
+                return f"❌ Draft file not found: `{safe_draft_filename}`"
 
             with open(draft_path, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -405,7 +446,7 @@ def register_pandoc_export_tools(
             prepared = pipeline.prepare_for_pandoc(content)
 
             output = "📋 **Citation Preview**\n\n"
-            output += f"📄 File: `{draft_filename}`\n"
+            output += f"📄 File: `{safe_draft_filename}`\n"
             output += f"🔄 Citations converted: {prepared['conversion'].citations_converted}\n\n"
 
             if prepared["citation_keys"]:
@@ -475,10 +516,10 @@ def register_pandoc_export_tools(
 
             paths = pm.get_project_paths()
             drafts_dir = paths.get("drafts", "drafts")
-            draft_path = os.path.join(drafts_dir, draft_filename)
+            safe_draft_filename, draft_path = _resolve_draft_path(drafts_dir, draft_filename)
 
             if not os.path.exists(draft_path):
-                return f"❌ Draft file not found: `{draft_filename}`"
+                return f"❌ Draft file not found: `{safe_draft_filename}`"
 
             with open(draft_path, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -488,7 +529,12 @@ def register_pandoc_export_tools(
 
             exports_dir = os.path.join(os.path.dirname(drafts_dir), "exports")
             os.makedirs(exports_dir, exist_ok=True)
-            bib_path = os.path.join(exports_dir, output_filename)
+            _, bib_path = _resolve_output_path(
+                exports_dir,
+                output_filename,
+                ".json",
+                field_name="Bibliography filename",
+            )
 
             entries = pipeline.build_bibliography_json(content, bib_path)
 

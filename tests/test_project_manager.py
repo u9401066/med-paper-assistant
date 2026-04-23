@@ -31,6 +31,18 @@ def pm_with_project(pm):
     return pm
 
 
+def test_project_manager_rejects_unsafe_slug_inputs(pm):
+    pm.create_project(
+        name="Safe Project",
+        description="A test project",
+        paper_type="original-research",
+    )
+
+    assert pm.switch_project("../escape")["success"] is False
+    assert pm.delete_project("../escape", confirm=True)["success"] is False
+    assert pm.get_project_info("../escape")["success"] is False
+
+
 class TestGetProjectInfoContract:
     """Contract tests: ensure get_project_info() returns all keys MCP tools rely on."""
 

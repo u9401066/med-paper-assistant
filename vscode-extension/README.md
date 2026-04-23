@@ -22,7 +22,7 @@ This extension is the packaged end-user surface, not the entire monorepo authori
 
 | Included in the VSIX | Details |
 | -------------------- | ------- |
-| **MCP runtime** | `mdpaper` compact-first surface by default: 21 tools, with optional full 115-tool mode |
+| **MCP runtime** | `mdpaper` compact-first surface by default: 22 tools, with optional full 115-tool mode |
 | **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 1 journal template, and 7 support/reference files |
 | **Workspace UX** | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs |
 | **Not the full repo** | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface |
@@ -182,13 +182,13 @@ Bundled support/reference files: `.github/prompts/_capability-index.md`, `.githu
 
 That means a VSIX-only user can now run `MedPaper: Setup Workspace` and receive the Foam dependency reference, the LLM wiki reference/how-to docs, and the workflow figure directly under `docs/` in their workspace.
 
-### MCP Tools (115 full / 21 compact default)
+### MCP Tools (115 full / 22 compact default)
 
-The 115/21 tool counts plus the 3 MCP prompts and 3 MCP resources are runtime-validated through `tool-surface-authority.json` during validate/release gates.
+The 115/22 tool counts plus the 3 MCP prompts and 3 MCP resources are runtime-validated through `tool-surface-authority.json` during validate/release gates.
 
 自動註冊 MCP Server：
 
-- **MedPaper Assistant** - 預設 compact 21 工具（可切換 full 115），另含 3 個 MCP prompts 與 3 個 MCP resources
+- **MedPaper Assistant** - 預設 compact 22 工具（可切換 full 115），另含 3 個 MCP prompts 與 3 個 MCP resources
 - **CGU Creativity** - 創意發想工具
 - **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊

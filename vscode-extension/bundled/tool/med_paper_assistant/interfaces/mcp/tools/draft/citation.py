@@ -10,6 +10,8 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services.citation_assistant import CitationAssistant
+from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
+from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .._shared import (
     ensure_project_context,
@@ -186,13 +188,28 @@ def register_citation_tools(
         pm = get_project_manager()
         current_info = pm.get_project_info()
 
-        draft_path = filename
-        if not os.path.isabs(filename):
-            # Try project drafts directory
+        try:
+            safe_filename = normalize_draft_filename(filename)
             if current_info and current_info.get("project_path"):
-                draft_path = os.path.join(str(current_info["project_path"]), "drafts", filename)
+                draft_path = str(
+                    resolve_child_path(
+                        os.path.join(str(current_info["project_path"]), "drafts"),
+                        safe_filename,
+                        field_name="Draft filename",
+                        allowed_suffixes={".md"},
+                    )
+                )
             else:
-                draft_path = os.path.join("drafts", filename)
+                draft_path = str(
+                    resolve_child_path(
+                        "drafts",
+                        safe_filename,
+                        field_name="Draft filename",
+                        allowed_suffixes={".md"},
+                    )
+                )
+        except ValueError as e:
+            return f"❌ Invalid draft filename: {e}"
 
         if not os.path.exists(draft_path):
             return f"❌ Draft file not found: {draft_path}"

@@ -13,6 +13,7 @@ from med_paper_assistant.domain.services.wikilink_validator import (
     validate_wikilinks_in_file,
 )
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
+from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
 
 from .._shared import (
     get_optional_tool_decorator,
@@ -90,21 +91,47 @@ def register_concept_validation_tools(
             )
             return error_msg
 
+        try:
+            safe_filename = normalize_relative_filename(
+                filename,
+                field_name="Concept filename",
+                default_suffix=".md",
+                allowed_suffixes={".md"},
+            )
+        except ValueError as e:
+            return f"❌ Invalid concept filename: {e}"
+
         # Resolve path
-        if not os.path.isabs(filename):
+        filename = safe_filename
+        if True:
             from med_paper_assistant.infrastructure.persistence import get_project_manager
 
             pm = get_project_manager()
             current_info = pm.get_project_info()  # Returns dict with project details
 
             if current_info.get("project_path"):
-                project_concept = os.path.join(current_info["project_path"], "concept.md")
-                if os.path.exists(project_concept) and filename in ["concept.md", project_concept]:
+                project_path = current_info["project_path"]
+                project_concept = os.path.join(project_path, "concept.md")
+                if os.path.exists(project_concept) and filename == "concept.md":
                     filename = project_concept
                 else:
-                    filename = os.path.join("drafts", filename)
+                    filename = str(
+                        resolve_child_path(
+                            os.path.join(project_path, "drafts"),
+                            filename,
+                            field_name="Concept filename",
+                            allowed_suffixes={".md"},
+                        )
+                    )
             else:
-                filename = os.path.join("drafts", filename)
+                filename = str(
+                    resolve_child_path(
+                        "drafts",
+                        filename,
+                        field_name="Concept filename",
+                        allowed_suffixes={".md"},
+                    )
+                )
 
         if not os.path.exists(filename):
             error_result = (
@@ -225,8 +252,19 @@ def register_concept_validation_tools(
                 )
                 return error_msg
 
+        try:
+            safe_filename = normalize_relative_filename(
+                filename,
+                field_name="Markdown filename",
+                default_suffix=".md",
+                allowed_suffixes={".md"},
+            )
+        except ValueError as e:
+            return f"❌ Invalid markdown filename: {e}"
+
         # Resolve path
-        if not os.path.isabs(filename):
+        filename = safe_filename
+        if True:
             from med_paper_assistant.infrastructure.persistence import get_project_manager
 
             pm = get_project_manager()
@@ -235,12 +273,26 @@ def register_concept_validation_tools(
             if current_info and current_info.get("project_path"):
                 project_path = str(current_info["project_path"])
                 # Try project root first
-                project_file = os.path.join(project_path, filename)
+                project_file = str(
+                    resolve_child_path(
+                        project_path,
+                        filename,
+                        field_name="Markdown filename",
+                        allowed_suffixes={".md"},
+                    )
+                )
                 if os.path.exists(project_file):
                     filename = project_file
                 else:
                     # Try drafts folder
-                    drafts_file = os.path.join(project_path, "drafts", filename)
+                    drafts_file = str(
+                        resolve_child_path(
+                            os.path.join(project_path, "drafts"),
+                            filename,
+                            field_name="Markdown filename",
+                            allowed_suffixes={".md"},
+                        )
+                    )
                     if os.path.exists(drafts_file):
                         filename = drafts_file
 

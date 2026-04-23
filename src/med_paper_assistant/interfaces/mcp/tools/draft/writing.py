@@ -18,7 +18,12 @@ from med_paper_assistant.infrastructure.persistence.writing_hooks._constants imp
     DEFAULT_MINIMUM_REFERENCES,
 )
 from med_paper_assistant.infrastructure.services import Drafter
+from med_paper_assistant.infrastructure.services.drafter import (
+    draft_filename_from_section,
+    normalize_draft_filename,
+)
 from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
+from med_paper_assistant.shared.path_guard import resolve_child_path
 from med_paper_assistant.infrastructure.services.prompts import SECTION_PROMPTS
 
 from .._shared import (
@@ -586,7 +591,11 @@ def register_writing_tools(
 
     @tool()
     def write_draft(
-        filename: str, content: str, project: Optional[str] = None, skip_validation: bool = False
+        filename: str = "",
+        content: str = "",
+        project: Optional[str] = None,
+        skip_validation: bool = False,
+        section: Optional[str] = None,
     ) -> str:
         """
         Create/update a draft file with auto citation formatting.
@@ -597,7 +606,9 @@ def register_writing_tools(
             content: Text content with citation placeholders
             project: Project slug (uses current if omitted)
             skip_validation: Internal use only
+            section: Optional section label used to derive filename when omitted
         """
+        content = content or ""
         log_tool_call(
             "write_draft",
             {
@@ -605,8 +616,27 @@ def register_writing_tools(
                 "content_len": len(content),
                 "project": project,
                 "skip_validation": skip_validation,
+                "section": section,
             },
         )
+
+        raw_filename = filename.strip() or draft_filename_from_section(section)
+        if not raw_filename:
+            error_msg = "❌ write_draft requires either `filename` or `section`."
+            log_tool_result("write_draft", "missing filename", success=False)
+            return error_msg
+
+        if not content.strip():
+            error_msg = "❌ write_draft requires non-empty `content`."
+            log_tool_result("write_draft", "empty content", success=False)
+            return error_msg
+
+        try:
+            filename = normalize_draft_filename(raw_filename)
+        except ValueError as e:
+            error_msg = f"❌ Invalid draft filename: {e}"
+            log_tool_result("write_draft", "invalid filename", success=False)
+            return error_msg
 
         is_valid, error_msg = validate_project_for_tool(project)
         if not is_valid:
@@ -805,9 +835,23 @@ def register_writing_tools(
             )
             return workflow_error
 
-        if not os.path.isabs(filename):
+        try:
+            safe_filename = normalize_draft_filename(filename)
+        except ValueError as e:
+            result = f"❌ Invalid draft filename: {e}"
+            log_tool_result("read_draft", result, success=False)
+            return result
+
+        if True:
             drafts_dir = get_drafts_dir() or "drafts"
-            filename = os.path.join(drafts_dir, filename)
+            filename = str(
+                resolve_child_path(
+                    drafts_dir,
+                    safe_filename,
+                    field_name="Draft filename",
+                    allowed_suffixes={".md"},
+                )
+            )
 
         if not os.path.exists(filename):
             result = f"Error: Draft file not found: {filename}"
@@ -901,9 +945,23 @@ def register_writing_tools(
             return workflow_error
 
         # Resolve the full path
-        if not os.path.isabs(filename):
+        try:
+            safe_filename = normalize_draft_filename(filename)
+        except ValueError as e:
+            error_msg = f"❌ Invalid draft filename: {e}"
+            log_tool_result("delete_draft", error_msg, success=False)
+            return error_msg
+
+        if True:
             drafts_dir = get_drafts_dir() or "drafts"
-            filename = os.path.join(drafts_dir, filename)
+            filename = str(
+                resolve_child_path(
+                    drafts_dir,
+                    safe_filename,
+                    field_name="Draft filename",
+                    allowed_suffixes={".md"},
+                )
+            )
 
         if not os.path.exists(filename):
             error_msg = f"❌ Draft file not found: {filename}"

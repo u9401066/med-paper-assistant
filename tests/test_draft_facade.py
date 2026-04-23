@@ -39,6 +39,140 @@ def test_draft_facade_routes_write_action() -> None:
     }
 
 
+def test_draft_facade_write_derives_filename_from_section() -> None:
+    captured: dict[str, str] = {}
+
+    def write_draft(**kwargs):
+        captured.update(kwargs)
+        return "write-ok"
+
+    funcs = register_draft_facade_tools(
+        FastMCP("draft-facade-section-test"),
+        writing_tools={"write_draft": write_draft},
+        template_tools={},
+        editing_tools={},
+        citation_tools={},
+    )
+
+    result = asyncio.run(
+        funcs["draft_action"](
+            action="write",
+            section="Methods",
+            content="Methods text",
+            project="demo",
+        )
+    )
+
+    assert result == "write-ok"
+    assert captured == {
+        "filename": "methods.md",
+        "content": "Methods text",
+        "project": "demo",
+    }
+
+
+def test_draft_facade_write_uses_notes_when_content_empty() -> None:
+    captured: dict[str, str] = {}
+
+    def write_draft(**kwargs):
+        captured.update(kwargs)
+        return "write-ok"
+
+    funcs = register_draft_facade_tools(
+        FastMCP("draft-facade-notes-test"),
+        writing_tools={"write_draft": write_draft},
+        template_tools={},
+        editing_tools={},
+        citation_tools={},
+    )
+
+    result = asyncio.run(
+        funcs["draft_action"](
+            action="write",
+            section="Results",
+            notes="Results text",
+            project="demo",
+        )
+    )
+
+    assert result == "write-ok"
+    assert captured == {
+        "filename": "results.md",
+        "content": "Results text",
+        "project": "demo",
+    }
+
+
+def test_draft_facade_write_rejects_missing_filename_and_section() -> None:
+    called = False
+
+    def write_draft(**kwargs):
+        nonlocal called
+        called = True
+        return "write-ok"
+
+    funcs = register_draft_facade_tools(
+        FastMCP("draft-facade-missing-filename-test"),
+        writing_tools={"write_draft": write_draft},
+        template_tools={},
+        editing_tools={},
+        citation_tools={},
+    )
+
+    result = asyncio.run(funcs["draft_action"](action="write", content="content"))
+
+    assert "filename" in result
+    assert called is False
+
+
+def test_draft_facade_write_rejects_empty_content() -> None:
+    called = False
+
+    def write_draft(**kwargs):
+        nonlocal called
+        called = True
+        return "write-ok"
+
+    funcs = register_draft_facade_tools(
+        FastMCP("draft-facade-empty-content-test"),
+        writing_tools={"write_draft": write_draft},
+        template_tools={},
+        editing_tools={},
+        citation_tools={},
+    )
+
+    result = asyncio.run(funcs["draft_action"](action="write", section="Methods"))
+
+    assert "content" in result
+    assert called is False
+
+
+def test_draft_facade_count_words_derives_filename_from_section() -> None:
+    captured: dict[str, str] = {}
+
+    def count_words(**kwargs):
+        captured.update(kwargs)
+        return "count-ok"
+
+    funcs = register_draft_facade_tools(
+        FastMCP("draft-facade-count-section-test"),
+        writing_tools={},
+        template_tools={"count_words": count_words},
+        editing_tools={},
+        citation_tools={},
+    )
+
+    result = asyncio.run(
+        funcs["draft_action"](action="count_words", section="Methods", project="demo")
+    )
+
+    assert result == "count-ok"
+    assert captured == {
+        "filename": "methods.md",
+        "project": "demo",
+    }
+
+
 def test_draft_facade_routes_patch_alias_to_editing_tools() -> None:
     captured: dict[str, str] = {}
 
