@@ -260,9 +260,10 @@ def register_pipeline_tools(
         - 8: Reference Sync (references section)
         - 9: Export (docx/pdf)
         - 10: Retrospective (D1-D8 analysis)
+        - 11: Commit & Push (git commit and push)
 
         Args:
-            phase: Phase number to validate (0-10, use 65 for Phase 6.5)
+            phase: Phase number to validate (0-11, use 65 for Phase 6.5)
             project: Project slug (optional, uses current project)
 
         Returns:
@@ -398,7 +399,7 @@ def register_pipeline_tools(
 
             # Auto-sync pipeline state from heartbeat (anti-compaction)
             failing = [p for p in status["phases"] if not p["passed"]]
-            current_phase = failing[0]["phase"] if failing else 10
+            current_phase = failing[0]["phase"] if failing else 11
             _sync_to_workspace_state(
                 slug=slug,
                 phase=current_phase,
@@ -407,7 +408,7 @@ def register_pipeline_tools(
                 next_action=(
                     f"Complete Phase {current_phase} ({_PHASE_NAMES.get(current_phase, '')})"
                     if failing
-                    else "Pipeline complete! Run validate_phase_gate(10) for final check."
+                    else "Pipeline complete! Run validate_phase_gate(11) for final check."
                 ),
             )
 

@@ -118,14 +118,33 @@ def create_server() -> FastMCP:
         tool_surface=tool_surface,
     )
 
+    logger.info("Registering analysis tools...")
+    analysis_tools = register_analysis_tools(
+        mcp,
+        analyzer,
+        drafter,
+        tool_surface=tool_surface,
+    )
+
     logger.info("Registering draft tools...")
-    register_draft_tools(mcp, drafter, tool_surface=tool_surface)
+    draft_figure_tools = {
+        name: handler
+        for name, handler in {
+            "insert_figure": analysis_tools.get("insert_figure"),
+            "insert_table": analysis_tools.get("insert_table"),
+            "list_assets": analysis_tools.get("list_assets"),
+        }.items()
+        if handler is not None
+    }
+    register_draft_tools(
+        mcp,
+        drafter,
+        figure_tools=draft_figure_tools,
+        tool_surface=tool_surface,
+    )
 
     logger.info("Registering validation tools...")
     register_validation_tools(mcp, ref_manager, tool_surface=tool_surface)
-
-    logger.info("Registering analysis tools...")
-    register_analysis_tools(mcp, analyzer, drafter, tool_surface=tool_surface)
 
     logger.info("Registering review tools (incl. pipeline gates)...")
     register_review_tools(

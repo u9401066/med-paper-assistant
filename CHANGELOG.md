@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-04-23
+
+### Added
+
+- Restored figure/table asset workflow entrypoints and alias handling so `analysis_action` routes for `insert_figure`/`insert_table`/`list_assets`/`review_asset` are available.
+
+### Fixed
+
+- Fixed `draft_action(action=\"write\", section=...)` routing so section names map to canonical filenames (例如 `methods` → `drafts/methods.md`) instead of writing to `drafts/.md`.
+- Tightened repository-wide filename/path guards for cross-platform safety (Linux/macOS/Windows), including reserved names, traversal, drive/UNC absolute paths, and special-character sanitization.
+- Improved data-artifacts pipeline handling so manifest discovery and artifact counting align across canonical and legacy custom manifest shapes.
+- Improved tool-surface consistency across documented/runtime `analysis_action`, `draft_action`, and `pipeline_action` flows for all 11 phases.
+
 ## [0.7.3] - 2026-04-23
 
 ### Added

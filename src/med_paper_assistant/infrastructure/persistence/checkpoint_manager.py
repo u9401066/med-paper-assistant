@@ -105,7 +105,7 @@ class CheckpointManager:
         Save checkpoint after completing a pipeline phase.
 
         Args:
-            phase: Phase number (0-10)
+            phase: Phase number (0-11, use 65 for Phase 6.5)
             phase_name: Phase name (e.g., "LITERATURE_SEARCH")
             outputs: Key outputs from this phase
             flagged_issues: Issues flagged for later phases

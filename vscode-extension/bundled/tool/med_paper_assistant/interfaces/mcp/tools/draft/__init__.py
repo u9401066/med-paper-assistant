@@ -12,6 +12,8 @@ Migrated to Skills:
 - get_section_template → .claude/skills/draft-writing/SKILL.md
 """
 
+from collections.abc import Callable, Mapping
+from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import Drafter
@@ -28,6 +30,7 @@ from .writing import register_writing_tools
 def register_draft_tools(
     mcp: FastMCP,
     drafter: Drafter,
+    figure_tools: Mapping[str, Callable[..., Any]] | None = None,
     *,
     tool_surface: ToolSurface = "full",
 ):
@@ -63,6 +66,7 @@ def register_draft_tools(
         template_tools=template_tools,
         editing_tools=editing_tools,
         citation_tools=citation_tools,
+        figure_tools=figure_tools,
     )
 
     return {

@@ -23,6 +23,7 @@ def register_draft_facade_tools(
     template_tools: ToolMap,
     editing_tools: ToolMap,
     citation_tools: ToolMap,
+    figure_tools: ToolMap,
 ):
     """Register stable public verbs for manuscript drafting workflows."""
 
@@ -30,12 +31,19 @@ def register_draft_facade_tools(
     template_tools = template_tools or {}
     editing_tools = editing_tools or {}
     citation_tools = citation_tools or {}
+    figure_tools = figure_tools or {}
 
     @mcp.tool()
     async def draft_action(
         action: str,
         filename: str = "",
+        caption: str = "",
+        figure_number: int = 0,
+        table_number: int = 0,
+        draft_filename: str = "",
+        after_section: str = "",
         content: str = "",
+        table_content: str = "",
         topic: str = "",
         notes: str = "",
         target_text: str = "",
@@ -66,6 +74,9 @@ def register_draft_facade_tools(
         - patch
         - suggest_citations
         - scan_citations
+        - insert_figure
+        - insert_table
+        - list_assets
         """
         aliases = {
             "order": "check_order",
@@ -88,6 +99,13 @@ def register_draft_facade_tools(
             "suggest": "suggest_citations",
             "scan_draft_citations": "scan_citations",
             "scan": "scan_citations",
+            "review_asset_for_insertion": "review_asset",
+            "review_asset": "review_asset",
+            "review": "review_asset",
+            "figure": "insert_figure",
+            "table": "insert_table",
+            "assets": "list_assets",
+            "asset": "list_assets",
         }
         normalized = normalize_facade_action(action, aliases)
 
@@ -196,20 +214,49 @@ def register_draft_facade_tools(
                 {"filename": filename, "project": project},
             ),
         }
+        if figure_tools:
+            action_specs.update(
+                {
+                    "insert_figure": (
+                        figure_tools,
+                        "insert_figure",
+                        {
+                            "filename": filename,
+                            "caption": caption,
+                            "figure_number": figure_number or None,
+                            "draft_filename": draft_filename or None,
+                            "after_section": after_section or None,
+                            "project": project,
+                        },
+                    ),
+                    "insert_table": (
+                        figure_tools,
+                        "insert_table",
+                        {
+                            "filename": filename,
+                            "caption": caption,
+                            "table_number": table_number or None,
+                            "table_content": table_content or None,
+                            "draft_filename": draft_filename or None,
+                            "after_section": after_section or None,
+                            "project": project,
+                        },
+                    ),
+                    "list_assets": (
+                        figure_tools,
+                        "list_assets",
+                        {"project": project},
+                    ),
+                }
+            )
 
         if normalized not in action_specs:
             supported = ", ".join(sorted(action_specs))
-            if normalized in {
-                "insert_figure",
-                "insert_table",
-                "list_assets",
-                "review_asset",
-                "review_asset_for_insertion",
-            }:
+            if normalized in {"review_asset", "review_asset_for_insertion"}:
                 return (
                     f"❌ Unsupported draft action '{action}'. "
-                    "Use `analysis_action(action=\"insert_figure\"|\"insert_table\"|"
-                    "\"list_assets\"|\"review_asset\")` for figure/table assets."
+                    "Use `analysis_action(action=\"review_asset\")` for "
+                    "figure/table asset review."
                 )
             return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
 

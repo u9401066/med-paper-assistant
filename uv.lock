@@ -145,18 +145,6 @@ wheels = [
 ]
 
 [[package]]
-name = "apscheduler"
-version = "3.11.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "tzlocal" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/07/12/3e4389e5920b4c1763390c6d371162f3784f86f85cd6d6c1bfe68eef14e2/apscheduler-3.11.2.tar.gz", hash = "sha256:2a9966b052ec805f020c8c4c3ae6e6a06e24b1bf19f2e11d91d8cca0473eef41", size = 108683, upload-time = "2025-12-22T00:39:34.884Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/64/2e54428beba8d9992aa478bb8f6de9e4ecaa5f8f513bcfd567ed7fb0262d/apscheduler-3.11.2-py3-none-any.whl", hash = "sha256:ce005177f741409db4e4dd40a7431b76feb856b9dd69d57e0da49d6715bfd26d", size = 64439, upload-time = "2025-12-22T00:39:33.303Z" },
-]
-
-[[package]]
 name = "attrs"
 version = "25.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1702,7 +1690,7 @@ wheels = [
 
 [[package]]
 name = "med-paper-assistant"
-version = "0.7.3"
+version = "0.7.4"
 source = { editable = "." }
 dependencies = [
     { name = "citeproc-py" },
@@ -2445,10 +2433,9 @@ wheels = [
 
 [[package]]
 name = "pubmed-search-mcp"
-version = "0.5.4"
+version = "0.4.4"
 source = { editable = "integrations/pubmed-search-mcp" }
 dependencies = [
-    { name = "apscheduler" },
     { name = "biopython" },
     { name = "cachetools" },
     { name = "defusedxml" },
@@ -2456,35 +2443,28 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "mcp" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
     { name = "pylatexenc" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
     { name = "pyyaml" },
     { name = "requests" },
-    { name = "toons" },
+    { name = "tenacity" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "apscheduler", specifier = ">=3.10.4,<4" },
     { name = "biopython", specifier = ">=1.81" },
     { name = "cachetools", specifier = ">=5.0.0" },
     { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "dependency-injector", specifier = ">=4.48.3" },
     { name = "fastapi", specifier = ">=0.128.0" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "mcp", specifier = ">=1.27,<2" },
-    { name = "playwright", marker = "extra == 'browser-broker'", specifier = ">=1.52.0" },
-    { name = "pydantic", specifier = ">=2.12,<3" },
-    { name = "pydantic-settings", specifier = ">=2.10,<3" },
+    { name = "mcp", specifier = ">=1.0.0" },
     { name = "pylatexenc", specifier = ">=2.10" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=311" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "requests", specifier = ">=2.28.0" },
-    { name = "toons", specifier = ">=0.5.4" },
+    { name = "tenacity", specifier = ">=8.0.0" },
 ]
-provides-extras = ["browser-broker"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -2501,6 +2481,7 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "ruff", specifier = ">=0.14,<0.15" },
     { name = "safety", specifier = ">=3.2.10" },
+    { name = "semgrep", specifier = ">=1.151.0" },
     { name = "types-cachetools", specifier = ">=6.2.0" },
     { name = "types-pyyaml", specifier = ">=6.0" },
     { name = "types-requests", specifier = ">=2.32.4.20260107" },
@@ -3213,28 +3194,6 @@ wheels = [
 ]
 
 [[package]]
-name = "toons"
-version = "0.5.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f2/40/46540b2026506c3bba143f3778123159a828c7a3c4ec0697b740f3fbe539/toons-0.5.4.tar.gz", hash = "sha256:eae5974e9a73104d3ad01473124585f728bcf9200ad343899da7495381e010d8", size = 61049, upload-time = "2026-04-01T20:13:51.73Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/38/5dcea3bf3b83b39d088a8ea41949cc29c0c398d375300fd37fa1530361a2/toons-0.5.4-cp37-abi3-macosx_10_12_x86_64.whl", hash = "sha256:4b18d7dcaab74e7f38ab9d1e927f1d69b0855d9eecc4155c810ebf4fbe312cd3", size = 309099, upload-time = "2026-04-01T20:13:44.759Z" },
-    { url = "https://files.pythonhosted.org/packages/9d/20/5e6c1d362b0a1a91d779996862093e06f874ba26d97c1225db442fbcc56a/toons-0.5.4-cp37-abi3-macosx_11_0_arm64.whl", hash = "sha256:7c290a5d741c86097c0877f2dcf1b989550d3719487d738f49c6fd76da065a5b", size = 302025, upload-time = "2026-04-01T20:13:43.472Z" },
-    { url = "https://files.pythonhosted.org/packages/3f/45/4d52ee63c5ef2c5191f45529f0100ddfa0760b997dc90501c2eaa581e47d/toons-0.5.4-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0e6e1cd0d874a31059011742a91805e35d4595d09f6998b5fe7d73cefc49aba8", size = 335224, upload-time = "2026-04-01T20:09:51.39Z" },
-    { url = "https://files.pythonhosted.org/packages/80/bc/53f6b575f691d91f318bbae69c5d756f94d97a6ea86e7fd6d2f78dbef35b/toons-0.5.4-cp37-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:8b0e915fad2e2daac2d97369d67e4d48904d5ea5cd96f6804911868c7c0895ac", size = 343673, upload-time = "2026-04-01T20:13:35.011Z" },
-    { url = "https://files.pythonhosted.org/packages/1c/cc/c7211e7b11f651769806616d8332a812e2d6d78c518c2e2f324aeec22751/toons-0.5.4-cp37-abi3-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:070334a8f6e8feaf7dee1450fcb284d75f2a8248ee089e921f4ee83fb383cef3", size = 451908, upload-time = "2026-04-01T20:13:36.375Z" },
-    { url = "https://files.pythonhosted.org/packages/89/c1/f50cd0444903dae590823098ba8dbf3bb3aae5e4fee9ea9cfee218c195b8/toons-0.5.4-cp37-abi3-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:ae6ab9bce7c962f771a0c8c7acade6a05b20335ecbbe16b5af4a89b4ece791a6", size = 371859, upload-time = "2026-04-01T20:13:37.474Z" },
-    { url = "https://files.pythonhosted.org/packages/ed/a2/1068e1441f159ffdfbea899ba899701a201b0af305f68402527448d9d975/toons-0.5.4-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:72d83abe984f6c30913d828e3e7d1ca1bd01c17cbaaf15cfefc4cab044467057", size = 346615, upload-time = "2026-04-01T20:13:41.052Z" },
-    { url = "https://files.pythonhosted.org/packages/75/bf/373d13f5f829f4e12816a2e04920ac92402954dcae84154fd94c1fded767/toons-0.5.4-cp37-abi3-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:fc0bf02c315c31b9ee2bca00ee1305ba7f429652c901d98c00368e3cbdab7b1a", size = 364580, upload-time = "2026-04-01T20:13:38.894Z" },
-    { url = "https://files.pythonhosted.org/packages/ff/d9/cb9a6325184b3a162e75ab5121c35a7bc80aed930fdbace4214c511b98dc/toons-0.5.4-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:732b28d04ad937dc4553d72eae5e997193a3533a6115306f20a3a192b38d155f", size = 510589, upload-time = "2026-04-01T20:13:46.392Z" },
-    { url = "https://files.pythonhosted.org/packages/80/cc/0fabcb340af0157ee0f3c4f5c3972f2097fccb5058d4d3fadeb632eee9dd/toons-0.5.4-cp37-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:eafd7c55d18dfc8df000e67ce0b033d2c65928b824de4897aab567f18f9323fc", size = 618711, upload-time = "2026-04-01T20:13:47.793Z" },
-    { url = "https://files.pythonhosted.org/packages/33/cd/85c0b497ca1c690d23c3ab7b69fc04772e05da36f3f944aa34e35b74f98e/toons-0.5.4-cp37-abi3-musllinux_1_2_i686.whl", hash = "sha256:a4a04f42bb8496c29dc5024321663667bddd7787bc80e17fd46dd166127d1c6c", size = 581162, upload-time = "2026-04-01T20:13:48.86Z" },
-    { url = "https://files.pythonhosted.org/packages/f0/bc/274be23c14ce69f51703861a2c3733257fa662199906211a04b26ff79c95/toons-0.5.4-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:e70c5118971de438c83d366b169dc69162013eaa606666e376d4526bf35b046d", size = 549684, upload-time = "2026-04-01T20:13:50.333Z" },
-    { url = "https://files.pythonhosted.org/packages/01/bc/efd4c0d7162cd84b7d2f4c58abe50df63458a06df909b89bf78adc0a3000/toons-0.5.4-cp37-abi3-win32.whl", hash = "sha256:7eb2af0d0e47e569fd78b330374867d9627c994690e88f96072e947fffe915dd", size = 189443, upload-time = "2026-04-01T20:13:53.453Z" },
-    { url = "https://files.pythonhosted.org/packages/55/a7/89cb53a6b8586f83bef9588333d78214e7435d589e0d08f0befe033c3c9c/toons-0.5.4-cp37-abi3-win_amd64.whl", hash = "sha256:5074c29a6ae1821759cdbbf175c13ce91fbbb476dca70f333cf27cd5f86d570e", size = 196106, upload-time = "2026-04-01T20:13:52.477Z" },
-]
-
-[[package]]
 name = "tqdm"
 version = "4.67.3"
 source = { registry = "https://pypi.org/simple" }
@@ -3332,18 +3291,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5e/a7/c202b344c5ca7daf398f3b8a477eeb205cf3b6f32e7ec3a6bac0629ca975/tzdata-2025.3.tar.gz", hash = "sha256:de39c2ca5dc7b0344f2eba86f49d614019d29f060fc4ebc8a417896a620b56a7", size = 196772, upload-time = "2025-12-13T17:45:35.667Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/b0/003792df09decd6849a5e39c28b513c06e84436a54440380862b5aeff25d/tzdata-2025.3-py2.py3-none-any.whl", hash = "sha256:06a47e5700f3081aab02b2e513160914ff0694bce9947d6b76ebd6bf57cfc5d1", size = 348521, upload-time = "2025-12-13T17:45:33.889Z" },
-]
-
-[[package]]
-name = "tzlocal"
-version = "5.3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8b/2e/c14812d3d4d9cd1773c6be938f89e5735a1f11a9f184ac3639b93cef35d5/tzlocal-5.3.1.tar.gz", hash = "sha256:cceffc7edecefea1f595541dbd6e990cb1ea3d19bf01b2809f362a03dd7921fd", size = 30761, upload-time = "2025-03-05T21:17:41.549Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/14/e2a54fabd4f08cd7af1c07030603c3356b74da07f7cc056e600436edfa17/tzlocal-5.3.1-py3-none-any.whl", hash = "sha256:eb1a66c3ef5847adf7a834f1be0800581b683b5608e74f86ecbcef8ab91bb85d", size = 18026, upload-time = "2025-03-05T21:17:39.857Z" },
 ]
 
 [[package]]

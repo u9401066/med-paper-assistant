@@ -326,7 +326,7 @@ class PipelineGateValidator:
         For phases > 1, also validates prerequisite structure.
 
         Args:
-            phase: Phase number (0-10, 65 for Phase 6.5)
+            phase: Phase number (0-11, 65 for Phase 6.5)
 
         Returns:
             GateResult with pass/fail and specific missing items
@@ -1177,18 +1177,9 @@ class PipelineGateValidator:
             )
 
             if has_fig_refs or has_tbl_refs or has_stat_claims:
-                da_yaml = self._audit_dir / "data-artifacts.yaml"
-                da_has_data = False
-                artifact_count = 0
-
-                if da_yaml.is_file():
-                    try:
-                        data = yaml.safe_load(da_yaml.read_text(encoding="utf-8")) or {}
-                        artifacts = data.get("artifacts", [])
-                        artifact_count = len(artifacts)
-                        da_has_data = artifact_count > 0
-                    except (yaml.YAMLError, OSError):
-                        pass
+                artifacts = tracker.get_artifacts()
+                artifact_count = len(artifacts)
+                da_has_data = artifact_count > 0
 
                 checks.append(
                     GateCheck(
@@ -1197,8 +1188,8 @@ class PipelineGateValidator:
                         passed=da_has_data,
                         details=(
                             f"{artifact_count} artifacts tracked"
-                            if da_yaml.is_file()
-                            else "MISSING data-artifacts.yaml — analysis tools must be used with provenance tracking"
+                            if da_has_data
+                            else "MISSING data artifact tracking records — analysis tools must be used with provenance tracking"
                         ),
                     )
                 )
@@ -1443,27 +1434,22 @@ class PipelineGateValidator:
         )
 
         # 4. Data artifact validation report (if artifacts exist)
-        da_yaml = self._audit_dir / "data-artifacts.yaml"
-        if da_yaml.is_file():
-            try:
-                data = yaml.safe_load(da_yaml.read_text(encoding="utf-8")) or {}
-                artifacts = data.get("artifacts", [])
-                if artifacts:
-                    da_report = self._audit_dir / "data-artifacts.md"
-                    checks.append(
-                        GateCheck(
-                            name="data-artifacts:report",
-                            description="Data artifact validation report (validate_data_artifacts required)",
-                            passed=da_report.is_file(),
-                            details=(
-                                "exists"
-                                if da_report.is_file()
-                                else f"MISSING — {len(artifacts)} artifacts tracked but validate_data_artifacts() not called"
-                            ),
-                        )
-                    )
-            except (yaml.YAMLError, OSError):
-                pass
+        tracker = DataArtifactTracker(self._audit_dir, self._project_dir)
+        artifacts = tracker.get_artifacts()
+        if artifacts:
+            da_report = self._audit_dir / "data-artifacts.md"
+            checks.append(
+                GateCheck(
+                    name="data-artifacts:report",
+                    description="Data artifact validation report (validate_data_artifacts required)",
+                    passed=da_report.is_file(),
+                    details=(
+                        "exists"
+                        if da_report.is_file()
+                        else f"MISSING — {len(artifacts)} artifacts tracked but validate_data_artifacts() not called"
+                    ),
+                )
+            )
 
         return GateResult(phase=6, phase_name="Audit", checks=checks, passed=False)
 

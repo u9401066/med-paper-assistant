@@ -251,6 +251,24 @@ def register_review_facade_tools(
             "reset": "reset_review_loop",
         }
         normalized = normalize_facade_action(action, aliases)
+        if normalized in {
+            "insert_figure",
+            "insert_table",
+            "list_assets",
+            "review_asset",
+            "review_asset_for_insertion",
+        }:
+            return (
+                f"❌ Unsupported pipeline action '{action}'. "
+                "Use asset tools for figures/tables:\n"
+                "• `draft_action(action=\"insert_figure\", filename=..., caption=..., ... )`\n"
+                "• `analysis_action(action=\"insert_figure\", filename=..., caption=..., ... )`\n"
+                "• `draft_action(action=\"insert_table\", filename=..., caption=..., table_content=..., ... )`\n"
+                "• `analysis_action(action=\"insert_table\", filename=..., caption=..., ... )`\n"
+                "• `draft_action(action=\"list_assets\")`\n"
+                "• `analysis_action(action=\"list_assets\")`\n"
+                "For asset review use `analysis_action(action=\"review_asset_for_insertion\" or \"review_asset\")`."
+            )
         action_specs: dict[str, tuple[str, dict[str, Any]]] = {
             "validate_phase": (
                 "validate_phase_gate",

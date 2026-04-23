@@ -39,7 +39,7 @@
 
 Auto-Paper 是 MedPaper Assistant 的全自動論文撰寫技能，具備以下核心特性：
 
-- **11 階段 Pipeline**（Phase 0-10）：從期刊設定到 Word 匯出的完整流程
+- **11 階段 Pipeline**（Phase 0-11，含 `Phase 6.5`）：從期刊設定到 Word 匯出的完整流程
 - **42 項自動品質檢查**（Hook A-D）：寫作過程中即時修正，不需人工介入
 - **段落級 Section Brief**：`manuscript-plan.yaml` 控制每段的論點、引用、字數
 - **結構化 Autonomous Review**：模擬 4 種審稿角色，產出 Review Report + Author Response
