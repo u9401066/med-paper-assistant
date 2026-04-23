@@ -5,6 +5,7 @@ from med_paper_assistant.domain.services.citation_converter import (
     _strip_references_section,
     extract_citation_keys,
     pandoc_to_wikilinks,
+    restore_reversible_citations_to_wikilinks,
     wikilinks_to_pandoc,
 )
 
@@ -54,6 +55,18 @@ class TestWikilinksToPandoc:
 
     def test_reversible_format_apa_legacy(self):
         content = "Some text (Tang et al., 2023)<!-- [[tang2023_38049909]] --> here."
+        result = wikilinks_to_pandoc(content)
+        assert "[@tang2023_38049909]" in result.content
+        assert result.citations_converted == 1
+
+    def test_reversible_format_harvard_visible(self):
+        content = "Some text (Tang et al. 2023) [[tang2023_38049909]] here."
+        result = wikilinks_to_pandoc(content)
+        assert "[@tang2023_38049909]" in result.content
+        assert result.citations_converted == 1
+
+    def test_reversible_format_nature_visible(self):
+        content = "Some text ^1^ [[tang2023_38049909]] here."
         result = wikilinks_to_pandoc(content)
         assert "[@tang2023_38049909]" in result.content
         assert result.citations_converted == 1
@@ -197,6 +210,9 @@ class TestLooksLikeCitationKey:
     def test_no_underscore_digits(self):
         assert _looks_like_citation_key("someword") is False
 
+    def test_short_suffix_not_citation_key(self):
+        assert _looks_like_citation_key("tang2023_1") is False
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # _strip_references_section
@@ -280,18 +296,18 @@ class TestExtractCitationKeys:
         assert "tang2023_38049909" in keys
 
     def test_mixed_formats(self):
-        content = "[[a2023_111]] and [@b2024_222] and [1] [[c2025_333]]"
+        content = "[[a2023_1234567]] and [@b2024_222] and [1] [[c2025_12345678]]"
         keys = extract_citation_keys(content)
-        assert "a2023_111" in keys
+        assert "a2023_1234567" in keys
         assert "b2024_222" in keys
-        assert "c2025_333" in keys
+        assert "c2025_12345678" in keys
 
     def test_mixed_visible_and_legacy_reversible_formats(self):
         content = (
-            "[1] [[a2023_111]] and [2]<!-- [[b2024_222]] --> and [[a2023_111]]"
+            "[1] [[a2023_1234567]] and [2]<!-- [[b2024_222]] --> and [[a2023_1234567]]"
         )
         keys = extract_citation_keys(content)
-        assert keys == ["a2023_111", "b2024_222"]
+        assert keys == ["a2023_1234567", "b2024_222"]
 
     def test_deduplication(self):
         keys = extract_citation_keys("[[tang2023_38049909]] and [[tang2023_38049909]]")
@@ -329,3 +345,15 @@ class TestRoundtrip:
         to_wiki = pandoc_to_wikilinks(original)
         back = wikilinks_to_pandoc(to_wiki.content)
         assert "[@tang2023_38049909]" in back.content
+
+
+class TestRestoreReversibleCitations:
+    def test_restore_harvard_visible(self):
+        content = "Text (Tang et al. 2023) [[tang2023_38049909]]."
+        restored = restore_reversible_citations_to_wikilinks(content)
+        assert restored == "Text [[tang2023_38049909]]."
+
+    def test_restore_nature_visible(self):
+        content = "Text ^1^ [[tang2023_38049909]]."
+        restored = restore_reversible_citations_to_wikilinks(content)
+        assert restored == "Text [[tang2023_38049909]]."

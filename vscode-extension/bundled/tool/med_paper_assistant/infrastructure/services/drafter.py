@@ -200,6 +200,20 @@ class Drafter:
         if "## References" in content:
             parts = content.split("## References")
             body_content = parts[0].strip()
+            references_content = parts[1]
+
+            # Guard against mixing incompatible citation workflows.
+            # insert_citation expects PMID-based bibliography entries, while
+            # sync_references_from_wikilinks produces wikilink-based references.
+            has_pmid_bib = bool(re.search(r"\[\d+\].*?PMID:\d+", references_content))
+            has_wikilink_bib = bool(re.search(r"\[\[[^\]]+\]\]", references_content))
+            if has_wikilink_bib and not has_pmid_bib:
+                raise ValueError(
+                    "This draft uses wikilink-synced references. "
+                    "insert_citation() only works with PMID-numbered bibliographies. "
+                    "Add [[citation_key]] in the draft body and run "
+                    "sync_references_from_wikilinks() (or the MCP sync_references tool) instead."
+                )
 
             # Regex to parse bib: \[(\d+)\] .*? PMID:(\d+)
             # Note: This only works for numbered styles (Vancouver).

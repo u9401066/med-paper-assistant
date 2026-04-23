@@ -94,3 +94,28 @@ def test_resolve_project_context_with_project_manager_switches_and_checks_mode()
         "manuscript",
     )
     assert pm.switched == ["beta"]
+
+
+def test_resolve_project_context_with_project_manager_without_success_key():
+    class FakeProjectManager:
+        def __init__(self):
+            self.current = "alpha"
+
+        def get_current_project(self):
+            return self.current
+
+        def list_projects(self):
+            return {"projects": [{"slug": "alpha"}]}
+
+        def get_project_info(self, slug):
+            return {"slug": slug, "workflow_mode": "manuscript"}
+
+    pm = FakeProjectManager()
+
+    project_info, error_msg = project_context.resolve_project_context(
+        required_mode="manuscript",
+        project_manager=pm,
+    )
+
+    assert error_msg is None
+    assert project_info["slug"] == "alpha"

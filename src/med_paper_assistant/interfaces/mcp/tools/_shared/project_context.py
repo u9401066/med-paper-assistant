@@ -254,7 +254,9 @@ def resolve_project_context(
                 return None, f"❌ {switch_result.get('error', 'Unable to switch project.')}"
 
         project_info = pm.get_project_info(target_slug)
-        if not project_info.get("success"):
+        if not isinstance(project_info, dict):
+            return None, "❌ Project not found."
+        if "success" in project_info and not project_info.get("success"):
             return None, f"❌ {project_info.get('error', 'Project not found.')}"
 
     if required_mode is not None:

@@ -33,10 +33,15 @@ _WIKILINK_RE = re.compile(r"\[\[([^\]\[]+?)\]\]")
 # Reversible format from sync_references_from_wikilinks():
 #   [1] [[citation_key]]
 #   [1]<!-- [[citation_key]] -->
+#   ^1^ [[citation_key]]
+#   ^1^<!-- [[citation_key]] -->
 #   (Author et al., 2024) [[citation_key]]
 #   (Author et al., 2024)<!-- [[citation_key]] -->
+#   (Author et al. 2024) [[citation_key]]
+#   (Author et al. 2024)<!-- [[citation_key]] -->
 _REVERSIBLE_RE = re.compile(
-    r"(?:\[\d+\]|\([^)]+,\s*\d{4}\))(?:<!--\s*|[ \t]+)\[\[([^\]]+)\]\](?:\s*-->)?"
+    r"(?:\[\d+\]|\^\d+\^|\([^)]+,\s*\d{4}\)|\([^)]+\s\d{4}\))"
+    r"(?:<!--\s*|[ \t]+)\[\[([^\]]+)\]\](?:\s*-->)?"
 )
 
 # Pandoc citation: [@key] or [@key1; @key2; ...]
@@ -173,7 +178,7 @@ def _looks_like_citation_key(key: str) -> bool:
     Internal links are just words: "introduction", "methods"
     """
     # Must contain underscore + digits (PubMed/Zotero pattern)
-    if re.match(r"^[a-z]+\d{4}_\d+$", key, re.IGNORECASE):
+    if re.match(r"^[a-z]+\d{4}_\d{7,8}$", key, re.IGNORECASE):
         return True
     # PMID:xxx format
     if key.upper().startswith("PMID:"):
@@ -215,7 +220,7 @@ def extract_citation_keys(content: str) -> list[str]:
     """
     Extract all citation keys from content, regardless of format.
 
-    Detects: [[key]], [@key], [1] [[key]], [1]<!-- [[key]] -->
+    Detects: [[key]], [@key], [1] [[key]], [1]<!-- [[key]] -->, ^1^ [[key]]
     Returns deduplicated list in order of first appearance.
     """
     keys: list[str] = []

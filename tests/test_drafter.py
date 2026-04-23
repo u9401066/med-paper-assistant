@@ -338,6 +338,85 @@ class TestSyncReferencesBlankLines:
         assert "(Smith et al., 2024) (Smith et al., 2024) [[smith2024_11111111]]" not in body_content
         assert body_content.count("(Smith et al., 2024) [[smith2024_11111111]]") == 1
 
+    def test_resync_visible_harvard_reversible_citations_does_not_duplicate_prefixes(self, tmp_path):
+        refs_dir = tmp_path / "refs"
+        drafts_dir = tmp_path / "drafts"
+        drafts_dir.mkdir()
+
+        self._write_reference(
+            refs_dir,
+            "11111111",
+            "smith2024_11111111",
+            "Paper One",
+            authors=["Smith John", "Doe Jane", "Lee Kay"],
+        )
+
+        draft = "# Test\n\nSome text (Smith et al. 2024) [[smith2024_11111111]].\n"
+        (drafts_dir / "test.md").write_text(draft)
+
+        ref = ReferenceManager(base_dir=str(refs_dir))
+        drafter = Drafter(
+            ref,
+            drafts_dir=str(drafts_dir),
+            citation_style=CitationStyle.HARVARD.value,
+        )
+
+        result = drafter.sync_references_from_wikilinks("test.md")
+        assert result["success"]
+
+        content = (drafts_dir / "test.md").read_text()
+        body_content = content.split("## References")[0]
+        assert "(Smith et al. 2024) (Smith et al. 2024) [[smith2024_11111111]]" not in body_content
+        assert body_content.count("(Smith et al. 2024) [[smith2024_11111111]]") == 1
+
+    def test_resync_visible_nature_reversible_citations_does_not_duplicate_prefixes(self, tmp_path):
+        refs_dir = tmp_path / "refs"
+        drafts_dir = tmp_path / "drafts"
+        drafts_dir.mkdir()
+
+        self._write_reference(refs_dir, "11111111", "smith2024_11111111", "Paper One")
+
+        draft = "# Test\n\nSome text ^1^ [[smith2024_11111111]].\n"
+        (drafts_dir / "test.md").write_text(draft)
+
+        ref = ReferenceManager(base_dir=str(refs_dir))
+        drafter = Drafter(
+            ref,
+            drafts_dir=str(drafts_dir),
+            citation_style=CitationStyle.NATURE.value,
+        )
+
+        result = drafter.sync_references_from_wikilinks("test.md")
+        assert result["success"]
+
+        content = (drafts_dir / "test.md").read_text()
+        body_content = content.split("## References")[0]
+        assert "^1^ ^1^ [[smith2024_11111111]]" not in body_content
+        assert body_content.count("^1^ [[smith2024_11111111]]") == 1
+
+    def test_insert_citation_rejects_wikilink_synced_draft(self, tmp_path):
+        refs_dir = tmp_path / "refs"
+        drafts_dir = tmp_path / "drafts"
+        drafts_dir.mkdir()
+
+        draft = (
+            "# Test\n\nBody sentence.\n\n"
+            "## References\n\n"
+            "[1] Example ref. [[smith2024_11111111]]\n"
+        )
+        (drafts_dir / "test.md").write_text(draft)
+
+        ref = ReferenceManager(base_dir=str(refs_dir))
+        drafter = Drafter(ref, drafts_dir=str(drafts_dir))
+
+        with pytest.raises(ValueError) as exc_info:
+            drafter.insert_citation("test", "Body sentence", "11111111")
+
+        message = str(exc_info.value)
+        assert "wikilink-synced references" in message
+        assert "sync_references_from_wikilinks()" in message
+        assert "sync_references tool" in message
+
 
 def test_create_draft_refreshes_draft_section_graph_notes(tmp_path):
     refs_dir = tmp_path / "refs"

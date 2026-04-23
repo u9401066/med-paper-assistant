@@ -119,7 +119,7 @@ def find_citation_key_for_pmid(pmid: str, references_dir: str) -> Optional[str]:
         return None
 
     # 查找以 PMID 結尾的目錄
-    for item in os.listdir(references_dir):
+    for item in sorted(os.listdir(references_dir)):
         item_path = os.path.join(references_dir, item)
         if os.path.isdir(item_path) and item.endswith(f"_{pmid}"):
             return item
@@ -139,7 +139,7 @@ def find_citation_key_for_pmid(pmid: str, references_dir: str) -> Optional[str]:
             return item
 
     # 也查找 .md 檔案
-    for item in os.listdir(references_dir):
+    for item in sorted(os.listdir(references_dir)):
         if item.endswith(f"_{pmid}.md"):
             return item.replace(".md", "")
 
@@ -272,8 +272,13 @@ def validate_wikilinks_in_file(
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"File not found: {filepath}")
 
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            f"File {filepath} is not valid UTF-8. Please convert encoding to UTF-8 before validation."
+        ) from exc
 
     result, fixed_content = validate_wikilinks_in_content(content, references_dir, auto_fix)
 
