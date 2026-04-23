@@ -4,24 +4,24 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-04-14)
+## 當前焦點 (2026-04-23)
 
-v0.6.4 發布準備：完成 main mdpaper compact tool surface（full 94 / compact 44 預設）、VSX 預設 compact、文件/變更紀錄對齊，進入 segmented commit + push + tag。
+v0.7.2 release hardening：已完成 repo / VSIX / bundled runtime 對齊，當前重點是維持 `unified_search` 與 authority-driven docs 的一致口徑，並把 Library Wiki / Foam 能力同步到實際出貨 surface。
 
 ### 當前狀態
 
 | 項目                    | 數量/狀態                                                         |
 | ----------------------- | ----------------------------------------------------------------- |
-| MCP Tools               | **94 full / 44 compact (default)**                                |
-| Skills                  | **26**                                                            |
+| MCP Tools               | **115 full / 21 compact (default)** + 3 prompts + 3 resources     |
+| Repo Skills / Prompts   | **26 skills / 15 prompt workflows**                               |
+| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**      |
 | Hooks                   | **78 checks** (55 Code-Enforced / 23 Agent-Driven)                |
 | Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`) |
-| Prompts                 | **15**                                                            |
-| Agents                  | **10**                                                            |
-| Infrastructure classes  | **8** core                                                        |
-| Python unit tests       | **916 passed** (excl. external-dep tests)                         |
-| VSX vitest              | **126 passed** (5 test files)                                     |
-| Ruff errors             | **0** (310 E501 line-length only)                                 |
+| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`    |
+| Latest Validation       | extension validate passed; **169 unit tests passed**              |
+| Packaging               | VSIX `0.7.2` built successfully                                   |
+
+> 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
 ### 三層演進架構實作狀態
 

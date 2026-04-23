@@ -10,13 +10,13 @@ src/med_paper_assistant/
 │   ├── entities/        # Project, Reference, Draft
 │   ├── value_objects/   # CitationStyle, SearchCriteria
 │   └── services/        # CitationFormatter, NoveltyScorer
-├── application/         # Use cases
-│   └── use_cases/       # CreateProject, SearchLiterature
+├── application/         # Use cases + export pipeline orchestration
+│   └── use_cases/       # Project/draft/reference workflows
 ├── infrastructure/      # Technical concerns
 │   ├── persistence/     # ProjectManager, ReferenceManager
-│   ├── services/        # Analyzer, Drafter, Formatter
-│   └── external/        # PubMedClient
-└── interfaces/mcp/      # MCP server (43 tools)
+│   ├── services/        # Analyzer, Drafter, Formatter, Foam settings
+│   └── external/        # Integration clients / optional adapters
+└── interfaces/mcp/      # MCP server (compact-first; 115 full / 21 default)
     ├── __main__.py      # Entry point (avoids RuntimeWarning)
     ├── server.py        # FastMCP setup
     └── tools/           # Modular tool registration
@@ -77,11 +77,11 @@ Resolution order in MedPaper runtime:
   - data/: Raw CSV/Excel files.
   - results/: Generated figures/ and tables/.
 - **Word Export Workflow** (8 steps):
-  1. read_template - Get template structure
-  2. read_draft - Get draft content
-  3. Agent decides section mapping
-  4. start_document_session - Initialize
-  5. insert_section - Insert each section
-  6. verify_document - Check content
-  7. check_word_limits - Validate limits
-  8. save_document - Final output
+  1. inspect_export(action="list_templates") - Available templates
+  2. inspect_export(action="read_template") - Get template structure
+  3. read_draft - Get draft content
+  4. export_document(action="session_start") - Initialize
+  5. export_document(action="insert_section") - Insert each section
+  6. inspect_export(action="verify_document") - Check content
+  7. count_words - Validate limits
+  8. export_document(action="docx") / export_document(action="pdf") - Final output

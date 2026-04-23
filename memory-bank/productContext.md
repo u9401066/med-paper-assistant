@@ -2,21 +2,14 @@
 
 ## Goals
 
-- Develop a suite for assisting in writing medical papers.
-- Provide a VSCode-compatible tool/MCP for literature search (usable by Copilot/Antigravity).
-- **Advanced Search**: Support customizable search strategies (Date range, Article Type, Sort order).
-- **Reference Management**: Save selected literature with metadata and content (abstract/full text) to a local `references/` directory.
-- **Draft Generation**: Create draft files in `drafts/` with automatic citation insertion and bibliography generation.
-- **Workflow Automation**: Standardized `/mdpaper.draft` workflow to generate drafts from `concept.md` and templates.
-- **Data Analysis**: Upload raw data to `data/`, perform statistical analysis, and generate figures/tables in `results/`.
-- **Refinement**: `/mdpaper.clarify` workflow to interactively refine specific sections of `concept.md` or drafts.
-- **Refinement**: `/mdpaper.clarify` workflow to interactively refine specific sections of `concept.md` or drafts.
-- **Template Flexibility**: Support user-uploaded template files for draft generation.
-- **Word Export**: `/mdpaper.apply_format` workflow to export drafts and figures to `.docx` using a template.
-- Assist in converting ideas into documentation (similar to Speckit).
-- Support various journal format templates.
-- Generate first drafts with correct citations and formatting.
+- Provide a dual-workflow research workspace: `library-wiki` for exploration / knowledge-base building and `manuscript` for formal drafting / review / export.
+- Keep PubMed discovery aligned on `unified_search` as the primary search entrypoint, with `generate_search_queries` and `parse_pico` as strategy helpers.
+- Preserve verified reference persistence via `save_reference_mcp`, fulltext / analysis enrichment, and Foam-friendly note materialization.
+- Support Library Wiki operations: inbox / concepts / review / daily capture, dashboards, publish-safe wikilink packs, and project-specific graph views.
+- Support manuscript operations: concept validation, section drafting, citation-aware editing, asset review gates, and Word / PDF export workflows.
+- Keep the packaged VSIX surface and the broader repository authoring surface explicitly documented and authority-checked.
+- Provide guided prompt workflows, skills, and chat commands that keep end-user help in sync with the actual runtime surface.
 
 ## Project Description
 
-This project is a Medical Paper Writing Assistant designed to streamline the research and writing process for medical professionals. It integrates with VSCode via MCP (Model Context Protocol) to provide intelligent literature search, formatting, and drafting capabilities. It aims to bridge the gap between raw ideas and submission-ready manuscripts.
+This project is an MCP-orchestrated research workspace for medical writing and literature-centered knowledge work. It integrates with VS Code via MCP and the packaged MedPaper extension to support exploration, reference curation, LLM-wiki materialization, manuscript drafting, review, and export from the same workspace. The core value is not just paper drafting, but keeping search, evidence, notes, and writing surfaces coherent across repo authoring and packaged end-user workflows.

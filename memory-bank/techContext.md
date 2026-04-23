@@ -35,15 +35,15 @@ med-paper-assistant/
 │   │   │                      # MetaLearningEngine, QualityScorecard
 │   │   └── services/          # Drafter, CSLFormatter, PandocExporter
 │   ├── interfaces/
-│   │   └── mcp/tools/         # 54+ MCP tools (7 groups + export)
+│   │   └── mcp/tools/         # compact-first MCP surface (115 full / 21 default)
 │   └── shared/                # Cross-cutting utilities
 ├── templates/
 │   ├── csl/                   # CSL style files
 │   └── journal-profile.template.yaml
-├── tests/                     # 171+ new tests
+├── tests/                     # Python tests + authority / sync guards
 ├── memory-bank/               # Context persistence
 ├── .claude/skills/            # 26 skills
-├── vscode-extension/          # VSX Extension v0.2.0
+├── vscode-extension/          # VSIX packaged surface v0.7.2
 └── dashboard/                 # Next.js dashboard
 ```
 
@@ -52,7 +52,7 @@ med-paper-assistant/
 - **OS**: Windows (primary), Linux (CI)
 - **Agent**: Claude Opus 4.6 (via GitHub Copilot)
 - **Python**: 3.12+ required (uv managed)
-- **Known Issue**: application/**init**.py import chain broken (missing pubmed, search_literature)
+- **Current Drift Risk**: source-side MCP instructions, bundled Python mirror, and README authority snippets must stay synchronized via `npm run bundle:sync-python`, `npm run validate`, and `scripts/check_tool_surface_authority.py`
 
 ## Installation
 
