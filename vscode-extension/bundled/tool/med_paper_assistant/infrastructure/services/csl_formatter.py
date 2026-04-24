@@ -45,6 +45,10 @@ _TEMPLATES_CSL_DIR = Path(__file__).parents[4] / "templates" / "csl"
 # Map our CitationStyle enum → CSL file names
 _STYLE_TO_CSL_FILE: dict[str, str] = {
     "vancouver": "vancouver.csl",
+    "vancouver-superscript": "vancouver-superscript.csl",
+    "vancouver_superscript": "vancouver-superscript.csl",
+    "bja": "vancouver-superscript.csl",
+    "british-journal-of-anaesthesia": "vancouver-superscript.csl",
     "apa": "apa.csl",
     "harvard": "harvard-cite-them-right.csl",
     "nature": "nature.csl",

@@ -262,7 +262,8 @@ def register_pandoc_export_tools(
             # Build report
             output = "✅ **Document exported successfully**\n\n"
             output += f"📄 Output: `{result['output_path']}`\n"
-            output += f"📚 Citations converted: {result['citations_converted']}\n"
+            output += f"📚 Citation tokens prepared: {result['citations_converted']}\n"
+            output += f"✅ Bibliography entries resolved: {result.get('citations_resolved', 0)}\n"
             output += f"🎨 Citation style: {csl_style}\n"
 
             if result.get("citation_keys"):
@@ -382,7 +383,8 @@ def register_pandoc_export_tools(
 
             output = "✅ **PDF exported successfully**\n\n"
             output += f"📄 Output: `{result['output_path']}`\n"
-            output += f"📚 Citations converted: {result['citations_converted']}\n"
+            output += f"📚 Citation tokens prepared: {result['citations_converted']}\n"
+            output += f"✅ Bibliography entries resolved: {result.get('citations_resolved', 0)}\n"
             output += f"🎨 Citation style: {csl_style}\n"
 
             if result.get("citation_keys"):

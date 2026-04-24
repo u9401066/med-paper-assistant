@@ -48,6 +48,7 @@ class ProjectManager:
     - references/: saved references (by PMID)
     - data/: analysis data files
     - results/: exported documents
+    - exports/: final DOCX/PDF/submission artifacts
 
     Special project:
     - temp_project: A temporary workspace for literature exploration before
@@ -116,6 +117,7 @@ class ProjectManager:
                     "drafts": str(project_path / "drafts"),
                     "data": str(project_path / "data"),
                     "results": str(project_path / "results"),
+                    "exports": str(project_path / "exports"),
                 }
             )
 
@@ -927,6 +929,8 @@ class ProjectManager:
         temp_path = self.projects_dir / self.TEMP_PROJECT_SLUG
 
         if temp_path.exists():
+            for subdir in self._directories_for_workflow("library-wiki"):
+                (temp_path / subdir).mkdir(exist_ok=True)
             # Return existing temp project info
             config = self._load_config(temp_path)
             if config:

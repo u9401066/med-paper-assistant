@@ -15,6 +15,12 @@ import re
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
+from med_paper_assistant.domain.services.citation_converter import (
+    _looks_like_citation_key,
+    citation_key_from_wikilink_target,
+    split_foam_wikilink_target,
+)
+
 
 @dataclass
 class WikilinkIssue:
@@ -68,7 +74,7 @@ class WikilinkValidationResult:
 
 # 正確的 wikilink 格式: [[author2024_12345678]]
 VALID_WIKILINK_PATTERN = re.compile(
-    r"\[\[([a-z]+\d{4}_\d{7,8})\]\]",  # author2024_12345678
+    r"!?\[\[([a-z][a-z-]*\d{4}_(?:\d{7,8}|zot_[^\]#|]+|doi_[^\]#|]+))(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]",
     re.IGNORECASE,
 )
 
@@ -92,16 +98,31 @@ def validate_wikilink(wikilink: str) -> Tuple[bool, str]:
     Returns:
         (is_valid, issue_type)
     """
-    # 檢查是否是正確格式
-    if VALID_WIKILINK_PATTERN.match(wikilink):
-        return True, ""
+    target = wikilink.strip()
+    if target.startswith("![[") and target.endswith("]]"):
+        target = target[3:-2]
+    elif target.startswith("[[") and target.endswith("]]"):
+        target = target[2:-2]
+
+    base, _, _ = split_foam_wikilink_target(target)
 
     # 檢查是否是 PMID only
     if PMID_ONLY_PATTERN.match(wikilink):
         return False, "missing_prefix"
 
-    # 其他錯誤格式
-    return False, "wrong_format"
+    if base.upper().startswith("PMID:") or (base.isdigit() and len(base) >= 7):
+        return False, "missing_prefix"
+
+    # 檢查是否是正確格式，包含 FOAM anchors/aliases/embeds.
+    if citation_key_from_wikilink_target(target):
+        return True, ""
+
+    # A malformed citation-ish key should still be reported, but ordinary FOAM
+    # links such as [[methods]] or [[figure-1]] are valid knowledge-base links.
+    if re.search(r"\d{4}_", base) and not _looks_like_citation_key(base):
+        return False, "wrong_format"
+
+    return True, ""
 
 
 def find_citation_key_for_pmid(pmid: str, references_dir: str) -> Optional[str]:

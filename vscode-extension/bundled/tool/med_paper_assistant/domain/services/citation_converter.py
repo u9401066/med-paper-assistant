@@ -27,8 +27,11 @@ from dataclasses import dataclass, field
 # Patterns
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Wikilink: [[citation_key]]
-_WIKILINK_RE = re.compile(r"\[\[([^\]\[]+?)\]\]")
+# Plain wikilink: [[citation_key]]. FOAM embeds (![[...]]) are deliberately
+# excluded from export conversion because they represent knowledge-base
+# transclusion/evidence blocks, not manuscript in-text citations.
+_WIKILINK_RE = re.compile(r"(?<!!)\[\[([^\]\[]+?)\]\]")
+_FOAM_EMBED_RE = re.compile(r"!\[\[([^\]\[]+?)\]\]")
 
 # Reversible format from sync_references_from_wikilinks():
 #   [1] [[citation_key]]
@@ -49,7 +52,7 @@ _PANDOC_SINGLE_RE = re.compile(r"\[@([^\];]+)\]")
 _PANDOC_MULTI_RE = re.compile(r"\[(@[^\]]+)\]")
 
 # Reference section header
-_REFERENCES_HEADER_RE = re.compile(r"^---?\s*$|^## References", re.MULTILINE)
+_REFERENCES_HEADING_RE = re.compile(r"^\s{0,3}(#{1,6})\s+references\b", re.IGNORECASE)
 
 
 @dataclass
@@ -80,7 +83,11 @@ def wikilinks_to_pandoc(content: str) -> ConversionResult:
     Returns:
         ConversionResult with Pandoc-formatted content.
     """
-    result_content = content
+    # Strip hand-maintained references before converting citations. Otherwise
+    # reference-list trailers such as ``[[kim2000_10960403]]`` are converted to
+    # raw Pandoc tokens and counted as in-text citations, and can leak into
+    # exported output if the heading level is not exactly ``## References``.
+    result_content = _strip_references_section(content)
     keys: list[str] = []
     count = 0
 
@@ -99,8 +106,9 @@ def wikilinks_to_pandoc(content: str) -> ConversionResult:
     def _replace_wikilink(m: re.Match) -> str:
         nonlocal count
         key = m.group(1)
-        # Skip non-citation wikilinks (internal links without underscore+digits)
-        if not _looks_like_citation_key(key):
+        # Skip non-citation and FOAM-only wikilinks. Anchors/aliases are
+        # knowledge-base links, not renderable manuscript citations.
+        if not _is_plain_manuscript_citation_target(key):
             return m.group(0)  # Leave as-is
         if key not in keys:
             keys.append(key)
@@ -108,9 +116,6 @@ def wikilinks_to_pandoc(content: str) -> ConversionResult:
         return f"[@{key}]"
 
     result_content = _WIKILINK_RE.sub(_replace_wikilink, result_content)
-
-    # Step 3: Strip existing ## References section (Pandoc --citeproc generates it)
-    result_content = _strip_references_section(result_content)
 
     return ConversionResult(
         content=result_content.rstrip() + "\n",
@@ -195,6 +200,33 @@ def _looks_like_citation_key(key: str) -> bool:
     return False
 
 
+def split_foam_wikilink_target(target: str) -> tuple[str, str, str]:
+    """
+    Split a FOAM-compatible wikilink target into base key, anchor, and alias.
+
+    Examples:
+      ``ref2024_12345678`` -> ("ref2024_12345678", "", "")
+      ``ref2024_12345678#^finding`` -> ("ref2024_12345678", "^finding", "")
+      ``ref2024_12345678|Tang 2024`` -> ("ref2024_12345678", "", "Tang 2024")
+      ``ref2024_12345678#^finding|quote`` -> ("ref2024_12345678", "^finding", "quote")
+    """
+    without_alias, alias_sep, alias = target.strip().partition("|")
+    base, anchor_sep, anchor = without_alias.strip().partition("#")
+    return base.strip(), anchor.strip() if anchor_sep else "", alias.strip() if alias_sep else ""
+
+
+def citation_key_from_wikilink_target(target: str) -> str | None:
+    """Return the saved-reference key base from a plain or FOAM wikilink target."""
+    base, _, _ = split_foam_wikilink_target(target)
+    return base if _looks_like_citation_key(base) else None
+
+
+def _is_plain_manuscript_citation_target(target: str) -> bool:
+    """Return True only for manuscript citation links that Pandoc should render."""
+    base, anchor, alias = split_foam_wikilink_target(target)
+    return not anchor and not alias and _looks_like_citation_key(base)
+
+
 def _strip_references_section(content: str) -> str:
     """
     Remove the ## References section from markdown.
@@ -202,18 +234,36 @@ def _strip_references_section(content: str) -> str:
     Pandoc --citeproc will generate its own reference list.
     We need to strip the hand-generated one to avoid duplication.
 
-    Only strips up to the next same-or-higher-level heading (``## ``)
-    or end-of-string, so sections after References are preserved.
+    Handles ``# References`` through ``###### References`` and strips only up
+    to the next same-or-higher-level heading or end-of-string, so sections
+    after References are preserved. A horizontal rule immediately before the
+    References heading is removed too.
     """
-    # Match from "## References" to the next "\n## " heading or end-of-string.
-    # Non-greedy .*? with lookahead prevents swallowing subsequent sections.
-    patterns = [
-        r"\n---\s*\n+## References\b.*?(?=\n## |\Z)",  # With horizontal rule
-        r"\n## References\b.*?(?=\n## |\Z)",  # Without horizontal rule
-    ]
-    for pattern in patterns:
-        content = re.sub(pattern, "", content, flags=re.DOTALL)
-    return content
+    lines = content.splitlines(keepends=True)
+    output: list[str] = []
+    i = 0
+
+    while i < len(lines):
+        heading = _REFERENCES_HEADING_RE.match(lines[i])
+        if not heading:
+            output.append(lines[i])
+            i += 1
+            continue
+
+        if output and re.match(r"^\s*-{3,}\s*$", output[-1]):
+            output.pop()
+            if output and output[-1].strip() == "":
+                output.pop()
+
+        ref_level = len(heading.group(1))
+        i += 1
+        while i < len(lines):
+            next_heading = re.match(r"^\s{0,3}(#{1,6})\s+\S", lines[i])
+            if next_heading and len(next_heading.group(1)) <= ref_level:
+                break
+            i += 1
+
+    return "".join(output)
 
 
 def extract_citation_keys(content: str) -> list[str]:
@@ -235,10 +285,11 @@ def extract_citation_keys(content: str) -> list[str]:
     for m in _REVERSIBLE_RE.finditer(content):
         _add(m.group(1))
 
-    # Raw wikilinks
+    # Raw manuscript citation wikilinks. FOAM anchors/aliases are intentionally
+    # not counted as renderable manuscript citations.
     for m in _WIKILINK_RE.finditer(content):
         key = m.group(1)
-        if _looks_like_citation_key(key):
+        if _is_plain_manuscript_citation_target(key):
             _add(key)
 
     # Pandoc format
@@ -247,5 +298,42 @@ def extract_citation_keys(content: str) -> list[str]:
             k = part.strip().lstrip("@")
             if k:
                 _add(k)
+
+    return keys
+
+
+def extract_reference_wikilink_keys(
+    content: str,
+    *,
+    include_embeds: bool = True,
+    include_pandoc: bool = True,
+) -> list[str]:
+    """
+    Extract saved-reference keys from both manuscript and FOAM wikilinks.
+
+    Unlike :func:`extract_citation_keys`, this includes FOAM anchors, aliases,
+    and optionally embeds. It is intended for validation/audit hooks that need
+    to know whether a document points at a saved reference without treating
+    every FOAM link as a renderable manuscript citation.
+    """
+    keys: list[str] = []
+    seen: set[str] = set()
+
+    def _add(key: str | None) -> None:
+        if key and key not in seen:
+            seen.add(key)
+            keys.append(key)
+
+    for m in _WIKILINK_RE.finditer(content):
+        _add(citation_key_from_wikilink_target(m.group(1)))
+
+    if include_embeds:
+        for m in _FOAM_EMBED_RE.finditer(content):
+            _add(citation_key_from_wikilink_target(m.group(1)))
+
+    if include_pandoc:
+        for m in _PANDOC_MULTI_RE.finditer(content):
+            for part in m.group(1).split(";"):
+                _add(part.strip().lstrip("@"))
 
     return keys

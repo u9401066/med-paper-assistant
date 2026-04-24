@@ -6,20 +6,20 @@
 
 ## 當前焦點 (2026-04-24)
 
-v0.7.7 release：完成 agent-friction 消除線，包括 Phase 0 source-material intake、asset-aware ingestion receipt、F4 data-anchor provenance、C14 claim-evidence alignment、`pipeline_action(action="doctor")`、Phase 9 DOCX XML smoke，以及 tool-surface authority 更新；目前進入 commit/push/tag 發布收尾。
+v0.7.8 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏，補齊 manuscript citation 與 FOAM wiki-link knowledge-base 雙分支相容性，並收斂遠端 `codex/check-design-errors` branch 的 exports/workspace-state/review-loop 修正；目前進入 commit/push/tag 發布收尾。
 
 ### 當前狀態
 
-| 項目                    | 數量/狀態                                                                                                            |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources                                                        |
-| Repo Skills / Prompts   | **26 skills / 15 prompt workflows**                                                                                  |
-| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**                                                         |
-| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                   |
-| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)                                                    |
-| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                       |
-| Latest Validation       | `1254 passed / 17 skipped / 1 deselected` full suite; `bundle:check`; VSIX `tsc`; targeted smoke/facade tests passed |
-| Packaging               | Version bumped to `0.7.7`; tag/push in progress                                                                      |
+| 項目                    | 數量/狀態                                                                   |
+| ----------------------- | --------------------------------------------------------------------------- |
+| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources               |
+| Repo Skills / Prompts   | **26 skills / 15 prompt workflows**                                         |
+| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**                |
+| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                          |
+| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)           |
+| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`              |
+| Latest Validation       | Targeted citation/export/wiki-link suite passed; release validation pending |
+| Packaging               | Version bumped to `0.7.8`; tag/push pending                                 |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -32,6 +32,14 @@ v0.7.7 release：完成 agent-friction 消除線，包括 Phase 0 source-materia
 | L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
 
 ### 最近變更
+
+#### v0.7.8 Vancouver Export + FOAM Compatibility Release (2026-04-24)
+
+- **Vancouver citeproc export**: `export_document(action="docx"|"pdf")` now always runs Pandoc citeproc when a bibliography is present, supports `vancouver-superscript`/BJA aliases, and includes `vancouver-superscript.csl`.
+- **References cleanup**: Hand-maintained References sections are stripped before citation conversion across heading levels so `[[ref_key]]` trailers cannot become leaked `[@key]` tokens.
+- **Export smoke hardening**: DOCX XML smoke now fails raw citation tokens (`[@`, `[[`, `]]`) after export.
+- **FOAM/manuscript split**: Shared parsing now distinguishes renderable manuscript citations from FOAM embeds, anchors, aliases, and internal wiki links; C5/C10/C11/C14 use the same semantics.
+- **Branch convergence**: Folded the unmerged `origin/codex/check-design-errors` fixes into master: explicit `exports/` path mapping, `MEDPAPER_BASE_DIR` workspace-state initialization, and resolved-path review-loop cache keys.
 
 #### v0.7.6 Agent-Friction Release (2026-04-24)
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.8 - 2026-04-24
+
+- Fixed Vancouver/BJA superscript export so Pandoc citeproc runs with bibliography-backed DOCX/PDF output instead of leaking raw `[@citekey]` tokens.
+- Added FOAM-compatible citation handling so manuscript citations and library-wiki embeds/anchors/aliases can coexist without corrupting export or audit hooks.
+- Added raw citation token checks to DOCX XML smoke validation and synced the bundled Python/CSL assets.
+- Folded the remaining exports/workspace-state/review-loop branch fixes into the main release line.
+
 ## 0.7.7 - 2026-04-24
 
 - Fixed release CI hygiene after v0.7.6 with Ruff, Prettier, mypy, Bandit, and bundled Python mirror cleanup.

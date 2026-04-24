@@ -72,24 +72,28 @@ _PHASE_NAMES = {
 }
 _ALL_PHASES = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
 
-# Module-level cache: slug → AutonomousAuditLoop instance
+# Module-level cache: project path → AutonomousAuditLoop instance
 _active_loops: dict[str, AutonomousAuditLoop] = {}
+
+
+def _loop_cache_key(project_path: Path) -> str:
+    return str(Path(project_path).resolve())
 
 
 def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> AutonomousAuditLoop:
     """Get existing loop or create/restore from checkpoint."""
 
-    project_path = Path(project_dir)
-    slug = project_path.name
+    project_path = Path(project_dir).resolve()
+    cache_key = _loop_cache_key(project_path)
 
     audit_dir = project_path / ".audit"
     loop_file = audit_dir / "audit-loop-review.json"
 
     # If cached loop is completed and checkpoint file is gone, evict stale cache
-    if slug in _active_loops:
-        cached = _active_loops[slug]
+    if cache_key in _active_loops:
+        cached = _active_loops[cache_key]
         if cached.is_completed and not loop_file.is_file():
-            del _active_loops[slug]
+            del _active_loops[cache_key]
         else:
             return cached
 
@@ -108,7 +112,7 @@ def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> 
     if loop_file.is_file():
         loop.load()
 
-    _active_loops[slug] = loop
+    _active_loops[cache_key] = loop
     return loop
 
 
@@ -1087,8 +1091,9 @@ def register_pipeline_tools(
             if not loop.is_completed:
                 loop.request_rewrite(section_list, reason)
             # Evict cached loop so next review starts fresh
-            if slug in _active_loops:
-                del _active_loops[slug]
+            cache_key = _loop_cache_key(project_dir)
+            if cache_key in _active_loops:
+                del _active_loops[cache_key]
 
             # Save regression to checkpoint
             ckpt.save_phase_regression(
@@ -1567,13 +1572,13 @@ def register_pipeline_tools(
             if workflow_error:
                 return workflow_error
             project_info = _require_project_info(project_info)
-            slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
+            cache_key = _loop_cache_key(project_dir)
 
             # Reset the loop object if it exists in cache
-            if slug in _active_loops:
-                _active_loops[slug].reset()
-                del _active_loops[slug]
+            if cache_key in _active_loops:
+                _active_loops[cache_key].reset()
+                del _active_loops[cache_key]
             else:
                 # Force-delete the persisted state file
                 state_file = Path(project_dir) / ".audit" / "audit-loop-review.json"

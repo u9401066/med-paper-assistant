@@ -399,6 +399,37 @@ Remimazolam is a novel benzodiazepine [@tang2024].
         finally:
             os.unlink(output_path)
 
+    def test_convert_adds_citeproc_when_bibliography_is_present(self, monkeypatch, tmp_path):
+        exporter = self.PandocExporter.__new__(self.PandocExporter)
+        exporter._pandoc_available = True
+        bib_path = tmp_path / "refs.json"
+        bib_path.write_text("[]", encoding="utf-8")
+        captured = {}
+
+        from med_paper_assistant.infrastructure.services import pandoc_exporter
+
+        def fake_convert_text(source, to, format, outputfile, extra_args):
+            captured["extra_args"] = extra_args
+            return outputfile or ""
+
+        monkeypatch.setattr(pandoc_exporter.pypandoc, "convert_text", fake_convert_text)
+
+        exporter.convert(
+            "Text [@tang2023_38049909].",
+            "html",
+            bibliography=str(bib_path),
+            csl="vancouver-superscript",
+        )
+
+        assert "--citeproc" in captured["extra_args"]
+        assert "--bibliography" in captured["extra_args"]
+        assert any(str(arg).endswith("vancouver-superscript.csl") for arg in captured["extra_args"])
+
+    def test_resolve_vancouver_superscript_alias(self):
+        assert self.PandocExporter._resolve_csl("vancouver-superscript").endswith(
+            "vancouver-superscript.csl"
+        )
+
     def test_markdown_file_to_docx(self):
         exporter = self.PandocExporter()
         if not exporter.available:

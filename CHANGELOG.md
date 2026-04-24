@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.8] - 2026-04-24
+
+### Added
+
+- Added `vancouver-superscript.csl` and citation-style aliases for BJA/Vancouver superscript export.
+- Added FOAM-compatible citation parsing helpers so manuscript citations, knowledge-base anchors, aliases, and embeds are handled by one shared conversion/audit layer.
+
+### Changed
+
+- Updated DOCX export smoke validation to fail raw citation token leaks (`[@`, `[[`, `]]`) after export.
+- Updated project workflow paths so manuscript projects include an explicit `exports/` directory and path mapping.
+- Updated review-loop cache keys to use resolved project paths instead of slug-only keys, preventing cross-workspace collisions.
+
+### Fixed
+
+- Fixed Vancouver DOCX/PDF exports leaving raw `[@citekey]` tokens when a CSL alias such as `vancouver-superscript` was requested.
+- Fixed hand-written References sections being converted into leaked `[@key]` trailers by stripping References before citation conversion across heading levels.
+- Fixed FOAM wiki links such as `![[ref#^block]]`, `[[ref#^block]]`, and `[[ref|alias]]` being mistaken for manuscript citations during export, validation, and C-series audit hooks.
+- Fixed workspace state initialization so `get_workspace_state_manager()` honors `MEDPAPER_BASE_DIR` when no base path is passed.
+
 ## [0.7.7] - 2026-04-24
 
 ### Fixed

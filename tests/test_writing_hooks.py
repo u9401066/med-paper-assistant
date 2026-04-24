@@ -1215,6 +1215,58 @@ class TestHookC5:
         assert r.passed is True
         assert r.stats["resolved"] == 1
 
+    def test_foam_links_resolve_but_internal_links_are_ignored(
+        self, engine: WritingHooksEngine, project_dir: Path
+    ):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        (refs_dir / "de-silva2025_41227143").mkdir()
+        (refs_dir / "smith2024_12345678").mkdir()
+
+        r = engine.check_wikilink_resolvable(
+            "See [[methods]], [[figure-1]], [[de-silva2025_41227143#^finding]], "
+            "and ![[smith2024_12345678#^quote]]."
+        )
+
+        assert r.passed is True
+        assert r.stats["resolved"] == 2
+        assert r.stats["unresolved"] == 0
+
+
+class TestFoamCitationHookCompatibility:
+    def test_c10_handles_hyphenated_and_anchored_reference_keys(
+        self, engine: WritingHooksEngine, project_dir: Path
+    ):
+        refs_dir = project_dir / "references"
+        ref_dir = refs_dir / "de-silva2025_41227143"
+        ref_dir.mkdir(parents=True)
+        (ref_dir / "metadata.json").write_text(
+            json.dumps({"fulltext_ingested": True, "analysis_completed": True}),
+            encoding="utf-8",
+        )
+
+        r = engine.check_reference_fulltext_status(
+            "Evidence summary [[de-silva2025_41227143#^key-findings]]."
+        )
+
+        assert r.passed is True
+        assert r.stats["total_cited"] == 1
+        assert r.stats["analysis_completed"] == 1
+
+    def test_c11_counts_manuscript_citations_not_foam_links(self, engine: WritingHooksEngine):
+        content = (
+            "## Introduction\n\n"
+            "Context [[methods]] ![[smith2024_12345678#^quote]] [[figure-1]].\n\n"
+            "## Discussion\n\n"
+            "Prior work supports this [1] [[smith2024_12345678]].\n"
+        )
+
+        r = engine.check_citation_distribution(content)
+
+        assert r.stats["total_citations"] == 1
+        assert r.stats["section_citations"]["Introduction"] == 0
+        assert r.stats["section_citations"]["Discussion"] == 1
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Hook C6: Total Word Count

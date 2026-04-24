@@ -4,6 +4,7 @@ from med_paper_assistant.domain.services.citation_converter import (
     _looks_like_citation_key,
     _strip_references_section,
     extract_citation_keys,
+    extract_reference_wikilink_keys,
     pandoc_to_wikilinks,
     restore_reversible_citations_to_wikilinks,
     wikilinks_to_pandoc,
@@ -99,6 +100,27 @@ class TestWikilinksToPandoc:
         assert "[[introduction]]" in result.content
         assert "[@tang2023_38049909]" in result.content
         assert result.citations_converted == 1
+
+    def test_foam_embed_preserved(self):
+        content = "Evidence card ![[tang2023_38049909#^key-findings]] supports context."
+        result = wikilinks_to_pandoc(content)
+        assert "![[tang2023_38049909#^key-findings]]" in result.content
+        assert "![@tang2023_38049909" not in result.content
+        assert result.citations_converted == 0
+
+    def test_foam_anchor_preserved_not_rendered_as_citation(self):
+        content = "See extracted evidence [[tang2023_38049909#^methods]]."
+        result = wikilinks_to_pandoc(content)
+        assert "[[tang2023_38049909#^methods]]" in result.content
+        assert "[@tang2023_38049909]" not in result.content
+        assert result.citations_converted == 0
+
+    def test_foam_alias_preserved_not_rendered_as_citation(self):
+        content = "See [[tang2023_38049909|Tang 2023 evidence note]]."
+        result = wikilinks_to_pandoc(content)
+        assert "[[tang2023_38049909|Tang 2023 evidence note]]" in result.content
+        assert "[@tang2023_38049909]" not in result.content
+        assert result.citations_converted == 0
 
     def test_strips_references_section(self):
         content = "Body text.\n\n## References\n\n[1] Tang et al. Title. PMID:38049909.\n"
@@ -318,6 +340,30 @@ class TestExtractCitationKeys:
         keys = extract_citation_keys("[[introduction]] and [[tang2023_38049909]]")
         assert "introduction" not in keys
         assert "tang2023_38049909" in keys
+
+    def test_skips_foam_links_for_renderable_citations(self):
+        content = (
+            "[[tang2023_38049909#^finding]] "
+            "![[lee2024_12345678#^quote]] "
+            "[[de-silva2025_41227143|De Silva]] "
+            "[[wang2022_36424554]]"
+        )
+        keys = extract_citation_keys(content)
+        assert keys == ["wang2022_36424554"]
+
+    def test_extract_reference_wikilink_keys_includes_foam_links(self):
+        content = (
+            "[[tang2023_38049909#^finding]] "
+            "![[lee2024_12345678#^quote]] "
+            "[[de-silva2025_41227143|De Silva]] "
+            "[[methods]]"
+        )
+        keys = extract_reference_wikilink_keys(content)
+        assert keys == [
+            "tang2023_38049909",
+            "de-silva2025_41227143",
+            "lee2024_12345678",
+        ]
 
     def test_empty_content(self):
         keys = extract_citation_keys("")

@@ -344,13 +344,25 @@ class ExportPipeline:
                 reference_doc=reference_doc,
                 extra_args=pandoc_args,
             )
+            post_export_checks = None
+            if Path(result_path).is_file():
+                post_export_checks = self.inspect_docx_xml_smoke(result_path)
+                if not post_export_checks.get("passed"):
+                    failed = [
+                        check["name"]
+                        for check in post_export_checks.get("checks", [])
+                        if not check.get("passed")
+                    ]
+                    raise RuntimeError("DOCX export validation failed: " + ", ".join(failed))
 
             return {
                 "success": True,
                 "output_path": result_path,
                 "citations_converted": prepared["conversion"].citations_converted,
+                "citations_resolved": len(prepared["bibliography"]),
                 "citation_keys": prepared["citation_keys"],
                 "warnings": prepared["warnings"],
+                "post_export_checks": post_export_checks,
             }
         finally:
             # Clean up temp file
@@ -418,8 +430,10 @@ class ExportPipeline:
             args = self._build_resource_path_args(draft_path, extra_args)
             csl_path = self._pandoc._resolve_csl(csl_style)
             if csl_path:
-                args.extend(["--csl", csl_path, "--citeproc"])
+                args.extend(["--csl", csl_path])
             args.extend(["--bibliography", bib_path])
+            if "--citeproc" not in args:
+                args.append("--citeproc")
 
             # For lualatex/xelatex: use a Unicode-capable font + fallback
             engine = self._pandoc._detect_pdf_engine()
@@ -464,6 +478,7 @@ class ExportPipeline:
                 "success": True,
                 "output_path": result_path,
                 "citations_converted": prepared["conversion"].citations_converted,
+                "citations_resolved": len(prepared["bibliography"]),
                 "citation_keys": prepared["citation_keys"],
                 "warnings": prepared["warnings"],
             }
@@ -586,14 +601,22 @@ class ExportPipeline:
         tables = body.findall(".//w:tbl", ns)
         text_nodes = body.findall(".//w:t", ns)
         text_chars = sum(len(node.text or "") for node in text_nodes)
+        plain_text = "".join(node.text or "" for node in text_nodes)
+        raw_tokens = [token for token in ("[@", "[[", "]]") if token in plain_text]
         result["stats"] = {
             "paragraphs": len(paragraphs),
             "tables": len(tables),
             "text_nodes": len(text_nodes),
             "text_chars": text_chars,
+            "raw_citation_tokens": raw_tokens,
         }
         add_check("paragraphs", len(paragraphs) > 0, f"{len(paragraphs)} paragraph(s)")
         add_check("text", text_chars > 0, f"{text_chars} text character(s)")
+        add_check(
+            "raw_citation_tokens",
+            not raw_tokens,
+            "none" if not raw_tokens else ", ".join(raw_tokens),
+        )
 
         result["passed"] = all(check["passed"] for check in result["checks"])
         return result

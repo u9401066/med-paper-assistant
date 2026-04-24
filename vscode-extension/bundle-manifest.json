@@ -42,7 +42,10 @@
     "statistics-reviewer"
   ],
   "templates": [
-    "journal-profile.template.yaml"
+    "journal-profile.template.yaml",
+    "csl/apa.csl",
+    "csl/vancouver.csl",
+    "csl/vancouver-superscript.csl"
   ],
   "supportFiles": [
     {

@@ -1,24 +1,21 @@
 {
   "version": 2,
-  "current_project": "med-paper-assistant-release-v0.7.7",
-  "last_activity": "2026-04-24T10:38:00Z",
-  "last_updated": "2026-04-24T10:38:00Z",
+  "current_project": "med-paper-assistant-release-v0.7.8",
+  "last_activity": "2026-04-24T13:09:07.573493",
+  "last_updated": "2026-04-24T13:09:07.573524",
   "workspace_state": {
     "open_drafts": [],
     "pending_validations": [],
     "last_search_pmids": [],
-    "last_tool_called": "release_validation"
+    "last_tool_called": "run_meta_learning"
   },
   "recovery_hints": {
-    "agent_was_doing": "Validated and preparing v0.7.7 clean release after v0.7.6 CI hygiene failures.",
-    "next_suggested_action": "Commit, push master, push v0.7.7 tag, then monitor CI/package publication.",
+    "agent_was_doing": "Meta-learning complete for test-project",
+    "next_suggested_action": "Review .audit/meta-learning-feedback.yaml and apply safe pending evolutions",
     "important_context": [
-      "pipeline_action(action=doctor) added",
-      "inspect_export(action=docx_smoke|xml_smoke) added",
-      "tool surface authority updated to 117 full / 22 compact",
-      "CI hygiene fixed: ruff, ruff format, mypy, bandit, prettier",
-      "full pytest passed: 1254 passed, 17 skipped, 1 deselected",
-      "bundle check and VSIX validate passed"
+      "pending_evolutions=36",
+      "auto_apply=1",
+      "requires_confirmation=35"
     ]
   },
   "cross_mcp_state": {

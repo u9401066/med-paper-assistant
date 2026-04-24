@@ -9,6 +9,11 @@ from typing import Any
 
 import structlog
 
+from med_paper_assistant.domain.services.citation_converter import (
+    extract_citation_keys,
+    extract_reference_wikilink_keys,
+)
+
 from ._constants import COMMON_ABBREVIATIONS
 from ._models import HookIssue, HookResult
 
@@ -43,9 +48,11 @@ class ManuscriptHooksMixin:
 
     def _sentence_has_evidence_marker(self, sentence: str) -> bool:
         """Return whether a strong claim sentence cites evidence or data context."""
+        if extract_reference_wikilink_keys(sentence):
+            return True
+
         evidence_patterns = [
             r"\[@[^\]]+\]",
-            r"\[\[[^\]]+\]\]",
             r"\bPMID\s*:?\s*\d+",
             r"\b(?:Figure|Table|Supplementary\s+(?:Figure|Table))\s+\d+",
             r"\bsource-material(?:s)?\b",
@@ -436,12 +443,12 @@ class ManuscriptHooksMixin:
         """
         issues: list[HookIssue] = []
 
-        all_wikilinks = re.findall(r"\[\[([^\]]+)\]\]", content)
-        if not all_wikilinks:
+        reference_keys = extract_reference_wikilink_keys(content)
+        if not reference_keys:
             return HookResult(
                 hook_id="C5",
                 passed=True,
-                stats={"total_wikilinks": 0, "resolved": 0, "unresolved": 0},
+                stats={"total_reference_wikilinks": 0, "resolved": 0, "unresolved": 0},
             )
 
         refs_dir = self._project_dir / "references"
@@ -454,7 +461,7 @@ class ManuscriptHooksMixin:
         resolved = 0
         unresolved = 0
 
-        for wl in all_wikilinks:
+        for wl in reference_keys:
             if wl in existing_refs:
                 resolved += 1
             else:
@@ -477,7 +484,8 @@ class ManuscriptHooksMixin:
 
         passed = unresolved == 0
         stats = {
-            "total_wikilinks": len(all_wikilinks),
+            "total_wikilinks": len(reference_keys),
+            "total_reference_wikilinks": len(reference_keys),
             "resolved": resolved,
             "unresolved": unresolved,
         }
@@ -905,8 +913,7 @@ class ManuscriptHooksMixin:
         """
         issues: list[HookIssue] = []
 
-        wikilinks = re.findall(r"\[\[(\w+\d{4}_\d+)\]\]", content)
-        unique_refs = set(wikilinks)
+        unique_refs = set(extract_reference_wikilink_keys(content))
 
         if not unique_refs:
             return HookResult(
@@ -1015,7 +1022,7 @@ class ManuscriptHooksMixin:
         for canon in canonical:
             for name, text in sections.items():
                 if name.lower().startswith(canon.lower()):
-                    count = len(re.findall(r"\[\[[^\]]+\]\]", text))
+                    count = len(extract_citation_keys(text))
                     section_citations[canon] = count
                     break
 

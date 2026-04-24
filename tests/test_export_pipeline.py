@@ -152,6 +152,18 @@ class TestPrepareForPandoc:
         assert "[@tang2023_38049909]" in result["content"]
         assert len(result["bibliography"]) == 1
 
+    def test_references_section_stripped_before_citation_conversion(self, pipeline):
+        content = (
+            "Body [1] [[tang2023_38049909]].\n\n"
+            "# References\n\n"
+            "[1] Tang J, Lee K. Example. [[tang2023_38049909]]\n"
+        )
+        result = pipeline.prepare_for_pandoc(content)
+        assert result["content"].count("[@tang2023_38049909]") == 1
+        assert "References" not in result["content"]
+        assert result["conversion"].citations_converted == 1
+        assert result["citation_keys"] == ["tang2023_38049909"]
+
     def test_reversible_format_legacy(self, pipeline):
         content = "Text [1]<!-- [[tang2023_38049909]] -->."
         result = pipeline.prepare_for_pandoc(content)
@@ -244,6 +256,27 @@ def test_inspect_docx_xml_smoke_fails_missing_document_xml(pipeline, tmp_path):
     )
 
 
+def test_inspect_docx_xml_smoke_fails_raw_citation_tokens(pipeline, tmp_path):
+    docx_path = tmp_path / "raw-citations.docx"
+    _write_minimal_docx(
+        docx_path,
+        (
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            "<w:body><w:p><w:r><w:t>Leaked [@tang2023_38049909] [[bad]]</w:t></w:r></w:p></w:body>"
+            "</w:document>"
+        ),
+    )
+
+    result = pipeline.inspect_docx_xml_smoke(docx_path)
+
+    assert result["passed"] is False
+    assert "[@" in result["stats"]["raw_citation_tokens"]
+    assert any(
+        check["name"] == "raw_citation_tokens" and check["passed"] is False
+        for check in result["checks"]
+    )
+
+
 class TestExportDocx:
     def test_export_calls_pandoc(self, pipeline, mock_pandoc, tmp_path):
         # Create a draft file
@@ -255,6 +288,7 @@ class TestExportDocx:
 
         assert result["success"] is True
         assert mock_pandoc.markdown_to_docx.called
+        assert result["citations_resolved"] == 1
         # Check Pandoc was called with a bibliography file
         call_kwargs = mock_pandoc.markdown_to_docx.call_args
         assert call_kwargs.kwargs.get("bibliography") is not None
@@ -514,3 +548,5 @@ class TestExportPdfStrictGate:
         call_kwargs = mock_pandoc.markdown_to_pdf.call_args
         extra_args = call_kwargs.kwargs.get("extra_args") or []
         assert any(str(arg).startswith("--resource-path=") for arg in extra_args)
+        assert "--citeproc" in extra_args
+        assert "--bibliography" in extra_args

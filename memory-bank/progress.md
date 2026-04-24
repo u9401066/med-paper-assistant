@@ -2,6 +2,15 @@
 
 ## Done
 
+- **v0.7.8 Vancouver export + FOAM compatibility release prep (2026-04-24)**:
+
+  - Fixed Vancouver/BJA superscript DOCX/PDF export raw `[@citekey]` leakage by always enabling Pandoc citeproc when bibliography data is present and adding `vancouver-superscript.csl`
+  - Stripped hand-maintained References sections before citation conversion so reference-list `[[ref_key]]` trailers cannot contaminate exported references
+  - Added DOCX XML raw citation token smoke checks for `[@`, `[[`, and `]]`
+  - Split manuscript citation conversion from FOAM library-wiki links/embeds/anchors/aliases and aligned C5/C10/C11/C14 hooks to the shared parser
+  - Folded remaining `codex/check-design-errors` branch fixes into master: `exports/` paths, workspace state `MEDPAPER_BASE_DIR`, and resolved project-path audit loop cache keys
+  - Targeted validation passed: citation converter, wikilink validator, export pipeline, Pandoc exporter, C5, and FOAM citation hook compatibility
+
 - **v0.7.6 agent-friction release prep (2026-04-24)**:
 
   - Added Phase 0 source-material intake, asset-aware ingestion receipt recording, Phase 2.1 pending-source blocking, and F4 data-anchor provenance validation
@@ -82,11 +91,11 @@
 
 ## Doing
 
-- Publishing v0.7.7: changelog/version/memory/roadmap update, commit, push branch, create and push tag
+- Publishing v0.7.8: changelog/version/memory update, bundle sync, validation, commit, push master, create and push tag
 
 ## Next
 
-- Watch v0.7.7 release tag CI and package publication status
+- Watch v0.7.8 release tag CI and package publication status
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

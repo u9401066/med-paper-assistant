@@ -30,6 +30,12 @@ import structlog
 logger = structlog.get_logger()
 
 _TEMPLATES_CSL_DIR = Path(__file__).parents[4] / "templates" / "csl"
+_CSL_ALIASES = {
+    "vancouver-superscript": "vancouver-superscript.csl",
+    "vancouver_superscript": "vancouver-superscript.csl",
+    "bja": "vancouver-superscript.csl",
+    "british-journal-of-anaesthesia": "vancouver-superscript.csl",
+}
 
 
 class PandocExporter:
@@ -114,15 +120,14 @@ class PandocExporter:
         csl_path = self._resolve_csl(csl) if csl else None
         if csl_path:
             args.extend(["--csl", csl_path])
-            # Pandoc citeproc requires --citeproc filter
-            if not filters:
-                filters = []
-            if "--citeproc" not in args:
-                args.append("--citeproc")
+        elif csl:
+            logger.warning("CSL style '%s' not found; Pandoc citeproc will use defaults", csl)
 
         # --bibliography for Pandoc's built-in citeproc
         if bibliography and os.path.isfile(bibliography):
             args.extend(["--bibliography", bibliography])
+            if "--citeproc" not in args:
+                args.append("--citeproc")
 
         # Apply filters
         if filters:
@@ -341,6 +346,12 @@ class PandocExporter:
         candidate = _TEMPLATES_CSL_DIR / csl
         if candidate.is_file():
             return str(candidate)
+
+        mapped = _CSL_ALIASES.get(csl.lower())
+        if mapped:
+            candidate = _TEMPLATES_CSL_DIR / mapped
+            if candidate.is_file():
+                return str(candidate)
 
         logger.warning("CSL style '%s' not found", csl)
         return None
