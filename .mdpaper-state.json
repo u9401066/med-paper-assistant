@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "current_project": "med-paper-assistant-release-v0.7.6",
-  "last_activity": "2026-04-24T10:32:00Z",
-  "last_updated": "2026-04-24T10:32:00Z",
+  "current_project": "med-paper-assistant-release-v0.7.7",
+  "last_activity": "2026-04-24T10:38:00Z",
+  "last_updated": "2026-04-24T10:38:00Z",
   "workspace_state": {
     "open_drafts": [],
     "pending_validations": [],
@@ -10,14 +10,15 @@
     "last_tool_called": "release_validation"
   },
   "recovery_hints": {
-    "agent_was_doing": "Validated and preparing v0.7.6 release after agent-friction, pipeline doctor, C14 severity, and DOCX smoke fixes.",
-    "next_suggested_action": "Commit, push master, push v0.7.6 tag, then monitor CI/package publication.",
+    "agent_was_doing": "Validated and preparing v0.7.7 clean release after v0.7.6 CI hygiene failures.",
+    "next_suggested_action": "Commit, push master, push v0.7.7 tag, then monitor CI/package publication.",
     "important_context": [
       "pipeline_action(action=doctor) added",
       "inspect_export(action=docx_smoke|xml_smoke) added",
       "tool surface authority updated to 117 full / 22 compact",
+      "CI hygiene fixed: ruff, ruff format, mypy, bandit, prettier",
       "full pytest passed: 1254 passed, 17 skipped, 1 deselected",
-      "bundle check and VSIX TypeScript compile passed"
+      "bundle check and VSIX validate passed"
     ]
   },
   "cross_mcp_state": {

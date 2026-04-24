@@ -18,13 +18,13 @@ from med_paper_assistant.infrastructure.persistence.writing_hooks._constants imp
     DEFAULT_MINIMUM_REFERENCES,
 )
 from med_paper_assistant.infrastructure.services import Drafter
+from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
 from med_paper_assistant.infrastructure.services.drafter import (
     draft_filename_from_section,
     normalize_draft_filename,
 )
-from med_paper_assistant.infrastructure.services.concept_validator import ConceptValidator
-from med_paper_assistant.shared.path_guard import resolve_child_path
 from med_paper_assistant.infrastructure.services.prompts import SECTION_PROMPTS
+from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .._shared import (
     auto_checkpoint_writing,

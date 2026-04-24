@@ -7,8 +7,8 @@ from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from ..draft.facade import _auto_run_post_write_hooks, _infer_section_name
 from .._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
+from ..draft.facade import _auto_run_post_write_hooks, _infer_section_name
 
 ToolMap = Mapping[str, Callable[..., Any]]
 
@@ -197,7 +197,9 @@ def register_analysis_facade_tools(
 
         result = await invoke_tool_handler(handler, **kwargs)
         result_text = str(result)
-        if normalized in {"insert_figure", "insert_table"} and not result_text.lstrip().startswith("❌"):
+        if normalized in {"insert_figure", "insert_table"} and not result_text.lstrip().startswith(
+            "❌"
+        ):
             hook_filename = draft_filename or "manuscript.md"
             result_text += _auto_run_post_write_hooks(
                 project=project,

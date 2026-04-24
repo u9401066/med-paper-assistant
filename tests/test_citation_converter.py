@@ -306,9 +306,7 @@ class TestExtractCitationKeys:
         assert "c2025_12345678" in keys
 
     def test_mixed_visible_and_legacy_reversible_formats(self):
-        content = (
-            "[1] [[a2023_1234567]] and [2]<!-- [[b2024_222]] --> and [[a2023_1234567]]"
-        )
+        content = "[1] [[a2023_1234567]] and [2]<!-- [[b2024_222]] --> and [[a2023_1234567]]"
         keys = extract_citation_keys(content)
         assert keys == ["a2023_1234567", "b2024_222"]
 

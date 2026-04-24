@@ -21,12 +21,12 @@ Compact-first MCP research workspace for manuscript and library-wiki workflows, 
 
 This extension is the packaged end-user surface, not the entire monorepo authoring workspace.
 
-| Included in the VSIX | Details |
-| -------------------- | ------- |
-| **MCP runtime** | `mdpaper` compact-first surface by default: 22 tools, with optional full 117-tool mode |
-| **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 1 journal template, and 7 support/reference files |
-| **Workspace UX** | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs |
-| **Not the full repo** | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface |
+| Included in the VSIX      | Details                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **MCP runtime**           | `mdpaper` compact-first surface by default: 22 tools, with optional full 117-tool mode                                                   |
+| **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 1 journal template, and 7 support/reference files                    |
+| **Workspace UX**          | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs                                      |
+| **Not the full repo**     | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface |
 
 ## Installation
 
@@ -61,22 +61,22 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 2. 在 Agent Mode 輸入：「全自動寫論文」
 3. 系統自動執行 11-Phase Pipeline：
 
-| Phase | 名稱          | 說明                             |
-| ----- | ------------- | -------------------------------- |
-| 0     | 前置規劃      | source-materials.yaml + journal-profile.yaml |
-| 1     | 專案設定      | 專案結構與 workflow config       |
-| 2     | 文獻搜索      | 並行搜尋 + save_reference_mcp    |
-| 2.1   | 全文/素材解析 | asset-aware + fulltext + source materials |
-| 3     | 概念發展      | concept.md 撰寫與 novelty framing |
-| 4     | Novelty 驗證  | 三輪評分 ≥ 75                    |
-| 5     | 逐節撰寫      | Introduction → Discussion        |
-| 6     | Audit         | quality-scorecard + hooks        |
-| 6.5   | Evolution Gate | baseline snapshot                |
-| 7     | 同行審查      | min_rounds=2 + R1-R6 gates       |
-| 8     | 引用同步      | sync_references                  |
-| 9     | 匯出          | docx + pdf（CRITICAL Gate）      |
-| 10    | Retrospective | pipeline-run artifact + meta-learning |
-| 11    | Final Delivery | final artifacts；Git provenance is optional |
+| Phase | 名稱           | 說明                                         |
+| ----- | -------------- | -------------------------------------------- |
+| 0     | 前置規劃       | source-materials.yaml + journal-profile.yaml |
+| 1     | 專案設定       | 專案結構與 workflow config                   |
+| 2     | 文獻搜索       | 並行搜尋 + save_reference_mcp                |
+| 2.1   | 全文/素材解析  | asset-aware + fulltext + source materials    |
+| 3     | 概念發展       | concept.md 撰寫與 novelty framing            |
+| 4     | Novelty 驗證   | 三輪評分 ≥ 75                                |
+| 5     | 逐節撰寫       | Introduction → Discussion                    |
+| 6     | Audit          | quality-scorecard + hooks                    |
+| 6.5   | Evolution Gate | baseline snapshot                            |
+| 7     | 同行審查       | min_rounds=2 + R1-R6 gates                   |
+| 8     | 引用同步       | sync_references                              |
+| 9     | 匯出           | docx + pdf（CRITICAL Gate）                  |
+| 10    | Retrospective  | pipeline-run artifact + meta-learning        |
+| 11    | Final Delivery | final artifacts；Git provenance is optional  |
 
 ## Usage
 
@@ -97,19 +97,19 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 ### Command Palette (Ctrl+Shift+P)
 
-| 指令                                  | 說明                                    |
-| ------------------------------------- | --------------------------------------- |
-| `MedPaper: Start MedPaper MCP Server` | 顯示 MCP 啟動說明                       |
-| `MedPaper: Stop MedPaper MCP Server`  | 顯示 MCP 停止說明                       |
-| `MedPaper: Auto Paper`                | 全自動寫論文                            |
-| `MedPaper: Show Status`               | 顯示擴充功能狀態                        |
+| 指令                                  | 說明                                                        |
+| ------------------------------------- | ----------------------------------------------------------- |
+| `MedPaper: Start MedPaper MCP Server` | 顯示 MCP 啟動說明                                           |
+| `MedPaper: Stop MedPaper MCP Server`  | 顯示 MCP 停止說明                                           |
+| `MedPaper: Auto Paper`                | 全自動寫論文                                                |
+| `MedPaper: Show Status`               | 顯示擴充功能狀態                                            |
 | `MedPaper: Setup Workspace`           | 複製 skills、prompts、agents、support docs/files、templates |
-| `MedPaper: Open LLM Wiki Guide`       | 直接開啟 `docs/how-to/llm-wiki.md`      |
-| `MedPaper: Show Foam Graph: Default`  | 開啟預設 Foam 圖譜切片                  |
-| `MedPaper: Show Foam Graph: Evidence` | 開啟 evidence 導向圖譜切片              |
-| `MedPaper: Show Foam Graph: Writing`  | 開啟 writing 導向圖譜切片               |
-| `MedPaper: Show Foam Graph: Assets`   | 開啟 figure/table 資產圖譜切片          |
-| `MedPaper: Show Foam Graph: Review`   | 開啟 review / pending 狀態圖譜切片      |
+| `MedPaper: Open LLM Wiki Guide`       | 直接開啟 `docs/how-to/llm-wiki.md`                          |
+| `MedPaper: Show Foam Graph: Default`  | 開啟預設 Foam 圖譜切片                                      |
+| `MedPaper: Show Foam Graph: Evidence` | 開啟 evidence 導向圖譜切片                                  |
+| `MedPaper: Show Foam Graph: Writing`  | 開啟 writing 導向圖譜切片                                   |
+| `MedPaper: Show Foam Graph: Assets`   | 開啟 figure/table 資產圖譜切片                              |
+| `MedPaper: Show Foam Graph: Review`   | 開啟 review / pending 狀態圖譜切片                          |
 
 ### Agent Mode 自然語言
 

@@ -6,20 +6,20 @@
 
 ## 當前焦點 (2026-04-24)
 
-v0.7.6 release：完成 agent-friction 消除線，包括 Phase 0 source-material intake、asset-aware ingestion receipt、F4 data-anchor provenance、C14 claim-evidence alignment、`pipeline_action(action="doctor")`、Phase 9 DOCX XML smoke，以及 tool-surface authority 更新；目前進入 commit/push/tag 發布收尾。
+v0.7.7 release：完成 agent-friction 消除線，包括 Phase 0 source-material intake、asset-aware ingestion receipt、F4 data-anchor provenance、C14 claim-evidence alignment、`pipeline_action(action="doctor")`、Phase 9 DOCX XML smoke，以及 tool-surface authority 更新；目前進入 commit/push/tag 發布收尾。
 
 ### 當前狀態
 
-| 項目                    | 數量/狀態                                                         |
-| ----------------------- | ----------------------------------------------------------------- |
-| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources     |
-| Repo Skills / Prompts   | **26 skills / 15 prompt workflows**                               |
-| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**      |
-| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                |
-| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`) |
-| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`    |
+| 項目                    | 數量/狀態                                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources                                                        |
+| Repo Skills / Prompts   | **26 skills / 15 prompt workflows**                                                                                  |
+| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**                                                         |
+| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                   |
+| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)                                                    |
+| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                       |
 | Latest Validation       | `1254 passed / 17 skipped / 1 deselected` full suite; `bundle:check`; VSIX `tsc`; targeted smoke/facade tests passed |
-| Packaging               | Version bumped to `0.7.6`; tag/push in progress                  |
+| Packaging               | Version bumped to `0.7.7`; tag/push in progress                                                                      |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 

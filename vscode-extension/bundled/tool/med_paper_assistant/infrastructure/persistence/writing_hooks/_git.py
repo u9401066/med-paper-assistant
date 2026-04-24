@@ -65,7 +65,9 @@ class GitHooksMixin:
                 env=env,
             )
             status_lines = result.stdout.strip().split("\n")
-            dirty_files = [line for line in status_lines if line.strip() and not line.startswith("#")]
+            dirty_files = [
+                line for line in status_lines if line.strip() and not line.startswith("#")
+            ]
             stats["dirty_files"] = len(dirty_files)
 
             if dirty_files:

@@ -478,7 +478,7 @@ Phase 10 — D7:
 
 | Prompt                 | 覆蓋 Phase       |
 | ---------------------- | ---------------- |
-| `/mdpaper.write-paper` | 0-11（含 6.5） |
+| `/mdpaper.write-paper` | 0-11（含 6.5）   |
 | `/mdpaper.draft`       | 5 only           |
 | `/mdpaper.audit` (NEW) | 6+7（審計+審稿） |
 | `/mdpaper.clarify`     | 5 only（潤稿）   |

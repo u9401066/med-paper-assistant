@@ -218,7 +218,9 @@ def test_materialize_agent_wiki_builds_indexed_pages_from_markdown_intake(tmp_pa
     log_text = (tmp_path / "notes" / "log.md").read_text(encoding="utf-8")
     knowledge_map_text = knowledge_map_path.read_text(encoding="utf-8")
     synthesis_text = synthesis_path.read_text(encoding="utf-8")
-    publish_index_text = (tmp_path / "notes" / "publish" / "knowledge-base.md").read_text(encoding="utf-8")
+    publish_index_text = (tmp_path / "notes" / "publish" / "knowledge-base.md").read_text(
+        encoding="utf-8"
+    )
 
     assert "Agent wiki materialized" in result
     assert knowledge_map_path.exists()
@@ -520,7 +522,7 @@ def test_update_fulltext_and_analysis_status_rewrites_metadata_and_note(tmp_path
     assert metadata_after["asset_aware_doc_id"] == "doc_456"
     assert metadata_after["analysis_completed"] is True
     assert metadata_after["usage_sections"] == ["Introduction", "Discussion"]
-    assert "asset_aware_doc_id: \"doc_456\"" in note_text
+    assert 'asset_aware_doc_id: "doc_456"' in note_text
     assert "analysis_completed: true" in note_text
     assert "Strong background evidence" in note_text
 
@@ -563,9 +565,9 @@ def test_resolve_reference_identity_updates_registry_and_preserves_aliases(tmp_p
     canonical_metadata = manager.get_metadata("12345678")
     hash_registry = json.loads((tmp_path / "registry" / "by-hash.json").read_text(encoding="utf-8"))
     index_text = (tmp_path / "notes" / "index.md").read_text(encoding="utf-8")
-    note_text = (
-        refs_dir / "12345678" / f"{canonical_metadata['citation_key']}.md"
-    ).read_text(encoding="utf-8")
+    note_text = (refs_dir / "12345678" / f"{canonical_metadata['citation_key']}.md").read_text(
+        encoding="utf-8"
+    )
 
     assert hash_registry[source_metadata["content_hash"]] == "12345678"
     assert source_metadata["citation_key"] in canonical_metadata["legacy_aliases"]
@@ -605,7 +607,9 @@ def test_persist_reference_payload_replaces_stale_doi_registry_entries(tmp_path)
     assert "10.1000/original-doi" not in doi_registry
 
 
-def test_resolve_reference_identity_preserves_conflicting_artifacts_without_overwrite(tmp_path) -> None:
+def test_resolve_reference_identity_preserves_conflicting_artifacts_without_overwrite(
+    tmp_path,
+) -> None:
     refs_dir = tmp_path / "references"
     manager = ReferenceManager(base_dir=str(refs_dir))
     source_file = tmp_path / "conflict.pdf"
@@ -644,11 +648,15 @@ def test_resolve_reference_identity_preserves_conflicting_artifacts_without_over
     canonical_metadata = manager.get_metadata("12345678")
     conflict_files = sorted(target_artifact_dir.glob(f"sections.from-{source_ref_id}*.md"))
     resolution_events = [
-        event for event in canonical_metadata.get("provenance", []) if event.get("event") == "identity_resolved"
+        event
+        for event in canonical_metadata.get("provenance", [])
+        if event.get("event") == "identity_resolved"
     ]
 
     assert "Resolved" in result
-    assert primary_sections.read_text(encoding="utf-8") == "# Canonical\n\nCanonical parsed content."
+    assert (
+        primary_sections.read_text(encoding="utf-8") == "# Canonical\n\nCanonical parsed content."
+    )
     assert len(conflict_files) == 1
     assert conflict_files[0].read_text(encoding="utf-8") == "# Local\n\nLocal parsed content."
     assert resolution_events[-1]["artifact_conflicts"] == [

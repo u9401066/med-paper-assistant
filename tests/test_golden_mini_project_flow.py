@@ -7,7 +7,9 @@ import pytest
 import yaml
 from mcp.server.fastmcp import FastMCP
 
-from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import PipelineGateValidator
+from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
+    PipelineGateValidator,
+)
 from med_paper_assistant.infrastructure.persistence.writing_hooks import WritingHooksEngine
 from med_paper_assistant.interfaces.mcp.tools.project.facade import register_project_facade_tools
 
@@ -71,7 +73,9 @@ async def test_golden_mini_project_source_ingestion_claim_and_anchor_flow(
     validator = PipelineGateValidator(project_dir)
     assert validator.validate_phase(0).passed
 
-    (project_dir / "references" / "fulltext-ingestion-status.md").write_text("none", encoding="utf-8")
+    (project_dir / "references" / "fulltext-ingestion-status.md").write_text(
+        "none", encoding="utf-8"
+    )
     pending_phase = validator.validate_phase(21)
     assert not pending_phase.passed
     assert "source-materials:asset-aware" in pending_phase.missing

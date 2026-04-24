@@ -82,11 +82,11 @@
 
 ## Doing
 
-- Publishing v0.7.6: changelog/version/memory/roadmap update, commit, push branch, create and push tag
+- Publishing v0.7.7: changelog/version/memory/roadmap update, commit, push branch, create and push tag
 
 ## Next
 
-- Watch v0.7.6 release tag CI and package publication status
+- Watch v0.7.7 release tag CI and package publication status
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

@@ -50,15 +50,15 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 
 **Phase 0 Source Materials + Journal Profile**: 先呼叫 `project_action(action="source_materials")` 掃描 workspace root 的 DOCX/XLSX/PDF/CSV 等用戶原始素材，產出 `.audit/source-materials.yaml`；若有 `pending_asset_aware`，先交給 asset-aware ingestion。之後再用內建麻醉學 Top 20 期刊設定（`templates/journal-profiles/`）或 `project_action(action="journal_profile")` 產生 `journal-profile.yaml`。
 
-| Phase           | 外部 MCP / 重點                                       |
-| --------------- | ----------------------------------------------------- |
-| 0 原始素材/期刊 | asset-aware-mcp🔸（pending DOCX/XLSX/PDF）            |
-| 2 文獻          | pubmed-search, zotero-keeper🔸                        |
-| 2.1 全文        | asset-aware-mcp🔸, pubmed-search                      |
-| 3 概念          | cgu🔸（novelty < 75）                                 |
-| 5 撰寫          | drawio🔸, cgu🔸, data tools                           |
-| 7 審查          | min_rounds=2（Code-Enforced）                         |
-| 9 匯出          | docx+pdf（CRITICAL Gate）                             |
+| Phase           | 外部 MCP / 重點                                         |
+| --------------- | ------------------------------------------------------- |
+| 0 原始素材/期刊 | asset-aware-mcp🔸（pending DOCX/XLSX/PDF）              |
+| 2 文獻          | pubmed-search, zotero-keeper🔸                          |
+| 2.1 全文        | asset-aware-mcp🔸, pubmed-search                        |
+| 3 概念          | cgu🔸（novelty < 75）                                   |
+| 5 撰寫          | drawio🔸, cgu🔸, data tools                             |
+| 7 審查          | min_rounds=2（Code-Enforced）                           |
+| 9 匯出          | docx+pdf（CRITICAL Gate）                               |
 | 11 Final        | final artifacts；Git remote/push 是 optional provenance |
 
 ## Hook 架構（79 checks — 56 Code-Enforced / 23 Agent-Driven）
@@ -84,30 +84,30 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 目前 authority：117 full / 22 compact default + 3 prompts + 3 resources。
 單一來源：`tool-surface-authority.json`。`scripts/check_tool_surface_authority.py`、release workflow、`npm run validate` 都會驗證這些數字。
 
-| 模組        | 重點                                                                                         |
-| ----------- | -------------------------------------------------------------------------------------------- |
-| project/    | CRUD + exploration + workspace state + writing checkpoint                                    |
+| 模組        | 重點                                                                                                                        |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| project/    | CRUD + exploration + workspace state + writing checkpoint                                                                   |
 | reference/  | save_reference_mcp 優先 + subagent analysis + local/web/markdown intake + canonical identity + wiki materialization（full） |
-| draft/      | writing + citation + editing (patch_draft)                                                   |
-| validation/ | validate_concept + wikilinks                                                                 |
-| analysis/   | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）        |
-| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept |
-| export/     | word + pandoc (docx/pdf/bib)                                                                 |
-| facade/     | project/workspace/review/pipeline/export stable entrypoints                                  |
+| draft/      | writing + citation + editing (patch_draft)                                                                                  |
+| validation/ | validate_concept + wikilinks                                                                                                |
+| analysis/   | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）                                       |
+| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept                                |
+| export/     | word + pandoc (docx/pdf/bib)                                                                                                |
+| facade/     | project/workspace/review/pipeline/export stable entrypoints                                                                 |
 
 ## VS Code Copilot Lifecycle Hooks
 
 7 個核心 hook 腳本（`.github/hooks/mdpaper-lifecycle.json`）。設計文件：`docs/design/copilot-lifecycle-hooks.md`。
 
-| Event            | 腳本                | 功能                                   |
-| ---------------- | ------------------- | -------------------------------------- |
+| Event            | 腳本                | 功能                                               |
+| ---------------- | ------------------- | -------------------------------------------------- |
 | SessionStart     | session-init.sh     | 載入模式/recovery/workflow mode/pending evolutions |
-| UserPromptSubmit | prompt-analyzer.sh  | 意圖偵測（mode-switch/commit/library/manuscript） |
-| PreToolUse       | pre-tool-guard.sh   | 模式保護 + 破壞性指令攔截              |
-| PostToolUse      | post-tool-check.sh  | Workflow-aware 提醒（library vs manuscript） |
-| PreCompact       | pre-compact-save.sh | Context 壓縮前 checkpoint              |
-| SubagentStart    | subagent-init.sh    | 注入專案/模式/workflow mode 至 subagent |
-| Stop             | session-stop.sh     | 審計 + 清理 + memory sync 提醒         |
+| UserPromptSubmit | prompt-analyzer.sh  | 意圖偵測（mode-switch/commit/library/manuscript）  |
+| PreToolUse       | pre-tool-guard.sh   | 模式保護 + 破壞性指令攔截                          |
+| PostToolUse      | post-tool-check.sh  | Workflow-aware 提醒（library vs manuscript）       |
+| PreCompact       | pre-compact-save.sh | Context 壓縮前 checkpoint                          |
+| SubagentStart    | subagent-init.sh    | 注入專案/模式/workflow mode 至 subagent            |
+| Stop             | session-stop.sh     | 審計 + 清理 + memory sync 提醒                     |
 
 補強層：`.github/hooks/mode-guard.json` 會在 `PreToolUse` 階段額外執行 `scripts/copilot_hook_guard.py`。它負責 Python/Windows-safe 的工具路徑解析，特別是 `apply_patch` 這類 shell hook 不易精準判斷的編輯入口。
 

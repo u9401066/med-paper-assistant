@@ -23,12 +23,12 @@ description: "📚 literature-survey - 系統性文獻調查"
 
 ## Phase 3: 評估擴展
 
-| 結果數  | 行動                      |
-| ------- | ------------------------- |
+| 結果數  | 行動                                                                                 |
+| ------- | ------------------------------------------------------------------------------------ |
 | < 20    | `generate_search_queries(topic, strategy="exploratory")` / `expand_search_queries()` |
-| 20-100  | 適中                      |
-| 100-300 | 篩選                      |
-| > 300   | 縮小                      |
+| 20-100  | 適中                                                                                 |
+| 100-300 | 篩選                                                                                 |
+| > 300   | 縮小                                                                                 |
 
 引用網路：`find_related_articles` + `find_citing_articles` + `get_article_references`
 

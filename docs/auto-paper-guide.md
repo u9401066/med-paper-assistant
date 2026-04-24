@@ -93,11 +93,11 @@ Meta-Learning (Phase 10)      ← 更新 Skill / Hook / Instructions
 
 **目的**：先登記用戶原始素材，再建立期刊約束，生成 `source-materials.yaml` + `journal-profile.yaml`
 
-| 項目 | 說明                                                                  |
-| ---- | --------------------------------------------------------------------- |
-| 輸入 | workspace root 的 DOCX/XLSX/PDF/CSV 等原始素材 + 期刊資訊             |
+| 項目 | 說明                                                                    |
+| ---- | ----------------------------------------------------------------------- |
+| 輸入 | workspace root 的 DOCX/XLSX/PDF/CSV 等原始素材 + 期刊資訊               |
 | 輸出 | `projects/{slug}/.audit/source-materials.yaml` + `journal-profile.yaml` |
-| Gate | source-material scan manifest 存在 + journal profile 存在             |
+| Gate | source-material scan manifest 存在 + journal profile 存在               |
 
 Agent 按優先順序取得資訊：
 
@@ -244,12 +244,12 @@ FOR section IN writing_order:
 
 42 項自動檢查分為 4 層，在寫作過程中即時觸發：
 
-| 層級       | 觸發時機                     | 檢查數 | 關注點                                     |
-| ---------- | ---------------------------- | ------ | ------------------------------------------ |
-| **Hook A** | 每次寫完（post-write）       | A1-A4  | 字數、引用密度、Anti-AI、Wikilink          |
-| **Hook B** | section 完成（post-section） | B1-B7  | 概念一致、🔒 保護、方法學、Brief 合規      |
+| 層級       | 觸發時機                     | 檢查數 | 關注點                                                        |
+| ---------- | ---------------------------- | ------ | ------------------------------------------------------------- |
+| **Hook A** | 每次寫完（post-write）       | A1-A4  | 字數、引用密度、Anti-AI、Wikilink                             |
+| **Hook B** | section 完成（post-section） | B1-B7  | 概念一致、🔒 保護、方法學、Brief 合規                         |
 | **Hook C** | 全稿完成（post-manuscript）  | C1-C14 | 整體一致性、投稿清單、數量合規、時間一致性、強 claim 證據對齊 |
-| **Hook D** | Phase 10 回顧                | D1-D7  | Hook 效能、閾值調整、自我改進              |
+| **Hook D** | Phase 10 回顧                | D1-D7  | Hook 效能、閾值調整、自我改進                                 |
 
 ### Hook A: post-write
 
@@ -409,32 +409,32 @@ metadata:
 
 Phase 0 產出的期刊約束文件，驅動所有後續 Phase：
 
-| YAML 欄位                           | 影響                              |
-| ----------------------------------- | --------------------------------- |
-| `paper.type`                        | Phase 1 設定 / Phase 4 寫作順序   |
-| `paper.sections`                    | Phase 4 大綱結構                  |
-| `word_limits.*`                     | Hook A1 / C6 / C7c 字數檢查       |
-| `assets.figures_max / tables_max`   | Phase 4 Asset Plan / C7a 數量檢查 |
-| `references.max_references`         | Phase 2 文獻數 / Phase 8 引用上限 |
-| `references.style`                  | Phase 8 引用格式                  |
-| `reporting_guidelines.checklist`    | Hook B5 方法學 / C2 投稿清單      |
-| `pipeline.hook_*_max_rounds`        | Hook A/B/C cascading 上限         |
-| `pipeline.review_max_rounds`        | Phase 7 Review 輪數               |
-| `pipeline.writing.anti_ai_*`        | Hook A3 嚴格度                    |
+| YAML 欄位                         | 影響                              |
+| --------------------------------- | --------------------------------- |
+| `paper.type`                      | Phase 1 設定 / Phase 4 寫作順序   |
+| `paper.sections`                  | Phase 4 大綱結構                  |
+| `word_limits.*`                   | Hook A1 / C6 / C7c 字數檢查       |
+| `assets.figures_max / tables_max` | Phase 4 Asset Plan / C7a 數量檢查 |
+| `references.max_references`       | Phase 2 文獻數 / Phase 8 引用上限 |
+| `references.style`                | Phase 8 引用格式                  |
+| `reporting_guidelines.checklist`  | Hook B5 方法學 / C2 投稿清單      |
+| `pipeline.hook_*_max_rounds`      | Hook A/B/C cascading 上限         |
+| `pipeline.review_max_rounds`      | Phase 7 Review 輪數               |
+| `pipeline.writing.anti_ai_*`      | Hook A3 嚴格度                    |
 
 ## source-materials.yaml 規格
 
 Phase 0 產出的原始素材清單，驅動後續資料、圖表、Methods/Results 寫作：
 
-| YAML 欄位                                 | 影響                                           |
-| ----------------------------------------- | ---------------------------------------------- |
-| `summary.total_candidates`                | 是否已掃描 workspace 原始素材                  |
+| YAML 欄位                                 | 影響                                          |
+| ----------------------------------------- | --------------------------------------------- |
+| `summary.total_candidates`                | 是否已掃描 workspace 原始素材                 |
 | `materials[].evidence_priority`           | Phase 3 concept / Phase 5 drafting 證據優先級 |
-| `materials[].ingestion.status`            | 是否需先走 asset-aware                         |
-| `agent_next_steps.asset_aware_file_paths` | agent 應交給 asset-aware 的具體檔案            |
+| `materials[].ingestion.status`            | 是否需先走 asset-aware                        |
+| `agent_next_steps.asset_aware_file_paths` | agent 應交給 asset-aware 的具體檔案           |
 
 `data-artifacts.yaml` 的 `data_anchors` 必須引用 ready/ingested source material、asset-aware doc、tracked data artifact，或可信 data file。若 anchor 來源是 `concept.md`、agent summary、inferred/estimated 值，或指向仍是 `pending_asset_aware` 的 DOCX/PDF，Hook F4 會以 CRITICAL 阻擋。
-| `pipeline.writing.citation_density` | Hook A2 引用密度                  |
+| `pipeline.writing.citation_density` | Hook A2 引用密度 |
 
 完整模板見：[templates/journal-profile.template.yaml](../templates/journal-profile.template.yaml)
 
@@ -502,31 +502,31 @@ Pipeline 啟動時自動偵測 `checkpoint.json`，提供選項：
 
 Pipeline 編排 5 個 MCP Server + 外部工具：
 
-| Phase | 內部 MCP | 外部 MCP                | 說明                   |
-| ----- | -------- | ----------------------- | ---------------------- |
+| Phase | 內部 MCP | 外部 MCP                   | 說明                                 |
+| ----- | -------- | -------------------------- | ------------------------------------ |
 | 0     | mdpaper  | asset-aware, fetch_webpage | 掃描原始素材 + 解析 submission guide |
-| 1     | mdpaper  | —                       | 建立專案               |
-| 2     | mdpaper  | pubmed-search, zotero   | 搜尋 + 儲存文獻        |
-| 2.1   | mdpaper  | asset-aware, pubmed-search | 文獻全文與素材解析     |
-| 3     | mdpaper  | CGU                     | 概念發展 + 創新性提升  |
-| 4     | mdpaper  | —                       | 產出 manuscript-plan   |
-| 5     | mdpaper  | drawio, CGU, data tools | 寫作 + 圖表 + 論點強化 |
-| 6     | mdpaper  | —                       | 全稿審計               |
-| 7     | mdpaper  | CGU                     | Review + 論點補強      |
-| 8     | mdpaper  | —                       | 引用同步               |
-| 9     | mdpaper  | —                       | Word 匯出              |
-| 10    | mdpaper  | —                       | Retrospective + Meta-learning |
-| 11    | mdpaper  | —                       | Final delivery         |
+| 1     | mdpaper  | —                          | 建立專案                             |
+| 2     | mdpaper  | pubmed-search, zotero      | 搜尋 + 儲存文獻                      |
+| 2.1   | mdpaper  | asset-aware, pubmed-search | 文獻全文與素材解析                   |
+| 3     | mdpaper  | CGU                        | 概念發展 + 創新性提升                |
+| 4     | mdpaper  | —                          | 產出 manuscript-plan                 |
+| 5     | mdpaper  | drawio, CGU, data tools    | 寫作 + 圖表 + 論點強化               |
+| 6     | mdpaper  | —                          | 全稿審計                             |
+| 7     | mdpaper  | CGU                        | Review + 論點補強                    |
+| 8     | mdpaper  | —                          | 引用同步                             |
+| 9     | mdpaper  | —                          | Word 匯出                            |
+| 10    | mdpaper  | —                          | Retrospective + Meta-learning        |
+| 11    | mdpaper  | —                          | Final delivery                       |
 
 ### 跨 MCP 資料傳遞
 
-| 來源          | 目標       | 傳遞物   | 規則                                                        |
-| ------------- | ---------- | -------- | ----------------------------------------------------------- |
-| pubmed-search | mdpaper    | PMID     | `save_reference_mcp(pmid)` — 只傳 PMID，資料由 MCP 直接取得 |
-| zotero-keeper | mdpaper    | PMID/DOI | 取 PMID → `save_reference_mcp()`                            |
+| 來源          | 目標       | 傳遞物                 | 規則                                                                   |
+| ------------- | ---------- | ---------------------- | ---------------------------------------------------------------------- |
+| pubmed-search | mdpaper    | PMID                   | `save_reference_mcp(pmid)` — 只傳 PMID，資料由 MCP 直接取得            |
+| zotero-keeper | mdpaper    | PMID/DOI               | 取 PMID → `save_reference_mcp()`                                       |
 | asset-aware   | mdpaper    | sections/tables/doc_id | Phase 0/2.1 解析 DOCX/XLSX/PDF 後回填 source-material/fulltext context |
-| CGU           | concept.md | 文字建議 | Agent 整合到 `write_draft()`                                |
-| drawio        | mdpaper    | XML      | `save_diagram(project, content)`                            |
+| CGU           | concept.md | 文字建議               | Agent 整合到 `write_draft()`                                           |
+| drawio        | mdpaper    | XML                    | `save_diagram(project, content)`                                       |
 
 ---
 

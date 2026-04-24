@@ -33,17 +33,17 @@ description: "🔍 mdpaper.search - 智能文獻搜尋與探索"
 1. `project_action(action="start_exploration")` → 臨時工作區
 2. `unified_search(query)` → `save_reference_mcp(pmid)`
 3. 準備好時：
-	- library 路徑 → `project_action(action="convert_exploration", name, workflow_mode="library-wiki")`
-	- manuscript 路徑 → `project_action(action="convert_exploration", name, workflow_mode="manuscript", paper_type="...")`
+   - library 路徑 → `project_action(action="convert_exploration", name, workflow_mode="library-wiki")`
+   - manuscript 路徑 → `project_action(action="convert_exploration", name, workflow_mode="manuscript", paper_type="...")`
 
 ## 快捷選項
 
-| 選項     | 執行                        |
-| -------- | --------------------------- |
-| 快速找   | `unified_search()`                              |
-| 精確找   | `generate_search_queries()` → `unified_search()` |
+| 選項     | 執行                                                              |
+| -------- | ----------------------------------------------------------------- |
+| 快速找   | `unified_search()`                                                |
+| 精確找   | `generate_search_queries()` → `unified_search()`                  |
 | PICO     | `parse_pico()` → `generate_search_queries()` → `unified_search()` |
-| 相關論文 | `find_related_articles()`   |
-| 誰引用   | `find_citing_articles()`    |
+| 相關論文 | `find_related_articles()`                                         |
+| 誰引用   | `find_citing_articles()`                                          |
 
 並行搜尋：多組 query → 合併去重 → 呈現

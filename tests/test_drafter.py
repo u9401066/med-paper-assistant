@@ -383,10 +383,14 @@ class TestSyncReferencesBlankLines:
 
         content = (drafts_dir / "test.md").read_text()
         body_content = content.split("## References")[0]
-        assert "(Smith et al., 2024) (Smith et al., 2024) [[smith2024_11111111]]" not in body_content
+        assert (
+            "(Smith et al., 2024) (Smith et al., 2024) [[smith2024_11111111]]" not in body_content
+        )
         assert body_content.count("(Smith et al., 2024) [[smith2024_11111111]]") == 1
 
-    def test_resync_visible_harvard_reversible_citations_does_not_duplicate_prefixes(self, tmp_path):
+    def test_resync_visible_harvard_reversible_citations_does_not_duplicate_prefixes(
+        self, tmp_path
+    ):
         refs_dir = tmp_path / "refs"
         drafts_dir = tmp_path / "drafts"
         drafts_dir.mkdir()
@@ -448,9 +452,7 @@ class TestSyncReferencesBlankLines:
         drafts_dir.mkdir()
 
         draft = (
-            "# Test\n\nBody sentence.\n\n"
-            "## References\n\n"
-            "[1] Example ref. [[smith2024_11111111]]\n"
+            "# Test\n\nBody sentence.\n\n## References\n\n[1] Example ref. [[smith2024_11111111]]\n"
         )
         (drafts_dir / "test.md").write_text(draft)
 

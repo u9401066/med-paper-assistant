@@ -271,7 +271,9 @@ def register_reference_manager_tools(
 
                 if isinstance(parsed_metadata, list):
                     if len(parsed_metadata) != len(parsed_paths):
-                        return "❌ metadata_json list length must match the number of provided paths."
+                        return (
+                            "❌ metadata_json list length must match the number of provided paths."
+                        )
                     metadata_items = parsed_metadata
                 elif isinstance(parsed_metadata, dict):
                     metadata_items = [parsed_metadata for _ in parsed_paths]

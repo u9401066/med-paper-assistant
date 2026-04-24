@@ -24,16 +24,16 @@
 
 This repository is the **full authoring and integration workspace** behind MedPaper Assistant. It combines the core MCP runtime, the packaged VSIX extension, bundled guides, and pinned integration submodules in one place.
 
-| Component                                                          | Type                   | Tools                            | Description                                                                                   |
-| ------------------------------------------------------------------ | ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------- |
-| **mdpaper**                                                        | Core MCP Server        | 117 (full) / 22 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37                               | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                           |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13                               | Creative generation: brainstorm, deep think, spark collision                                  |
-| **[VS Code Extension](vscode-extension/)**                         | Extension              | 11 cmds + 10 chat               | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
-| **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                | Project management UI, diagram editor                                                         |
-| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                | `[[wikilink]]` citation linking, hover preview, graph view                                    |
-| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26                               | Guided multi-tool workflows (literature review, draft writing...)                             |
-| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 15                               | `/mdpaper.search`, `/mdpaper.draft`, etc.                                                     |
+| Component                                                          | Type                   | Tools                             | Description                                                                                                                           |
+| ------------------------------------------------------------------ | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **mdpaper**                                                        | Core MCP Server        | 117 (full) / 22 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources                                    |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13                                | Creative generation: brainstorm, deep think, spark collision                                                                          |
+| **[VS Code Extension](vscode-extension/)**                         | Extension              | 11 cmds + 10 chat                 | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
+| **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                 | Project management UI, diagram editor                                                                                                 |
+| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                 | `[[wikilink]]` citation linking, hover preview, graph view                                                                            |
+| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26                                | Guided multi-tool workflows (literature review, draft writing...)                                                                     |
+| **[Prompts](.github/prompts/)**                                    | Prompt Files           | 15                                | `/mdpaper.search`, `/mdpaper.draft`, etc.                                                                                             |
 
 **External MCP Servers** (optional, installed via uvx):
 
@@ -45,10 +45,10 @@ Counts in these tables are release-gated via `tool-surface-authority.json` and `
 
 ### Choose Your Install Surface
 
-| Surface | Best for | What you get |
-| ------- | -------- | ------------ |
-| **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 26 skills, 15 prompt workflows, repo scripts, tests, and authoring docs |
-| **VSIX extension** | End users who want the packaged experience | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (22 tools by default / 117 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
+| Surface             | Best for                                       | What you get                                                                                                                                                                                       |
+| ------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 26 skills, 15 prompt workflows, repo scripts, tests, and authoring docs                                                                |
+| **VSIX extension**  | End users who want the packaged experience     | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (22 tools by default / 117 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
 
 The repository is the broader engineering surface. The VSIX is the curated end-user surface.
 
@@ -72,13 +72,13 @@ The repository is the broader engineering surface. The VSIX is the curated end-u
 - 🧭 **Guided Process** — Step-by-step prompts guide you from concept to publication-ready manuscript
 - 🔗 **All-in-One** — Search, write, cite, analyze, export — all integrated inside VS Code
 
-| Traditional Tools                   | Medical Paper Assistant                |
-| ----------------------------------- | -------------------------------------- |
-| Fixed templates, rigid workflow     | Flexible, exploratory approach         |
+| Traditional Tools                   | Medical Paper Assistant                                                  |
+| ----------------------------------- | ------------------------------------------------------------------------ |
+| Fixed templates, rigid workflow     | Flexible, exploratory approach                                           |
 | Separate apps for search/write/cite | One orchestrated workspace: 165+ tools and packaged workflows in VS Code |
-| Manual reference management         | Auto-save with verified PubMed data    |
-| Export then format                  | Direct Word export with journal styles |
-| Learn complex UI                    | Natural language conversation          |
+| Manual reference management         | Auto-save with verified PubMed data                                      |
+| Export then format                  | Direct Word export with journal styles                                   |
+| Learn complex UI                    | Natural language conversation                                            |
 
 ---
 
@@ -481,14 +481,14 @@ CGU runtime notes:
 
 ## 🔗 Foam Integration
 
-| Feature               | How to Use                                        | Benefit                                                       |
-| --------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
-| **Wikilinks**         | `[[greer2017_27345583]]`                          | Link drafts, concept pages, and synthesis notes               |
-| **Hover Preview**     | Mouse over any `[[link]]`                         | See abstract without opening file                             |
-| **Backlinks Panel**   | Open reference file                               | See which drafts or wiki notes cite this paper                |
-| **Graph View**        | `Ctrl+Shift+P` → `MedPaper: Show Foam Graph: ...` | Jump directly to Default / Evidence / Writing / Assets / Review |
-| **Materialized Views**| `notes/index.md`, `notes/library/overview.md`     | Review live counts, context hubs, and asset/draft graph nodes |
-| **Project Isolation** | Auto-switches on `switch_project`                 | Only see current project's references                         |
+| Feature                | How to Use                                        | Benefit                                                         |
+| ---------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| **Wikilinks**          | `[[greer2017_27345583]]`                          | Link drafts, concept pages, and synthesis notes                 |
+| **Hover Preview**      | Mouse over any `[[link]]`                         | See abstract without opening file                               |
+| **Backlinks Panel**    | Open reference file                               | See which drafts or wiki notes cite this paper                  |
+| **Graph View**         | `Ctrl+Shift+P` → `MedPaper: Show Foam Graph: ...` | Jump directly to Default / Evidence / Writing / Assets / Review |
+| **Materialized Views** | `notes/index.md`, `notes/library/overview.md`     | Review live counts, context hubs, and asset/draft graph nodes   |
+| **Project Isolation**  | Auto-switches on `switch_project`                 | Only see current project's references                           |
 
 ### LLM Wiki Enhancements
 
@@ -597,21 +597,21 @@ med-paper-assistant/
 
 ## 🗺️ Roadmap
 
-| Status | Feature                     | Description                                                    |
-| ------ | --------------------------- | -------------------------------------------------------------- |
-| ✅     | **3 MCP Servers**           | mdpaper (117 full / 22 compact) + pubmed-search (37) + CGU (13) |
-| ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation |
-| ✅     | **Project Memory**          | `.memory/` for cross-session AI context                        |
-| ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                         |
-| ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                          |
-| ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                         |
-| ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                           |
-| ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)             |
+| Status | Feature                     | Description                                                                  |
+| ------ | --------------------------- | ---------------------------------------------------------------------------- |
+| ✅     | **3 MCP Servers**           | mdpaper (117 full / 22 compact) + pubmed-search (37) + CGU (13)              |
+| ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation    |
+| ✅     | **Project Memory**          | `.memory/` for cross-session AI context                                      |
+| ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                                       |
+| ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                                        |
+| ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                                       |
+| ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                                         |
+| ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)                           |
 | 🔜     | **Richer VSX UX**           | TreeView, CodeLens, Diagnostics, and deeper in-editor surfaces (Direction C) |
-| 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations                    |
-| 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis                       |
-| 📋     | **AI Writing Intelligence** | Citation intelligence, coherence engine                        |
-| 📋     | **REST API Mode**           | Expose tools as REST API                                       |
+| 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations                                  |
+| 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis                                     |
+| 📋     | **AI Writing Intelligence** | Citation intelligence, coherence engine                                      |
+| 📋     | **REST API Mode**           | Expose tools as REST API                                                     |
 
 **Architecture Direction**: [Direction C — Full VSX + Foam + Pandoc](ROADMAP.md)
 

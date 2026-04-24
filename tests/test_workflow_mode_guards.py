@@ -46,12 +46,17 @@ def test_table_one_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
         table_one_tools,
         "resolve_project_context",
-        lambda project=None, required_mode="manuscript", project_manager=None: (None, "workflow-guard"),
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            None,
+            "workflow-guard",
+        ),
     )
     monkeypatch.setattr(
         table_one_tools,
         "ensure_project_context",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not reach project context")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("should not reach project context")
+        ),
     )
 
     captured = _capture_tool_functions(
@@ -73,12 +78,17 @@ def test_stats_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
         stats_tools,
         "resolve_project_context",
-        lambda project=None, required_mode="manuscript", project_manager=None: (None, "workflow-guard"),
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            None,
+            "workflow-guard",
+        ),
     )
     monkeypatch.setattr(
         stats_tools,
         "ensure_project_context",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not reach project context")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("should not reach project context")
+        ),
     )
 
     captured = _capture_tool_functions(
@@ -94,12 +104,17 @@ def test_figure_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
         figures_tools,
         "resolve_project_context",
-        lambda project=None, required_mode="manuscript", project_manager=None: (None, "workflow-guard"),
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            None,
+            "workflow-guard",
+        ),
     )
     monkeypatch.setattr(
         figures_tools,
         "ensure_project_context",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not reach project context")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("should not reach project context")
+        ),
     )
 
     captured = _capture_tool_functions(
@@ -119,12 +134,17 @@ def test_pandoc_export_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
         pandoc_export,
         "resolve_project_context",
-        lambda project=None, required_mode="manuscript", project_manager=None: (None, "workflow-guard"),
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            None,
+            "workflow-guard",
+        ),
     )
     monkeypatch.setattr(
         pandoc_export,
         "ensure_project_context",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not reach project context")),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("should not reach project context")
+        ),
     )
 
     funcs = pandoc_export.register_pandoc_export_tools(FastMCP("pandoc-guard-test"))
@@ -137,7 +157,10 @@ def test_word_export_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
         word_export,
         "resolve_project_context",
-        lambda project=None, required_mode="manuscript", project_manager=None: (None, "workflow-guard"),
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            None,
+            "workflow-guard",
+        ),
     )
 
     funcs = word_export.register_word_export_tools(
@@ -155,7 +178,10 @@ def test_review_formatting_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
         formatting_tools,
         "resolve_project_context",
-        lambda project=None, required_mode="manuscript", project_manager=None: (None, "workflow-guard"),
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            None,
+            "workflow-guard",
+        ),
     )
 
     captured = _capture_tool_functions(
@@ -238,29 +264,21 @@ def test_review_audit_tools_guard_library_workflow(monkeypatch):
         "resolve_project_context",
         lambda project=None, required_mode="manuscript", project_manager=None: (
             None,
-            "❌ This tool is only available for Manuscript Path projects.\n\nCurrent workflow: Library Wiki Path.\nSwitch project or update the current project workflow before retrying.\n\nSuggested fix:\n- `project_action(action=\"update\", workflow_mode=\"manuscript\")`\n- or switch to a project that already uses the required workflow mode.",
+            '❌ This tool is only available for Manuscript Path projects.\n\nCurrent workflow: Library Wiki Path.\nSwitch project or update the current project workflow before retrying.\n\nSuggested fix:\n- `project_action(action="update", workflow_mode="manuscript")`\n- or switch to a project that already uses the required workflow mode.',
         ),
     )
 
-    captured = _capture_tool_functions(
-        lambda mcp: audit_hook_tools.register_audit_hook_tools(mcp)
-    )
+    captured = _capture_tool_functions(lambda mcp: audit_hook_tools.register_audit_hook_tools(mcp))
 
-    assert (
-        captured["record_hook_event"](
-            hook_id="A1",
-            event_type="trigger",
-            project="library",
-        )
-        .startswith("❌ This tool is only available for Manuscript Path projects.")
-    )
-    assert (
-        captured["run_quality_audit"](
-            scores='{"citation_quality": 8, "text_quality": 8, "concept_consistency": 8, "format_compliance": 8}',
-            project="library",
-        )
-        .startswith("❌ This tool is only available for Manuscript Path projects.")
-    )
+    assert captured["record_hook_event"](
+        hook_id="A1",
+        event_type="trigger",
+        project="library",
+    ).startswith("❌ This tool is only available for Manuscript Path projects.")
+    assert captured["run_quality_audit"](
+        scores='{"citation_quality": 8, "text_quality": 8, "concept_consistency": 8, "format_compliance": 8}',
+        project="library",
+    ).startswith("❌ This tool is only available for Manuscript Path projects.")
     assert captured["run_meta_learning"](project="library").startswith(
         "❌ This tool is only available for Manuscript Path projects."
     )
@@ -273,30 +291,27 @@ def test_review_audit_tools_guard_library_workflow(monkeypatch):
     assert captured["run_review_hooks"](project="library").startswith(
         "❌ This tool is only available for Manuscript Path projects."
     )
-    assert (
-        captured["check_domain_constraints"](
-            content="Results text",
-            project="library",
-        )
-        .startswith("❌ This tool is only available for Manuscript Path projects.")
-    )
-    assert (
-        captured["evolve_constraint"](
-            constraint_id="L001",
-            rule="no_passive_results",
-            category="boundary",
-            description="Do not use passive voice in results.",
-            project="library",
-        )
-        .startswith("❌ This tool is only available for Manuscript Path projects.")
-    )
+    assert captured["check_domain_constraints"](
+        content="Results text",
+        project="library",
+    ).startswith("❌ This tool is only available for Manuscript Path projects.")
+    assert captured["evolve_constraint"](
+        constraint_id="L001",
+        rule="no_passive_results",
+        category="boundary",
+        description="Do not use passive voice in results.",
+        project="library",
+    ).startswith("❌ This tool is only available for Manuscript Path projects.")
 
 
 def test_review_pipeline_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
         pipeline_tools,
         "resolve_project_context",
-        lambda project=None, required_mode="manuscript", project_manager=None: (None, "workflow-guard"),
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            None,
+            "workflow-guard",
+        ),
     )
 
     captured = _capture_tool_functions(

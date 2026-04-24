@@ -119,7 +119,7 @@ def _auto_run_post_write_hooks(
         return (
             "\n\n---\n"
             "auto_hooks: skipped\n"
-            "reason: best-effort hook runner failed; run run_quality_checks(action=\"writing_hooks\") if needed"
+            'reason: best-effort hook runner failed; run run_quality_checks(action="writing_hooks") if needed'
         )
 
 
@@ -375,7 +375,7 @@ def register_draft_facade_tools(
             if normalized in {"review_asset", "review_asset_for_insertion"}:
                 return (
                     f"❌ Unsupported draft action '{action}'. "
-                    "Use `analysis_action(action=\"review_asset\")` for "
+                    'Use `analysis_action(action="review_asset")` for '
                     "figure/table asset review."
                 )
             return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
@@ -387,10 +387,12 @@ def register_draft_facade_tools(
 
         result = await invoke_tool_handler(handler, **kwargs)
         result_text = str(result)
-        if (
-            normalized in {"write", "patch", "insert_figure", "insert_table"}
-            and not result_text.lstrip().startswith("❌")
-        ):
+        if normalized in {
+            "write",
+            "patch",
+            "insert_figure",
+            "insert_table",
+        } and not result_text.lstrip().startswith("❌"):
             hook_filename = write_filename if normalized == "write" else filename
             if normalized in {"insert_figure", "insert_table"}:
                 hook_filename = draft_filename or "manuscript.md"

@@ -82,8 +82,12 @@ class JournalConfigMixin:
             profile.get("language"),
             profile.get("language_preference"),
             profile.get("prefer_language"),
-            profile.get("journal", {}).get("locale") if isinstance(profile.get("journal"), dict) else None,
-            profile.get("journal", {}).get("language") if isinstance(profile.get("journal"), dict) else None,
+            profile.get("journal", {}).get("locale")
+            if isinstance(profile.get("journal"), dict)
+            else None,
+            profile.get("journal", {}).get("language")
+            if isinstance(profile.get("journal"), dict)
+            else None,
             profile.get("pipeline", {}).get("writing", {}).get("prefer_language")
             if isinstance(profile.get("pipeline"), dict)
             else None,
@@ -95,7 +99,10 @@ class JournalConfigMixin:
             journal_name = str(journal.get("name") or journal.get("abbreviation") or "")
         else:
             journal_name = str(journal or "")
-        if "british journal of anaesthesia" in journal_name.lower() or journal_name.lower() == "bja":
+        if (
+            "british journal of anaesthesia" in journal_name.lower()
+            or journal_name.lower() == "bja"
+        ):
             return "british"
 
         for candidate in candidates:

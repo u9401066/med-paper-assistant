@@ -177,10 +177,14 @@ def _iter_source_material_files(
         return []
     if scan_root.is_file():
         suffix = scan_root.suffix.lower()
-        return [scan_root] if (
-            suffix in _SOURCE_MATERIAL_EXTENSIONS
-            or (include_markdown and suffix in _MARKDOWN_SOURCE_EXTENSIONS)
-        ) else []
+        return (
+            [scan_root]
+            if (
+                suffix in _SOURCE_MATERIAL_EXTENSIONS
+                or (include_markdown and suffix in _MARKDOWN_SOURCE_EXTENSIONS)
+            )
+            else []
+        )
 
     root = scan_root.resolve()
     resolved_project = project_dir.resolve()
@@ -404,7 +408,9 @@ def _refresh_source_materials_summary(manifest: dict[str, Any]) -> None:
     }
     manifest["agent_next_steps"] = {
         "asset_aware_required": bool(pending),
-        "asset_aware_file_paths": [str(entry.get("path")) for entry in pending if entry.get("path")],
+        "asset_aware_file_paths": [
+            str(entry.get("path")) for entry in pending if entry.get("path")
+        ],
         "instruction": (
             "Call asset-aware ingest_documents on asset_aware_file_paths before Phase 5 "
             "and use extracted tables/sections as primary evidence."
@@ -414,7 +420,9 @@ def _refresh_source_materials_summary(manifest: dict[str, Any]) -> None:
     }
 
 
-def _write_source_materials_report_from_manifest(project_dir: Path, manifest: dict[str, Any]) -> Path:
+def _write_source_materials_report_from_manifest(
+    project_dir: Path, manifest: dict[str, Any]
+) -> Path:
     """Write a compact markdown source-material report from the manifest."""
     report_path = project_dir / ".audit" / "source-materials.md"
     summary = manifest.get("summary", {})
@@ -435,7 +443,8 @@ def _write_source_materials_report_from_manifest(project_dir: Path, manifest: di
         for entry in materials:
             if not isinstance(entry, dict):
                 continue
-            ingestion = entry.get("ingestion") if isinstance(entry.get("ingestion"), dict) else {}
+            raw_ingestion = entry.get("ingestion")
+            ingestion: dict[str, Any] = raw_ingestion if isinstance(raw_ingestion, dict) else {}
             lines.append(
                 "| {id} | {file} | {kind} | {status} | {doc_id} |".format(
                     id=entry.get("id", ""),
@@ -464,7 +473,10 @@ def _record_asset_ingestion_receipt(
     """Record an asset-aware ingestion receipt in `.audit/source-materials.yaml`."""
     manifest_path = project_dir / ".audit" / "source-materials.yaml"
     if not manifest_path.is_file():
-        return False, "MISSING .audit/source-materials.yaml — run project_action(action=\"source_materials\") first"
+        return (
+            False,
+            'MISSING .audit/source-materials.yaml — run project_action(action="source_materials") first',
+        )
     if not asset_aware_doc_id.strip():
         return False, "asset_aware_doc_id is required"
 
@@ -499,7 +511,10 @@ def _record_asset_ingestion_receipt(
             break
 
     if target is None:
-        return False, "source material not found; pass source_material_id or source_path from source-materials.yaml"
+        return (
+            False,
+            "source material not found; pass source_material_id or source_path from source-materials.yaml",
+        )
 
     ingestion = target.setdefault("ingestion", {})
     if not isinstance(ingestion, dict):
@@ -510,7 +525,9 @@ def _record_asset_ingestion_receipt(
     ingestion.update(
         {
             "status": status,
-            "required": False if status == "ingested_asset_aware" else ingestion.get("required", True),
+            "required": False
+            if status == "ingested_asset_aware"
+            else ingestion.get("required", True),
             "asset_aware_doc_id": asset_aware_doc_id.strip(),
             "ingested_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -785,7 +802,9 @@ def register_project_facade_tools(
                     for name, spec in sorted(action_specs.items())
                 },
                 aliases=aliases,
-                notes=["Use action='list' to list projects; use action='current' for active project."],
+                notes=[
+                    "Use action='list' to list projects; use action='current' for active project."
+                ],
             )
 
         if normalized == "journal_profile":
@@ -812,7 +831,7 @@ def register_project_facade_tools(
                 f"journal: {profile['journal']['name']}\n"
                 f"paper_type: {profile['paper']['type']}\n"
                 f"citation_style: {profile['references']['style']}\n"
-                "next: project_action(action=\"source_materials\"), then pipeline_action(action=\"validate_phase\", phase=0)"
+                'next: project_action(action="source_materials"), then pipeline_action(action="validate_phase", phase=0)'
             )
 
         if normalized == "source_materials":
@@ -844,7 +863,7 @@ def register_project_facade_tools(
                 f"ready_native: {summary['ready_native']}\n"
                 "asset_aware_file_paths:\n"
                 f"{pending_lines}\n"
-                "next: call asset-aware ingest_documents for pending paths, then pipeline_action(action=\"validate_phase\", phase=0)"
+                'next: call asset-aware ingest_documents for pending paths, then pipeline_action(action="validate_phase", phase=0)'
             )
 
         if normalized == "record_asset_ingestion":
@@ -876,7 +895,7 @@ def register_project_facade_tools(
                 "status: ok\n"
                 "action: record_asset_ingestion\n"
                 f"{message}\n"
-                "next: pipeline_action(action=\"validate_phase\", phase=21)"
+                'next: pipeline_action(action="validate_phase", phase=21)'
             )
 
         if normalized not in action_specs:

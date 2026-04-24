@@ -24,9 +24,9 @@ import tempfile
 import zipfile
 from pathlib import Path
 from typing import Any
-from xml.etree import ElementTree
 
 import structlog
+from defusedxml import ElementTree
 
 from med_paper_assistant.domain.services.citation_converter import (
     extract_citation_keys,

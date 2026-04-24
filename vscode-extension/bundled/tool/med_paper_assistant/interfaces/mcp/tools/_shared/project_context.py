@@ -222,7 +222,7 @@ def _format_workflow_mode_error(current_mode: str, required_mode: str) -> str:
         f"Current workflow: {current_mode_name}.\n"
         "Switch project or update the current project workflow before retrying.\n\n"
         "Suggested fix:\n"
-        f"- `project_action(action=\"update\", workflow_mode=\"{required_mode}\")`\n"
+        f'- `project_action(action="update", workflow_mode="{required_mode}")`\n'
         "- or switch to a project that already uses the required workflow mode."
     )
 

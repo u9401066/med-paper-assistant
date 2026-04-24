@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.7] - 2026-04-24
+
+### Fixed
+
+- Fixed release CI hygiene after v0.7.6 by applying Ruff import/format cleanup, Prettier Markdown formatting, mypy type narrowing, Bandit-safe DOCX XML parsing via `defusedxml`, and synced VSIX bundle mirrors.
+
 ## [0.7.6] - 2026-04-24
 
 ### Added

@@ -1496,9 +1496,9 @@ class PipelineGateValidator:
         source_materials_path = self._audit_dir / "source-materials.yaml"
         if source_materials_path.is_file():
             try:
-                source_manifest = yaml.safe_load(
-                    source_materials_path.read_text(encoding="utf-8")
-                ) or {}
+                source_manifest = (
+                    yaml.safe_load(source_materials_path.read_text(encoding="utf-8")) or {}
+                )
             except (yaml.YAMLError, OSError):
                 source_manifest = {}
             materials = source_manifest.get("materials", [])
@@ -1509,11 +1509,8 @@ class PipelineGateValidator:
             for material in materials:
                 if not isinstance(material, dict):
                     continue
-                ingestion = (
-                    material.get("ingestion")
-                    if isinstance(material.get("ingestion"), dict)
-                    else {}
-                )
+                raw_ingestion = material.get("ingestion")
+                ingestion: dict[str, Any] = raw_ingestion if isinstance(raw_ingestion, dict) else {}
                 if ingestion.get("status") != "pending_asset_aware":
                     continue
                 role = str(
@@ -1548,7 +1545,7 @@ class PipelineGateValidator:
                         ),
                         search_path=".audit/source-materials.yaml",
                         fix_hint=(
-                            'Call asset-aware ingest_documents, then '
+                            "Call asset-aware ingest_documents, then "
                             'project_action(action="record_asset_ingestion", '
                             'source_material_id="source-001", asset_aware_doc_id="...").'
                         ),
@@ -2434,7 +2431,9 @@ class PipelineGateValidator:
                         env=env,
                     )
                     if result.returncode != 0:
-                        detail = result.stderr.strip() or result.stdout.strip() or "unknown git error"
+                        detail = (
+                            result.stderr.strip() or result.stdout.strip() or "unknown git error"
+                        )
                         raise OSError(detail)
                     return result
 
@@ -2460,15 +2459,13 @@ class PipelineGateValidator:
 
                 # 3. Check latest commit contains project files
                 try:
-                    project_rel = self._project_dir.resolve().relative_to(
-                        workspace_root.resolve()
-                    ).as_posix()
+                    project_rel = (
+                        self._project_dir.resolve().relative_to(workspace_root.resolve()).as_posix()
+                    )
                 except ValueError:
                     project_rel = "projects"
 
-                result = _run_git(
-                    ["log", "-1", "--name-only", "--format=%H %s", "--", project_rel]
-                )
+                result = _run_git(["log", "-1", "--name-only", "--format=%H %s", "--", project_rel])
                 commit_output = result.stdout.strip()
                 commit_lines = commit_output.splitlines()
                 changed_files = [line.strip() for line in commit_lines[1:] if line.strip()]
@@ -2496,7 +2493,9 @@ class PipelineGateValidator:
                 is_pushed = has_upstream and "branch.ab +0" in branch_info
                 if not has_upstream:
                     push_passed = True
-                    push_details = "No upstream configured; remote publishing is optional for paper delivery"
+                    push_details = (
+                        "No upstream configured; remote publishing is optional for paper delivery"
+                    )
                     push_severity = "INFO"
                 elif is_pushed:
                     push_passed = True
@@ -2504,7 +2503,9 @@ class PipelineGateValidator:
                     push_severity = "INFO"
                 else:
                     push_passed = False
-                    push_details = "Unpushed commits exist; remote sync is optional for paper delivery"
+                    push_details = (
+                        "Unpushed commits exist; remote sync is optional for paper delivery"
+                    )
                     push_severity = "WARNING"
                 checks.append(
                     GateCheck(

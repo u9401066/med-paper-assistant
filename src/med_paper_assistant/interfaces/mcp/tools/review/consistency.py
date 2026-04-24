@@ -284,9 +284,7 @@ def _check_figure_table_archive(
         if not raw_fname:
             continue
         try:
-            manifest_files.add(
-                normalize_relative_filename(raw_fname, field_name="figure filename")
-            )
+            manifest_files.add(normalize_relative_filename(raw_fname, field_name="figure filename"))
         except (PathGuardError, ValueError) as exc:
             report.add(
                 category="Figure/Table Archive",
@@ -299,9 +297,7 @@ def _check_figure_table_archive(
         if not raw_fname:
             continue
         try:
-            manifest_files.add(
-                normalize_relative_filename(raw_fname, field_name="table filename")
-            )
+            manifest_files.add(normalize_relative_filename(raw_fname, field_name="table filename"))
         except (PathGuardError, ValueError) as exc:
             report.add(
                 category="Figure/Table Archive",

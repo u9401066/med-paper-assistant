@@ -24,16 +24,16 @@
 
 這個 repository 是 MedPaper Assistant 的**完整作者面與整合工作區**。它把核心 MCP runtime、可安裝的 VSIX 擴充功能、bundled 教學文件，以及釘選的整合子模組放在同一個地方維護。
 
-| 元件                                                               | 類型                 | 工具數                         | 說明                                                                                    |
-| ------------------------------------------------------------------ | -------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
-| **mdpaper**                                                        | 核心 MCP Server      | 117（full）/ 22（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37                             | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                               |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13                             | 創意發想：腦力激盪、深度思考、火花碰撞                                                  |
-| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 11 指令 + 10 chat             | MCP 自動註冊、compact-first 打包面、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者       |
-| **[Dashboard](dashboard/)**                                        | Next.js Web App      | —                              | 專案管理 UI、圖表編輯器                                                                 |
-| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —                              | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖                                             |
-| **[Skills](.claude/skills/)**                                      | Agent 工作流         | 26                             | 引導式多工具工作流（文獻回顧、草稿寫作...）                                             |
-| **[Prompts](.github/prompts/)**                                    | Prompt Files         | 15                             | `/mdpaper.search`、`/mdpaper.draft` 等                                                  |
+| 元件                                                               | 類型                 | 工具數                          | 說明                                                                                                   |
+| ------------------------------------------------------------------ | -------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **mdpaper**                                                        | 核心 MCP Server      | 117（full）/ 22（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources                       |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37                              | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                                              |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13                              | 創意發想：腦力激盪、深度思考、火花碰撞                                                                 |
+| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 11 指令 + 10 chat               | MCP 自動註冊、compact-first 打包面、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者 |
+| **[Dashboard](dashboard/)**                                        | Next.js Web App      | —                               | 專案管理 UI、圖表編輯器                                                                                |
+| **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —                               | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖                                                            |
+| **[Skills](.claude/skills/)**                                      | Agent 工作流         | 26                              | 引導式多工具工作流（文獻回顧、草稿寫作...）                                                            |
+| **[Prompts](.github/prompts/)**                                    | Prompt Files         | 15                              | `/mdpaper.search`、`/mdpaper.draft` 等                                                                 |
 
 **外部 MCP Server**（選用，透過 uvx 安裝）：
 
@@ -45,10 +45,10 @@
 
 ### 如何選擇安裝面
 
-| 安裝面 | 適合誰 | 你會拿到什麼 |
-| ------ | ------ | ------------ |
-| **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、26 個 skills、15 個 prompt workflows、repo scripts、tests 與作者文件 |
-| **VSIX 擴充功能** | 想直接用打包體驗的終端使用者 | `@mdpaper`、11 個 palette commands、compact-first `mdpaper` runtime（預設 22 工具 / 可切 117）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
+| 安裝面              | 適合誰                            | 你會拿到什麼                                                                                                                                                                                  |
+| ------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、26 個 skills、15 個 prompt workflows、repo scripts、tests 與作者文件                                                                            |
+| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者      | `@mdpaper`、11 個 palette commands、compact-first `mdpaper` runtime（預設 22 工具 / 可切 117）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
 
 也就是說：repository 是較寬的工程面；VSIX 是較收斂的終端使用者面。
 
@@ -72,13 +72,13 @@
 - 🧭 **引導式流程** — 一步步的提示引導你從構思到可投稿的論文
 - 🔗 **全部整合** — 搜尋、寫作、引用、分析、匯出 — 全部在 VS Code 裡
 
-| 傳統工具                   | Medical Paper Assistant          |
-| -------------------------- | -------------------------------- |
-| 固定模板、僵化流程         | 彈性、探索式方法                 |
+| 傳統工具                   | Medical Paper Assistant                                  |
+| -------------------------- | -------------------------------------------------------- |
+| 固定模板、僵化流程         | 彈性、探索式方法                                         |
 | 搜尋/寫作/引用分開多個 App | 同一個協調工作區：165+ 個工具與打包工作流都在 VS Code 裡 |
-| 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料       |
-| 匯出後再排版               | 直接匯出符合期刊格式的 Word      |
-| 學習複雜介面               | 自然語言對話                     |
+| 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料                               |
+| 匯出後再排版               | 直接匯出符合期刊格式的 Word                              |
+| 學習複雜介面               | 自然語言對話                                             |
 
 ---
 
@@ -481,14 +481,14 @@ CGU 執行說明：
 
 ## 🔗 Foam 整合
 
-| 功能          | 使用方式                                                | 好處                                                     |
-| ------------- | ------------------------------------------------------- | -------------------------------------------------------- |
-| **Wikilinks** | `[[greer2017_27345583]]`                                | 在草稿、concept pages、synthesis pages 間互連            |
-| **懸停預覽**  | 滑鼠移到 `[[連結]]`                                     | 不用開檔案就能看摘要                                     |
-| **反向連結**  | 開啟參考文獻檔案                                        | 查看哪些草稿或 wiki 筆記引用了這篇論文                   |
-| **圖譜視圖**  | `Ctrl+Shift+P` → `MedPaper: Show Foam Graph: ...`       | 直接切到 Default / Evidence / Writing / Assets / Review |
-| **物化索引**  | `notes/index.md`、`notes/library/overview.md`           | 查看 live counts、context hubs、asset/draft graph nodes |
-| **專案隔離**  | `switch_project` 自動切換                               | 只看到當前專案的引用                                     |
+| 功能          | 使用方式                                          | 好處                                                    |
+| ------------- | ------------------------------------------------- | ------------------------------------------------------- |
+| **Wikilinks** | `[[greer2017_27345583]]`                          | 在草稿、concept pages、synthesis pages 間互連           |
+| **懸停預覽**  | 滑鼠移到 `[[連結]]`                               | 不用開檔案就能看摘要                                    |
+| **反向連結**  | 開啟參考文獻檔案                                  | 查看哪些草稿或 wiki 筆記引用了這篇論文                  |
+| **圖譜視圖**  | `Ctrl+Shift+P` → `MedPaper: Show Foam Graph: ...` | 直接切到 Default / Evidence / Writing / Assets / Review |
+| **物化索引**  | `notes/index.md`、`notes/library/overview.md`     | 查看 live counts、context hubs、asset/draft graph nodes |
+| **專案隔離**  | `switch_project` 自動切換                         | 只看到當前專案的引用                                    |
 
 ### LLM Wiki 補強點
 
@@ -597,21 +597,21 @@ med-paper-assistant/
 
 ## 🗺️ 開發藍圖
 
-| 狀態 | 功能                        | 說明                                                           |
-| ---- | --------------------------- | -------------------------------------------------------------- |
-| ✅   | **3 個 MCP Server**         | mdpaper（117 full / 22 compact）+ pubmed-search (37) + CGU (13) |
-| ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、命名 graph views、專案隔離      |
-| ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                  |
-| ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                             |
-| ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                                          |
-| ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                                 |
-| ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                             |
-| ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...）            |
+| 狀態 | 功能                        | 說明                                                             |
+| ---- | --------------------------- | ---------------------------------------------------------------- |
+| ✅   | **3 個 MCP Server**         | mdpaper（117 full / 22 compact）+ pubmed-search (37) + CGU (13)  |
+| ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、命名 graph views、專案隔離        |
+| ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                    |
+| ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                               |
+| ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                                            |
+| ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                                   |
+| ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                               |
+| ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...）              |
 | 🔜   | **更完整的 VSX UX**         | TreeView、CodeLens、Diagnostics 與更深入的編輯器內表面（方向 C） |
-| 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                            |
-| 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                                |
-| 📋   | **AI Writing Intelligence** | 引用智慧、連貫性引擎                                           |
-| 📋   | **REST API 模式**           | 將工具公開為 REST API                                          |
+| 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                              |
+| 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                                  |
+| 📋   | **AI Writing Intelligence** | 引用智慧、連貫性引擎                                             |
+| 📋   | **REST API 模式**           | 將工具公開為 REST API                                            |
 
 **架構方向**：[Direction C — Full VSX + Foam + Pandoc](ROADMAP.md)
 

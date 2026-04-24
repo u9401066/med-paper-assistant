@@ -358,7 +358,7 @@ Export Phase:
     }
   },
   "foam.links.hover.enable": true,
-    "foam.preview.embedNoteType": "full-card"
+  "foam.preview.embedNoteType": "full-card"
 }
 ```
 

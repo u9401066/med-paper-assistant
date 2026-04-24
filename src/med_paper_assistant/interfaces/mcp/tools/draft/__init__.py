@@ -14,6 +14,7 @@ Migrated to Skills:
 
 from collections.abc import Callable, Mapping
 from typing import Any
+
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.services import Drafter

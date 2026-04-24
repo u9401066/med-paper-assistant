@@ -5,8 +5,8 @@ Converts [[wikilink]] citations → [@key] → formatted citations via Pandoc --
 Generates CSL-JSON bibliography automatically from local references.
 """
 
-import os
 import json
+import os
 from pathlib import Path
 from typing import Optional
 

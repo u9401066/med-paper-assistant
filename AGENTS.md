@@ -112,56 +112,56 @@ Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit H
 
 **Code-Enforced**（`run_writing_hooks` / `run_review_hooks` / `run_meta_learning` 有確定性程式碼邏輯）：
 
-| Hook                  | 引擎                                                 | 位置                                           |
-| --------------------- | ---------------------------------------------------- | ---------------------------------------------- |
-| A1 字數合規           | WritingHooksEngine.check_word_count_compliance       | persistence/writing_hooks/\_post_write.py      |
-| A2 引用密度           | WritingHooksEngine.check_citation_density            | persistence/writing_hooks/\_post_write.py      |
-| A3 Anti-AI 偵測       | WritingHooksEngine.check_anti_ai_patterns            | persistence/writing_hooks/\_post_write.py      |
-| A3b AI 結構信號       | WritingHooksEngine.check_ai_writing_signals          | persistence/writing_hooks/\_post_write.py      |
-| A3c 語體一致性        | WritingHooksEngine.check_voice_consistency           | persistence/writing_hooks/\_post_write.py      |
-| A4 Wikilink 格式      | WritingHooksEngine.check_wikilink_format             | persistence/writing_hooks/\_post_write.py      |
-| A5 語言一致性         | WritingHooksEngine.check_language_consistency        | persistence/writing_hooks/\_post_write.py      |
-| A6 段落重複           | WritingHooksEngine.check_overlap                     | persistence/writing_hooks/\_post_write.py      |
-| A7 文獻數量充足性     | WritingHooksEngine.check_reference_sufficiency       | persistence/writing_hooks/\_engine.py          |
-| B2 🔒保護內容         | WritingHooksEngine.\_run_b2_protected_content        | persistence/writing_hooks/\_engine.py          |
-| B8 統計對齊           | WritingHooksEngine.check_data_claim_alignment        | persistence/writing_hooks/\_section_quality.py |
-| B9 時態一致性         | WritingHooksEngine.check_section_tense               | persistence/writing_hooks/\_section_quality.py |
-| B10 段落品質          | WritingHooksEngine.check_paragraph_quality           | persistence/writing_hooks/\_section_quality.py |
-| B11 Results 客觀性    | WritingHooksEngine.check_results_interpretation      | persistence/writing_hooks/\_section_quality.py |
-| B12 Introduction 結構 | WritingHooksEngine.check_intro_structure             | persistence/writing_hooks/\_section_quality.py |
-| B13 Discussion 結構   | WritingHooksEngine.check_discussion_structure        | persistence/writing_hooks/\_section_quality.py |
-| B14 倫理聲明          | WritingHooksEngine.check_ethical_statements          | persistence/writing_hooks/\_section_quality.py |
-| B15 Hedging 密度      | WritingHooksEngine.check_hedging_density             | persistence/writing_hooks/\_section_quality.py |
-| B16 效果量報告        | WritingHooksEngine.check_effect_size_reporting       | persistence/writing_hooks/\_section_quality.py |
-| C3 N 值一致性         | WritingHooksEngine.check_n_value_consistency         | persistence/writing_hooks/\_manuscript.py      |
-| C4 縮寫首次定義       | WritingHooksEngine.check_abbreviation_first_use      | persistence/writing_hooks/\_manuscript.py      |
-| C5 Wikilink 可解析    | WritingHooksEngine.check_wikilink_resolvable         | persistence/writing_hooks/\_manuscript.py      |
-| C6 全文字數           | WritingHooksEngine.check_total_word_count            | persistence/writing_hooks/\_manuscript.py      |
-| C7a 圖表數量限制      | WritingHooksEngine.check_figure_table_counts         | persistence/writing_hooks/\_manuscript.py      |
-| C7b 資產計畫覆蓋      | WritingHooksEngine.check_asset_plan_coverage         | persistence/writing_hooks/\_manuscript.py      |
-| C7d 交叉引用檢測      | WritingHooksEngine.check_cross_references            | persistence/writing_hooks/\_manuscript.py      |
-| C9 補充材料交叉引用   | WritingHooksEngine.check_supplementary_crossref      | persistence/writing_hooks/\_manuscript.py      |
-| C10 文獻全文驗證      | WritingHooksEngine.check_reference_fulltext_status   | persistence/writing_hooks/\_manuscript.py      |
-| C11 引用分布          | WritingHooksEngine.check_citation_distribution       | persistence/writing_hooks/\_manuscript.py      |
-| C12 引用決策審計      | WritingHooksEngine.check_citation_relevance_audit    | persistence/writing_hooks/\_manuscript.py      |
-| C13 圖表品質          | WritingHooksEngine.check_figure_table_quality        | persistence/writing_hooks/\_manuscript.py      |
+| Hook                    | 引擎                                                 | 位置                                           |
+| ----------------------- | ---------------------------------------------------- | ---------------------------------------------- |
+| A1 字數合規             | WritingHooksEngine.check_word_count_compliance       | persistence/writing_hooks/\_post_write.py      |
+| A2 引用密度             | WritingHooksEngine.check_citation_density            | persistence/writing_hooks/\_post_write.py      |
+| A3 Anti-AI 偵測         | WritingHooksEngine.check_anti_ai_patterns            | persistence/writing_hooks/\_post_write.py      |
+| A3b AI 結構信號         | WritingHooksEngine.check_ai_writing_signals          | persistence/writing_hooks/\_post_write.py      |
+| A3c 語體一致性          | WritingHooksEngine.check_voice_consistency           | persistence/writing_hooks/\_post_write.py      |
+| A4 Wikilink 格式        | WritingHooksEngine.check_wikilink_format             | persistence/writing_hooks/\_post_write.py      |
+| A5 語言一致性           | WritingHooksEngine.check_language_consistency        | persistence/writing_hooks/\_post_write.py      |
+| A6 段落重複             | WritingHooksEngine.check_overlap                     | persistence/writing_hooks/\_post_write.py      |
+| A7 文獻數量充足性       | WritingHooksEngine.check_reference_sufficiency       | persistence/writing_hooks/\_engine.py          |
+| B2 🔒保護內容           | WritingHooksEngine.\_run_b2_protected_content        | persistence/writing_hooks/\_engine.py          |
+| B8 統計對齊             | WritingHooksEngine.check_data_claim_alignment        | persistence/writing_hooks/\_section_quality.py |
+| B9 時態一致性           | WritingHooksEngine.check_section_tense               | persistence/writing_hooks/\_section_quality.py |
+| B10 段落品質            | WritingHooksEngine.check_paragraph_quality           | persistence/writing_hooks/\_section_quality.py |
+| B11 Results 客觀性      | WritingHooksEngine.check_results_interpretation      | persistence/writing_hooks/\_section_quality.py |
+| B12 Introduction 結構   | WritingHooksEngine.check_intro_structure             | persistence/writing_hooks/\_section_quality.py |
+| B13 Discussion 結構     | WritingHooksEngine.check_discussion_structure        | persistence/writing_hooks/\_section_quality.py |
+| B14 倫理聲明            | WritingHooksEngine.check_ethical_statements          | persistence/writing_hooks/\_section_quality.py |
+| B15 Hedging 密度        | WritingHooksEngine.check_hedging_density             | persistence/writing_hooks/\_section_quality.py |
+| B16 效果量報告          | WritingHooksEngine.check_effect_size_reporting       | persistence/writing_hooks/\_section_quality.py |
+| C3 N 值一致性           | WritingHooksEngine.check_n_value_consistency         | persistence/writing_hooks/\_manuscript.py      |
+| C4 縮寫首次定義         | WritingHooksEngine.check_abbreviation_first_use      | persistence/writing_hooks/\_manuscript.py      |
+| C5 Wikilink 可解析      | WritingHooksEngine.check_wikilink_resolvable         | persistence/writing_hooks/\_manuscript.py      |
+| C6 全文字數             | WritingHooksEngine.check_total_word_count            | persistence/writing_hooks/\_manuscript.py      |
+| C7a 圖表數量限制        | WritingHooksEngine.check_figure_table_counts         | persistence/writing_hooks/\_manuscript.py      |
+| C7b 資產計畫覆蓋        | WritingHooksEngine.check_asset_plan_coverage         | persistence/writing_hooks/\_manuscript.py      |
+| C7d 交叉引用檢測        | WritingHooksEngine.check_cross_references            | persistence/writing_hooks/\_manuscript.py      |
+| C9 補充材料交叉引用     | WritingHooksEngine.check_supplementary_crossref      | persistence/writing_hooks/\_manuscript.py      |
+| C10 文獻全文驗證        | WritingHooksEngine.check_reference_fulltext_status   | persistence/writing_hooks/\_manuscript.py      |
+| C11 引用分布            | WritingHooksEngine.check_citation_distribution       | persistence/writing_hooks/\_manuscript.py      |
+| C12 引用決策審計        | WritingHooksEngine.check_citation_relevance_audit    | persistence/writing_hooks/\_manuscript.py      |
+| C13 圖表品質            | WritingHooksEngine.check_figure_table_quality        | persistence/writing_hooks/\_manuscript.py      |
 | C14 Claim-Evidence 對齊 | WritingHooksEngine.check_claim_evidence_alignment    | persistence/writing_hooks/\_manuscript.py      |
-| C2 投稿清單           | WritingHooksEngine.check_submission_checklist        | persistence/writing_hooks/\_manuscript.py      |
-| D1-D9 Meta-Learning   | MetaLearningEngine.analyze()                         | persistence/meta_learning_engine.py            |
-| F 數據產出物          | WritingHooksEngine.validate_data_artifacts           | persistence/writing_hooks/\_data_artifacts.py  |
-| G9 Git 狀態           | WritingHooksEngine.check_git_status                  | persistence/writing_hooks/\_git.py             |
-| P1 引用完整性         | WritingHooksEngine (delegates to C5)                 | persistence/writing_hooks/\_precommit.py       |
-| P2 Anti-AI 掃描       | WritingHooksEngine (delegates to A3+A3b+A3c)         | persistence/writing_hooks/\_precommit.py       |
-| P4 字數門檻           | WritingHooksEngine (delegates to A1, 50% threshold)  | persistence/writing_hooks/\_precommit.py       |
-| P5 保護內容           | WritingHooksEngine.check_protected_content           | persistence/writing_hooks/\_precommit.py       |
-| P6 記憶同步           | WritingHooksEngine.check_memory_sync                 | persistence/writing_hooks/\_precommit.py       |
-| P7 文獻完整性         | WritingHooksEngine.check_reference_integrity         | persistence/writing_hooks/\_precommit.py       |
-| R1 審查報告深度       | ReviewHooksEngine.check_review_report_depth          | persistence/review_hooks.py                    |
-| R2 作者回應完整性     | ReviewHooksEngine.check_author_response_completeness | persistence/review_hooks.py                    |
-| R3 EQUATOR 合規門檻   | ReviewHooksEngine.check_equator_compliance           | persistence/review_hooks.py                    |
-| R4 審查-修正追蹤性    | ReviewHooksEngine.check_review_fix_traceability      | persistence/review_hooks.py                    |
-| R5 審後 Anti-AI 門檻  | ReviewHooksEngine.check_post_review_anti_ai          | persistence/review_hooks.py                    |
-| R6 引用預算門檻       | ReviewHooksEngine.check_citation_budget              | persistence/review_hooks.py                    |
+| C2 投稿清單             | WritingHooksEngine.check_submission_checklist        | persistence/writing_hooks/\_manuscript.py      |
+| D1-D9 Meta-Learning     | MetaLearningEngine.analyze()                         | persistence/meta_learning_engine.py            |
+| F 數據產出物            | WritingHooksEngine.validate_data_artifacts           | persistence/writing_hooks/\_data_artifacts.py  |
+| G9 Git 狀態             | WritingHooksEngine.check_git_status                  | persistence/writing_hooks/\_git.py             |
+| P1 引用完整性           | WritingHooksEngine (delegates to C5)                 | persistence/writing_hooks/\_precommit.py       |
+| P2 Anti-AI 掃描         | WritingHooksEngine (delegates to A3+A3b+A3c)         | persistence/writing_hooks/\_precommit.py       |
+| P4 字數門檻             | WritingHooksEngine (delegates to A1, 50% threshold)  | persistence/writing_hooks/\_precommit.py       |
+| P5 保護內容             | WritingHooksEngine.check_protected_content           | persistence/writing_hooks/\_precommit.py       |
+| P6 記憶同步             | WritingHooksEngine.check_memory_sync                 | persistence/writing_hooks/\_precommit.py       |
+| P7 文獻完整性           | WritingHooksEngine.check_reference_integrity         | persistence/writing_hooks/\_precommit.py       |
+| R1 審查報告深度         | ReviewHooksEngine.check_review_report_depth          | persistence/review_hooks.py                    |
+| R2 作者回應完整性       | ReviewHooksEngine.check_author_response_completeness | persistence/review_hooks.py                    |
+| R3 EQUATOR 合規門檻     | ReviewHooksEngine.check_equator_compliance           | persistence/review_hooks.py                    |
+| R4 審查-修正追蹤性      | ReviewHooksEngine.check_review_fix_traceability      | persistence/review_hooks.py                    |
+| R5 審後 Anti-AI 門檻    | ReviewHooksEngine.check_post_review_anti_ai          | persistence/review_hooks.py                    |
+| R6 引用預算門檻         | ReviewHooksEngine.check_citation_budget              | persistence/review_hooks.py                    |
 
 **Agent-Driven**（僅靠 Agent 遵循 SKILL.md 指示，無 Code 強制）：
 

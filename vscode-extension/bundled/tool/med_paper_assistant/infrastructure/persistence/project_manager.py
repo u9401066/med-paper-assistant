@@ -23,7 +23,12 @@ from ...domain.paper_types import (
     is_valid_paper_type,
     list_paper_types,
 )
-from ...shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES, PROJECT_DIRECTORIES, LIBRARY_DIRECTORIES
+from ...shared.constants import (
+    DEFAULT_WORKFLOW_MODE,
+    LIBRARY_DIRECTORIES,
+    PROJECT_DIRECTORIES,
+    WORKFLOW_MODES,
+)
 from ...shared.path_guard import normalize_relative_filename, resolve_child_path
 from ..services.concept_template_reader import ConceptTemplateReader
 from .project_memory_manager import ProjectMemoryManager
@@ -121,7 +126,9 @@ class ProjectManager:
 
     def _project_path_for_slug(self, slug: str) -> tuple[str, Path]:
         safe_slug = self._normalize_project_slug(slug)
-        return safe_slug, resolve_child_path(self.projects_dir, safe_slug, field_name="project slug")
+        return safe_slug, resolve_child_path(
+            self.projects_dir, safe_slug, field_name="project slug"
+        )
 
     # =========================================================================
     # Project CRUD Operations
@@ -337,7 +344,10 @@ class ProjectManager:
         if not project_path.exists():
             return {"success": False, "error": f"Project '{slug}' not found"}
         if not (project_path / "project.json").exists():
-            return {"success": False, "error": f"Project '{slug}' is missing project.json; refusing deletion."}
+            return {
+                "success": False,
+                "error": f"Project '{slug}' is missing project.json; refusing deletion.",
+            }
 
         import shutil
 

@@ -115,7 +115,9 @@ def register_export_facade_tools(
                     for name, spec in sorted(action_specs.items())
                 },
                 aliases=aliases,
-                notes=["Use inspect_export(action='list') for non-writing export inspection actions."],
+                notes=[
+                    "Use inspect_export(action='list') for non-writing export inspection actions."
+                ],
             )
 
         if normalized not in action_specs:

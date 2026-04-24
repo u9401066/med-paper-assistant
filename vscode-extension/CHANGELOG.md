@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.7 - 2026-04-24
+
+- Fixed release CI hygiene after v0.7.6 with Ruff, Prettier, mypy, Bandit, and bundled Python mirror cleanup.
+- Switched DOCX XML smoke parsing to `defusedxml` for release security scanning.
+
 ## 0.7.6 - 2026-04-24
 
 - Added `pipeline_action(action="doctor")` for one-shot 11-phase readiness, external MCP, and cached gate diagnostics.

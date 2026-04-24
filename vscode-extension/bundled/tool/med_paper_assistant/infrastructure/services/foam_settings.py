@@ -160,10 +160,14 @@ class FoamSettingsManager:
 
         return ignore_list
 
-    def _merge_graph_views(self, existing: Any, generated: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _merge_graph_views(
+        self, existing: Any, generated: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Preserve non-MedPaper custom views while replacing managed ones."""
         preserved: List[Dict[str, Any]] = []
-        generated_names = {str(view.get("name", "")).strip() for view in generated if isinstance(view, dict)}
+        generated_names = {
+            str(view.get("name", "")).strip() for view in generated if isinstance(view, dict)
+        }
         if isinstance(existing, list):
             for view in existing:
                 if not isinstance(view, dict):
@@ -221,8 +225,12 @@ class FoamSettingsManager:
                 "show": default_show,
                 "groups": [
                     *groups,
-                    self._group("hide-literature", "note_domain", "literature", "#d9d9d9", enabled=False),
-                    self._group("hide-synthesis", "note_domain", "synthesis", "#d9d9d9", enabled=False),
+                    self._group(
+                        "hide-literature", "note_domain", "literature", "#d9d9d9", enabled=False
+                    ),
+                    self._group(
+                        "hide-synthesis", "note_domain", "synthesis", "#d9d9d9", enabled=False
+                    ),
                 ],
             },
             {
@@ -238,9 +246,13 @@ class FoamSettingsManager:
                 },
                 "groups": [
                     *groups,
-                    self._group("hide-literature", "note_domain", "literature", "#d9d9d9", enabled=False),
+                    self._group(
+                        "hide-literature", "note_domain", "literature", "#d9d9d9", enabled=False
+                    ),
                     self._group("hide-writing", "note_domain", "writing", "#d9d9d9", enabled=False),
-                    self._group("hide-synthesis", "note_domain", "synthesis", "#d9d9d9", enabled=False),
+                    self._group(
+                        "hide-synthesis", "note_domain", "synthesis", "#d9d9d9", enabled=False
+                    ),
                 ],
             },
             {
@@ -259,7 +271,9 @@ class FoamSettingsManager:
                 ],
             },
         ]
-        return managed_views + self._build_custom_graph_views(current_slug, groups, default_show, custom_views or [])
+        return managed_views + self._build_custom_graph_views(
+            current_slug, groups, default_show, custom_views or []
+        )
 
     def _build_graph_groups(self, current_slug: str) -> List[Dict[str, Any]]:
         """Define reusable graph groups for MedPaper note taxonomy."""
@@ -317,7 +331,8 @@ class FoamSettingsManager:
         generated: List[Dict[str, Any]] = []
         for index, spec in enumerate(custom_views, start=1):
             name = str(spec.get("name", "")).strip()
-            match = spec.get("match") if isinstance(spec.get("match"), dict) else {}
+            raw_match = spec.get("match")
+            match: dict[str, Any] = raw_match if isinstance(raw_match, dict) else {}
             property_name = str(match.get("property") or spec.get("property") or "").strip()
             value = str(match.get("value") or spec.get("value") or "").strip()
             if not name or not property_name or not value:

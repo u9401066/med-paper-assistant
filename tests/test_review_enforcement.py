@@ -489,9 +489,7 @@ class TestRunReviewHooksWithSectionDrafts:
     """Review hooks should inspect section files when manuscript.md is absent."""
 
     @pytest.mark.asyncio
-    async def test_r6_uses_section_files_when_manuscript_missing(
-        self, project_dir, monkeypatch
-    ):
+    async def test_r6_uses_section_files_when_manuscript_missing(self, project_dir, monkeypatch):
         from mcp.server.fastmcp import FastMCP
 
         from med_paper_assistant.interfaces.mcp.tools.review import audit_hooks

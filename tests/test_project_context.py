@@ -11,9 +11,7 @@ def test_validate_project_for_workflow_accepts_matching_mode(monkeypatch):
         ),
     )
 
-    is_valid, error_msg = project_context.validate_project_for_workflow(
-        required_mode="manuscript"
-    )
+    is_valid, error_msg = project_context.validate_project_for_workflow(required_mode="manuscript")
 
     assert is_valid is True
     assert error_msg == ""
@@ -29,13 +27,11 @@ def test_validate_project_for_workflow_rejects_mismatched_mode(monkeypatch):
         ),
     )
 
-    is_valid, error_msg = project_context.validate_project_for_workflow(
-        required_mode="manuscript"
-    )
+    is_valid, error_msg = project_context.validate_project_for_workflow(required_mode="manuscript")
 
     assert is_valid is False
     assert "Current workflow: Library Wiki Path" in error_msg
-    assert "workflow_mode=\"manuscript\"" in error_msg
+    assert 'workflow_mode="manuscript"' in error_msg
 
 
 def test_resolve_project_context_calls_ensure_once(monkeypatch):
@@ -47,9 +43,7 @@ def test_resolve_project_context_calls_ensure_once(monkeypatch):
 
     monkeypatch.setattr(project_context, "ensure_project_context", fake_ensure)
 
-    project_info, error_msg = project_context.resolve_project_context(
-        required_mode="manuscript"
-    )
+    project_info, error_msg = project_context.resolve_project_context(required_mode="manuscript")
 
     assert error_msg is None
     assert project_info == {"slug": "paper", "workflow_mode": "manuscript"}

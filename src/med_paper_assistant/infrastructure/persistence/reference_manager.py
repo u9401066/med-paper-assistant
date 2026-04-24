@@ -1,10 +1,10 @@
+import hashlib
 import json
 import os
-import hashlib
 import re
 import shutil
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import structlog
 
@@ -67,7 +67,9 @@ class ReferenceManager:
         base_path = Path(self.base_dir).resolve()
         return str(base_path.parent)
 
-    def _normalize_reference_id(self, reference_id: str, *, field_name: str = "reference id") -> str:
+    def _normalize_reference_id(
+        self, reference_id: str, *, field_name: str = "reference id"
+    ) -> str:
         return normalize_relative_filename(reference_id, field_name=field_name)
 
     def _reference_dir(self, reference_id: str, *, field_name: str = "reference id") -> Path:
@@ -118,11 +120,12 @@ class ReferenceManager:
                 slug = self._project_manager.get_current_project()
                 if slug:
                     return str(slug)
-            except Exception:
+            except Exception:  # nosec B110
                 pass
         return Path(self._project_root_dir()).name
 
     def _dedupe_strings(self, values: Any) -> List[str]:
+        candidates: list[Any]
         if isinstance(values, str):
             candidates = [values]
         elif isinstance(values, list):
@@ -395,7 +398,9 @@ class ReferenceManager:
     def _context_alias(self, kind: str, label: str) -> str:
         return f"{kind}-{self._slugify(label, fallback=kind)}"
 
-    def _reference_context_entries(self, payload: Dict[str, Any]) -> Dict[str, List[Dict[str, str]]]:
+    def _reference_context_entries(
+        self, payload: Dict[str, Any]
+    ) -> Dict[str, List[Dict[str, str]]]:
         contexts: Dict[str, List[Dict[str, str]]] = {
             "journal": [],
             "authors": [],
@@ -407,7 +412,11 @@ class ReferenceManager:
         journal = str(payload.get("journal", "")).strip()
         if journal:
             contexts["journal"].append(
-                {"kind": "journal", "label": journal, "alias": self._context_alias("journal", journal)}
+                {
+                    "kind": "journal",
+                    "label": journal,
+                    "alias": self._context_alias("journal", journal),
+                }
             )
 
         for author in self._author_context_labels(payload):
@@ -422,12 +431,20 @@ class ReferenceManager:
 
         for mesh_term in self._dedupe_strings(payload.get("mesh_terms", []))[:5]:
             contexts["mesh"].append(
-                {"kind": "mesh", "label": mesh_term, "alias": self._context_alias("mesh", mesh_term)}
+                {
+                    "kind": "mesh",
+                    "label": mesh_term,
+                    "alias": self._context_alias("mesh", mesh_term),
+                }
             )
 
         for section in self._dedupe_strings(payload.get("fulltext_sections", []))[:6]:
             contexts["sections"].append(
-                {"kind": "section", "label": section, "alias": self._context_alias("section", section)}
+                {
+                    "kind": "section",
+                    "label": section,
+                    "alias": self._context_alias("section", section),
+                }
             )
 
         return contexts
@@ -460,7 +477,8 @@ class ReferenceManager:
             lines.append(f"- Journal hub: [[{contexts['journal'][0]['alias']}]]")
         if contexts["authors"]:
             lines.append(
-                "- Author hubs: " + ", ".join(f"[[{item['alias']}]]" for item in contexts["authors"])
+                "- Author hubs: "
+                + ", ".join(f"[[{item['alias']}]]" for item in contexts["authors"])
             )
         if contexts["topics"]:
             lines.append(
@@ -472,7 +490,8 @@ class ReferenceManager:
             )
         if contexts["sections"]:
             lines.append(
-                "- Section hubs: " + ", ".join(f"[[{item['alias']}]]" for item in contexts["sections"])
+                "- Section hubs: "
+                + ", ".join(f"[[{item['alias']}]]" for item in contexts["sections"])
             )
 
         visible_tags = self._visible_graph_tags(payload)
@@ -514,7 +533,9 @@ class ReferenceManager:
                     )
 
         materialized_nodes: List[Dict[str, Any]] = []
-        for node in sorted(context_nodes.values(), key=lambda item: (item["kind"], item["label"].lower())):
+        for node in sorted(
+            context_nodes.values(), key=lambda item: (item["kind"], item["label"].lower())
+        ):
             note_path = os.path.join(self._context_notes_dir(), f"{node['alias']}.md")
             expected_paths.append(note_path)
             references = sorted(
@@ -543,7 +564,10 @@ class ReferenceManager:
                 tags=self._build_graph_note_tags(
                     note_type,
                     "taxonomy",
-                    [f"context/{node['kind']}", f"label/{self._slugify(node['label'], fallback=node['kind'])}"],
+                    [
+                        f"context/{node['kind']}",
+                        f"label/{self._slugify(node['label'], fallback=node['kind'])}",
+                    ],
                 ),
                 extra_fields={
                     "note_class": note_type,
@@ -617,7 +641,9 @@ class ReferenceManager:
             }
             recent_additions.append(ref_entry)
 
-            if reference_id.startswith(("local_", "web_", "markdown_")) and not metadata.get("pmid"):
+            if reference_id.startswith(("local_", "web_", "markdown_")) and not metadata.get(
+                "pmid"
+            ):
                 unresolved_identity.append(ref_entry)
             if not metadata.get("analysis_completed"):
                 analysis_queue.append(ref_entry)
@@ -628,7 +654,9 @@ class ReferenceManager:
             context_nodes.get("nodes", []),
             key=lambda node: (-int(node.get("reference_count", 0)), node.get("title", "")),
         )[:8]
-        top_journals = sorted(journal_counts.items(), key=lambda item: (-item[1], item[0].lower()))[:8]
+        top_journals = sorted(journal_counts.items(), key=lambda item: (-item[1], item[0].lower()))[
+            :8
+        ]
         top_topics = sorted(topic_counts.items(), key=lambda item: (-item[1], item[0].lower()))[:8]
 
         body_lines = [
@@ -644,14 +672,18 @@ class ReferenceManager:
         ]
 
         if trust_counts:
-            for trust_level, count in sorted(trust_counts.items(), key=lambda item: (-item[1], item[0])):
+            for trust_level, count in sorted(
+                trust_counts.items(), key=lambda item: (-item[1], item[0])
+            ):
                 body_lines.append(f"- {trust_level}: {count}")
         else:
             body_lines.append("- No references in the library yet")
 
         body_lines.extend(["", "## Source Mix", ""])
         if source_counts:
-            for source, count in sorted(source_counts.items(), key=lambda item: (-item[1], item[0])):
+            for source, count in sorted(
+                source_counts.items(), key=lambda item: (-item[1], item[0])
+            ):
                 body_lines.append(f"- {source}: {count}")
         else:
             body_lines.append("- No source mix available yet")
@@ -665,13 +697,19 @@ class ReferenceManager:
             body_lines.append("- No unresolved local identities")
 
         body_lines.extend(["", "## Live Analysis Queue", ""])
-        body_lines.extend(self._property_query_block("analysis_state", "pending", format_name="table"))
+        body_lines.extend(
+            self._property_query_block("analysis_state", "pending", format_name="table")
+        )
 
         body_lines.extend(["", "## Live Fulltext Queue", ""])
-        body_lines.extend(self._property_query_block("fulltext_state", "missing", format_name="table"))
+        body_lines.extend(
+            self._property_query_block("fulltext_state", "missing", format_name="table")
+        )
 
         body_lines.extend(["", "## Live Review Queue", ""])
-        body_lines.extend(self._property_query_block("review_state", "pending", format_name="table"))
+        body_lines.extend(
+            self._property_query_block("review_state", "pending", format_name="table")
+        )
 
         body_lines.extend(["", "## Live Asset Counts", ""])
         body_lines.extend(self._type_query_block("figure-note", format_name="count"))
@@ -811,7 +849,9 @@ class ReferenceManager:
         for mesh_term in self._dedupe_strings(payload.get("mesh_terms", []))[:8]:
             candidates.append(f"mesh/{mesh_term}")
 
-        publication_types = payload.get("publication_types") or payload.get("publication_type") or []
+        publication_types = (
+            payload.get("publication_types") or payload.get("publication_type") or []
+        )
         for publication_type in self._dedupe_strings(publication_types)[:4]:
             candidates.append(f"study/{publication_type}")
 
@@ -1003,19 +1043,19 @@ class ReferenceManager:
         ]
         for page in library_pages:
             relative_path = os.path.relpath(page["path"], publish_dir).replace(os.sep, "/")
-            index_lines.append(f'- [{page["title"]}]({relative_path})')
+            index_lines.append(f"- [{page['title']}]({relative_path})")
 
         if knowledge_maps:
             index_lines.extend(["", "## Knowledge Maps", ""])
             for page in knowledge_maps:
                 relative_path = os.path.relpath(page["path"], publish_dir).replace(os.sep, "/")
-                index_lines.append(f'- [{page["title"]}]({relative_path})')
+                index_lines.append(f"- [{page['title']}]({relative_path})")
 
         if synthesis_pages:
             index_lines.extend(["", "## Synthesis Pages", ""])
             for page in synthesis_pages:
                 relative_path = os.path.relpath(page["path"], publish_dir).replace(os.sep, "/")
-                index_lines.append(f'- [{page["title"]}]({relative_path})')
+                index_lines.append(f"- [{page['title']}]({relative_path})")
 
         index_lines.extend(
             [
@@ -1156,8 +1196,8 @@ class ReferenceManager:
         lines.append("```")
         return lines
 
-    def _write_text_source_artifact(self, ref_dir: str, file_name: str, content: str) -> str:
-        source_dir = os.path.join(ref_dir, "source")
+    def _write_text_source_artifact(self, ref_dir: str | Path, file_name: str, content: str) -> str:
+        source_dir = os.path.join(os.fspath(ref_dir), "source")
         os.makedirs(source_dir, exist_ok=True)
         destination = os.path.join(source_dir, file_name)
         with open(destination, "w", encoding="utf-8") as handle:
@@ -1249,17 +1289,19 @@ class ReferenceManager:
             with open(file_path, "r", encoding="utf-8") as handle:
                 for line in handle:
                     stripped = line.strip()
-                    if stripped.startswith('title:'):
+                    if stripped.startswith("title:"):
                         return stripped.split(":", 1)[1].strip().strip('"')
                     if stripped.startswith("# "):
                         return stripped[2:].strip()
-        except Exception:
+        except Exception:  # nosec B110
             pass
         return Path(file_path).stem.replace("-", " ").title()
 
     def _iter_materialized_pages(self, page_type: str) -> List[Dict[str, str]]:
         page_dir = (
-            self._knowledge_maps_dir() if page_type == "knowledge_map" else self._synthesis_pages_dir()
+            self._knowledge_maps_dir()
+            if page_type == "knowledge_map"
+            else self._synthesis_pages_dir()
         )
         if not os.path.isdir(page_dir):
             return []
@@ -1298,7 +1340,7 @@ class ReferenceManager:
         alias = self._materialized_page_alias(page_type, slug)
         foam_type = self._foam_note_type(page_type)
         tags = self._build_materialized_page_tags(page_type, query=query, focus=focus)
-        generated_at = __import__('datetime').datetime.now().isoformat()
+        generated_at = __import__("datetime").datetime.now().isoformat()
         page_path = self._materialized_page_path(page_type, slug)
 
         lines = [
@@ -1413,9 +1455,7 @@ class ReferenceManager:
             summary = summary.replace("\n", " ").strip()
             if len(summary) > 260:
                 summary = summary[:257].rstrip() + "..."
-            lines.append(
-                f"- [[{citation_key}]]: {title}{year_text} [{source}/{trust_level}]"
-            )
+            lines.append(f"- [[{citation_key}]]: {title}{year_text} [{source}/{trust_level}]")
             lines.append(f"  Evidence: {summary}")
 
         if snapshots:
@@ -1443,8 +1483,7 @@ class ReferenceManager:
                 )
             if missing_analysis:
                 lines.append(
-                    "- Add structured analysis for: "
-                    + ", ".join(sorted(set(missing_analysis)))
+                    "- Add structured analysis for: " + ", ".join(sorted(set(missing_analysis)))
                 )
 
         return "\n".join(lines)
@@ -1576,7 +1615,9 @@ class ReferenceManager:
         verified = bool(payload.get("verified", payload.get("_verified", False)))
         payload["verified"] = verified
         payload["data_source"] = (
-            payload.get("data_source") or payload.get("_data_source") or payload.get("source", "agent")
+            payload.get("data_source")
+            or payload.get("_data_source")
+            or payload.get("source", "agent")
         )
 
         payload["agent_notes"] = payload.get("agent_notes", payload.get("_agent_notes", ""))
@@ -1602,8 +1643,9 @@ class ReferenceManager:
         payload["provenance"] = self._dedupe_provenance(payload.get("provenance", []))
 
         saved_at = payload.get("saved_at")
-        if hasattr(saved_at, "isoformat"):
-            payload["saved_at"] = saved_at.isoformat()
+        isoformat = getattr(saved_at, "isoformat", None)
+        if callable(isoformat):
+            payload["saved_at"] = isoformat()
 
         if not payload.get("citation_key") and payload.get("unique_id"):
             payload["citation_key"] = self._build_citation_key(payload, payload["unique_id"])
@@ -1626,7 +1668,9 @@ class ReferenceManager:
         payload["note_class"] = payload.get("note_class") or payload["foam_type"]
         payload["note_domain"] = payload.get("note_domain") or "literature"
         payload["project"] = payload.get("project") or self._current_project_slug()
-        payload["first_author"] = payload.get("first_author") or self._extract_first_author_slug(payload)
+        payload["first_author"] = payload.get("first_author") or self._extract_first_author_slug(
+            payload
+        )
         payload["journal_slug"] = payload.get("journal_slug") or self._slugify(
             payload.get("journal") or payload.get("journal_abbrev") or "", fallback=""
         )
@@ -1698,7 +1742,9 @@ class ReferenceManager:
         }
         return aliases.get(normalized, normalized)
 
-    def _extract_draft_sections(self, markdown_text: str, draft_filename: str) -> List[Dict[str, str]]:
+    def _extract_draft_sections(
+        self, markdown_text: str, draft_filename: str
+    ) -> List[Dict[str, str]]:
         sections: List[Dict[str, str]] = []
         current_title = Path(draft_filename).stem.replace("_", " ").replace("-", " ").title()
         current_lines: List[str] = []
@@ -1754,7 +1800,11 @@ class ReferenceManager:
         if isinstance(line_end, int) and line_end >= line_start:
             start_display = line_start + 1
             end_display = max(start_display, line_end)
-            return str(start_display) if start_display == end_display else f"{start_display}-{end_display}"
+            return (
+                str(start_display)
+                if start_display == end_display
+                else f"{start_display}-{end_display}"
+            )
         return str(line_start + 1)
 
     def _segment_bbox(self, segment: Dict[str, Any]) -> List[float]:
@@ -1762,15 +1812,26 @@ class ReferenceManager:
         top = segment.get("top")
         width = segment.get("width")
         height = segment.get("height")
-        if all(isinstance(value, (int, float)) for value in (left, top, width, height)):
-            return [float(left), float(top), float(left + width), float(top + height)]
+        if (
+            isinstance(left, (int, float))
+            and isinstance(top, (int, float))
+            and isinstance(width, (int, float))
+            and isinstance(height, (int, float))
+        ):
+            left_f = float(left)
+            top_f = float(top)
+            width_f = float(width)
+            height_f = float(height)
+            return [left_f, top_f, left_f + width_f, top_f + height_f]
         return []
 
     def _section_path_from_hierarchy(self, value: Any) -> List[str]:
         if isinstance(value, list):
             return [str(item).strip() for item in value if str(item).strip()]
         if isinstance(value, dict):
-            ordered_keys = sorted(value.keys(), key=lambda item: int(str(item)) if str(item).isdigit() else str(item))
+            ordered_keys = sorted(
+                value.keys(), key=lambda item: int(str(item)) if str(item).isdigit() else str(item)
+            )
             return [str(value[key]).strip() for key in ordered_keys if str(value[key]).strip()]
         if isinstance(value, str) and value.strip():
             return [value.strip()]
@@ -1892,7 +1953,9 @@ class ReferenceManager:
         best_score = 0
 
         for context in reference_contexts:
-            manifest_assets = ((context.get("manifest") or {}).get("assets") or {}).get(manifest_key, [])
+            manifest_assets = ((context.get("manifest") or {}).get("assets") or {}).get(
+                manifest_key, []
+            )
             if not isinstance(manifest_assets, list):
                 continue
 
@@ -1910,7 +1973,9 @@ class ReferenceManager:
 
                 source_block_id = str(source_asset.get("source_block_id") or "")
                 block = self._find_asset_source_block(context.get("blocks", []), source_block_id)
-                segment = self._find_segmentation_segment(context.get("segmentation", {}), source_asset)
+                segment = self._find_segmentation_segment(
+                    context.get("segmentation", {}), source_asset
+                )
 
                 line_start = None
                 line_end = None
@@ -1931,7 +1996,9 @@ class ReferenceManager:
 
                 section_path = self._section_path_from_hierarchy(block.get("section_hierarchy"))
                 if not section_path:
-                    section_path = self._section_path_from_hierarchy(segment.get("section_hierarchy"))
+                    section_path = self._section_path_from_hierarchy(
+                        segment.get("section_hierarchy")
+                    )
                 if not section_path and source_asset.get("section_title"):
                     section_path = [str(source_asset.get("section_title"))]
 
@@ -1943,17 +2010,26 @@ class ReferenceManager:
                 if not snippet:
                     snippet = str(segment.get("text") or "").strip()
                 if not snippet:
-                    snippet = str(source_asset.get("markdown") or source_asset.get("preview") or source_asset.get("caption") or "").strip()
+                    snippet = str(
+                        source_asset.get("markdown")
+                        or source_asset.get("preview")
+                        or source_asset.get("caption")
+                        or ""
+                    ).strip()
 
                 best_score = score
                 best_match = {
                     "reference_id": context["reference_id"],
-                    "citation_key": context["metadata"].get("citation_key", context["reference_id"]),
+                    "citation_key": context["metadata"].get(
+                        "citation_key", context["reference_id"]
+                    ),
                     "doc_id": context["metadata"].get("asset_aware_doc_id")
                     or (context.get("manifest") or {}).get("doc_id", ""),
                     "asset_id": str(source_asset.get("id") or ""),
                     "source_block_id": source_block_id,
-                    "page": block.get("page") or segment.get("page_number") or source_asset.get("page"),
+                    "page": block.get("page")
+                    or segment.get("page_number")
+                    or source_asset.get("page"),
                     "bbox": bbox,
                     "line_start": line_start,
                     "line_end": line_end,
@@ -2010,7 +2086,9 @@ class ReferenceManager:
         tables: List[Dict[str, Any]] = []
         aliases: Dict[str, Dict[str, str]] = {"figure": {}, "table": {}}
 
-        from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
+        from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import (
+            DataArtifactTracker,
+        )
 
         tracker = DataArtifactTracker(project_root / ".audit", project_root)
 
@@ -2077,17 +2155,21 @@ class ReferenceManager:
                 ]
 
                 if asset_type == "figure" and asset_path.exists():
-                    relative_embed = os.path.relpath(asset_path, Path(note_path).parent).replace("\\", "/")
+                    relative_embed = os.path.relpath(asset_path, Path(note_path).parent).replace(
+                        "\\", "/"
+                    )
                     preview_anchor = self._asset_anchor("asset-preview")
                     fragment_anchors.append(preview_anchor)
-                    body_lines.extend([
-                        "",
-                        "## Figure Preview",
-                        "",
-                        f"![{title}]({relative_embed})",
-                        "",
-                        preview_anchor,
-                    ])
+                    body_lines.extend(
+                        [
+                            "",
+                            "## Figure Preview",
+                            "",
+                            f"![{title}]({relative_embed})",
+                            "",
+                            preview_anchor,
+                        ]
+                    )
 
                 preview = self._read_text_preview(str(asset_path)) if asset_path.exists() else ""
                 if preview:
@@ -2212,13 +2294,23 @@ class ReferenceManager:
                         "review_state": review_state,
                         "fragment_anchors": fragment_anchors,
                         "source_doc_id": source_fragment.get("doc_id") if source_fragment else None,
-                        "source_asset_id": source_fragment.get("asset_id") if source_fragment else None,
-                        "source_block_id": source_fragment.get("source_block_id") if source_fragment else None,
-                        "source_reference": source_fragment.get("citation_key") if source_fragment else None,
+                        "source_asset_id": source_fragment.get("asset_id")
+                        if source_fragment
+                        else None,
+                        "source_block_id": source_fragment.get("source_block_id")
+                        if source_fragment
+                        else None,
+                        "source_reference": source_fragment.get("citation_key")
+                        if source_fragment
+                        else None,
                         "source_page": source_fragment.get("page") if source_fragment else None,
                         "source_bbox": source_fragment.get("bbox") if source_fragment else None,
-                        "source_line_range": source_fragment.get("line_range") if source_fragment else None,
-                        "source_section_path": source_fragment.get("section_path") if source_fragment else None,
+                        "source_line_range": source_fragment.get("line_range")
+                        if source_fragment
+                        else None,
+                        "source_section_path": source_fragment.get("section_path")
+                        if source_fragment
+                        else None,
                     },
                     body="\n".join(body_lines),
                 )
@@ -2230,7 +2322,9 @@ class ReferenceManager:
         self._prune_stale_graph_notes(self._table_notes_dir(), expected_table_paths)
         return {"figures": figures, "tables": tables, "aliases": aliases}
 
-    def _materialize_draft_section_notes(self, asset_aliases: Dict[str, Dict[str, str]]) -> List[Dict[str, Any]]:
+    def _materialize_draft_section_notes(
+        self, asset_aliases: Dict[str, Dict[str, str]]
+    ) -> List[Dict[str, Any]]:
         drafts_dir = Path(self._project_root_dir()) / "drafts"
         if not drafts_dir.exists():
             self._prune_stale_graph_notes(self._draft_section_notes_dir(), [])
@@ -2243,7 +2337,7 @@ class ReferenceManager:
         for draft_path in sorted(drafts_dir.glob("*.md")):
             try:
                 content = draft_path.read_text(encoding="utf-8")
-            except Exception:
+            except Exception:  # nosec B112
                 continue
 
             for section in self._extract_draft_sections(content, draft_path.name):
@@ -2258,11 +2352,15 @@ class ReferenceManager:
                 linked_notes = self._extract_wikilinks(section_content)
                 linked_figures = [
                     asset_aliases["figure"].get(match)
-                    for match in re.findall(r"\bFigure\s+(\d+)\b", section_content, flags=re.IGNORECASE)
+                    for match in re.findall(
+                        r"\bFigure\s+(\d+)\b", section_content, flags=re.IGNORECASE
+                    )
                 ]
                 linked_tables = [
                     asset_aliases["table"].get(match)
-                    for match in re.findall(r"\bTable\s+(\d+)\b", section_content, flags=re.IGNORECASE)
+                    for match in re.findall(
+                        r"\bTable\s+(\d+)\b", section_content, flags=re.IGNORECASE
+                    )
                 ]
                 asset_links = [link for link in linked_figures + linked_tables if link]
 
@@ -2362,9 +2460,7 @@ class ReferenceManager:
             source = metadata.get("source", "")
             trust_level = metadata.get("trust_level", "")
             year_text = f" ({year})" if year else ""
-            lines.append(
-                f"- [[{citation_key}]]: {title}{year_text} [{source}/{trust_level}]"
-            )
+            lines.append(f"- [[{citation_key}]]: {title}{year_text} [{source}/{trust_level}]")
 
         knowledge_maps = self._iter_materialized_pages("knowledge_map")
         lines.extend(["", "## Knowledge Maps", ""])
@@ -2391,7 +2487,9 @@ class ReferenceManager:
 
         lines.extend(["", "## Context Hubs", ""])
         if context_nodes["nodes"]:
-            for node in sorted(context_nodes["nodes"], key=lambda item: (item["kind"], item["title"])):
+            for node in sorted(
+                context_nodes["nodes"], key=lambda item: (item["kind"], item["title"])
+            ):
                 lines.append(f"- [[{node['alias']}]]: {node['title']} [{node['kind']}]")
         else:
             lines.append("- No context hubs materialized yet")
@@ -2401,7 +2499,9 @@ class ReferenceManager:
             for page in library_pages:
                 lines.append(f"- [[{page['alias']}]]: {page['title']} [library]")
         else:
-            lines.append(f"- [[{library_overview['alias']}]]: {library_overview['title']} [library]")
+            lines.append(
+                f"- [[{library_overview['alias']}]]: {library_overview['title']} [library]"
+            )
 
         lines.extend(["", "## Figures", ""])
         if asset_nodes["figures"]:
@@ -2445,20 +2545,20 @@ class ReferenceManager:
         self._ensure_workspace_scaffolding()
         return self._rebuild_index()
 
-    def _copy_source_artifact(self, file_path: str, ref_dir: str) -> str:
-        source_dir = os.path.join(ref_dir, "source")
+    def _copy_source_artifact(self, file_path: str | Path, ref_dir: str | Path) -> str:
+        source_dir = os.path.join(os.fspath(ref_dir), "source")
         os.makedirs(source_dir, exist_ok=True)
         suffix = Path(file_path).suffix or ".bin"
         destination = os.path.join(source_dir, f"original{suffix}")
         shutil.copy2(file_path, destination)
         return destination
 
-    def _persist_extracted_artifacts(self, ref_dir: str, payload: Dict[str, Any]) -> None:
+    def _persist_extracted_artifacts(self, ref_dir: str | Path, payload: Dict[str, Any]) -> None:
         extracted_markdown = payload.get("extracted_markdown", "")
         manifest = payload.get("asset_aware_manifest")
         blocks = payload.get("asset_aware_blocks")
         segmentation = payload.get("asset_aware_segmentation")
-        artifact_dir = os.path.join(ref_dir, "artifacts", "asset-aware")
+        artifact_dir = os.path.join(os.fspath(ref_dir), "artifacts", "asset-aware")
 
         if extracted_markdown or manifest or blocks or segmentation:
             os.makedirs(artifact_dir, exist_ok=True)
@@ -2529,8 +2629,12 @@ class ReferenceManager:
 
         return conflicts
 
-    def _merge_reference_artifacts(self, source_ref_dir: str, target_ref_dir: str) -> List[str]:
+    def _merge_reference_artifacts(
+        self, source_ref_dir: str | Path, target_ref_dir: str | Path
+    ) -> List[str]:
         """Merge durable artifacts from one reference directory into another."""
+        source_ref_dir = os.fspath(source_ref_dir)
+        target_ref_dir = os.fspath(target_ref_dir)
         if not os.path.exists(source_ref_dir) or source_ref_dir == target_ref_dir:
             return []
 
@@ -2600,7 +2704,7 @@ class ReferenceManager:
 
         metadata.update(updates)
         if not metadata.get("saved_at"):
-            metadata["saved_at"] = __import__('datetime').datetime.now().isoformat()
+            metadata["saved_at"] = __import__("datetime").datetime.now().isoformat()
 
         self._persist_reference_payload(metadata, log_event=log_event)
         return f"Updated {reference_id}."
@@ -2666,7 +2770,7 @@ class ReferenceManager:
         # Add pre-formatted citation strings to metadata
         ref_dict = ref.to_dict()
         ref_dict["citation"] = self._format_citation(ref_dict)
-        ref_dict["saved_at"] = __import__('datetime').datetime.now().isoformat()
+        ref_dict["saved_at"] = __import__("datetime").datetime.now().isoformat()
 
         persisted_dir = self._persist_reference_payload(ref_dict, log_event="save_reference")
 
@@ -2688,14 +2792,13 @@ class ReferenceManager:
             existing = self.get_metadata(existing_ref_id)
             citation_key = existing.get("citation_key", existing_ref_id)
             return (
-                f"Local source already imported as {existing_ref_id}. "
-                f"Foam link: [[{citation_key}]]"
+                f"Local source already imported as {existing_ref_id}. Foam link: [[{citation_key}]]"
             )
 
         source_metadata = dict(metadata or {})
         source_metadata.setdefault("imported_from", os.path.abspath(file_path))
         source_metadata.setdefault("content_hash", content_hash)
-        source_metadata.setdefault("saved_at", __import__('datetime').datetime.now().isoformat())
+        source_metadata.setdefault("saved_at", __import__("datetime").datetime.now().isoformat())
 
         try:
             standardized = self._converter.convert(source_metadata)
@@ -2768,14 +2871,20 @@ class ReferenceManager:
             return f"{source_kind.title()} source already imported as {existing_ref_id}. Foam link: [[{citation_key}]]"
 
         source_metadata = dict(metadata or {})
-        fallback_title = Path(locator).stem if locator and source_kind == "markdown" else f"{source_kind.title()} source"
+        fallback_title = (
+            Path(locator).stem
+            if locator and source_kind == "markdown"
+            else f"{source_kind.title()} source"
+        )
         title = source_metadata.get("title") or self._infer_markdown_title(
             normalized_content, fallback_title
         )
         headings = source_metadata.get("fulltext_sections") or self._extract_markdown_headings(
             normalized_content
         )
-        abstract = source_metadata.get("abstract") or self._build_markdown_summary(normalized_content)
+        abstract = source_metadata.get("abstract") or self._build_markdown_summary(
+            normalized_content
+        )
 
         payload = {
             "unique_id": source_metadata.get("unique_id") or f"{source_kind}_{content_hash[:12]}",
@@ -2800,7 +2909,9 @@ class ReferenceManager:
         payload.update(source_metadata)
         payload.setdefault("citation_key", self._build_citation_key(payload, payload["unique_id"]))
         payload["content_hash"] = content_hash
-        payload["saved_at"] = payload.get("saved_at") or __import__('datetime').datetime.now().isoformat()
+        payload["saved_at"] = (
+            payload.get("saved_at") or __import__("datetime").datetime.now().isoformat()
+        )
         payload["data_source"] = payload.get("data_source") or f"{source_kind}_intake"
         payload["fulltext_sections"] = headings
         payload["fulltext_ingested"] = True
@@ -3584,7 +3695,9 @@ class ReferenceManager:
         for tag in article.get("tags", []):
             content += f'  - "{tag}"\n'
         content += "\n"
-        content += f'note_class: "{article.get("note_class", article.get("foam_type", "reference"))}"\n'
+        content += (
+            f'note_class: "{article.get("note_class", article.get("foam_type", "reference"))}"\n'
+        )
         content += f'note_domain: "{article.get("note_domain", "literature")}"\n'
         if article.get("project"):
             content += f'project: "{article.get("project")}"\n'
@@ -3625,7 +3738,9 @@ class ReferenceManager:
 
         content += "\n# Ingestion status\n"
         content += f"fulltext_ingested: {str(article.get('fulltext_ingested', False)).lower()}\n"
-        content += f'fulltext_unavailable_reason: "{article.get("fulltext_unavailable_reason", "")}"\n'
+        content += (
+            f'fulltext_unavailable_reason: "{article.get("fulltext_unavailable_reason", "")}"\n'
+        )
         if article.get("asset_aware_doc_id"):
             content += f'asset_aware_doc_id: "{article.get("asset_aware_doc_id")}"\n'
         if article.get("fulltext_sections"):
@@ -3637,7 +3752,9 @@ class ReferenceManager:
 
         content += "\n# Analysis status\n"
         content += f"analysis_completed: {str(article.get('analysis_completed', False)).lower()}\n"
-        content += f'analysis_summary: "{article.get("analysis_summary", "").replace("\"", "\\\"")}"\n'
+        content += (
+            f'analysis_summary: "{article.get("analysis_summary", "").replace('"', '\\"')}"\n'
+        )
         if article.get("usage_sections"):
             content += "usage_sections:\n"
             for section in article.get("usage_sections", []):
@@ -3667,13 +3784,13 @@ class ReferenceManager:
 
         # ========== 🤖 AGENT SECTION (AI-generated, can be updated by AI) ==========
         content += "\n# 🤖 AGENT DATA (AI-generated, AI can update)\n"
-        content += f'agent_notes: "{agent_notes.replace("\"", "\\\"")}"\n'
+        content += f'agent_notes: "{agent_notes.replace('"', '\\"')}"\n'
         content += 'agent_summary: ""\n'  # Can be filled by AI summarization
         content += "agent_relevance: null\n"  # 1-5 relevance score
 
         # ========== ✏️ USER SECTION (Human-only, never touched by AI) ==========
         content += "\n# ✏️ USER DATA (human-only, AI should never modify)\n"
-        content += f'user_notes: "{user_notes.replace("\"", "\\\"")}"\n'
+        content += f'user_notes: "{user_notes.replace('"', '\\"')}"\n'
         if user_tags:
             content += "user_tags:\n"
             for tag in user_tags:
@@ -3684,7 +3801,7 @@ class ReferenceManager:
         content += "user_read_status: unread  # unread, reading, read\n"
 
         # Metadata
-        saved_at = article.get("saved_at") or __import__('datetime').datetime.now().isoformat()
+        saved_at = article.get("saved_at") or __import__("datetime").datetime.now().isoformat()
         content += f'\nsaved_at: "{saved_at}"\n'
         content += "---\n\n"
 

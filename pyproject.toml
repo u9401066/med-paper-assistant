@@ -1,6 +1,6 @@
 [project]
 name = "med-paper-assistant"
-version = "0.7.6"
+version = "0.7.7"
 description = "An MCP-orchestrated research workspace for manuscript and library-wiki workflows"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,6 +23,7 @@ dependencies = [
     "scipy>=1.17.0",
     "pypandoc>=1.16.2",
     "citeproc-py>=0.6.0",
+    "defusedxml>=0.7.1",
 ]
 
 # ============================================

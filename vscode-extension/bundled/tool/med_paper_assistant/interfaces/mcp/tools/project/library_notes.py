@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict, deque
 import re
+from collections import Counter, defaultdict, deque
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -303,10 +303,9 @@ def _ensure_frontmatter_defaults(
     normalized["title"] = str(normalized.get("title") or fallback_title).strip() or fallback_title
     normalized["type"] = str(normalized.get("type") or "library-note").strip() or "library-note"
     normalized["section"] = normalized_section
-    normalized["status"] = (
-        str(normalized.get("status") or _default_status(normalized_section)).strip()
-        or _default_status(normalized_section)
-    )
+    normalized["status"] = str(
+        normalized.get("status") or _default_status(normalized_section)
+    ).strip() or _default_status(normalized_section)
     normalized["tags"] = _dedupe_text_values(_coerce_string_list(normalized.get("tags")))
     normalized["related_notes"] = _normalize_related_note_refs(
         _coerce_string_list(normalized.get("related_notes"))
@@ -411,7 +410,9 @@ def _extract_asset_links(content: str) -> list[str]:
             continue
         if not (
             lowered.startswith(("figure-", "table-", "asset-", "img-"))
-            or lowered.endswith((".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".pdf", ".csv", ".md"))
+            or lowered.endswith(
+                (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".pdf", ".csv", ".md")
+            )
         ):
             continue
         if lowered in seen:
@@ -458,13 +459,17 @@ def _render_template_body(
             "## Follow-Up Links",
             "",
         ]
-        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append("- [Add linked note]")
-        lines.extend([
-            "",
-            "## Next Moves",
-            "",
-            "- [Promote this note into concepts after linking evidence]",
-        ])
+        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append(
+            "- [Add linked note]"
+        )
+        lines.extend(
+            [
+                "",
+                "## Next Moves",
+                "",
+                "- [Promote this note into concepts after linking evidence]",
+            ]
+        )
         return "\n".join(lines)
 
     if normalized_template == "concept":
@@ -478,21 +483,25 @@ def _render_template_body(
             "## Source Notes",
             "",
         ]
-        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append("- [Add linked source notes]")
-        lines.extend([
-            "",
-            "## Key Claims",
-            "",
-            "- [Claim 1]",
-            "",
-            "## Evidence Gaps",
-            "",
-            "- [Gap or contradiction]",
-            "",
-            "## Open Questions",
-            "",
-            "- [Open question]",
-        ])
+        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append(
+            "- [Add linked source notes]"
+        )
+        lines.extend(
+            [
+                "",
+                "## Key Claims",
+                "",
+                "- [Claim 1]",
+                "",
+                "## Evidence Gaps",
+                "",
+                "- [Gap or contradiction]",
+                "",
+                "## Open Questions",
+                "",
+                "- [Open question]",
+            ]
+        )
         return "\n".join(lines)
 
     if normalized_template == "review":
@@ -512,13 +521,17 @@ def _render_template_body(
             "## Related Notes",
             "",
         ]
-        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append("- [Add related note]")
-        lines.extend([
-            "",
-            "## Decision",
-            "",
-            "- [Keep / merge / retire]",
-        ])
+        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append(
+            "- [Add related note]"
+        )
+        lines.extend(
+            [
+                "",
+                "## Decision",
+                "",
+                "- [Keep / merge / retire]",
+            ]
+        )
         return "\n".join(lines)
 
     if normalized_template == "daily":
@@ -536,13 +549,17 @@ def _render_template_body(
             "## Reading Log",
             "",
         ]
-        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append("- [Paper or note reviewed today]")
-        lines.extend([
-            "",
-            "## Follow-Ups",
-            "",
-            "- [Next action]",
-        ])
+        lines.extend(f"- {link}" for link in note_links) if note_links else lines.append(
+            "- [Paper or note reviewed today]"
+        )
+        lines.extend(
+            [
+                "",
+                "## Follow-Ups",
+                "",
+                "- [Next action]",
+            ]
+        )
         return "\n".join(lines)
 
     if summary and not summary.startswith("#"):
@@ -603,11 +620,13 @@ def _collect_notes(info: dict[str, Any], sections: tuple[str, ...]) -> list[dict
         for note_path in sorted(p for p in section_dir.glob("*.md") if p.is_file()):
             try:
                 content = note_path.read_text(encoding="utf-8")
-            except Exception:
+            except Exception:  # nosec B112
                 continue
 
             frontmatter, body = _parse_frontmatter(content)
-            status_display = str(frontmatter.get("status") or _default_status(current_section)).strip()
+            status_display = str(
+                frontmatter.get("status") or _default_status(current_section)
+            ).strip()
             tags = _dedupe_text_values(_coerce_string_list(frontmatter.get("tags")))
             related_notes = _normalize_related_note_refs(
                 _coerce_string_list(frontmatter.get("related_notes"))
@@ -617,13 +636,16 @@ def _collect_notes(info: dict[str, Any], sections: tuple[str, ...]) -> list[dict
             placeholder_markers = _extract_placeholder_markers(body)
             asset_links = _extract_asset_links(body)
 
-            note = {
+            note: dict[str, Any] = {
                 "id": f"{current_section}:{note_path.stem.lower()}",
                 "section": current_section,
                 "filename": note_path.name,
                 "stem": note_path.stem,
                 "path": str(note_path),
-                "title": str(frontmatter.get("title") or _extract_title(content, _default_title_from_filename(note_path.name))),
+                "title": str(
+                    frontmatter.get("title")
+                    or _extract_title(content, _default_title_from_filename(note_path.name))
+                ),
                 "status": status_display.lower(),
                 "status_display": status_display,
                 "updated_at": str(frontmatter.get("updated_at", "")).strip(),
@@ -800,11 +822,18 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("list_library_notes", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "list_library_notes",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         normalized_section = _normalize_section(section, allow_all=True)
-        sections = ALLOWED_LIBRARY_SECTIONS if normalized_section == "all" else (normalized_section,)
+        sections = (
+            ALLOWED_LIBRARY_SECTIONS if normalized_section == "all" else (normalized_section,)
+        )
 
         output = [f"# Library Notes: {info.get('name', info.get('slug', 'Unknown'))}", ""]
         total_notes = 0
@@ -845,7 +874,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("read_library_note", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "read_library_note",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         section_dir, error_msg = _resolve_section_dir(info, section)
@@ -903,7 +937,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("write_library_note", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "write_library_note",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         section_dir, error_msg = _resolve_section_dir(info, section)
@@ -963,9 +1002,7 @@ def register_library_note_tools(
                 "`move_library_note` when it has been triaged."
             )
         elif section_dir.name == "daily":
-            next_step = (
-                "\n\nNext step: promote durable insights into `inbox/`, `concepts/`, or `review/` once the daily capture is ready."
-            )
+            next_step = "\n\nNext step: promote durable insights into `inbox/`, `concepts/`, or `review/` once the daily capture is ready."
         template_text = f"\n**Template:** {normalized_template}" if normalized_template else ""
         return (
             f"✅ Library note {action} successfully.\n\n"
@@ -994,7 +1031,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("move_library_note", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "move_library_note",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         from_dir, error_msg = _resolve_section_dir(info, from_section)
@@ -1078,7 +1120,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("triage_library_note", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "triage_library_note",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         notes = _collect_notes(info, ALLOWED_LIBRARY_SECTIONS)
@@ -1098,15 +1145,15 @@ def register_library_note_tools(
             allowed = ", ".join(ALLOWED_LIBRARY_SECTIONS)
             return f"❌ Invalid target section '{target_section}'. Use one of: {allowed}."
 
-        merged_tags = _dedupe_text_values(list(source_note.get("tags", [])) + _split_multivalue(tags_csv))
+        merged_tags = _dedupe_text_values(
+            list(source_note.get("tags", [])) + _split_multivalue(tags_csv)
+        )
         merged_related = _normalize_related_note_refs(
             list(source_note.get("related_notes", [])) + _split_multivalue(related_notes_csv)
         )
         has_metadata_changes = bool(status.strip() or tags_csv.strip() or related_notes_csv.strip())
         if resolved_target == source_note["section"] and not has_metadata_changes:
-            return (
-                f"Note already sits in the final triage section: {source_note['section']}/{source_note['filename']}."
-            )
+            return f"Note already sits in the final triage section: {source_note['section']}/{source_note['filename']}."
 
         target_dir, error_msg = _resolve_section_dir(info, resolved_target)
         if target_dir is None:
@@ -1196,9 +1243,7 @@ def register_library_note_tools(
                 note_type.strip(),
             ]
         ):
-            return (
-                "❌ No metadata changes requested. Provide title, status, tags, add/remove tags, related notes, or note type."
-            )
+            return "❌ No metadata changes requested. Provide title, status, tags, add/remove tags, related notes, or note type."
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
@@ -1239,7 +1284,8 @@ def register_library_note_tools(
                 current_tags = [tag for tag in current_tags if tag.lower() not in removals]
 
             merged_related = _normalize_related_note_refs(
-                list(updated_frontmatter.get("related_notes", [])) + _split_multivalue(related_notes_csv)
+                list(updated_frontmatter.get("related_notes", []))
+                + _split_multivalue(related_notes_csv)
             )
 
             if title.strip():
@@ -1272,7 +1318,9 @@ def register_library_note_tools(
         )
 
     @tool()
-    def search_library_notes(query: str, section: str = "all", project: Optional[str] = None) -> str:
+    def search_library_notes(
+        query: str, section: str = "all", project: Optional[str] = None
+    ) -> str:
         """Search markdown notes in inbox/concepts/projects."""
         log_tool_call(
             "search_library_notes",
@@ -1284,7 +1332,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("search_library_notes", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "search_library_notes",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         normalized_section = _normalize_section(section, allow_all=True)
@@ -1292,7 +1345,9 @@ def register_library_note_tools(
             allowed = ", ".join(ALLOWED_LIBRARY_SECTIONS)
             return f"❌ Invalid section '{section}'. Use one of: all, {allowed}."
 
-        sections = ALLOWED_LIBRARY_SECTIONS if normalized_section == "all" else (normalized_section,)
+        sections = (
+            ALLOWED_LIBRARY_SECTIONS if normalized_section == "all" else (normalized_section,)
+        )
         query_terms = [term for term in query.lower().split() if term]
         results: list[tuple[str, str, str, str]] = []
 
@@ -1304,7 +1359,7 @@ def register_library_note_tools(
             for note_path in sorted(p for p in section_dir.glob("*.md") if p.is_file()):
                 try:
                     content = note_path.read_text(encoding="utf-8")
-                except Exception:
+                except Exception:  # nosec B112
                     continue
 
                 haystack = content.lower()
@@ -1312,7 +1367,9 @@ def register_library_note_tools(
                     continue
 
                 title = _extract_title(content, _default_title_from_filename(note_path.name))
-                results.append((current_section, note_path.name, title, _body_excerpt(content, query)))
+                results.append(
+                    (current_section, note_path.name, title, _body_excerpt(content, query))
+                )
 
         if not results:
             result = f"No library notes found matching '{query}'."
@@ -1348,7 +1405,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("show_reading_queues", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "show_reading_queues",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         notes = _collect_notes(info, ALLOWED_LIBRARY_SECTIONS)
@@ -1409,7 +1471,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("create_concept_page", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "create_concept_page",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         concepts_dir, error_msg = _resolve_section_dir(info, "concepts")
@@ -1425,7 +1492,9 @@ def register_library_note_tools(
         note_exists = note_path.exists()
         tags = _dedupe_text_values(_split_multivalue(tags_csv))
         source_refs = _normalize_related_note_refs(_split_multivalue(source_notes_csv))
-        source_links = [f"[[{_normalize_note_reference(ref).split(':', 1)[-1]}]]" for ref in source_refs]
+        source_links = [
+            f"[[{_normalize_note_reference(ref).split(':', 1)[-1]}]]" for ref in source_refs
+        ]
         question_lines = [line.strip() for line in open_questions.splitlines() if line.strip()]
 
         body_lines = [
@@ -1586,11 +1655,9 @@ def register_library_note_tools(
                     f"Evidence snapshot: {source_note['excerpt']}"
                 )
             else:
-                source_sections = ", ".join(sorted({note['section'] for note in source_notes}))
+                source_sections = ", ".join(sorted({note["section"] for note in source_notes}))
                 focus_hint = f" around {shared_tags[0]}" if shared_tags else ""
-                resolved_summary = (
-                    f"Derived from {len(source_notes)} library notes across {source_sections}{focus_hint} to capture a reusable concept for later synthesis."
-                )
+                resolved_summary = f"Derived from {len(source_notes)} library notes across {source_sections}{focus_hint} to capture a reusable concept for later synthesis."
 
         resolved_tags = _dedupe_text_values(
             [
@@ -1681,7 +1748,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("explain_library_path", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "explain_library_path",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         notes = _collect_notes(info, ALLOWED_LIBRARY_SECTIONS)
@@ -1695,7 +1767,9 @@ def register_library_note_tools(
         notes_by_id = {note["id"]: note for note in notes}
 
         if not target_note.strip():
-            outgoing = [notes_by_id[note_id]["title"] for note_id in source.get("linked_note_ids", [])]
+            outgoing = [
+                notes_by_id[note_id]["title"] for note_id in source.get("linked_note_ids", [])
+            ]
             incoming = [notes_by_id[note_id]["title"] for note_id in source.get("backlink_ids", [])]
             lines = [
                 f"# Library Note Explanation: {source['title']}",
@@ -1756,7 +1830,9 @@ def register_library_note_tools(
         if not path:
             shared_tags = sorted(set(source.get("tags", [])) & set(target.get("tags", [])))
             hint = (
-                f"Shared tags: {', '.join(shared_tags)}" if shared_tags else "Try adding explicit [[wikilinks]] between the notes."
+                f"Shared tags: {', '.join(shared_tags)}"
+                if shared_tags
+                else "Try adding explicit [[wikilinks]] between the notes."
             )
             return (
                 f"No note-to-note path found between {source['title']} and {target['title']}.\n\n"
@@ -1773,13 +1849,15 @@ def register_library_note_tools(
         ]
         for index, note_id in enumerate(path, start=1):
             note = notes_by_id[note_id]
-            lines.append(
-                f"{index}. [{note['section']}] {note['title']} ({note['filename']})"
-            )
+            lines.append(f"{index}. [{note['section']}] {note['title']} ({note['filename']})")
             if index < len(path):
                 next_note = notes_by_id[path[index]]
                 lines.append(f"   reason: {_path_reason(note, next_note)}")
-        log_tool_result("explain_library_path", f"path {source['filename']} -> {target['filename']}", success=True)
+        log_tool_result(
+            "explain_library_path",
+            f"path {source['filename']} -> {target['filename']}",
+            success=True,
+        )
         return "\n".join(lines).strip()
 
     @tool()
@@ -1796,7 +1874,12 @@ def register_library_note_tools(
 
         info, error_msg = _resolve_library_project(project)
         if info is None:
-            log_agent_misuse("build_library_dashboard", "library-wiki project required", {"project": project}, error_msg)
+            log_agent_misuse(
+                "build_library_dashboard",
+                "library-wiki project required",
+                {"project": project},
+                error_msg,
+            )
             return error_msg
 
         notes = _collect_notes(info, ALLOWED_LIBRARY_SECTIONS)
@@ -1817,9 +1900,7 @@ def register_library_note_tools(
             "assets",
         }
         if view_name not in valid_views:
-            return (
-                "❌ Invalid view. Use one of: overview, queues, concepts, links, synthesis, graph-health, unread, metadata, review, assets."
-            )
+            return "❌ Invalid view. Use one of: overview, queues, concepts, links, synthesis, graph-health, unread, metadata, review, assets."
 
         notes_by_id = {note["id"]: note for note in notes}
         section_counts = Counter(note["section"] for note in notes)
@@ -1827,7 +1908,10 @@ def register_library_note_tools(
         tag_counts = Counter(tag for note in notes for tag in note.get("tags", []))
         connected_notes = sorted(
             notes,
-            key=lambda note: (len(note.get("linked_note_ids", [])) + len(note.get("backlink_ids", [])), note["title"]),
+            key=lambda note: (
+                len(note.get("linked_note_ids", [])) + len(note.get("backlink_ids", [])),
+                note["title"],
+            ),
             reverse=True,
         )
         orphans = [
@@ -1851,9 +1935,7 @@ def register_library_note_tools(
             or note.get("type", "") == "library-note"
         ]
         unread_notes = [
-            note
-            for note in notes
-            if note["queue_bucket"] in {"capture", "active-reading", "daily"}
+            note for note in notes if note["queue_bucket"] in {"capture", "active-reading", "daily"}
         ]
         review_notes = [
             note
@@ -1875,9 +1957,13 @@ def register_library_note_tools(
 
         if view_name == "overview":
             lines.extend(["## Section Counts", ""])
-            lines.extend(f"- {section}: {count}" for section, count in sorted(section_counts.items()))
+            lines.extend(
+                f"- {section}: {count}" for section, count in sorted(section_counts.items())
+            )
             lines.extend(["", "## Status Counts", ""])
-            lines.extend(f"- {status}: {count}" for status, count in status_counts.most_common(limit))
+            lines.extend(
+                f"- {status}: {count}" for status, count in status_counts.most_common(limit)
+            )
             lines.extend(["", "## Top Tags", ""])
             if tag_counts:
                 lines.extend(f"- {tag}: {count}" for tag, count in tag_counts.most_common(limit))
@@ -1897,7 +1983,11 @@ def register_library_note_tools(
             for bucket, label in QUEUE_LABELS.items():
                 lines.append(f"- {label}: {queue_counts.get(bucket, 0)}")
             lines.extend(["", "## Active Items", ""])
-            active_notes = [note for note in notes if note["queue_bucket"] in {"active-reading", "concept-build", "synthesis"}]
+            active_notes = [
+                note
+                for note in notes
+                if note["queue_bucket"] in {"active-reading", "concept-build", "synthesis"}
+            ]
             if active_notes:
                 lines.extend(_format_note_label(note) for note in active_notes[: max(1, limit)])
             else:
@@ -1918,7 +2008,9 @@ def register_library_note_tools(
             lines.extend(["## Link Health", ""])
             lines.append(f"- Cross-section edges: {cross_section_edges}")
             lines.append(f"- Orphan notes: {len(orphans)}")
-            lines.append(f"- Unresolved wikilinks: {sum(len(note.get('unresolved_links', [])) for note in unresolved_notes)}")
+            lines.append(
+                f"- Unresolved wikilinks: {sum(len(note.get('unresolved_links', [])) for note in unresolved_notes)}"
+            )
             lines.extend(["", "## Most Connected Notes", ""])
             lines.extend(_format_note_label(note) for note in connected_notes[: max(1, limit)])
 
@@ -1937,9 +2029,7 @@ def register_library_note_tools(
                     tag_to_notes[tag].add(note["id"])
 
             shared_tag_clusters = [
-                (tag, len(note_ids))
-                for tag, note_ids in tag_to_notes.items()
-                if len(note_ids) >= 2
+                (tag, len(note_ids)) for tag, note_ids in tag_to_notes.items() if len(note_ids) >= 2
             ]
             shared_tag_clusters.sort(key=lambda item: (item[1], item[0]), reverse=True)
 
@@ -2035,11 +2125,17 @@ def register_library_note_tools(
             for note in repair_candidates[: max(1, limit)]:
                 checklist: list[str] = []
                 if note.get("is_orphan"):
-                    checklist.append("link this note to at least one concept, project, or review page")
+                    checklist.append(
+                        "link this note to at least one concept, project, or review page"
+                    )
                 if note.get("unresolved_links"):
-                    checklist.append(f"resolve missing wikilinks: {', '.join(note['unresolved_links'][:4])}")
+                    checklist.append(
+                        f"resolve missing wikilinks: {', '.join(note['unresolved_links'][:4])}"
+                    )
                 if note.get("placeholder_markers"):
-                    checklist.append(f"replace placeholders: {', '.join(note['placeholder_markers'][:3])}")
+                    checklist.append(
+                        f"replace placeholders: {', '.join(note['placeholder_markers'][:3])}"
+                    )
                 if not note.get("tags"):
                     checklist.append("add tags")
                 if not checklist:
@@ -2057,13 +2153,21 @@ def register_library_note_tools(
                 body_lines=repair_lines,
                 note_type="library-review",
                 tags=["workflow/review", "dashboard/graph-health", "repair-worklist"],
-                extra_fields={"note_class": "library-review", "note_domain": "library", "review_state": "pending"},
+                extra_fields={
+                    "note_class": "library-review",
+                    "note_domain": "library",
+                    "review_state": "pending",
+                },
             )
 
         if view_name == "unread":
             lines.extend(["## Unread / Intake Backlog", ""])
             if unread_notes:
-                for note in sorted(unread_notes, key=lambda item: (item.get("updated_at", ""), item["filename"]), reverse=True)[: max(1, limit)]:
+                for note in sorted(
+                    unread_notes,
+                    key=lambda item: (item.get("updated_at", ""), item["filename"]),
+                    reverse=True,
+                )[: max(1, limit)]:
                     lines.append(_format_note_label(note))
             else:
                 lines.append("- [No unread intake notes]")
@@ -2093,7 +2197,9 @@ def register_library_note_tools(
             else:
                 lines.append("- [No review notes yet]")
             lines.extend(["", "## Review Inputs", ""])
-            lines.append(f"- Blocked notes: {sum(1 for note in notes if note['queue_bucket'] == 'blocked')}")
+            lines.append(
+                f"- Blocked notes: {sum(1 for note in notes if note['queue_bucket'] == 'blocked')}"
+            )
             lines.append(f"- Placeholder-bearing notes: {len(placeholder_notes)}")
 
         if view_name == "assets":

@@ -10,21 +10,21 @@ Each prompt is a Markdown file that defines a workflow.
 
 Prompt workflows use the modern `/mdpaper.<name>` slash namespace.
 
-| Prompt                         | Slash Command                   | Description                         |
-| ------------------------------ | ------------------------------- | ----------------------------------- |
-| `mdpaper.write-paper.prompt.md`         | `/mdpaper.write-paper`         | Complete paper writing workflow     |
-| `mdpaper.literature-survey.prompt.md`   | `/mdpaper.literature-survey`   | Systematic literature survey        |
-| `mdpaper.manuscript-revision.prompt.md` | `/mdpaper.manuscript-revision` | Respond to reviewer comments        |
-| `mdpaper.search.prompt.md`              | `/mdpaper.search`              | Literature search and exploration   |
-| `mdpaper.project.prompt.md`             | `/mdpaper.project`             | Project setup and switching         |
-| `mdpaper.concept.prompt.md`             | `/mdpaper.concept`             | Concept development and validation  |
-| `mdpaper.draft.prompt.md`               | `/mdpaper.draft`               | Draft writing workflow              |
-| `mdpaper.analysis.prompt.md`            | `/mdpaper.analysis`            | Data analysis and figures           |
-| `mdpaper.clarify.prompt.md`             | `/mdpaper.clarify`             | Clarification and revision passes   |
-| `mdpaper.format.prompt.md`              | `/mdpaper.format`              | Export and formatting               |
-| `mdpaper.strategy.prompt.md`            | `/mdpaper.strategy`            | Search strategy setup               |
-| `mdpaper.audit.prompt.md`               | `/mdpaper.audit`               | Independent audit and review loop   |
-| `mdpaper.help.prompt.md`                | `/mdpaper.help`                | Prompt and workflow reference       |
+| Prompt                                  | Slash Command                  | Description                        |
+| --------------------------------------- | ------------------------------ | ---------------------------------- |
+| `mdpaper.write-paper.prompt.md`         | `/mdpaper.write-paper`         | Complete paper writing workflow    |
+| `mdpaper.literature-survey.prompt.md`   | `/mdpaper.literature-survey`   | Systematic literature survey       |
+| `mdpaper.manuscript-revision.prompt.md` | `/mdpaper.manuscript-revision` | Respond to reviewer comments       |
+| `mdpaper.search.prompt.md`              | `/mdpaper.search`              | Literature search and exploration  |
+| `mdpaper.project.prompt.md`             | `/mdpaper.project`             | Project setup and switching        |
+| `mdpaper.concept.prompt.md`             | `/mdpaper.concept`             | Concept development and validation |
+| `mdpaper.draft.prompt.md`               | `/mdpaper.draft`               | Draft writing workflow             |
+| `mdpaper.analysis.prompt.md`            | `/mdpaper.analysis`            | Data analysis and figures          |
+| `mdpaper.clarify.prompt.md`             | `/mdpaper.clarify`             | Clarification and revision passes  |
+| `mdpaper.format.prompt.md`              | `/mdpaper.format`              | Export and formatting              |
+| `mdpaper.strategy.prompt.md`            | `/mdpaper.strategy`            | Search strategy setup              |
+| `mdpaper.audit.prompt.md`               | `/mdpaper.audit`               | Independent audit and review loop  |
+| `mdpaper.help.prompt.md`                | `/mdpaper.help`                | Prompt and workflow reference      |
 
 ## `@mdpaper` Chat Commands
 

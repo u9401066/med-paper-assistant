@@ -15,8 +15,8 @@ from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .._shared import (
     ensure_project_context,
-    get_project_list_for_prompt,
     get_optional_tool_decorator,
+    get_project_list_for_prompt,
     log_agent_misuse,
     log_tool_call,
     log_tool_result,

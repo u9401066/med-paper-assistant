@@ -70,7 +70,7 @@ Pre-Commit Hooks（P1-P8 + G1-G7）定義於 `git-precommit/SKILL.md`。
 | Agent 需要一次總檢查時    | `pipeline_action(action="doctor")`                                     | 返回 11-phase readiness、外部 MCP 宣告/command 可用性、最近 gate cache                                      |
 | Phase 5 每次 Hook 評估後  | `record_hook_event(hook_id, event_type)`                               | 記錄 A/B/C/E Hook 的 trigger/pass/fix/false_positive，Phase 6 gate 會驗證有實際記錄                         |
 | Phase 6 之前（審計階段）  | `run_quality_checks(action="quality_audit", scores=...)`               | 設定 ≥4 維度品質分數 + 產生 scorecard/hook-effectiveness 報告，Phase 6 gate 驗證分數數據                    |
-| Phase 10 之前（自我改進） | `run_quality_checks(action="meta_learning")`                           | 執行 D1-D6 分析 + 寫入 meta-learning-audit.yaml / meta-learning-feedback.yaml，Phase 10 gate 驗證分析數據     |
+| Phase 10 之前（自我改進） | `run_quality_checks(action="meta_learning")`                           | 執行 D1-D6 分析 + 寫入 meta-learning-audit.yaml / meta-learning-feedback.yaml，Phase 10 gate 驗證分析數據   |
 
 ### 強制執行規則
 
@@ -179,35 +179,35 @@ Agent 按優先順序取得期刊要求：
 
 #### journal-profile.yaml 對全 Pipeline 的約束
 
-| YAML 欄位                           | 影響的 Phase / Hook                         |
-| ----------------------------------- | ------------------------------------------- |
-| `paper.type`                        | Phase 1 專案設定, Phase 4 寫作順序          |
-| `paper.sections`                    | Phase 4 大綱, Phase 5 寫作順序              |
-| `word_limits.*`                     | Hook A1 字數, Hook C6 總字數                |
-| `assets.figures_max/tables_max`     | Phase 4 Asset Plan, Phase 5 Asset 生成      |
-| `references.max_references`         | Phase 2 文獻數量, Phase 8 引用上限          |
-| `references.reference_limits`       | 按論文類型的引用上限（覆蓋 max_references） |
-| `references.style`                  | Phase 8 引用格式                            |
-| `reporting_guidelines.checklist`    | Hook B5 方法學, Hook C2 投稿清單            |
-| `required_documents.*`              | Phase 9 匯出, Hook C2 投稿清單              |
+| YAML 欄位                        | 影響的 Phase / Hook                         |
+| -------------------------------- | ------------------------------------------- |
+| `paper.type`                     | Phase 1 專案設定, Phase 4 寫作順序          |
+| `paper.sections`                 | Phase 4 大綱, Phase 5 寫作順序              |
+| `word_limits.*`                  | Hook A1 字數, Hook C6 總字數                |
+| `assets.figures_max/tables_max`  | Phase 4 Asset Plan, Phase 5 Asset 生成      |
+| `references.max_references`      | Phase 2 文獻數量, Phase 8 引用上限          |
+| `references.reference_limits`    | 按論文類型的引用上限（覆蓋 max_references） |
+| `references.style`               | Phase 8 引用格式                            |
+| `reporting_guidelines.checklist` | Hook B5 方法學, Hook C2 投稿清單            |
+| `required_documents.*`           | Phase 9 匯出, Hook C2 投稿清單              |
 
 #### source-materials.yaml 對全 Pipeline 的約束
 
-| YAML 欄位                                     | 影響的 Phase / Hook                                      |
-| --------------------------------------------- | -------------------------------------------------------- |
-| `summary.total_candidates`                    | Phase 0 是否已實際掃描用戶素材                          |
-| `materials[].evidence_priority`               | Phase 3 concept、Phase 4 plan、Phase 5 results/methods   |
-| `materials[].ingestion.status`                | Phase 2.1/Phase 5 是否需先用 asset-aware 解析 DOCX/XLSX |
-| `agent_next_steps.asset_aware_file_paths`     | Agent 必須呼叫 asset-aware 的具體 file list              |
-| `agent_next_steps.asset_aware_required`       | 防止只讀摘要、漏讀正式表格/資料檔                       |
+| YAML 欄位                                 | 影響的 Phase / Hook                                     |
+| ----------------------------------------- | ------------------------------------------------------- |
+| `summary.total_candidates`                | Phase 0 是否已實際掃描用戶素材                          |
+| `materials[].evidence_priority`           | Phase 3 concept、Phase 4 plan、Phase 5 results/methods  |
+| `materials[].ingestion.status`            | Phase 2.1/Phase 5 是否需先用 asset-aware 解析 DOCX/XLSX |
+| `agent_next_steps.asset_aware_file_paths` | Agent 必須呼叫 asset-aware 的具體 file list             |
+| `agent_next_steps.asset_aware_required`   | 防止只讀摘要、漏讀正式表格/資料檔                       |
 
 **Data Anchor Provenance Rule**：`data-artifacts.yaml` 的 `data_anchors` 不得以 `concept.md`、agent summary、inferred/estimated 值作為來源。每個數字/統計 anchor 必須引用 ready/ingested `source_material_id`、`asset_aware_doc_id`、`data_artifact_id`，或可信 data file；若來源素材仍是 `pending_asset_aware`，Hook F4 必須 CRITICAL fail。
-| `pipeline.hook_*_max_rounds`        | Hook A/B/C cascading 上限                   |
-| `pipeline.review_max_rounds`        | Phase 7 Autonomous Review 輪數              |
-| `pipeline.writing.anti_ai_*`        | Hook A3 Anti-AI 嚴格度                      |
-| `pipeline.writing.citation_density` | Hook A2 引用密度標準                        |
-| `pipeline.assets.*`                 | Phase 5 Asset Sub-Pipeline 行為             |
-| `pipeline.autopilot`                | 全自動模式（預設 true）                     |
+| `pipeline.hook_*_max_rounds` | Hook A/B/C cascading 上限 |
+| `pipeline.review_max_rounds` | Phase 7 Autonomous Review 輪數 |
+| `pipeline.writing.anti_ai_*` | Hook A3 Anti-AI 嚴格度 |
+| `pipeline.writing.citation_density` | Hook A2 引用密度標準 |
+| `pipeline.assets.*` | Phase 5 Asset Sub-Pipeline 行為 |
+| `pipeline.autopilot` | 全自動模式（預設 true） |
 
 #### Autopilot 模式（預設開啟）
 
@@ -1777,22 +1777,22 @@ B7c 為 ADVISORY（順序偏離可接受）。
 
 ### Hook C: post-manuscript（全稿完成後，含分層回溯，最多 N rounds，N = `pipeline.hook_c_max_rounds`）
 
-| #   | 檢查項                | MCP Tool                                                  | 失敗行為                             | 回溯層 | 閾值來源                                                 |
-| --- | --------------------- | --------------------------------------------------------- | ------------------------------------ | ------ | -------------------------------------------------------- |
-| C1  | 稿件一致性            | `check_formatting("consistency")`                         | `patch_draft`                        | → B4   | —                                                        |
-| C2  | 投稿清單              | `check_formatting("submission")`                          | 定點修正                             | —      | `required_documents.*`                                   |
-| C3  | N 值跨 section 一致   | `read_draft` × N + 數字比對                               | `patch_draft` 統一                   | → A    | —                                                        |
-| C4  | 縮寫首次定義          | `read_draft` + 全文掃描                                   | `patch_draft` 補定義                 | → A    | —                                                        |
-| C5  | Wikilinks 可解析      | `scan_draft_citations`                                    | `save_reference_mcp` 補存            | → A4   | —                                                        |
-| C6  | 總字數合規            | `count_words`                                             | 精簡超長 section                     | → A1   | `word_limits.total_manuscript`                           |
-| C7  | 數量與交叉引用合規 🆕 | 見下方 C7 子項                                            | 依子項處理                           | 依子項 | `assets.*`, `word_limits.*`, `references.max_references` |
-| C8  | 時間一致性            | `read_draft` × N + Agent 掃描                             | `patch_draft` 更新過時描述           | → B    | —                                                        |
-| C9  | 補充材料交叉引用      | `run_quality_checks(action="writing_hooks", hooks="C9")`  | `patch_draft` 補引用                 | —      | —                                                        |
-| C10 | 文獻全文+分析驗證     | `run_quality_checks(action="writing_hooks", hooks="C10")` | 補 fulltext/analysis                 | —      | —                                                        |
-| C11 | 引用分布均衡 🆕       | `run_quality_checks(action="writing_hooks", hooks="C11")` | 重分配引用到缺引用 section           | → A2   | —                                                        |
-| C12 | 引用適切性審計 🆕     | `run_quality_checks(action="writing_hooks", hooks="C12")` | 補決策紀錄到 citation_decisions.json | —      | —                                                        |
-| C13 | 圖表品質與排序 🆕     | `run_quality_checks(action="writing_hooks", hooks="C13")` | 修正排序/補 caption                  | → C7d  | —                                                        |
-| C14 | Claim-Evidence 對齊 🆕 | `run_quality_checks(action="writing_hooks", hooks="C14")` | 為強 claim 補引用/source-material/圖表證據，或弱化措辭 | → Phase 5/8 | 強 claim 不歸類為 A3 語體問題 |
+| #   | 檢查項                 | MCP Tool                                                  | 失敗行為                                               | 回溯層      | 閾值來源                                                 |
+| --- | ---------------------- | --------------------------------------------------------- | ------------------------------------------------------ | ----------- | -------------------------------------------------------- |
+| C1  | 稿件一致性             | `check_formatting("consistency")`                         | `patch_draft`                                          | → B4        | —                                                        |
+| C2  | 投稿清單               | `check_formatting("submission")`                          | 定點修正                                               | —           | `required_documents.*`                                   |
+| C3  | N 值跨 section 一致    | `read_draft` × N + 數字比對                               | `patch_draft` 統一                                     | → A         | —                                                        |
+| C4  | 縮寫首次定義           | `read_draft` + 全文掃描                                   | `patch_draft` 補定義                                   | → A         | —                                                        |
+| C5  | Wikilinks 可解析       | `scan_draft_citations`                                    | `save_reference_mcp` 補存                              | → A4        | —                                                        |
+| C6  | 總字數合規             | `count_words`                                             | 精簡超長 section                                       | → A1        | `word_limits.total_manuscript`                           |
+| C7  | 數量與交叉引用合規 🆕  | 見下方 C7 子項                                            | 依子項處理                                             | 依子項      | `assets.*`, `word_limits.*`, `references.max_references` |
+| C8  | 時間一致性             | `read_draft` × N + Agent 掃描                             | `patch_draft` 更新過時描述                             | → B         | —                                                        |
+| C9  | 補充材料交叉引用       | `run_quality_checks(action="writing_hooks", hooks="C9")`  | `patch_draft` 補引用                                   | —           | —                                                        |
+| C10 | 文獻全文+分析驗證      | `run_quality_checks(action="writing_hooks", hooks="C10")` | 補 fulltext/analysis                                   | —           | —                                                        |
+| C11 | 引用分布均衡 🆕        | `run_quality_checks(action="writing_hooks", hooks="C11")` | 重分配引用到缺引用 section                             | → A2        | —                                                        |
+| C12 | 引用適切性審計 🆕      | `run_quality_checks(action="writing_hooks", hooks="C12")` | 補決策紀錄到 citation_decisions.json                   | —           | —                                                        |
+| C13 | 圖表品質與排序 🆕      | `run_quality_checks(action="writing_hooks", hooks="C13")` | 修正排序/補 caption                                    | → C7d       | —                                                        |
+| C14 | Claim-Evidence 對齊 🆕 | `run_quality_checks(action="writing_hooks", hooks="C14")` | 為強 claim 補引用/source-material/圖表證據，或弱化措辭 | → Phase 5/8 | 強 claim 不歸類為 A3 語體問題                            |
 
 #### Hook C Cascading Protocol
 

@@ -4,10 +4,10 @@ Figure & Table Insertion Tools
 insert_figure, insert_table — register assets in manifest and insert references into drafts.
 """
 
-from collections.abc import Callable
 import json
 import os
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal, Optional, cast
 
@@ -705,7 +705,9 @@ def _insert_into_draft(
     """Insert text into a draft after a specified section heading."""
     try:
         draft_filename = normalize_draft_filename(draft_filename)
-        filepath = str(resolve_child_path(drafter.drafts_dir, draft_filename, field_name="Draft filename"))
+        filepath = str(
+            resolve_child_path(drafter.drafts_dir, draft_filename, field_name="Draft filename")
+        )
     except ValueError as e:
         return f"⚠️ Invalid draft filename — skipping insertion: {e}"
     if not os.path.isfile(filepath):

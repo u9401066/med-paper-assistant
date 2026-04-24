@@ -21,7 +21,7 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import structlog
 import yaml
@@ -886,7 +886,9 @@ def register_pipeline_tools(
             elif is_done:
                 next_act = "Phase 7 complete. Run validate_phase_gate(7), then proceed to Phase 8."
             else:
-                next_act = f"Start review round {status['current_round'] + 1} with start_review_round()"
+                next_act = (
+                    f"Start review round {status['current_round'] + 1} with start_review_round()"
+                )
             _sync_to_workspace_state(
                 slug=slug,
                 phase=7,
@@ -1664,20 +1666,80 @@ def register_pipeline_tools(
                 last_gate = None
 
             phase_tools = [
-                {"phase": 0, "tools": ["project_action:source_materials", "project_action:journal_profile", "project_action:record_asset_ingestion"]},
-                {"phase": 1, "tools": ["project_action:create", "project_action:update", "project_action:setup"]},
+                {
+                    "phase": 0,
+                    "tools": [
+                        "project_action:source_materials",
+                        "project_action:journal_profile",
+                        "project_action:record_asset_ingestion",
+                    ],
+                },
+                {
+                    "phase": 1,
+                    "tools": [
+                        "project_action:create",
+                        "project_action:update",
+                        "project_action:setup",
+                    ],
+                },
                 {"phase": 2, "tools": ["pubmed-search", "save_reference_mcp"]},
-                {"phase": 21, "tools": ["asset-aware:ingest_documents", "project_action:record_asset_ingestion", "pipeline_action:validate_phase"]},
-                {"phase": 3, "tools": ["validation_action:concept", "pipeline_action:approve_concept_review"]},
+                {
+                    "phase": 21,
+                    "tools": [
+                        "asset-aware:ingest_documents",
+                        "project_action:record_asset_ingestion",
+                        "pipeline_action:validate_phase",
+                    ],
+                },
+                {
+                    "phase": 3,
+                    "tools": [
+                        "validation_action:concept",
+                        "pipeline_action:approve_concept_review",
+                    ],
+                },
                 {"phase": 4, "tools": ["manuscript-plan", "pipeline_action:validate_phase"]},
-                {"phase": 5, "tools": ["draft_action", "analysis_action", "run_quality_checks:writing_hooks"]},
-                {"phase": 6, "tools": ["run_quality_checks:quality", "run_quality_checks:data_artifacts"]},
+                {
+                    "phase": 5,
+                    "tools": [
+                        "draft_action",
+                        "analysis_action",
+                        "run_quality_checks:writing_hooks",
+                    ],
+                },
+                {
+                    "phase": 6,
+                    "tools": ["run_quality_checks:quality", "run_quality_checks:data_artifacts"],
+                },
                 {"phase": 65, "tools": ["evolution-log", "quality-scorecard"]},
-                {"phase": 7, "tools": ["pipeline_action:start_review", "pipeline_action:submit_review", "run_quality_checks:review"]},
+                {
+                    "phase": 7,
+                    "tools": [
+                        "pipeline_action:start_review",
+                        "pipeline_action:submit_review",
+                        "run_quality_checks:review",
+                    ],
+                },
                 {"phase": 8, "tools": ["sync_references", "validation_action:wikilinks"]},
-                {"phase": 9, "tools": ["export_document:docx", "export_document:pdf", "inspect_export:inspect_docx_xml"]},
-                {"phase": 10, "tools": ["run_quality_checks:pipeline_retrospective", "run_quality_checks:meta_learning"]},
-                {"phase": 11, "tools": ["pipeline_action:validate_phase", "optional_git_provenance"]},
+                {
+                    "phase": 9,
+                    "tools": [
+                        "export_document:docx",
+                        "export_document:pdf",
+                        "inspect_export:inspect_docx_xml",
+                    ],
+                },
+                {
+                    "phase": 10,
+                    "tools": [
+                        "run_quality_checks:pipeline_retrospective",
+                        "run_quality_checks:meta_learning",
+                    ],
+                },
+                {
+                    "phase": 11,
+                    "tools": ["pipeline_action:validate_phase", "optional_git_provenance"],
+                },
             ]
 
             payload = {

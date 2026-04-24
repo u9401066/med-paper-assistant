@@ -26,19 +26,19 @@ materialized wiki pages.
 
 ## Foam Features Relevant Here
 
-| Feature | Upstream behavior | Current MedPaper usage |
-| --- | --- | --- |
-| Wikilinks | `[[note]]`, aliases, autocompletion | Primary citation and note linking surface |
-| Backlinks | Shows inbound references to the active note | Used to inspect draft-to-reference usage |
-| Graph visualization | Visual graph over notes and note types | Used as the reference and concept graph surface |
-| Note properties | YAML frontmatter with `title`, `type`, `tags`, `alias(es)` | Used for reference metadata and graph labeling |
-| Link reference definitions | Standard Markdown references generated from wikilinks | Enabled in workspace settings and materialized as publish-safe notes under `notes/publish/` |
-| Daily notes | Timestamped note workflow | Library Wiki Path now provisions `daily/` templates plus `notes/` journaling |
-| Note embeds | `![[note]]`, section, and block embeds | Used for figures/assets plus embedded evidence cards in knowledge maps and synthesis pages |
-| Block anchors | `[[note#^block-id]]` and `![[note#^block-id]]` | Materialized for key findings and extracted/fulltext evidence blocks in reference notes |
-| Foam queries | Dynamic lists/tables in preview via `foam-query` | Emitted in knowledge maps and synthesis pages for live counts and linked-reference tables |
-| Resource filters | Filter commands/graph scope by tag/type/path | Standardized `type`, `tags`, and custom frontmatter now support project/domain/status-driven graph slices |
-| Custom graph configs | Named graph views and group-based coloring/filtering | Managed views plus project-specific `graph_views_json` slices are written into `foam.graph.views` |
+| Feature                    | Upstream behavior                                          | Current MedPaper usage                                                                                    |
+| -------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Wikilinks                  | `[[note]]`, aliases, autocompletion                        | Primary citation and note linking surface                                                                 |
+| Backlinks                  | Shows inbound references to the active note                | Used to inspect draft-to-reference usage                                                                  |
+| Graph visualization        | Visual graph over notes and note types                     | Used as the reference and concept graph surface                                                           |
+| Note properties            | YAML frontmatter with `title`, `type`, `tags`, `alias(es)` | Used for reference metadata and graph labeling                                                            |
+| Link reference definitions | Standard Markdown references generated from wikilinks      | Enabled in workspace settings and materialized as publish-safe notes under `notes/publish/`               |
+| Daily notes                | Timestamped note workflow                                  | Library Wiki Path now provisions `daily/` templates plus `notes/` journaling                              |
+| Note embeds                | `![[note]]`, section, and block embeds                     | Used for figures/assets plus embedded evidence cards in knowledge maps and synthesis pages                |
+| Block anchors              | `[[note#^block-id]]` and `![[note#^block-id]]`             | Materialized for key findings and extracted/fulltext evidence blocks in reference notes                   |
+| Foam queries               | Dynamic lists/tables in preview via `foam-query`           | Emitted in knowledge maps and synthesis pages for live counts and linked-reference tables                 |
+| Resource filters           | Filter commands/graph scope by tag/type/path               | Standardized `type`, `tags`, and custom frontmatter now support project/domain/status-driven graph slices |
+| Custom graph configs       | Named graph views and group-based coloring/filtering       | Managed views plus project-specific `graph_views_json` slices are written into `foam.graph.views`         |
 
 ## Current Local Alignment
 
@@ -99,21 +99,21 @@ Needs follow-up:
 
 ## Recently Closed Copilot Alignments
 
-| Upstream Foam feature | Current MedPaper state | Entry point |
-| --- | --- | --- |
-| Orphans / placeholders panels | Graph-health dashboards now surface orphan notes, unresolved wikilinks, placeholders, and metadata gaps | `build_library_dashboard(view="graph-health")` |
-| Templates / daily notes | Inbox, review, and daily templates now ship through the MedPaper note writer | `write_library_note(template="capture|review|daily")` |
-| Foam queries | Library dashboards now emit more live operational views | `build_library_dashboard(view="unread|metadata|review|assets|synthesis")` |
-| Link reference definitions / publishing | Publish-safe reference packs are materialized for non-Foam renderers | `notes/publish/reference-links.md`, `notes/publish/knowledge-base.md` |
-| Custom graph configs | Project-specific graph slices are merged into `foam.graph.views` | `update_project_settings(graph_views_json="...")` |
+| Upstream Foam feature                   | Current MedPaper state                                                                                  | Entry point                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------- | -------- | ------ | ------------ |
+| Orphans / placeholders panels           | Graph-health dashboards now surface orphan notes, unresolved wikilinks, placeholders, and metadata gaps | `build_library_dashboard(view="graph-health")`                        |
+| Templates / daily notes                 | Inbox, review, and daily templates now ship through the MedPaper note writer                            | `write_library_note(template="capture                                 | review   | daily")` |
+| Foam queries                            | Library dashboards now emit more live operational views                                                 | `build_library_dashboard(view="unread                                 | metadata | review   | assets | synthesis")` |
+| Link reference definitions / publishing | Publish-safe reference packs are materialized for non-Foam renderers                                    | `notes/publish/reference-links.md`, `notes/publish/knowledge-base.md` |
+| Custom graph configs                    | Project-specific graph slices are merged into `foam.graph.views`                                        | `update_project_settings(graph_views_json="...")`                     |
 
 ## Remaining Alignment Work
 
-| Area | Remaining gap | Likely next step |
-| --- | --- | --- |
-| Asset fragments | Best-effort anchors still stop at the matched source block rather than a broader verified fragment set | Expand ETL-backed fragment identity and multi-block anchor emission |
-| Taxonomy hubs | Journal/author/topic/MeSH nodes exist but are still intentionally lightweight | Add richer hub-note summaries and cross-hub navigation pages |
-| Embed strategy | Embedded evidence still favors key findings and first-fragment summaries | Expand multi-fragment embeds and source-artifact embeds where note paths stay stable |
+| Area            | Remaining gap                                                                                          | Likely next step                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Asset fragments | Best-effort anchors still stop at the matched source block rather than a broader verified fragment set | Expand ETL-backed fragment identity and multi-block anchor emission                  |
+| Taxonomy hubs   | Journal/author/topic/MeSH nodes exist but are still intentionally lightweight                          | Add richer hub-note summaries and cross-hub navigation pages                         |
+| Embed strategy  | Embedded evidence still favors key findings and first-fragment summaries                               | Expand multi-fragment embeds and source-artifact embeds where note paths stay stable |
 
 ## Workspace Settings We Intentionally Use
 
@@ -137,13 +137,13 @@ project switches or settings updates.
 ## Recommended Next Alignment Work
 
 1. Expand source-fragment anchoring from the matched source block into broader
-  multi-block asset coverage where the ETL can prove fragment identity.
+   multi-block asset coverage where the ETL can prove fragment identity.
 2. Expand asset-note generation from registration-level cards into richer
-  fragment-level evidence blocks where stable anchors are available.
+   fragment-level evidence blocks where stable anchors are available.
 3. Add more navigation notes beyond `notes/index.md` for opinionated entry
-  points such as methodology maps or reviewer worklists.
+   points such as methodology maps or reviewer worklists.
 4. Expand embed generation beyond the first evidence block, including direct
-  source-artifact embeds where the underlying note path is stable.
+   source-artifact embeds where the underlying note path is stable.
 
 ## Relevant Local Files
 

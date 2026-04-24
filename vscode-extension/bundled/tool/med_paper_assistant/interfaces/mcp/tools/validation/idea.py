@@ -221,9 +221,7 @@ def register_idea_validation_tools(
         output += "| [Existing finding 2] | [Gap] | [How your study fills this] |\n\n"
 
         output += "---\n"
-        output += (
-            "💡 Use `unified_search` for comprehensive PubMed / multi-source search beyond saved references.\n"
-        )
+        output += "💡 Use `unified_search` for comprehensive PubMed / multi-source search beyond saved references.\n"
 
         log_tool_result("compare_with_literature", "comparison generated", success=True)
         return output

@@ -66,13 +66,13 @@ block-anchor embeds, and `foam-query` dashboards. The new library-facing
 additions close the biggest gap between a note graph and an operational
 research workspace:
 
-| Capability | What you can do now | Materialized output |
-| --- | --- | --- |
-| Template-driven capture | Create `capture`, `review`, or `daily` notes with normalized frontmatter | `projects/{slug}/inbox/`, `review/`, `daily/` |
-| Graph-health repair loop | Run `build_library_dashboard(view="graph-health")` to surface orphans, unresolved wikilinks, placeholders, and metadata gaps | `notes/library/dashboard-graph-health.md`, `notes/review/graph-repair-worklist.md` |
-| Richer dashboards | Run `build_library_dashboard` with `unread`, `metadata`, `review`, `assets`, `synthesis`, or `queues` | `notes/library/dashboard-*.md` |
-| Publish-safe references | Regenerate graph notes and export-safe reference definitions for non-Foam renderers | `notes/publish/reference-links.md`, `notes/publish/knowledge-base.md` |
-| Project-specific graph slices | Write custom `graph_views_json` into project settings and let MedPaper refresh `foam.graph.views` | `project.json` + `.vscode/settings.json` |
+| Capability                    | What you can do now                                                                                                          | Materialized output                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Template-driven capture       | Create `capture`, `review`, or `daily` notes with normalized frontmatter                                                     | `projects/{slug}/inbox/`, `review/`, `daily/`                                      |
+| Graph-health repair loop      | Run `build_library_dashboard(view="graph-health")` to surface orphans, unresolved wikilinks, placeholders, and metadata gaps | `notes/library/dashboard-graph-health.md`, `notes/review/graph-repair-worklist.md` |
+| Richer dashboards             | Run `build_library_dashboard` with `unread`, `metadata`, `review`, `assets`, `synthesis`, or `queues`                        | `notes/library/dashboard-*.md`                                                     |
+| Publish-safe references       | Regenerate graph notes and export-safe reference definitions for non-Foam renderers                                          | `notes/publish/reference-links.md`, `notes/publish/knowledge-base.md`              |
+| Project-specific graph slices | Write custom `graph_views_json` into project settings and let MedPaper refresh `foam.graph.views`                            | `project.json` + `.vscode/settings.json`                                           |
 
 ## Working `graph_views_json` Example
 

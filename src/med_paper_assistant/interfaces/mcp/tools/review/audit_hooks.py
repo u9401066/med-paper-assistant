@@ -17,7 +17,7 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, Optional, cast
+from typing import Any, Literal, Optional, cast
 
 import yaml
 from mcp.server.fastmcp import Context, FastMCP
@@ -57,14 +57,23 @@ from .._shared import (
     log_tool_call,
     log_tool_error,
     log_tool_result,
-    resolve_project_context,
     report_tool_progress,
+    resolve_project_context,
 )
 from .._shared.guidance import build_guidance_hint
 from ._manuscript import read_review_manuscript_content
 
 # Minimum dimensions required for Phase 6 gate
 MIN_SCORED_DIMENSIONS = 4
+
+
+def _coerce_project_info(project_info: dict[str, Any] | None) -> dict[str, Any]:
+    """Narrow resolved project context after workflow_error has been checked."""
+    if project_info is None:
+        raise ValueError("Project context unavailable")
+    return project_info
+
+
 # Minimum average score threshold
 MIN_AVERAGE_SCORE = 1.0
 
@@ -75,11 +84,7 @@ def _summarize_pending_evolutions(
 ) -> dict:
     """Build a compact project-facing summary of pending evolution items."""
     store = PendingEvolutionStore(workspace_root)
-    pending = [
-        item
-        for item in store.get_pending()
-        if item.project in {None, slug}
-    ]
+    pending = [item for item in store.get_pending() if item.project in {None, slug}]
     return {
         "schema": "mdpaper.meta_learning_feedback.v1",
         "project": slug,
@@ -93,7 +98,9 @@ def _summarize_pending_evolutions(
                 "source": item.source,
                 "auto_apply": item.auto_apply,
                 "project": item.project or "workspace",
-                "summary": str(item.payload.get("lesson") or item.payload.get("reason") or item.payload)[:240],
+                "summary": str(
+                    item.payload.get("lesson") or item.payload.get("reason") or item.payload
+                )[:240],
             }
             for item in pending[:50]
         ],
@@ -130,7 +137,7 @@ def _write_meta_learning_feedback(
                 f"requires_confirmation={feedback['requires_confirmation_count']}",
             ],
         )
-    except Exception:
+    except Exception:  # nosec B110
         pass
     return feedback
 
@@ -238,6 +245,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
 
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -311,6 +319,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
 
             await report_tool_progress(ctx, 0, 4, "Parsing quality audit scores", end=95)
             # Parse scores
@@ -473,6 +482,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
 
             await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             slug = project_info["slug"]
@@ -627,6 +637,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
 
             await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             slug = project_info["slug"]
@@ -772,6 +783,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
 
             await report_tool_progress(ctx, 0, 6, "Resolving project context", end=95)
             slug = project_info["slug"]
@@ -1316,6 +1328,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
             project_dir = str(project_info["project_path"])
 
             # Determine paper type
@@ -1418,6 +1431,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
             project_dir = str(project_info["project_path"])
 
             # Validate category
@@ -1610,6 +1624,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
             await report_tool_progress(ctx, 0, 2, "Resolving project context", end=95)
             slug = project_info["slug"]
             project_dir = Path(project_info["project_path"])
@@ -1628,7 +1643,7 @@ def register_audit_hook_tools(
                 "action: pipeline_retrospective\n"
                 f"file: {rel}\n"
                 "required_headings: D7,D8\n"
-                "next: pipeline_action(action=\"validate_phase\", phase=10, response_format=\"json\", compact=true)"
+                'next: pipeline_action(action="validate_phase", phase=10, response_format="json", compact=true)'
             )
         except Exception as e:
             log_tool_error("write_pipeline_retrospective", e)
@@ -1674,6 +1689,7 @@ def register_audit_hook_tools(
             )
             if workflow_error:
                 return workflow_error
+            project_info = _coerce_project_info(project_info)
 
             await report_tool_progress(ctx, 0, 4, "Resolving project context", end=95)
             slug = project_info["slug"]

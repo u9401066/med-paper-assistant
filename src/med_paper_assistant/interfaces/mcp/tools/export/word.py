@@ -47,7 +47,10 @@ def register_word_export_tools(
     ) -> tuple[Optional[dict], Optional[str]]:
         session = _active_documents.get(session_id)
         if session is None:
-            return None, f"Error: No active session '{session_id}'. Use start_document_session first."
+            return (
+                None,
+                f"Error: No active session '{session_id}'. Use start_document_session first.",
+            )
 
         session_project = session.get("project")
         requested_project = project or session_project

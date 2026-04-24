@@ -16,7 +16,9 @@ def test_file_storage_delete_refuses_storage_root(tmp_path):
     assert (tmp_path / "keep.txt").exists()
 
 
-@pytest.mark.parametrize("src,dst", [("../outside.txt", "inside.txt"), ("inside.txt", "../outside.txt")])
+@pytest.mark.parametrize(
+    "src,dst", [("../outside.txt", "inside.txt"), ("inside.txt", "../outside.txt")]
+)
 def test_file_storage_move_uses_safe_paths(tmp_path, src, dst):
     storage = FileStorage(tmp_path)
     (tmp_path / "inside.txt").write_text("content", encoding="utf-8")

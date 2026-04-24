@@ -181,7 +181,9 @@ def test_materialize_concept_page_derives_from_existing_notes(tmp_path):
     assert "Concept page materialized successfully" in materialize_result
     assert "dexmedetomidine-trend-concept.md" in materialize_result
 
-    concept_path = tmp_path / "projects" / "library" / "concepts" / "dexmedetomidine-trend-concept.md"
+    concept_path = (
+        tmp_path / "projects" / "library" / "concepts" / "dexmedetomidine-trend-concept.md"
+    )
     assert concept_path.exists()
     concept_text = concept_path.read_text(encoding="utf-8")
     assert 'type: "library-concept"' in concept_text
@@ -252,8 +254,12 @@ def test_template_capture_and_graph_health_dashboards(tmp_path):
 
     review_note = tmp_path / "projects" / "library" / "review" / "sedation-review.md"
     daily_note = tmp_path / "projects" / "library" / "daily" / "2026-04-22-log.md"
-    graph_dashboard = tmp_path / "projects" / "library" / "notes" / "library" / "dashboard-graph-health.md"
-    graph_worklist = tmp_path / "projects" / "library" / "notes" / "review" / "graph-repair-worklist.md"
+    graph_dashboard = (
+        tmp_path / "projects" / "library" / "notes" / "library" / "dashboard-graph-health.md"
+    )
+    graph_worklist = (
+        tmp_path / "projects" / "library" / "notes" / "review" / "graph-repair-worklist.md"
+    )
 
     assert review_note.exists()
     assert daily_note.exists()

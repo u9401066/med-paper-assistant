@@ -121,7 +121,9 @@ class DataArtifactTracker:
             "data_source": entry.get("data_source") or entry.get("source") or entry.get("filename"),
             "output_path": self._normalize_path(str(output_path)) if output_path else None,
             "provenance_code": entry.get("provenance_code") or entry.get("code"),
-            "result_summary": entry.get("result_summary") or entry.get("caption") or entry.get("summary"),
+            "result_summary": entry.get("result_summary")
+            or entry.get("caption")
+            or entry.get("summary"),
             "timestamp": entry.get("timestamp") or datetime.now().isoformat(),
         }
 
@@ -236,7 +238,9 @@ class DataArtifactTracker:
                     return provenance[name]
         return None
 
-    def _source_material_lookup(self) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    def _source_material_lookup(
+        self,
+    ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
         """Build source-material lookup maps by id/path/filename."""
         manifest = self._load_source_materials()
         by_id: dict[str, dict[str, Any]] = {}
@@ -260,7 +264,8 @@ class DataArtifactTracker:
 
     def _material_ready_for_anchor(self, material: dict[str, Any]) -> tuple[bool, str]:
         """Return whether a source material can support numeric/statistical anchors."""
-        ingestion = material.get("ingestion") if isinstance(material.get("ingestion"), dict) else {}
+        raw_ingestion = material.get("ingestion")
+        ingestion: dict[str, Any] = raw_ingestion if isinstance(raw_ingestion, dict) else {}
         status = str(ingestion.get("status") or "").strip().lower()
         required = bool(ingestion.get("required"))
         if required and status in {"", "pending", "pending_asset_aware", "not_ingested"}:
@@ -399,7 +404,9 @@ class DataArtifactTracker:
                 "file",
             )
             if source_ref:
-                material = source_by_ref.get(str(source_ref)) or source_by_ref.get(Path(str(source_ref)).name)
+                material = source_by_ref.get(str(source_ref)) or source_by_ref.get(
+                    Path(str(source_ref)).name
+                )
                 if material:
                     ready, detail = self._material_ready_for_anchor(material)
                     if ready:

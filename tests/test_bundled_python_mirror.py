@@ -5,7 +5,6 @@ from __future__ import annotations
 import difflib
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 SRC_ROOT = ROOT / "src" / "med_paper_assistant"
 BUNDLED_ROOT = ROOT / "vscode-extension" / "bundled" / "tool" / "med_paper_assistant"

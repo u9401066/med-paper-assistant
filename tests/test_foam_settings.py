@@ -25,9 +25,18 @@ def test_update_for_project_writes_graph_views_and_preview_navigation(tmp_path) 
     assert result["graph_views"] == ["Default", "Evidence", "Writing", "Assets", "Review"]
     assert settings["foam.graph.navigateToPreview"] is True
     assert view_names[:5] == ["Default", "Evidence", "Writing", "Assets", "Review"]
-    assert any(group["match"] == {"property": "type", "value": "draft-section"} for group in views[0]["groups"])
-    assert any(group["match"] == {"property": "asset_type", "value": "figure"} for group in views[0]["groups"])
-    assert any(group["match"] == {"property": "type", "value": "library-dashboard"} for group in views[0]["groups"])
+    assert any(
+        group["match"] == {"property": "type", "value": "draft-section"}
+        for group in views[0]["groups"]
+    )
+    assert any(
+        group["match"] == {"property": "asset_type", "value": "figure"}
+        for group in views[0]["groups"]
+    )
+    assert any(
+        group["match"] == {"property": "type", "value": "library-dashboard"}
+        for group in views[0]["groups"]
+    )
     assert "projects/beta/**" in settings["foam.files.ignore"]
 
 
@@ -104,4 +113,7 @@ def test_update_for_project_reads_custom_graph_views_from_project_settings(tmp_p
     assert result["success"] is True
     assert "Sedation Focus" in result["graph_views"]
     assert "Sedation Focus" in view_names
-    assert any(group["match"] == {"property": "tags", "value": "sedation"} for group in sedation_view["groups"])
+    assert any(
+        group["match"] == {"property": "tags", "value": "sedation"}
+        for group in sedation_view["groups"]
+    )

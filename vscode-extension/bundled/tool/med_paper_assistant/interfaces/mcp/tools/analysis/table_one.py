@@ -5,8 +5,8 @@ Generate baseline characteristics tables for medical papers.
 Every tool call records provenance to data-artifacts.yaml for reproducibility.
 """
 
-from collections.abc import Callable
 import os
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Optional
 

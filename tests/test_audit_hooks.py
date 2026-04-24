@@ -431,7 +431,9 @@ class TestRunMetaLearningTool:
             fn()
 
         # Setup remaining Phase 10 requirements
-        (audit_dir / "pipeline-run-20260101.md").write_text("# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n")
+        (audit_dir / "pipeline-run-20260101.md").write_text(
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
+        )
         (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
         (project_dir / ".memory" / "activeContext.md").write_text("# Active")
         (project_dir / ".memory" / "progress.md").write_text("# Progress")
@@ -564,7 +566,9 @@ class TestEndToEndAuditPipeline:
             audit(scores=json.dumps({dim: 8 for dim in DIMENSIONS}))
             # Deliberately skip run_meta_learning!
 
-        (audit_dir / "pipeline-run-20260101.md").write_text("# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\neq\n")
+        (audit_dir / "pipeline-run-20260101.md").write_text(
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\neq\n"
+        )
         (audit_dir / "evolution-log.jsonl").write_text(
             json.dumps({"event": "meta_learning"}) + "\n"
         )
@@ -778,7 +782,9 @@ class TestPhase10Enhanced:
 
     def test_fail_no_meta_learning_audit(self, validator, audit_dir):
         """Phase 10 without meta-learning-audit.json must FAIL on data check."""
-        (audit_dir / "pipeline-run-20260101.md").write_text("# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n")
+        (audit_dir / "pipeline-run-20260101.md").write_text(
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
+        )
         (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
         (audit_dir / "evolution-log.jsonl").write_text(
             json.dumps({"event": "meta_learning"}) + "\n"
@@ -792,7 +798,9 @@ class TestPhase10Enhanced:
 
     def test_fail_empty_meta_learning_audit(self, validator, audit_dir):
         """Empty meta-learning-audit.json → FAIL."""
-        (audit_dir / "pipeline-run-20260101.md").write_text("# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n")
+        (audit_dir / "pipeline-run-20260101.md").write_text(
+            "# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n"
+        )
         (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
         (audit_dir / "evolution-log.jsonl").write_text(
             json.dumps({"event": "meta_learning"}) + "\n"
@@ -807,7 +815,9 @@ class TestPhase10Enhanced:
 
     def test_fail_audit_missing_counts(self, validator, audit_dir):
         """Audit entry without required count fields → FAIL."""
-        (audit_dir / "pipeline-run-20260101.md").write_text("# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n")
+        (audit_dir / "pipeline-run-20260101.md").write_text(
+            "# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n"
+        )
         (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
         (audit_dir / "evolution-log.jsonl").write_text(
             json.dumps({"event": "meta_learning"}) + "\n"

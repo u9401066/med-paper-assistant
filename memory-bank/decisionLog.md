@@ -35,14 +35,19 @@
 ### 本次決定
 
 1. **Validation compact surface 進一步 façade 化**
-  - compact 下隱藏三個 validation granular verbs。
-  - 新增 `validation_action`（compact only）承接 `concept / wikilinks / literature` 三類操作。
+
+- compact 下隱藏三個 validation granular verbs。
+- 新增 `validation_action`（compact only）承接 `concept / wikilinks / literature` 三類操作。
+
 2. **Library dashboard 新增 synthesis 視圖**
-  - `build_library_dashboard(view="synthesis")` 提供 throughput、tag cluster 候選與 ready-to-synthesize 列表。
+
+- `build_library_dashboard(view="synthesis")` 提供 throughput、tag cluster 候選與 ready-to-synthesize 列表。
+
 3. **Ownership boundary 固定原則**
-  - manuscript-only：concept validation、drafting、review gates、export。
-  - library-wiki-only：library note triage/metadata/path/dashboard/materialization。
-  - façade 優先做公共入口，granular verbs 以 full surface 做相容，不回滲 compact 主路徑。
+
+- manuscript-only：concept validation、drafting、review gates、export。
+- library-wiki-only：library note triage/metadata/path/dashboard/materialization。
+- façade 優先做公共入口，granular verbs 以 full surface 做相容，不回滲 compact 主路徑。
 
 ### 成果
 

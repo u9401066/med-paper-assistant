@@ -1690,10 +1690,11 @@ wheels = [
 
 [[package]]
 name = "med-paper-assistant"
-version = "0.7.6"
+version = "0.7.7"
 source = { editable = "." }
 dependencies = [
     { name = "citeproc-py" },
+    { name = "defusedxml" },
     { name = "mcp" },
     { name = "pandas" },
     { name = "pydantic" },
@@ -1764,6 +1765,7 @@ requires-dist = [
     { name = "biopython", marker = "extra == 'pubmed'", specifier = ">=1.80" },
     { name = "citeproc-py", specifier = ">=0.6.0" },
     { name = "creativity-generation-unit", marker = "extra == 'creativity'", editable = "integrations/cgu" },
+    { name = "defusedxml", specifier = ">=0.7.1" },
     { name = "lxml", marker = "extra == 'publishing'", specifier = ">=4.9.0" },
     { name = "matplotlib", marker = "extra == 'analysis'", specifier = ">=3.7.0" },
     { name = "mcp", specifier = ">=1.25.0,<2" },
