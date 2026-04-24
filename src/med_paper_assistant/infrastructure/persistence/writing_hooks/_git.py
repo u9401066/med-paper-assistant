@@ -19,10 +19,11 @@ class GitHooksMixin:
 
     def check_git_status(self) -> HookResult:
         """
-        G9: Check for uncommitted changes in git.
+        G9: Check optional git provenance status.
 
-        Code-Enforced hook that detects dirty working tree.
-        Agent MUST auto-commit + push if this hook fails.
+        Paper-first policy: Git helps provenance, but a paper-only workflow may
+        have no remote or no repository at all. This hook must never block
+        scientific writing gates solely because code was not pushed.
         """
         issues: list[HookIssue] = []
         stats: dict[str, Any] = {}
@@ -44,46 +45,44 @@ class GitHooksMixin:
                     severity="WARNING",
                     section="git",
                     message="No .git directory found",
-                    suggestion="Initialize git repository",
+                    suggestion="Optional: initialize git if you want code/provenance tracking",
                 )
             )
             return HookResult(hook_id="G9", passed=True, issues=issues, stats={"git": "not found"})
 
+        import os
         import subprocess  # nosec B404 — only runs git commands
 
         try:
+            env = os.environ.copy()
+            env["GIT_OPTIONAL_LOCKS"] = "0"
             result = subprocess.run(  # nosec B603 B607
-                ["git", "status", "--porcelain"],
+                ["git", "status", "--branch", "--porcelain=v2", "--untracked-files=normal"],
                 capture_output=True,
                 text=True,
                 cwd=str(workspace_root),
-                timeout=10,
+                timeout=3,
+                env=env,
             )
-            dirty_files = [line for line in result.stdout.strip().split("\n") if line.strip()]
+            status_lines = result.stdout.strip().split("\n")
+            dirty_files = [line for line in status_lines if line.strip() and not line.startswith("#")]
             stats["dirty_files"] = len(dirty_files)
 
             if dirty_files:
                 issues.append(
                     HookIssue(
                         hook_id="G9",
-                        severity="CRITICAL",
+                        severity="WARNING",
                         section="git",
                         message=f"{len(dirty_files)} uncommitted file(s) detected",
                         location="\n".join(dirty_files[:10]),
-                        suggestion="Auto-commit and push: git add -A && git commit && git push",
+                        suggestion="Optional provenance step: commit local changes if this paper project uses Git",
                     )
                 )
 
             # Check unpushed commits
-            result2 = subprocess.run(  # nosec B603 B607
-                ["git", "status", "--branch", "--porcelain=v2"],
-                capture_output=True,
-                text=True,
-                cwd=str(workspace_root),
-                timeout=10,
-            )
-            has_upstream = "branch.upstream" in result2.stdout
-            is_pushed = "branch.ab +0" in result2.stdout
+            has_upstream = "branch.upstream" in result.stdout
+            is_pushed = has_upstream and "branch.ab +0" in result.stdout
             stats["has_upstream"] = has_upstream
             stats["is_pushed"] = is_pushed
 
@@ -91,12 +90,14 @@ class GitHooksMixin:
                 issues.append(
                     HookIssue(
                         hook_id="G9",
-                        severity="CRITICAL",
+                        severity="WARNING",
                         section="git",
                         message="Unpushed commits detected",
-                        suggestion="Push to remote: git push",
+                        suggestion="Optional provenance step: push if this project is configured with a remote",
                     )
                 )
+            elif not has_upstream:
+                stats["remote_sync"] = "not configured"
 
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
             issues.append(

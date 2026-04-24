@@ -6,6 +6,7 @@ Generates CSL-JSON bibliography automatically from local references.
 """
 
 import os
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -558,9 +559,46 @@ def register_pandoc_export_tools(
             log_tool_error("build_bibliography", e, {"draft": draft_filename})
             return f"❌ Build bibliography failed: {e}"
 
+    def inspect_docx_xml(
+        output_filename: str,
+        project: Optional[str] = None,
+    ) -> str:
+        """Run Phase 9 DOCX XML smoke inspection on an exported DOCX file."""
+        log_tool_call("inspect_docx_xml", {"output": output_filename, "project": project})
+
+        _, workflow_error = resolve_project_context(
+            project,
+            required_mode="manuscript",
+        )
+        if workflow_error:
+            return workflow_error
+
+        is_valid, msg, _ = ensure_project_context(project)
+        if not is_valid:
+            return msg
+
+        try:
+            pipeline, pm = _get_pipeline()
+            paths = pm.get_project_paths()
+            drafts_dir = paths.get("drafts", "drafts")
+            exports_dir = os.path.join(os.path.dirname(drafts_dir), "exports")
+            _, docx_path = _resolve_output_path(
+                exports_dir,
+                output_filename,
+                ".docx",
+                field_name="DOCX filename",
+            )
+            result = pipeline.inspect_docx_xml_smoke(docx_path)
+            log_tool_result("inspect_docx_xml", docx_path, success=bool(result.get("passed")))
+            return json.dumps(result, ensure_ascii=False, indent=2)
+        except Exception as e:
+            log_tool_error("inspect_docx_xml", e, {"output": output_filename})
+            return f"❌ DOCX XML inspection failed: {e}"
+
     return {
         "export_docx": export_docx,
         "export_pdf": export_pdf,
         "preview_citations": preview_citations,
         "build_bibliography": build_bibliography,
+        "inspect_docx_xml": inspect_docx_xml,
     }

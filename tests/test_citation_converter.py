@@ -186,6 +186,9 @@ class TestLooksLikeCitationKey:
     def test_standard_key(self):
         assert _looks_like_citation_key("tang2023_38049909") is True
 
+    def test_hyphenated_author_key(self):
+        assert _looks_like_citation_key("de-silva2025_41227143") is True
+
     def test_pmid_format(self):
         assert _looks_like_citation_key("PMID:38049909") is True
 

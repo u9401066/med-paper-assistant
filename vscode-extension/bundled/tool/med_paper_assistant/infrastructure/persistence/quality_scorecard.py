@@ -2,7 +2,7 @@
 Quality Scorecard — Quantitative quality assessment for manuscripts.
 
 Tracks quality scores across multiple dimensions (0-10 scale).
-Persists to `.audit/quality-scorecard.json` and generates `.md` reports.
+Persists to `.audit/quality-scorecard.yaml` and generates `.md` reports.
 
 Architecture:
   Infrastructure layer service. Called after Phase 6 (Hook C) and Phase 7 (Review).

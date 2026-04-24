@@ -1,6 +1,6 @@
 {
   "mcpServer": {
-    "fullTools": 115,
+    "fullTools": 117,
     "compactTools": 22,
     "prompts": 3,
     "resources": 3
@@ -20,12 +20,12 @@
   },
   "docs": {
     "README.md": [
-      "115 (full) / 22 (compact default)",
+      "117 (full) / 22 (compact default)",
       "11 cmds + 10 chat",
       "tool-surface-authority.json"
     ],
     "README.zh-TW.md": [
-      "115（full）/ 22（compact 預設）",
+      "117（full）/ 22（compact 預設）",
       "11 指令 + 10 chat",
       "tool-surface-authority.json"
     ],
@@ -36,15 +36,15 @@
       "7 support/reference files",
       "10 chat commands",
       "11 palette commands",
-      "115 full / 22 compact default",
+      "117 full / 22 compact default",
       "tool-surface-authority.json"
     ],
     ".github/copilot-instructions.md": [
-      "115 full / 22 compact default + 3 prompts + 3 resources",
+      "117 full / 22 compact default + 3 prompts + 3 resources",
       "tool-surface-authority.json"
     ],
     "vscode-extension/copilot-instructions.md": [
-      "115 full / 22 compact default + 3 prompts + 3 resources",
+      "117 full / 22 compact default + 3 prompts + 3 resources",
       "tool-surface-authority.json"
     ]
   }

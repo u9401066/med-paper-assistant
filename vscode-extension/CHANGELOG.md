@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.6 - 2026-04-24
+
+- Added `pipeline_action(action="doctor")` for one-shot 11-phase readiness, external MCP, and cached gate diagnostics.
+- Added DOCX XML smoke inspection through `inspect_export(action="docx_smoke")` / `inspect_export(action="xml_smoke")`.
+- Added source-material intake, asset-aware ingestion receipts, C14 claim-evidence alignment, and stronger data-anchor provenance checks to reduce autonomous agent friction.
+- Updated the packaged MCP authority to `117 full / 22 compact` tools and synced bundled Python/assets.
+
 ## 0.7.2 - 2026-04-22
 
 - Guarded `insert_citation()` against drafts already synced from citation wikilinks so numbered-bibliography workflows cannot silently contaminate library-wiki drafts.

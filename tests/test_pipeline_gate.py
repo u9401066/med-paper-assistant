@@ -3,6 +3,7 @@
 import json
 
 import pytest
+import yaml
 
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
@@ -174,8 +175,17 @@ class TestPhase0:
         r = validator.validate_phase(0)
         assert not r.passed
 
+    def test_fail_no_source_material_scan(self, validator, project_dir):
+        (project_dir / "journal-profile.yaml").write_text("type: original")
+        r = validator.validate_phase(0)
+        assert not r.passed
+        assert ".audit/source-materials.yaml" in r.missing
+
     def test_pass_with_journal_profile(self, validator, project_dir):
         (project_dir / "journal-profile.yaml").write_text("type: original")
+        (project_dir / ".audit" / "source-materials.yaml").write_text(
+            "schema: mdpaper.source_materials.v1\nsummary:\n  total_candidates: 0\n"
+        )
         r = validator.validate_phase(0)
         assert r.passed
 
@@ -837,19 +847,318 @@ class TestPhase65:
         assert r.passed
 
 
+class TestPhase11:
+    def test_skips_git_checks_when_prerequisites_fail(self, validator, project_dir, monkeypatch):
+        """Final gate should not run Git subprocesses while earlier gates still fail."""
+        import subprocess
+
+        (project_dir / ".git").mkdir()
+
+        def fail_run(*args, **kwargs):
+            raise AssertionError("git subprocess should not run")
+
+        monkeypatch.setattr(subprocess, "run", fail_run)
+
+        r = validator.validate_phase(11)
+        names = [c.name for c in r.checks]
+        assert not r.passed
+        assert "git:skipped" in names
+        assert "git:clean" not in names
+
+    def test_phase11_reuses_single_status_call_for_clean_and_push(
+        self, validator, project_dir, monkeypatch
+    ):
+        """Phase 11 should avoid multiple slow git status calls."""
+        import subprocess
+
+        _add_prerequisites(project_dir, up_to_phase=11)
+        (project_dir / ".git").mkdir()
+        calls = []
+
+        def fake_run(cmd, **kwargs):
+            calls.append((cmd, kwargs))
+            if cmd[1] == "status":
+                return subprocess.CompletedProcess(
+                    cmd,
+                    0,
+                    stdout="# branch.upstream origin/master\n# branch.ab +0 -0\n",
+                    stderr="",
+                )
+            if cmd[1] == "log":
+                return subprocess.CompletedProcess(
+                    cmd,
+                    0,
+                    stdout="abc123 release paper\ndrafts/manuscript.md\n",
+                    stderr="",
+                )
+            raise AssertionError(f"unexpected git command: {cmd}")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+
+        r = validator.validate_phase(11)
+        names = [c.name for c in r.checks]
+        status_calls = [cmd for cmd, _ in calls if cmd[1] == "status"]
+        assert "git:clean" in names
+        assert "git:pushed" in names
+        assert len(status_calls) == 1
+        assert all(kwargs["timeout"] == 3 for _, kwargs in calls)
+        assert all(kwargs["env"]["GIT_OPTIONAL_LOCKS"] == "0" for _, kwargs in calls)
+
+    def test_phase11_allows_missing_upstream(self, validator, project_dir, monkeypatch):
+        """Paper-only workflows often have no remote; that should not block delivery."""
+        import subprocess
+
+        _add_prerequisites(project_dir, up_to_phase=11)
+        (project_dir / ".git").mkdir()
+
+        def fake_run(cmd, **kwargs):
+            if cmd[1] == "status":
+                return subprocess.CompletedProcess(
+                    cmd,
+                    0,
+                    stdout="# branch.oid abc123\n# branch.head main\n",
+                    stderr="",
+                )
+            if cmd[1] == "log":
+                return subprocess.CompletedProcess(
+                    cmd,
+                    0,
+                    stdout="abc123 release paper\ndrafts/manuscript.md\n",
+                    stderr="",
+                )
+            raise AssertionError(f"unexpected git command: {cmd}")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+
+        r = validator.validate_phase(11)
+        pushed_check = next(c for c in r.checks if c.name == "git:pushed")
+        assert r.passed
+        assert pushed_check.passed
+        assert pushed_check.severity == "INFO"
+        assert "optional" in pushed_check.details
+
+    def test_phase11_missing_git_is_advisory(self, validator, project_dir):
+        """A manuscript export should not require the user to use Git at all."""
+        _add_prerequisites(project_dir, up_to_phase=11)
+
+        r = validator.validate_phase(11)
+        repository_check = next(c for c in r.checks if c.name == "git:repository")
+        assert r.passed
+        assert not repository_check.passed
+        assert repository_check.severity == "WARNING"
+        assert "optional" in repository_check.details
+
+    def test_phase11_git_timeout_returns_warning(self, validator, project_dir, monkeypatch):
+        """A slow Git command should warn instead of hanging or blocking paper delivery."""
+        import subprocess
+
+        _add_prerequisites(project_dir, up_to_phase=11)
+        (project_dir / ".git").mkdir()
+
+        def slow_run(cmd, **kwargs):
+            raise subprocess.TimeoutExpired(cmd=cmd, timeout=kwargs["timeout"])
+
+        monkeypatch.setattr(subprocess, "run", slow_run)
+
+        r = validator.validate_phase(11)
+        error_check = next(c for c in r.checks if c.name == "git:error")
+        assert r.passed
+        assert not error_check.passed
+        assert error_check.severity == "WARNING"
+        assert "timed out" in error_check.details
+
+
+class TestPhase21SourceMaterials:
+    def test_pending_primary_source_material_blocks_phase21(self, validator, project_dir):
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(20):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True, exist_ok=True)
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "analysis_completed": True})
+            )
+        (project_dir / "references" / "fulltext-ingestion-status.md").write_text("ok")
+        (project_dir / ".audit" / "source-materials.yaml").write_text(
+            yaml.dump(
+                {
+                    "schema": "mdpaper.source_materials.v1",
+                    "materials": [
+                        {
+                            "id": "source-001",
+                            "relative_path": "table.docx",
+                            "evidence_priority": "primary_user_material",
+                            "ingestion": {
+                                "status": "pending_asset_aware",
+                                "required": True,
+                            },
+                        }
+                    ],
+                }
+            )
+        )
+
+        r = validator.validate_phase(21)
+
+        assert not r.passed
+        assert "source-materials:asset-aware" in r.missing
+
+    def test_ingested_primary_source_material_passes_phase21(self, validator, project_dir):
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(20):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True, exist_ok=True)
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "analysis_completed": True})
+            )
+        (project_dir / "references" / "fulltext-ingestion-status.md").write_text("ok")
+        (project_dir / ".audit" / "source-materials.yaml").write_text(
+            yaml.dump(
+                {
+                    "schema": "mdpaper.source_materials.v1",
+                    "materials": [
+                        {
+                            "id": "source-001",
+                            "relative_path": "table.docx",
+                            "evidence_priority": "primary_user_material",
+                            "ingestion": {
+                                "status": "ingested_asset_aware",
+                                "asset_aware_doc_id": "doc_123",
+                                "required": False,
+                            },
+                        }
+                    ],
+                }
+            )
+        )
+
+        r = validator.validate_phase(21)
+
+        assert r.passed
+
+
+class TestPhase21Ordering:
+    def test_phase21_prerequisites_do_not_require_later_phase_artifacts(
+        self, validator, project_dir
+    ):
+        """Phase 2.1 is encoded as 21 but must not inherit Phase 7/9 prerequisites."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        refs = project_dir / "references"
+        for i in range(20):
+            ref_dir = refs / f"ref-{i}"
+            ref_dir.mkdir(parents=True, exist_ok=True)
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "analysis_completed": True})
+            )
+
+        r = validator.validate_phase(21)
+        names = {c.name for c in r.checks}
+        assert "prereq:references" in names
+        assert "prereq:concept.md" not in names
+        assert "prereq:manuscript.md" not in names
+        assert "prereq:quality-scorecard" not in names
+        assert "prereq:review_completed" not in names
+
+
 class TestHeartbeat:
     def test_heartbeat_returns_status(self, validator):
         status = validator.get_pipeline_status()
         assert "completion_pct" in status
         assert "phases" in status
-        assert len(status["phases"]) == 13
+        assert len(status["phases"]) == 14
 
     def test_heartbeat_reflects_progress(self, validator, project_dir):
-        # Add journal-profile → Phase 0 passes
+        # Add Phase 0 artifacts → Phase 0 passes
         (project_dir / "journal-profile.yaml").write_text("type: original")
+        (project_dir / ".audit" / "source-materials.yaml").write_text(
+            "schema: mdpaper.source_materials.v1\nsummary:\n  total_candidates: 0\n"
+        )
         status = validator.get_pipeline_status()
         phase_0 = [p for p in status["phases"] if p["phase"] == 0][0]
         assert phase_0["passed"] is True
+
+    def test_heartbeat_does_not_call_full_gate_validation(self, validator, monkeypatch):
+        """Heartbeat must stay lightweight and avoid validate_phase side effects."""
+
+        def fail_validate_phase(phase):
+            raise AssertionError(f"validate_phase({phase}) should not run in heartbeat")
+
+        monkeypatch.setattr(validator, "validate_phase", fail_validate_phase)
+        status = validator.get_pipeline_status()
+        assert status["phases_total"] == 14
+
+    def test_heartbeat_does_not_write_gate_validation_log(self, validator, project_dir):
+        """Heartbeat should not append hard-gate audit entries."""
+        validator.get_pipeline_status()
+        assert not (project_dir / ".audit" / "gate-validations.jsonl").exists()
+
+    def test_heartbeat_omits_git_subprocesses(self, validator, project_dir, monkeypatch):
+        """Heartbeat must not run Git even when Phase 11 artifacts are present."""
+        import subprocess
+
+        _add_prerequisites(project_dir, up_to_phase=11)
+        (project_dir / ".git").mkdir()
+
+        def fail_run(*args, **kwargs):
+            raise AssertionError("git subprocess should not run in heartbeat")
+
+        monkeypatch.setattr(subprocess, "run", fail_run)
+        status = validator.get_pipeline_status()
+        phase_11 = next(p for p in status["phases"] if p["phase"] == 11)
+        assert phase_11["name"] == "Final Delivery"
+
+
+class TestAgentActionableGateErrors:
+    def test_phase10_pipeline_run_reports_wrong_name_candidates(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=10)
+        (project_dir / ".audit" / "pipeline-run.md").write_text("# Run\n")
+
+        r = validator.validate_phase(10)
+        check = next(c for c in r.checks if c.name == "pipeline-run.md")
+        assert not check.passed
+        assert check.expected_pattern == "pipeline-run-*.md"
+        assert check.search_path == ".audit/pipeline-run-*.md"
+        assert ".audit/pipeline-run.md" in check.actual_found
+        assert "pipeline-run-YYYYMMDD-HHmm.md" in check.fix_hint
+
+    def test_phase10_d7_d8_reports_expected_heading_pattern(self, validator, project_dir):
+        _add_prerequisites(project_dir, up_to_phase=10)
+        (project_dir / ".audit" / "pipeline-run-20260101-1200.md").write_text(
+            "# Run\n## D7 Review Retrospective\n## D8 Retrospective\n"
+        )
+
+        r = validator.validate_phase(10)
+        d7 = next(c for c in r.checks if c.name == "pipeline-run:D7")
+        d8 = next(c for c in r.checks if c.name == "pipeline-run:D8")
+        assert not d7.passed
+        assert not d8.passed
+        assert d7.expected_pattern.startswith("^##\\s+D7")
+        assert d7.actual_found == ["## D7 Review Retrospective"]
+        assert "## D7 retrospective:" in d7.fix_hint
+        assert d8.actual_found == ["## D8 Retrospective"]
+
+    def test_gate_result_json_compact_returns_failing_metadata(self):
+        result = GateResult(
+            phase=10,
+            phase_name="Retrospective",
+            checks=[
+                GateCheck(name="ok", description="ok", passed=True),
+                GateCheck(
+                    name="pipeline-run:D7",
+                    description="D7 section",
+                    passed=False,
+                    expected_pattern="^##\\s+D7",
+                    search_path=".audit/pipeline-run-*.md",
+                    actual_found=["## D7 Review"],
+                    fix_hint="Rename heading",
+                ),
+            ],
+            passed=False,
+            timestamp="2026-01-01T00:00:00",
+        )
+        data = json.loads(result.to_json(compact=True))
+        assert data["schema"] == "mdpaper.gate_result.v1"
+        assert [c["name"] for c in data["checks"]] == ["pipeline-run:D7"]
+        assert data["checks"][0]["expected_pattern"] == "^##\\s+D7"
 
 
 class TestGateLogging:
@@ -1069,3 +1378,17 @@ class TestCheckReviewCompleted:
         )
         passed, details = validator._check_review_completed()
         assert passed
+
+    def test_rewrite_needed_verdict_does_not_complete_review(self, validator, project_dir):
+        """rewrite_needed must regress to Phase 5, not unlock Phase 8."""
+        (project_dir / ".audit" / "audit-loop-review.json").write_text(
+            json.dumps(
+                {
+                    "config": {"min_rounds": 1, "max_rounds": 3},
+                    "rounds": [{"round": 1, "verdict": "rewrite_needed"}],
+                }
+            )
+        )
+        passed, details = validator._check_review_completed()
+        assert not passed
+        assert "not properly terminated" in details

@@ -4,22 +4,22 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-04-23)
+## 當前焦點 (2026-04-24)
 
-v0.7.3 release：完成 repo-wide filename/path guard hardening、Phase 5 MCP surface 修復、source/bundled parity 對齊與發布前驗證；目前進入 commit/push/tag 發布收尾。
+v0.7.6 release：完成 agent-friction 消除線，包括 Phase 0 source-material intake、asset-aware ingestion receipt、F4 data-anchor provenance、C14 claim-evidence alignment、`pipeline_action(action="doctor")`、Phase 9 DOCX XML smoke，以及 tool-surface authority 更新；目前進入 commit/push/tag 發布收尾。
 
 ### 當前狀態
 
 | 項目                    | 數量/狀態                                                         |
 | ----------------------- | ----------------------------------------------------------------- |
-| MCP Tools               | **115 full / 22 compact (default)** + 3 prompts + 3 resources     |
+| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources     |
 | Repo Skills / Prompts   | **26 skills / 15 prompt workflows**                               |
 | VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**      |
-| Hooks                   | **78 checks** (55 Code-Enforced / 23 Agent-Driven)                |
+| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                |
 | Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`) |
 | Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`    |
-| Latest Validation       | `1208 passed / 17 skipped / 1 deselected` full non-integration suite; tool surface + bundled parity passed |
-| Packaging               | Version bumped to `0.7.3`; tag/push in progress                  |
+| Latest Validation       | `1254 passed / 17 skipped / 1 deselected` full suite; `bundle:check`; VSIX `tsc`; targeted smoke/facade tests passed |
+| Packaging               | Version bumped to `0.7.6`; tag/push in progress                  |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -32,6 +32,16 @@ v0.7.3 release：完成 repo-wide filename/path guard hardening、Phase 5 MCP su
 | L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
 
 ### 最近變更
+
+#### v0.7.6 Agent-Friction Release (2026-04-24)
+
+- **Pipeline doctor**: 新增 `pipeline_action(action="doctor")`，一次回傳 11-phase readiness、外部 MCP declaration/command availability、最近 gate cache，讓 agent 不必用多輪 trial-and-error 自省。
+- **Source-material intake**: Phase 0 新增 `project_action(action="source_materials")`，掃描 workspace root DOCX/XLSX/PDF/PPTX/CSV，產出 `.audit/source-materials.yaml/.md` 並標示 `pending_asset_aware`。
+- **Asset-aware receipt**: 新增 `project_action(action="record_asset_ingestion")`，讓外部 asset-aware MCP 回填 doc_id/sections/artifacts，Phase 2.1 可阻擋 primary source 尚未 ingest 的情況。
+- **Data provenance**: F4 data anchors 必須引用 ready source material、asset-aware doc、tracked data artifact 或 trusted data file，避免 concept/agent 推測數字變成真實 anchor。
+- **Claim evidence**: C14 hook 新增 claim-evidence alignment，並依 novelty/causality/superiority/magnitude/certainty 分類 severity。
+- **Phase 9 export smoke**: 新增 `inspect_export(action="docx_smoke"|"xml_smoke")`，檢查 DOCX zip/XML 結構、`word/document.xml`、段落與可見文字。
+- **Release validation**: targeted facade/export/C14 tests `69 passed`；tool-surface authority `2 passed`；full pytest `1254 passed, 17 skipped, 1 deselected`；VSIX bundle check and TypeScript compile passed.
 
 #### v0.7.3 Path Guard & MCP Surface Release (2026-04-23)
 

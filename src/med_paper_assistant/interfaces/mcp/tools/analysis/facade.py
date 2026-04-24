@@ -7,7 +7,8 @@ from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from .._shared import invoke_tool_handler, normalize_facade_action
+from ..draft.facade import _auto_run_post_write_hooks, _infer_section_name
+from .._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
 
 ToolMap = Mapping[str, Callable[..., Any]]
 
@@ -79,7 +80,10 @@ def register_analysis_facade_tools(
             "figure": "insert_figure",
             "table": "insert_table",
             "assets": "list_assets",
-            "list": "list_assets",
+            "actions": "list",
+            "help": "list",
+            "list": "list",
+            "supported": "list",
         }
         normalized = normalize_facade_action(action, aliases)
 
@@ -171,6 +175,17 @@ def register_analysis_facade_tools(
             ),
         }
 
+        if normalized == "list":
+            return facade_schema_json(
+                tool="analysis_action",
+                actions={
+                    name: {"handler": spec[1], "params": sorted(k for k in spec[2])}
+                    for name, spec in sorted(action_specs.items())
+                },
+                aliases=aliases,
+                notes=["Use action='list_assets' to list figure/table assets."],
+            )
+
         if normalized not in action_specs:
             supported = ", ".join(sorted(action_specs))
             return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
@@ -180,7 +195,17 @@ def register_analysis_facade_tools(
         if handler is None:
             return f"❌ Analysis facade misconfigured: missing handler '{handler_name}'"
 
-        return await invoke_tool_handler(handler, **kwargs)
+        result = await invoke_tool_handler(handler, **kwargs)
+        result_text = str(result)
+        if normalized in {"insert_figure", "insert_table"} and not result_text.lstrip().startswith("❌"):
+            hook_filename = draft_filename or "manuscript.md"
+            result_text += _auto_run_post_write_hooks(
+                project=project,
+                filename=hook_filename,
+                section=_infer_section_name(hook_filename),
+                content_hint="",
+            )
+        return result_text
 
     return {"analysis_action": analysis_action}
 

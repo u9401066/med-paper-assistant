@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import types
+import zipfile
 from unittest.mock import MagicMock
 
 import pytest
@@ -61,6 +62,20 @@ def mock_ref_manager():
             "pages": "100-120",
             "doi": "10.1097/ALN.0000000001",
         },
+        "41227143": {
+            "title": "Trans-pharyngeal corridor anatomy for airway access",
+            "authors": ["De Silva R"],
+            "authors_full": [
+                {"last_name": "De Silva", "first_name": "R", "initials": "R"},
+            ],
+            "journal": "British Journal of Anaesthesia",
+            "journal_abbrev": "Br J Anaesth",
+            "year": "2025",
+            "volume": "134",
+            "issue": "2",
+            "pages": "201-209",
+            "doi": "10.1016/j.bja.2025.01.001",
+        },
     }.get(pmid)
     return manager
 
@@ -78,6 +93,18 @@ def mock_pandoc():
 @pytest.fixture
 def pipeline(mock_ref_manager, mock_pandoc):
     return ExportPipeline(mock_ref_manager, mock_pandoc)
+
+
+def _write_minimal_docx(path, document_xml: str | None = None) -> None:
+    """Write a minimal DOCX zip for XML smoke tests."""
+    xml = document_xml or (
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        "<w:body><w:p><w:r><w:t>Hello</w:t></w:r></w:p></w:body>"
+        "</w:document>"
+    )
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types></Types>")
+        archive.writestr("word/document.xml", xml)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -131,6 +158,20 @@ class TestPrepareForPandoc:
         assert "[@tang2023_38049909]" in result["content"]
         assert len(result["bibliography"]) == 1
 
+    def test_existing_pandoc_citations_build_bibliography(self, pipeline):
+        content = "Text [@tang2023_38049909] here."
+        result = pipeline.prepare_for_pandoc(content)
+        assert result["citation_keys"] == ["tang2023_38049909"]
+        assert len(result["bibliography"]) == 1
+        assert result["bibliography"][0]["id"] == "tang2023_38049909"
+
+    def test_existing_hyphenated_pandoc_citation_builds_bibliography(self, pipeline):
+        content = "Text [@de-silva2025_41227143] here."
+        result = pipeline.prepare_for_pandoc(content)
+        assert result["citation_keys"] == ["de-silva2025_41227143"]
+        assert len(result["bibliography"]) == 1
+        assert result["bibliography"][0]["id"] == "de-silva2025_41227143"
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # _extract_pmid
@@ -175,6 +216,32 @@ class TestResolveCitationKey:
 # ──────────────────────────────────────────────────────────────────────────────
 # export_docx
 # ──────────────────────────────────────────────────────────────────────────────
+
+
+def test_inspect_docx_xml_smoke_passes_for_valid_docx(pipeline, tmp_path):
+    docx_path = tmp_path / "valid.docx"
+    _write_minimal_docx(docx_path)
+
+    result = pipeline.inspect_docx_xml_smoke(docx_path)
+
+    assert result["schema"] == "mdpaper.docx_xml_smoke.v1"
+    assert result["passed"] is True
+    assert result["stats"]["paragraphs"] == 1
+    assert result["stats"]["text_chars"] == 5
+
+
+def test_inspect_docx_xml_smoke_fails_missing_document_xml(pipeline, tmp_path):
+    docx_path = tmp_path / "missing-document.docx"
+    with zipfile.ZipFile(docx_path, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types></Types>")
+
+    result = pipeline.inspect_docx_xml_smoke(docx_path)
+
+    assert result["passed"] is False
+    assert any(
+        check["name"] == "word/document.xml" and check["passed"] is False
+        for check in result["checks"]
+    )
 
 
 class TestExportDocx:
@@ -381,6 +448,11 @@ class TestPrepareForPandocStrict:
             pipeline.prepare_for_pandoc(content, strict=True)
         assert "fake2099_22222222" in str(exc_info.value)
         assert "2 unresolved" in str(exc_info.value)
+
+    def test_strict_raises_on_existing_pandoc_missing_ref(self, pipeline):
+        content = "Text [@unknown2099_99999999]."
+        with pytest.raises(ValueError, match="unknown2099_99999999"):
+            pipeline.prepare_for_pandoc(content, strict=True)
 
     def test_non_strict_warns_but_continues(self, pipeline):
         content = "Text [[unknown2099_99999999]]."

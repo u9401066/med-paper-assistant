@@ -52,6 +52,7 @@ from .._shared import (
     report_tool_progress,
     resolve_project_context,
 )
+from ._manuscript import read_review_manuscript_content
 
 # Phase name mapping (shared across tools)
 _PHASE_NAMES = {
@@ -67,7 +68,7 @@ _PHASE_NAMES = {
     8: "Reference Sync",
     9: "Export",
     10: "Retrospective",
-    11: "Commit & Push",
+    11: "Final Delivery",
 }
 _ALL_PHASES = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
 
@@ -126,6 +127,7 @@ def _sync_to_workspace_state(
     phase: int,
     gate_passed: bool,
     gate_failures: list[str] | None = None,
+    gate_details: dict | None = None,
     next_action: str | None = None,
     current_round: int | None = None,
     review_verdict: str | None = None,
@@ -163,6 +165,7 @@ def _sync_to_workspace_state(
             phases_remaining=sorted(existing_remaining),
             current_round=current_round,
             review_verdict=review_verdict,
+            gate_details=gate_details,
         )
     except Exception:
         # Non-fatal: don't let state sync failure break the gate tool
@@ -219,6 +222,67 @@ def _count_review_report_issues(audit_dir: Path, round_num: int) -> dict[str, in
     return counts
 
 
+def _validate_review_score_schema(
+    scores: dict,
+    expected_dimensions: list[str] | tuple[str, ...],
+) -> tuple[bool, str]:
+    """Validate review score schema before it can affect audit-loop state."""
+    if not isinstance(scores, dict) or not scores:
+        return (
+            False,
+            json.dumps(
+                {
+                    "schema": "mdpaper.review_scores.error.v1",
+                    "error": "scores_must_be_non_empty_object",
+                    "expected_dimensions": list(expected_dimensions),
+                    "example": {dim: 8 for dim in expected_dimensions},
+                    "fix_hint": "Submit scores as a JSON object using exactly the expected dimension names.",
+                },
+                indent=2,
+                ensure_ascii=False,
+            ),
+        )
+
+    received = list(scores)
+    expected = list(expected_dimensions)
+    unknown = sorted(set(received) - set(expected))
+    missing = sorted(set(expected) - set(received))
+    invalid_values: dict[str, str] = {}
+    for dim, value in scores.items():
+        if dim not in expected:
+            continue
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            invalid_values[dim] = "must be a number"
+        elif value < 0 or value > 10:
+            invalid_values[dim] = "must be between 0 and 10"
+
+    if unknown or missing or invalid_values:
+        return (
+            False,
+            json.dumps(
+                {
+                    "schema": "mdpaper.review_scores.error.v1",
+                    "error": "score_schema_mismatch",
+                    "expected_dimensions": expected,
+                    "received_dimensions": received,
+                    "unknown_dimensions": unknown,
+                    "missing_dimensions": missing,
+                    "invalid_values": invalid_values,
+                    "example": {dim: 8 for dim in expected},
+                    "fix_hint": (
+                        "Use these exact keys: "
+                        + ", ".join(expected)
+                        + ". Do not use reviewer-specific labels such as methodology, domain, or statistics."
+                    ),
+                },
+                indent=2,
+                ensure_ascii=False,
+            ),
+        )
+
+    return True, ""
+
+
 def register_pipeline_tools(
     mcp: FastMCP,
     project_manager: ProjectManager,
@@ -233,6 +297,8 @@ def register_pipeline_tools(
     async def validate_phase_gate(
         phase: int,
         project: Optional[str] = None,
+        response_format: str = "markdown",
+        compact: bool = False,
         ctx: Context | None = None,
     ) -> str:
         """
@@ -260,11 +326,13 @@ def register_pipeline_tools(
         - 8: Reference Sync (references section)
         - 9: Export (docx/pdf)
         - 10: Retrospective (D1-D8 analysis)
-        - 11: Commit & Push (git commit and push)
+        - 11: Final Delivery (exports plus optional Git provenance)
 
         Args:
             phase: Phase number to validate (0-11, use 65 for Phase 6.5)
             project: Project slug (optional, uses current project)
+            response_format: "markdown" or "json"
+            compact: If true, return only failing checks
 
         Returns:
             Markdown report with PASS/FAIL and specific check results
@@ -310,10 +378,15 @@ def register_pipeline_tools(
                 phase=phase,
                 gate_passed=result.passed,
                 gate_failures=failure_names,
+                gate_details=result.to_dict(compact=True),
                 next_action=next_act,
             )
 
-            report = result.to_markdown()
+            report = (
+                result.to_json(compact=compact)
+                if response_format.strip().lower() == "json"
+                else result.to_markdown(compact=compact)
+            )
             await report_tool_progress(ctx, 3, 3, f"Phase {phase} validation complete")
             log_tool_result(
                 "validate_phase_gate", f"Phase {phase}: {'PASSED' if result.passed else 'FAILED'}"
@@ -405,6 +478,11 @@ def register_pipeline_tools(
                 phase=current_phase,
                 gate_passed=not failing,
                 gate_failures=[f"Phase {p['phase']}" for p in failing[:5]],
+                gate_details={
+                    "schema": "mdpaper.heartbeat.v1",
+                    "completion_pct": status["completion_pct"],
+                    "failing_phases": failing[:5],
+                },
                 next_action=(
                     f"Complete Phase {current_phase} ({_PHASE_NAMES.get(current_phase, '')})"
                     if failing
@@ -498,6 +576,15 @@ def register_pipeline_tools(
                 gate_passed=False,  # Round started = not yet passed
                 next_action=f"Complete review round {round_num}: write review-report-{round_num}.md, author-response-{round_num}.md, then call submit_review_round()",
                 current_round=round_num,
+                gate_details={
+                    "schema": "mdpaper.review_round_started.v1",
+                    "round": round_num,
+                    "required_artifacts": [
+                        f".audit/review-report-{round_num}.md",
+                        f".audit/author-response-{round_num}.md",
+                        f".audit/equator-compliance-{round_num}.md",
+                    ],
+                },
             )
 
             lines = [
@@ -680,27 +767,7 @@ def register_pipeline_tools(
             )
 
             review_engine = ReviewHooksEngine(project_dir)
-            manuscript_content = ""
-            draft_dir = project_dir / "drafts"
-            if draft_dir.is_dir():
-                manuscript_path = draft_dir / "manuscript.md"
-                if manuscript_path.is_file():
-                    try:
-                        manuscript_content = manuscript_path.read_text(encoding="utf-8")
-                    except OSError:
-                        pass
-                else:
-                    # Fallback: pick the largest .md file
-                    for md_file in sorted(
-                        draft_dir.glob("*.md"),
-                        key=lambda p: p.stat().st_size,
-                        reverse=True,
-                    ):
-                        try:
-                            manuscript_content = md_file.read_text(encoding="utf-8")
-                            break
-                        except OSError:
-                            pass
+            manuscript_content = read_review_manuscript_content(project_dir)
 
             # Determine actual manuscript modification status
             if start_hash and current_hash:
@@ -770,6 +837,15 @@ def register_pipeline_tools(
             except json.JSONDecodeError:
                 return '❌ Invalid scores JSON. Expected format: {"citation_quality": 8, ...}'
 
+            expected_dimensions = list(loop._config.dimension_weights)
+            scores_ok, score_error = _validate_review_score_schema(
+                score_dict,
+                expected_dimensions,
+            )
+            if not scores_ok:
+                log_tool_result("submit_review_round", "REJECTED: score schema mismatch")
+                return "❌ Review score schema mismatch\n\n```json\n" + score_error + "\n```"
+
             # Record issues and fixes
             for i in range(issues_found):
                 loop.record_issue(
@@ -804,13 +880,13 @@ def register_pipeline_tools(
                 "max_rounds",
                 "stagnated",
                 "user_needed",
-                "rewrite_needed",
             )
-            next_act = (
-                "Phase 7 complete. Run validate_phase_gate(7), then proceed to Phase 8."
-                if is_done
-                else f"Start review round {status['current_round'] + 1} with start_review_round()"
-            )
+            if verdict.value == "rewrite_needed":
+                next_act = "Call request_section_rewrite() to regress to Phase 5 before continuing."
+            elif is_done:
+                next_act = "Phase 7 complete. Run validate_phase_gate(7), then proceed to Phase 8."
+            else:
+                next_act = f"Start review round {status['current_round'] + 1} with start_review_round()"
             _sync_to_workspace_state(
                 slug=slug,
                 phase=7,
@@ -818,6 +894,12 @@ def register_pipeline_tools(
                 next_action=next_act,
                 current_round=status["current_round"],
                 review_verdict=verdict.value,
+                gate_details={
+                    "schema": "mdpaper.review_round_result.v1",
+                    "round": status["current_round"],
+                    "verdict": verdict.value,
+                    "weighted_score": status.get("latest_weighted_score"),
+                },
             )
 
             # Build response
@@ -1516,8 +1598,106 @@ def register_pipeline_tools(
             log_tool_error("reset_review_loop", e)
             return f"❌ Error resetting review loop: {e}"
 
+    @tool()
+    def pipeline_doctor(
+        project: Optional[str] = None,
+    ) -> str:
+        """Return one JSON readiness snapshot for the full 11-phase pipeline."""
+        import shutil
+
+        log_tool_call("pipeline_doctor", {"project": project})
+        try:
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
+            if workflow_error:
+                return workflow_error
+            project_info = _require_project_info(project_info)
+            project_dir = Path(project_info["project_path"])
+            workspace_root = (
+                project_dir.parent.parent
+                if project_dir.parent.name == "projects"
+                else project_dir.parent
+            )
+
+            validator = PipelineGateValidator(project_dir)
+            status = validator.get_pipeline_status()
+
+            mcp_path = workspace_root / ".vscode" / "mcp.json"
+            servers: dict[str, Any] = {}
+            if mcp_path.is_file():
+                try:
+                    raw = re.sub(r"//.*", "", mcp_path.read_text(encoding="utf-8"))
+                    parsed = json.loads(raw)
+                    servers = parsed.get("servers") or parsed.get("mcpServers") or {}
+                except (json.JSONDecodeError, OSError):
+                    servers = {}
+
+            external = {}
+            for name in ["asset-aware", "pubmed-search", "drawio"]:
+                spec = servers.get(name, {}) if isinstance(servers, dict) else {}
+                command = str(spec.get("command") or "")
+                command_found = bool(shutil.which(command)) if command else False
+                external[name] = {
+                    "declared": bool(spec),
+                    "command": command,
+                    "command_found": command_found,
+                    "args": spec.get("args") if isinstance(spec.get("args"), list) else [],
+                    "status": (
+                        "ready"
+                        if command_found
+                        else "declared_but_command_missing"
+                        if spec
+                        else "missing"
+                    ),
+                }
+
+            try:
+                from med_paper_assistant.infrastructure.persistence.workspace_state_manager import (
+                    get_workspace_state_manager,
+                )
+
+                workspace_state = get_workspace_state_manager().get_state()
+                last_gate = workspace_state.get("pipeline_state", {}).get("last_gate_details")
+            except Exception:
+                last_gate = None
+
+            phase_tools = [
+                {"phase": 0, "tools": ["project_action:source_materials", "project_action:journal_profile", "project_action:record_asset_ingestion"]},
+                {"phase": 1, "tools": ["project_action:create", "project_action:update", "project_action:setup"]},
+                {"phase": 2, "tools": ["pubmed-search", "save_reference_mcp"]},
+                {"phase": 21, "tools": ["asset-aware:ingest_documents", "project_action:record_asset_ingestion", "pipeline_action:validate_phase"]},
+                {"phase": 3, "tools": ["validation_action:concept", "pipeline_action:approve_concept_review"]},
+                {"phase": 4, "tools": ["manuscript-plan", "pipeline_action:validate_phase"]},
+                {"phase": 5, "tools": ["draft_action", "analysis_action", "run_quality_checks:writing_hooks"]},
+                {"phase": 6, "tools": ["run_quality_checks:quality", "run_quality_checks:data_artifacts"]},
+                {"phase": 65, "tools": ["evolution-log", "quality-scorecard"]},
+                {"phase": 7, "tools": ["pipeline_action:start_review", "pipeline_action:submit_review", "run_quality_checks:review"]},
+                {"phase": 8, "tools": ["sync_references", "validation_action:wikilinks"]},
+                {"phase": 9, "tools": ["export_document:docx", "export_document:pdf", "inspect_export:inspect_docx_xml"]},
+                {"phase": 10, "tools": ["run_quality_checks:pipeline_retrospective", "run_quality_checks:meta_learning"]},
+                {"phase": 11, "tools": ["pipeline_action:validate_phase", "optional_git_provenance"]},
+            ]
+
+            payload = {
+                "schema": "mdpaper.pipeline_doctor.v1",
+                "project": project_info.get("slug"),
+                "project_path": str(project_dir),
+                "pipeline_status": status,
+                "phase_tools": phase_tools,
+                "external_mcp": external,
+                "last_gate": last_gate,
+            }
+            log_tool_result("pipeline_doctor", "doctor snapshot generated", success=True)
+            return json.dumps(payload, ensure_ascii=False, indent=2)
+        except Exception as e:
+            log_tool_error("pipeline_doctor", e)
+            return f"❌ Error running pipeline doctor: {e}"
+
     return {
         "validate_phase_gate": validate_phase_gate,
+        "pipeline_doctor": pipeline_doctor,
         "pipeline_heartbeat": pipeline_heartbeat,
         "start_review_round": start_review_round,
         "submit_review_round": submit_review_round,

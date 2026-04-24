@@ -524,6 +524,41 @@ class TestHookC9:
 # ──────────────────────────────────────────────────────────────────────────────
 
 
+class TestHookC14:
+    def test_strong_claim_without_evidence_is_critical(self, engine: WritingHooksEngine):
+        text = "This approach fundamentally changes the geometry of transnasal airway rescue."
+
+        r = engine.check_claim_evidence_alignment(text)
+
+        assert r.passed is False
+        assert any(issue.hook_id == "C14" and issue.severity == "CRITICAL" for issue in r.issues)
+        assert r.stats["by_claim_type"]["magnitude"] == 1
+
+    def test_strong_claim_with_citation_passes(self, engine: WritingHooksEngine):
+        text = (
+            "This approach fundamentally changes the geometry of transnasal airway rescue "
+            "in selected patients [@wang2022_36424554]."
+        )
+
+        r = engine.check_claim_evidence_alignment(text)
+
+        assert r.passed is True
+        assert r.stats["strong_claims_without_evidence"] == 0
+
+    def test_claim_type_severity_distinguishes_causality_and_magnitude(
+        self, engine: WritingHooksEngine
+    ):
+        causal = engine.check_claim_evidence_alignment("This directly proves causality.")
+        hedgy = engine.check_claim_evidence_alignment("The effect was dramatically larger.")
+
+        assert causal.passed is False
+        assert causal.stats["by_claim_type"]["causality"] >= 1
+        assert any(issue.severity == "CRITICAL" for issue in causal.issues)
+        assert hedgy.passed is True
+        assert hedgy.stats["by_claim_type"]["magnitude"] == 1
+        assert any(issue.severity == "WARNING" for issue in hedgy.issues)
+
+
 class TestHookF:
     def test_no_artifacts_passes(self, engine: WritingHooksEngine):
         """Without any manifest, validation should pass (no artifacts to check)."""
@@ -627,6 +662,120 @@ class TestHookF:
         assert validation["summary"]["total_artifacts"] == 1
         assert validation["summary"]["manifest_figures"] == 1
         assert not any(i["category"] == "phantom_reference" for i in validation["issues"])
+
+    def test_data_anchor_without_primary_provenance_is_critical(
+        self, engine: WritingHooksEngine, project_dir: Path
+    ):
+        """Data anchors cannot be trusted when they only come from agent/concept inference."""
+        (project_dir / "data-artifacts.yaml").write_text(
+            yaml.dump(
+                {
+                    "data_anchors": {
+                        "screened": {
+                            "value": 112,
+                            "source": "concept.md agent inference",
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        r = engine.validate_data_artifacts("We screened 112 patients.")
+
+        assert r.passed is False
+        assert r.stats["data_anchors"] == 1
+        assert any(
+            issue.hook_id == "F4" and "agent/generated source" in issue.message
+            for issue in r.issues
+        )
+
+    def test_data_anchor_pending_asset_aware_source_is_critical(
+        self, engine: WritingHooksEngine, project_dir: Path
+    ):
+        """A scanned DOCX must be ingested before its numbers can back data anchors."""
+        (project_dir / ".audit" / "source-materials.yaml").write_text(
+            yaml.dump(
+                {
+                    "schema": "mdpaper.source_materials.v1",
+                    "materials": [
+                        {
+                            "id": "source-001",
+                            "filename": "20240112 table.docx",
+                            "relative_path": "20240112 table.docx",
+                            "ingestion": {
+                                "status": "pending_asset_aware",
+                                "required": True,
+                            },
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        (project_dir / "data-artifacts.yaml").write_text(
+            yaml.dump(
+                {
+                    "data_anchors": {
+                        "screened": {
+                            "value": 112,
+                            "source_material_id": "source-001",
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        r = engine.validate_data_artifacts("We screened 112 patients.")
+
+        assert r.passed is False
+        assert any(
+            issue.hook_id == "F4" and "requires asset-aware ingestion" in issue.message
+            for issue in r.issues
+        )
+
+    def test_data_anchor_with_ready_source_material_passes(
+        self, engine: WritingHooksEngine, project_dir: Path
+    ):
+        """Ready/native source materials can support numeric data anchors."""
+        (project_dir / ".audit" / "source-materials.yaml").write_text(
+            yaml.dump(
+                {
+                    "schema": "mdpaper.source_materials.v1",
+                    "materials": [
+                        {
+                            "id": "source-001",
+                            "filename": "screening.csv",
+                            "relative_path": "data/screening.csv",
+                            "ingestion": {
+                                "status": "ready_for_context",
+                                "required": False,
+                            },
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        (project_dir / "data-artifacts.yaml").write_text(
+            yaml.dump(
+                {
+                    "data_anchors": {
+                        "screened": {
+                            "value": 112,
+                            "source_material_id": "source-001",
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        r = engine.validate_data_artifacts("We screened 112 patients.")
+
+        assert r.passed is True
+        assert r.stats["data_anchors"] == 1
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1563,7 +1712,7 @@ class TestGitStatusCheck:
         assert r.stats["dirty_files"] == 0
 
     def test_dirty_repo(self, tmp_path: Path):
-        """Uncommitted files → CRITICAL, fails."""
+        """Uncommitted files → WARNING, passes for paper-first workflows."""
         import subprocess
 
         repo = tmp_path / "dirty-repo"
@@ -1584,9 +1733,9 @@ class TestGitStatusCheck:
         e = WritingHooksEngine(repo)
         r = e.check_git_status()
         assert r.hook_id == "G9"
-        assert r.passed is False
+        assert r.passed is True
         assert r.stats["dirty_files"] >= 1
-        assert any(i.severity == "CRITICAL" and "uncommitted" in i.message for i in r.issues)
+        assert any(i.severity == "WARNING" and "uncommitted" in i.message for i in r.issues)
 
     def test_git_not_found(self, engine: WritingHooksEngine):
         """Git command not available → WARNING, passes."""

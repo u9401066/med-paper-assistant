@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-04-24
+
+### Added
+
+- Added Phase 0 source-material intake via `project_action(action="source_materials")`, producing `.audit/source-materials.yaml` and `.audit/source-materials.md` before literature search or drafting.
+- Added agent-readable source-material manifests that mark DOCX/XLSX/PDF/PPTX inputs as `pending_asset_aware` and provide concrete `asset_aware_file_paths` for follow-up ingestion.
+- Added Phase 0 gate enforcement for `.audit/source-materials.yaml` so user-provided primary materials cannot be silently skipped.
+- Added Hook F4 data-anchor provenance validation so `data_anchors` must cite ready source materials, asset-aware docs, tracked data artifacts, or trusted data files.
+- Added `project_action(action="record_asset_ingestion")` to write asset-aware ingestion receipts back into `.audit/source-materials.yaml`.
+- Added Hook C14 claim-evidence alignment so strong scientific claims require visible literature, source-material, figure/table, or data-artifact backing.
+- Added golden mini-project and external MCP contract smoke tests for the source-material ingestion critical path.
+- Added `pipeline_action(action="doctor")` as a one-shot agent diagnostic for 11-phase readiness, external MCP declarations, command availability, and cached gate state.
+- Added `inspect_export(action="docx_smoke")` / `inspect_export(action="xml_smoke")` for Phase 9 DOCX XML structural smoke checks before final delivery.
+
+### Changed
+
+- Updated Auto-Paper, repository, Copilot, and VSIX documentation to describe Phase 0 as source-material intake plus journal-profile generation.
+- Updated the VSIX Marketplace description and keywords to mention source-material intake and asset-aware workflows.
+- Clarified Phase 11 as final delivery with Git provenance optional rather than a hard commit/push requirement.
+- Tightened Phase 2.1 so primary source materials that remain `pending_asset_aware` block progression until an ingestion receipt is recorded.
+- Refined Hook C14 severity by claim type so novelty, causality, superiority, certainty, and magnitude claims can be triaged separately.
+
+### Fixed
+
+- Fixed the workflow design gap where workspace-root DOCX/XLSX/PDF materials could be missed because asset-aware ingestion was only described for reference full text in Phase 2.1.
+- Fixed the GIGO gap where agent/concept-derived or un-ingested source-material values could be copied into `data_anchors` and pass because the manuscript and anchor file were consistently wrong.
+
 ## [0.7.5] - 2026-04-23
 
 ### Fixed
@@ -47,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Authority-driven tool count sync**: Synced repository and VS Code extension documentation to the authoritative `115 full / 22 compact` MCP tool surface with 3 prompts and 3 resources
+- **Authority-driven tool count sync**: Synced repository and VS Code extension documentation to the authoritative `116 full / 22 compact` MCP tool surface with 3 prompts and 3 resources
 - **Release validation baseline**: Revalidated source/bundled Python parity, tool-surface authority, repository-count sync, targeted path-guard suites, and the full non-integration pytest suite before tagging
 
 ## [0.7.1] - 2026-04-22

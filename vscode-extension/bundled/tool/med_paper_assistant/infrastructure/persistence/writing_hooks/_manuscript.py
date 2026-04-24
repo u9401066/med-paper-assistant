@@ -22,6 +22,90 @@ class ManuscriptHooksMixin:
     _project_dir: Path
     _audit_dir: Path
 
+    _STRONG_CLAIM_PATTERNS = [
+        (r"\bfundamentally\s+changes?\b", "fundamentally changes", "magnitude", "CRITICAL"),
+        (r"\bdirectly\s+proves?\b", "directly proves", "causality", "CRITICAL"),
+        (r"\bproves?\b", "proves", "causality", "CRITICAL"),
+        (
+            r"\bfirst\s+(?:known|reported|study|case|demonstration|description|evidence|trial|analysis)\b",
+            "first",
+            "novelty",
+            "CRITICAL",
+        ),
+        (r"\bnovel\b", "novel", "novelty", "CRITICAL"),
+        (r"\bunique\b", "unique", "novelty", "CRITICAL"),
+        (r"\bunprecedented\b", "unprecedented", "novelty", "CRITICAL"),
+        (r"\bdefinitive(?:ly)?\b", "definitive", "certainty", "WARNING"),
+        (r"\bcausal(?:ly|ity)?\b", "causal", "causality", "CRITICAL"),
+        (r"\bsuperior(?:ity)?\b", "superior", "superiority", "CRITICAL"),
+        (r"\bdramatically\b", "dramatically", "magnitude", "WARNING"),
+    ]
+
+    def _sentence_has_evidence_marker(self, sentence: str) -> bool:
+        """Return whether a strong claim sentence cites evidence or data context."""
+        evidence_patterns = [
+            r"\[@[^\]]+\]",
+            r"\[\[[^\]]+\]\]",
+            r"\bPMID\s*:?\s*\d+",
+            r"\b(?:Figure|Table|Supplementary\s+(?:Figure|Table))\s+\d+",
+            r"\bsource-material(?:s)?\b",
+            r"\basset-aware\b",
+            r"\bdata[-\s]?artifact\b",
+        ]
+        return any(re.search(pattern, sentence, re.IGNORECASE) for pattern in evidence_patterns)
+
+    def check_claim_evidence_alignment(self, content: str) -> HookResult:
+        """Hook C14: strong scientific claims must be backed by visible evidence.
+
+        This is intentionally separate from A3 anti-AI style checks. Terms such
+        as "fundamentally changes" are not always AI writing, but they are
+        strong scientific claims and should cite literature, tables/figures,
+        source-material context, or data artifacts.
+        """
+        issues: list[HookIssue] = []
+        sentences = re.split(r"(?<=[.!?])\s+", content)
+        flagged = 0
+        by_type: dict[str, int] = {}
+
+        for sentence in sentences:
+            stripped = sentence.strip()
+            if not stripped:
+                continue
+            matched_label = ""
+            claim_type = ""
+            severity = "WARNING"
+            for pattern, label, pattern_claim_type, pattern_severity in self._STRONG_CLAIM_PATTERNS:
+                if re.search(pattern, stripped, re.IGNORECASE):
+                    matched_label = label
+                    claim_type = pattern_claim_type
+                    severity = pattern_severity
+                    break
+            if not matched_label or self._sentence_has_evidence_marker(stripped):
+                continue
+
+            flagged += 1
+            by_type[claim_type] = by_type.get(claim_type, 0) + 1
+            excerpt = stripped[:180] + ("..." if len(stripped) > 180 else "")
+            issues.append(
+                HookIssue(
+                    hook_id="C14",
+                    severity=severity,
+                    section="manuscript",
+                    message=(
+                        f"Strong {claim_type} claim '{matched_label}' lacks visible evidence backing "
+                        f"(citation, source-material, table/figure, or data artifact): {excerpt}"
+                    ),
+                )
+            )
+
+        critical = any(issue.severity == "CRITICAL" for issue in issues)
+        return HookResult(
+            hook_id="C14",
+            passed=not critical,
+            issues=issues,
+            stats={"strong_claims_without_evidence": flagged, "by_claim_type": by_type},
+        )
+
     def _load_manifest_entries(self) -> list[dict[str, str]]:
         """Normalize manifest.json across legacy and current schemas."""
         manifest_path = self._project_dir / "results" / "manifest.json"

@@ -55,7 +55,12 @@ class DataArtifactsMixin:
                 hook_sub = "F2"
             elif category in ("phantom_reference", "orphan_asset"):
                 hook_sub = "F3"
-            elif category == "unverified_stats":
+            elif category in (
+                "unverified_stats",
+                "data_anchor_unverified",
+                "data_anchor_untrusted_source",
+                "data_anchor_uningested_source",
+            ):
                 hook_sub = "F4"
             else:
                 hook_sub = "F"

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+
 import pytest
+import yaml
 from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.interfaces.mcp.tools.export.facade import register_export_facade_tools
@@ -74,6 +77,55 @@ async def test_run_quality_checks_routes_domain_constraints_with_project() -> No
 
 
 @pytest.mark.asyncio
+async def test_run_quality_checks_lists_machine_readable_schema() -> None:
+    funcs = register_review_facade_tools(
+        FastMCP("review-list-test"),
+        audit_tools={},
+        pipeline_tools={},
+    )
+
+    result = await funcs["run_quality_checks"](action="list")
+    payload = json.loads(result)
+
+    assert payload["schema"] == "mdpaper.facade_actions.v1"
+    assert payload["tool"] == "run_quality_checks"
+    assert "meta_learning" in payload["actions"]
+    assert "writing_hooks" in payload["actions"]
+    assert "pipeline_retrospective" in payload["actions"]
+
+
+@pytest.mark.asyncio
+async def test_run_quality_checks_routes_pipeline_retrospective_writer() -> None:
+    captured: dict[str, object] = {}
+
+    async def write_pipeline_retrospective(**kwargs):
+        captured.update(kwargs)
+        return "retrospective-ok"
+
+    funcs = register_review_facade_tools(
+        FastMCP("review-retrospective-test"),
+        audit_tools={"write_pipeline_retrospective": write_pipeline_retrospective},
+        pipeline_tools={},
+    )
+
+    result = await funcs["run_quality_checks"](
+        action="pipeline_retrospective",
+        summary="Pipeline summary",
+        d7_retrospective="Review lessons",
+        d8_retrospective="EQUATOR lessons",
+        project="demo",
+    )
+
+    assert result == "retrospective-ok"
+    assert captured == {
+        "summary": "Pipeline summary",
+        "d7_retrospective": "Review lessons",
+        "d8_retrospective": "EQUATOR lessons",
+        "project": "demo",
+    }
+
+
+@pytest.mark.asyncio
 async def test_pipeline_action_routes_submit_review_round() -> None:
     captured: dict[str, object] = {}
 
@@ -102,6 +154,47 @@ async def test_pipeline_action_routes_submit_review_round() -> None:
         "issues_fixed": 2,
         "project": "demo",
     }
+
+
+@pytest.mark.asyncio
+async def test_pipeline_action_help_lists_supported_actions() -> None:
+    funcs = register_review_facade_tools(
+        FastMCP("pipeline-help-test"),
+        audit_tools={},
+        pipeline_tools={},
+    )
+
+    result = await funcs["pipeline_action"](action="help")
+
+    payload = json.loads(result)
+    assert payload["schema"] == "mdpaper.facade_actions.v1"
+    assert payload["tool"] == "pipeline_action"
+    assert "validate_phase" in payload["actions"]
+    assert "start_review" in payload["actions"]
+    assert "submit_review" in payload["actions"]
+    assert "doctor" in payload["actions"]
+    assert "score_schema" in payload["actions"]["submit_review"]
+    assert "analysis_action" in " ".join(payload["notes"])
+
+
+@pytest.mark.asyncio
+async def test_pipeline_action_routes_doctor() -> None:
+    captured: dict[str, object] = {}
+
+    def pipeline_doctor(**kwargs):
+        captured.update(kwargs)
+        return '{"schema":"mdpaper.pipeline_doctor.v1"}'
+
+    funcs = register_review_facade_tools(
+        FastMCP("pipeline-doctor-route-test"),
+        audit_tools={},
+        pipeline_tools={"pipeline_doctor": pipeline_doctor},
+    )
+
+    result = await funcs["pipeline_action"](action="doctor", project="demo")
+
+    assert "mdpaper.pipeline_doctor.v1" in result
+    assert captured == {"project": "demo"}
 
 
 @pytest.mark.asyncio
@@ -139,6 +232,205 @@ async def test_project_action_routes_update_settings() -> None:
         "citation_style": "vancouver",
         "graph_views_json": "",
     }
+
+
+@pytest.mark.asyncio
+async def test_project_action_writes_journal_profile(tmp_path, monkeypatch) -> None:
+    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+
+    project_dir = tmp_path / "demo-project"
+    project_dir.mkdir()
+
+    def fake_resolve_project_context(project=None, **kwargs):
+        return (
+            {
+                "slug": "demo",
+                "name": "Demo",
+                "project_path": str(project_dir),
+                "target_journal": "BJA",
+                "paper_type": "original-research",
+            },
+            None,
+        )
+
+    monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
+    funcs = register_project_facade_tools(
+        FastMCP("project-journal-profile-test"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={},
+    )
+
+    result = await funcs["project_action"](
+        action="journal_profile",
+        target_journal="BJA",
+        paper_type="original-research",
+        citation_style="vancouver",
+        language_preference="en-GB",
+    )
+
+    profile_path = project_dir / "journal-profile.yaml"
+    assert "status: ok" in result
+    assert profile_path.is_file()
+    data = yaml.safe_load(profile_path.read_text(encoding="utf-8"))
+    assert data["journal"]["name"] == "BJA"
+    assert data["journal"]["locale"] == "en-GB"
+    assert data["paper"]["type"] == "original-research"
+    assert data["pipeline"]["writing"]["prefer_language"] == "british"
+
+
+@pytest.mark.asyncio
+async def test_project_action_scans_source_materials(tmp_path, monkeypatch) -> None:
+    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+
+    workspace = tmp_path / "workspace"
+    project_dir = workspace / "projects" / "demo-project"
+    project_dir.mkdir(parents=True)
+    (project_dir / ".audit").mkdir()
+    source_docx = workspace / "20240115 Table formal data.docx"
+    source_docx.write_text("fake docx bytes", encoding="utf-8")
+    generated_docx = project_dir / "drafts" / "generated.docx"
+    generated_docx.parent.mkdir()
+    generated_docx.write_text("generated", encoding="utf-8")
+
+    def fake_resolve_project_context(project=None, **kwargs):
+        return (
+            {
+                "slug": "demo",
+                "name": "Demo",
+                "project_path": str(project_dir),
+                "target_journal": "BJA",
+                "paper_type": "original-research",
+            },
+            None,
+        )
+
+    monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
+    funcs = register_project_facade_tools(
+        FastMCP("project-source-materials-test"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={},
+    )
+
+    result = await funcs["project_action"](action="source_materials")
+
+    manifest_path = project_dir / ".audit" / "source-materials.yaml"
+    assert "status: ok" in result
+    assert "pending_asset_aware: 1" in result
+    assert manifest_path.is_file()
+    data = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    assert data["schema"] == "mdpaper.source_materials.v1"
+    assert data["summary"]["total_candidates"] == 1
+    assert data["materials"][0]["filename"] == source_docx.name
+    assert data["materials"][0]["ingestion"]["status"] == "pending_asset_aware"
+
+
+@pytest.mark.asyncio
+async def test_project_action_records_asset_ingestion_receipt(tmp_path, monkeypatch) -> None:
+    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+
+    project_dir = tmp_path / "projects" / "demo-project"
+    project_dir.mkdir(parents=True)
+    (project_dir / ".audit").mkdir()
+    (project_dir / ".audit" / "source-materials.yaml").write_text(
+        yaml.dump(
+            {
+                "schema": "mdpaper.source_materials.v1",
+                "materials": [
+                    {
+                        "id": "source-001",
+                        "filename": "table.docx",
+                        "relative_path": "table.docx",
+                        "path": str(tmp_path / "table.docx"),
+                        "evidence_priority": "primary_user_material",
+                        "ingestion": {
+                            "status": "pending_asset_aware",
+                            "required": True,
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_resolve_project_context(project=None, **kwargs):
+        return (
+            {
+                "slug": "demo",
+                "name": "Demo",
+                "project_path": str(project_dir),
+                "target_journal": "BJA",
+                "paper_type": "original-research",
+            },
+            None,
+        )
+
+    monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
+    funcs = register_project_facade_tools(
+        FastMCP("project-record-asset-ingestion-test"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={},
+    )
+
+    result = await funcs["project_action"](
+        action="record_asset_ingestion",
+        source_material_id="source-001",
+        asset_aware_doc_id="doc_123",
+        sections_json='["Methods", "Results"]',
+        artifact_paths_json='["artifacts/asset-aware/sections.md"]',
+    )
+
+    data = yaml.safe_load(
+        (project_dir / ".audit" / "source-materials.yaml").read_text(encoding="utf-8")
+    )
+    material = data["materials"][0]
+    assert "status: ok" in result
+    assert material["ingestion"]["status"] == "ingested_asset_aware"
+    assert material["ingestion"]["asset_aware_doc_id"] == "doc_123"
+    assert data["summary"]["pending_asset_aware"] == 0
+
+
+@pytest.mark.asyncio
+async def test_project_action_help_lists_machine_readable_schema() -> None:
+    funcs = register_project_facade_tools(
+        FastMCP("project-help-schema-test"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={},
+    )
+
+    result = await funcs["project_action"](action="help")
+    payload = json.loads(result)
+
+    assert payload["schema"] == "mdpaper.facade_actions.v1"
+    assert payload["tool"] == "project_action"
+    assert "journal_profile" in payload["actions"]
+    assert "source_materials" in payload["actions"]
+    assert "record_asset_ingestion" in payload["actions"]
+
+
+@pytest.mark.asyncio
+async def test_workspace_state_action_lists_structured_schema() -> None:
+    funcs = register_project_facade_tools(
+        FastMCP("workspace-state-list-test"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={},
+    )
+
+    result = await funcs["workspace_state_action"](action="list")
+
+    assert result["status"] == "ok"
+    assert result["schema"] == "mdpaper.facade_actions.v1"
+    assert "get" in result["actions"]
 
 
 @pytest.mark.asyncio
@@ -320,6 +612,33 @@ async def test_inspect_export_routes_preview_alias() -> None:
 
 
 @pytest.mark.asyncio
+async def test_inspect_export_routes_docx_smoke_alias() -> None:
+    captured: dict[str, object] = {}
+
+    def inspect_docx_xml(**kwargs):
+        captured.update(kwargs)
+        return "docx-smoke-ok"
+
+    funcs = register_export_facade_tools(
+        FastMCP("inspect-docx-smoke-test"),
+        word_tools={},
+        pandoc_tools={"inspect_docx_xml": inspect_docx_xml},
+    )
+
+    result = await funcs["inspect_export"](
+        action="docx_smoke",
+        output_filename="paper.docx",
+        project="demo",
+    )
+
+    assert result == "docx-smoke-ok"
+    assert captured == {
+        "output_filename": "paper.docx",
+        "project": "demo",
+    }
+
+
+@pytest.mark.asyncio
 async def test_validation_action_routes_literature_compare() -> None:
     captured: dict[str, object] = {}
 
@@ -356,6 +675,29 @@ async def test_validation_action_lists_supported_actions() -> None:
 
     result = await funcs["validation_action"](action="list")
 
-    assert "concept" in result
-    assert "wikilinks" in result
-    assert "literature" in result
+    payload = json.loads(result)
+    assert payload["schema"] == "mdpaper.facade_actions.v1"
+    assert payload["tool"] == "validation_action"
+    assert "concept" in payload["actions"]
+    assert "wikilinks" in payload["actions"]
+    assert "literature" in payload["actions"]
+
+
+@pytest.mark.asyncio
+async def test_export_facades_list_machine_readable_schema() -> None:
+    funcs = register_export_facade_tools(
+        FastMCP("export-list-test"),
+        word_tools={},
+        pandoc_tools={},
+    )
+
+    export_payload = json.loads(await funcs["export_document"](action="list"))
+    inspect_payload = json.loads(await funcs["inspect_export"](action="list"))
+
+    assert export_payload["schema"] == "mdpaper.facade_actions.v1"
+    assert export_payload["tool"] == "export_document"
+    assert "docx" in export_payload["actions"]
+    assert inspect_payload["schema"] == "mdpaper.facade_actions.v1"
+    assert inspect_payload["tool"] == "inspect_export"
+    assert "list_templates" in inspect_payload["actions"]
+    assert "inspect_docx_xml" in inspect_payload["actions"]

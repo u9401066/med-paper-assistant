@@ -1,25 +1,52 @@
 {
-  "version": 1,
-  "current_project": "self-evolving-ai-paper-writing-framework",
-  "last_activity": "2026-02-25T18:37:46.433528",
-  "last_updated": "2026-02-25T18:37:46.433536",
+  "version": 2,
+  "current_project": "med-paper-assistant-release-v0.7.6",
+  "last_activity": "2026-04-24T10:32:00Z",
+  "last_updated": "2026-04-24T10:32:00Z",
   "workspace_state": {
     "open_drafts": [],
     "pending_validations": [],
     "last_search_pmids": [],
-    "last_tool_called": "sync_workspace_state"
+    "last_tool_called": "release_validation"
   },
   "recovery_hints": {
-    "agent_was_doing": "Pipeline Run 3 completed. All 12 phases (0-10 + 6.5) executed successfully.",
-    "next_suggested_action": "Human review of manuscript.md, manuscript.docx, and manuscript.pdf. Consider journal submission preparation.",
+    "agent_was_doing": "Validated and preparing v0.7.6 release after agent-friction, pipeline doctor, C14 severity, and DOCX smoke fixes.",
+    "next_suggested_action": "Commit, push master, push v0.7.6 tag, then monitor CI/package publication.",
     "important_context": [
-      "Found 5 key papers",
-      "Novelty score 82",
-      "Focus on elderly patients"
+      "pipeline_action(action=doctor) added",
+      "inspect_export(action=docx_smoke|xml_smoke) added",
+      "tool surface authority updated to 117 full / 22 compact",
+      "full pytest passed: 1254 passed, 17 skipped, 1 deselected",
+      "bundle check and VSIX TypeScript compile passed"
     ]
   },
   "cross_mcp_state": {
     "pubmed_session_active": false,
     "cgu_session_active": false
+  },
+  "pipeline_state": {
+    "active": false,
+    "project": null,
+    "current_phase": null,
+    "current_phase_name": null,
+    "current_round": null,
+    "last_gate_result": null,
+    "last_gate_failures": [],
+    "last_gate_details": null,
+    "next_required_action": null,
+    "phases_passed": [],
+    "phases_remaining": [],
+    "review_verdict": null,
+    "last_heartbeat": null
+  },
+  "writing_session": {
+    "active": false,
+    "current_section": null,
+    "last_file_modified": null,
+    "last_operation": null,
+    "word_count": 0,
+    "sections_on_disk": [],
+    "timestamp": null,
+    "agent_context": null
   }
 }

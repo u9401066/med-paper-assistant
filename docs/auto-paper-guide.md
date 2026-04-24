@@ -78,7 +78,7 @@ Meta-Learning (Phase 10)      ← 更新 Skill / Hook / Instructions
 **最簡流程**（5 步驟）：
 
 1. **啟動**：在 Copilot Chat 輸入 `/mdpaper.write-paper`
-2. **設定期刊**：提供目標期刊名稱（Agent 會自動產生 `journal-profile.yaml`）
+2. **登記素材與設定期刊**：先執行 `project_action(action="source_materials")` 掃描用戶提供的 DOCX/XLSX/PDF/CSV，再提供目標期刊名稱（Agent 會自動產生 `journal-profile.yaml`）
 3. **確認大綱**：Agent 搜尋文獻 → 發展概念 → 產出 `manuscript-plan.yaml` → 你確認
 4. **等待寫作**：Agent 自動撰寫各 section，Hook A-D 即時修正品質
 5. **匯出**：Agent 產出 Word 檔 + 必要投稿文件
@@ -91,21 +91,23 @@ Meta-Learning (Phase 10)      ← 更新 Skill / Hook / Instructions
 
 ### Phase 0: Pre-Planning
 
-**目的**：建立期刊約束，生成 `journal-profile.yaml`
+**目的**：先登記用戶原始素材，再建立期刊約束，生成 `source-materials.yaml` + `journal-profile.yaml`
 
-| 項目 | 說明                                       |
-| ---- | ------------------------------------------ |
-| 輸入 | 期刊名稱 / submission guide PDF / 口頭描述 |
-| 輸出 | `projects/{slug}/journal-profile.yaml`     |
-| Gate | YAML 存在 + 用戶確認關鍵欄位               |
+| 項目 | 說明                                                                  |
+| ---- | --------------------------------------------------------------------- |
+| 輸入 | workspace root 的 DOCX/XLSX/PDF/CSV 等原始素材 + 期刊資訊             |
+| 輸出 | `projects/{slug}/.audit/source-materials.yaml` + `journal-profile.yaml` |
+| Gate | source-material scan manifest 存在 + journal profile 存在             |
 
 Agent 按優先順序取得資訊：
 
-1. 用戶提供 submission guide → 自動解析（字數、圖表限制、引用格式等）
-2. 用戶口頭說明 → 查詢內建期刊庫補全
-3. 無明確期刊 → 使用 paper_type 預設值
+1. `project_action(action="source_materials")` 掃描用戶提供素材，若有 `pending_asset_aware` 則先交給 asset-aware ingestion。
+2. 用戶提供 submission guide → 自動解析（字數、圖表限制、引用格式等）
+3. 用戶口頭說明 → 查詢內建期刊庫補全
+4. 無明確期刊 → 使用 paper_type 預設值
 
 `journal-profile.yaml` 驅動後續所有 Phase 的行為（字數限制、圖表上限、Hook 閾值等）。
+`source-materials.yaml` 驅動後續 concept、asset plan、Methods/Results 寫作，防止 agent 只讀摘要而漏掉正式資料表。
 
 ### Phase 1: Project Setup
 
@@ -178,7 +180,7 @@ FOR section IN writing_order:
 
 三階段審計：
 
-1. **全稿掃描**：Hook C（C1-C8）檢查全稿一致性、數值合規、時間一致性
+1. **全稿掃描**：Hook C（C1-C14）檢查全稿一致性、數值合規、時間一致性、claim-evidence 對齊
 2. **分層回溯修正**（Cascading Fix）：CRITICAL issues → 回溯到對應 section 的 Hook A/B 修正 → 最多 3 rounds
 3. **最終驗證**：確認 0 CRITICAL issues → 生成 quality-scorecard
 
@@ -221,7 +223,8 @@ FOR section IN writing_order:
 1. 選擇 Word 模板（匹配期刊）
 2. 匯出 Word 文件
 3. 產生必要投稿文件（cover letter、author contributions 等）
-4. 驗證投稿清單完成
+4. 執行 `inspect_export(action="docx_smoke")` 檢查 DOCX zip/XML 結構、段落與可見文字
+5. 驗證投稿清單完成
 
 ### Phase 10: Retrospective
 
@@ -245,7 +248,7 @@ FOR section IN writing_order:
 | ---------- | ---------------------------- | ------ | ------------------------------------------ |
 | **Hook A** | 每次寫完（post-write）       | A1-A4  | 字數、引用密度、Anti-AI、Wikilink          |
 | **Hook B** | section 完成（post-section） | B1-B7  | 概念一致、🔒 保護、方法學、Brief 合規      |
-| **Hook C** | 全稿完成（post-manuscript）  | C1-C8  | 整體一致性、投稿清單、數量合規、時間一致性 |
+| **Hook C** | 全稿完成（post-manuscript）  | C1-C14 | 整體一致性、投稿清單、數量合規、時間一致性、強 claim 證據對齊 |
 | **Hook D** | Phase 10 回顧                | D1-D7  | Hook 效能、閾值調整、自我改進              |
 
 ### Hook A: post-write
@@ -418,6 +421,19 @@ Phase 0 產出的期刊約束文件，驅動所有後續 Phase：
 | `pipeline.hook_*_max_rounds`        | Hook A/B/C cascading 上限         |
 | `pipeline.review_max_rounds`        | Phase 7 Review 輪數               |
 | `pipeline.writing.anti_ai_*`        | Hook A3 嚴格度                    |
+
+## source-materials.yaml 規格
+
+Phase 0 產出的原始素材清單，驅動後續資料、圖表、Methods/Results 寫作：
+
+| YAML 欄位                                 | 影響                                           |
+| ----------------------------------------- | ---------------------------------------------- |
+| `summary.total_candidates`                | 是否已掃描 workspace 原始素材                  |
+| `materials[].evidence_priority`           | Phase 3 concept / Phase 5 drafting 證據優先級 |
+| `materials[].ingestion.status`            | 是否需先走 asset-aware                         |
+| `agent_next_steps.asset_aware_file_paths` | agent 應交給 asset-aware 的具體檔案            |
+
+`data-artifacts.yaml` 的 `data_anchors` 必須引用 ready/ingested source material、asset-aware doc、tracked data artifact，或可信 data file。若 anchor 來源是 `concept.md`、agent summary、inferred/estimated 值，或指向仍是 `pending_asset_aware` 的 DOCX/PDF，Hook F4 會以 CRITICAL 阻擋。
 | `pipeline.writing.citation_density` | Hook A2 引用密度                  |
 
 完整模板見：[templates/journal-profile.template.yaml](../templates/journal-profile.template.yaml)
@@ -488,9 +504,10 @@ Pipeline 編排 5 個 MCP Server + 外部工具：
 
 | Phase | 內部 MCP | 外部 MCP                | 說明                   |
 | ----- | -------- | ----------------------- | ---------------------- |
-| 0     | —        | fetch_webpage           | 解析 submission guide  |
+| 0     | mdpaper  | asset-aware, fetch_webpage | 掃描原始素材 + 解析 submission guide |
 | 1     | mdpaper  | —                       | 建立專案               |
 | 2     | mdpaper  | pubmed-search, zotero   | 搜尋 + 儲存文獻        |
+| 2.1   | mdpaper  | asset-aware, pubmed-search | 文獻全文與素材解析     |
 | 3     | mdpaper  | CGU                     | 概念發展 + 創新性提升  |
 | 4     | mdpaper  | —                       | 產出 manuscript-plan   |
 | 5     | mdpaper  | drawio, CGU, data tools | 寫作 + 圖表 + 論點強化 |
@@ -498,7 +515,8 @@ Pipeline 編排 5 個 MCP Server + 外部工具：
 | 7     | mdpaper  | CGU                     | Review + 論點補強      |
 | 8     | mdpaper  | —                       | 引用同步               |
 | 9     | mdpaper  | —                       | Word 匯出              |
-| 10    | —        | —                       | Meta-learning          |
+| 10    | mdpaper  | —                       | Retrospective + Meta-learning |
+| 11    | mdpaper  | —                       | Final delivery         |
 
 ### 跨 MCP 資料傳遞
 
@@ -506,6 +524,7 @@ Pipeline 編排 5 個 MCP Server + 外部工具：
 | ------------- | ---------- | -------- | ----------------------------------------------------------- |
 | pubmed-search | mdpaper    | PMID     | `save_reference_mcp(pmid)` — 只傳 PMID，資料由 MCP 直接取得 |
 | zotero-keeper | mdpaper    | PMID/DOI | 取 PMID → `save_reference_mcp()`                            |
+| asset-aware   | mdpaper    | sections/tables/doc_id | Phase 0/2.1 解析 DOCX/XLSX/PDF 後回填 source-material/fulltext context |
 | CGU           | concept.md | 文字建議 | Agent 整合到 `write_draft()`                                |
 | drawio        | mdpaper    | XML      | `save_diagram(project, content)`                            |
 

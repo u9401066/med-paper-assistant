@@ -14,7 +14,7 @@
 3 MCP Servers · 165+ Tools · 26 Skills · 15 Prompts Workflows — monorepo authoring surface plus packaged VSIX surface in one VS Code ecosystem
 
 > 📖 [繁體中文版](README.zh-TW.md)
-> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 78 Quality Hooks, Structured Review Loop
+> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 79 Quality Hooks, Structured Review Loop
 
 ![MedPaper Assistant overview](docs/assets/medpaper-intro.svg)
 
@@ -26,7 +26,7 @@ This repository is the **full authoring and integration workspace** behind MedPa
 
 | Component                                                          | Type                   | Tools                            | Description                                                                                   |
 | ------------------------------------------------------------------ | ---------------------- | -------------------------------- | --------------------------------------------------------------------------------------------- |
-| **mdpaper**                                                        | Core MCP Server        | 115 (full) / 22 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources |
+| **mdpaper**                                                        | Core MCP Server        | 117 (full) / 22 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37                               | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                           |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13                               | Creative generation: brainstorm, deep think, spark collision                                  |
 | **[VS Code Extension](vscode-extension/)**                         | Extension              | 11 cmds + 10 chat               | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
@@ -37,6 +37,7 @@ This repository is the **full authoring and integration workspace** behind MedPa
 
 **External MCP Servers** (optional, installed via uvx):
 
+- **asset-aware** — Ingest user-provided DOCX/XLSX/PDF/PPTX source materials and reference full text before drafting
 - **drawio** — CONSORT/PRISMA flowchart generation
 - **zotero-keeper** — Import references from Zotero library
 
@@ -47,7 +48,7 @@ Counts in these tables are release-gated via `tool-surface-authority.json` and `
 | Surface | Best for | What you get |
 | ------- | -------- | ------------ |
 | **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 26 skills, 15 prompt workflows, repo scripts, tests, and authoring docs |
-| **VSIX extension** | End users who want the packaged experience | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (22 tools by default / 115 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
+| **VSIX extension** | End users who want the packaged experience | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (22 tools by default / 117 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
 
 The repository is the broader engineering surface. The VSIX is the curated end-user surface.
 
@@ -66,6 +67,7 @@ The repository is the broader engineering surface. The VSIX is the curated end-u
 **Medical Paper Assistant** is not just a writing assistant. It is a research workspace orchestrator:
 
 - 🔍 **Explore First, Decide Later** — Browse literature freely, save interesting papers, then decide your research direction
+- 📥 **Source Material Intake First** — Phase 0 scans user-provided DOCX/XLSX/PDF/CSV inputs and flags files that must go through asset-aware ingestion before drafting
 - 💬 **Conversational Workflow** — Chat naturally with AI to refine your ideas, not fight with forms
 - 🧭 **Guided Process** — Step-by-step prompts guide you from concept to publication-ready manuscript
 - 🔗 **All-in-One** — Search, write, cite, analyze, export — all integrated inside VS Code
@@ -309,20 +311,23 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│ 115/22 tools  │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
+│ 117/22 tools  │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
 │               │  │  37 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
 │ • drafts      │  │ • CORE        │  │ • spark       │  │               │
 │ • validation  │  │ • PICO        │  │ • methods     │  │ 📖 zotero     │
 │ • analysis    │  │ • Gene/Chem   │  │               │  │ • import refs │
-│ • export      │  │ • Session     │  │               │  │               │
+│ • export      │  │ • Session     │  │               │  │ 📥 asset-aware│
+│               │  │               │  │               │  │ • docx/xlsx   │
+│               │  │               │  │               │  │ • fulltext    │
 └───────┬───────┘  └───────────────┘  └───────────────┘  └───────────────┘
         │
         ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          💾 Local Storage                                 │
 │  projects/{slug}/                                                        │
+│  ├── .audit/source-materials.yaml ← Phase 0 scan of user-provided inputs │
 │  ├── concept.md          ← Research concept with 🔒 protected sections   │
 │  ├── references/{pmid}/  ← Foam-compatible .md + metadata.json           │
 │  ├── drafts/             ← Markdown drafts with [[citations]]            │
@@ -554,7 +559,7 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 115 full / 22 compact tools + 3 prompts + 3 resources
+│   └── interfaces/mcp/            #   MCP server, 117 full / 22 compact tools + 3 prompts + 3 resources
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
@@ -594,7 +599,7 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                                    |
 | ------ | --------------------------- | -------------------------------------------------------------- |
-| ✅     | **3 MCP Servers**           | mdpaper (115 full / 22 compact) + pubmed-search (37) + CGU (13) |
+| ✅     | **3 MCP Servers**           | mdpaper (117 full / 22 compact) + pubmed-search (37) + CGU (13) |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                        |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                         |

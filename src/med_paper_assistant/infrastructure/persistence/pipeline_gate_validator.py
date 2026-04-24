@@ -39,6 +39,26 @@ from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
 
 logger = structlog.get_logger()
 
+_GIT_GATE_TIMEOUT_SECONDS = 3
+_PIPELINE_PHASES = [0, 1, 2, 21, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
+_PIPELINE_PHASE_NAMES = {
+    0: "Configuration",
+    1: "Setup",
+    2: "Literature",
+    21: "Fulltext Ingestion",
+    3: "Concept",
+    4: "Planning",
+    5: "Writing",
+    6: "Audit",
+    65: "Evolution Gate",
+    7: "Autonomous Review",
+    8: "Reference Sync",
+    9: "Export",
+    10: "Retrospective",
+    11: "Final Delivery",
+}
+_PIPELINE_PHASE_RANK = {phase: index for index, phase in enumerate(_PIPELINE_PHASES)}
+
 
 @dataclass
 class GateCheck:
@@ -49,6 +69,29 @@ class GateCheck:
     passed: bool
     details: str = ""
     severity: str = "CRITICAL"  # CRITICAL = blocks, WARNING = advisory
+    expected_pattern: str = ""
+    search_path: str = ""
+    actual_found: list[str] = field(default_factory=list)
+    fix_hint: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize check with agent-actionable repair metadata."""
+        data: dict[str, Any] = {
+            "name": self.name,
+            "description": self.description,
+            "passed": self.passed,
+            "severity": self.severity,
+            "details": self.details,
+        }
+        if self.expected_pattern:
+            data["expected_pattern"] = self.expected_pattern
+        if self.search_path:
+            data["search_path"] = self.search_path
+        if self.actual_found:
+            data["actual_found"] = self.actual_found
+        if self.fix_hint:
+            data["fix_hint"] = self.fix_hint
+        return data
 
 
 @dataclass
@@ -69,7 +112,32 @@ class GateResult:
     def warnings(self) -> list[GateCheck]:
         return [c for c in self.checks if not c.passed and c.severity == "WARNING"]
 
-    def to_markdown(self) -> str:
+    @property
+    def missing(self) -> list[str]:
+        """Return names of failed critical checks for agent-friendly repair loops."""
+        return [c.name for c in self.critical_failures]
+
+    def to_dict(self, compact: bool = False) -> dict[str, Any]:
+        """Serialize gate result for agent consumption."""
+        checks = self.checks
+        if compact:
+            checks = [c for c in checks if not c.passed]
+        return {
+            "schema": "mdpaper.gate_result.v1",
+            "phase": self.phase,
+            "phase_name": self.phase_name,
+            "passed": self.passed,
+            "critical_failures": len(self.critical_failures),
+            "warnings": len(self.warnings),
+            "timestamp": self.timestamp,
+            "checks": [c.to_dict() for c in checks],
+        }
+
+    def to_json(self, compact: bool = False) -> str:
+        """Generate a JSON report of the gate result."""
+        return json.dumps(self.to_dict(compact=compact), indent=2, ensure_ascii=False)
+
+    def to_markdown(self, compact: bool = False) -> str:
         """Generate a markdown report of the gate result."""
         lines = [
             f"# Phase {self.phase} Gate Validation: {'✅ PASSED' if self.passed else '❌ FAILED'}",
@@ -79,9 +147,20 @@ class GateResult:
             "| # | Check | Status | Severity | Details |",
             "|---|-------|--------|----------|---------|",
         ]
-        for i, c in enumerate(self.checks, 1):
+        checks = self.checks if not compact else [c for c in self.checks if not c.passed]
+        for i, c in enumerate(checks, 1):
             status = "✅" if c.passed else "❌"
-            lines.append(f"| {i} | {c.name} | {status} | {c.severity} | {c.details} |")
+            detail_bits = [c.details]
+            if c.expected_pattern:
+                detail_bits.append(f"expected_pattern: `{c.expected_pattern}`")
+            if c.search_path:
+                detail_bits.append(f"search_path: `{c.search_path}`")
+            if c.actual_found:
+                detail_bits.append(f"actual_found: {', '.join(c.actual_found)}")
+            if c.fix_hint:
+                detail_bits.append(f"fix_hint: {c.fix_hint}")
+            details = "<br>".join(bit for bit in detail_bits if bit)
+            lines.append(f"| {i} | {c.name} | {status} | {c.severity} | {details} |")
 
         if self.critical_failures:
             lines.extend(
@@ -127,6 +206,15 @@ class PipelineGateValidator:
             return {}
 
         return data if isinstance(data, dict) else {}
+
+    def _phase_rank(self, phase: int) -> int:
+        """Return the logical phase order, independent of display numbering.
+
+        Phase 2.1 is encoded as integer 21 and Phase 6.5 as 65 for MCP
+        compatibility. Numeric comparisons such as ``21 >= 9`` are therefore
+        incorrect; all ordering checks must go through this rank table.
+        """
+        return _PIPELINE_PHASE_RANK.get(phase, phase)
 
     def _normalize_planned_assets(self, plan: dict[str, Any]) -> list[dict[str, Any]]:
         """Normalize manuscript-plan asset declarations into a flat list."""
@@ -386,12 +474,36 @@ class PipelineGateValidator:
             self._log_gate_result(result)
             return result
 
-        result = validator()
-
-        # For phases > 1, prepend prerequisite structure checks
-        if phase > 1:
+        # Phase 11 may run optional Git provenance checks. Avoid doing that work
+        # when earlier hard prerequisites already block the final delivery gate.
+        if phase == 11:
             prereq = self._check_prerequisites(phase)
-            result.checks = prereq + result.checks
+            if any(not c.passed and c.severity == "CRITICAL" for c in prereq):
+                result = GateResult(
+                    phase=11,
+                    phase_name="Final Delivery",
+                    passed=False,
+                    checks=[
+                        *prereq,
+                        GateCheck(
+                            name="git:skipped",
+                            description="Optional Git provenance checks skipped until Phase 11 prerequisites pass",
+                            passed=True,
+                            details="Skipped because earlier critical checks failed",
+                            severity="INFO",
+                        ),
+                    ],
+                )
+            else:
+                result = validator()
+                result.checks = prereq + result.checks
+        else:
+            result = validator()
+
+            # For phases > 1, prepend prerequisite structure checks
+            if phase > 1:
+                prereq = self._check_prerequisites(phase)
+                result.checks = prereq + result.checks
 
         result.timestamp = datetime.now().isoformat()
 
@@ -496,9 +608,10 @@ class PipelineGateValidator:
         Only exports uses ``== 11`` to avoid Phase 65 triggering it.
         """
         checks = []
+        phase_rank = self._phase_rank(phase)
 
         # Phase 2+ needs project.json
-        if phase >= 2:
+        if phase_rank >= self._phase_rank(2):
             pj = self._project_dir / "project.json"
             checks.append(
                 GateCheck(
@@ -510,8 +623,8 @@ class PipelineGateValidator:
                 )
             )
 
-        # Phase 3+ needs references (paper-type-aware minimum)
-        if phase >= 3:
+        # Phase 2.1+ needs references (paper-type-aware minimum)
+        if phase_rank >= self._phase_rank(21):
             refs_dir = self._project_dir / "references"
             ref_count = self._count_references(refs_dir)
             paper_type = self._get_paper_type_from_profile()
@@ -529,7 +642,7 @@ class PipelineGateValidator:
             )
 
         # Phase 5+ needs concept.md
-        if phase >= 5:
+        if phase_rank >= self._phase_rank(5):
             concept = self._find_concept_path()
             has_concept = concept.is_file()
             checks.append(
@@ -543,7 +656,7 @@ class PipelineGateValidator:
             )
 
         # Phase 4+ needs structured concept review artifact
-        if phase >= 4:
+        if phase_rank >= self._phase_rank(4):
             review_complete, review_details = self._concept_review_is_actionable()
             checks.append(
                 GateCheck(
@@ -557,8 +670,8 @@ class PipelineGateValidator:
                 )
             )
 
-        # Phase 7+ needs manuscript (65 >= 7 is True — correct, Phase 65 is after Writing)
-        if phase >= 7:
+        # Phase 6.5 and Phase 7+ need manuscript.
+        if phase == 65 or phase_rank >= self._phase_rank(7):
             ms = self._drafts_dir / "manuscript.md"
             checks.append(
                 GateCheck(
@@ -570,8 +683,8 @@ class PipelineGateValidator:
                 )
             )
 
-        # Phase 9+ needs quality-scorecard (65 >= 9 is True — correct, Phase 65 is after Audit)
-        if phase >= 9:
+        # Phase 6.5 and Phase 9+ need the Phase 6 quality scorecard.
+        if phase == 65 or phase_rank >= self._phase_rank(9):
             scorecard = self._audit_dir / "quality-scorecard.md"
             checks.append(
                 GateCheck(
@@ -584,8 +697,8 @@ class PipelineGateValidator:
             )
 
         # Phase 8+ needs completed review loop (Phase 7 prerequisite)
-        # Uses == 8 or > 8 check, but NOT for Phase 65 (which is between 6 and 7).
-        if phase >= 8 and phase != 65:
+        # Uses logical order, but NOT for Phase 65 (which is between 6 and 7).
+        if phase_rank >= self._phase_rank(8) and phase != 65:
             review_passed, review_details = self._check_review_completed()
             checks.append(
                 GateCheck(
@@ -619,40 +732,25 @@ class PipelineGateValidator:
 
     def get_pipeline_status(self) -> dict[str, Any]:
         """
-        Get full pipeline status — heartbeat check.
+        Get lightweight pipeline status — heartbeat check.
 
         Returns current state across ALL phases:
-        - Which phases have passed gates
-        - What artifacts exist
-        - What's missing
+        - Which phases appear complete from cheap artifact snapshots
+        - What key artifacts exist
+        - What's missing at a glance
         - Completion percentage
 
-        This is the "heartbeat" — the agent calls this to see
-        remaining work. Cannot lie about completion.
+        This is intentionally not a full gate validation. Heartbeat must be
+        fast and non-blocking, so it must not call validate_phase(), run Git,
+        execute hooks, or append gate validation audit logs. Use
+        validate_phase() for the authoritative hard gate.
         """
-        phases = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
-        phase_names = {
-            0: "Configuration",
-            1: "Setup",
-            2: "Literature",
-            3: "Concept",
-            4: "Planning",
-            5: "Writing",
-            6: "Audit",
-            65: "Evolution Gate",
-            7: "Autonomous Review",
-            8: "Reference Sync",
-            9: "Export",
-            10: "Retrospective",
-            11: "Commit & Push",
-        }
-
         results = []
         total_critical = 0
         total_passed = 0
 
-        for phase in phases:
-            result = self.validate_phase(phase)
+        for phase in _PIPELINE_PHASES:
+            result = self._heartbeat_phase_snapshot(phase)
             critical_count = len(result.critical_failures)
             total_critical += critical_count
             if result.passed:
@@ -660,7 +758,7 @@ class PipelineGateValidator:
             results.append(
                 {
                     "phase": phase,
-                    "name": phase_names.get(phase, "Unknown"),
+                    "name": _PIPELINE_PHASE_NAMES.get(phase, "Unknown"),
                     "passed": result.passed,
                     "critical_failures": critical_count,
                     "warnings": len(result.warnings),
@@ -672,16 +770,352 @@ class PipelineGateValidator:
                 }
             )
 
-        completion_pct = (total_passed / len(phases)) * 100
+        completion_pct = (total_passed / len(_PIPELINE_PHASES)) * 100
 
         return {
             "completion_pct": round(completion_pct, 1),
             "phases_passed": total_passed,
-            "phases_total": len(phases),
+            "phases_total": len(_PIPELINE_PHASES),
             "total_critical_failures": total_critical,
             "phases": results,
             "timestamp": datetime.now().isoformat(),
         }
+
+    def _heartbeat_phase_snapshot(self, phase: int) -> GateResult:
+        """Build a cheap, side-effect-free phase status snapshot."""
+        checks = []
+        if phase > 1:
+            checks.extend(self._check_prerequisites(phase))
+        checks.extend(self._heartbeat_phase_checks(phase))
+        result = GateResult(
+            phase=phase,
+            phase_name=_PIPELINE_PHASE_NAMES.get(phase, "Unknown"),
+            checks=checks,
+            passed=False,
+            timestamp=datetime.now().isoformat(),
+        )
+        result.passed = len(result.critical_failures) == 0
+        return result
+
+    def _find_pipeline_run_candidates(self) -> list[str]:
+        """Find pipeline-run-like files that almost satisfy Phase 10 naming."""
+        candidates: list[str] = []
+        for base in (self._audit_dir, self._project_dir):
+            if not base.is_dir():
+                continue
+            for path in sorted(base.glob("pipeline-run*.md")):
+                try:
+                    candidates.append(path.relative_to(self._project_dir).as_posix())
+                except ValueError:
+                    candidates.append(path.as_posix())
+        return candidates
+
+    def _extract_matching_headings(self, content: str, marker: str) -> list[str]:
+        """Extract markdown headings that mention a marker such as D7 or D8."""
+        pattern = re.compile(rf"^#+\s+.*\b{re.escape(marker)}\b.*$", re.MULTILINE)
+        return [match.group(0).strip() for match in pattern.finditer(content)]
+
+    def _heartbeat_phase_checks(self, phase: int) -> list[GateCheck]:
+        """Cheap artifact checks used by heartbeat only.
+
+        These checks deliberately avoid Git, hook execution, manifest/data
+        provenance validation, and audit-log writes. They are a navigation aid,
+        not the final source of truth.
+        """
+        if phase == 0:
+            jp = self._project_dir / "journal-profile.yaml"
+            return [
+                GateCheck(
+                    name="journal-profile.yaml",
+                    description="Journal profile configuration file",
+                    passed=jp.is_file(),
+                    details="exists" if jp.is_file() else "MISSING",
+                )
+            ]
+
+        if phase == 1:
+            return [
+                GateCheck(
+                    name=f"dir:{subdir}",
+                    description=f"Project subdirectory {subdir}",
+                    passed=(self._project_dir / subdir).is_dir(),
+                    details="exists" if (self._project_dir / subdir).is_dir() else "MISSING",
+                )
+                for subdir in ["drafts", "references", "data", "results", ".audit", ".memory"]
+            ]
+
+        if phase == 2:
+            refs_dir = self._project_dir / "references"
+            ref_count = self._count_references(refs_dir)
+            paper_type = self._get_paper_type_from_profile()
+            min_refs = self._resolve_min_references(paper_type)
+            passed = ref_count >= min_refs
+            return [
+                GateCheck(
+                    name="references_count",
+                    description=f"At least {min_refs} references saved (paper type: {paper_type})",
+                    passed=passed,
+                    details=f"{ref_count}/{min_refs} references found"
+                    + ("" if passed else f" — need {min_refs - ref_count} more"),
+                )
+            ]
+
+        if phase == 21:
+            status_file = self._project_dir / "references" / "fulltext-ingestion-status.md"
+            return [
+                GateCheck(
+                    name="fulltext_ingestion_status",
+                    description="Fulltext ingestion status file created",
+                    passed=status_file.is_file(),
+                    details="exists" if status_file.is_file() else "MISSING",
+                )
+            ]
+
+        if phase == 3:
+            concept = self._find_concept_path()
+            checks = [
+                GateCheck(
+                    name="concept.md",
+                    description="Concept document exists",
+                    passed=concept.is_file(),
+                    details="exists" if concept.is_file() else "MISSING",
+                )
+            ]
+            if concept.is_file():
+                try:
+                    content = concept.read_text(encoding="utf-8")
+                except OSError:
+                    content = ""
+                for marker in ["NOVELTY", "KEY SELLING POINTS"]:
+                    found = marker in content
+                    checks.append(
+                        GateCheck(
+                            name=f"concept:{marker}",
+                            description=f"Protected {marker} section present",
+                            passed=found,
+                            details="found" if found else "MISSING",
+                        )
+                    )
+            review_complete, review_details = self._concept_review_is_complete(
+                self._load_concept_review()
+            )
+            checks.append(
+                GateCheck(
+                    name="audit:concept-review.yaml",
+                    description="Structured concept review artifact",
+                    passed=review_complete,
+                    details=review_details if review_complete else f"MISSING — {review_details}",
+                )
+            )
+            return checks
+
+        if phase == 4:
+            plan_yaml = self._project_dir / "manuscript-plan.yaml"
+            plan_md = self._drafts_dir / "manuscript-plan.md"
+            plan_exists = plan_yaml.is_file() or plan_md.is_file()
+            return [
+                GateCheck(
+                    name="manuscript-plan",
+                    description="Manuscript plan (yaml or md)",
+                    passed=plan_exists,
+                    details="exists" if plan_exists else "MISSING",
+                )
+            ]
+
+        if phase == 5:
+            ms = self._drafts_dir / "manuscript.md"
+            checks = [
+                GateCheck(
+                    name="manuscript.md",
+                    description="Manuscript draft exists",
+                    passed=ms.is_file(),
+                    details="exists" if ms.is_file() else "MISSING",
+                )
+            ]
+            if ms.is_file():
+                try:
+                    content = ms.read_text(encoding="utf-8")
+                except OSError:
+                    content = ""
+                for section in ["Abstract", "Introduction", "Methods", "Results", "Discussion"]:
+                    found = f"## {section}" in content or f"# {section}" in content
+                    checks.append(
+                        GateCheck(
+                            name=f"section:{section}",
+                            description=f"{section} section present",
+                            passed=found,
+                            details="found" if found else "MISSING",
+                        )
+                    )
+            return checks
+
+        if phase == 6:
+            return [
+                GateCheck(
+                    name=f"audit:{artifact}",
+                    description=f"Audit artifact: {artifact}",
+                    passed=(self._audit_dir / artifact).is_file(),
+                    details="exists" if (self._audit_dir / artifact).is_file() else "MISSING",
+                )
+                for artifact in ["quality-scorecard.md", "hook-effectiveness.md"]
+            ]
+
+        if phase == 65:
+            return [
+                GateCheck(
+                    name="evolution-log.jsonl",
+                    description="Evolution log file exists",
+                    passed=(self._audit_dir / "evolution-log.jsonl").is_file(),
+                    details="exists"
+                    if (self._audit_dir / "evolution-log.jsonl").is_file()
+                    else "MISSING",
+                ),
+                GateCheck(
+                    name="quality-scorecard:exists",
+                    description="Quality scorecard baseline established",
+                    passed=(self._audit_dir / "quality-scorecard.md").is_file(),
+                    details="exists"
+                    if (self._audit_dir / "quality-scorecard.md").is_file()
+                    else "MISSING",
+                ),
+            ]
+
+        if phase == 7:
+            loop_state = self._audit_dir / "audit-loop-review.json"
+            checks = [
+                GateCheck(
+                    name="audit-loop:state",
+                    description="Review loop state machine file exists",
+                    passed=loop_state.is_file(),
+                    details="exists" if loop_state.is_file() else "MISSING",
+                )
+            ]
+            rounds_completed = 0
+            min_rounds = 2
+            loop_verdict = "unknown"
+            if loop_state.is_file():
+                try:
+                    state = json.loads(loop_state.read_text(encoding="utf-8"))
+                    rounds = state.get("rounds", [])
+                    rounds_completed = len(rounds)
+                    min_rounds = state.get("config", {}).get("min_rounds", 2)
+                    if rounds:
+                        loop_verdict = rounds[-1].get("verdict", "unknown")
+                except (json.JSONDecodeError, OSError):
+                    pass
+            checks.append(
+                GateCheck(
+                    name="review:rounds_completed",
+                    description=f"At least {min_rounds} review rounds completed",
+                    passed=rounds_completed >= min_rounds,
+                    details=f"{rounds_completed} round(s), verdict={loop_verdict}",
+                )
+            )
+            return checks
+
+        if phase == 8:
+            ms = self._drafts_dir / "manuscript.md"
+            if not ms.is_file():
+                return [
+                    GateCheck(
+                        name="manuscript.md",
+                        description="Manuscript exists for ref sync",
+                        passed=False,
+                        details="MISSING",
+                    )
+                ]
+            try:
+                content = ms.read_text(encoding="utf-8")
+            except OSError:
+                content = ""
+            has_references = "## References" in content or "# References" in content
+            return [
+                GateCheck(
+                    name="manuscript:references_section",
+                    description="References section in manuscript",
+                    passed=has_references,
+                    details="found" if has_references else "MISSING",
+                )
+            ]
+
+        if phase == 9:
+            checks = []
+            for ext in ["docx", "pdf"]:
+                candidates = (
+                    list(self._exports_dir.glob(f"*.{ext}")) if self._exports_dir.is_dir() else []
+                )
+                checks.append(
+                    GateCheck(
+                        name=f"export:{ext}",
+                        description=f"Exported {ext.upper()} file",
+                        passed=bool(candidates),
+                        details=f"{len(candidates)} {ext} file(s)" if candidates else "MISSING",
+                    )
+                )
+            return checks
+
+        if phase == 10:
+            pipeline_runs = list(self._audit_dir.glob("pipeline-run-*.md"))
+            found_candidates = self._find_pipeline_run_candidates()
+            checks = [
+                GateCheck(
+                    name="pipeline-run.md",
+                    description="Pipeline run retrospective document",
+                    passed=bool(pipeline_runs),
+                    details=f"{len(pipeline_runs)} run(s)"
+                    if pipeline_runs
+                    else (
+                        "MISSING — need `.audit/pipeline-run-*.md`"
+                        if not found_candidates
+                        else "MISSING — found pipeline-run-like file(s) with wrong name/location"
+                    ),
+                    expected_pattern="pipeline-run-*.md",
+                    search_path=".audit/pipeline-run-*.md",
+                    actual_found=found_candidates,
+                    fix_hint="Create or rename to `.audit/pipeline-run-YYYYMMDD-HHmm.md`.",
+                ),
+                GateCheck(
+                    name="hook-effectiveness.md",
+                    description="Hook effectiveness report",
+                    passed=(self._audit_dir / "hook-effectiveness.md").is_file(),
+                    details="exists"
+                    if (self._audit_dir / "hook-effectiveness.md").is_file()
+                    else "MISSING",
+                ),
+                GateCheck(
+                    name="meta-learning-audit.yaml",
+                    description="Meta-learning audit data",
+                    passed=(self._audit_dir / "meta-learning-audit.yaml").is_file(),
+                    details="exists"
+                    if (self._audit_dir / "meta-learning-audit.yaml").is_file()
+                    else "MISSING",
+                ),
+            ]
+            for mem_file in ["activeContext.md", "progress.md"]:
+                p = self._memory_dir / mem_file
+                checks.append(
+                    GateCheck(
+                        name=f"memory:{mem_file}",
+                        description=f"Project memory file {mem_file}",
+                        passed=p.is_file(),
+                        details="exists" if p.is_file() else "MISSING",
+                        severity="WARNING",
+                    )
+                )
+            return checks
+
+        if phase == 11:
+            return [
+                GateCheck(
+                    name="git:omitted",
+                    description="Git provenance is omitted from heartbeat",
+                    passed=True,
+                    details="Run validate_phase(11) for optional Git provenance details",
+                    severity="INFO",
+                )
+            ]
+
+        return []
 
     # ── Helpers ─────────────────────────────────────────────────────
 
@@ -889,15 +1323,34 @@ class PipelineGateValidator:
     # ── Phase Validators ───────────────────────────────────────────
 
     def _validate_phase_0(self) -> GateResult:
-        """Phase 0: journal-profile.yaml must exist."""
+        """Phase 0: journal profile and source-material scan must exist."""
         checks = []
         jp = self._project_dir / "journal-profile.yaml"
+        source_materials = self._audit_dir / "source-materials.yaml"
         checks.append(
             GateCheck(
                 name="journal-profile.yaml",
                 description="Journal profile configuration file",
                 passed=jp.is_file(),
                 details=str(jp) if not jp.is_file() else "exists",
+                expected_pattern="journal-profile.yaml",
+                search_path="project root",
+                fix_hint='Run project_action(action="journal_profile", ...).',
+            )
+        )
+        checks.append(
+            GateCheck(
+                name=".audit/source-materials.yaml",
+                description="Workspace source-material scan manifest, including user-provided DOCX/XLSX/PDF inputs",
+                passed=source_materials.is_file(),
+                details=(
+                    "exists"
+                    if source_materials.is_file()
+                    else "MISSING — run Phase 0 source-material intake before literature search/writing"
+                ),
+                expected_pattern=".audit/source-materials.yaml",
+                search_path=".audit/",
+                fix_hint='Run project_action(action="source_materials") so local DOCX/XLSX/PDF inputs are registered and asset-aware ingestion can be triggered.',
             )
         )
         return GateResult(phase=0, phase_name="Configuration", checks=checks, passed=False)
@@ -1039,6 +1492,81 @@ class PipelineGateValidator:
                     severity="WARNING",
                 )
             )
+
+        source_materials_path = self._audit_dir / "source-materials.yaml"
+        if source_materials_path.is_file():
+            try:
+                source_manifest = yaml.safe_load(
+                    source_materials_path.read_text(encoding="utf-8")
+                ) or {}
+            except (yaml.YAMLError, OSError):
+                source_manifest = {}
+            materials = source_manifest.get("materials", [])
+            if not isinstance(materials, list):
+                materials = []
+            pending_primary: list[dict[str, Any]] = []
+            pending_advisory: list[dict[str, Any]] = []
+            for material in materials:
+                if not isinstance(material, dict):
+                    continue
+                ingestion = (
+                    material.get("ingestion")
+                    if isinstance(material.get("ingestion"), dict)
+                    else {}
+                )
+                if ingestion.get("status") != "pending_asset_aware":
+                    continue
+                role = str(
+                    material.get("evidence_priority")
+                    or material.get("evidence_role")
+                    or material.get("role")
+                    or ""
+                ).lower()
+                if role in {"primary_user_material", "primary_data", "source_data"}:
+                    pending_primary.append(material)
+                else:
+                    pending_advisory.append(material)
+
+            if pending_primary:
+                examples = ", ".join(
+                    str(item.get("id") or item.get("relative_path") or item.get("filename"))
+                    for item in pending_primary[:5]
+                )
+                checks.append(
+                    GateCheck(
+                        name="source-materials:asset-aware",
+                        description="Primary source materials requiring asset-aware ingestion are completed",
+                        passed=False,
+                        severity="CRITICAL",
+                        details=(
+                            f"{len(pending_primary)} primary source material(s) still pending "
+                            f"asset-aware ingestion: {examples}"
+                        ),
+                        expected_pattern=(
+                            "materials[].ingestion.status != pending_asset_aware "
+                            "for primary_user_material"
+                        ),
+                        search_path=".audit/source-materials.yaml",
+                        fix_hint=(
+                            'Call asset-aware ingest_documents, then '
+                            'project_action(action="record_asset_ingestion", '
+                            'source_material_id="source-001", asset_aware_doc_id="...").'
+                        ),
+                    )
+                )
+            elif pending_advisory:
+                checks.append(
+                    GateCheck(
+                        name="source-materials:asset-aware",
+                        description="Non-primary source materials still pending asset-aware ingestion",
+                        passed=False,
+                        severity="WARNING",
+                        details=(
+                            f"{len(pending_advisory)} non-primary source material(s) still "
+                            "pending asset-aware ingestion"
+                        ),
+                    )
+                )
 
         return GateResult(phase=21, phase_name="Fulltext Ingestion", checks=checks, passed=False)
 
@@ -1352,8 +1880,8 @@ class PipelineGateValidator:
         Phase 6: Quality audit — scorecard + hook effectiveness + data artifacts with DATA validation.
 
         Beyond file existence, validates:
-        - quality-scorecard.json has ≥4 dimensions scored with avg > 0
-        - hook-effectiveness.json has ≥1 hook with recorded events
+        - quality-scorecard.yaml has ≥4 dimensions scored with avg > 0
+        - hook-effectiveness.yaml has ≥1 hook with recorded events
         - data-artifacts.yaml validation report generated (if artifacts exist)
         - Report files (.md) are generated
         """
@@ -1703,7 +2231,7 @@ class PipelineGateValidator:
         Phase 10: Retrospective — D1-D8 artifacts with DATA validation.
 
         Beyond file existence, validates:
-        - meta-learning-audit.json has ≥1 analysis entry (run_meta_learning required)
+        - meta-learning-audit.yaml has ≥1 analysis entry (run_meta_learning required)
         - evolution-log.jsonl meta_learning event has analysis counts
         - pipeline-run with D7+D8 content
         - hook-effectiveness report + data
@@ -1712,7 +2240,7 @@ class PipelineGateValidator:
         Required:
         - pipeline-run-{ts}.md (with D7+D8 sections)
         - hook-effectiveness.md (D1)
-        - meta-learning-audit.json with actual analysis data
+        - meta-learning-audit.yaml with actual analysis data
         - evolution-log.jsonl with meta_learning event
         - .memory/ updated
         """
@@ -1720,12 +2248,23 @@ class PipelineGateValidator:
 
         # 1. pipeline-run file
         pipeline_runs = list(self._audit_dir.glob("pipeline-run-*.md"))
+        found_candidates = self._find_pipeline_run_candidates()
         checks.append(
             GateCheck(
                 name="pipeline-run.md",
                 description="Pipeline run retrospective document",
                 passed=len(pipeline_runs) > 0,
-                details=f"{len(pipeline_runs)} run(s)" if pipeline_runs else "MISSING",
+                details=f"{len(pipeline_runs)} run(s)"
+                if pipeline_runs
+                else (
+                    "MISSING — need `.audit/pipeline-run-*.md`"
+                    if not found_candidates
+                    else "MISSING — found pipeline-run-like file(s) with wrong name/location"
+                ),
+                expected_pattern="pipeline-run-*.md",
+                search_path=".audit/pipeline-run-*.md",
+                actual_found=found_candidates,
+                fix_hint="Create or rename to `.audit/pipeline-run-YYYYMMDD-HHmm.md`.",
             )
         )
 
@@ -1734,13 +2273,24 @@ class PipelineGateValidator:
             latest = sorted(pipeline_runs)[-1]
             content = latest.read_text(encoding="utf-8")
             for section in ["D7", "D8"]:
-                found = section in content
+                expected = rf"^##\s+{section}\s+retrospective\s*:"
+                found = bool(re.search(expected, content, re.IGNORECASE | re.MULTILINE))
+                actual_headings = self._extract_matching_headings(content, section)
                 checks.append(
                     GateCheck(
                         name=f"pipeline-run:{section}",
                         description=f"{section} retrospective section in pipeline run",
                         passed=found,
-                        details="found" if found else "MISSING",
+                        details="found"
+                        if found
+                        else f"MISSING — latest file `{latest.name}` lacks required heading",
+                        expected_pattern=expected,
+                        search_path=f".audit/{latest.name}",
+                        actual_found=actual_headings,
+                        fix_hint=(
+                            f"Add heading `## {section} retrospective: "
+                            f"{section} Retrospective` to `.audit/{latest.name}`."
+                        ),
                     )
                 )
 
@@ -1835,13 +2385,17 @@ class PipelineGateValidator:
 
     def _validate_phase_11(self) -> GateResult:
         """
-        Phase 11: Commit & Push — code-level enforced final delivery.
+        Phase 11: Final Delivery — code-level enforced paper delivery.
 
         Checks:
-        - Git repository exists and is clean (no uncommitted changes)
-        - Latest commit includes project files
-        - Push has been executed (remote tracking branch is up to date)
+        - Optional Git repository/provenance status, when available
+        - Optional latest commit project coverage, when available
+        - Optional remote sync status, when an upstream is configured
+
+        Git is intentionally advisory here. Many med-paper users only need a
+        final manuscript export and will not configure a code remote.
         """
+        import os
         import subprocess  # nosec B404 — only runs git commands
 
         checks = []
@@ -1855,46 +2409,77 @@ class PipelineGateValidator:
         checks.append(
             GateCheck(
                 name="git:repository",
-                description="Git repository exists",
+                description="Git repository available for optional provenance",
                 passed=has_git,
-                details="found" if has_git else "No .git directory found",
+                details="found"
+                if has_git
+                else "No .git directory found; Git provenance is optional for paper-only workflows",
+                severity="INFO" if has_git else "WARNING",
             )
         )
 
         if has_git:
             workspace_root = git_dir.parent
             try:
-                # 2. Check working tree is clean
-                result = subprocess.run(  # nosec B603 B607
-                    ["git", "status", "--porcelain"],
-                    capture_output=True,
-                    text=True,
-                    cwd=str(workspace_root),
-                    timeout=10,
+                env = os.environ.copy()
+                env["GIT_OPTIONAL_LOCKS"] = "0"
+
+                def _run_git(args: list[str]) -> subprocess.CompletedProcess[str]:
+                    result = subprocess.run(  # nosec B603 B607
+                        ["git", *args],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(workspace_root),
+                        timeout=_GIT_GATE_TIMEOUT_SECONDS,
+                        env=env,
+                    )
+                    if result.returncode != 0:
+                        detail = result.stderr.strip() or result.stdout.strip() or "unknown git error"
+                        raise OSError(detail)
+                    return result
+
+                # 2. Check working tree and push status with one bounded status call.
+                status_result = _run_git(
+                    ["status", "--branch", "--porcelain=v2", "--untracked-files=normal"]
                 )
-                dirty_files = result.stdout.strip()
-                is_clean = len(dirty_files) == 0
+                status_lines = status_result.stdout.splitlines()
+                dirty_lines = [line for line in status_lines if line and not line.startswith("#")]
+                dirty_files = "\n".join(dirty_lines)
+                is_clean = len(dirty_lines) == 0
                 checks.append(
                     GateCheck(
                         name="git:clean",
-                        description="Working tree is clean (all changes committed)",
+                        description="Working tree is clean for optional provenance",
                         passed=is_clean,
                         details="clean"
                         if is_clean
-                        else f"Uncommitted changes:\n{dirty_files[:500]}",
+                        else f"Uncommitted changes detected; paper export may still proceed:\n{dirty_files[:500]}",
+                        severity="INFO" if is_clean else "WARNING",
                     )
                 )
 
                 # 3. Check latest commit contains project files
-                result = subprocess.run(  # nosec B603 B607
-                    ["git", "log", "-1", "--name-only", "--format=%H %s"],
-                    capture_output=True,
-                    text=True,
-                    cwd=str(workspace_root),
-                    timeout=10,
+                try:
+                    project_rel = self._project_dir.resolve().relative_to(
+                        workspace_root.resolve()
+                    ).as_posix()
+                except ValueError:
+                    project_rel = "projects"
+
+                result = _run_git(
+                    ["log", "-1", "--name-only", "--format=%H %s", "--", project_rel]
                 )
                 commit_output = result.stdout.strip()
-                has_project_files = "projects/" in commit_output
+                commit_lines = commit_output.splitlines()
+                changed_files = [line.strip() for line in commit_lines[1:] if line.strip()]
+                if project_rel in {"", "."}:
+                    has_project_files = bool(changed_files)
+                else:
+                    project_prefix = project_rel.rstrip("/") + "/"
+                    has_project_files = any(
+                        line == project_rel or line.startswith(project_prefix)
+                        for line in changed_files
+                    )
                 checks.append(
                     GateCheck(
                         name="git:commit_includes_project",
@@ -1906,29 +2491,28 @@ class PipelineGateValidator:
                 )
 
                 # 4. Check push status
-                result = subprocess.run(  # nosec B603 B607
-                    ["git", "status", "--branch", "--porcelain=v2"],
-                    capture_output=True,
-                    text=True,
-                    cwd=str(workspace_root),
-                    timeout=10,
-                )
-                branch_info = result.stdout
-                is_pushed = "branch.ab +0" in branch_info
-                # Also check if there's no upstream at all
+                branch_info = status_result.stdout
                 has_upstream = "branch.upstream" in branch_info
+                is_pushed = has_upstream and "branch.ab +0" in branch_info
+                if not has_upstream:
+                    push_passed = True
+                    push_details = "No upstream configured; remote publishing is optional for paper delivery"
+                    push_severity = "INFO"
+                elif is_pushed:
+                    push_passed = True
+                    push_details = "up to date with remote"
+                    push_severity = "INFO"
+                else:
+                    push_passed = False
+                    push_details = "Unpushed commits exist; remote sync is optional for paper delivery"
+                    push_severity = "WARNING"
                 checks.append(
                     GateCheck(
                         name="git:pushed",
-                        description="All commits pushed to remote",
-                        passed=is_pushed,
-                        details="up to date with remote"
-                        if is_pushed
-                        else (
-                            "No upstream configured"
-                            if not has_upstream
-                            else "Unpushed commits exist"
-                        ),
+                        description="Remote sync status, if an upstream is configured",
+                        passed=push_passed,
+                        details=push_details,
+                        severity=push_severity,
                     )
                 )
 
@@ -1936,13 +2520,14 @@ class PipelineGateValidator:
                 checks.append(
                     GateCheck(
                         name="git:error",
-                        description="Git command execution",
+                        description="Optional Git provenance command execution",
                         passed=False,
-                        details=f"Git command failed: {e}",
+                        details=f"Git command failed; paper delivery may still proceed: {e}",
+                        severity="WARNING",
                     )
                 )
 
-        return GateResult(phase=11, phase_name="Commit & Push", checks=checks, passed=False)
+        return GateResult(phase=11, phase_name="Final Delivery", checks=checks, passed=False)
 
     # ── Logging ────────────────────────────────────────────────────
 

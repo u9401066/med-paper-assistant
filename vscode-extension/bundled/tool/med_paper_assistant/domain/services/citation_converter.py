@@ -178,7 +178,7 @@ def _looks_like_citation_key(key: str) -> bool:
     Internal links are just words: "introduction", "methods"
     """
     # Must contain underscore + digits (PubMed/Zotero pattern)
-    if re.match(r"^[a-z]+\d{4}_\d{7,8}$", key, re.IGNORECASE):
+    if re.match(r"^[a-z][a-z-]*\d{4}_\d{7,8}$", key, re.IGNORECASE):
         return True
     # PMID:xxx format
     if key.upper().startswith("PMID:"):
@@ -187,10 +187,10 @@ def _looks_like_citation_key(key: str) -> bool:
     if key.isdigit() and len(key) >= 7:
         return True
     # Zotero format: author2024_zot_xxx
-    if re.match(r"^[a-z]+\d{4}_zot_", key, re.IGNORECASE):
+    if re.match(r"^[a-z][a-z-]*\d{4}_zot_", key, re.IGNORECASE):
         return True
     # DOI format: author2024_doi_xxx
-    if re.match(r"^[a-z]+\d{4}_doi_", key, re.IGNORECASE):
+    if re.match(r"^[a-z][a-z-]*\d{4}_doi_", key, re.IGNORECASE):
         return True
     return False
 

@@ -30,6 +30,18 @@ import yaml
 logger = structlog.get_logger()
 
 ArtifactType = Literal["figure", "table", "statistics", "descriptive"]
+_TRUSTED_DATA_SUFFIXES = {".csv", ".tsv", ".xlsx", ".xls", ".json", ".yaml", ".yml", ".sav", ".dta"}
+_UNTRUSTED_ANCHOR_SOURCE_HINTS = {
+    "agent",
+    "assumption",
+    "concept",
+    "draft",
+    "estimated",
+    "generated",
+    "inferred",
+    "llm",
+    "summary",
+}
 
 
 class DataArtifactTracker:
@@ -174,6 +186,248 @@ class DataArtifactTracker:
             "created_at": datetime.now().isoformat(),
         }
         return self._data
+
+    def _load_source_materials(self) -> dict[str, Any]:
+        """Load Phase 0 source-material intake manifest when available."""
+        manifest_path = self._audit_dir / "source-materials.yaml"
+        if not manifest_path.is_file():
+            return {"materials": []}
+        try:
+            loaded = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+        except (yaml.YAMLError, OSError):
+            return {"materials": []}
+        return loaded if isinstance(loaded, dict) else {"materials": []}
+
+    def _coerce_data_anchor_entries(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        """Normalize flexible data-anchor schemas into a list of entries."""
+        raw = (
+            data.get("data_anchors")
+            or data.get("dataAnchors")
+            or data.get("anchors")
+            or data.get("statistical_anchors")
+            or []
+        )
+        entries: list[dict[str, Any]] = []
+        if isinstance(raw, dict):
+            for name, value in raw.items():
+                if isinstance(value, dict):
+                    entry = dict(value)
+                    entry.setdefault("name", str(name))
+                else:
+                    entry = {"name": str(name), "value": value}
+                entries.append(entry)
+        elif isinstance(raw, list):
+            for index, item in enumerate(raw, start=1):
+                if isinstance(item, dict):
+                    entry = dict(item)
+                    entry.setdefault("name", str(entry.get("id") or entry.get("key") or index))
+                    entries.append(entry)
+        return entries
+
+    def _anchor_field(self, anchor: dict[str, Any], *names: str) -> Any:
+        """Read an anchor field from top-level keys or a nested provenance block."""
+        for name in names:
+            if name in anchor and anchor[name] not in (None, ""):
+                return anchor[name]
+        provenance = anchor.get("provenance")
+        if isinstance(provenance, dict):
+            for name in names:
+                if name in provenance and provenance[name] not in (None, ""):
+                    return provenance[name]
+        return None
+
+    def _source_material_lookup(self) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+        """Build source-material lookup maps by id/path/filename."""
+        manifest = self._load_source_materials()
+        by_id: dict[str, dict[str, Any]] = {}
+        by_ref: dict[str, dict[str, Any]] = {}
+        materials = manifest.get("materials", [])
+        if not isinstance(materials, list):
+            return by_id, by_ref
+
+        for material in materials:
+            if not isinstance(material, dict):
+                continue
+            material_id = str(material.get("id") or "").strip()
+            if material_id:
+                by_id[material_id] = material
+            for key in ("path", "relative_path", "filename"):
+                ref = str(material.get(key) or "").strip()
+                if ref:
+                    by_ref[ref] = material
+                    by_ref[Path(ref).name] = material
+        return by_id, by_ref
+
+    def _material_ready_for_anchor(self, material: dict[str, Any]) -> tuple[bool, str]:
+        """Return whether a source material can support numeric/statistical anchors."""
+        ingestion = material.get("ingestion") if isinstance(material.get("ingestion"), dict) else {}
+        status = str(ingestion.get("status") or "").strip().lower()
+        required = bool(ingestion.get("required"))
+        if required and status in {"", "pending", "pending_asset_aware", "not_ingested"}:
+            return False, (
+                f"source material '{material.get('relative_path') or material.get('filename')}' "
+                "still requires asset-aware ingestion"
+            )
+        return True, "source material ready"
+
+    def _path_is_trusted_data_source(self, value: str) -> bool:
+        """Return whether a path points to a trusted project data source."""
+        text = value.strip()
+        if not text:
+            return False
+        lowered = text.lower()
+        if any(hint in lowered for hint in _UNTRUSTED_ANCHOR_SOURCE_HINTS):
+            return False
+
+        raw = Path(text)
+        candidates = [raw]
+        if not raw.is_absolute():
+            candidates.extend([self._project_dir / raw, self._project_dir / "data" / raw])
+
+        for candidate in candidates:
+            if candidate.suffix.lower() not in _TRUSTED_DATA_SUFFIXES:
+                continue
+            if candidate.is_file():
+                return True
+        return False
+
+    def _validate_data_anchor_provenance(
+        self,
+        *,
+        anchors: list[dict[str, Any]],
+        artifacts: list[dict[str, Any]],
+    ) -> list[dict[str, str]]:
+        """Validate that numeric/statistical data anchors cite primary evidence.
+
+        This closes the GIGO gap where an agent-generated concept value can be
+        copied into data_anchors and then pass because draft and manifest agree.
+        A data anchor must cite a ready source-material entry, an asset-aware doc,
+        a tracked data artifact, or an existing trusted data file.
+        """
+        issues: list[dict[str, str]] = []
+        if not anchors:
+            return issues
+
+        source_by_id, source_by_ref = self._source_material_lookup()
+        artifact_ids = {str(a.get("id")) for a in artifacts if a.get("id")}
+        artifact_outputs = {str(a.get("output_path")) for a in artifacts if a.get("output_path")}
+
+        for anchor in anchors:
+            name = str(
+                anchor.get("name")
+                or anchor.get("id")
+                or anchor.get("key")
+                or anchor.get("label")
+                or "unnamed"
+            )
+
+            explicit_source = self._anchor_field(
+                anchor,
+                "source",
+                "source_type",
+                "data_source",
+                "source_file",
+                "source_path",
+            )
+            if explicit_source and any(
+                hint in str(explicit_source).lower() for hint in _UNTRUSTED_ANCHOR_SOURCE_HINTS
+            ):
+                issues.append(
+                    {
+                        "severity": "CRITICAL",
+                        "category": "data_anchor_untrusted_source",
+                        "message": (
+                            f"Data anchor '{name}' cites an agent/generated source "
+                            f"('{explicit_source}'); anchors must cite primary data, source-material, "
+                            "asset-aware, or tracked analysis provenance"
+                        ),
+                    }
+                )
+                continue
+
+            asset_doc = self._anchor_field(
+                anchor,
+                "asset_aware_doc_id",
+                "assetAwareDocId",
+                "asset_doc_id",
+                "doc_id",
+            )
+            if asset_doc:
+                continue
+
+            artifact_ref = self._anchor_field(
+                anchor,
+                "data_artifact_id",
+                "artifact_id",
+                "artifact",
+                "analysis_artifact_id",
+            )
+            if artifact_ref and str(artifact_ref) in artifact_ids:
+                continue
+
+            output_ref = self._anchor_field(anchor, "output_path", "artifact_output_path")
+            if output_ref and str(output_ref) in artifact_outputs:
+                continue
+
+            source_material_id = self._anchor_field(
+                anchor,
+                "source_material_id",
+                "sourceMaterialId",
+                "material_id",
+            )
+            if source_material_id:
+                material = source_by_id.get(str(source_material_id))
+                if material:
+                    ready, detail = self._material_ready_for_anchor(material)
+                    if ready:
+                        continue
+                    issues.append(
+                        {
+                            "severity": "CRITICAL",
+                            "category": "data_anchor_uningested_source",
+                            "message": f"Data anchor '{name}' cites {detail}",
+                        }
+                    )
+                    continue
+
+            source_ref = self._anchor_field(
+                anchor,
+                "source_material_path",
+                "source_file",
+                "source_path",
+                "data_source",
+                "file",
+            )
+            if source_ref:
+                material = source_by_ref.get(str(source_ref)) or source_by_ref.get(Path(str(source_ref)).name)
+                if material:
+                    ready, detail = self._material_ready_for_anchor(material)
+                    if ready:
+                        continue
+                    issues.append(
+                        {
+                            "severity": "CRITICAL",
+                            "category": "data_anchor_uningested_source",
+                            "message": f"Data anchor '{name}' cites {detail}",
+                        }
+                    )
+                    continue
+                if self._path_is_trusted_data_source(str(source_ref)):
+                    continue
+
+            issues.append(
+                {
+                    "severity": "CRITICAL",
+                    "category": "data_anchor_unverified",
+                    "message": (
+                        f"Data anchor '{name}' lacks primary-source provenance; include "
+                        "source_material_id for an ingested/ready source material, "
+                        "asset_aware_doc_id, data_artifact_id, or a trusted data_source file"
+                    ),
+                }
+            )
+
+        return issues
 
     def _save(self) -> None:
         """Persist tracking data to disk."""
@@ -355,6 +609,11 @@ class DataArtifactTracker:
         # Get tracked artifacts
         artifacts = self.get_artifacts()
         artifact_outputs = {a.get("output_path") for a in artifacts if a.get("output_path")}
+        data_anchors = self._coerce_data_anchor_entries(self._load())
+        issues.extend(
+            self._validate_data_anchor_provenance(anchors=data_anchors, artifacts=artifacts)
+        )
+
         # Check 1: Files in results/figures/ have provenance
         figures_dir = self._project_dir / "results" / "figures"
         if figures_dir.is_dir():
@@ -594,6 +853,7 @@ class DataArtifactTracker:
                 "figures_tracked": len([a for a in artifacts if a["artifact_type"] == "figure"]),
                 "tables_tracked": len([a for a in artifacts if a["artifact_type"] == "table"]),
                 "stats_tracked": len([a for a in artifacts if a["artifact_type"] == "statistics"]),
+                "data_anchors": len(data_anchors),
                 "critical_issues": critical_count,
                 "warning_issues": warning_count,
                 "manifest_figures": len(manifest_figures),

@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from mcp.server.fastmcp import Context, FastMCP
 
-from .._shared import invoke_tool_handler, normalize_facade_action
+from .._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
 
 ToolMap = Mapping[str, Callable[..., Any]]
 
@@ -45,6 +45,11 @@ def register_review_facade_tools(
         has_highlights: bool = False,
         hook_id: str = "",
         event_type: str = "",
+        response_format: str = "markdown",
+        compact: bool = False,
+        summary: str = "",
+        d7_retrospective: str = "",
+        d8_retrospective: str = "",
         content: str = "",
         section: str = "manuscript",
         paper_type: str = "",
@@ -89,6 +94,11 @@ def register_review_facade_tools(
             "constraints": "domain_constraints",
             "pending": "pending_evolutions",
             "health": "tool_health",
+            "retrospective": "pipeline_retrospective",
+            "actions": "list",
+            "help": "list",
+            "list": "list",
+            "supported": "list",
         }
         normalized = normalize_facade_action(action, aliases)
         action_specs: dict[str, tuple[ToolMap, str, dict[str, Any]]] = {
@@ -101,6 +111,17 @@ def register_review_facade_tools(
                 audit_tools,
                 "run_meta_learning",
                 {"project": project, "ctx": ctx},
+            ),
+            "pipeline_retrospective": (
+                audit_tools,
+                "write_pipeline_retrospective",
+                {
+                    "summary": summary or content,
+                    "d7_retrospective": d7_retrospective,
+                    "d8_retrospective": d8_retrospective,
+                    "project": project,
+                    "ctx": ctx,
+                },
             ),
             "data_artifacts": (
                 audit_tools,
@@ -192,6 +213,21 @@ def register_review_facade_tools(
             ),
         }
 
+        if normalized == "list":
+            return facade_schema_json(
+                tool="run_quality_checks",
+                actions={
+                    name: {"handler": spec[1], "params": sorted(k for k in spec[2] if k != "ctx")}
+                    for name, spec in sorted(action_specs.items())
+                },
+                aliases=aliases,
+                notes=[
+                    "Use action='meta_learning' for D1-D6 analysis.",
+                    "Use action='pipeline_retrospective' to write .audit/pipeline-run-*.md with required D7/D8 headings.",
+                    "Use response_format='json' where downstream tools support structured output.",
+                ],
+            )
+
         if normalized not in action_specs:
             supported = ", ".join(sorted(action_specs))
             return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
@@ -222,6 +258,8 @@ def register_review_facade_tools(
         rationale: str = "",
         accepted_risks: str = "",
         approved_by: str = "human",
+        response_format: str = "markdown",
+        compact: bool = False,
         ctx: Context | None = None,
     ) -> str:
         """
@@ -239,18 +277,97 @@ def register_review_facade_tools(
         - approve_section
         - approve_concept_review
         - reset_review_loop
+        - list
         """
         aliases = {
+            "actions": "list",
+            "doctor": "doctor",
             "gate": "validate_phase",
+            "help": "list",
             "status": "heartbeat",
             "start": "start_review",
             "submit": "submit_review",
+            "supported": "list",
             "structure": "validate_structure",
             "rewrite": "rewrite_section",
             "concept_review": "approve_concept_review",
             "reset": "reset_review_loop",
         }
         normalized = normalize_facade_action(action, aliases)
+        if normalized == "list":
+            return facade_schema_json(
+                tool="pipeline_action",
+                actions={
+                    "validate_phase": {
+                        "handler": "validate_phase_gate",
+                        "params": ["phase", "project", "response_format", "compact"],
+                        "phase_values": [0, 1, 2, 21, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11],
+                    },
+                    "heartbeat": {
+                        "handler": "pipeline_heartbeat",
+                        "params": ["project"],
+                    },
+                    "doctor": {
+                        "handler": "pipeline_doctor",
+                        "params": ["project"],
+                    },
+                    "validate_structure": {
+                        "handler": "validate_project_structure",
+                        "params": ["project"],
+                    },
+                    "start_review": {
+                        "handler": "start_review_round",
+                        "params": ["project", "max_rounds", "min_rounds", "quality_threshold"],
+                    },
+                    "submit_review": {
+                        "handler": "submit_review_round",
+                        "params": ["scores", "issues_found", "issues_fixed", "project"],
+                        "score_schema": {
+                            "required_dimensions": [
+                                "citation_quality",
+                                "methodology_reproducibility",
+                                "text_quality",
+                                "concept_consistency",
+                                "format_compliance",
+                                "figure_table_quality",
+                            ],
+                            "score_range": [0, 10],
+                        },
+                    },
+                    "rewrite_section": {
+                        "handler": "request_section_rewrite",
+                        "params": ["sections", "reason", "project"],
+                    },
+                    "pause": {"handler": "pause_pipeline", "params": ["reason", "project"]},
+                    "resume": {"handler": "resume_pipeline", "params": ["project"]},
+                    "approve_section": {
+                        "handler": "approve_section",
+                        "params": [
+                            "section",
+                            "decision",
+                            "feedback",
+                            "rationale",
+                            "accepted_risks",
+                            "approved_by",
+                            "project",
+                        ],
+                    },
+                    "approve_concept_review": {
+                        "handler": "approve_concept_review",
+                        "params": ["decision", "feedback", "rationale", "accepted_risks", "project"],
+                    },
+                    "reset_review_loop": {
+                        "handler": "reset_review_loop",
+                        "params": ["project"],
+                    },
+                },
+                aliases=aliases,
+                notes=[
+                    "Phase 7 flow: start_review -> create review artifacts -> patch draft -> submit_review -> validate_phase.",
+                    "Figure/table assets are handled by analysis_action or draft_action, not pipeline_action.",
+                    "Use response_format='json' and compact=true on validate_phase for agent-friendly gate output.",
+                ],
+            )
         if normalized in {
             "insert_figure",
             "insert_table",
@@ -272,11 +389,21 @@ def register_review_facade_tools(
         action_specs: dict[str, tuple[str, dict[str, Any]]] = {
             "validate_phase": (
                 "validate_phase_gate",
-                {"phase": phase, "project": project, "ctx": ctx},
+                {
+                    "phase": phase,
+                    "project": project,
+                    "response_format": response_format,
+                    "compact": compact,
+                    "ctx": ctx,
+                },
             ),
             "heartbeat": (
                 "pipeline_heartbeat",
                 {"project": project, "ctx": ctx},
+            ),
+            "doctor": (
+                "pipeline_doctor",
+                {"project": project},
             ),
             "start_review": (
                 "start_review_round",
@@ -340,7 +467,7 @@ def register_review_facade_tools(
         }
 
         if normalized not in action_specs:
-            supported = ", ".join(sorted(action_specs))
+            supported = ", ".join(sorted([*action_specs, "list"]))
             return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
 
         handler_name, kwargs = action_specs[normalized]

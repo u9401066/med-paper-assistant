@@ -1,6 +1,15 @@
-# Progress (Updated: 2026-04-23)
+# Progress (Updated: 2026-04-24)
 
 ## Done
+
+- **v0.7.6 agent-friction release prep (2026-04-24)**:
+
+  - Added Phase 0 source-material intake, asset-aware ingestion receipt recording, Phase 2.1 pending-source blocking, and F4 data-anchor provenance validation
+  - Added C14 claim-evidence alignment with claim-type severity for novelty, causality, superiority, magnitude, and certainty claims
+  - Added `pipeline_action(action="doctor")` for one-shot 11-phase readiness, external MCP, and recent gate diagnostics
+  - Added Phase 9 DOCX XML smoke via `inspect_export(action="docx_smoke"|"xml_smoke")`
+  - Updated authority-driven docs/counts to 117 full / 22 compact + 3 prompts + 3 resources
+  - Validation completed: targeted facade/export/C14 tests 69 passed; tool-surface authority 2 passed; full pytest 1254 passed / 17 skipped / 1 deselected; bundle check and VSIX TypeScript compile passed
 
 - **v0.7.3 path guard + MCP surface release prep (2026-04-23)**:
 
@@ -73,11 +82,11 @@
 
 ## Doing
 
-- Publishing v0.7.3: changelog/version/memory/roadmap update, commit, push branch, create and push tag
+- Publishing v0.7.6: changelog/version/memory/roadmap update, commit, push branch, create and push tag
 
 ## Next
 
-- Watch release tag CI and package publication status
+- Watch v0.7.6 release tag CI and package publication status
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

@@ -140,6 +140,7 @@ class WritingHooksEngine(
             "C11": self.check_citation_distribution(content),
             "C12": self.check_citation_relevance_audit(content),
             "C13": self.check_figure_table_quality(content),
+            "C14": self.check_claim_evidence_alignment(content),
             "F": self.validate_data_artifacts(content),
         }
 

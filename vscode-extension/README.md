@@ -1,6 +1,6 @@
 # MedPaper Assistant - VS Code Extension
 
-Compact-first MCP research workspace for manuscript and library-wiki workflows, with managed tools, prompts, Foam graph views, and bundled guides.
+Compact-first MCP research workspace for manuscript and library-wiki workflows, with Phase 0 source-material intake, managed tools, prompts, Foam graph views, and bundled guides.
 
 ![MedPaper Assistant marketplace banner](https://raw.githubusercontent.com/u9401066/med-paper-assistant/master/vscode-extension/resources/marketplace-banner.png)
 
@@ -8,13 +8,14 @@ Compact-first MCP research workspace for manuscript and library-wiki workflows, 
 
 - 🧭 **Dual Workflow Workspace** - Manuscript Path + Library Wiki Path with the same `@mdpaper` entrypoint
 - **Auto Paper** - 全自動 11-Phase 論文撰寫 + 3 層 Audit Hooks
+- **Source Material Intake** - Phase 0 掃描用戶提供的 DOCX/XLSX/PDF/CSV，並提示哪些檔案要先走 asset-aware
 - 🔍 **PubMed Literature Search** - Search and save references
 - ✍️ **Draft Writing** - Write paper sections with citation-aware editing
 - 💡 **Concept Development** - Develop and validate research novelty
 - 📊 **Data Analysis** - Statistical tests, Table 1, visualizations
 - 📄 **Word Export** - Export to journal-ready Word documents
 - 📚 **LLM Wiki / Library Wiki Path** - inbox/concepts/projects note triage, dashboards, and managed Foam graph views
-- 🔔 **Dual-Hook Architecture** - 78 個品質檢查（55 Code-Enforced / 23 Agent-Driven）
+- 🔔 **Dual-Hook Architecture** - 79 個品質檢查（56 Code-Enforced / 23 Agent-Driven）
 
 ## What This VSIX Actually Ships
 
@@ -22,7 +23,7 @@ This extension is the packaged end-user surface, not the entire monorepo authori
 
 | Included in the VSIX | Details |
 | -------------------- | ------- |
-| **MCP runtime** | `mdpaper` compact-first surface by default: 22 tools, with optional full 115-tool mode |
+| **MCP runtime** | `mdpaper` compact-first surface by default: 22 tools, with optional full 117-tool mode |
 | **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 1 journal template, and 7 support/reference files |
 | **Workspace UX** | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs |
 | **Not the full repo** | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface |
@@ -32,7 +33,7 @@ This extension is the packaged end-user surface, not the entire monorepo authori
 ### From VSIX
 
 ```bash
-code --install-extension medpaper-assistant-0.7.2.vsix
+code --install-extension medpaper-assistant-<version>.vsix
 ```
 
 Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
@@ -62,17 +63,20 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 | Phase | 名稱          | 說明                             |
 | ----- | ------------- | -------------------------------- |
-| 1     | 文獻搜索      | 並行搜尋 + save_reference_mcp    |
-| 2     | 全文閱讀      | asset-aware + fulltext           |
-| 3     | 概念發展      | concept.md 撰寫                  |
+| 0     | 前置規劃      | source-materials.yaml + journal-profile.yaml |
+| 1     | 專案設定      | 專案結構與 workflow config       |
+| 2     | 文獻搜索      | 並行搜尋 + save_reference_mcp    |
+| 2.1   | 全文/素材解析 | asset-aware + fulltext + source materials |
+| 3     | 概念發展      | concept.md 撰寫與 novelty framing |
 | 4     | Novelty 驗證  | 三輪評分 ≥ 75                    |
 | 5     | 逐節撰寫      | Introduction → Discussion        |
-| 6     | 引用同步      | sync_references                  |
+| 6     | Audit         | quality-scorecard + hooks        |
+| 6.5   | Evolution Gate | baseline snapshot                |
 | 7     | 同行審查      | min_rounds=2 + R1-R6 gates       |
-| 8     | 全稿一致性    | manuscript consistency           |
+| 8     | 引用同步      | sync_references                  |
 | 9     | 匯出          | docx + pdf（CRITICAL Gate）      |
-| 10    | Meta-Learning | D1-D9 自我改進                   |
-| 11    | 提交          | git commit+push（CRITICAL Gate） |
+| 10    | Retrospective | pipeline-run artifact + meta-learning |
+| 11    | Final Delivery | final artifacts；Git provenance is optional |
 
 ## Usage
 
@@ -145,7 +149,7 @@ The bundled LLM Wiki guide now includes a ready-to-paste `graph_views_json` exam
 Capability → Skill → Hook → MCP Tool
 ```
 
-### 🔔 Hook Architecture（78 checks — 55 Code-Enforced / 23 Agent-Driven）
+### 🔔 Hook Architecture（79 checks — 56 Code-Enforced / 23 Agent-Driven）
 
 | Hook             | 時機            | 功能                                         |
 | ---------------- | --------------- | -------------------------------------------- |
@@ -182,13 +186,13 @@ Bundled support/reference files: `.github/prompts/_capability-index.md`, `.githu
 
 That means a VSIX-only user can now run `MedPaper: Setup Workspace` and receive the Foam dependency reference, the LLM wiki reference/how-to docs, and the workflow figure directly under `docs/` in their workspace.
 
-### MCP Tools (115 full / 22 compact default)
+### MCP Tools (117 full / 22 compact default)
 
-The 115/22 tool counts plus the 3 MCP prompts and 3 MCP resources are runtime-validated through `tool-surface-authority.json` during validate/release gates.
+The 117/22 tool counts plus the 3 MCP prompts and 3 MCP resources are runtime-validated through `tool-surface-authority.json` during validate/release gates.
 
 自動註冊 MCP Server：
 
-- **MedPaper Assistant** - 預設 compact 22 工具（可切換 full 115），另含 3 個 MCP prompts 與 3 個 MCP resources
+- **MedPaper Assistant** - 預設 compact 22 工具（可切換 full 117），另含 3 個 MCP prompts 與 3 個 MCP resources
 - **CGU Creativity** - 創意發想工具
 - **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊

@@ -21,8 +21,10 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import zipfile
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
 import structlog
 
@@ -93,12 +95,16 @@ class ExportPipeline:
         # Step 1: Convert wikilinks → [@key]
         conversion = wikilinks_to_pandoc(content)
 
-        # Step 2: Build bibliography from citation keys
+        # Step 2: Build bibliography from all citation keys in the converted
+        # content. Drafts may already contain Pandoc [@key] citations from a
+        # previous export/knowledge-base pass, so do not rely only on keys
+        # converted during this call.
+        citation_keys = extract_citation_keys(conversion.content)
         bibliography = []
         warnings = list(conversion.warnings)
         missing_keys: list[str] = []
 
-        for key in conversion.citation_keys:
+        for key in citation_keys:
             csl_entry = self._resolve_citation_key(key)
             if csl_entry:
                 bibliography.append(csl_entry)
@@ -117,7 +123,7 @@ class ExportPipeline:
         return {
             "content": conversion.content,
             "bibliography": bibliography,
-            "citation_keys": conversion.citation_keys,
+            "citation_keys": citation_keys,
             "conversion": conversion,
             "warnings": warnings,
             "missing_keys": missing_keys,
@@ -520,6 +526,77 @@ class ExportPipeline:
                 os.unlink(bib_path)
             except OSError:
                 pass
+
+    @staticmethod
+    def inspect_docx_xml_smoke(docx_path: str | Path) -> dict[str, Any]:
+        """Run a lightweight DOCX XML smoke test for Phase 9 export regression.
+
+        This checks the OOXML container and main document body without requiring
+        Microsoft Word, LibreOffice, or Pandoc. It is deliberately structural:
+        invalid zip, missing ``word/document.xml``, malformed XML, missing body,
+        or zero paragraphs fail.
+        """
+        path = Path(docx_path)
+        result: dict[str, Any] = {
+            "schema": "mdpaper.docx_xml_smoke.v1",
+            "path": str(path),
+            "passed": False,
+            "checks": [],
+            "stats": {},
+        }
+
+        def add_check(name: str, passed: bool, details: str = "") -> None:
+            result["checks"].append({"name": name, "passed": passed, "details": details})
+
+        if not path.is_file():
+            add_check("file_exists", False, "MISSING")
+            return result
+        add_check("file_exists", True, "exists")
+
+        try:
+            with zipfile.ZipFile(path) as archive:
+                names = set(archive.namelist())
+                has_content_types = "[Content_Types].xml" in names
+                has_document_xml = "word/document.xml" in names
+                add_check("[Content_Types].xml", has_content_types)
+                add_check("word/document.xml", has_document_xml)
+                if not has_document_xml:
+                    return result
+
+                try:
+                    root = ElementTree.fromstring(archive.read("word/document.xml"))
+                except ElementTree.ParseError as exc:
+                    add_check("document_xml_parse", False, str(exc))
+                    return result
+        except zipfile.BadZipFile:
+            add_check("zip_container", False, "not a valid DOCX zip container")
+            return result
+
+        add_check("zip_container", True, "valid zip")
+        add_check("document_xml_parse", True, "valid XML")
+
+        ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        body = root.find("w:body", ns)
+        has_body = body is not None
+        add_check("word/body", has_body)
+        if body is None:
+            return result
+
+        paragraphs = body.findall(".//w:p", ns)
+        tables = body.findall(".//w:tbl", ns)
+        text_nodes = body.findall(".//w:t", ns)
+        text_chars = sum(len(node.text or "") for node in text_nodes)
+        result["stats"] = {
+            "paragraphs": len(paragraphs),
+            "tables": len(tables),
+            "text_nodes": len(text_nodes),
+            "text_chars": text_chars,
+        }
+        add_check("paragraphs", len(paragraphs) > 0, f"{len(paragraphs)} paragraph(s)")
+        add_check("text", text_chars > 0, f"{text_chars} text character(s)")
+
+        result["passed"] = all(check["passed"] for check in result["checks"])
+        return result
 
     def build_bibliography_json(
         self,

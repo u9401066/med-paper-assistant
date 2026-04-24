@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from .._shared import invoke_tool_handler, normalize_facade_action
+from .._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
 
 ToolMap = Mapping[str, Callable[..., Any]]
 
@@ -53,10 +53,29 @@ def register_validation_facade_tools(
 
         supported_actions = ("concept", "wikilinks", "literature", "list")
         if normalized == "list":
-            return (
-                "validation_action supports: "
-                "concept, wikilinks, literature. "
-                "Aliases: validate_concept, validate_wikilinks, compare, compare_with_literature."
+            return facade_schema_json(
+                tool="validation_action",
+                actions={
+                    "concept": {
+                        "handler": "validate_concept",
+                        "params": [
+                            "filename",
+                            "project",
+                            "run_novelty_check",
+                            "target_section",
+                            "structure_only",
+                        ],
+                    },
+                    "wikilinks": {
+                        "handler": "validate_wikilinks",
+                        "params": ["filename", "project", "auto_fix"],
+                    },
+                    "literature": {
+                        "handler": "compare_with_literature",
+                        "params": ["idea", "project"],
+                    },
+                },
+                aliases=aliases,
             )
 
         action_specs: dict[str, tuple[ToolMap, str, dict[str, Any]]] = {

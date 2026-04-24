@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from .._shared import invoke_tool_handler, normalize_facade_action
+from .._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
 
 ToolMap = Mapping[str, Callable[..., Any]]
 
@@ -44,6 +44,10 @@ def register_export_facade_tools(
         - session_save
         """
         aliases = {
+            "actions": "list",
+            "help": "list",
+            "list": "list",
+            "supported": "list",
             "word": "docx",
             "start": "session_start",
             "insert": "session_insert",
@@ -103,6 +107,17 @@ def register_export_facade_tools(
             ),
         }
 
+        if normalized == "list":
+            return facade_schema_json(
+                tool="export_document",
+                actions={
+                    name: {"handler": spec[1], "params": sorted(k for k in spec[2])}
+                    for name, spec in sorted(action_specs.items())
+                },
+                aliases=aliases,
+                notes=["Use inspect_export(action='list') for non-writing export inspection actions."],
+            )
+
         if normalized not in action_specs:
             supported = ", ".join(sorted(action_specs))
             return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
@@ -131,15 +146,22 @@ def register_export_facade_tools(
         - list_templates
         - read_template
         - verify_document
+        - inspect_docx_xml
         - preview_citations
         - build_bibliography
         """
         aliases = {
+            "actions": "list",
+            "help": "list",
+            "list": "list",
+            "supported": "list",
             "templates": "list_templates",
             "template": "read_template",
             "verify": "verify_document",
             "preview": "preview_citations",
             "bibliography": "build_bibliography",
+            "docx_smoke": "inspect_docx_xml",
+            "xml_smoke": "inspect_docx_xml",
         }
         normalized = normalize_facade_action(action, aliases)
         action_specs: dict[str, tuple[ToolMap, str, dict[str, Any]]] = {
@@ -172,7 +194,23 @@ def register_export_facade_tools(
                     "project": project,
                 },
             ),
+            "inspect_docx_xml": (
+                pandoc_tools,
+                "inspect_docx_xml",
+                {"output_filename": output_filename, "project": project},
+            ),
         }
+
+        if normalized == "list":
+            return facade_schema_json(
+                tool="inspect_export",
+                actions={
+                    name: {"handler": spec[1], "params": sorted(k for k in spec[2])}
+                    for name, spec in sorted(action_specs.items())
+                },
+                aliases=aliases,
+                notes=["Use export_document(action='docx'|'pdf') to produce final files."],
+            )
 
         if normalized not in action_specs:
             supported = ", ".join(sorted(action_specs))

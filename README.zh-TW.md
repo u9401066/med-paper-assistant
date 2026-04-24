@@ -14,7 +14,7 @@
 
 > 📖 [English Version](README.md)
 
-> 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 11 階段 Pipeline、78 項品質檢查、結構化 Review Loop
+> 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 11 階段 Pipeline、79 項品質檢查、結構化 Review Loop
 
 ![MedPaper Assistant 概覽](docs/assets/medpaper-intro.svg)
 
@@ -26,7 +26,7 @@
 
 | 元件                                                               | 類型                 | 工具數                         | 說明                                                                                    |
 | ------------------------------------------------------------------ | -------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
-| **mdpaper**                                                        | 核心 MCP Server      | 115（full）/ 22（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources |
+| **mdpaper**                                                        | 核心 MCP Server      | 117（full）/ 22（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 37                             | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                               |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 13                             | 創意發想：腦力激盪、深度思考、火花碰撞                                                  |
 | **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 11 指令 + 10 chat             | MCP 自動註冊、compact-first 打包面、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者       |
@@ -37,6 +37,10 @@
 
 **外部 MCP Server**（選用，透過 uvx 安裝）：
 
+- **asset-aware** — 寫作前解析用戶提供的 DOCX/XLSX/PDF/PPTX 原始素材與文獻全文
+- **drawio** — CONSORT/PRISMA 流程圖生成
+- **zotero-keeper** — 從 Zotero 匯入參考文獻
+
 上表與 MCP tool surface 的計數以 `tool-surface-authority.json` 與 `vscode-extension/bundle-manifest.json` 為單一來源，release / validate gate 會自動驗證。
 
 ### 如何選擇安裝面
@@ -44,12 +48,9 @@
 | 安裝面 | 適合誰 | 你會拿到什麼 |
 | ------ | ------ | ------------ |
 | **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、26 個 skills、15 個 prompt workflows、repo scripts、tests 與作者文件 |
-| **VSIX 擴充功能** | 想直接用打包體驗的終端使用者 | `@mdpaper`、11 個 palette commands、compact-first `mdpaper` runtime（預設 22 工具 / 可切 115）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
+| **VSIX 擴充功能** | 想直接用打包體驗的終端使用者 | `@mdpaper`、11 個 palette commands、compact-first `mdpaper` runtime（預設 22 工具 / 可切 117）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
 
 也就是說：repository 是較寬的工程面；VSIX 是較收斂的終端使用者面。
-
-- **drawio** — CONSORT/PRISMA 流程圖生成
-- **zotero-keeper** — 從 Zotero 匯入參考文獻
 
 **VSX 說明**：MedPaper 的 VS Code 擴充功能會用 `uv tool install` 以電腦為單位持久安裝 Python MCP 工具，後續啟動會嘗試 `uv tool upgrade` 升級；若系統上已有其他 VS Code 擴充功能提供 `PubMed Search` 或 `Zotero Keeper` MCP server，MedPaper 會自動跳過重複安裝與重複註冊。CI smoke 目前覆蓋 `ubuntu-latest`、`windows-latest`、`macos-13`、`macos-14`，並包含 official MCP client 檢查與 VSX validate smoke。
 
@@ -66,6 +67,7 @@
 **Medical Paper Assistant** 不只是寫作助手，而是研究工作區協調器：
 
 - 🔍 **先探索，後決定** — 自由瀏覽文獻、儲存有興趣的論文，再決定研究方向
+- 📥 **先登記原始素材** — Phase 0 會掃描用戶提供的 DOCX/XLSX/PDF/CSV，並標記必須先交給 asset-aware 解析的檔案
 - 💬 **對話式工作流程** — 用自然語言與 AI 對話來精煉想法，不用填表單
 - 🧭 **引導式流程** — 一步步的提示引導你從構思到可投稿的論文
 - 🔗 **全部整合** — 搜尋、寫作、引用、分析、匯出 — 全部在 VS Code 裡
@@ -309,20 +311,23 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 外部 MCPs   │
-│ 115/22 工具   │  │  search       │  │  13 工具      │  │   (uvx)       │
+│ 117/22 工具   │  │  search       │  │  13 工具      │  │   (uvx)       │
 │               │  │  37 工具      │  │               │  │               │
 │ • 專案管理    │  │ • PubMed      │  │ • 腦力激盪    │  │ 🎨 drawio     │
 │ • 參考文獻    │  │ • Europe PMC  │  │ • 深度思考    │  │ • 流程圖      │
 │ • 草稿        │  │ • CORE        │  │ • 火花碰撞    │  │               │
 │ • 驗證        │  │ • PICO        │  │ • 創意方法    │  │ 📖 zotero     │
 │ • 資料分析    │  │ • 基因/化合物 │  │               │  │ • 匯入文獻    │
-│ • 匯出        │  │ • Session     │  │               │  │               │
+│ • 匯出        │  │ • Session     │  │               │  │ 📥 asset-aware│
+│               │  │               │  │               │  │ • docx/xlsx   │
+│               │  │               │  │               │  │ • fulltext    │
 └───────┬───────┘  └───────────────┘  └───────────────┘  └───────────────┘
         │
         ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                          💾 本地儲存                                      │
 │  projects/{slug}/                                                        │
+│  ├── .audit/source-materials.yaml ← Phase 0 掃描用戶原始素材             │
 │  ├── concept.md          ← 研究構想（含 🔒 保護區塊）                     │
 │  ├── references/{pmid}/  ← Foam 相容 .md + metadata.json                 │
 │  ├── drafts/             ← Markdown 草稿（含 [[引用]]）                   │
@@ -554,7 +559,7 @@ med-paper-assistant/
 │   ├── domain/                    #   業務邏輯、實體、值物件
 │   ├── application/               #   用例、服務
 │   ├── infrastructure/            #   DAL、外部服務
-│   └── interfaces/mcp/            #   MCP Server，115 full / 22 compact 工具 + 3 prompts + 3 resources
+│   └── interfaces/mcp/            #   MCP Server，117 full / 22 compact 工具 + 3 prompts + 3 resources
 │
 ├── integrations/                  # 內建 MCP Server
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（37 工具）
@@ -594,7 +599,7 @@ med-paper-assistant/
 
 | 狀態 | 功能                        | 說明                                                           |
 | ---- | --------------------------- | -------------------------------------------------------------- |
-| ✅   | **3 個 MCP Server**         | mdpaper（115 full / 22 compact）+ pubmed-search (37) + CGU (13) |
+| ✅   | **3 個 MCP Server**         | mdpaper（117 full / 22 compact）+ pubmed-search (37) + CGU (13) |
 | ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、命名 graph views、專案隔離      |
 | ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                  |
 | ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                             |

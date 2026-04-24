@@ -117,6 +117,8 @@ class WorkspaceStateManager:
             for key in default:
                 if key not in state:
                     state[key] = default[key]
+            for key, value in default.get("pipeline_state", {}).items():
+                state.setdefault("pipeline_state", {}).setdefault(key, value)
 
             return state
         except (json.JSONDecodeError, OSError) as e:
@@ -232,6 +234,7 @@ class WorkspaceStateManager:
                 "current_round": None,
                 "last_gate_result": None,
                 "last_gate_failures": [],
+                "last_gate_details": None,
                 "next_required_action": None,
                 "phases_passed": [],
                 "phases_remaining": [],
@@ -372,6 +375,7 @@ class WorkspaceStateManager:
         phases_remaining: list[int] | None = None,
         current_round: int | None = None,
         review_verdict: str | None = None,
+        gate_details: dict[str, Any] | None = None,
     ) -> bool:
         """
         Sync pipeline execution state for compact-memory recovery.
@@ -385,6 +389,7 @@ class WorkspaceStateManager:
             phase_name: Current phase name.
             gate_passed: Whether the last gate check passed.
             gate_failures: List of failing check names.
+            gate_details: Compact machine-readable gate result for recovery.
             next_action: Specific next action the agent should take.
             phases_passed: List of phase numbers that passed gate.
             phases_remaining: List of phase numbers not yet passed.
@@ -403,6 +408,7 @@ class WorkspaceStateManager:
             "current_round": current_round,
             "last_gate_result": "PASSED" if gate_passed else "FAILED",
             "last_gate_failures": gate_failures or [],
+            "last_gate_details": gate_details,
             "next_required_action": next_action,
             "phases_passed": phases_passed or [],
             "phases_remaining": phases_remaining or [],

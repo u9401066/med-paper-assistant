@@ -8,6 +8,7 @@ from .facade_dispatch import (
     invoke_tool_handler,
     normalize_facade_action,
 )
+from .facade_schema import facade_schema_json
 from .progress import report_tool_progress
 from .project_context import (
     ensure_project_context,
@@ -35,6 +36,7 @@ __all__ = [
     "get_optional_tool_decorator",
     "invoke_tool_handler",
     "normalize_facade_action",
+    "facade_schema_json",
     "report_tool_progress",
     "ensure_project_context",
     "validate_project_slug",

@@ -48,19 +48,20 @@ CONSTITUTION.md > `.github/bylaws/*.md` > `.claude/skills/*/SKILL.md`
 
 Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」。
 
-**Phase 0 Journal Profile**: 內建麻醉學 Top 20 期刊設定（`templates/journal-profiles/`）。用戶說出期刊名稱 → Agent 讀取 YAML → 複製到專案。
+**Phase 0 Source Materials + Journal Profile**: 先呼叫 `project_action(action="source_materials")` 掃描 workspace root 的 DOCX/XLSX/PDF/CSV 等用戶原始素材，產出 `.audit/source-materials.yaml`；若有 `pending_asset_aware`，先交給 asset-aware ingestion。之後再用內建麻醉學 Top 20 期刊設定（`templates/journal-profiles/`）或 `project_action(action="journal_profile")` 產生 `journal-profile.yaml`。
 
-| Phase    | 外部 MCP                         |
-| -------- | -------------------------------- |
-| 2 文獻   | pubmed-search, zotero-keeper🔸   |
-| 2.1 全文 | asset-aware-mcp🔸, pubmed-search |
-| 3 概念   | cgu🔸（novelty < 75）            |
-| 5 撰寫   | drawio🔸, cgu🔸, data tools      |
-| 7 審查   | min_rounds=2（Code-Enforced）    |
-| 9 匯出   | docx+pdf（CRITICAL Gate）        |
-| 11 提交  | git commit+push（CRITICAL Gate） |
+| Phase           | 外部 MCP / 重點                                       |
+| --------------- | ----------------------------------------------------- |
+| 0 原始素材/期刊 | asset-aware-mcp🔸（pending DOCX/XLSX/PDF）            |
+| 2 文獻          | pubmed-search, zotero-keeper🔸                        |
+| 2.1 全文        | asset-aware-mcp🔸, pubmed-search                      |
+| 3 概念          | cgu🔸（novelty < 75）                                 |
+| 5 撰寫          | drawio🔸, cgu🔸, data tools                           |
+| 7 審查          | min_rounds=2（Code-Enforced）                         |
+| 9 匯出          | docx+pdf（CRITICAL Gate）                             |
+| 11 Final        | final artifacts；Git remote/push 是 optional provenance |
 
-## Hook 架構（78 checks — 55 Code-Enforced / 23 Agent-Driven）
+## Hook 架構（79 checks — 56 Code-Enforced / 23 Agent-Driven）
 
 | 類型             | 時機               | Code-Enforced                                                                                                                                                           | Agent-Driven                                |
 | ---------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
@@ -80,7 +81,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 
 ## MCP Server（runtime-validated authority）
 
-目前 authority：115 full / 22 compact default + 3 prompts + 3 resources。
+目前 authority：117 full / 22 compact default + 3 prompts + 3 resources。
 單一來源：`tool-surface-authority.json`。`scripts/check_tool_surface_authority.py`、release workflow、`npm run validate` 都會驗證這些數字。
 
 | 模組        | 重點                                                                                         |

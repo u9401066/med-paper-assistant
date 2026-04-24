@@ -165,6 +165,51 @@ class TestCountReviewReportIssues:
         assert counts == {"major": 0, "minor": 0, "optional": 0}
 
 
+class TestReviewScoreSchemaValidation:
+    def test_rejects_dimension_name_mismatch_before_scoring(self):
+        from med_paper_assistant.interfaces.mcp.tools.review.pipeline_gate import (
+            _validate_review_score_schema,
+        )
+
+        expected = [
+            "citation_quality",
+            "methodology_reproducibility",
+            "text_quality",
+            "concept_consistency",
+            "format_compliance",
+            "figure_table_quality",
+        ]
+        ok, error = _validate_review_score_schema(
+            {"methodology": 8, "domain": 8, "statistics": 8},
+            expected,
+        )
+
+        assert ok is False
+        payload = json.loads(error)
+        assert payload["schema"] == "mdpaper.review_scores.error.v1"
+        assert payload["unknown_dimensions"] == ["domain", "methodology", "statistics"]
+        assert "citation_quality" in payload["missing_dimensions"]
+        assert payload["example"]["citation_quality"] == 8
+
+    def test_accepts_exact_review_score_schema(self):
+        from med_paper_assistant.interfaces.mcp.tools.review.pipeline_gate import (
+            _validate_review_score_schema,
+        )
+
+        expected = [
+            "citation_quality",
+            "methodology_reproducibility",
+            "text_quality",
+            "concept_consistency",
+            "format_compliance",
+            "figure_table_quality",
+        ]
+        ok, error = _validate_review_score_schema({dim: 8 for dim in expected}, expected)
+
+        assert ok is True
+        assert error == ""
+
+
 # ── _compute_manuscript_hash ───────────────────────────────────────────
 
 
@@ -438,6 +483,55 @@ class TestComputeManuscriptHashMultiFile:
         (tmp_path / "drafts").mkdir()
         h = _compute_manuscript_hash(tmp_path)
         assert h == ""
+
+
+class TestRunReviewHooksWithSectionDrafts:
+    """Review hooks should inspect section files when manuscript.md is absent."""
+
+    @pytest.mark.asyncio
+    async def test_r6_uses_section_files_when_manuscript_missing(
+        self, project_dir, monkeypatch
+    ):
+        from mcp.server.fastmcp import FastMCP
+
+        from med_paper_assistant.interfaces.mcp.tools.review import audit_hooks
+        from med_paper_assistant.interfaces.mcp.tools.review.audit_hooks import (
+            register_audit_hook_tools,
+        )
+
+        manuscript = project_dir / "drafts" / "manuscript.md"
+        manuscript.unlink()
+        (project_dir / "journal-profile.yaml").write_text(
+            "references:\n  max_references: 1\n",
+            encoding="utf-8",
+        )
+        (project_dir / "drafts" / "discussion.md").write_text(
+            "# Discussion\n\n[[Smith2020_123]] and [[Jones2021_456]] support the claim.\n",
+            encoding="utf-8",
+        )
+        (project_dir / ".audit" / "review-report-1.md").write_text(
+            "# Review\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setattr(
+            audit_hooks,
+            "resolve_project_context",
+            lambda *args, **kwargs: (
+                {
+                    "slug": "demo",
+                    "project_path": str(project_dir),
+                    "workflow_mode": "manuscript",
+                },
+                None,
+            ),
+        )
+
+        funcs = register_audit_hook_tools(FastMCP("review-hooks-section-test"))
+        result = await funcs["run_review_hooks"](round_num=1, hooks="R6", project="demo")
+
+        assert "status: FAIL" in result
+        assert "Citation count (2) exceeds journal limit (1)" in result
 
 
 # ── get_status key: latest_weighted_score ──────────────────────────────

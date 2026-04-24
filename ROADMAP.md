@@ -85,7 +85,7 @@
 | **Cross-platform Path Guard** ✅        | 全 repo filename/path 入口統一經過共享 guard，覆蓋 Linux/macOS/Windows traversal、UNC、drive、reserved names |
 | **MCP Phase 5 Surface 修復** ✅         | `draft_action(write section=...)`、`analysis_action` 資產入口、data-artifacts manifest、validation aliases 已對齊 |
 | **VSX Bundled Parity** ✅               | Source 與 VS Code extension bundled Python mirror 重新同步，release 前 parity scan 無 drift                   |
-| **Authority-driven Counts** ✅          | `tool-surface-authority.json` 成為 official count source；repo/VSX docs 同步至 115 full / 22 compact          |
+| **Authority-driven Counts** ✅          | `tool-surface-authority.json` 成為 official count source；repo/VSX docs 同步至 117 full / 22 compact          |
 
 ### Phase 1: Core Features (2025-10)
 
