@@ -2,7 +2,7 @@
 
 ## Done
 
-- **v0.7.8 Vancouver export + FOAM compatibility release prep (2026-04-24)**:
+- **v0.7.9 Vancouver export + FOAM compatibility release prep (2026-04-24)**:
 
   - Fixed Vancouver/BJA superscript DOCX/PDF export raw `[@citekey]` leakage by always enabling Pandoc citeproc when bibliography data is present and adding `vancouver-superscript.csl`
   - Stripped hand-maintained References sections before citation conversion so reference-list `[[ref_key]]` trailers cannot contaminate exported references
@@ -91,11 +91,11 @@
 
 ## Doing
 
-- Publishing v0.7.8: changelog/version/memory update, bundle sync, validation, commit, push master, create and push tag
+- Publishing v0.7.9: changelog/version/memory update, bundle sync, validation, commit, push master, create and push tag
 
 ## Next
 
-- Watch v0.7.8 release tag CI and package publication status
+- Watch v0.7.9 release tag CI and package publication status
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

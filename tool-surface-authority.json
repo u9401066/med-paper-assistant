@@ -37,7 +37,8 @@
       "10 chat commands",
       "11 palette commands",
       "117 full / 22 compact default",
-      "tool-surface-authority.json"
+      "tool-surface-authority.json",
+      "4 templates (1 journal profile + 3 CSL styles)"
     ],
     ".github/copilot-instructions.md": [
       "117 full / 22 compact default + 3 prompts + 3 resources",

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.9] - 2026-04-24
+
+### Changed
+
+- Synced VSIX marketplace README wording and tool-surface authority for the bundled CSL templates shipped with v0.7.8.
+
 ## [0.7.8] - 2026-04-24
 
 ### Added

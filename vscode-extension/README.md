@@ -21,12 +21,12 @@ Compact-first MCP research workspace for manuscript and library-wiki workflows, 
 
 This extension is the packaged end-user surface, not the entire monorepo authoring workspace.
 
-| Included in the VSIX      | Details                                                                                                                                  |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **MCP runtime**           | `mdpaper` compact-first surface by default: 22 tools, with optional full 117-tool mode                                                   |
-| **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 1 journal template, and 7 support/reference files                    |
-| **Workspace UX**          | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs                                      |
-| **Not the full repo**     | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface |
+| Included in the VSIX      | Details                                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MCP runtime**           | `mdpaper` compact-first surface by default: 22 tools, with optional full 117-tool mode                                                            |
+| **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 4 templates (1 journal profile + 3 CSL styles), and 7 support/reference files |
+| **Workspace UX**          | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs                                               |
+| **Not the full repo**     | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface          |
 
 ## Installation
 
@@ -166,7 +166,7 @@ Capability → Skill → Hook → MCP Tool
 
 ### Bundled Assets
 
-The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, **1 journal profile template**, **7 support/reference files**, **10 chat commands**, and **11 palette commands**. The full repository still contains a broader authoring and maintenance surface.
+The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, **4 templates** (1 journal profile + 3 CSL styles), **7 support/reference files**, **10 chat commands**, and **11 palette commands**. The full repository still contains a broader authoring and maintenance surface.
 
 These counts are release-gated against `bundle-manifest.json` and `tool-surface-authority.json`, so the marketplace docs stay aligned with the packaged surface.
 

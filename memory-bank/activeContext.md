@@ -6,7 +6,7 @@
 
 ## 當前焦點 (2026-04-24)
 
-v0.7.8 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏，補齊 manuscript citation 與 FOAM wiki-link knowledge-base 雙分支相容性，並收斂遠端 `codex/check-design-errors` branch 的 exports/workspace-state/review-loop 修正；目前進入 commit/push/tag 發布收尾。
+v0.7.9 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏，補齊 manuscript citation 與 FOAM wiki-link knowledge-base 雙分支相容性，並收斂遠端 `codex/check-design-errors` branch 的 exports/workspace-state/review-loop 修正；目前進入 commit/push/tag 發布收尾。
 
 ### 當前狀態
 
@@ -19,7 +19,7 @@ v0.7.8 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏
 | Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)           |
 | Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`              |
 | Latest Validation       | Targeted citation/export/wiki-link suite passed; release validation pending |
-| Packaging               | Version bumped to `0.7.8`; tag/push pending                                 |
+| Packaging               | Version bumped to `0.7.9`; tag/push pending                                 |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -33,7 +33,7 @@ v0.7.8 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏
 
 ### 最近變更
 
-#### v0.7.8 Vancouver Export + FOAM Compatibility Release (2026-04-24)
+#### v0.7.9 Vancouver Export + FOAM Compatibility Release (2026-04-24)
 
 - **Vancouver citeproc export**: `export_document(action="docx"|"pdf")` now always runs Pandoc citeproc when a bibliography is present, supports `vancouver-superscript`/BJA aliases, and includes `vancouver-superscript.csl`.
 - **References cleanup**: Hand-maintained References sections are stripped before citation conversion across heading levels so `[[ref_key]]` trailers cannot become leaked `[@key]` tokens.

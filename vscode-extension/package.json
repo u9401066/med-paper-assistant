@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "Compact-first MCP research workspace with source-material intake for manuscript and library-wiki workflows in VS Code",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "publisher": "u9401066",
   "icon": "resources/icon.png",
   "galleryBanner": {

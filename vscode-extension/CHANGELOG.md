@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.9 - 2026-04-24
+
+- Corrected marketplace README bundled-template wording to mention the packaged CSL styles.
+
 ## 0.7.8 - 2026-04-24
 
 - Fixed Vancouver/BJA superscript export so Pandoc citeproc runs with bibliography-backed DOCX/PDF output instead of leaking raw `[@citekey]` tokens.
