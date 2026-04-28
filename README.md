@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/u9401066-med-paper-assistant-badge.png)](https://mseep.ai/app/u9401066-med-paper-assistant)
+
 # Medical Paper Assistant
 
 [![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white)](https://www.python.org/downloads/)
