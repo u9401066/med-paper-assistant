@@ -13,7 +13,9 @@ repos:
     hooks:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
+        exclude: ^vscode-extension/bundled/
       - id: end-of-file-fixer
+        exclude: ^vscode-extension/bundled/
       - id: check-yaml
       - id: check-json
         exclude: ^\.vscode/
@@ -22,6 +24,7 @@ repos:
         args: [--maxkb=500]
       - id: check-merge-conflict
       - id: debug-statements
+        exclude: ^vscode-extension/bundled/
 
   # ── Prettier (Markdown format) ────────────────────
   - repo: https://github.com/pre-commit/mirrors-prettier

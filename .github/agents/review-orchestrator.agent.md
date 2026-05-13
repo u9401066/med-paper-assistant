@@ -38,7 +38,7 @@ agents:
 ### Phase 1: 準備審查上下文
 
 ```
-get_current_project() → 確認專案
+project_action(action="current") → 確認專案
 list_drafts() → 確認有哪些草稿
 read_draft(section="concept") → 理解研究概念
 ```

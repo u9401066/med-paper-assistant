@@ -11,10 +11,10 @@
 
 ## 🔬 An MCP-Orchestrated Research Workspace for Medical Paper Writing and LLM Wiki Workflows
 
-3 MCP Servers · 165+ Tools · 26 Skills · 15 Prompts Workflows — monorepo authoring surface plus packaged VSIX surface in one VS Code ecosystem
+3 MCP Servers · 176+ Tools · 26 Skills · 15 Prompts Workflows — monorepo authoring surface plus packaged VSIX surface in one VS Code ecosystem
 
 > 📖 [繁體中文版](README.zh-TW.md)
-> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 79 Quality Hooks, Structured Review Loop
+> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 13 main gate checkpoints + Phase 2.1 sub-gate, 79 Quality Hooks, Structured Review Loop
 
 ![MedPaper Assistant overview](docs/assets/medpaper-intro.svg)
 
@@ -75,7 +75,7 @@ The repository is the broader engineering surface. The VSIX is the curated end-u
 | Traditional Tools                   | Medical Paper Assistant                                                  |
 | ----------------------------------- | ------------------------------------------------------------------------ |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach                                           |
-| Separate apps for search/write/cite | One orchestrated workspace: 165+ tools and packaged workflows in VS Code |
+| Separate apps for search/write/cite | One orchestrated workspace: 176+ tools and packaged workflows in VS Code |
 | Manual reference management         | Auto-save with verified PubMed data                                      |
 | Export then format                  | Direct Word export with journal styles                                   |
 | Learn complex UI                    | Natural language conversation                                            |
@@ -247,7 +247,7 @@ projects/{slug}/
 
 ### Literature & References
 
-- **PubMed + Europe PMC + CORE** search (37 search tools)
+- **PubMed + Europe PMC + CORE** search (46 search tools)
 - **PICO parsing** for clinical questions
 - **MCP-to-MCP verified data** — PMID sent directly, no agent hallucination
 - Layered trust: 🔒 VERIFIED (PubMed) · 🤖 AGENT (AI notes) · ✏️ USER (your notes)
@@ -453,14 +453,14 @@ Write, edit, cite — with built-in validation.
 
 ### 🔍 pubmed-search MCP Tools (37 tools)
 
-| Category        | Key Tools                                                                 |
-| --------------- | ------------------------------------------------------------------------- |
-| **Search**      | `unified_search`, `generate_search_queries`, `parse_pico`                 |
-| **Databases**   | PubMed, Europe PMC (fulltext + text mining), CORE (200M+ open access)     |
-| **Gene/Chem**   | `search_gene`, `get_gene_details`, `search_compound`, `search_clinvar`    |
-| **Exploration** | `find_related_articles`, `find_citing_articles`, `get_article_references` |
-| **Export**      | `prepare_export` (RIS/BibTeX/CSV), `get_citation_metrics` (iCite RCR)     |
-| **Session**     | `get_session_pmids`, `list_search_history` (survives AI memory limits)    |
+| Category        | Key Tools                                                                     |
+| --------------- | ----------------------------------------------------------------------------- |
+| **Search**      | `unified_search`, `generate_search_queries`, `parse_pico`                     |
+| **Databases**   | PubMed, Europe PMC (fulltext + text mining), CORE (200M+ open access)         |
+| **Gene/Chem**   | `search_gene`, `get_gene_details`, `search_compound`, `search_clinvar`        |
+| **Exploration** | `find_related_articles`, `find_citing_articles`, `get_article_references`     |
+| **Export**      | `prepare_export` (RIS/BibTeX/CSV), `get_citation_metrics` (iCite RCR)         |
+| **Session**     | `read_session(action="pmids")`, `get_session_log` (survives AI memory limits) |
 
 ### 💡 CGU Creative Tools (13 tools)
 
@@ -562,7 +562,7 @@ med-paper-assistant/
 │   └── interfaces/mcp/            #   MCP server, 117 full / 22 compact tools + 3 prompts + 3 resources
 │
 ├── integrations/                  # Bundled MCP servers
-│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
+│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (46 tools)
 │   └── cgu/                       #   Creative generation (13 tools)
 │
 ├── vscode-extension/              # Packaged VSIX surface

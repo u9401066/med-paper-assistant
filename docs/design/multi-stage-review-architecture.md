@@ -476,12 +476,12 @@ Phase 10 — D7:
 
 獨立觸發 Phase 6+7，不需跑完整 pipeline。
 
-| Prompt                 | 覆蓋 Phase       |
-| ---------------------- | ---------------- |
-| `/mdpaper.write-paper` | 0-11（含 6.5）   |
-| `/mdpaper.draft`       | 5 only           |
-| `/mdpaper.audit` (NEW) | 6+7（審計+審稿） |
-| `/mdpaper.clarify`     | 5 only（潤稿）   |
+| Prompt                 | 覆蓋 Phase                                            |
+| ---------------------- | ----------------------------------------------------- |
+| `/mdpaper.write-paper` | 13 main checkpoints（0-11 + 6.5）+ Phase 2.1 sub-gate |
+| `/mdpaper.draft`       | 5 only                                                |
+| `/mdpaper.audit` (NEW) | 6+7（審計+審稿）                                      |
+| `/mdpaper.clarify`     | 5 only（潤稿）                                        |
 
 ---
 
@@ -494,21 +494,24 @@ Tools: `read_draft`, `list_drafts`, `count_words`, `check_formatting`, `scan_dra
 
 ---
 
-## 3. Pipeline Phase 對齊：11-Phase（0-10 + 6.5）
+## 3. Pipeline Phase 對齊：13 Main Checkpoints + Phase 2.1 Sub-Gate
 
-| Phase | 名稱     | Skill                         | Gate                             |
-| ----- | -------- | ----------------------------- | -------------------------------- |
-| 0     | 前置規劃 | —                             | journal-profile.yaml 用戶確認    |
-| 1     | 專案設置 | project-management            | 專案 + paper_type                |
-| 2     | 文獻搜尋 | literature-review             | ≥10 篇                           |
-| 3     | 概念發展 | concept-development           | novelty ≥ 75                     |
-| 4     | 大綱規劃 | draft-writing                 | 🗣️ 用戶確認 manuscript-plan.yaml |
-| 5     | 章節撰寫 | draft-writing + Hook A/B/B7   | 通過                             |
-| 6     | 全稿審計 | Hook C（C7 含數量+交叉引用）  | 0 critical                       |
-| 7     | 自主審稿 | Review→Response loop (×3)     | quality ≥ threshold              |
-| 8     | 引用同步 | reference-management          | 0 broken                         |
-| 9     | 匯出     | word-export                   | 已匯出                           |
-| 10    | 回顧改進 | Hook D（含 D7 Reviewer 演化） | SKILL 更新                       |
+| Phase | 名稱           | Skill                                 | Gate                              |
+| ----- | -------------- | ------------------------------------- | --------------------------------- |
+| 0     | 前置規劃       | —                                     | journal-profile.yaml 用戶確認     |
+| 1     | 專案設置       | project-management                    | 專案 + paper_type                 |
+| 2     | 文獻搜尋       | literature-review                     | paper-type-aware 最低文獻數       |
+| 2.1   | 全文/素材解析  | asset-aware + fulltext                | ingestion receipts / fallback     |
+| 3     | 概念發展       | concept-development                   | novelty ≥ 75                      |
+| 4     | 大綱規劃       | draft-writing                         | 🗣️ 用戶確認 manuscript-plan.yaml  |
+| 5     | 章節撰寫       | draft-writing + Hook A/B/B7           | 通過                              |
+| 6     | 全稿審計       | Hook C（C7 含數量+交叉引用）          | 0 critical                        |
+| 6.5   | 演化閘門       | evolution baseline                    | baseline + scorecard              |
+| 7     | 自主審稿       | Review→Response loop (×3)             | quality ≥ threshold               |
+| 8     | 引用同步       | reference-management                  | 0 broken                          |
+| 9     | 匯出           | word-export                           | 已匯出                            |
+| 10    | 回顧改進       | Hook D（含 D7 Reviewer 演化）         | SKILL 更新                        |
+| 11    | Final Delivery | word-export + optional git provenance | final artifacts + delivery marker |
 
 ---
 
@@ -592,7 +595,7 @@ Phase 10: Hook D + D7 (Reviewer 演化)
 | #   | 操作 | 檔案                                            | 內容                                         |
 | --- | ---- | ----------------------------------------------- | -------------------------------------------- |
 | F1  | 修改 | `.claude/skills/auto-paper/SKILL.md`            | Phase 4 + B7 + D7 + C7 擴展 + Phase 7 結構化 |
-| F2  | 修改 | `.github/prompts/mdpaper.write-paper.prompt.md` | 11-Phase 對齊                                |
+| F2  | 修改 | `.github/prompts/mdpaper.write-paper.prompt.md` | 13-checkpoint 對齊                           |
 | F3  | 新增 | `.github/prompts/mdpaper.audit.prompt.md`       | 獨立審計 prompt                              |
 | F4  | 新增 | `.github/agents/paper-reviewer.agent.md`        | 唯讀審稿 agent mode                          |
 | F5  | 修改 | `templates/journal-profile.template.yaml`       | +tolerance +section_brief +changelog         |
@@ -607,16 +610,16 @@ Phase 10: Hook D + D7 (Reviewer 演化)
 
 ## 8. 實作優先級
 
-| #     | 項目                           | 檔案         | 依賴  |
-| ----- | ------------------------------ | ------------ | ----- |
-| 🔴 P1 | Phase 4 → manuscript-plan.yaml | F1           | —     |
-| 🔴 P2 | Hook B7 + C7 擴展 + D7 + 傳播  | F1, F6-F8    | P1    |
-| 🔴 P3 | write-paper.prompt.md 11-Phase | F2, F11      | P1    |
-| 🟡 P4 | Phase 7 結構化 Review/Response | F1           | —     |
-| 🟡 P5 | mdpaper.audit prompt + index   | F3, F10, F11 | P4    |
-| 🟡 P6 | journal-profile.yaml 新欄位    | F5           | —     |
-| 🟡 P7 | paper-reviewer agent mode      | F4           | —     |
-| 🟢 P8 | VSX 全面同步                   | F9           | P1-P7 |
+| #     | 項目                                          | 檔案         | 依賴  |
+| ----- | --------------------------------------------- | ------------ | ----- |
+| 🔴 P1 | Phase 4 → manuscript-plan.yaml                | F1           | —     |
+| 🔴 P2 | Hook B7 + C7 擴展 + D7 + 傳播                 | F1, F6-F8    | P1    |
+| 🔴 P3 | write-paper.prompt.md 13-checkpoint alignment | F2, F11      | P1    |
+| 🟡 P4 | Phase 7 結構化 Review/Response                | F1           | —     |
+| 🟡 P5 | mdpaper.audit prompt + index                  | F3, F10, F11 | P4    |
+| 🟡 P6 | journal-profile.yaml 新欄位                   | F5           | —     |
+| 🟡 P7 | paper-reviewer agent mode                     | F4           | —     |
+| 🟢 P8 | VSX 全面同步                                  | F9           | P1-P7 |
 
 ---
 

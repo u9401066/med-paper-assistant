@@ -7,7 +7,7 @@ Compact-first MCP research workspace for manuscript and library-wiki workflows, 
 ## Features
 
 - 🧭 **Dual Workflow Workspace** - Manuscript Path + Library Wiki Path with the same `@mdpaper` entrypoint
-- **Auto Paper** - 全自動 11-Phase 論文撰寫 + 3 層 Audit Hooks
+- **Auto Paper** - 全自動 13 main gate checkpoints + Phase 2.1 sub-gate 論文撰寫 + 3 層 Audit Hooks
 - **Source Material Intake** - Phase 0 掃描用戶提供的 DOCX/XLSX/PDF/CSV，並提示哪些檔案要先走 asset-aware
 - 🔍 **PubMed Literature Search** - Search and save references
 - ✍️ **Draft Writing** - Write paper sections with citation-aware editing
@@ -59,7 +59,7 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 1. 安裝擴充功能
 2. 在 Agent Mode 輸入：「全自動寫論文」
-3. 系統自動執行 11-Phase Pipeline：
+3. 系統自動執行 13 main gate checkpoints，並在 Phase 2 後插入 Phase 2.1 fulltext/source-material sub-gate：
 
 | Phase | 名稱           | 說明                                         |
 | ----- | -------------- | -------------------------------------------- |

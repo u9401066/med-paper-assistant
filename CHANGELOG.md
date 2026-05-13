@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.10] - 2026-05-13
+
+### Changed
+
+- Updated Auto-Paper README, guide, prompt, skill, VSX copy, and visual assets to describe the current 13 main gate checkpoints (`Phase 0-11 + Phase 6.5`) plus the independently validated `Phase 2.1` fulltext/source-material sub-gate.
+- Synced upstream MCP integration refs and release counts for PubMed Search MCP 0.5.9 (46 tools), Asset-Aware MCP 0.6.30, CGU upstream master, 117 full / 22 compact `mdpaper` tools, and 79 quality hooks.
+- Expanded source/VSX harness parity so bundled skills, prompts, agents, and Python mirrors stay aligned with the repository authoring surface.
+
+### Fixed
+
+- Fixed VSX package validation so it selects the `.vsix` matching `package.json` when older local package files are present.
+
 ## [0.7.9] - 2026-04-24
 
 ### Changed

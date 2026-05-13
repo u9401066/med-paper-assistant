@@ -40,7 +40,7 @@ user-invocable: false
 ### Step 1: 讀取背景
 
 ```
-get_current_project() → 取得專案上下文
+project_action(action="current") → 取得專案上下文
 read_draft(section="methods") → 讀取 Methods
 read_draft(section="results") → 讀取 Results
 ```

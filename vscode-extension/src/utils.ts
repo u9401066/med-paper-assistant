@@ -52,6 +52,7 @@ export function getPythonArgs(command: string, module: string): string[] {
         const packageMap: Record<string, string> = {
             'med_paper_assistant.interfaces.mcp': 'med-paper-assistant',
             'pubmed_search.mcp': 'pubmed-search-mcp',
+            'pubmed_search.presentation.mcp_server': 'pubmed-search-mcp',
             'cgu.server': 'creativity-generation-unit'
         };
         const pkg = packageMap[module];

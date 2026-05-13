@@ -39,7 +39,7 @@ user-invocable: false
 ### Step 1: 建立領域理解
 
 ```
-get_current_project() → 取得專案上下文
+project_action(action="current") → 取得專案上下文
 read_draft(section="introduction") → 研究背景與假說
 read_draft(section="discussion") → 論述與比較
 list_saved_references() → 已引用文獻清單

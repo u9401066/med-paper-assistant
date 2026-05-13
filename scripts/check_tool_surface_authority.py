@@ -9,7 +9,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AUTHORITY_PATH = REPO_ROOT / "tool-surface-authority.json"
 PACKAGE_JSON_PATH = REPO_ROOT / "vscode-extension" / "package.json"
@@ -48,7 +47,9 @@ def get_repository_counts() -> dict[str, int]:
     skills_dir = REPO_ROOT / ".claude" / "skills"
     prompts_dir = REPO_ROOT / ".github" / "prompts"
 
-    skills = sum(1 for child in skills_dir.iterdir() if child.is_dir() and (child / "SKILL.md").exists())
+    skills = sum(
+        1 for child in skills_dir.iterdir() if child.is_dir() and (child / "SKILL.md").exists()
+    )
     prompt_workflows = sum(1 for child in prompts_dir.glob("*.prompt.md") if child.is_file())
 
     return {
@@ -101,7 +102,11 @@ def validate_authority() -> tuple[list[str], list[str]]:
     expected_repo = authority["repository"]
     repo_checks = [
         ("Repository skills", repo_counts["skills"], expected_repo["skills"]),
-        ("Repository prompt workflows", repo_counts["promptWorkflows"], expected_repo["promptWorkflows"]),
+        (
+            "Repository prompt workflows",
+            repo_counts["promptWorkflows"],
+            expected_repo["promptWorkflows"],
+        ),
     ]
     for label, actual, expected in repo_checks:
         if actual == expected:
@@ -112,14 +117,34 @@ def validate_authority() -> tuple[list[str], list[str]]:
     expected_bundle = authority["bundle"]
     bundle_checks = [
         ("Bundled skills", bundle_counts["skills"], expected_bundle["skills"]),
-        ("Bundled prompt workflows", bundle_counts["promptWorkflows"], expected_bundle["promptWorkflows"]),
+        (
+            "Bundled prompt workflows",
+            bundle_counts["promptWorkflows"],
+            expected_bundle["promptWorkflows"],
+        ),
         ("Bundled agents", bundle_counts["agents"], expected_bundle["agents"]),
         ("Bundled templates", bundle_counts["templates"], expected_bundle["templates"]),
         ("Bundled support files", bundle_counts["supportFiles"], expected_bundle["supportFiles"]),
-        ("Bundle manifest chat commands", bundle_counts["chatCommands"], expected_bundle["chatCommands"]),
-        ("Bundle manifest palette commands", bundle_counts["paletteCommands"], expected_bundle["paletteCommands"]),
-        ("package.json chat commands", bundle_counts["packageChatCommands"], expected_bundle["chatCommands"]),
-        ("package.json palette commands", bundle_counts["packagePaletteCommands"], expected_bundle["paletteCommands"]),
+        (
+            "Bundle manifest chat commands",
+            bundle_counts["chatCommands"],
+            expected_bundle["chatCommands"],
+        ),
+        (
+            "Bundle manifest palette commands",
+            bundle_counts["paletteCommands"],
+            expected_bundle["paletteCommands"],
+        ),
+        (
+            "package.json chat commands",
+            bundle_counts["packageChatCommands"],
+            expected_bundle["chatCommands"],
+        ),
+        (
+            "package.json palette commands",
+            bundle_counts["packagePaletteCommands"],
+            expected_bundle["paletteCommands"],
+        ),
     ]
     for label, actual, expected in bundle_checks:
         if actual == expected:

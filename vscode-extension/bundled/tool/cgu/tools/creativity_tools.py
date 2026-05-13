@@ -484,17 +484,19 @@ class CreativityLogger:
     
     def log_idea(self, idea: str, novelty_score: float = 0.0) -> None:
         """記錄一個想法"""
-        if self.current_session:
-            self.current_session.ideas_generated.append(idea)
-            self.current_session.ideas_validated.append({
-                "idea": idea,
-                "novelty_score": novelty_score,
-            })
-            
-            # 更新最佳想法
-            if novelty_score > self.current_session.best_novelty_score:
-                self.current_session.best_idea = idea
-                self.current_session.best_novelty_score = novelty_score
+        if not self.current_session:
+            raise RuntimeError("No active creativity session. Call start_session() first.")
+        
+        self.current_session.ideas_generated.append(idea)
+        self.current_session.ideas_validated.append({
+            "idea": idea,
+            "novelty_score": novelty_score,
+        })
+        
+        # 更新最佳想法
+        if novelty_score > self.current_session.best_novelty_score:
+            self.current_session.best_idea = idea
+            self.current_session.best_novelty_score = novelty_score
     
     def get_session_summary(self) -> dict:
         """取得當前會話摘要"""
@@ -643,6 +645,9 @@ class CreativityToolbox:
         
         驗證並記錄一個想法
         """
+        if not self.logger.current_session:
+            raise RuntimeError("No active creativity session. Call start_session() first.")
+        
         novelty = self.novelty_checker.check(idea)
         self.logger.log_idea(idea, novelty.novelty_score)
         return {

@@ -9,12 +9,12 @@
 
 <p align="center">
   <b>🔬 以 MCP 協調的醫學研究工作區：論文寫作與 LLM Wiki 雙工作流</b><br>
-  <i>3 個 MCP Server · 165+ 個工具 · 26 個技能 · 15 個 Prompt 工作流 — Monorepo 作者面與 VSIX 打包面共用同一套 VS Code 生態</i>
+  <i>3 個 MCP Server · 176+ 個工具 · 26 個技能 · 15 個 Prompt 工作流 — Monorepo 作者面與 VSIX 打包面共用同一套 VS Code 生態</i>
 </p>
 
 > 📖 [English Version](README.md)
 
-> 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 11 階段 Pipeline、79 項品質檢查、結構化 Review Loop
+> 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 13 個主線 gate checkpoint + Phase 2.1 sub-gate、79 項品質檢查、結構化 Review Loop
 
 ![MedPaper Assistant 概覽](docs/assets/medpaper-intro.svg)
 
@@ -75,7 +75,7 @@
 | 傳統工具                   | Medical Paper Assistant                                  |
 | -------------------------- | -------------------------------------------------------- |
 | 固定模板、僵化流程         | 彈性、探索式方法                                         |
-| 搜尋/寫作/引用分開多個 App | 同一個協調工作區：165+ 個工具與打包工作流都在 VS Code 裡 |
+| 搜尋/寫作/引用分開多個 App | 同一個協調工作區：176+ 個工具與打包工作流都在 VS Code 裡 |
 | 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料                               |
 | 匯出後再排版               | 直接匯出符合期刊格式的 Word                              |
 | 學習複雜介面               | 自然語言對話                                             |
@@ -247,7 +247,7 @@ projects/{slug}/
 
 ### 文獻搜尋與管理
 
-- **PubMed + Europe PMC + CORE** 搜尋（37 個搜尋工具）
+- **PubMed + Europe PMC + CORE** 搜尋（46 個搜尋工具）
 - **PICO 解析** 處理臨床問題
 - **MCP-to-MCP 驗證資料** — 只傳 PMID，杜絕 Agent 幻覺
 - 分層信任：🔒 VERIFIED（PubMed）· 🤖 AGENT（AI 筆記）· ✏️ USER（你的筆記）
@@ -460,7 +460,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 | **基因/化合物** | `search_gene`、`get_gene_details`、`search_compound`、`search_clinvar`    |
 | **探索**        | `find_related_articles`、`find_citing_articles`、`get_article_references` |
 | **匯出**        | `prepare_export`（RIS/BibTeX/CSV）、`get_citation_metrics`（iCite RCR）   |
-| **Session**     | `get_session_pmids`、`list_search_history`（不受 AI 記憶限制）            |
+| **Session**     | `read_session(action="pmids")`、`get_session_log`（不受 AI 記憶限制）     |
 
 ### 💡 CGU 創意工具（13 工具）
 
@@ -562,7 +562,7 @@ med-paper-assistant/
 │   └── interfaces/mcp/            #   MCP Server，117 full / 22 compact 工具 + 3 prompts + 3 resources
 │
 ├── integrations/                  # 內建 MCP Server
-│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（37 工具）
+│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（46 工具）
 │   └── cgu/                       #   創意發想（13 工具）
 │
 ├── vscode-extension/              # 打包後的 VSIX surface

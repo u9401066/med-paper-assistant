@@ -37,7 +37,7 @@ user-invocable: false
 ### Step 1: 讀取資料分析內容
 
 ```
-get_current_project() → 取得專案上下文
+project_action(action="current") → 取得專案上下文
 read_draft(section="methods") → Statistical Analysis 子節
 read_draft(section="results") → 數據呈現
 list_assets() → 圖表清單

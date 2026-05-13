@@ -126,6 +126,9 @@ uv run pytest tests/test_project_manager.py
 
 # Run with coverage
 uv run pytest tests/ --cov=src/med_paper_assistant
+
+# Run the repository pre-commit gate
+uv run pre-commit run --all-files
 ```
 
 Please ensure:
@@ -133,6 +136,7 @@ Please ensure:
 - All existing tests pass
 - New features have corresponding tests
 - Test files are named `test_*.py`
+- External mirrored code under `integrations/` and `vscode-extension/bundled/` stays source-synced; do not reformat those mirrors directly in root hooks.
 
 ### Submitting Changes
 
@@ -316,6 +320,9 @@ uv run pytest tests/test_project_manager.py
 
 # 執行並顯示覆蓋率
 uv run pytest tests/ --cov=src/med_paper_assistant
+
+# 執行 repository pre-commit gate
+uv run pre-commit run --all-files
 ```
 
 請確保：
@@ -323,6 +330,7 @@ uv run pytest tests/ --cov=src/med_paper_assistant
 - 所有現有測試通過
 - 新功能有對應的測試
 - 測試檔案命名為 `test_*.py`
+- `integrations/` 與 `vscode-extension/bundled/` 的外部鏡像程式碼維持來源同步；不要用 root hooks 直接重排這些 mirror。
 
 ### 提交變更
 

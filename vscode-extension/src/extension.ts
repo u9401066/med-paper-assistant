@@ -429,7 +429,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                     pubmedArgs,
                     {
                         ...mcpEnv,
-                        ENTREZ_EMAIL: process.env.ENTREZ_EMAIL || 'medpaper@example.com'
+                        NCBI_EMAIL: process.env.NCBI_EMAIL || process.env.ENTREZ_EMAIL || 'medpaper@example.com'
                     }
                 ));
             }

@@ -124,11 +124,28 @@ def check_cgu() -> None:
         fail(f"import cgu: {exc}")
 
 
-# ── 5. mcp.json ───────────────────────────────────────────────────────────
+# ── 5. PubMed Search Integration ──────────────────────────────────────────
+
+
+def check_pubmed_search() -> None:
+    section("5. PubMed Search Integration")
+    pubmed_dir = WORKSPACE / "integrations" / "pubmed-search-mcp"
+    if not pubmed_dir.exists():
+        fail("PubMed Search submodule not present")
+        return
+
+    try:
+        importlib.import_module("pubmed_search.presentation.mcp_server")
+        ok("import pubmed_search.presentation.mcp_server")
+    except Exception as exc:
+        fail(f"import pubmed_search.presentation.mcp_server: {exc}")
+
+
+# ── 6. mcp.json ───────────────────────────────────────────────────────────
 
 
 def check_mcp_json() -> None:
-    section("5. .vscode/mcp.json")
+    section("6. .vscode/mcp.json")
     mcp_path = WORKSPACE / ".vscode" / "mcp.json"
     if not mcp_path.is_file():
         fail(".vscode/mcp.json does not exist (run setup first)")
@@ -154,11 +171,11 @@ def check_mcp_json() -> None:
         ok(f"All {len(expected)} servers defined: {', '.join(sorted(present))}")
 
 
-# ── 6. Submodules ─────────────────────────────────────────────────────────
+# ── 7. Submodules ─────────────────────────────────────────────────────────
 
 
 def check_submodules() -> None:
-    section("6. Git Submodules")
+    section("7. Git Submodules")
     try:
         result = subprocess.run(
             ["git", "submodule", "status"],
@@ -191,11 +208,11 @@ def check_submodules() -> None:
         fail("git submodule status timed out")
 
 
-# ── 7. Migration Script ──────────────────────────────────────────────────
+# ── 8. Migration Script ──────────────────────────────────────────────────
 
 
 def check_migration_script() -> None:
-    section("7. Migration Script (dry-run)")
+    section("8. Migration Script (dry-run)")
     mcp_path = WORKSPACE / ".vscode" / "mcp.json"
     if not mcp_path.is_file():
         ok("No mcp.json yet — migration not applicable")
@@ -229,6 +246,7 @@ def main() -> None:
     check_core_imports()
     check_mcp_server()
     check_cgu()
+    check_pubmed_search()
     check_mcp_json()
     check_submodules()
     check_migration_script()
