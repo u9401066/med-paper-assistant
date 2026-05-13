@@ -1,6 +1,18 @@
-# Progress (Updated: 2026-04-24)
+# Progress (Updated: 2026-05-13)
 
 ## Done
+
+- **v0.7.10 upstream dependency + docs/harness release prep (2026-05-13)**:
+
+  - Rebasing completed on top of upstream `origin/master` `8db10ed` (`v0.7.9`), using remote latest as conflict authority.
+  - Updated external MCP contracts: PubMed Search MCP 0.5.9 / 46 tools, Asset-Aware MCP 0.6.30, CGU upstream master, regenerated `uv.lock`.
+  - Updated setup/migration/VSX runtime for PubMed `NCBI_EMAIL`, `pubmed_search.presentation.mcp_server`, and `uvx pubmed-search-mcp`.
+  - Updated README EN/zh-TW, Auto-Paper guide, multi-stage review design, skill/prompt assets, SVG/banner, VSX README/package wording, and repo counts to 117 full / 22 compact, PubMed 46, total ~176 tools, 79 hooks, and 13 pipeline checkpoints.
+  - Corrected VSIX bundle scope back to authority-defined curated surface: 14 skills, 13 prompt workflows, 9 agents, 4 templates, 7 support files, 10 chat commands, 11 palette commands.
+  - Added tests for 13 checkpoint docs, PubMed harness currency, tool-surface authority, source/bundle mirror sync, and PubMed migration/runtime entrypoint behavior.
+  - Added pre-commit/ruff exclusions for external mirrored code under `integrations/` and `vscode-extension/bundled/` so source/bundle parity is not broken by root formatters.
+  - Packaged `vscode-extension/medpaper-assistant-0.7.10.vsix` (1.9 MB).
+  - Verification passed: `uv lock --check`; `uv run ruff check .`; `uv run mypy src --ignore-missing-imports`; `uv run pytest` (1285 passed / 1 skipped / 26 deselected); `uv run python scripts/sync_repo_counts.py --check`; `uv run python scripts/smoke_test.py` (14 checks); `npm run bundle:check`; `npm test` (169 passed); `npm run validate` (92 passed / 0 warnings / 0 failed); `git diff --check`.
 
 - **v0.7.9 Vancouver export + FOAM compatibility release prep (2026-04-24)**:
 
@@ -91,11 +103,11 @@
 
 ## Doing
 
-- Publishing v0.7.9: changelog/version/memory update, bundle sync, validation, commit, push master, create and push tag
+- Publishing v0.7.10: memory commit, push `master`, create/push annotated tag `v0.7.10`, then verify remote/tag state.
 
 ## Next
 
-- Watch v0.7.9 release tag CI and package publication status
+- Watch v0.7.10 release tag CI and package publication status
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

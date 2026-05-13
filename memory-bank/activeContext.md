@@ -4,22 +4,23 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-04-24)
+## 當前焦點 (2026-05-13)
 
-v0.7.9 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏，補齊 manuscript citation 與 FOAM wiki-link knowledge-base 雙分支相容性，並收斂遠端 `codex/check-design-errors` branch 的 exports/workspace-state/review-loop 修正；目前進入 commit/push/tag 發布收尾。
+v0.7.10 release：以 GitHub `origin/master` / latest upstream 為基準，完成 PubMed Search MCP、Asset-Aware MCP、CGU 子模組與 MedPaper code/docs/harness 對齊。重點是修正 13 main gate checkpoints + Phase 2.1 sub-gate 的文件口徑、更新 PubMed 46-tool / `NCBI_EMAIL` / latest module path、保留 VSIX curated bundle authority（14 skills / 13 prompts / 9 agents），並避免錯 repo/VSIX imported harness 被帶入正式發行。
 
 ### 當前狀態
 
-| 項目                    | 數量/狀態                                                                   |
-| ----------------------- | --------------------------------------------------------------------------- |
-| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources               |
-| Repo Skills / Prompts   | **26 skills / 15 prompt workflows**                                         |
-| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**                |
-| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                          |
-| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)           |
-| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`              |
-| Latest Validation       | Targeted citation/export/wiki-link suite passed; release validation pending |
-| Packaging               | Version bumped to `0.7.9`; tag/push pending                                 |
+| 項目                  | 數量/狀態                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **117 full / 22 compact (default)** + 3 prompts + 3 resources                                       |
+| External MCP Surface  | **PubMed Search 46 tools** + **CGU 13 tools**                                                       |
+| Repo Skills / Prompts | **26 skills / 15 prompt workflows**                                                                 |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**        |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                  |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate |
+| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                      |
+| Latest Validation     | Full Python + VSIX verification passed for v0.7.10 (see progress.md)                                |
+| Packaging             | `medpaper-assistant-0.7.10.vsix` built; `bd5d4c2` release commit ready for memory commit/tag/push   |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -32,6 +33,16 @@ v0.7.9 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏
 | L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
 
 ### 最近變更
+
+#### v0.7.10 Upstream Dependency + 13-Phase Docs Release (2026-05-13)
+
+- **Remote-first sync**: rebased local work onto upstream `origin/master` `8db10ed` (`v0.7.9`) and kept remote as authority when conflicts appeared.
+- **External MCP updates**: aligned submodules to upstream PubMed Search MCP 0.5.9 (46 tools), Asset-Aware MCP 0.6.30, and CGU upstream master; regenerated `uv.lock`.
+- **PubMed harness**: setup/migration/VSX runtime now uses `NCBI_EMAIL` and the current `pubmed_search.presentation.mcp_server` entrypoint; `uvx` maps to `pubmed-search-mcp`.
+- **Auto-Paper docs**: README, zh-TW README, auto-paper guide, multi-stage review design, skill/prompt assets, SVG/marketplace banner, and VSX package wording now use the 13 main checkpoint + Phase 2.1 sub-gate model.
+- **VSIX authority corrected**: removed the attempted all-harness bundle expansion; package/validation remain at the curated authority surface (14 skills / 13 prompts / 9 agents).
+- **External mirror guard**: root ruff/pre-commit now excludes mirrored external code under `integrations/` and `vscode-extension/bundled/`, preserving byte-for-byte source/bundle sync.
+- **Reviewer/local edit workflow note**: reviewer-driven partial revisions can use focused `pipeline_action` review/gate checks plus targeted tests; they do not require rerunning the whole Auto-Paper pipeline unless phase prerequisites or exported artifacts are invalidated.
 
 #### v0.7.9 Vancouver Export + FOAM Compatibility Release (2026-04-24)
 

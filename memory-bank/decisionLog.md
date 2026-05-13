@@ -1,5 +1,28 @@
 # Decision Log
 
+## [2026-05-13] v0.7.10 Remote-First Upstream Sync + Curated VSIX Authority
+
+### 背景
+
+使用者要求 dependency / harness / docs 全面對齊 GitHub remote upstream 最新，並特別要求最後執行 MEM、分段 git、push、tag 發布新版。`origin/master` 已在 `v0.7.9`，因此本次 release 版本從原先本地的 `v0.6.8` 修正為 `v0.7.10`。
+
+同步過程中發現一批 VSIX imported harness / wrong-repo harness 會把 bundle surface 擴張到 26 skills / 15 prompts / 24 agents，違反 `tool-surface-authority.json` 的正式發行面（14 skills / 13 prompts / 9 agents）。
+
+### 本次決定
+
+1. **Remote-first conflict policy**：rebase 到 `origin/master`，衝突時以 upstream latest 為權威，再重新套入必要的 MedPaper release 修正。
+2. **VSIX 保持 curated bundle authority**：正式 marketplace/VSIX bundle 不採用全部 source harness；仍以 `tool-surface-authority.json` 的 14/13/9 為發行契約。
+3. **Auto-Paper 命名採 13 main checkpoints + Phase 2.1 sub-gate**：避免把 `Phase 2.1` 與 heartbeat 主 checkpoint 混成 14/15 phase；Phase 11 維持 code authority 的 "Final Delivery"。
+4. **外部 mirror 不由 root formatter 改寫**：`integrations/` 與 `vscode-extension/bundled/` 是 external/source mirror，root `ruff` / pre-commit 不應改壞 byte-for-byte parity。
+5. **Reviewer 局部修稿不必整輪重跑**：真實 reviewer comment 可以走 focused patch + review/gate/test path；只有當 phase prerequisite、引用/資產/export artifact 被改壞時才需要回退或重跑對應 phase。
+
+### 成果
+
+- Version: `0.7.10`
+- Release commit: `bd5d4c2 release: prepare v0.7.10 upstream sync`
+- VSIX: `medpaper-assistant-0.7.10.vsix`
+- Validation: full Python suite、VSIX tests、bundle authority、repo counts、smoke test、build validation 全部通過。
+
 ## [2026-04-14] Compact-By-Default Main MCP Surface For Workspace And VSX
 
 ### 背景
