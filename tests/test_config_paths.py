@@ -37,7 +37,7 @@ def test_template_reader_accepts_explicit_directory(tmp_path):
 
 def test_root_ruff_excludes_external_integration_submodules():
     pyproject = tomllib.loads(
-        (Path(__file__).resolve().parent.parent / "pyproject.toml").read_text()
+        (Path(__file__).resolve().parent.parent / "pyproject.toml").read_text(encoding="utf-8")
     )
 
     excluded = pyproject["tool"]["ruff"]["extend-exclude"]
@@ -61,7 +61,9 @@ def test_agent_harness_uses_existing_vscode_test_script():
     ]
 
     stale_paths = [
-        path for path in harness_paths if "npm run test:ci" in (repo_root / path).read_text()
+        path
+        for path in harness_paths
+        if "npm run test:ci" in (repo_root / path).read_text(encoding="utf-8")
     ]
 
     assert stale_paths == []
