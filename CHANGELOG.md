@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Updated GitHub Actions workflows to Node 24-ready action majors (`checkout@v6`, `setup-node@v6`, `setup-python@v6`, `setup-uv@v8`, artifact actions, `github-script@v9`, and `action-gh-release@v3`) and switched Node jobs to Node.js 24.
+- Made the paper pre-commit hook skip silently when no draft files are staged, and limit P-series checks to projects with staged draft files so unrelated release commits no longer print research-draft warnings.
+
 ## [0.7.10] - 2026-05-13
 
 ### Changed

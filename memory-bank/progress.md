@@ -14,6 +14,14 @@
   - Fixed Windows CI path/config tests by making UTF-8 text decoding explicit in `tests/test_config_paths.py`.
   - Packaged `vscode-extension/medpaper-assistant-0.7.10.vsix` (1.9 MB).
   - Verification passed: `uv lock --check`; `uv run ruff check .`; `uv run mypy src --ignore-missing-imports`; `uv run pytest` (1285 passed / 1 skipped / 26 deselected); `uv run python scripts/sync_repo_counts.py --check`; `uv run python scripts/smoke_test.py` (14 checks); `npm run bundle:check`; `npm test` (169 passed); `npm run validate` (92 passed / 0 warnings / 0 failed); `git diff --check`.
+  - Published `v0.7.10`; release workflow and CI completed successfully after the CI follow-up commit/tag alignment.
+
+- **Post-v0.7.10 CI/hook hygiene follow-up (2026-05-13)**:
+
+  - Updated GitHub Actions workflows to Node 24-ready major actions and switched Node jobs to Node.js 24 to address deprecation warnings.
+  - Changed `scripts/hooks/paper_precommit.py` so non-draft commits skip silently and staged draft commits only scan projects with staged draft files.
+  - Added workflow contract tests and paper-precommit regression tests for the new behavior.
+  - Validation passed: `tests/test_embedded_hooks.py`, `tests/test_ci_workflows.py`, targeted `ruff check/format`, `paper_precommit.py`, and `git diff --check`.
 
 - **v0.7.9 Vancouver export + FOAM compatibility release prep (2026-04-24)**:
 
@@ -104,11 +112,11 @@
 
 ## Doing
 
-- Publishing v0.7.10: memory commit, push `master`, create/push annotated tag `v0.7.10`, then verify remote/tag state.
+- Preparing/pushing the post-v0.7.10 CI/hook hygiene follow-up commit on `master`.
 
 ## Next
 
-- Watch v0.7.10 release tag CI and package publication status
+- Watch CI for the post-v0.7.10 workflow/precommit follow-up commit
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

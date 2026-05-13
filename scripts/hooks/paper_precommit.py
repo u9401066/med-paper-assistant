@@ -1,12 +1,13 @@
 """
 Paper-aware pre-commit hook — P-series quality checks.
 
-Scans all projects under projects/ for draft files, then runs
-WritingHooksEngine.run_precommit_hooks() on each. Exits non-zero
-if any CRITICAL issue is found **and** drafted files are staged.
+Detects staged files under projects/*/drafts/, then runs
+WritingHooksEngine.run_precommit_hooks() only for those projects.
+Exits non-zero if any CRITICAL issue is found in staged draft projects.
 
-When no draft files are staged (e.g. infrastructure-only commits),
-the hook still runs but only prints warnings — never blocks.
+When no draft files are staged (e.g. infrastructure-only commits), the
+hook skips silently so repository releases are not polluted by unrelated
+research draft warnings.
 
 Registered in .pre-commit-config.yaml as a local hook.
 
@@ -21,8 +22,9 @@ import sys
 from pathlib import Path
 
 
-def _staged_files_include_drafts(workspace: Path) -> bool:
-    """Check if any staged files are inside projects/*/drafts/."""
+def _staged_draft_projects(workspace: Path) -> set[str]:
+    """Return project slugs with staged files inside projects/*/drafts/."""
+    projects: set[str] = set()
     try:
         result = subprocess.run(
             ["git", "diff", "--cached", "--name-only"],
@@ -34,10 +36,10 @@ def _staged_files_include_drafts(workspace: Path) -> bool:
         for line in result.stdout.splitlines():
             parts = line.split("/")
             if len(parts) >= 3 and parts[0] == "projects" and parts[2] == "drafts":
-                return True
+                projects.add(parts[1])
     except Exception:
         pass
-    return False
+    return projects
 
 
 def find_projects_with_drafts(workspace: Path) -> list[Path]:
@@ -72,12 +74,19 @@ def collect_draft_content(project_dir: Path) -> str:
 
 def main() -> int:
     workspace = Path(__file__).resolve().parents[2]
-    projects = find_projects_with_drafts(workspace)
+    staged_project_names = _staged_draft_projects(workspace)
+
+    if not staged_project_names:
+        return 0  # No staged drafts to check — pass silently
+
+    projects = [
+        project
+        for project in find_projects_with_drafts(workspace)
+        if project.name in staged_project_names
+    ]
 
     if not projects:
-        return 0  # No drafts to check — pass silently
-
-    drafts_staged = _staged_files_include_drafts(workspace)
+        return 0  # Staged draft paths exist, but no .md draft content to check
 
     # Lazy import to avoid slow startup when no drafts exist
     from med_paper_assistant.infrastructure.persistence.writing_hooks import WritingHooksEngine
@@ -122,17 +131,11 @@ def main() -> int:
         print("=" * 50, file=sys.stderr)
 
     if total_critical > 0:
-        if drafts_staged:
-            print(
-                f"\n❌ BLOCKED: {total_critical} CRITICAL issue(s). Fix before committing.",
-                file=sys.stderr,
-            )
-            return 1
-        else:
-            print(
-                f"\n⚠️  {total_critical} CRITICAL issue(s) in drafts (not blocking — no draft files staged).",
-                file=sys.stderr,
-            )
+        print(
+            f"\n❌ BLOCKED: {total_critical} CRITICAL issue(s). Fix before committing.",
+            file=sys.stderr,
+        )
+        return 1
 
     return 0
 

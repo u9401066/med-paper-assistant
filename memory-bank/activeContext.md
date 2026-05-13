@@ -6,21 +6,21 @@
 
 ## 當前焦點 (2026-05-13)
 
-v0.7.10 release：以 GitHub `origin/master` / latest upstream 為基準，完成 PubMed Search MCP、Asset-Aware MCP、CGU 子模組與 MedPaper code/docs/harness 對齊。重點是修正 13 main gate checkpoints + Phase 2.1 sub-gate 的文件口徑、更新 PubMed 46-tool / `NCBI_EMAIL` / latest module path、保留 VSIX curated bundle authority（14 skills / 13 prompts / 9 agents），並避免錯 repo/VSIX imported harness 被帶入正式發行。
+v0.7.10 release 已完成並發布；目前焦點是 release 後 CI/hook hygiene follow-up：移除 GitHub Actions Node.js 20 deprecation warnings，並讓 paper precommit 在沒有 staged draft files 時完全安靜跳過，避免 repo release/infra commit 被研究稿品質警告污染。
 
 ### 當前狀態
 
-| 項目                  | 數量/狀態                                                                                           |
-| --------------------- | --------------------------------------------------------------------------------------------------- |
-| MCP Tools             | **117 full / 22 compact (default)** + 3 prompts + 3 resources                                       |
-| External MCP Surface  | **PubMed Search 46 tools** + **CGU 13 tools**                                                       |
-| Repo Skills / Prompts | **26 skills / 15 prompt workflows**                                                                 |
-| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**        |
-| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                  |
-| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate |
-| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                      |
-| Latest Validation     | Full Python + VSIX verification passed for v0.7.10 (see progress.md)                                |
-| Packaging             | `medpaper-assistant-0.7.10.vsix` built; `bd5d4c2` release commit ready for memory commit/tag/push   |
+| 項目                  | 數量/狀態                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **117 full / 22 compact (default)** + 3 prompts + 3 resources                                        |
+| External MCP Surface  | **PubMed Search 46 tools** + **CGU 13 tools**                                                        |
+| Repo Skills / Prompts | **26 skills / 15 prompt workflows**                                                                  |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**         |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                   |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate  |
+| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                       |
+| Latest Validation     | Full Python + VSIX verification passed for v0.7.10; follow-up workflow/precommit targeted tests pass |
+| Packaging             | `medpaper-assistant-0.7.10.vsix` released via GitHub Release / PyPI / VS Marketplace                 |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -43,6 +43,7 @@ v0.7.10 release：以 GitHub `origin/master` / latest upstream 為基準，完�
 - **VSIX authority corrected**: removed the attempted all-harness bundle expansion; package/validation remain at the curated authority surface (14 skills / 13 prompts / 9 agents).
 - **External mirror guard**: root ruff/pre-commit now excludes mirrored external code under `integrations/` and `vscode-extension/bundled/`, preserving byte-for-byte source/bundle sync.
 - **Reviewer/local edit workflow note**: reviewer-driven partial revisions can use focused `pipeline_action` review/gate checks plus targeted tests; they do not require rerunning the whole Auto-Paper pipeline unless phase prerequisites or exported artifacts are invalidated.
+- **Post-release CI/hook hygiene**: updated GitHub Actions to Node 24-ready action majors and changed `paper_precommit.py` to skip silently unless staged draft files exist, then scan only those staged draft projects.
 
 #### v0.7.9 Vancouver Export + FOAM Compatibility Release (2026-04-24)
 

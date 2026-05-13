@@ -10,6 +10,7 @@ Validates:
 import importlib.util
 import os
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -218,3 +219,37 @@ class TestPaperPrecommitScript:
         assert "Hello." in content
         assert "We did X." in content
         assert "Skip me." not in content  # concept.md excluded
+
+    def test_staged_draft_projects_returns_project_names(self, monkeypatch):
+        """Staged draft paths should map to their project slugs."""
+        mod = _import_paper_precommit()
+
+        def fake_run(*args, **kwargs):
+            return SimpleNamespace(
+                stdout=(
+                    "README.md\n"
+                    "projects/paper-a/drafts/introduction.md\n"
+                    "projects/paper-b/drafts/results.md\n"
+                    "projects/paper-b/references/ref.yaml\n"
+                )
+            )
+
+        monkeypatch.setattr(mod.subprocess, "run", fake_run)
+
+        assert mod._staged_draft_projects(Path("/repo")) == {"paper-a", "paper-b"}
+
+    def test_main_skips_silently_without_staged_drafts(self, monkeypatch, capsys):
+        """Non-draft commits should not scan draft projects or print draft warnings."""
+        mod = _import_paper_precommit()
+
+        monkeypatch.setattr(mod, "_staged_draft_projects", lambda workspace: set())
+        monkeypatch.setattr(
+            mod,
+            "find_projects_with_drafts",
+            lambda workspace: pytest.fail("draft projects should not be scanned"),
+        )
+
+        assert mod.main() == 0
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert captured.err == ""
