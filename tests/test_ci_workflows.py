@@ -41,7 +41,7 @@ def test_javascript_actions_are_on_node24_ready_majors():
         "actions/upload-artifact@v7",
         "actions/download-artifact@v8",
         "actions/github-script@v9",
-        "astral-sh/setup-uv@v8",
+        "astral-sh/setup-uv@v7",
         "softprops/action-gh-release@v3",
     }
     deprecated = {
