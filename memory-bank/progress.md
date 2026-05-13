@@ -11,6 +11,7 @@
   - Corrected VSIX bundle scope back to authority-defined curated surface: 14 skills, 13 prompt workflows, 9 agents, 4 templates, 7 support files, 10 chat commands, 11 palette commands.
   - Added tests for 13 checkpoint docs, PubMed harness currency, tool-surface authority, source/bundle mirror sync, and PubMed migration/runtime entrypoint behavior.
   - Added pre-commit/ruff exclusions for external mirrored code under `integrations/` and `vscode-extension/bundled/` so source/bundle parity is not broken by root formatters.
+  - Fixed Windows CI path/config tests by making UTF-8 text decoding explicit in `tests/test_config_paths.py`.
   - Packaged `vscode-extension/medpaper-assistant-0.7.10.vsix` (1.9 MB).
   - Verification passed: `uv lock --check`; `uv run ruff check .`; `uv run mypy src --ignore-missing-imports`; `uv run pytest` (1285 passed / 1 skipped / 26 deselected); `uv run python scripts/sync_repo_counts.py --check`; `uv run python scripts/smoke_test.py` (14 checks); `npm run bundle:check`; `npm test` (169 passed); `npm run validate` (92 passed / 0 warnings / 0 failed); `git diff --check`.
 
