@@ -20,6 +20,30 @@
 - Local artifacts: `medpaper-assistant-0.7.11.vsix` (1.9 MB), wheel 656 KB, sdist 772 KB
 - Validation: Python 1305 passed / 1 skipped / 26 deselected; VSIX 169 passed; VSIX validate 92 passed; ruff, format, mypy, bandit, MCP boot, tool-surface authority, uv build, install smoke, npm audit, wheel-template smoke, `git diff --check` all passed.
 
+## [2026-05-19] v0.7.11 Release Publication Outcome
+
+### 背景
+
+After pushing `origin/master` and annotated tag `v0.7.11`, GitHub Actions `Release` ran for the tag. The workflow passed validation, three-platform smoke, Python tests, security/audit, bundle drift, build artifacts, and PyPI trusted publishing. It failed only at `publish-vsx`.
+
+### 根因
+
+`publish-vsx` reached Marketplace and attempted to publish `u9401066.medpaper-assistant v0.7.11`, but Marketplace returned `TF400813: The user 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' is not authorized to access this resource.` The `VSCE_PAT` secret was present but lacks the required publisher/resource authorization or is no longer valid.
+
+### 決定
+
+1. Treat VS Marketplace failure as an external credential/permission issue, not a repository release blocker for PyPI/GitHub artifacts.
+2. Manually create GitHub Release `v0.7.11` from the pushed tag and upload the locally verified VSIX, wheel, and sdist so the release is available despite the Marketplace secret failure.
+3. Keep the failed Actions run as evidence that Marketplace publish did not complete; fix/rotate `VSCE_PAT` before retrying Marketplace publishing.
+
+### 成果
+
+- `origin/master` is synced at release commit `8df4531`.
+- Tag `v0.7.11` points to `8df4531`.
+- GitHub Release: `https://github.com/u9401066/med-paper-assistant/releases/tag/v0.7.11`
+- Assets uploaded: `medpaper-assistant-0.7.11.vsix`, `med_paper_assistant-0.7.11-py3-none-any.whl`, `med_paper_assistant-0.7.11.tar.gz`.
+- CI on `master` completed successfully; Release workflow concluded failure only because `publish-vsx` failed authorization.
+
 ## [2026-05-13] v0.7.10 Remote-First Upstream Sync + Curated VSIX Authority
 
 ### 背景

@@ -16,6 +16,7 @@
   - Updated README EN/zh-TW, CHANGELOG, ROADMAP, auto-paper guide, MCP instructions, source/VSIX skills, and bundled Python mirror to facade-first guidance.
   - Packaged `vscode-extension/medpaper-assistant-0.7.11.vsix` (1.9 MB).
   - Verification passed: Python 1305 passed / 1 skipped / 26 deselected; VSIX 169 passed; `npm run validate -- --skip-tests` 92 passed; ruff, ruff format, mypy, bandit, MCP boot, tool-surface authority, uv build, VSIX smoke, wheel-template smoke, npm audit, and `git diff --check` passed.
+  - Published segmented commits and annotated tag `v0.7.11` to GitHub. CI passed on `master`; release workflow passed validate/smoke/test/security/build/PyPI, but VS Marketplace publish failed because `VSCE_PAT` was not authorized. GitHub Release was manually created with VSIX, wheel, and sdist assets.
 
 - **v0.7.10 upstream dependency + docs/harness release prep (2026-05-13)**:
 
@@ -127,11 +128,11 @@
 
 ## Doing
 
-- Preparing segmented v0.7.11 commits, push, and tag publication on `master`.
+- Monitoring post-release follow-up for VS Marketplace secret authorization.
 
 ## Next
 
-- Watch GitHub Actions release workflow after pushing `v0.7.11`.
+- Fix/rotate `VSCE_PAT` publisher authorization before the next Marketplace publish attempt.
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features
