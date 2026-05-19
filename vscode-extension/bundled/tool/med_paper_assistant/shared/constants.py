@@ -66,8 +66,17 @@ DEFAULT_WORD_LIMITS = {
 }
 
 # Project directory structure
-PROJECT_DIRECTORIES = ["drafts", "references", "data", "results", "exports", ".memory"]
-LIBRARY_DIRECTORIES = ["inbox", "concepts", "projects", "review", "daily", "references", ".memory"]
+PROJECT_DIRECTORIES = ["drafts", "references", "data", "results", "exports", ".audit", ".memory"]
+LIBRARY_DIRECTORIES = [
+    "inbox",
+    "concepts",
+    "projects",
+    "review",
+    "daily",
+    "references",
+    ".audit",
+    ".memory",
+]
 
 # Citation styles
 CITATION_STYLES = ["vancouver", "apa", "harvard", "nature", "ama", "nlm", "mdpi"]

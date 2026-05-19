@@ -59,6 +59,7 @@ _PHASE_NAMES = {
     0: "Configuration",
     1: "Setup",
     2: "Literature",
+    21: "Fulltext Ingestion",
     3: "Concept",
     4: "Planning",
     5: "Writing",
@@ -70,7 +71,7 @@ _PHASE_NAMES = {
     10: "Retrospective",
     11: "Final Delivery",
 }
-_ALL_PHASES = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
+_ALL_PHASES = [0, 1, 2, 21, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
 
 # Module-level cache: project path → AutonomousAuditLoop instance
 _active_loops: dict[str, AutonomousAuditLoop] = {}
@@ -329,11 +330,11 @@ def register_pipeline_tools(
         - 7: Autonomous Review (review reports + responses per round)
         - 8: Reference Sync (references section)
         - 9: Export (docx/pdf)
-        - 10: Retrospective (D1-D8 analysis)
+        - 10: Retrospective (D1-D9 analysis)
         - 11: Final Delivery (exports plus optional Git provenance)
 
         Args:
-            phase: Phase number to validate (0-11, use 65 for Phase 6.5)
+            phase: Phase number to validate (0-11, use 21 for Phase 2.1 and 65 for Phase 6.5)
             project: Project slug (optional, uses current project)
             response_format: "markdown" or "json"
             compact: If true, return only failing checks

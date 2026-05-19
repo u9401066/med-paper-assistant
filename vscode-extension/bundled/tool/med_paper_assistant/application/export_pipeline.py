@@ -22,6 +22,7 @@ import json
 import os
 import tempfile
 import zipfile
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -344,16 +345,14 @@ class ExportPipeline:
                 reference_doc=reference_doc,
                 extra_args=pandoc_args,
             )
-            post_export_checks = None
-            if Path(result_path).is_file():
-                post_export_checks = self.inspect_docx_xml_smoke(result_path)
-                if not post_export_checks.get("passed"):
-                    failed = [
-                        check["name"]
-                        for check in post_export_checks.get("checks", [])
-                        if not check.get("passed")
-                    ]
-                    raise RuntimeError("DOCX export validation failed: " + ", ".join(failed))
+            post_export_checks = self.inspect_docx_xml_smoke(result_path)
+            if not post_export_checks.get("passed"):
+                failed = [
+                    check["name"]
+                    for check in post_export_checks.get("checks", [])
+                    if not check.get("passed")
+                ]
+                raise RuntimeError("DOCX export validation failed: " + ", ".join(failed))
 
             return {
                 "success": True,
@@ -473,6 +472,14 @@ class ExportPipeline:
                 output_path=output_path,
                 extra_args=args,
             )
+            post_export_checks = self.inspect_pdf_smoke(result_path)
+            if not post_export_checks.get("passed"):
+                failed = [
+                    check["name"]
+                    for check in post_export_checks.get("checks", [])
+                    if not check.get("passed")
+                ]
+                raise RuntimeError("PDF export validation failed: " + ", ".join(failed))
 
             return {
                 "success": True,
@@ -481,6 +488,7 @@ class ExportPipeline:
                 "citations_resolved": len(prepared["bibliography"]),
                 "citation_keys": prepared["citation_keys"],
                 "warnings": prepared["warnings"],
+                "post_export_checks": post_export_checks,
             }
         finally:
             try:
@@ -618,6 +626,58 @@ class ExportPipeline:
             "none" if not raw_tokens else ", ".join(raw_tokens),
         )
 
+        result["passed"] = all(check["passed"] for check in result["checks"])
+        return result
+
+    @staticmethod
+    def inspect_pdf_smoke(pdf_path: str | Path) -> dict[str, Any]:
+        """Run a lightweight PDF structural smoke test for export success."""
+        path = Path(pdf_path)
+        result: dict[str, Any] = {
+            "schema": "mdpaper.pdf_smoke.v1",
+            "path": str(path),
+            "passed": False,
+            "checks": [],
+            "stats": {},
+        }
+
+        def add_check(name: str, passed: bool, details: str = "") -> None:
+            result["checks"].append({"name": name, "passed": passed, "details": details})
+
+        if not path.is_file():
+            add_check("file_exists", False, "MISSING")
+            return result
+        add_check("file_exists", True, "exists")
+
+        try:
+            data = path.read_bytes()
+        except OSError as exc:
+            add_check("readable", False, str(exc))
+            return result
+
+        result["stats"] = {"bytes": len(data)}
+        add_check("non_empty", len(data) >= 16, f"{len(data)} bytes")
+        add_check("pdf_header", data.startswith(b"%PDF-"))
+        add_check("pdf_trailer", b"%%EOF" in data[-2048:])
+        add_check("startxref", b"startxref" in data[-4096:])
+        add_check("objects", b" obj" in data and b"endobj" in data)
+        add_check("catalog", b"/Catalog" in data)
+        add_check("pages_tree", b"/Pages" in data)
+
+        try:
+            from pypdf import PdfReader  # type: ignore[import-untyped]
+        except ModuleNotFoundError:
+            result["stats"]["pages"] = "not_checked"
+        else:
+            try:
+                reader = PdfReader(BytesIO(data), strict=False)
+                page_count = len(reader.pages)
+            except Exception as exc:
+                add_check("pdf_parse", False, str(exc))
+            else:
+                result["stats"]["pages"] = page_count
+                add_check("pdf_parse", True, f"{page_count} page(s)")
+                add_check("page_count", page_count > 0, f"{page_count} page(s)")
         result["passed"] = all(check["passed"] for check in result["checks"])
         return result
 

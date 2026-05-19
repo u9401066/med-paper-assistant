@@ -5,6 +5,7 @@ import os
 import sys
 import types
 import zipfile
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -85,7 +86,47 @@ def mock_pandoc():
     """Mock PandocExporter."""
     pandoc = MagicMock()
     pandoc.available = True
-    pandoc.markdown_to_docx.return_value = "/output/test.docx"
+
+    def _write_docx(*args, **kwargs):
+        output_path = Path(kwargs.get("output_path") or args[1])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(output_path, "w") as archive:
+            archive.writestr("[Content_Types].xml", "<Types></Types>")
+            archive.writestr(
+                "word/document.xml",
+                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                "<w:body><w:p><w:r><w:t>Hello</w:t></w:r></w:p></w:body>"
+                "</w:document>",
+            )
+        return str(output_path)
+
+    def _write_pdf(*args, **kwargs):
+        output_path = Path(kwargs.get("output_path") or args[1])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        objects = [
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] /Resources << >> >>",
+        ]
+        payload = b"%PDF-1.4\n"
+        offsets = [0]
+        for index, obj in enumerate(objects, 1):
+            offsets.append(len(payload))
+            payload += f"{index} 0 obj\n".encode() + obj + b"\nendobj\n"
+        xref_offset = len(payload)
+        payload += f"xref\n0 {len(objects) + 1}\n".encode()
+        payload += b"0000000000 65535 f \n"
+        for offset in offsets[1:]:
+            payload += f"{offset:010d} 00000 n \n".encode()
+        payload += (
+            f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
+            f"startxref\n{xref_offset}\n%%EOF\n"
+        ).encode()
+        output_path.write_bytes(payload)
+        return str(output_path)
+
+    pandoc.markdown_to_docx.side_effect = _write_docx
+    pandoc.markdown_to_pdf.side_effect = _write_pdf
     pandoc.convert.return_value = "<p>HTML content</p>"
     return pandoc
 

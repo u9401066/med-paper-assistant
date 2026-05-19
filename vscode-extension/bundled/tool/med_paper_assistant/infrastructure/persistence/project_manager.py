@@ -96,6 +96,7 @@ class ProjectManager:
         paths = {
             "root": str(project_path),
             "concept": str(project_path / "concept.md"),
+            "audit": str(project_path / ".audit"),
             "memory": str(project_path / ".memory"),
             "references": str(project_path / "references"),
             "config": str(project_path / "project.json"),

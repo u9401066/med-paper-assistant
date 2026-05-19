@@ -222,7 +222,7 @@ def register_review_facade_tools(
                 },
                 aliases=aliases,
                 notes=[
-                    "Use action='meta_learning' for D1-D6 analysis.",
+                    "Use action='meta_learning' for D1-D9 analysis.",
                     "Use action='pipeline_retrospective' to write .audit/pipeline-run-*.md with required D7/D8 headings.",
                     "Use response_format='json' where downstream tools support structured output.",
                 ],

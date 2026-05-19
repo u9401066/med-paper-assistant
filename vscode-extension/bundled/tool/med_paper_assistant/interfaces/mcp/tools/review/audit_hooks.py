@@ -9,7 +9,7 @@ See: https://github.com/toon-format/toon
 Tools:
 - record_hook_event: Record a hook evaluation outcome (trigger/pass/fix/false_positive)
 - run_quality_audit: Set quality scores for all dimensions and generate audit report
-- run_meta_learning: Run D1-D6 meta-learning analysis and write audit trail
+- run_meta_learning: Run D1-D9 meta-learning analysis and write audit trail
 - validate_data_artifacts: Cross-validate data artifacts, manifest, and draft references
 """
 
@@ -453,7 +453,7 @@ def register_audit_hook_tools(
         ctx: Context | None = None,
     ) -> str:
         """
-        🧠 HARD GATE: Run D1-D6 meta-learning analysis.
+        🧠 HARD GATE: Run D1-D9 meta-learning analysis.
 
         Call this during Phase 10 (Retrospective).
         Executes the full MetaLearningEngine analysis:
@@ -462,6 +462,9 @@ def register_audit_hook_tools(
         - D3: Threshold adjustments (auto-apply within ±20%)
         - D4-D5: SKILL.md improvement suggestions
         - D6: Audit trail generation
+        - D7: Review loop retrospective
+        - D8: EQUATOR/reporting checklist retrospective
+        - D9: Tool telemetry and description suggestions
 
         Also writes a meta_learning event to evolution-log.jsonl.
 
@@ -500,15 +503,19 @@ def register_audit_hook_tools(
                 audit_dir, tracker, scorecard, workspace_root=workspace_root
             )
 
-            # Run analysis (D1 through D6)
-            await report_tool_progress(ctx, 2, 4, "Running D1-D6 meta-learning analysis", end=95)
+            # Run analysis (D1 through D9)
+            await report_tool_progress(ctx, 2, 4, "Running D1-D9 meta-learning analysis", end=95)
             result = engine.analyze()
 
             # Write meta_learning event to evolution-log.jsonl
             elog = audit_dir / "evolution-log.jsonl"
             entry = {
+                "schema": "mdpaper.meta_learning_event.v1",
                 "event": "meta_learning",
                 "timestamp": datetime.now().isoformat(),
+                "source_tool": "run_meta_learning",
+                "audit_timestamp": result.get("audit_trail", {}).get("timestamp"),
+                "run_number": result.get("audit_trail", {}).get("run_number"),
                 "adjustments_count": len(result.get("adjustments", [])),
                 "lessons_count": len(result.get("lessons", [])),
                 "suggestions_count": len(result.get("suggestions", [])),

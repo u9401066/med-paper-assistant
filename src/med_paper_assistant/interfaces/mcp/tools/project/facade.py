@@ -12,6 +12,8 @@ from typing import Any, Optional
 import yaml
 from mcp.server.fastmcp import Context, FastMCP
 
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
+
 from .._shared import (
     facade_schema_json,
     invoke_tool_handler,
@@ -669,7 +671,7 @@ def register_project_facade_tools(
                     "description": description,
                     "target_journal": target_journal,
                     "paper_type": paper_type,
-                    "workflow_mode": workflow_mode,
+                    "workflow_mode": workflow_mode or DEFAULT_WORKFLOW_MODE,
                     "authors_json": authors_json,
                     "memo": memo,
                 },

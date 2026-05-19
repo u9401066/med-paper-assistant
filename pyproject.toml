@@ -1,6 +1,6 @@
 [project]
 name = "med-paper-assistant"
-version = "0.7.10"
+version = "0.7.11"
 description = "An MCP-orchestrated research workspace for manuscript and library-wiki workflows"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -70,6 +70,20 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/med_paper_assistant"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"templates" = "med_paper_assistant/templates"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/med_paper_assistant",
+    "/templates",
+    "/README.md",
+    "/README.zh-TW.md",
+    "/LICENSE",
+    "/pyproject.toml",
+    "/uv.lock",
+]
 
 # ============================================
 # 依賴群組 (uv 推薦格式)

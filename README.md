@@ -11,7 +11,7 @@
 
 ## 🔬 An MCP-Orchestrated Research Workspace for Medical Paper Writing and LLM Wiki Workflows
 
-3 MCP Servers · 176+ Tools · 26 Skills · 15 Prompts Workflows — monorepo authoring surface plus packaged VSIX surface in one VS Code ecosystem
+3 MCP Servers · 187+ Tools · 26 Skills · 15 Prompts Workflows — monorepo authoring surface plus packaged VSIX surface in one VS Code ecosystem
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 13 main gate checkpoints + Phase 2.1 sub-gate, 79 Quality Hooks, Structured Review Loop
@@ -27,8 +27,8 @@ This repository is the **full authoring and integration workspace** behind MedPa
 | Component                                                          | Type                   | Tools                             | Description                                                                                                                           |
 | ------------------------------------------------------------------ | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **mdpaper**                                                        | Core MCP Server        | 117 (full) / 22 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources                                    |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13                                | Creative generation: brainstorm, deep think, spark collision                                                                          |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 46                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 24                                | Creative generation: brainstorm, deep think, spark collision                                                                          |
 | **[VS Code Extension](vscode-extension/)**                         | Extension              | 11 cmds + 10 chat                 | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                 | Project management UI, diagram editor                                                                                                 |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                 | `[[wikilink]]` citation linking, hover preview, graph view                                                                            |
@@ -52,7 +52,7 @@ Counts in these tables are release-gated via `tool-surface-authority.json` and `
 
 The repository is the broader engineering surface. The VSIX is the curated end-user surface.
 
-**VSX note**: The MedPaper VS Code extension installs Python MCP tools persistently per machine via `uv tool install`, attempts `uv tool upgrade` on later activations, and skips duplicate PubMed Search / Zotero Keeper registration when another installed VS Code extension already provides those MCP servers. CI smoke now covers `ubuntu-latest`, `windows-latest`, `macos-13`, and `macos-14`, including official MCP client checks plus VSX validation smoke.
+**VSX note**: The MedPaper VS Code extension installs Python MCP tools persistently per machine via `uv tool install`, attempts `uv tool upgrade` on later activations, and skips duplicate PubMed Search / Zotero Keeper registration when another installed VS Code extension already provides those MCP servers. CI smoke now covers `ubuntu-latest`, `windows-latest`, and `macos-14`, including official MCP client checks plus VSX validation smoke.
 
 ### How the Pieces Fit Together
 
@@ -75,7 +75,7 @@ The repository is the broader engineering surface. The VSIX is the curated end-u
 | Traditional Tools                   | Medical Paper Assistant                                                  |
 | ----------------------------------- | ------------------------------------------------------------------------ |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach                                           |
-| Separate apps for search/write/cite | One orchestrated workspace: 176+ tools and packaged workflows in VS Code |
+| Separate apps for search/write/cite | One orchestrated workspace: 187+ tools and packaged workflows in VS Code |
 | Manual reference management         | Auto-save with verified PubMed data                                      |
 | Export then format                  | Direct Word export with journal styles                                   |
 | Learn complex UI                    | Natural language conversation                                            |
@@ -311,8 +311,8 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│ 117/22 tools  │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
-│               │  │  37 tools     │  │               │  │               │
+│ 117/22 tools  │  │  search       │  │  24 tools     │  │   MCPs (uvx)  │
+│               │  │  46 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
 │ • drafts      │  │ • CORE        │  │ • spark       │  │               │
@@ -360,7 +360,7 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-**115 tools (full surface) / 22 tools (compact default)**, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
+The mdpaper MCP server exposes **117 (full) / 22 (compact default)** tools, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
 
 These counts are runtime-validated via `tool-surface-authority.json` and `scripts/check_tool_surface_authority.py`, and the validate/release gates fail if the docs drift from that authority.
 
@@ -438,11 +438,12 @@ Write, edit, cite — with built-in validation.
 
 ### 📄 Export & Submission
 
-| Category          | Key Tools                                                                    |
-| ----------------- | ---------------------------------------------------------------------------- |
-| **Word Export**   | `export_word`, `list_templates`, `start_document_session`, `verify_document` |
-| **Pandoc Export** | `export_docx`, `export_pdf`, `preview_citations`, `build_bibliography`       |
-| **Submission**    | `generate_cover_letter`, `generate_highlights`                               |
+| Category       | Key Tools                                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Inspection** | `inspect_export(action="list_templates")`, `inspect_export(action="read_template")`, `inspect_export(action="verify_document")` |
+| **Session**    | `export_document(action="session_start")`, `export_document(action="session_insert")`, `export_document(action="session_save")` |
+| **Pandoc**     | `export_document(action="docx")`, `export_document(action="pdf")`, `inspect_export(action="docx_smoke")`                        |
+| **Submission** | `generate_cover_letter`, `generate_highlights`                                                                                  |
 
 ### 🧩 MCP Prompts & Resources
 
@@ -451,7 +452,7 @@ Write, edit, cite — with built-in validation.
 | **Prompts**   | `project_bootstrap`, `draft_section_plan`, `word_export_checklist`                            | Materialize guided prompt workflows through the official MCP prompt API              |
 | **Resources** | `medpaper://workspace/state`, `medpaper://workspace/projects`, `medpaper://templates/catalog` | Surface live workspace state, project lists, and template metadata via MCP resources |
 
-### 🔍 pubmed-search MCP Tools (37 tools)
+### 🔍 pubmed-search MCP Tools (46 tools)
 
 | Category        | Key Tools                                                                     |
 | --------------- | ----------------------------------------------------------------------------- |
@@ -462,7 +463,7 @@ Write, edit, cite — with built-in validation.
 | **Export**      | `prepare_export` (RIS/BibTeX/CSV), `get_citation_metrics` (iCite RCR)         |
 | **Session**     | `read_session(action="pmids")`, `get_session_log` (survives AI memory limits) |
 
-### 💡 CGU Creative Tools (13 tools)
+### 💡 CGU Creative Tools (24 tools)
 
 | Category     | Key Tools                                                   |
 | ------------ | ----------------------------------------------------------- |
@@ -563,7 +564,7 @@ med-paper-assistant/
 │
 ├── integrations/                  # Bundled MCP servers
 │   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (46 tools)
-│   └── cgu/                       #   Creative generation (13 tools)
+│   └── cgu/                       #   Creative generation (24 tools)
 │
 ├── vscode-extension/              # Packaged VSIX surface
 │   ├── src/                       #   Extension source
@@ -599,7 +600,7 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                                                  |
 | ------ | --------------------------- | ---------------------------------------------------------------------------- |
-| ✅     | **3 MCP Servers**           | mdpaper (117 full / 22 compact) + pubmed-search (37) + CGU (13)              |
+| ✅     | **3 MCP Servers**           | mdpaper (117 full / 22 compact) + pubmed-search (46) + CGU (24)              |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation    |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                                      |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                                       |

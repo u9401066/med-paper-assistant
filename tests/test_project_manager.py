@@ -139,7 +139,7 @@ class TestCreateProject:
         info = pm.get_project_info()
         import os
 
-        for key in ["drafts", "references", "data", "results", "memory"]:
+        for key in ["drafts", "references", "data", "results", "exports", "audit", "memory"]:
             assert os.path.isdir(info["paths"][key]), f"Missing directory: {key}"
 
     def test_creates_concept_template(self, pm):
@@ -161,12 +161,14 @@ class TestCreateProject:
             config = json.load(f)
         assert config["name"] == "New"
         assert config["paper_type"] == "review-article"
+        assert config["workflow_mode"] == "manuscript"
 
     def test_persists_workflow_mode_and_library_templates(self, pm):
         pm.create_project(name="Library", workflow_mode="library-wiki")
 
         info = pm.get_project_info()
         assert info["workflow_mode"] == "library-wiki"
+        assert "audit" in info["paths"]
         assert "inbox" in info["paths"]
         assert "concepts" in info["paths"]
         assert "projects" in info["paths"]

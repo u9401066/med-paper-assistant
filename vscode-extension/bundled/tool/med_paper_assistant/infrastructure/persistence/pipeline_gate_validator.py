@@ -58,6 +58,7 @@ _PIPELINE_PHASE_NAMES = {
     11: "Final Delivery",
 }
 _PIPELINE_PHASE_RANK = {phase: index for index, phase in enumerate(_PIPELINE_PHASES)}
+_META_LEARNING_STEPS = tuple(f"D{i}" for i in range(1, 10))
 
 
 @dataclass
@@ -710,11 +711,29 @@ class PipelineGateValidator:
                 )
             )
 
+        # Phase 9+ depends on Phase 8 reference sync being materially complete.
+        if phase_rank >= self._phase_rank(9) and phase != 65:
+            phase8_result = self._validate_phase_8()
+            phase8_failures = phase8_result.critical_failures
+            checks.append(
+                GateCheck(
+                    name="prereq:phase8_reference_sync",
+                    description="Phase 8 reference sync gate has no critical failures",
+                    passed=not phase8_failures,
+                    details="passed"
+                    if not phase8_failures
+                    else "Phase 8 failed: " + ", ".join(c.name for c in phase8_failures[:5]),
+                    severity="CRITICAL",
+                )
+            )
+
         # Phase 11 only — exports (docx + pdf).  Uses == to exclude Phase 65.
         if phase == 11:
             export_dir = self._project_dir / "exports"
-            has_docx = bool(list(export_dir.glob("*.docx"))) if export_dir.is_dir() else False
-            has_pdf = bool(list(export_dir.glob("*.pdf"))) if export_dir.is_dir() else False
+            docx_candidates = list(export_dir.glob("*.docx")) if export_dir.is_dir() else []
+            pdf_candidates = list(export_dir.glob("*.pdf")) if export_dir.is_dir() else []
+            has_docx = bool(docx_candidates)
+            has_pdf = bool(pdf_candidates)
             checks.append(
                 GateCheck(
                     name="prereq:exports",
@@ -724,6 +743,22 @@ class PipelineGateValidator:
                     if (has_docx and has_pdf)
                     else f"MISSING — {'no docx' if not has_docx else ''}"
                     f"{'no pdf' if not has_pdf else ''} — complete Phase 9 first",
+                    severity="CRITICAL",
+                )
+            )
+            checks.append(self._build_export_integrity_check("docx", docx_candidates))
+            checks.append(self._build_export_integrity_check("pdf", pdf_candidates))
+
+            phase10_result = self._validate_phase_10()
+            phase10_failures = phase10_result.critical_failures
+            checks.append(
+                GateCheck(
+                    name="prereq:phase10_retrospective",
+                    description="Phase 10 retrospective gate has no critical failures",
+                    passed=not phase10_failures,
+                    details="passed"
+                    if not phase10_failures
+                    else "Phase 10 failed: " + ", ".join(c.name for c in phase10_failures[:5]),
                     severity="CRITICAL",
                 )
             )
@@ -1230,10 +1265,96 @@ class PipelineGateValidator:
                 f"Call submit_review_round to complete the current round.",
             )
 
+        phase7_result = self._validate_phase_7()
+        phase7_failures = phase7_result.critical_failures
+        if phase7_failures:
+            examples = ", ".join(c.name for c in phase7_failures[:5])
+            return False, f"Phase 7 artifact gate failed: {examples}"
+
         return (
             True,
             f"{rounds_completed}/{max_rounds} rounds completed, verdict={last_verdict}",
         )
+
+    @staticmethod
+    def _check_docx_integrity(path: Path) -> tuple[bool, str]:
+        """Validate a DOCX export enough for a release gate."""
+        from med_paper_assistant.application.export_pipeline import ExportPipeline
+
+        result = ExportPipeline.inspect_docx_xml_smoke(path)
+        if result.get("passed"):
+            stats = result.get("stats", {})
+            return (
+                True,
+                "valid DOCX "
+                f"({path.stat().st_size} bytes, "
+                f"{stats.get('paragraphs', 0)} paragraph(s), "
+                f"{stats.get('text_chars', 0)} text chars)",
+            )
+        failed = [
+            f"{check.get('name')}: {check.get('details') or 'failed'}"
+            for check in result.get("checks", [])
+            if not check.get("passed")
+        ]
+        return False, "; ".join(failed[:5]) or "DOCX smoke failed"
+
+    @staticmethod
+    def _check_pdf_integrity(path: Path) -> tuple[bool, str]:
+        """Validate a PDF export with lightweight structural checks."""
+        from med_paper_assistant.application.export_pipeline import ExportPipeline
+
+        result = ExportPipeline.inspect_pdf_smoke(path)
+        if result.get("passed"):
+            stats = result.get("stats", {})
+            return (
+                True,
+                f"valid PDF ({stats.get('bytes', path.stat().st_size)} bytes, "
+                f"{stats.get('pages', 'unknown')} page(s))",
+            )
+        failed = [
+            f"{check.get('name')}: {check.get('details') or 'failed'}"
+            for check in result.get("checks", [])
+            if not check.get("passed")
+        ]
+        return False, "; ".join(failed[:5]) or "PDF smoke failed"
+
+    def _build_export_integrity_check(self, ext: str, candidates: list[Path]) -> GateCheck:
+        """Build an export integrity check for one deliverable type."""
+        if not candidates:
+            return GateCheck(
+                name=f"export:{ext}:integrity",
+                description=f"Exported {ext.upper()} file integrity",
+                passed=False,
+                details="MISSING",
+            )
+
+        checker = self._check_docx_integrity if ext == "docx" else self._check_pdf_integrity
+        failures = []
+        for candidate in sorted(candidates):
+            passed, details = checker(candidate)
+            if passed:
+                return GateCheck(
+                    name=f"export:{ext}:integrity",
+                    description=f"Exported {ext.upper()} file integrity",
+                    passed=True,
+                    details=f"{candidate.name}: {details}",
+                )
+            failures.append(f"{candidate.name}: {details}")
+
+        return GateCheck(
+            name=f"export:{ext}:integrity",
+            description=f"Exported {ext.upper()} file integrity",
+            passed=False,
+            details="; ".join(failures[:3]),
+        )
+
+    @staticmethod
+    def _parse_branch_ab(status_output: str) -> tuple[int, int] | None:
+        """Parse `git status --porcelain=v2` ahead/behind counters."""
+        match = re.search(r"^# branch\.ab \+(\d+) -(\d+)$", status_output, re.MULTILINE)
+        if not match:
+            return None
+        return int(match.group(1)), int(match.group(2))
 
     def _load_concept_review(self) -> dict[str, Any]:
         """Load concept-review.yaml when available."""
@@ -2192,6 +2313,38 @@ class PipelineGateValidator:
                     details="found" if has_references else "MISSING",
                 )
             )
+            try:
+                from med_paper_assistant.infrastructure.persistence.writing_hooks import (
+                    WritingHooksEngine,
+                )
+
+                c5 = WritingHooksEngine(project_dir=self._project_dir).check_wikilink_resolvable(
+                    content
+                )
+                critical_messages = [
+                    issue.message for issue in c5.issues if issue.severity == "CRITICAL"
+                ]
+                checks.append(
+                    GateCheck(
+                        name="reference-sync:wikilinks",
+                        description="All manuscript citation wikilinks resolve to saved references",
+                        passed=c5.passed,
+                        details=(
+                            "all citation wikilinks resolve"
+                            if c5.passed
+                            else "; ".join(critical_messages[:5])
+                        ),
+                    )
+                )
+            except Exception as exc:
+                checks.append(
+                    GateCheck(
+                        name="reference-sync:wikilinks",
+                        description="All manuscript citation wikilinks resolve to saved references",
+                        passed=False,
+                        details=f"wikilink validation failed: {exc}",
+                    )
+                )
         else:
             checks.append(
                 GateCheck(
@@ -2220,12 +2373,13 @@ class PipelineGateValidator:
                     details=f"{len(candidates)} {ext} file(s)" if candidates else "MISSING",
                 )
             )
+            checks.append(self._build_export_integrity_check(ext, candidates))
 
         return GateResult(phase=9, phase_name="Export", checks=checks, passed=False)
 
     def _validate_phase_10(self) -> GateResult:
         """
-        Phase 10: Retrospective — D1-D8 artifacts with DATA validation.
+        Phase 10: Retrospective — D1-D9 artifacts with DATA validation.
 
         Beyond file existence, validates:
         - meta-learning-audit.yaml has ≥1 analysis entry (run_meta_learning required)
@@ -2305,23 +2459,25 @@ class PipelineGateValidator:
         # 3. evolution-log.jsonl with meta_learning event
         elog = self._audit_dir / "evolution-log.jsonl"
         has_meta = False
+        meta_events: list[dict[str, Any]] = []
         if elog.is_file():
             try:
                 for line in elog.read_text(encoding="utf-8").strip().split("\n"):
                     if line.strip():
                         entry = json.loads(line)
-                        if entry.get("event") == "meta_learning":
-                            has_meta = True
-                            break
+                        if isinstance(entry, dict) and entry.get("event") == "meta_learning":
+                            meta_events.append(entry)
+                            if entry.get("source_tool") == "run_meta_learning":
+                                has_meta = True
             except (json.JSONDecodeError, OSError):
                 pass
 
         checks.append(
             GateCheck(
                 name="evolution-log:meta_learning",
-                description="evolution-log.jsonl contains meta_learning event (D6)",
+                description="evolution-log.jsonl contains run_meta_learning event (D6)",
                 passed=has_meta,
-                details="found" if has_meta else "MISSING",
+                details="found" if has_meta else "MISSING source_tool=run_meta_learning event",
             )
         )
 
@@ -2339,7 +2495,36 @@ class PipelineGateValidator:
                         k in latest_entry
                         for k in ("adjustments_count", "lessons_count", "suggestions_count")
                     )
-                    if has_counts:
+                    has_schema = latest_entry.get("schema") == "mdpaper.meta_learning_audit.v2"
+                    has_source = latest_entry.get("source_tool") == "run_meta_learning"
+                    steps = latest_entry.get("analysis_steps", {})
+                    has_steps = isinstance(steps, dict) and all(
+                        step in steps for step in _META_LEARNING_STEPS
+                    )
+                    counts_match = (
+                        latest_entry.get("adjustments_count", 0)
+                        == len(latest_entry.get("adjustments", []) or [])
+                        and latest_entry.get("lessons_count", 0)
+                        == len(latest_entry.get("lessons", []) or [])
+                        and latest_entry.get("suggestions_count", 0)
+                        == len(latest_entry.get("suggestions", []) or [])
+                    )
+                    matching_event = any(
+                        event.get("source_tool") == "run_meta_learning"
+                        and event.get("audit_timestamp") == latest_entry.get("timestamp")
+                        and event.get("adjustments_count") == latest_entry.get("adjustments_count")
+                        and event.get("lessons_count") == latest_entry.get("lessons_count")
+                        and event.get("suggestions_count") == latest_entry.get("suggestions_count")
+                        for event in meta_events
+                    )
+                    if (
+                        has_schema
+                        and has_source
+                        and has_counts
+                        and has_steps
+                        and counts_match
+                        and matching_event
+                    ):
                         mla_has_data = True
                         mla_details = (
                             f"{len(data)} analysis entries, latest: "
@@ -2348,8 +2533,22 @@ class PipelineGateValidator:
                             f"suggestions={latest_entry.get('suggestions_count', 0)}"
                         )
                     else:
+                        missing = []
+                        if not has_schema:
+                            missing.append("schema mdpaper.meta_learning_audit.v2")
+                        if not has_source:
+                            missing.append("source_tool run_meta_learning")
+                        if not has_counts:
+                            missing.append("analysis counts")
+                        if not has_steps:
+                            missing.append("analysis_steps D1-D9")
+                        if not counts_match:
+                            missing.append("count/list consistency")
+                        if not matching_event:
+                            missing.append("matching evolution-log provenance")
                         mla_details = (
-                            "meta-learning-audit.yaml exists but entry missing analysis counts"
+                            "meta-learning-audit.yaml exists but entry missing "
+                            + ", ".join(missing)
                         )
                 else:
                     mla_details = "meta-learning-audit.yaml exists but empty or invalid format"
@@ -2490,7 +2689,8 @@ class PipelineGateValidator:
                 # 4. Check push status
                 branch_info = status_result.stdout
                 has_upstream = "branch.upstream" in branch_info
-                is_pushed = has_upstream and "branch.ab +0" in branch_info
+                branch_ab = self._parse_branch_ab(branch_info)
+                is_pushed = has_upstream and branch_ab == (0, 0)
                 if not has_upstream:
                     push_passed = True
                     push_details = (
@@ -2503,9 +2703,16 @@ class PipelineGateValidator:
                     push_severity = "INFO"
                 else:
                     push_passed = False
-                    push_details = (
-                        "Unpushed commits exist; remote sync is optional for paper delivery"
-                    )
+                    if branch_ab:
+                        ahead, behind = branch_ab
+                        push_details = (
+                            f"Remote sync drift: ahead={ahead}, behind={behind}; "
+                            "remote sync is optional for paper delivery"
+                        )
+                    else:
+                        push_details = (
+                            "Remote sync status unknown; remote sync is optional for paper delivery"
+                        )
                     push_severity = "WARNING"
                 checks.append(
                     GateCheck(

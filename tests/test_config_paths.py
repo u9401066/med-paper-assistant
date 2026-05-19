@@ -5,6 +5,7 @@ from pathlib import Path
 
 from med_paper_assistant.infrastructure.config import AppConfig, get_project_root
 from med_paper_assistant.infrastructure.services.template_reader import TemplateReader
+from med_paper_assistant.shared.template_paths import get_templates_dir
 
 
 def test_app_config_defaults_to_repo_root(monkeypatch):
@@ -24,6 +25,7 @@ def test_template_reader_defaults_to_repo_templates_dir():
     reader = TemplateReader()
     expected = get_project_root().resolve() / "templates"
     assert reader.templates_dir == expected
+    assert get_templates_dir() == expected
 
 
 def test_template_reader_accepts_explicit_directory(tmp_path):

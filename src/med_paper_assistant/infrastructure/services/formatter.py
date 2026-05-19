@@ -1,21 +1,14 @@
-import os
 from pathlib import Path, PureWindowsPath
 
 from med_paper_assistant.infrastructure.services.exporter import WordExporter
 from med_paper_assistant.shared.path_guard import PathGuardError, resolve_child_path
+from med_paper_assistant.shared.template_paths import get_templates_dir
 
 
 class Formatter:
     def __init__(self):
         self.exporter = WordExporter()
-        # Define templates directory relative to the project root
-        # Go up 5 levels: services -> infrastructure -> med_paper_assistant -> src -> root
-        self.templates_dir = os.path.join(
-            os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-            ),
-            "templates",
-        )
+        self.templates_dir = str(get_templates_dir())
 
     def apply_template(self, draft_path: str, template_name: str, output_path: str) -> str:
         """

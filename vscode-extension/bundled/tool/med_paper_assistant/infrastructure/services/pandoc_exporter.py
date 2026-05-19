@@ -21,15 +21,15 @@ from __future__ import annotations
 
 import os
 import tempfile
-from pathlib import Path
 from typing import Any
 
 import pypandoc
 import structlog
 
+from med_paper_assistant.shared.template_paths import get_templates_dir
+
 logger = structlog.get_logger()
 
-_TEMPLATES_CSL_DIR = Path(__file__).parents[4] / "templates" / "csl"
 _CSL_ALIASES = {
     "vancouver-superscript": "vancouver-superscript.csl",
     "vancouver_superscript": "vancouver-superscript.csl",
@@ -337,19 +337,21 @@ class PandocExporter:
         if os.path.isfile(csl):
             return csl
 
+        templates_csl_dir = get_templates_dir() / "csl"
+
         # templates/csl/{name}.csl
-        candidate = _TEMPLATES_CSL_DIR / f"{csl}.csl"
+        candidate = templates_csl_dir / f"{csl}.csl"
         if candidate.is_file():
             return str(candidate)
 
         # Try without extension
-        candidate = _TEMPLATES_CSL_DIR / csl
+        candidate = templates_csl_dir / csl
         if candidate.is_file():
             return str(candidate)
 
         mapped = _CSL_ALIASES.get(csl.lower())
         if mapped:
-            candidate = _TEMPLATES_CSL_DIR / mapped
+            candidate = templates_csl_dir / mapped
             if candidate.is_file():
                 return str(candidate)
 

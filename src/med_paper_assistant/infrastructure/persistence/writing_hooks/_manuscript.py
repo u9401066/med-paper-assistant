@@ -454,9 +454,11 @@ class ManuscriptHooksMixin:
         refs_dir = self._project_dir / "references"
         existing_refs: set[str] = set()
         if refs_dir.is_dir():
-            for d in refs_dir.iterdir():
-                if d.is_dir():
-                    existing_refs.add(d.name)
+            for entry in refs_dir.iterdir():
+                if entry.is_dir():
+                    existing_refs.add(entry.name)
+                elif entry.is_file() and entry.suffix.lower() == ".md":
+                    existing_refs.add(entry.stem)
 
         resolved = 0
         unresolved = 0
