@@ -4,23 +4,23 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-05-13)
+## 當前焦點 (2026-05-19)
 
-v0.7.10 release 已完成並發布；目前焦點是 release 後 CI/hook hygiene follow-up：移除 GitHub Actions Node.js 20 deprecation warnings，並讓 paper precommit 在沒有 staged draft files 時完全安靜跳過，避免 repo release/infra commit 被研究稿品質警告污染。
+v0.7.11 release hardening 已完成本地驗證；目前焦點是分段 commit、push、建立並推送 `v0.7.11` tag。這版鎖定 Phase 8-11 code-enforced release gates、D1-D9 meta-learning audit provenance、DOCX/PDF export integrity、release workflow least-privilege/frozen installs/security gate、VSIX package smoke，以及 README/skills/docs 對齊。
 
 ### 當前狀態
 
-| 項目                  | 數量/狀態                                                                                            |
-| --------------------- | ---------------------------------------------------------------------------------------------------- |
-| MCP Tools             | **117 full / 22 compact (default)** + 3 prompts + 3 resources                                        |
-| External MCP Surface  | **PubMed Search 46 tools** + **CGU 13 tools**                                                        |
-| Repo Skills / Prompts | **26 skills / 15 prompt workflows**                                                                  |
-| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**         |
-| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                   |
-| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate  |
-| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                       |
-| Latest Validation     | Full Python + VSIX verification passed for v0.7.10; follow-up workflow/precommit targeted tests pass |
-| Packaging             | `medpaper-assistant-0.7.10.vsix` released via GitHub Release / PyPI / VS Marketplace                 |
+| 項目                  | 數量/狀態                                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **117 full / 22 compact (default)** + 3 prompts + 3 resources                                                          |
+| External MCP Surface  | **PubMed Search 46 tools** + **CGU 24 tools**                                                                          |
+| Repo Skills / Prompts | **26 skills / 15 prompt workflows**                                                                                    |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**                           |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                     |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                    |
+| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                         |
+| Latest Validation     | Python 1305 passed / 1 skipped / 26 deselected; VSIX 169 passed; ruff/mypy/bandit/build/validate passed for v0.7.11    |
+| Packaging             | `medpaper-assistant-0.7.11.vsix`, wheel 656 KB, sdist 772 KB built locally with bundled templates; publish/tag pending |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -33,6 +33,16 @@ v0.7.10 release 已完成並發布；目前焦點是 release 後 CI/hook hygiene
 | L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
 
 ### 最近變更
+
+#### v0.7.11 Phase Gate + Release Hardening (2026-05-19)
+
+- **Phase 8-11 gates hardened**: later phases now require completed Phase 7 artifacts/review events, resolved citation wikilinks, valid DOCX/PDF structure, Phase 10 D1-D9 `analysis_steps`, and Phase 10 pass before final delivery.
+- **Export integrity**: `ExportPipeline.export_docx()` now fails missing/corrupt DOCX immediately; `export_pdf()` adds PDF header/trailer smoke validation and returns post-export checks.
+- **Meta-learning provenance**: `MetaLearningEngine` writes `schema`, `source_tool`, and structured D1-D9 `analysis_steps`; Phase 10 rejects count-only hand-authored audit YAML and requires matching `run_meta_learning` evolution-log provenance.
+- **Release workflow**: `.github/workflows/release.yml` uses global `contents: read`, job-local release write permissions, pinned `setup-uv` 0.10.0, `uv sync --frozen --all-extras`, manual dispatch version/tag guard, and `lint-security` before publish/release jobs.
+- **Packaging**: sdist scoped via Hatch include list after discovering an oversized 590 MB sdist; runtime templates/CSL/journal profiles are bundled into the wheel and verified via wheel unpack smoke.
+- **Docs/VSIX**: README EN/zh-TW, CHANGELOG, ROADMAP, auto-paper guide, MCP instructions, source skills, and VSIX bundled skills/Python mirror aligned to facade-first project/draft/export guidance and D1-D9.
+- **Verification**: `uv run pytest tests/ -q --timeout=60 -m "not integration and not slow"` → 1305 passed / 1 skipped / 26 deselected; `npm run test:ci` → 169 passed; `npm run validate -- --skip-tests` → 92 passed; ruff/mypy/bandit/uv build/VSIX smoke/tool authority/MCP boot/wheel-template smoke all pass.
 
 #### v0.7.10 Upstream Dependency + 13-Phase Docs Release (2026-05-13)
 
@@ -168,7 +178,7 @@ v0.7.10 release 已完成並發布；目前焦點是 release 後 CI/hook hygiene
 
 ## 下一步
 
-- [ ] Push `release/v0.7.0` branch and tag `v0.7.3`
+- [ ] Push segmented v0.7.11 release commits and tag `v0.7.11`
 - [ ] Watch GitHub release/CI result after tag propagation
 - [ ] Phase 5c TreeView/CodeLens/Diagnostics features
 - [ ] Dashboard Webview 內嵌（取代 Simple Browser）

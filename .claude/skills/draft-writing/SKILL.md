@@ -3,7 +3,7 @@ name: draft-writing
 description: |
   論文草稿的撰寫、讀取、引用管理。
   LOAD THIS SKILL WHEN: 寫草稿、draft、撰寫、Introduction、Methods、Results、Discussion、引用、citation、字數、patch、編輯草稿
-  CAPABILITIES: write_draft, draft_section, read_draft, list_drafts, insert_citation, sync_references, count_words, get_available_citations, patch_draft
+  CAPABILITIES: draft_action(action="write"|"section"|"read"|"list"|"insert_citation"|"sync_references"|"count_words"|"available_citations"|"patch")
 ---
 
 # 草稿撰寫技能
@@ -21,31 +21,31 @@ description: |
 
 ### 撰寫
 
-| 工具                  | 說明                                              |
-| --------------------- | ------------------------------------------------- |
-| `write_draft`         | 建立/覆寫草稿（`filename`, `content`, `project`） |
-| `draft_section`       | 根據 notes 產出 section（`topic`, `notes`）       |
-| `read_draft`          | 讀取草稿                                          |
-| `list_drafts`         | 列出所有草稿                                      |
-| `check_writing_order` | ⭐ 檢查寫作順序與進度（advisory, 不阻止）         |
+| 工具                                 | 說明                                              |
+| ------------------------------------ | ------------------------------------------------- |
+| `draft_action(action="write")`       | 建立/覆寫草稿（`filename`, `content`, `project`） |
+| `draft_action(action="section")`     | 根據 notes 產出 section（`topic`, `notes`）       |
+| `draft_action(action="read")`        | 讀取草稿                                          |
+| `draft_action(action="list")`        | 列出所有草稿                                      |
+| `draft_action(action="check_order")` | ⭐ 檢查寫作順序與進度（advisory, 不阻止）         |
 
-### 引用（⚠️ 修改引用必須用 `patch_draft`，禁止 `replace_string_in_file`）
+### 引用（⚠️ 修改引用必須用 `draft_action(action="patch")`，禁止 `replace_string_in_file`）
 
-| 工具                      | 說明                                              |
-| ------------------------- | ------------------------------------------------- |
-| `get_available_citations` | ⚠️ 編輯前必呼叫！列出可用 `[[citation_key]]`      |
-| `patch_draft`             | 部分編輯草稿，自動驗證 wikilinks                  |
-| `insert_citation`         | 定點插入引用（`filename`, `target_text`, `pmid`） |
-| `sync_references`         | 掃描 [[wikilinks]] 生成 References                |
-| `count_words`             | 計算字數                                          |
+| 工具                                         | 說明                                              |
+| -------------------------------------------- | ------------------------------------------------- |
+| `draft_action(action="available_citations")` | ⚠️ 編輯前必呼叫！列出可用 `[[citation_key]]`      |
+| `draft_action(action="patch")`               | 部分編輯草稿，自動驗證 wikilinks                  |
+| `draft_action(action="insert_citation")`     | 定點插入引用（`filename`, `target_text`, `pmid`） |
+| `draft_action(action="sync_references")`     | 掃描 [[wikilinks]] 生成 References                |
+| `draft_action(action="count_words")`         | 計算字數                                          |
 
-**patch_draft vs replace_string_in_file**：patch_draft 驗證引用、自動修復格式、拒絕不存在的引用。
+**`draft_action(action="patch")` vs replace_string_in_file**：draft facade 會驗證引用、自動修復格式、拒絕不存在的引用。
 
 ---
 
 ## 自動快照（CONSTITUTION §22 Auditable）
 
-所有草稿寫入路徑（`write_draft`、`patch_draft`、`insert_citation`、`create_draft`）在覆寫前**自動建立快照**，儲存於 `drafts/.snapshots/`。
+所有草稿寫入路徑（透過 `draft_action(action="write"|"patch"|"insert_citation")`，以及 full-surface legacy verbs）在覆寫前**自動建立快照**，儲存於 `drafts/.snapshots/`。
 
 - 最多保留 20 個快照/檔案，自動清理
 - 不依賴 git 或 agent 合作，純粹在寫入路徑中觸發
@@ -63,24 +63,24 @@ description: |
 | review-article    | Introduction → Body → Conclusion → Abstract                           |
 
 前置：Results 需 Methods、Discussion 需 Results+Intro、Conclusion 需 Discussion、Abstract 需全部。
-`check_writing_order()` 產生警告，不阻止。警告出現時詢問用戶是否繼續。
+`draft_action(action="check_order")` 產生警告，不阻止。警告出現時詢問用戶是否繼續。
 
 ---
 
 ## Flow A: 撰寫新 Section
 
-1. `check_writing_order()` → 確認前置
+1. `draft_action(action="check_order")` → 確認前置
 2. `validate_for_section(section)` → ✅/❌
-3. `read_draft("concept.md")` → 提取 🔒 NOVELTY + 🔒 SELLING POINTS
+3. `draft_action(action="read", filename="concept.md")` → 提取 🔒 NOVELTY + 🔒 SELLING POINTS
 4. 參考下方 Section 指南撰寫
-5. `count_words()`
+5. `draft_action(action="count_words")`
 6. `pipeline_action(action="approve_section", section=section, decision="approve|revise")` → 用戶審閱 approve/revise（Phase 5 時 MANDATORY）
 
 ## Flow B: Citation-Aware 編輯
 
-1. `get_available_citations()` → 取得可用 citation keys
-2. `patch_draft(filename, old_text, new_text)` → 自動驗證 wikilinks
-3. `sync_references(filename)` → 生成 References
+1. `draft_action(action="available_citations")` → 取得可用 citation keys
+2. `draft_action(action="patch", filename=..., old_text=..., new_text=...)` → 自動驗證 wikilinks
+3. `draft_action(action="sync_references", filename=...)` → 生成 References
 
 ---
 

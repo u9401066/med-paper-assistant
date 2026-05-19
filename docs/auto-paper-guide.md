@@ -252,7 +252,7 @@ FOR section IN writing_order:
 
 ### Phase 10: Retrospective
 
-**技能**：meta-learning（Hook D1-D7）
+**技能**：meta-learning（Hook D1-D9）
 
 閉環核心 — 系統從自身的執行經驗學習：
 
@@ -261,6 +261,8 @@ FOR section IN writing_order:
 3. 更新 SKILL.md Lessons Learned
 4. 分析 journal-profile 設定合理性
 5. D7: Review Retrospective — 分析 reviewer 效能，演化審稿指令
+6. D8: EQUATOR Retrospective — 回顧報告指引缺口
+7. D9: Tool Telemetry — 回顧工具誤用與描述改善建議
 
 ### Phase 11: Final Delivery
 
@@ -283,7 +285,7 @@ FOR section IN writing_order:
 | **Hook A** | 每次寫完（post-write）       | A1-A4  | 字數、引用密度、Anti-AI、Wikilink                             |
 | **Hook B** | section 完成（post-section） | B1-B7  | 概念一致、🔒 保護、方法學、Brief 合規                         |
 | **Hook C** | 全稿完成（post-manuscript）  | C1-C14 | 整體一致性、投稿清單、數量合規、時間一致性、強 claim 證據對齊 |
-| **Hook D** | Phase 10 回顧                | D1-D7  | Hook 效能、閾值調整、自我改進                                 |
+| **Hook D** | Phase 10 回顧                | D1-D9  | Hook 效能、閾值調整、review/EQUATOR/tool telemetry 自我改進   |
 
 ### Hook A: post-write
 
@@ -346,6 +348,8 @@ FOR section IN writing_order:
 | D5  | Instruction 改進建議                                    |
 | D6  | 審計軌跡記錄                                            |
 | D7  | Review Retrospective：分析 reviewer 效能 + 演化審稿指令 |
+| D8  | EQUATOR Retrospective：分析 reporting checklist 效能    |
+| D9  | Tool Telemetry：分析工具描述與 pending evolution 建議   |
 
 ---
 

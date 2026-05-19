@@ -29,18 +29,18 @@ med-paper-assistant/
 └── scripts/                       # 跨平台腳本
 ```
 
-### MCP Server 架構 (115 full / 21 compact default, 2026-04-23)
+### MCP Server 架構 (117 full / 22 compact default, 2026-05-19)
 
 ```
 .vscode/mcp.json
-├── mdpaper        # 主要 MCP（115 full / 21 compact default）- façade-first 公開 surface
+├── mdpaper        # 主要 MCP（117 full / 22 compact default）- façade-first 公開 surface
 ├── pubmed-search  # PubMed 搜尋 (submodule)
 ├── cgu            # Creativity Generation (submodule)
 ├── zotero-keeper  # 書目管理 (uvx)
 └── drawio         # Draw.io 圖表 (npx @drawio/mcp)
 ```
 
-### MCP Tool 模組分布 (2026-04-23)
+### MCP Tool 模組分布 (2026-05-19)
 
 ```
 tools/
@@ -56,10 +56,10 @@ tools/
 └── discussion/    — (DEPRECATED — 已遷移至 Skills)
 ```
 
-### Tool Surface Policy (2026-04-23)
+### Tool Surface Policy (2026-05-19)
 
-- **full**: 保留所有 115 個 first-party tools，供開發、相容性、進階 orchestration 使用
-- **compact**: 預設公開 21 個工具，以 façade-first surface 為主，降低 agent 選錯 granular verbs 的機率
+- **full**: 保留所有 117 個 first-party tools，供開發、相容性、進階 orchestration 使用
+- **compact**: 預設公開 22 個工具，以 façade-first surface 為主，降低 agent 選錯 granular verbs 的機率
 - **切換方式**: 透過 `MEDPAPER_TOOL_SURFACE=full|compact` 控制；workspace setup、`.vscode/mcp.json` 與 VSX runtime 預設注入 `compact`
 - **Authority**: `tool-surface-authority.json` 是 README / VSIX / validate gate 的單一權威來源
 

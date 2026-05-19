@@ -1,5 +1,25 @@
 # Decision Log
 
+## [2026-05-19] v0.7.11 Phase Gate + Release Hardening
+
+### 背景
+
+使用者要求 13 checkpoint surface 做正式發布前 review，並在完成修正後執行 MEM、分段 git、push、tag 發布新版。審查指出 Phase 8-11 仍有「artifact exists but invalid」與「文件/發布面漂移」風險：Phase 8 legacy flat refs 會被 C5 誤判、Phase 9/11 可接受 corrupt exports、Phase 10 可被 count-only audit YAML 假陽性通過、PyPI artifacts 可能遺失 runtime templates，且 release workflow 權限與 install reproducibility 不夠嚴格。
+
+### 本次決定
+
+1. **Phase 8-11 改為資料品質 gate，不只檔案存在**：後續 phase 必須承接 Phase 7 review artifacts、Phase 8 citation wikilink sync、Phase 9 DOCX/PDF integrity、Phase 10 D1-D9 provenance。
+2. **Phase 10 meta-learning audit 採 schema v2 + event provenance**：`MetaLearningEngine` 寫入 `source_tool` 與 `analysis_steps D1-D9`；gate 同時檢查 counts/list 一致性與 matching `run_meta_learning` event，拒絕手寫 count-only YAML。
+3. **Export success 必須代表 artifact 可交付**：`export_docx()` / `export_pdf()` 在回傳 success 前執行 DOCX XML / PDF structural smoke；Phase gate 也用同一套 smoke。
+4. **Release workflow 採 least privilege + reproducible install**：全域 `contents: read`，只有 GitHub Release job 有 `contents: write`；release installs 使用 pinned `setup-uv` 0.10.0 與 `uv sync --frozen --all-extras`；publish jobs 依賴 `lint-security`。
+5. **sdist 必須顯式 scoped 且 wheel 必須含 runtime templates**：Hatch sdist 只 include Python package、templates 與必要 metadata，避免 VSIX/node/workspace artifacts 進 PyPI source distribution，同時用 wheel package data 保留 templates/CSL/journal profiles。
+
+### 成果
+
+- Version: `0.7.11`
+- Local artifacts: `medpaper-assistant-0.7.11.vsix` (1.9 MB), wheel 656 KB, sdist 772 KB
+- Validation: Python 1305 passed / 1 skipped / 26 deselected; VSIX 169 passed; VSIX validate 92 passed; ruff, format, mypy, bandit, MCP boot, tool-surface authority, uv build, install smoke, npm audit, wheel-template smoke, `git diff --check` all passed.
+
 ## [2026-05-13] v0.7.10 Remote-First Upstream Sync + Curated VSIX Authority
 
 ### 背景

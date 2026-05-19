@@ -9,10 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.11] - 2026-05-19
+
+### Added
+
+- Added release-hardening tests for version parity, README authority counts, least-privilege release permissions, frozen dependency installs, and publish-time security gates.
+- Added a VSIX package smoke script plus `test:ci` / `sync-assets:check` package scripts for explicit extension release validation.
+
+### Changed
+
+- Hardened Phase 8-11 gates so later phases now require completed Phase 7 artifacts, resolved citation wikilinks, structurally valid DOCX/PDF exports, Phase 10 D1-D9 `analysis_steps`, and clean final-delivery prerequisites before optional Git provenance checks run.
+- Packaged built-in templates/CSL/journal profiles into PyPI wheels and taught runtime template resolution to work from repo, VSIX, and installed-wheel layouts.
+- Updated GitHub release workflow to least-privilege permissions, pinned `setup-uv` to 0.10.0, switched release installs to `uv sync --frozen --all-extras`, and added a blocking `lint-security` job before publish/release jobs.
+- Synced README / README.zh-TW / bundled instructions / skills to facade-first `project_action`, `draft_action`, `inspect_export`, and `export_document` calls, and refreshed tool counts for the 117 full / 22 compact mdpaper surface plus 46 PubMed and 24 CGU tools.
+- Updated project skeletons so manuscript and library-wiki projects both create `.audit/` and expose an `audit` path from project metadata.
+
 ### Fixed
 
 - Updated GitHub Actions workflows to Node 24-ready action majors (`checkout@v6`, `setup-node@v6`, `setup-python@v6`, `setup-uv@v7`, artifact actions, `github-script@v9`, and `action-gh-release@v3`) and switched Node jobs to Node.js 24.
 - Made the paper pre-commit hook skip silently when no draft files are staged, and limit P-series checks to projects with staged draft files so unrelated release commits no longer print research-draft warnings.
+- Fixed remote drift parsing for Git provenance checks so `branch.ab +0 -N` is correctly reported as behind upstream instead of "pushed".
+- Fixed `project_action(action="create")` with no workflow argument so the facade preserves the manuscript default rather than passing an empty workflow mode.
+- Fixed Phase 8 wikilink resolution for legacy flat `references/*.md` projects and tied Phase 10 audit validation to matching `run_meta_learning` evolution-log provenance.
 
 ## [0.7.10] - 2026-05-13
 

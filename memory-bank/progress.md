@@ -1,6 +1,21 @@
-# Progress (Updated: 2026-05-13)
+# Progress (Updated: 2026-05-19)
 
 ## Done
+
+- **v0.7.11 Phase gate + release hardening (2026-05-19)**:
+
+  - Completed six-agent-per-phase formal review follow-up for the 13 checkpoint surface and implemented the release-blocking fixes found in Phase 8-11.
+  - Hardened Phase 8 reference sync, Phase 9 export integrity, Phase 10 D1-D9 meta-learning provenance, and Phase 11 final-delivery prerequisites.
+  - Added DOCX/PDF post-export validation in `ExportPipeline`; corrupt/missing export files no longer report success.
+  - Added structured `analysis_steps` to `MetaLearningEngine` audit records and made Phase 10 reject count-only audit YAML without matching `run_meta_learning` event provenance.
+  - Packaged runtime templates/CSL/journal profiles into the PyPI wheel and added cross-surface template path resolution.
+  - Fixed Git ahead/behind parsing for final provenance checks and G9 hook warnings.
+  - Updated project skeletons so manuscript/library-wiki projects create `.audit/` and expose `paths.audit`.
+  - Hardened release workflow: least-privilege permissions, pinned `setup-uv` 0.10.0, frozen installs, `lint-security` publish dependency, package.json version validation without Node pre-setup.
+  - Scoped Hatch sdist includes after detecting a 590 MB accidental sdist; rebuilt sdist is 772 KB and wheel is 656 KB with templates included.
+  - Updated README EN/zh-TW, CHANGELOG, ROADMAP, auto-paper guide, MCP instructions, source/VSIX skills, and bundled Python mirror to facade-first guidance.
+  - Packaged `vscode-extension/medpaper-assistant-0.7.11.vsix` (1.9 MB).
+  - Verification passed: Python 1305 passed / 1 skipped / 26 deselected; VSIX 169 passed; `npm run validate -- --skip-tests` 92 passed; ruff, ruff format, mypy, bandit, MCP boot, tool-surface authority, uv build, VSIX smoke, wheel-template smoke, npm audit, and `git diff --check` passed.
 
 - **v0.7.10 upstream dependency + docs/harness release prep (2026-05-13)**:
 
@@ -112,11 +127,11 @@
 
 ## Doing
 
-- Preparing/pushing the post-v0.7.10 CI/hook hygiene follow-up commit on `master`.
+- Preparing segmented v0.7.11 commits, push, and tag publication on `master`.
 
 ## Next
 
-- Watch CI for the post-v0.7.10 workflow/precommit follow-up commit
+- Watch GitHub Actions release workflow after pushing `v0.7.11`.
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

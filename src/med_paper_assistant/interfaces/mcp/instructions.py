@@ -5,7 +5,7 @@ Contains the tool selection guide and server instructions for the AI agent.
 Separated from config.py for better maintainability.
 """
 
-TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
+TOOL_GUIDE = """## TOOL SELECTION GUIDE (facade-first; 117 full / 22 compact default)
 
 ### ⚠️ CRITICAL: PROJECT CONTEXT RULE
 **Before ANY operation that modifies project content, you MUST:**
@@ -15,9 +15,9 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 4. If uncertain which project → `project_action(action="list")` then ask user
 
 **Tools that require project confirmation:**
-- All `write_draft`, `draft_section`, `insert_citation` operations
+- All `draft_action(action="write"|"section"|"patch"|"insert_citation")` operations
 - All `save_reference` operations
-- All `validate_concept` operations
+- All `validation_action(action="concept")` operations
 - All export operations
 
 **Exception:** `unified_search` can run without project (just searching)
@@ -34,7 +34,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 
 ### ⚠️ MANDATORY VALIDATION RULE
 **Before writing ANY draft in manuscript workflow (except concept.md), you MUST:**
-1. Run `validate_concept(concept.md)`
+1. Run `validation_action(action="concept", filename="concept.md")`
 2. Ensure novelty score ≥ 75 in all 3 rounds
 3. If validation fails → STOP and ask user to fix concept first
 4. Never skip this step!
@@ -47,15 +47,14 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 ### 📁 PROJECT MANAGEMENT
 | Tool | When to use |
 |------|-------------|
-| `setup_project_interactive` | Configure project preferences / paper type for manuscript path |
-| `create_project` | Create new project (`workflow_mode=manuscript|library-wiki`) |
-| `list_projects` | List all projects |
-| `switch_project` | Switch to different project |
-| `get_current_project` | Check current project |
-| `update_project_status` | Update project status |
-| `get_project_paths` | Get project directory paths |
-| `get_paper_types` | List available paper types |
-| `update_project_settings` | Change paper type or preferences |
+| `project_action(action="setup")` | Configure project preferences / paper type for manuscript path |
+| `project_action(action="create")` | Create new project (`workflow_mode=manuscript|library-wiki`) |
+| `project_action(action="list")` | List all projects |
+| `project_action(action="switch")` | Switch to different project |
+| `project_action(action="current")` | Check current project |
+| `project_action(action="update")` | Update status, workflow mode, paper type, or preferences |
+| `project_action(action="paths")` | Get project directory paths |
+| `project_action(action="paper_types")` | List available paper types |
 
 > 💡 **Journal Profile**: 系統內建麻醉學前 20 大期刊投稿設定（`templates/journal-profiles/`），
 > 用戶只需說出目標期刊名稱，Agent 即可讀取對應 YAML 並產生 `journal-profile.yaml`。
@@ -63,11 +62,11 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 ### 🔍 LITERATURE EXPLORATION (NEW!)
 | Tool | When to use |
 |------|-------------|
-| `start_exploration` | Start exploring literature without formal project |
-| `get_exploration_status` | Check exploration workspace contents |
-| `convert_exploration_to_project` | Convert exploration to formal project |
+| `project_action(action="start_exploration")` | Start exploring literature without formal project |
+| `project_action(action="current", include_files=true)` | Check exploration workspace contents |
+| `project_action(action="convert_exploration")` | Convert exploration to formal project |
 
-**Workflow:** User wants to browse papers first → `start_exploration` → search & save → convert to `workflow_mode="library-wiki"` or `workflow_mode="manuscript"`
+**Workflow:** User wants to browse papers first → `project_action(action="start_exploration")` → search & save → `project_action(action="convert_exploration", workflow_mode="library-wiki"|"manuscript")`
 
 ### 🔍 LITERATURE SEARCH
 | Tool | When to use |
@@ -111,54 +110,50 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 ### 🧠 AGENT WIKI
 | Tool | When to use |
 |------|-------------|
-| `ingest_web_source` | Import fetched web/HTML/markdown snapshots into the canonical wiki pipeline |
-| `ingest_markdown_source` | Import markdown text or local markdown files into the canonical wiki pipeline |
-| `write_library_note` | Capture or update markdown notes directly in `inbox/`, `concepts/`, or `projects/` |
-| `move_library_note` | Triage a note from `inbox/` into `concepts/` or `projects/` |
-| `list_library_notes` | Review note inventory across the library-wiki folders |
-| `read_library_note` | Read a specific markdown note from the library-wiki folders |
-| `search_library_notes` | Query note content across the library-wiki folders |
-| `show_reading_queues` | Review capture, active-reading, concept-build, and synthesis queues derived from note status |
-| `create_concept_page` | Create a structured concept page in `concepts/` with source-note links |
-| `explain_library_path` | Explain a note's context or trace a note-to-note path through the wiki graph |
-| `build_library_dashboard` | Build cross-note dashboards for queues, concept pages, and link health |
-| `build_knowledge_map` | Materialize a Foam-friendly knowledge map page from saved references |
-| `build_synthesis_page` | Materialize a synthesis page from saved references and analysis summaries |
-| `materialize_agent_wiki` | Build the knowledge map + synthesis page bundle in one step |
+| `library_action(action="write_note")` | Capture or update markdown notes directly in `inbox/`, `concepts/`, or `projects/` |
+| `library_action(action="move_note")` | Triage a note from `inbox/` into `concepts/` or `projects/` |
+| `library_action(action="list_notes")` | Review note inventory across the library-wiki folders |
+| `library_action(action="read_note")` | Read a specific markdown note from the library-wiki folders |
+| `library_action(action="search_notes")` | Query note content across the library-wiki folders |
+| `library_action(action="show_queues")` | Review capture, active-reading, concept-build, and synthesis queues derived from note status |
+| `library_action(action="create_concept")` | Create a structured concept page in `concepts/` with source-note links |
+| `library_action(action="explain_path")` | Explain a note's context or trace a note-to-note path through the wiki graph |
+| `library_action(action="build_dashboard")` | Build cross-note dashboards for queues, concept pages, and link health |
+| `library_action(action="materialize_concept")` | Materialize one Foam-friendly concept page from source notes |
 
-**Workflow:** intake source → `resolve_reference_identity` (when identifiers exist) → `write_library_note` / `move_library_note` / `create_concept_page` → `show_reading_queues` / `build_library_dashboard` → `save_reference_analysis` → `materialize_agent_wiki`
+**Workflow:** intake source as a note → `library_action(action="write_note"|"move_note"|"create_concept")` → `library_action(action="show_queues"|"build_dashboard")` → `save_reference_analysis` when tied to a saved reference. Full-surface mode exposes the granular ingestion and wiki materialization verbs.
 
 ### ✍️ WRITING (⚠️ Manuscript path only; requires concept validation first!)
 | Tool | When to use |
 |------|-------------|
-| `validate_concept` | **MANDATORY before drafting** - Full validation with novelty scoring |
-| `validate_concept_quick` | Quick structural check only |
-| `write_draft` | Create/update draft file (⚠️ blocked if concept invalid) |
-| `read_draft` | Read draft content |
-| `list_drafts` | List available drafts |
-| `draft_section` | Draft a specific section (⚠️ blocked if concept invalid) |
-| `insert_citation` | Add citation to text |
-| `sync_references` | **Citation manager** - Scan [[wikilinks]], generate References section |
-| `count_words` | Count words in draft |
-| `get_section_template` | Get section guidelines |
+| `validation_action(action="concept")` | **MANDATORY before drafting** - Full validation with novelty scoring |
+| `validation_action(action="quick")` | Quick structural check only |
+| `draft_action(action="write")` | Create/update draft file (⚠️ blocked if concept invalid) |
+| `draft_action(action="read")` | Read draft content |
+| `draft_action(action="list")` | List available drafts |
+| `draft_action(action="section")` | Draft a specific section (⚠️ blocked if concept invalid) |
+| `draft_action(action="insert_citation")` | Add citation to text |
+| `draft_action(action="sync_references")` | **Citation manager** - Scan [[wikilinks]], generate References section |
+| `draft_action(action="count_words")` | Count words in draft |
+| `draft_action(action="template")` | Get section guidelines |
 
 ### 📊 DATA ANALYSIS
 | Tool | When to use |
 |------|-------------|
-| `analyze_dataset` | Get summary statistics |
-| `run_statistical_test` | Run t-test, correlation, etc. |
-| `create_plot` | Create visualizations |
-| `generate_table_one` | Generate baseline characteristics table |
-| `review_asset_for_insertion` | Record proof that the agent reviewed a figure/table before captioning/inserting |
-| `insert_figure` | Insert a figure reference into draft |
-| `insert_table` | Insert a table reference into draft |
-| `list_assets` | List all figures/tables in project |
+| `analysis_action(action="summary")` | Get summary statistics |
+| `analysis_action(action="test")` | Run t-test, correlation, etc. |
+| `analysis_action(action="plot")` | Create visualizations |
+| `analysis_action(action="table_one")` | Generate baseline characteristics table |
+| `draft_action(action="review_asset")` | Record proof that the agent reviewed a figure/table before captioning/inserting |
+| `draft_action(action="insert_figure")` | Insert a figure reference into draft |
+| `draft_action(action="insert_table")` | Insert a table reference into draft |
+| `draft_action(action="list_assets")` | List all figures/tables in project |
 
 ### 🎨 DIAGRAM TOOLS (with Draw.io MCP)
 | Tool | When to use |
 |------|-------------|
-| `save_diagram` | Save diagram to project's results/figures (works with or without project) |
-| `list_diagrams` | List diagrams in project |
+| `project_action(action="save_diagram")` | Save diagram to project's results/figures (works with or without project) |
+| `project_action(action="list_diagrams")` | List diagrams in project |
 
 **DIAGRAM WORKFLOW (with Draw.io MCP):**
 1. User asks for diagram → Confirm project first
@@ -166,19 +161,19 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 3. User edits in browser → Says "存檔" or "save"
 4. Call `drawio.get_diagram_content()` → Get XML
 5. Call `drawio.export_diagram()` or equivalent → Get PNG/SVG for paper embedding
-6. Call `mdpaper.save_diagram(project="xxx", content=..., rendered_content=..., rendered_format="png|svg")` → Save source + exportable asset
-7. Call `insert_figure()` with the rendered filename (or original `.drawio` name if companion image was saved beside it) to register it in manifest and insert Markdown image syntax into the draft
-8. If no project → `save_diagram(output_dir="...")` or ask user to create project
+6. Call `project_action(action="save_diagram", project="xxx", content=..., rendered_content=..., rendered_format="png|svg")` → Save source + exportable asset
+7. Call `draft_action(action="insert_figure")` with the rendered filename (or original `.drawio` name if companion image was saved beside it) to register it in manifest and insert Markdown image syntax into the draft
+8. If no project → `project_action(action="save_diagram", output_dir="...")` or ask user to create project
 
 ### 📄 WORD EXPORT (workflow)
 1. `inspect_export(action="list_templates")` → Available templates
 2. `inspect_export(action="read_template")` → Get template structure
-3. `read_draft` → Get draft content
+3. `draft_action(action="read", filename="manuscript.md")` → Get draft content
 4. `export_document(action="session_start")` → Begin editing
-5. `export_document(action="insert_section")` → Insert content (repeat)
+5. `export_document(action="session_insert")` → Insert content (repeat)
 6. `inspect_export(action="verify_document")` → Check insertion
-7. `count_words(filename="manuscript.md")` → Verify limits before final export
-8. `export_document(action="docx")` or `export_document(action="pdf")` → Export final file
+7. `draft_action(action="count_words", filename="manuscript.md")` → Verify limits before final export
+8. `export_document(action="docx", draft_filename="manuscript.md", output_filename="paper.docx")` or `export_document(action="pdf", draft_filename="manuscript.md", output_filename="paper.pdf")` → Export final file
 
 ## 🔒 PROTECTED CONTENT RULES
 | Section | Must appear in | Rule |
@@ -188,26 +183,26 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (51 tools)
 | 🔒 Author Notes | Never exported | Do not include in drafts |
 
 ## QUICK DECISION TREE
-- "just want to browse/explore papers" → `start_exploration`
-- "build a personal literature wiki/library" → `create_project(..., workflow_mode="library-wiki")`
+- "just want to browse/explore papers" → `project_action(action="start_exploration")`
+- "build a personal literature wiki/library" → `project_action(action="create", workflow_mode="library-wiki")`
 - "search/find papers" → `unified_search`
 - "save this paper" → `save_reference_mcp(pmid)` (auto-creates workspace if needed)
-- "import web/markdown into wiki" → `ingest_web_source` / `ingest_markdown_source`
-- "capture / triage wiki notes" → `write_library_note` / `move_library_note` / `search_library_notes`
-- "review reading queues / concept graph" → `show_reading_queues` / `build_library_dashboard` / `explain_library_path`
-- "build agent wiki" → `materialize_agent_wiki` (or `build_knowledge_map` + `build_synthesis_page`)
+- "import web/markdown into wiki" → `library_action(action="write_note")` for compact mode; use full surface for automated source ingestion
+- "capture / triage wiki notes" → `library_action(action="write_note"|"move_note"|"search_notes")`
+- "review reading queues / concept graph" → `library_action(action="show_queues"|"build_dashboard"|"explain_path")`
+- "build agent wiki" → `library_action(action="materialize_concept")` for compact mode; use full surface for multi-page materialization
 - "my saved papers" → `list_saved_references`
-- "ready to write, have references" → `convert_exploration_to_project(..., workflow_mode="manuscript")` or `update_project_settings(workflow_mode="manuscript", paper_type="...")`
-- "write/draft" → **`validate_concept` first!** → `write_draft`
-- "analyze data" → `analyze_dataset`
-- "review figure/table before caption" → `review_asset_for_insertion`
-- "insert figure" → `review_asset_for_insertion` → `insert_figure`
-- "insert table" → `review_asset_for_insertion` → `insert_table` (after generating with `generate_table_one`)
-- "list figures/tables" → `list_assets`
+- "ready to write, have references" → `project_action(action="convert_exploration", workflow_mode="manuscript")` or `project_action(action="update", workflow_mode="manuscript", paper_type="...")`
+- "write/draft" → **`validation_action(action="concept")` first!** → `draft_action(action="write")`
+- "analyze data" → `analysis_action(action="summary")`
+- "review figure/table before caption" → `draft_action(action="review_asset")`
+- "insert figure" → `draft_action(action="review_asset")` → `draft_action(action="insert_figure")`
+- "insert table" → `draft_action(action="review_asset")` → `draft_action(action="insert_table")` (after generating with `analysis_action(action="table_one")`)
+- "list figures/tables" → `draft_action(action="list_assets")`
 - "create diagram" → **Confirm project first** → `drawio.create_diagram()`
-- "save diagram" → `drawio.get_diagram_content()` → `save_diagram(project=...)`
+- "save diagram" → `drawio.get_diagram_content()` → `project_action(action="save_diagram", project=...)`
 - "export to Word" → Use export workflow
-- "Table 1" → `generate_table_one`
+- "Table 1" → `analysis_action(action="table_one")`
 - "references format" → `format_references`
 
 ## PROMPTS
