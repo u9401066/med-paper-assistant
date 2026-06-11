@@ -125,6 +125,48 @@ class TestPhaseRegression:
         assert regression_events[0]["from_phase"] == 7
         assert regression_events[0]["to_phase"] == 5
 
+    def test_continuity_plan_regression_autonomous_below_threshold(
+        self, ckpt: CheckpointManager
+    ):
+        """A first/second regression should allow autonomous rewrite-and-continue."""
+        ckpt.save_phase_regression(7, 5, "Methods needs rewrite", ["Methods"])
+
+        plan = ckpt.get_continuity_plan()
+
+        assert plan["kind"] == "regression"
+        assert plan["auto_resume"] is True
+        assert plan["requires_human"] is False
+        assert plan["next_action"] == "rewrite_sections_and_continue"
+        assert plan["sections_to_rewrite"] == ["Methods"]
+        assert plan["regression_count"] == 1
+
+    def test_continuity_plan_regression_escalates_above_threshold(
+        self, ckpt: CheckpointManager
+    ):
+        """Exceeding the regression threshold must require a human checkpoint."""
+        ckpt.save_phase_regression(7, 5, "r1", ["Methods"])
+        ckpt.save_phase_regression(7, 5, "r2", ["Results"])
+        ckpt.save_phase_regression(7, 5, "r3", ["Discussion"])
+
+        plan = ckpt.get_continuity_plan()
+
+        assert plan["kind"] == "regression"
+        assert plan["regression_count"] == 3
+        assert plan["auto_resume"] is False
+        assert plan["requires_human"] is True
+        assert plan["next_action"] == "escalate_to_human"
+
+    def test_continuity_plan_none_when_in_progress(self, ckpt: CheckpointManager):
+        """An in-progress pipeline has no blocking continuity decision."""
+        ckpt.save_phase_start(5, "WRITING")
+
+        plan = ckpt.get_continuity_plan()
+
+        assert plan["kind"] == "none"
+        assert plan["auto_resume"] is False
+        assert plan["requires_human"] is False
+        assert plan["next_action"] == "proceed"
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # B. Pause/Resume Tests
@@ -133,6 +175,120 @@ class TestPhaseRegression:
 
 class TestPauseResume:
     """Tests for pipeline pause/resume with edit detection."""
+
+    def test_continuity_plan_auto_resumes_when_no_edits(self, ckpt: CheckpointManager, project_dir: Path):
+        """A paused pipeline with no edits should be eligible for seamless auto-resume."""
+        _write_manuscript(project_dir)
+        ckpt.save_phase_start(5, "WRITING")
+        ckpt.save_pause(reason="review checkpoint")
+
+        plan = ckpt.get_continuity_plan()
+
+        assert plan["auto_resume"] is True
+        assert plan["next_action"] == "continue_without_manual_intervention"
+        assert plan["reason"] == "No draft changes detected since pause"
+
+    def test_continuity_plan_flags_edits_for_review(self, ckpt: CheckpointManager, project_dir: Path):
+        """A paused pipeline with edits should keep the human-in-the-loop safeguard."""
+        _write_manuscript(project_dir)
+        ckpt.save_phase_start(5, "WRITING")
+        ckpt.save_pause(reason="review checkpoint")
+
+        _write_manuscript(project_dir, "# Modified Manuscript\n\nFresh edits.")
+
+        plan = ckpt.get_continuity_plan()
+
+        assert plan["auto_resume"] is False
+        assert "manuscript.md" in plan["changed_files"]
+        assert plan["next_action"] == "review_changes_before_resume"
+
+    def test_resume_from_pause_carries_auto_resume_when_clean(
+        self, ckpt: CheckpointManager, project_dir: Path
+    ):
+        """resume_from_pause must surface auto_resume=True so the MCP tool can continue."""
+        _write_manuscript(project_dir)
+        ckpt.save_phase_start(5, "WRITING")
+        ckpt.save_pause()
+
+        result = ckpt.resume_from_pause()
+
+        assert result["changed"] is False
+        assert result["auto_resume"] is True
+        assert result["next_action"] == "continue_without_manual_intervention"
+
+    def test_resume_from_pause_flags_review_when_edited(
+        self, ckpt: CheckpointManager, project_dir: Path
+    ):
+        """resume_from_pause must surface auto_resume=False when drafts changed."""
+        _write_manuscript(project_dir)
+        ckpt.save_phase_start(5, "WRITING")
+        ckpt.save_pause()
+
+        _write_manuscript(project_dir, "# Edited\n\nNew content.")
+        result = ckpt.resume_from_pause()
+
+        assert result["changed"] is True
+        assert result["auto_resume"] is False
+        assert result["next_action"] == "review_changes_before_resume"
+
+    def test_resume_records_auto_resume_in_history(
+        self, ckpt: CheckpointManager, project_dir: Path
+    ):
+        """The resume history entry must record the auto_resume decision for audit."""
+        _write_manuscript(project_dir)
+        ckpt.save_phase_start(5, "WRITING")
+        ckpt.save_pause()
+        ckpt.resume_from_pause()
+
+        state = ckpt.load()
+        resumed = [h for h in state["history"] if h["action"] == "pipeline_resumed"]
+        assert len(resumed) == 1
+        assert resumed[0]["auto_resume"] is True
+
+    def test_bounded_autonomy_forces_checkpoint_after_budget(
+        self, ckpt: CheckpointManager, project_dir: Path
+    ):
+        """After MAX_CONSECUTIVE_AUTO_RESUMES clean cycles, a human checkpoint is forced."""
+        _write_manuscript(project_dir)
+        ckpt.save_phase_start(5, "WRITING")
+
+        # Run exactly the budget worth of clean auto-resume cycles.
+        for _ in range(ckpt.MAX_CONSECUTIVE_AUTO_RESUMES):
+            ckpt.save_pause()
+            result = ckpt.resume_from_pause()
+            assert result["auto_resume"] is True
+
+        # The next pause must surface a periodic human checkpoint, not auto-resume.
+        ckpt.save_pause()
+        plan = ckpt.get_continuity_plan()
+        assert plan["auto_resume"] is False
+        assert plan["requires_human"] is True
+        assert plan["next_action"] == "periodic_human_checkpoint"
+        assert plan["consecutive_auto_resumes"] == ckpt.MAX_CONSECUTIVE_AUTO_RESUMES
+
+    def test_bounded_autonomy_resets_after_reviewed_resume(
+        self, ckpt: CheckpointManager, project_dir: Path
+    ):
+        """An edited (reviewed) resume breaks the auto-resume streak and resets the budget."""
+        _write_manuscript(project_dir)
+        ckpt.save_phase_start(5, "WRITING")
+
+        # Exhaust the budget.
+        for _ in range(ckpt.MAX_CONSECUTIVE_AUTO_RESUMES):
+            ckpt.save_pause()
+            ckpt.resume_from_pause()
+
+        # A reviewed resume (drafts edited) breaks the streak.
+        ckpt.save_pause()
+        _write_manuscript(project_dir, "# Edited during pause\n\nReviewed change.")
+        reviewed = ckpt.resume_from_pause()
+        assert reviewed["auto_resume"] is False
+
+        # Streak is reset: the next clean cycle can auto-resume again.
+        ckpt.save_pause()
+        plan = ckpt.get_continuity_plan()
+        assert plan["auto_resume"] is True
+        assert plan["consecutive_auto_resumes"] == 0
 
     def test_pause_saves_state(self, ckpt: CheckpointManager, project_dir: Path):
         """Pausing should set status to 'paused' and record draft hashes."""
