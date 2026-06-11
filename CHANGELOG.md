@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.12] - 2026-06-11
+
+### Added
+
+- Added a pipeline continuity harness so paused runs return an explicit auto-resume decision: `CheckpointManager.get_continuity_plan()` and an enriched `resume_from_pause()` now report `auto_resume`, `next_action`, and `reason`, wired into the `resume_pipeline` and `request_section_rewrite` MCP reports.
+- Added bounded-autonomy safeguards to the continuity harness: a `MAX_CONSECUTIVE_AUTO_RESUMES` budget forces a periodic human checkpoint, and regression states escalate to a human checkpoint once the regression count exceeds the safe threshold.
+- Added a full Phase 0→11 end-to-end lifecycle test (`tests/test_e2e_pipeline_lifecycle.py`) that walks every gate FAIL→PASS in order, plus edge cases for prerequisite skipping, corrupted artifacts, out-of-order execution, regression recovery, and partial review loops.
+
+### Changed
+
+- Extended the pause/resume continuity decision into a single shared helper so the peek (`get_continuity_plan`) and resume (`resume_from_pause`) paths cannot drift, and surfaced the auto-resume status in the checkpoint recovery summary.
+
 ## [0.7.11] - 2026-05-19
 
 ### Added

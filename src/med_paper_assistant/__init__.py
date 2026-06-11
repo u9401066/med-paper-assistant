@@ -15,7 +15,7 @@ Architecture (DDD):
     shared/         - Shared constants and utilities
 """
 
-__version__ = "0.7.11"
+__version__ = "0.7.12"
 
 # Interface exports (main entry point)
 from med_paper_assistant.interfaces.mcp import create_server, main
