@@ -33,7 +33,7 @@ from med_paper_assistant.infrastructure.persistence.writing_hooks import (
 )
 
 # ── Hooks this harness commits to covering (coverage ratchet) ──────────
-ADVERSARIAL_TARGETS = {"A3", "A5", "A6", "B8", "C3", "C4", "P7"}
+ADVERSARIAL_TARGETS = {"A3", "A5", "A6", "B8", "B9", "B11", "B12", "B13", "B14", "C3", "C4", "P7"}
 
 
 def _engine(project_dir: Path) -> WritingHooksEngine:
@@ -91,6 +91,51 @@ C4_GOOD = (
     "PONV occurred in ten patients."
 )
 C4_BAD = "PONV was the secondary outcome. PONV occurred in ten patients."
+
+# B9: Section tense (Methods/Results must be past tense)
+B9_METHODS_GOOD = "We measured the primary outcome and analyzed the data using a t-test."
+B9_METHODS_BAD = "We measure the primary outcome. We analyze the data. We assess the response."
+
+# B11: Results objectivity (no interpretation/speculation in Results)
+B11_GOOD = (
+    "## Results\n\nThe mean pain score was 3.2 (SD 1.1). The between-group difference "
+    "was 1.4 points (95% CI 0.8-2.0, p < 0.01)."
+)
+B11_BAD = (
+    "## Results\n\nThe score dropped, suggesting that the drug works, indicating that "
+    "the mechanism is central. This suggests efficacy. Possibly the effect is dose-related. "
+    "Interestingly, older patients responded more."
+)
+
+# B12: Introduction must NOT preview results (CRITICAL)
+B12_GOOD = (
+    "## Introduction\n\nPostoperative pain is common after major surgery.\n\n"
+    "However, it remains unclear whether the intervention reduces it.\n\n"
+    "This study aimed to evaluate the intervention."
+)
+B12_BAD = (
+    "## Introduction\n\nPostoperative pain is common.\n\n"
+    "We found that the treatment was significantly better than placebo."
+)
+
+# B13: Discussion MUST contain a limitations paragraph (CRITICAL)
+B13_GOOD = (
+    "## Discussion\n\nThe main finding of this study was a reduction in pain. "
+    "Consistent with [[a2020_1]] [[b2021_2]] [[c2022_3]], the effect was robust.\n\n"
+    "This study has several limitations. First, the sample was small. "
+    "Future research should confirm these findings."
+)
+B13_BAD = (
+    "## Discussion\n\nThe main finding of this study was a reduction in pain. "
+    "The effect was robust and clinically meaningful."
+)
+
+# B14: Ethics approval statement required (CRITICAL when missing)
+B14_GOOD = (
+    "This observational study was approved by the Institutional Review Board of the "
+    "hospital. Written informed consent was obtained from all participants."
+)
+B14_BAD = "We enrolled adults undergoing surgery and measured their pain scores."
 
 # P7: Reference + DOI integrity
 P7_GOOD_DOI = "10.1001/jama.2020.1585"
@@ -156,6 +201,27 @@ SCENARIOS: list[Scenario] = [
     # C4 — abbreviation first use
     Scenario("C4", "good", "defined abbr", _content_build("check_abbreviation_first_use", C4_GOOD)),
     Scenario("C4", "bad", "undefined abbr", _content_build("check_abbreviation_first_use", C4_BAD)),
+    # B9 — section tense
+    Scenario(
+        "B9", "good", "past tense methods",
+        _content_build("check_section_tense", B9_METHODS_GOOD, "Methods"),
+    ),
+    Scenario(
+        "B9", "bad", "present tense methods",
+        _content_build("check_section_tense", B9_METHODS_BAD, "Methods"),
+    ),
+    # B11 — results objectivity
+    Scenario("B11", "good", "objective results", _content_build("check_results_interpretation", B11_GOOD)),
+    Scenario("B11", "bad", "speculative results", _content_build("check_results_interpretation", B11_BAD)),
+    # B12 — intro structure (no results preview)
+    Scenario("B12", "good", "funnel intro", _content_build("check_intro_structure", B12_GOOD)),
+    Scenario("B12", "bad", "results preview in intro", _content_build("check_intro_structure", B12_BAD)),
+    # B13 — discussion structure (limitations required)
+    Scenario("B13", "good", "has limitations", _content_build("check_discussion_structure", B13_GOOD)),
+    Scenario("B13", "bad", "missing limitations", _content_build("check_discussion_structure", B13_BAD)),
+    # B14 — ethical statements
+    Scenario("B14", "good", "has IRB + consent", _content_build("check_ethical_statements", B14_GOOD)),
+    Scenario("B14", "bad", "no ethics statement", _content_build("check_ethical_statements", B14_BAD)),
     # P7 — reference + DOI integrity
     Scenario("P7", "good", "valid DOI", _p7_build(P7_GOOD_DOI)),
     Scenario("P7", "bad", "malformed DOI", _p7_build(P7_BAD_DOI)),

@@ -58,7 +58,7 @@ the harness does not need per-hook special-casing.
 This means coverage can only be *added*, never silently lost — the harness
 protects itself the same way it protects the manuscript.
 
-## Hooks covered in the MVP
+## Hooks covered
 
 | Hook | Quality property | Known-bad mutation |
 | ---- | ---------------- | ------------------ |
@@ -66,12 +66,25 @@ protects itself the same way it protects the manuscript.
 | A5 | Language consistency (American) | swap American → British spelling (analyse/colour/randomised) |
 | A6 | Internal overlap / copy-paste | duplicate a paragraph |
 | B8 | Stats test alignment (Results ↔ Methods) | use a statistical test in Results never declared in Methods |
+| B9 | Section tense | write Methods in present tense ("we measure/analyze/assess") |
+| B11 | Results objectivity | inject ≥5 interpretive/speculative phrases into Results |
+| B12 | Introduction structure | preview study results inside the Introduction |
+| B13 | Discussion structure | omit the limitations paragraph |
+| B14 | Ethical statements | omit the ethics-approval statement |
 | C3 | N-value consistency | report a different sample size in Results than Methods |
 | C4 | Abbreviation first use | use a non-common abbreviation with no definition |
 | P7 | Reference + DOI integrity | attach a malformed DOI to a saved reference |
 
 Each row has a paired known-good fixture proving the verifier does **not**
 false-positive on clean input.
+
+### Why the EQUATOR (E1-E5) hooks are excluded
+
+The E-series reporting-guideline checks (CONSORT/STROBE/PRISMA/CARE) are
+**Agent-Driven**: they have no deterministic code-level `check_` method that
+returns a `HookResult`. There is no mechanical pass/fail to flip, so a
+metamorphic fixture cannot be built for them without an LLM in the loop. They
+are intentionally out of scope here and remain a separate (larger) effort.
 
 ## How to extend
 
