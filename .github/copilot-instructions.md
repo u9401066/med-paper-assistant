@@ -91,7 +91,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | draft/      | writing + citation + editing (patch_draft)                                                                                  |
 | validation/ | validate_concept + wikilinks                                                                                                |
 | analysis/   | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）                                       |
-| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept                                |
+| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept + constraint ledger            |
 | export/     | word + pandoc (docx/pdf/bib)                                                                                                |
 | facade/     | project/workspace/review/pipeline/export stable entrypoints                                                                 |
 

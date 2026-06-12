@@ -34,6 +34,6 @@
 
 ## Hook 系統
 
-Copilot Hooks（A-D，42 checks）→ `auto-paper/SKILL.md`
-Pre-Commit Hooks（P1-P8 + G1-G8）→ `git-precommit/SKILL.md`
-詳見 AGENTS.md Hook 架構表。
+Copilot Hooks（A-F + R，post-write/section/manuscript + review）→ `auto-paper/SKILL.md`
+Pre-Commit Hooks（P1-8 + G1-9）→ `git-precommit/SKILL.md`
+合計 79 checks（56 Code-Enforced / 23 Agent-Driven）。詳見 AGENTS.md Hook 架構表。
