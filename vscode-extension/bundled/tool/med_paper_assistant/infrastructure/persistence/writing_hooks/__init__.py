@@ -7,6 +7,13 @@ Consumers can continue to use:
     from ...writing_hooks import BODY_SECTIONS, ANTI_AI_PHRASES, ...
 """
 
+from ._applicability import (
+    ALL_PAPER_TYPES,
+    EMPIRICAL_TYPES,
+    is_applicable,
+    is_type_specific,
+    type_specific_hook_ids,
+)
 from ._constants import (
     AI_TRANSITION_WORDS,
     AMER_VS_BRIT,
@@ -26,6 +33,12 @@ __all__ = [
     # Models
     "HookIssue",
     "HookResult",
+    # Applicability matrix
+    "ALL_PAPER_TYPES",
+    "EMPIRICAL_TYPES",
+    "is_applicable",
+    "is_type_specific",
+    "type_specific_hook_ids",
     # Constants
     "AMER_VS_BRIT",
     "ANTI_AI_PARAGRAPH_START_ONLY",

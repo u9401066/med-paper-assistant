@@ -109,7 +109,7 @@ L3: Autonomous Self-Evolution（長期演進）⚠️ 部分
 
 元件：QualityScorecard(8 dims), HookEffectivenessTracker(56 hooks),
 MetaLearningEngine(D1-D9), WritingHooksEngine(A5/A6/B8/C9/F),
-DomainConstraintEngine(3 paper types, 26 constraints),
+DomainConstraintEngine(7 paper types, 69 constraints),
 ToolInvocationStore, PendingEvolutionStore, tool_health
 
 ### 狀態管理架構 (2025-01-22 新增)

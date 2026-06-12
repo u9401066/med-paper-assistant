@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
+from ._applicability import is_applicable, not_applicable_result, type_specific_hook_ids
 from ._data_artifacts import DataArtifactsMixin
 from ._git import GitHooksMixin
 from ._journal_config import JournalConfigMixin
@@ -103,16 +105,58 @@ class WritingHooksEngine(
         Returns:
             Dict mapping hook_id -> HookResult.
         """
+        paper_type = self._get_paper_type()
         results: dict[str, HookResult] = {
-            "B8": self.check_data_claim_alignment(methods_content, results_content),
+            "B8": self._run_gated(
+                "B8",
+                paper_type,
+                lambda: self.check_data_claim_alignment(methods_content, results_content),
+            ),
         }
         if full_content:
-            results["B11"] = self.check_results_interpretation(full_content)
+            results["B11"] = self._run_gated(
+                "B11", paper_type, lambda: self.check_results_interpretation(full_content)
+            )
             results["B12"] = self.check_intro_structure(full_content)
             results["B13"] = self.check_discussion_structure(full_content)
             results["B14"] = self.check_ethical_statements(full_content)
-            results["B16"] = self.check_effect_size_reporting(full_content)
+            results["B16"] = self._run_gated(
+                "B16", paper_type, lambda: self.check_effect_size_reporting(full_content)
+            )
         return results
+
+    # ── Article-Type-Aware Gating ──────────────────
+
+    def _run_gated(
+        self,
+        hook_id: str,
+        paper_type: str,
+        fn: Callable[[], HookResult],
+    ) -> HookResult:
+        """Run a type-specific hook only when applicable to ``paper_type``.
+
+        When the hook does not apply to the paper type (e.g. a statistical
+        Methods↔Results check on a letter), return an audit-friendly skipped
+        ``HookResult`` instead of executing it. This prevents IMRaD/statistical
+        hooks from misfiring on letters, narrative reviews, and case reports
+        while keeping the hook key present for downstream consumers.
+        """
+        if is_applicable(hook_id, paper_type):
+            return fn()
+        return not_applicable_result(hook_id, paper_type)
+
+    def hook_applicability(self, paper_type: str | None = None) -> dict[str, bool]:
+        """Report applicability of type-specific hooks for a paper type.
+
+        Args:
+            paper_type: Paper type key. If None, reads from the journal profile
+                (default: ``original-research``).
+
+        Returns:
+            Mapping of type-specific hook id -> whether it applies.
+        """
+        pt = paper_type or self._get_paper_type()
+        return {hook_id: is_applicable(hook_id, pt) for hook_id in type_specific_hook_ids()}
 
     # ── Batch Runner: Post-Manuscript ──────────────────────────────
 
