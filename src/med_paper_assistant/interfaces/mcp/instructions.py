@@ -5,7 +5,7 @@ Contains the tool selection guide and server instructions for the AI agent.
 Separated from config.py for better maintainability.
 """
 
-TOOL_GUIDE = """## TOOL SELECTION GUIDE (facade-first; 117 full / 22 compact default)
+TOOL_GUIDE = """## TOOL SELECTION GUIDE (facade-first; 118 full / 22 compact default)
 
 ### ⚠️ CRITICAL: PROJECT CONTEXT RULE
 **Before ANY operation that modifies project content, you MUST:**

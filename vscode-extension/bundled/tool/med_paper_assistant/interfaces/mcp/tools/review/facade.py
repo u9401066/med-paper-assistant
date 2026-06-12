@@ -18,11 +18,13 @@ def register_review_facade_tools(
     pipeline_tools: ToolMap,
     formatting_tools: ToolMap | None = None,
     health_tools: ToolMap | None = None,
+    constraint_tools: ToolMap | None = None,
 ):
     """Register stable facade verbs for review quality and pipeline control."""
 
     formatting_tools = formatting_tools or {}
     health_tools = health_tools or {}
+    constraint_tools = constraint_tools or {}
 
     @mcp.tool()
     async def run_quality_checks(
@@ -80,6 +82,11 @@ def register_review_facade_tools(
         - evolve_constraint
         - pending_evolutions
         - tool_health
+        - constraint_ledger
+        - constraint_add
+        - constraint_satisfy
+        - constraint_waive
+        - constraint_reopen
         """
         aliases = {
             "audit": "quality_audit",
@@ -94,6 +101,8 @@ def register_review_facade_tools(
             "constraints": "domain_constraints",
             "pending": "pending_evolutions",
             "health": "tool_health",
+            "ledger": "constraint_ledger",
+            "constraint_status": "constraint_ledger",
             "retrospective": "pipeline_retrospective",
             "actions": "list",
             "help": "list",
@@ -210,6 +219,53 @@ def register_review_facade_tools(
                 health_tools,
                 "diagnose_tool_health",
                 {"project": project},
+            ),
+            "constraint_ledger": (
+                constraint_tools,
+                "constraint_action",
+                {"action": "status", "project": project},
+            ),
+            "constraint_add": (
+                constraint_tools,
+                "constraint_action",
+                {
+                    "action": "add",
+                    "source": source_hook,
+                    "description": description,
+                    "severity": severity,
+                    "section": section,
+                    "project": project,
+                },
+            ),
+            "constraint_satisfy": (
+                constraint_tools,
+                "constraint_action",
+                {
+                    "action": "satisfy",
+                    "key": constraint_id,
+                    "reason": reason,
+                    "project": project,
+                },
+            ),
+            "constraint_waive": (
+                constraint_tools,
+                "constraint_action",
+                {
+                    "action": "waive",
+                    "key": constraint_id,
+                    "reason": reason,
+                    "project": project,
+                },
+            ),
+            "constraint_reopen": (
+                constraint_tools,
+                "constraint_action",
+                {
+                    "action": "reopen",
+                    "key": constraint_id,
+                    "reason": reason,
+                    "project": project,
+                },
             ),
         }
 

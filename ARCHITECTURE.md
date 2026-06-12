@@ -37,7 +37,7 @@ MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫
 
 ## MCP Server（DDD Architecture）
 
-主要的 Python MCP Server，full surface 提供 117 個 tools，另暴露 3 個 prompts 與 3 個 resources；compact default 採 facade-first surface，暴露 22 個 tools。這些公開數量由 `tool-surface-authority.json` 與 validation/release gates 驗證。
+主要的 Python MCP Server，full surface 提供 118 個 tools，另暴露 3 個 prompts 與 3 個 resources；compact default 採 facade-first surface，暴露 22 個 tools。這些公開數量由 `tool-surface-authority.json` 與 validation/release gates 驗證。
 
 ### 層級結構
 
@@ -269,7 +269,7 @@ Copilot Agent Mode 同時連接多個 MCP Server：
 
 | Server            | 來源                                                                                                                                                                   | 用途                                                           | Tools 數量            |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------- |
-| **mdpaper**       | 本專案                                                                                                                                                                 | 專案管理、草稿、引用、審查、匯出；另含 3 prompts / 3 resources | 117 full / 22 compact |
+| **mdpaper**       | 本專案                                                                                                                                                                 | 專案管理、草稿、引用、審查、匯出；另含 3 prompts / 3 resources | 118 full / 22 compact |
 | **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule)                                                                                                                          | PubMed 文獻搜尋                                                | 37                    |
 | **cgu**           | `integrations/cgu/` (submodule)                                                                                                                                        | 創意發想（快思慢想）                                           | 13                    |
 | **drawio**        | `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` → fallback `node integrations/drawio-mcp/src/index.js` → `npx -y @drawio/mcp` | CONSORT/PRISMA 圖表                                            | ~5                    |
