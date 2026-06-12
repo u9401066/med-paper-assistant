@@ -38,7 +38,7 @@ TESTS = ROOT / "tests"
 DECLARED_HOOKS = {
     "A": 8,  # A1-A7 + A3b (A3c counted within A3)
     "B": 16,  # B1-B16
-    "C": 13,  # C1-C13
+    "C": 14,  # C1-C14
     "D": 9,  # D1-D9
     "E": 5,  # E1-E5
     "F": 4,  # F1-F4
@@ -46,7 +46,7 @@ DECLARED_HOOKS = {
     "P": 8,  # P1-P8
     "R": 6,  # R1-R6
 }
-TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 78
+TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 79
 
 # Sub-hooks that don't follow sequential numbering (e.g. A3b instead of A8)
 # These are counted in DECLARED_HOOKS totals.
