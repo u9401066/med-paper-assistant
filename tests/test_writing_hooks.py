@@ -1656,6 +1656,74 @@ class TestHookP7:
         assert r.passed is False
         assert r.stats["unverified_count"] == 1
 
+    def test_valid_doi_passes(self, engine: WritingHooksEngine, project_dir: Path):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        ref1 = refs_dir / "smith2024_12345678"
+        ref1.mkdir()
+        meta = {
+            "_data_source": "pubmed_api",
+            "title": "Test",
+            "doi": "10.1001/jama.2020.1585",
+        }
+        with open(ref1 / "metadata.json", "w") as f:
+            json.dump(meta, f)
+        r = engine.check_reference_integrity()
+        assert r.passed is True
+        assert r.stats["doi_present"] == 1
+        assert r.stats["doi_valid"] == 1
+        assert r.stats["doi_malformed"] == 0
+
+    def test_malformed_doi_is_critical_block(
+        self, engine: WritingHooksEngine, project_dir: Path
+    ):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        ref1 = refs_dir / "smith2024_12345678"
+        ref1.mkdir()
+        meta = {
+            "_data_source": "pubmed_api",
+            "title": "Test",
+            "doi": "not-a-real-doi",
+        }
+        with open(ref1 / "metadata.json", "w") as f:
+            json.dump(meta, f)
+        r = engine.check_reference_integrity()
+        assert r.passed is False
+        assert r.stats["doi_malformed"] == 1
+        assert any(i.severity == "CRITICAL" for i in r.issues)
+        assert any("malformed DOI" in i.message for i in r.issues)
+
+    def test_doi_url_form_is_valid(self, engine: WritingHooksEngine, project_dir: Path):
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        ref1 = refs_dir / "smith2024_12345678"
+        ref1.mkdir()
+        meta = {
+            "_data_source": "pubmed_api",
+            "title": "Test",
+            "doi": "https://doi.org/10.1038/nature12373",
+        }
+        with open(ref1 / "metadata.json", "w") as f:
+            json.dump(meta, f)
+        r = engine.check_reference_integrity()
+        assert r.passed is True
+        assert r.stats["doi_valid"] == 1
+
+    def test_no_doi_field_unaffected(self, engine: WritingHooksEngine, project_dir: Path):
+        """A verified reference without any DOI must still pass (DOI is optional)."""
+        refs_dir = project_dir / "references"
+        refs_dir.mkdir()
+        ref1 = refs_dir / "smith2024_12345678"
+        ref1.mkdir()
+        meta = {"_data_source": "pubmed_api", "title": "Test"}
+        with open(ref1 / "metadata.json", "w") as f:
+            json.dump(meta, f)
+        r = engine.check_reference_integrity()
+        assert r.passed is True
+        assert r.stats["doi_present"] == 0
+
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Pre-commit Batch Runner

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added an offline DOI validator (`med_paper_assistant.shared.doi`) and wired it into Hook P7 (reference integrity) so any DOI attached to a cited reference must be syntactically valid (`10.<registrant>/<suffix>`) before the manuscript is finalized; malformed DOIs are now CRITICAL blocking issues while references without a DOI remain acceptable.
+
+### Fixed
+
+- Re-synced the bundled Python mirror (`vscode-extension/bundled/tool/med_paper_assistant`) with source, restoring the v0.7.12 continuity-harness changes in `checkpoint_manager.py` and `pipeline_gate.py` that had not been mirrored, so the bundled-mirror parity test passes again.
+
 ## [0.7.12] - 2026-06-11
 
 ### Added

@@ -8,6 +8,8 @@ from pathlib import Path
 
 import structlog
 
+from med_paper_assistant.shared.doi import validate_doi
+
 from ._models import HookIssue, HookResult
 
 logger = structlog.get_logger()
@@ -132,6 +134,9 @@ class PreCommitMixin:
         total_refs = 0
         verified_count = 0
         unverified_refs: list[str] = []
+        doi_present = 0
+        doi_valid = 0
+        malformed_dois: list[tuple[str, str, str]] = []
 
         for ref_dir in sorted(refs_dir.iterdir()):
             if not ref_dir.is_dir():
@@ -149,8 +154,37 @@ class PreCommitMixin:
                     verified_count += 1
                 else:
                     unverified_refs.append(ref_dir.name)
+                # Offline DOI syntactic validation: only when a DOI is present.
+                # Not every legitimate reference has a DOI (books, older papers,
+                # PubMed-verified items), so a missing DOI is never an error here
+                # — but a *malformed* DOI is a blocking error because it will fail
+                # at peer review or break reference resolution.
+                raw_doi = str(meta.get("doi") or meta.get("DOI") or "").strip()
+                if raw_doi:
+                    doi_present += 1
+                    ok, _normalized, reason = validate_doi(raw_doi)
+                    if ok:
+                        doi_valid += 1
+                    else:
+                        malformed_dois.append((ref_dir.name, raw_doi, reason))
             except Exception:
                 unverified_refs.append(ref_dir.name)
+
+        # CRITICAL: malformed DOIs must be fixed before the final paper.
+        for ref_name, raw_doi, reason in malformed_dois:
+            issues.append(
+                HookIssue(
+                    hook_id="P7",
+                    severity="CRITICAL",
+                    section="references",
+                    message=f"Reference '{ref_name}' has a malformed DOI '{raw_doi}' ({reason})",
+                    location=ref_name,
+                    suggestion=(
+                        "Fix the DOI to the canonical 10.<registrant>/<suffix> form, "
+                        "or remove it if no valid DOI exists"
+                    ),
+                )
+            )
 
         for ref_name in unverified_refs:
             issues.append(
@@ -169,9 +203,19 @@ class PreCommitMixin:
             "verified_count": verified_count,
             "unverified_count": len(unverified_refs),
             "unverified_refs": unverified_refs[:10],
+            "doi_present": doi_present,
+            "doi_valid": doi_valid,
+            "doi_malformed": len(malformed_dois),
+            "malformed_dois": [name for name, _raw, _reason in malformed_dois[:10]],
         }
 
-        logger.info("Hook P7 complete", passed=passed, verified=verified_count, total=total_refs)
+        logger.info(
+            "Hook P7 complete",
+            passed=passed,
+            verified=verified_count,
+            total=total_refs,
+            doi_malformed=len(malformed_dois),
+        )
         return HookResult(hook_id="P7", passed=passed, issues=issues, stats=stats)
 
     # ── Hook P6: Memory Sync Gate ──────────────────────────────────
