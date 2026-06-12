@@ -842,16 +842,15 @@ def register_writing_tools(
             log_tool_result("read_draft", result, success=False)
             return result
 
-        if True:
-            drafts_dir = get_drafts_dir() or "drafts"
-            filename = str(
-                resolve_child_path(
-                    drafts_dir,
-                    safe_filename,
-                    field_name="Draft filename",
-                    allowed_suffixes={".md"},
-                )
+        drafts_dir = get_drafts_dir() or "drafts"
+        filename = str(
+            resolve_child_path(
+                drafts_dir,
+                safe_filename,
+                field_name="Draft filename",
+                allowed_suffixes={".md"},
             )
+        )
 
         if not os.path.exists(filename):
             result = f"Error: Draft file not found: {filename}"
@@ -952,16 +951,15 @@ def register_writing_tools(
             log_tool_result("delete_draft", error_msg, success=False)
             return error_msg
 
-        if True:
-            drafts_dir = get_drafts_dir() or "drafts"
-            filename = str(
-                resolve_child_path(
-                    drafts_dir,
-                    safe_filename,
-                    field_name="Draft filename",
-                    allowed_suffixes={".md"},
-                )
+        drafts_dir = get_drafts_dir() or "drafts"
+        filename = str(
+            resolve_child_path(
+                drafts_dir,
+                safe_filename,
+                field_name="Draft filename",
+                allowed_suffixes={".md"},
             )
+        )
 
         if not os.path.exists(filename):
             error_msg = f"❌ Draft file not found: {filename}"

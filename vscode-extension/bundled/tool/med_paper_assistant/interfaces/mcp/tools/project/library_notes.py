@@ -12,6 +12,7 @@ from mcp.server.fastmcp import FastMCP
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
+from med_paper_assistant.shared.yaml_escape import escape_yaml_value as _yaml_escape
 
 from .._shared import (
     get_optional_tool_decorator,
@@ -86,10 +87,6 @@ ASSET_LINK_PATTERN = re.compile(
     r"(?:content-(?:card|inline)!|!)?\[\[([^\]]+)\]\]",
     flags=re.IGNORECASE,
 )
-
-
-def _yaml_escape(value: str) -> str:
-    return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def _current_timestamp() -> str:

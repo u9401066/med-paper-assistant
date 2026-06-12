@@ -146,18 +146,17 @@ def register_template_tools(
         except ValueError as e:
             return f"❌ Invalid draft filename: {e}"
 
-        if True:
-            drafts_dir = get_drafts_dir()
-            if not drafts_dir:
-                drafts_dir = "drafts"
-            filename = str(
-                resolve_child_path(
-                    drafts_dir,
-                    safe_filename,
-                    field_name="Draft filename",
-                    allowed_suffixes={".md"},
-                )
+        drafts_dir = get_drafts_dir()
+        if not drafts_dir:
+            drafts_dir = "drafts"
+        filename = str(
+            resolve_child_path(
+                drafts_dir,
+                safe_filename,
+                field_name="Draft filename",
+                allowed_suffixes={".md"},
             )
+        )
 
         if not os.path.exists(filename):
             return f"Error: File not found: {filename}"

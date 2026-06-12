@@ -20,6 +20,7 @@ from med_paper_assistant.shared.path_guard import (
     resolve_child_path,
 )
 from med_paper_assistant.shared.slug import slugify_token
+from med_paper_assistant.shared.yaml_escape import escape_yaml_value
 
 logger = structlog.get_logger()
 
@@ -221,7 +222,7 @@ class ReferenceManager:
         os.makedirs(self._registry_dir(), exist_ok=True)
 
     def _yaml_escape(self, value: str) -> str:
-        return value.replace("\\", "\\\\").replace('"', '\\"')
+        return escape_yaml_value(value)
 
     def _slugify(self, value: str, fallback: str = "untitled") -> str:
         return slugify_token(value, fallback)

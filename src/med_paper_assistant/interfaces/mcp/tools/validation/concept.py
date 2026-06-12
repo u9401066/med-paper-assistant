@@ -103,35 +103,34 @@ def register_concept_validation_tools(
 
         # Resolve path
         filename = safe_filename
-        if True:
-            from med_paper_assistant.infrastructure.persistence import get_project_manager
+        from med_paper_assistant.infrastructure.persistence import get_project_manager
 
-            pm = get_project_manager()
-            current_info = pm.get_project_info()  # Returns dict with project details
+        pm = get_project_manager()
+        current_info = pm.get_project_info()  # Returns dict with project details
 
-            if current_info.get("project_path"):
-                project_path = current_info["project_path"]
-                project_concept = os.path.join(project_path, "concept.md")
-                if os.path.exists(project_concept) and filename == "concept.md":
-                    filename = project_concept
-                else:
-                    filename = str(
-                        resolve_child_path(
-                            os.path.join(project_path, "drafts"),
-                            filename,
-                            field_name="Concept filename",
-                            allowed_suffixes={".md"},
-                        )
-                    )
+        if current_info.get("project_path"):
+            project_path = current_info["project_path"]
+            project_concept = os.path.join(project_path, "concept.md")
+            if os.path.exists(project_concept) and filename == "concept.md":
+                filename = project_concept
             else:
                 filename = str(
                     resolve_child_path(
-                        "drafts",
+                        os.path.join(project_path, "drafts"),
                         filename,
                         field_name="Concept filename",
                         allowed_suffixes={".md"},
                     )
                 )
+        else:
+            filename = str(
+                resolve_child_path(
+                    "drafts",
+                    filename,
+                    field_name="Concept filename",
+                    allowed_suffixes={".md"},
+                )
+            )
 
         if not os.path.exists(filename):
             error_result = (
@@ -264,39 +263,38 @@ def register_concept_validation_tools(
 
         # Resolve path
         filename = safe_filename
-        if True:
-            from med_paper_assistant.infrastructure.persistence import get_project_manager
+        from med_paper_assistant.infrastructure.persistence import get_project_manager
 
-            pm = get_project_manager()
-            current_info = pm.get_project_info()
+        pm = get_project_manager()
+        current_info = pm.get_project_info()
 
-            if current_info and current_info.get("project_path"):
-                project_path = str(current_info["project_path"])
-                # Try project root first
-                project_file = str(
+        if current_info and current_info.get("project_path"):
+            project_path = str(current_info["project_path"])
+            # Try project root first
+            project_file = str(
+                resolve_child_path(
+                    project_path,
+                    filename,
+                    field_name="Markdown filename",
+                    allowed_suffixes={".md"},
+                )
+            )
+            if os.path.exists(project_file):
+                filename = project_file
+            else:
+                # Try drafts folder
+                drafts_file = str(
                     resolve_child_path(
-                        project_path,
+                        os.path.join(project_path, "drafts"),
                         filename,
                         field_name="Markdown filename",
                         allowed_suffixes={".md"},
                     )
                 )
-                if os.path.exists(project_file):
-                    filename = project_file
-                else:
-                    # Try drafts folder
-                    drafts_file = str(
-                        resolve_child_path(
-                            os.path.join(project_path, "drafts"),
-                            filename,
-                            field_name="Markdown filename",
-                            allowed_suffixes={".md"},
-                        )
-                    )
-                    if os.path.exists(drafts_file):
-                        filename = drafts_file
+                if os.path.exists(drafts_file):
+                    filename = drafts_file
 
-                references_dir = os.path.join(project_path, "references")
+            references_dir = os.path.join(project_path, "references")
 
         if not os.path.exists(filename):
             error_result = f"❌ File not found: {filename}"
