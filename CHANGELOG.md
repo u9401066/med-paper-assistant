@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an offline DOI validator (`med_paper_assistant.shared.doi`) and wired it into Hook P7 (reference integrity) so any DOI attached to a cited reference must be syntactically valid (`10.<registrant>/<suffix>`) before the manuscript is finalized; malformed DOIs are now CRITICAL blocking issues while references without a DOI remain acceptable.
 - Added a shared `normalize_doi_for_filename` helper in `med_paper_assistant.shared.doi` as the single source of truth for filesystem-safe DOI slugs.
 - Added a shared slug module (`med_paper_assistant.shared.slug`) exposing `slugify_name` (project-name slugs that drop punctuation) and `slugify_token` (generic tokens that keep punctuation as hyphen separators) as the single source of truth for the two distinct slug algorithms.
+- Added an adversarial / metamorphic verification harness (`tests/test_adversarial_hooks.py`, design in `docs/design/adversarial-verification-harness.md`) that continuously PROVES the quality hooks reject bad input, not just accept good input. Each covered hook (A3 anti-AI, A5 language, A6 overlap, B8 stats alignment, C3 N-value, C4 abbreviation, P7 reference/DOI integrity) has a known-good fixture that must pass and a known-bad mutation that must be caught, plus a coverage ratchet that prevents silently losing adversarial coverage.
 
 ### Changed
 
