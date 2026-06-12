@@ -1674,9 +1674,7 @@ class TestHookP7:
         assert r.stats["doi_valid"] == 1
         assert r.stats["doi_malformed"] == 0
 
-    def test_malformed_doi_is_critical_block(
-        self, engine: WritingHooksEngine, project_dir: Path
-    ):
+    def test_malformed_doi_is_critical_block(self, engine: WritingHooksEngine, project_dir: Path):
         refs_dir = project_dir / "references"
         refs_dir.mkdir()
         ref1 = refs_dir / "smith2024_12345678"
@@ -1722,7 +1720,6 @@ class TestHookP7:
         r = engine.check_reference_integrity()
         assert r.passed is True
         assert r.stats["doi_present"] == 0
-
 
 
 # ──────────────────────────────────────────────────────────────────────────────

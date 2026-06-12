@@ -452,9 +452,7 @@ class CheckpointManager:
             )
 
         if status == "regression":
-            return self._regression_continuity_decision(
-                state.get("regression_context", {})
-            )
+            return self._regression_continuity_decision(state.get("regression_context", {}))
 
         return {
             "kind": "none",
@@ -474,9 +472,7 @@ class CheckpointManager:
     # checkpoint is required (bounded-autonomy safeguard for the YOLO flow).
     MAX_CONSECUTIVE_AUTO_RESUMES = 3
 
-    def _regression_continuity_decision(
-        self, regression_ctx: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _regression_continuity_decision(self, regression_ctx: dict[str, Any]) -> dict[str, Any]:
         """Build the continuity decision for a regression state.
 
         Below the regression threshold the agent may rewrite the flagged

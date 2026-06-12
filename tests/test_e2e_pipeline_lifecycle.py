@@ -147,7 +147,9 @@ class PipelineProjectBuilder:
     def complete_phase_4(self) -> None:
         # A plan with NO required assets keeps Phase 5 focused on sections+approval.
         (self.root / "manuscript-plan.yaml").write_text(
-            yaml.dump({"sections": ["Abstract", "Introduction", "Methods", "Results", "Discussion"]}),
+            yaml.dump(
+                {"sections": ["Abstract", "Introduction", "Methods", "Results", "Discussion"]}
+            ),
             encoding="utf-8",
         )
 
@@ -233,9 +235,7 @@ class PipelineProjectBuilder:
                 f"# EQUATOR {i}\nCONSORT checklist addressed.", encoding="utf-8"
             )
             self._append_jsonl(elog, {"event": "review_round", "round": i, "verdict": verdict})
-        (self.audit / "audit-loop-review.json").write_text(
-            json.dumps(loop_state), encoding="utf-8"
-        )
+        (self.audit / "audit-loop-review.json").write_text(json.dumps(loop_state), encoding="utf-8")
 
     # ── Phase 8: Reference Sync ───────────────────────────────────
     def complete_phase_8(self) -> None:
@@ -457,8 +457,7 @@ class TestHeartbeatProgression:
             status = PipelineGateValidator(builder.root).get_pipeline_status()
             pct = status["completion_pct"]
             assert pct >= last_pct, (
-                f"Completion % dropped after completing up to phase {target}: "
-                f"{last_pct} → {pct}"
+                f"Completion % dropped after completing up to phase {target}: {last_pct} → {pct}"
             )
             last_pct = pct
 
@@ -539,14 +538,10 @@ class TestCorruptedArtifactEdgeCases:
         assert not result.passed  # must fail, but not crash
         assert any(c.name == "section_approval" for c in result.checks)
 
-    def test_corrupt_quality_scorecard_yaml_phase_6(
-        self, builder: PipelineProjectBuilder
-    ) -> None:
+    def test_corrupt_quality_scorecard_yaml_phase_6(self, builder: PipelineProjectBuilder) -> None:
         builder.complete_up_to(5)
         builder.complete_phase_6()
-        (builder.audit / "quality-scorecard.yaml").write_text(
-            "scores: [unclosed", encoding="utf-8"
-        )
+        (builder.audit / "quality-scorecard.yaml").write_text("scores: [unclosed", encoding="utf-8")
         result = PipelineGateValidator(builder.root).validate_phase(6)
         # Corrupt YAML → scorecard data check fails, but no exception.
         assert not result.passed
@@ -555,9 +550,7 @@ class TestCorruptedArtifactEdgeCases:
     def test_corrupt_audit_loop_json_phase_7(self, builder: PipelineProjectBuilder) -> None:
         builder.complete_up_to(65)
         builder.complete_phase_7()
-        (builder.audit / "audit-loop-review.json").write_text(
-            "}{ corrupt", encoding="utf-8"
-        )
+        (builder.audit / "audit-loop-review.json").write_text("}{ corrupt", encoding="utf-8")
         result = PipelineGateValidator(builder.root).validate_phase(7)
         assert not result.passed
         # rounds parsed as 0 → rounds_completed check fails gracefully

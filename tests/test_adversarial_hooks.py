@@ -176,11 +176,15 @@ SCENARIOS: list[Scenario] = [
     Scenario("A3", "bad", "AI filler phrases", _content_build("check_anti_ai_patterns", A3_BAD)),
     # A5 — language consistency
     Scenario(
-        "A5", "good", "american spelling",
+        "A5",
+        "good",
+        "american spelling",
         _content_build("check_language_consistency", A5_GOOD, "american"),
     ),
     Scenario(
-        "A5", "bad", "british spelling",
+        "A5",
+        "bad",
+        "british spelling",
         _content_build("check_language_consistency", A5_BAD, "american"),
     ),
     # A6 — overlap
@@ -188,11 +192,15 @@ SCENARIOS: list[Scenario] = [
     Scenario("A6", "bad", "duplicated paragraph", _content_build("check_overlap", A6_BAD)),
     # B8 — stats alignment
     Scenario(
-        "B8", "good", "declared test",
+        "B8",
+        "good",
+        "declared test",
         _content_build("check_data_claim_alignment", B8_METHODS, B8_RESULTS_GOOD),
     ),
     Scenario(
-        "B8", "bad", "undeclared ANOVA",
+        "B8",
+        "bad",
+        "undeclared ANOVA",
         _content_build("check_data_claim_alignment", B8_METHODS, B8_RESULTS_BAD),
     ),
     # C3 — n-value consistency
@@ -203,25 +211,43 @@ SCENARIOS: list[Scenario] = [
     Scenario("C4", "bad", "undefined abbr", _content_build("check_abbreviation_first_use", C4_BAD)),
     # B9 — section tense
     Scenario(
-        "B9", "good", "past tense methods",
+        "B9",
+        "good",
+        "past tense methods",
         _content_build("check_section_tense", B9_METHODS_GOOD, "Methods"),
     ),
     Scenario(
-        "B9", "bad", "present tense methods",
+        "B9",
+        "bad",
+        "present tense methods",
         _content_build("check_section_tense", B9_METHODS_BAD, "Methods"),
     ),
     # B11 — results objectivity
-    Scenario("B11", "good", "objective results", _content_build("check_results_interpretation", B11_GOOD)),
-    Scenario("B11", "bad", "speculative results", _content_build("check_results_interpretation", B11_BAD)),
+    Scenario(
+        "B11", "good", "objective results", _content_build("check_results_interpretation", B11_GOOD)
+    ),
+    Scenario(
+        "B11", "bad", "speculative results", _content_build("check_results_interpretation", B11_BAD)
+    ),
     # B12 — intro structure (no results preview)
     Scenario("B12", "good", "funnel intro", _content_build("check_intro_structure", B12_GOOD)),
-    Scenario("B12", "bad", "results preview in intro", _content_build("check_intro_structure", B12_BAD)),
+    Scenario(
+        "B12", "bad", "results preview in intro", _content_build("check_intro_structure", B12_BAD)
+    ),
     # B13 — discussion structure (limitations required)
-    Scenario("B13", "good", "has limitations", _content_build("check_discussion_structure", B13_GOOD)),
-    Scenario("B13", "bad", "missing limitations", _content_build("check_discussion_structure", B13_BAD)),
+    Scenario(
+        "B13", "good", "has limitations", _content_build("check_discussion_structure", B13_GOOD)
+    ),
+    Scenario(
+        "B13", "bad", "missing limitations", _content_build("check_discussion_structure", B13_BAD)
+    ),
     # B14 — ethical statements
-    Scenario("B14", "good", "has IRB + consent", _content_build("check_ethical_statements", B14_GOOD)),
-    Scenario("B14", "bad", "no ethics statement", _content_build("check_ethical_statements", B14_BAD)),
+    Scenario(
+        "B14", "good", "has IRB + consent", _content_build("check_ethical_statements", B14_GOOD)
+    ),
+    Scenario(
+        "B14", "bad", "no ethics statement", _content_build("check_ethical_statements", B14_BAD)
+    ),
     # P7 — reference + DOI integrity
     Scenario("P7", "good", "valid DOI", _p7_build(P7_GOOD_DOI)),
     Scenario("P7", "bad", "malformed DOI", _p7_build(P7_BAD_DOI)),
@@ -264,8 +290,7 @@ def test_metamorphic_verdict_flips(tmp_path: Path) -> None:
         for good in kinds["good"]:
             assert good.build(tmp_path / f"{hook_id}-g").passed is True
         assert any(
-            caught(bad.build(tmp_path / f"{hook_id}-b-{i}"))
-            for i, bad in enumerate(kinds["bad"])
+            caught(bad.build(tmp_path / f"{hook_id}-b-{i}")) for i, bad in enumerate(kinds["bad"])
         ), f"Hook {hook_id} never flips to caught under any known-bad mutation"
 
 

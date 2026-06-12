@@ -125,9 +125,7 @@ class TestPhaseRegression:
         assert regression_events[0]["from_phase"] == 7
         assert regression_events[0]["to_phase"] == 5
 
-    def test_continuity_plan_regression_autonomous_below_threshold(
-        self, ckpt: CheckpointManager
-    ):
+    def test_continuity_plan_regression_autonomous_below_threshold(self, ckpt: CheckpointManager):
         """A first/second regression should allow autonomous rewrite-and-continue."""
         ckpt.save_phase_regression(7, 5, "Methods needs rewrite", ["Methods"])
 
@@ -140,9 +138,7 @@ class TestPhaseRegression:
         assert plan["sections_to_rewrite"] == ["Methods"]
         assert plan["regression_count"] == 1
 
-    def test_continuity_plan_regression_escalates_above_threshold(
-        self, ckpt: CheckpointManager
-    ):
+    def test_continuity_plan_regression_escalates_above_threshold(self, ckpt: CheckpointManager):
         """Exceeding the regression threshold must require a human checkpoint."""
         ckpt.save_phase_regression(7, 5, "r1", ["Methods"])
         ckpt.save_phase_regression(7, 5, "r2", ["Results"])
@@ -176,7 +172,9 @@ class TestPhaseRegression:
 class TestPauseResume:
     """Tests for pipeline pause/resume with edit detection."""
 
-    def test_continuity_plan_auto_resumes_when_no_edits(self, ckpt: CheckpointManager, project_dir: Path):
+    def test_continuity_plan_auto_resumes_when_no_edits(
+        self, ckpt: CheckpointManager, project_dir: Path
+    ):
         """A paused pipeline with no edits should be eligible for seamless auto-resume."""
         _write_manuscript(project_dir)
         ckpt.save_phase_start(5, "WRITING")
@@ -188,7 +186,9 @@ class TestPauseResume:
         assert plan["next_action"] == "continue_without_manual_intervention"
         assert plan["reason"] == "No draft changes detected since pause"
 
-    def test_continuity_plan_flags_edits_for_review(self, ckpt: CheckpointManager, project_dir: Path):
+    def test_continuity_plan_flags_edits_for_review(
+        self, ckpt: CheckpointManager, project_dir: Path
+    ):
         """A paused pipeline with edits should keep the human-in-the-loop safeguard."""
         _write_manuscript(project_dir)
         ckpt.save_phase_start(5, "WRITING")

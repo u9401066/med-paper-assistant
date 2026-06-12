@@ -125,7 +125,9 @@ class TestPersistence:
         assert led2.is_converged()
 
     def test_corrupt_ledger_degrades_gracefully(self, audit_dir: Path) -> None:
-        (audit_dir / ConstraintLedger.LEDGER_FILE).write_text("{not: valid: yaml: [", encoding="utf-8")
+        (audit_dir / ConstraintLedger.LEDGER_FILE).write_text(
+            "{not: valid: yaml: [", encoding="utf-8"
+        )
         led = ConstraintLedger(audit_dir)
         # Should not raise; just starts empty.
         assert led.all_constraints() == []
@@ -136,8 +138,18 @@ class TestIngestHookIssues:
     def test_ingest_from_dicts(self, audit_dir: Path) -> None:
         led = ConstraintLedger(audit_dir)
         issues = [
-            {"hook_id": "P7", "severity": "CRITICAL", "section": "references", "message": "Malformed DOI"},
-            {"hook_id": "B13", "severity": "CRITICAL", "section": "Discussion", "message": "No limitations"},
+            {
+                "hook_id": "P7",
+                "severity": "CRITICAL",
+                "section": "references",
+                "message": "Malformed DOI",
+            },
+            {
+                "hook_id": "B13",
+                "severity": "CRITICAL",
+                "section": "Discussion",
+                "message": "No limitations",
+            },
         ]
         added = led.ingest_hook_issues(issues)
         assert added == 2
