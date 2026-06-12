@@ -78,3 +78,18 @@ def validate_doi(raw: str) -> tuple[bool, str, str]:
     if not _DOI_CORE.match(normalized):
         return False, normalized, "DOI does not match the 10.<registrant>/<suffix> pattern"
     return True, normalized, ""
+
+
+def normalize_doi_for_filename(doi: str) -> str:
+    """Normalize a DOI into a filesystem-safe, lowercase slug.
+
+    Distinct from :func:`normalize_doi` (which strips URL/scheme wrappers and
+    preserves the canonical DOI). This collapses ``/`` and ``.`` to hyphens and
+    drops every other non-alphanumeric character so the result is safe to embed
+    in a filename or identifier.
+    """
+    if not doi:
+        return ""
+    normalized = re.sub(r"[/.]", "-", doi)
+    normalized = re.sub(r"[^a-zA-Z0-9\-]", "", normalized)
+    return normalized.lower()

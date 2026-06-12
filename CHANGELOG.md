@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added an offline DOI validator (`med_paper_assistant.shared.doi`) and wired it into Hook P7 (reference integrity) so any DOI attached to a cited reference must be syntactically valid (`10.<registrant>/<suffix>`) before the manuscript is finalized; malformed DOIs are now CRITICAL blocking issues while references without a DOI remain acceptable.
+- Added a shared `normalize_doi_for_filename` helper in `med_paper_assistant.shared.doi` as the single source of truth for filesystem-safe DOI slugs.
+
+### Changed
+
+- Consolidated duplicated DOI filename-normalization logic: `ReferenceId._normalize_doi` and `ReferenceConverter._normalize_doi` now delegate to the shared `normalize_doi_for_filename` instead of each carrying an identical regex implementation.
+
+### Removed
+
+- Removed two verified dead private helpers with zero call sites across source, tests, and the bundled mirror: `ReferenceManager._create_foam_alias` and the unused `_insert_line_before` in the legacy DOCX exporter.
 
 ### Fixed
 

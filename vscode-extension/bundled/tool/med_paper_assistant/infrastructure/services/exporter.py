@@ -141,22 +141,6 @@ class WordExporter:
                 for line in content_lines:
                     self._add_line_to_doc(doc, line)
 
-    def _insert_line_before(self, doc, next_p, line):
-        line = line.strip()
-        if not line:
-            return
-
-        if line.startswith("!["):
-            # Image handling is tricky with insert_before.
-            # doc.add_picture appends.
-            # We might have to skip images or just append them?
-            # Or use a placeholder paragraph and run add_picture?
-            # python-docx doesn't support inserting pictures at arbitrary positions easily.
-            # Fallback: Just add text "[Image: ...]"
-            next_p.insert_paragraph_before(f"[Image inserted: {line}]")
-        else:
-            next_p.insert_paragraph_before(line)
-
     def _add_line_to_doc(self, doc, line):
         # Helper to add line (text or image) to end of doc
         line = line.strip()

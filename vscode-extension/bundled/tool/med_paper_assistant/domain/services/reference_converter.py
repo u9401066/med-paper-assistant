@@ -9,6 +9,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from med_paper_assistant.shared.doi import normalize_doi_for_filename
+
 
 @dataclass
 class StandardizedReference:
@@ -334,11 +336,7 @@ class ReferenceConverter:
 
     def _normalize_doi(self, doi: str) -> str:
         """Normalize DOI for use in filenames."""
-        # Replace special characters with hyphens
-        normalized = re.sub(r"[/.]", "-", doi)
-        # Remove other special characters
-        normalized = re.sub(r"[^a-zA-Z0-9\-]", "", normalized)
-        return normalized.lower()
+        return normalize_doi_for_filename(doi)
 
 
 # Singleton instance for convenience
