@@ -24,10 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected stale documentation that described `DomainConstraintEngine` as covering "3 paper types, 26 constraints" (`AGENTS.md`, `memory-bank/architect.md`); it actually covers **7 paper types** with ~69 structured constraints.
 - Consolidated duplicated DOI filename-normalization logic: `ReferenceId._normalize_doi` and `ReferenceConverter._normalize_doi` now delegate to the shared `normalize_doi_for_filename` instead of each carrying an identical regex implementation.
 - Consolidated four duplicated slug implementations onto the shared slug module: `Project.generate_slug` and `ProjectManager._slugify` now delegate to `slugify_name`, while `ReferenceManager._slugify` and `FoamSettingsManager._slugify` delegate to `slugify_token` (preserving each call site's exact fallback and dot-handling behavior).
+- Consolidated the duplicated `_yaml_escape` one-liner onto a new shared `med_paper_assistant.shared.yaml_escape.escape_yaml_value` helper; `ReferenceManager._yaml_escape` now delegates to it and `library_notes.py` imports it directly. Added `tests/test_yaml_escape.py`, which round-trips escaped values through a real YAML parser to lock in the required backslash-then-quote escape order.
 
 ### Removed
 
 - Removed two verified dead private helpers with zero call sites across source, tests, and the bundled mirror: `ReferenceManager._create_foam_alias` and the unused `_insert_line_before` in the legacy DOCX exporter.
+- Removed five dead `if True:` scaffolding conditionals (behavior-preserving dedents) left over from earlier refactors in the draft/validation MCP tools (`draft/templates.py`, `draft/writing.py`, `validation/concept.py`), dropping vulture's 100%-confidence dead-code findings from 6 to 1.
 
 ### Fixed
 
