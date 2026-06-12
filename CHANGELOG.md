@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.0] - 2026-06-12
 
 ### Added
 
@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Re-synced the bundled Python mirror (`vscode-extension/bundled/tool/med_paper_assistant`) with source, restoring the v0.7.12 continuity-harness changes in `checkpoint_manager.py` and `pipeline_gate.py` that had not been mirrored, so the bundled-mirror parity test passes again.
+- Applied `ruff format` to six tracked files that carried committed formatting drift (`infrastructure/persistence/checkpoint_manager.py` plus five hook/ledger/pipeline test modules) and re-synced the bundled mirror, so the release workflow's `ruff format --check src/ tests/` lint gate passes.
+- Re-synced the stale `_capability-index.md` bundle copy (`vscode-extension/prompts/_capability-index.md`) with its `.github/prompts` source so the `vsx-bundle-drift` gate (`npm run bundle:check`) reports all bundled assets in sync.
+- Restored Hook C14 (claim-evidence alignment) to the meta-learning coverage set: `MetaLearningEngine.EXPECTED_HOOKS` and the declared C-series count in `scripts/check_consistency.py` had not been updated when C14 was introduced, so the L3 hook-coverage analysis silently skipped C14 and the consistency checker reported a spurious 78-vs-79 mismatch. Docs, code, and tooling now consistently declare **79 checks** and `check_consistency.py` is back to 6/6.
 
 ## [0.7.12] - 2026-06-11
 
