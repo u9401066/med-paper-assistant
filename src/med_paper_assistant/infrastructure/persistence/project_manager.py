@@ -30,6 +30,7 @@ from ...shared.constants import (
     WORKFLOW_MODES,
 )
 from ...shared.path_guard import normalize_relative_filename, resolve_child_path
+from ...shared.slug import slugify_name
 from ..services.concept_template_reader import ConceptTemplateReader
 from .project_memory_manager import ProjectMemoryManager
 
@@ -663,14 +664,7 @@ class ProjectManager:
 
     def _slugify(self, name: str) -> str:
         """Convert project name to URL-safe slug."""
-        import re
-
-        slug = name.lower().strip()
-        slug = re.sub(r"[\s_]+", "-", slug)
-        slug = re.sub(r"[^a-z0-9\-]", "", slug)
-        slug = re.sub(r"-+", "-", slug)
-        slug = slug.strip("-")
-        return slug or "untitled"
+        return slugify_name(name)
 
     def _make_unique_slug(self, name: str) -> str:
         """Generate a unique slug by appending a counter when needed."""

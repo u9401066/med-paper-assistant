@@ -19,6 +19,7 @@ from med_paper_assistant.shared.path_guard import (
     normalize_relative_filename,
     resolve_child_path,
 )
+from med_paper_assistant.shared.slug import slugify_token
 
 logger = structlog.get_logger()
 
@@ -223,10 +224,7 @@ class ReferenceManager:
         return value.replace("\\", "\\\\").replace('"', '\\"')
 
     def _slugify(self, value: str, fallback: str = "untitled") -> str:
-        import re
-
-        normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-        return normalized or fallback
+        return slugify_token(value, fallback)
 
     def _compute_text_hash(self, content: str) -> str:
         return hashlib.sha256(content.encode("utf-8")).hexdigest()

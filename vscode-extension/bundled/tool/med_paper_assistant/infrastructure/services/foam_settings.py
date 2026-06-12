@@ -12,6 +12,8 @@ from typing import Any, Dict, List
 
 import structlog
 
+from med_paper_assistant.shared.slug import slugify_token
+
 logger = structlog.get_logger()
 
 
@@ -373,10 +375,7 @@ class FoamSettingsManager:
         return generated
 
     def _slugify(self, value: str) -> str:
-        import re
-
-        normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-        return normalized or "view"
+        return slugify_token(value, fallback="view")
 
     def _group(
         self,

@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added an offline DOI validator (`med_paper_assistant.shared.doi`) and wired it into Hook P7 (reference integrity) so any DOI attached to a cited reference must be syntactically valid (`10.<registrant>/<suffix>`) before the manuscript is finalized; malformed DOIs are now CRITICAL blocking issues while references without a DOI remain acceptable.
 - Added a shared `normalize_doi_for_filename` helper in `med_paper_assistant.shared.doi` as the single source of truth for filesystem-safe DOI slugs.
+- Added a shared slug module (`med_paper_assistant.shared.slug`) exposing `slugify_name` (project-name slugs that drop punctuation) and `slugify_token` (generic tokens that keep punctuation as hyphen separators) as the single source of truth for the two distinct slug algorithms.
 
 ### Changed
 
 - Consolidated duplicated DOI filename-normalization logic: `ReferenceId._normalize_doi` and `ReferenceConverter._normalize_doi` now delegate to the shared `normalize_doi_for_filename` instead of each carrying an identical regex implementation.
+- Consolidated four duplicated slug implementations onto the shared slug module: `Project.generate_slug` and `ProjectManager._slugify` now delegate to `slugify_name`, while `ReferenceManager._slugify` and `FoamSettingsManager._slugify` delegate to `slugify_token` (preserving each call site's exact fallback and dot-handling behavior).
 
 ### Removed
 
