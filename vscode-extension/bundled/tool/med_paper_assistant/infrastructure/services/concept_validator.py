@@ -14,17 +14,9 @@ Key Design Decisions:
 - Methods sections are RECOMMENDED, not REQUIRED (non-blocking)
 - Results are cached to avoid redundant API calls
 
-Validation Matrix by Paper Type:
-┌──────────────────┬─────────┬────────────┬─────────────┬───────────┐
-│ Paper Type       │ NOVELTY │ SELLING PT │ Background  │ Methods   │
-├──────────────────┼─────────┼────────────┼─────────────┼───────────┤
-│ original-research│ ✅ REQ  │ ✅ REQ     │ 📝 INTRO    │ 📝 RECOM  │
-│ systematic-review│ ✅ REQ  │ ✅ REQ     │ 📝 INTRO    │ ⚠️ PRISMA │
-│ meta-analysis    │ ✅ REQ  │ ✅ REQ     │ 📝 INTRO    │ ⚠️ PRISMA │
-│ case-report      │ ✅ REQ  │ ✅ REQ     │ 📝 INTRO    │ ⚪ N/A    │
-│ review-article   │ ✅ REQ  │ ✅ REQ     │ 📝 INTRO    │ ⚪ N/A    │
-│ letter           │ ✅ REQ  │ ⚪ OPT     │ ⚪ OPT      │ ⚪ N/A    │
-└──────────────────┴─────────┴────────────┴─────────────┴───────────┘
+Requirements are read from ``domain.paper_types``. Novelty evaluation only
+runs for profiles that require a novelty statement; proposals, closeout
+reports, student papers, and theses use their own auditable concept contract.
 
 Section-Specific Validation:
 - Introduction: core + intro_required
@@ -175,13 +167,22 @@ class ConceptValidator:
         "selling_points": {
             "name": "🔒 KEY SELLING POINTS",
             "required": True,
-            "patterns": [r"🔒\s*KEY SELLING POINTS", r"Selling Point \d"],
+            "patterns": [
+                r"🔒\s*KEY SELLING POINTS",
+                r"#+.*KEY SELLING POINTS",
+                r"Selling Point \d",
+            ],
             "min_count": 3,
         },
         "background": {
             "name": "📝 Background",
             "required": False,
-            "patterns": [r"📝\s*Background", r"##\s*Background"],
+            "patterns": [
+                r"📝\s*Background",
+                r"##\s*Background",
+                r"##\s*Project Background",
+                r"##\s*Background and Rationale",
+            ],
             "min_words": 30,
         },
         "research_gap": {
@@ -193,19 +194,38 @@ class ConceptValidator:
         "research_question": {
             "name": "📝 Research Question",
             "required": False,
-            "patterns": [r"Research Question", r"Hypothesis", r"PICO"],
+            "patterns": [
+                r"Research Question",
+                r"Hypothesis",
+                r"PICO",
+                r"##\s*Objectives?",
+                r"##\s*Thesis Statement",
+            ],
             "min_words": 10,
         },
         "methods": {
             "name": "📝 Methods Overview",
             "required": False,
-            "patterns": [r"📝\s*Methods", r"##\s*Methods", r"Study Design"],
+            "patterns": [
+                r"📝\s*Methods",
+                r"##\s*Methods",
+                r"##\s*Methodology",
+                r"##\s*Activities and Methods",
+                r"Study Design",
+            ],
             "min_words": 20,
         },
         "expected_outcomes": {
             "name": "📝 Expected Outcomes",
             "required": False,
-            "patterns": [r"📝\s*Expected", r"##\s*Expected Outcomes", r"Primary Outcomes"],
+            "patterns": [
+                r"📝\s*Expected",
+                r"##\s*Expected Outcomes",
+                r"##\s*Expected Impact",
+                r"##\s*Results and Deliverables",
+                r"##\s*Learning Outcomes",
+                r"Primary Outcomes",
+            ],
             "min_words": 15,
         },
     }
@@ -263,7 +283,11 @@ class ConceptValidator:
         file_path = str(Path(file_path).resolve())
 
         # Check cache (include paper_type and target_section in cache key)
-        cache_key = f"{file_path}:{paper_type}:{target_section}"
+        cache_key = (
+            f"{file_path}:{paper_type}:{target_section}:"
+            f"novelty={run_novelty_check}:consistency={run_consistency_check}:"
+            f"citations={run_citation_check}"
+        )
         if not force_refresh:
             cached = self._get_cached_result(cache_key)
             if cached:
@@ -294,7 +318,12 @@ class ConceptValidator:
         result = self._validate_structure(content, result, paper_type, target_section)
 
         # 2. Novelty evaluation (if structural check passed for required sections)
-        if run_novelty_check and result.structure_valid:
+        required_section_keys = self._required_section_keys(paper_type, target_section)
+        if (
+            run_novelty_check
+            and result.structure_valid
+            and "novelty_statement" in required_section_keys
+        ):
             result = self._evaluate_novelty(content, result)
 
         # 3. Consistency check
@@ -368,25 +397,14 @@ class ConceptValidator:
         - Gets requirements from paper_types.py
         - Only validates what's needed for target_section
         """
-        # Get section requirements based on paper type and target section
-        if target_section:
-            section_reqs = get_section_requirements(paper_type, target_section)
-            section_reqs["required"]
-            section_reqs["recommended"]
-            section_reqs["blocking"]
-        else:
-            # Full validation - use core requirements
-            concept_reqs = get_concept_requirements(paper_type)
-            concept_reqs.intro_required + concept_reqs.methods_required
-
-        # Map section keys to their definitions
+        required_keys = self._required_section_keys(paper_type, target_section)
 
         # Check each section definition
         for section_key, section_def in self.SECTION_DEFINITIONS.items():
             patterns_list: List[str] = list(section_def["patterns"])  # type: ignore[arg-type,call-overload]
             check = SectionCheck(
                 name=str(section_def["name"]),
-                required=bool(section_def["required"]),
+                required=section_key in required_keys,
                 patterns=patterns_list,
             )
 
@@ -426,7 +444,7 @@ class ConceptValidator:
                     min_count: int = section_def.get("min_count", 3)  # type: ignore[assignment]
                     check.has_content = len(non_placeholder_points) >= min_count
 
-                    if not check.has_content:
+                    if not check.has_content and check.required:
                         result.errors.append(
                             f"{check.name}: Found {len(non_placeholder_points)} points, need at least {min_count}"
                         )
@@ -434,27 +452,38 @@ class ConceptValidator:
                     min_words: int = section_def.get("min_words", 10)  # type: ignore[assignment]
                     check.has_content = word_count >= min_words
 
-                    if not check.has_content and bool(section_def["required"]):
+                    if not check.has_content and check.required:
                         result.errors.append(
                             f"{check.name}: Only {word_count} words, need at least {min_words}"
                         )
             else:
                 check.found = False
-                if bool(section_def["required"]):
+                if check.required:
                     result.errors.append(f"{check.name}: Section not found")
 
             result.sections[section_key] = check
 
         # Check if all required sections are valid
         required_valid = all(
-            result.sections[k].found and result.sections[k].has_content
-            for k, v in self.SECTION_DEFINITIONS.items()
-            if bool(v["required"])
+            result.sections[k].found and result.sections[k].has_content for k in required_keys
         )
 
         result.structure_valid = required_valid
 
         return result
+
+    def _required_section_keys(self, paper_type: str, target_section: str = "") -> set[str]:
+        """Resolve paper-type requirements to validator section keys."""
+        if target_section:
+            requirements = get_section_requirements(paper_type, target_section)["required"]
+        else:
+            requirements = get_concept_requirements(paper_type).core_required
+
+        return {
+            section_key
+            for requirement in requirements
+            if (section_key := self._map_requirement_to_section(requirement)) is not None
+        }
 
     def _extract_section(self, content: str, patterns: List[str]) -> str:
         """Extract content between a section header and the next major section.

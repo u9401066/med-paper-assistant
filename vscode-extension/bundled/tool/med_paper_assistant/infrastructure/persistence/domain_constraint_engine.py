@@ -85,6 +85,99 @@ _CORE_ANTI_AI_PATTERNS: list[str] = [
 # ── Base Constraint Templates ─────────────────────────────────────
 
 
+def _build_formal_output_constraints(
+    *,
+    paper_type: str,
+    description: str,
+    required_sections: list[str],
+    min_words: int,
+    max_words: int,
+    min_references: int = 0,
+) -> dict[str, Any]:
+    """Build the shared production constraints for non-journal outputs."""
+    constraints: list[dict[str, Any]] = [
+        {
+            "id": "R001",
+            "category": ConstraintCategory.STRUCTURAL,
+            "rule": "required_sections",
+            "description": f"Required structure for {description}",
+            "params": {"sections": required_sections},
+            "severity": "CRITICAL",
+            "provenance": "base",
+        },
+        {
+            "id": "V001",
+            "category": ConstraintCategory.VOCABULARY,
+            "rule": "language_consistency",
+            "description": "Must use a consistent language variety throughout",
+            "severity": "WARNING",
+            "hook_ref": "A5",
+            "provenance": "base",
+        },
+        {
+            "id": "V002",
+            "category": ConstraintCategory.VOCABULARY,
+            "rule": "anti_ai_vocabulary",
+            "description": "Forbidden AI-typical phrases that undermine authorial voice",
+            "params": {"forbidden_patterns": list(_CORE_ANTI_AI_PATTERNS)},
+            "severity": "WARNING",
+            "hook_ref": "A3",
+            "provenance": "base",
+        },
+        {
+            "id": "E001",
+            "category": ConstraintCategory.EVIDENTIAL,
+            "rule": "claim_requires_citation",
+            "description": "Externally verifiable factual claims must cite independent evidence",
+            "params": {"min_citations_per_paragraph": 1},
+            "severity": "WARNING",
+            "hook_ref": "A2",
+            "provenance": "base",
+        },
+        {
+            "id": "B001",
+            "category": ConstraintCategory.BOUNDARY,
+            "rule": "word_count_range",
+            "description": f"Word-count boundary for {description}",
+            "params": {"min_words": min_words, "max_words": max_words},
+            "severity": "WARNING",
+            "hook_ref": "A1",
+            "provenance": "base",
+        },
+        {
+            "id": "B002",
+            "category": ConstraintCategory.BOUNDARY,
+            "rule": "no_overlap_between_sections",
+            "description": "Paragraphs should not be duplicated across sections",
+            "severity": "WARNING",
+            "hook_ref": "A6",
+            "provenance": "base",
+        },
+    ]
+    if min_references:
+        constraints.append(
+            {
+                "id": "B003",
+                "category": ConstraintCategory.BOUNDARY,
+                "rule": "minimum_references",
+                "description": f"Minimum {min_references} independently verified references required",
+                "params": {"min_references": min_references},
+                "severity": "WARNING",
+                "hook_ref": "Phase2Gate",
+                "provenance": "base",
+            }
+        )
+
+    return {
+        "meta": {
+            "paper_type": paper_type,
+            "version": "1.0.0",
+            "description": description,
+        },
+        "constraints": constraints,
+    }
+
+
 def _build_base_constraints() -> dict[str, dict[str, Any]]:
     """
     Build base constraint templates per paper type.
@@ -795,6 +888,104 @@ def _build_base_constraints() -> dict[str, dict[str, Any]]:
                 },
             ],
         },
+        "research-proposal": _build_formal_output_constraints(
+            paper_type="research-proposal",
+            description="research proposals and protocols",
+            required_sections=[
+                "Executive Summary",
+                "Background and Rationale",
+                "Objectives",
+                "Methods",
+                "Timeline",
+                "Ethics and Data Management",
+                "Budget and Resources",
+                "Expected Impact",
+            ],
+            min_words=1500,
+            max_words=12000,
+            min_references=10,
+        ),
+        "project-closeout-report": _build_formal_output_constraints(
+            paper_type="project-closeout-report",
+            description="auditable project closeout reports",
+            required_sections=[
+                "Executive Summary",
+                "Objectives",
+                "Activities and Methods",
+                "Results and Deliverables",
+                "Deviations and Corrective Actions",
+                "Budget and Resources",
+                "Lessons Learned",
+                "Data and Artifact Disposition",
+                "Conclusion",
+            ],
+            min_words=1500,
+            max_words=15000,
+        ),
+        "student-paper": _build_formal_output_constraints(
+            paper_type="student-paper",
+            description="assessed student papers and capstones",
+            required_sections=[
+                "Abstract",
+                "Introduction",
+                "Literature Review",
+                "Main Analysis",
+                "Discussion",
+                "Conclusion",
+                "References",
+            ],
+            min_words=1000,
+            max_words=10000,
+            min_references=5,
+        ),
+        "conference-paper": _build_formal_output_constraints(
+            paper_type="conference-paper",
+            description="conference and proceedings papers",
+            required_sections=[
+                "Abstract",
+                "Introduction",
+                "Methods",
+                "Results",
+                "Discussion",
+                "Conclusion",
+            ],
+            min_words=1500,
+            max_words=8000,
+            min_references=10,
+        ),
+        "thesis-dissertation": _build_formal_output_constraints(
+            paper_type="thesis-dissertation",
+            description="degree theses and dissertations",
+            required_sections=[
+                "Abstract",
+                "Introduction",
+                "Literature Review",
+                "Methods",
+                "Results",
+                "Discussion",
+                "Conclusion",
+            ],
+            min_words=10000,
+            max_words=100000,
+            min_references=40,
+        ),
+        "arxiv-preprint": _build_formal_output_constraints(
+            paper_type="arxiv-preprint",
+            description="versioned arXiv or repository preprints",
+            required_sections=[
+                "Abstract",
+                "Introduction",
+                "Methods",
+                "Results",
+                "Discussion",
+                "Conclusion",
+                "Data and Code Availability",
+                "Version Notes",
+            ],
+            min_words=2000,
+            max_words=15000,
+            min_references=15,
+        ),
         "other": {
             "meta": {
                 "paper_type": "other",

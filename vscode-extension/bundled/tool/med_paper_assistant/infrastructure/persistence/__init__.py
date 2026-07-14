@@ -11,6 +11,11 @@ from .domain_constraint_engine import (
 )
 from .draft_snapshot_manager import DraftSnapshotManager
 from .evolution_verifier import EvolutionVerifier
+from .exemplar_usage_store import (
+    ALLOWED_EXEMPLAR_ROLES,
+    ExemplarPolicyError,
+    ExemplarUsageStore,
+)
 from .file_storage import FileStorage
 from .hook_effectiveness_tracker import HookEffectivenessTracker
 from .meta_learning_engine import MetaLearningEngine
@@ -39,6 +44,8 @@ __all__ = [
     "DomainConstraintEngine",
     "DraftSnapshotManager",
     "EvolutionVerifier",
+    "ExemplarPolicyError",
+    "ExemplarUsageStore",
     "FileStorage",
     "GateResult",
     "HookEffectivenessTracker",
@@ -58,6 +65,7 @@ __all__ = [
     "ToolInvocationStore",
     "WorkspaceStateManager",
     "WritingHooksEngine",
+    "ALLOWED_EXEMPLAR_ROLES",
     "get_project_manager",
     "_reset_project_manager",
     "get_workspace_state_manager",

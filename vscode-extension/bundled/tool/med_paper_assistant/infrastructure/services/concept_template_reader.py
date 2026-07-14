@@ -37,6 +37,19 @@ class ConceptTemplateReader:
         "review-article": "concept_review_article.md",
     }
 
+    # These profiles have a different concept contract from the journal-paper
+    # base template, so they are complete documents rather than inserted
+    # fragments. In particular, novelty is not falsely required for proposals,
+    # closeout reports, student work, or theses.
+    FULL_DOCUMENT_TEMPLATES = {
+        "research-proposal": "concept_research_proposal.md",
+        "project-closeout-report": "concept_project_closeout_report.md",
+        "student-paper": "concept_student_paper.md",
+        "conference-paper": "concept_conference_paper.md",
+        "thesis-dissertation": "concept_thesis_dissertation.md",
+        "arxiv-preprint": "concept_arxiv_preprint.md",
+    }
+
     def __init__(self, templates_dir: Optional[Path] = None):
         """
         Initialize template reader.
@@ -71,6 +84,18 @@ class ConceptTemplateReader:
         type_info = get_paper_type(paper_type)
         type_name = type_info.name
 
+        full_template_filename = self.FULL_DOCUMENT_TEMPLATES.get(paper_type)
+        if full_template_filename:
+            full_template_path = self.templates_dir / full_template_filename
+            if full_template_path.exists():
+                return self._replace_variables(
+                    full_template_path.read_text(encoding="utf-8"),
+                    project_name=project_name,
+                    type_name=type_name,
+                    target_journal=target_journal,
+                    memo=memo,
+                )
+
         # Read base template
         base_template = self._read_base_template()
         if base_template is None:
@@ -79,15 +104,36 @@ class ConceptTemplateReader:
         # Read paper-type specific sections
         paper_type_sections = self._read_paper_type_sections(paper_type)
 
-        # Replace variables
-        template = base_template
-        template = template.replace("{{PROJECT_NAME}}", project_name)
-        template = template.replace("{{PAPER_TYPE}}", type_name)
-        template = template.replace("{{CREATED_DATE}}", datetime.now().strftime("%Y-%m-%d"))
-        template = template.replace("{{PAPER_TYPE_SECTIONS}}", paper_type_sections)
-        template = template.replace("{{TARGET_JOURNAL}}", target_journal or "[To be determined]")
-        template = template.replace("{{MEMO}}", memo or "> [Personal notes and reminders]")
+        return self._replace_variables(
+            base_template,
+            project_name=project_name,
+            type_name=type_name,
+            target_journal=target_journal,
+            memo=memo,
+            paper_type_sections=paper_type_sections,
+        )
 
+    def _replace_variables(
+        self,
+        template: str,
+        *,
+        project_name: str,
+        type_name: str,
+        target_journal: str,
+        memo: str,
+        paper_type_sections: str = "",
+    ) -> str:
+        """Replace variables shared by base and full-document templates."""
+        replacements = {
+            "{{PROJECT_NAME}}": project_name,
+            "{{PAPER_TYPE}}": type_name,
+            "{{CREATED_DATE}}": datetime.now().strftime("%Y-%m-%d"),
+            "{{PAPER_TYPE_SECTIONS}}": paper_type_sections,
+            "{{TARGET_JOURNAL}}": target_journal or "[To be determined]",
+            "{{MEMO}}": memo or "> [Personal notes and reminders]",
+        }
+        for variable, value in replacements.items():
+            template = template.replace(variable, value)
         return template
 
     def _read_base_template(self) -> Optional[str]:

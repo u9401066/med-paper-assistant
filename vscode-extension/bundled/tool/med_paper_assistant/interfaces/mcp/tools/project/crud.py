@@ -118,7 +118,8 @@ def register_crud_tools(
             name: English project name (e.g., "Mortality Prediction Study")
             description: Brief research description
             target_journal: Target journal (optional)
-            paper_type: original-research|systematic-review|meta-analysis|case-report|review-article|letter|other
+            paper_type: Use get_paper_types; supports journal manuscripts, proposals,
+                closeout reports, student papers, conference papers, theses, and preprints.
             workflow_mode: manuscript|library-wiki
             authors_json: JSON array of authors. Each entry can be a name string or structured object:
                 [{"name": "Jane Doe", "affiliations": ["Dept X, Uni Y"], "orcid": "0000-...", "email": "jane@example.com", "is_corresponding": true}]

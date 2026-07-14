@@ -24,7 +24,7 @@ import tempfile
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import structlog
 from defusedxml import ElementTree
@@ -33,11 +33,31 @@ from med_paper_assistant.domain.services.citation_converter import (
     extract_citation_keys,
     wikilinks_to_pandoc,
 )
-from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
-from med_paper_assistant.infrastructure.services.csl_formatter import reference_to_csl_json
-from med_paper_assistant.infrastructure.services.pandoc_exporter import PandocExporter
 
 logger = structlog.get_logger()
+
+
+class ReferenceMetadataPort(Protocol):
+    """Metadata lookup required by the export application service."""
+
+    def get_metadata(self, reference_id: str) -> dict[str, Any] | None: ...
+
+
+class DocumentExporterPort(Protocol):
+    """Document conversion capabilities supplied by an infrastructure adapter."""
+
+    @property
+    def available(self) -> bool: ...
+
+    def markdown_to_docx(self, **kwargs: Any) -> str: ...
+
+    def markdown_to_pdf(self, **kwargs: Any) -> str: ...
+
+    def convert(self, **kwargs: Any) -> str: ...
+
+    def resolve_csl(self, csl: str | None) -> str | None: ...
+
+    def detect_pdf_engine(self) -> str: ...
 
 
 class ExportPipeline:
@@ -60,11 +80,11 @@ class ExportPipeline:
 
     def __init__(
         self,
-        ref_manager: ReferenceManager,
-        pandoc_exporter: PandocExporter | None = None,
+        ref_manager: ReferenceMetadataPort,
+        pandoc_exporter: DocumentExporterPort,
     ) -> None:
         self._ref_manager = ref_manager
-        self._pandoc = pandoc_exporter or PandocExporter()
+        self._pandoc = pandoc_exporter
 
     def prepare_for_pandoc(self, content: str, *, strict: bool = False) -> dict[str, Any]:
         """
@@ -427,7 +447,7 @@ class ExportPipeline:
         try:
             # Build args: CSL + bibliography + citeproc + user extras
             args = self._build_resource_path_args(draft_path, extra_args)
-            csl_path = self._pandoc._resolve_csl(csl_style)
+            csl_path = self._pandoc.resolve_csl(csl_style)
             if csl_path:
                 args.extend(["--csl", csl_path])
             args.extend(["--bibliography", bib_path])
@@ -435,7 +455,7 @@ class ExportPipeline:
                 args.append("--citeproc")
 
             # For lualatex/xelatex: use a Unicode-capable font + fallback
-            engine = self._pandoc._detect_pdf_engine()
+            engine = self._pandoc.detect_pdf_engine()
             if engine in ("lualatex", "xelatex"):
                 if not any("mainfont" in a for a in args):
                     args.extend(["-V", "mainfont=DejaVu Serif"])
@@ -739,9 +759,7 @@ class ExportPipeline:
         if not metadata:
             return None
 
-        # Build a minimal Reference-like object for CSL conversion
-        # We use reference_to_csl_json which expects a Reference entity,
-        # but we can construct a lightweight one from metadata
+        # Build a domain Reference entity for CSL conversion.
         from med_paper_assistant.domain.entities.reference import Reference
 
         ref = Reference(
@@ -761,7 +779,7 @@ class ExportPipeline:
         )
 
         # Use the citation_key as the CSL id so Pandoc can match [@key]
-        return reference_to_csl_json(ref, ref_id=key)
+        return ref.to_csl_json(ref_id=key)
 
     @staticmethod
     def _extract_pmid(key: str) -> str | None:

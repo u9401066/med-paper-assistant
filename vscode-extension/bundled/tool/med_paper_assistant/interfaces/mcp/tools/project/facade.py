@@ -12,6 +12,11 @@ from typing import Any, Optional
 import yaml
 from mcp.server.fastmcp import Context, FastMCP
 
+from med_paper_assistant.infrastructure.persistence.exemplar_usage_store import (
+    ALLOWED_EXEMPLAR_ROLES,
+    ExemplarPolicyError,
+    ExemplarUsageStore,
+)
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
 
 from .._shared import (
@@ -603,6 +608,11 @@ def register_project_facade_tools(
         source_dir: str = "",
         source_material_id: str = "",
         source_path: str = "",
+        exemplar_source_id: str = "",
+        exemplar_roles_json: str = "",
+        exemplar_target_sections_json: str = "",
+        exemplar_purpose: str = "",
+        exemplar_source_sha256: str = "",
         asset_aware_doc_id: str = "",
         sections_json: str = "",
         artifact_paths_json: str = "",
@@ -626,6 +636,7 @@ def register_project_facade_tools(
         - journal_profile
         - source_materials
         - record_asset_ingestion
+        - exemplar_usage
         - start_exploration
         - convert_exploration
         - archive
@@ -650,6 +661,10 @@ def register_project_facade_tools(
             "asset_ingestion": "record_asset_ingestion",
             "ingestion_receipt": "record_asset_ingestion",
             "record_asset_ingestion": "record_asset_ingestion",
+            "exemplar": "exemplar_usage",
+            "exemplars": "exemplar_usage",
+            "record_exemplar": "exemplar_usage",
+            "record_exemplar_usage": "exemplar_usage",
             "settings": "update",
             "supported": "help",
             "configure": "setup",
@@ -710,6 +725,18 @@ def register_project_facade_tools(
                     "sections_json": sections_json,
                     "artifact_paths_json": artifact_paths_json,
                     "ingestion_status": ingestion_status,
+                },
+            ),
+            "exemplar_usage": (
+                {},
+                "record_or_list_exemplar_usage",
+                {
+                    "slug": slug,
+                    "exemplar_source_id": exemplar_source_id,
+                    "exemplar_roles_json": exemplar_roles_json,
+                    "exemplar_target_sections_json": exemplar_target_sections_json,
+                    "exemplar_purpose": exemplar_purpose,
+                    "exemplar_source_sha256": exemplar_source_sha256,
                 },
             ),
             "list": (crud_tools, "list_projects", {}),
@@ -898,6 +925,59 @@ def register_project_facade_tools(
                 "action: record_asset_ingestion\n"
                 f"{message}\n"
                 'next: pipeline_action(action="validate_phase", phase=21)'
+            )
+
+        if normalized == "exemplar_usage":
+            project_info, workflow_error = resolve_project_context(slug or None)
+            if workflow_error or project_info is None:
+                return workflow_error or "❌ Project context could not be resolved."
+            project_dir = Path(project_info["project_path"])
+            store = ExemplarUsageStore(project_dir)
+
+            if not exemplar_source_id.strip():
+                summary = store.summary()
+                allowed_roles = ", ".join(sorted(ALLOWED_EXEMPLAR_ROLES))
+                return (
+                    "status: ok\n"
+                    "action: exemplar_usage\n"
+                    "mode: list\n"
+                    f"artifact: {store.path.relative_to(project_dir).as_posix()}\n"
+                    f"total_records: {summary['total']}\n"
+                    f"integrity_passed: {str(summary['integrity_passed']).lower()}\n"
+                    f"allowed_roles: {allowed_roles}\n"
+                    "policy: exemplars provide transformative calibration only; independently "
+                    "verify every evidence and citation claim"
+                )
+
+            roles, roles_error = _parse_json_list(exemplar_roles_json, "exemplar_roles_json")
+            if roles_error:
+                return f"❌ {roles_error}"
+            target_sections, target_error = _parse_json_list(
+                exemplar_target_sections_json,
+                "exemplar_target_sections_json",
+            )
+            if target_error:
+                return f"❌ {target_error}"
+            try:
+                record = store.record(
+                    source_id=exemplar_source_id,
+                    roles=roles,
+                    target_sections=target_sections,
+                    purpose=exemplar_purpose,
+                    source_sha256=exemplar_source_sha256,
+                )
+            except ExemplarPolicyError as exc:
+                return f"❌ Exemplar policy violation: {exc}"
+            return (
+                "status: ok\n"
+                "action: exemplar_usage\n"
+                "mode: record\n"
+                f"record_id: {record['id']}\n"
+                f"artifact: {store.path.relative_to(project_dir).as_posix()}\n"
+                f"roles: {', '.join(record['roles'])}\n"
+                "evidence_eligible: false\n"
+                "citation_credit: false\n"
+                "requires_independent_verification: true"
             )
 
         if normalized not in action_specs:

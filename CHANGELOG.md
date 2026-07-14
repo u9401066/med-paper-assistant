@@ -9,12 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-07-14
+
 ### Added
 
 - Added a platform-neutral academic-writing contract with native entrypoints for Claude Code, Codex, and OpenClaw, including proposals, project closeout reports, student papers, preprints, and safe exemplar-paper roles.
 - Added cross-agent contract tests for skill frontmatter, discovery paths, extended output coverage, exemplar anti-copy boundaries, and portable MCP configuration.
 - Added a dependency-free shared JSONC parser with URL, escaped-string, block-comment, trailing-comma, and invalid-input coverage.
 - Added an external-project benchmark covering selected mechanisms from PaperQA, STORM, AI-Scientist-v2, and Quarto.
+- Added six code-enforced formal output profiles: research proposals, project closeout reports, student papers, conference papers, theses/dissertations, and arXiv/repository preprints. The domain now exposes 13 profiles and `DomainConstraintEngine` enforces 110 base constraints.
+- Added complete concept templates, profile-specific writing order, MCP selection schema, type-aware concept requirements, and cross-layer contract tests for every formal output.
+- Added `.audit/exemplar-usage.yaml` and `project_action(action="exemplar_usage")` so structure/method/reporting/argument/style calibration is auditable while evidence eligibility, citation credit, and verbatim copying remain code-enforced false.
+- Added static DDD dependency tests, a 118-tool greedy MCP smoke ratchet, legacy-reference migration coverage, and a dependency-free documentation website with a validated 13-page manifest.
+- Added production architecture and output-profile documentation with native Mermaid diagrams for the cross-agent runtime, evidence, audit, DDD, and release flows.
 
 ### Changed
 
@@ -22,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the repository skill authority from 26 to 38 and repaired five legacy skills with missing or invalid YAML frontmatter.
 - Upgraded the VS Code extension toolchain to ESLint 10 flat config, typescript-eslint 8.64, VSCE 3.9, Vitest 4.1, and current compatible lockfile dependencies; `npm audit` now reports zero vulnerabilities.
 - Refreshed Python lockfile dependencies within declared constraints, including APScheduler 3.11.3, Toons 0.7.0, and tzlocal 5.4.4.
+- Made `domain.paper_types` the canonical output taxonomy for UI and hook applicability; conference papers, theses/dissertations, and preprints now run the empirical B8/B11/B16 checks while non-empirical formal outputs record auditable skips.
+- Replaced Application-to-Infrastructure imports in project creation and export with application-owned Protocol ports, used the domain `Reference.to_csl_json()` conversion, and exposed public Pandoc adapter methods while preserving compatibility aliases.
+- Made concept validation dynamically resolve required sections by output profile, skip novelty scoring where novelty is not part of the contract, and isolate cache entries by enabled validation modes.
 
 ### Fixed
 
@@ -30,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Isolated the default test workspace so fast and integration suites no longer rewrite the repository `.mdpaper-state.json`.
 - Changed tool-surface authority counting to use tracked/staged skills, preventing local generated skills from producing false release failures.
 - Removed unused extension imports/parameters and a type-only runtime constant exposed by the restored lint gate.
+- Fixed greedy smoke data fixtures so variable-detection tools receive isolated CSV inputs and the entire 118-tool surface executes instead of stopping early.
+- Fixed reference-analysis updates for legacy workspaces whose metadata predates `unique_id`; the known reference directory now migrates the identifier before centralized persistence.
+- Converted the deprecated `download_pdf` compatibility parameter from a dead variable into explicit deprecation telemetry pointing to asset-aware ingestion.
 
 ## [0.8.0] - 2026-06-12
 

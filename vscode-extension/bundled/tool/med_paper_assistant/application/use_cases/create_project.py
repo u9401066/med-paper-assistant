@@ -2,11 +2,21 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import Protocol
 
 from med_paper_assistant.domain.entities.project import Project, ProjectStatus
-from med_paper_assistant.infrastructure.persistence import ProjectRepository
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
 from med_paper_assistant.shared.path_guard import resolve_child_path
+
+
+class ProjectRepositoryPort(Protocol):
+    """Application-owned port implemented by persistence adapters."""
+
+    @property
+    def projects_dir(self) -> Path: ...
+
+    def create(self, project: Project) -> Project: ...
 
 
 @dataclass
@@ -42,7 +52,7 @@ class CreateProjectUseCase:
     4. Sets the project as current
     """
 
-    def __init__(self, repository: ProjectRepository):
+    def __init__(self, repository: ProjectRepositoryPort):
         self.repository = repository
 
     def execute(self, input_data: CreateProjectInput) -> CreateProjectOutput:

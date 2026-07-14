@@ -1,7 +1,7 @@
 """
-Paper Types - Domain definitions for medical paper types.
+Paper Types - Domain definitions for scholarly output types.
 
-This module defines the available paper types and their characteristics.
+This module defines journal manuscripts and other formal academic outputs.
 """
 
 from dataclasses import dataclass, field
@@ -129,6 +129,133 @@ PAPER_TYPES: Dict[str, PaperTypeInfo] = {
             special_sections=[],
         ),
     ),
+    "research-proposal": PaperTypeInfo(
+        name="Research Proposal",
+        description="Grant, protocol, dissertation, or institutional research plan",
+        sections=[
+            "Executive Summary",
+            "Background and Rationale",
+            "Objectives",
+            "Methods",
+            "Timeline",
+            "Ethics and Data Management",
+            "Budget and Resources",
+            "Expected Impact",
+        ],
+        typical_words=5000,
+        concept_requirements=ConceptRequirements(
+            core_required=[
+                "background",
+                "research_gap",
+                "research_question",
+                "methods",
+                "expected_outcomes",
+            ],
+            intro_required=[],
+            methods_required=["study_design", "participants", "outcomes"],
+            special_sections=["timeline", "budget", "risk_register", "ethics_plan"],
+        ),
+    ),
+    "project-closeout-report": PaperTypeInfo(
+        name="Project Closeout Report",
+        description="Auditable final report of objectives, delivery, variance, and lessons learned",
+        sections=[
+            "Executive Summary",
+            "Objectives",
+            "Activities and Methods",
+            "Results and Deliverables",
+            "Deviations and Corrective Actions",
+            "Budget and Resources",
+            "Lessons Learned",
+            "Data and Artifact Disposition",
+            "Conclusion",
+        ],
+        typical_words=5000,
+        concept_requirements=ConceptRequirements(
+            core_required=["background", "methods", "expected_outcomes"],
+            intro_required=[],
+            methods_required=[],
+            special_sections=[
+                "deliverables_ledger",
+                "variance_log",
+                "financial_summary",
+                "data_disposition",
+            ],
+        ),
+    ),
+    "student-paper": PaperTypeInfo(
+        name="Student Paper",
+        description="Course paper, capstone, term paper, or assessed academic essay",
+        sections=[
+            "Abstract",
+            "Introduction",
+            "Literature Review",
+            "Main Analysis",
+            "Discussion",
+            "Conclusion",
+            "References",
+        ],
+        typical_words=3000,
+        concept_requirements=ConceptRequirements(
+            core_required=["background", "research_question"],
+            intro_required=[],
+            methods_required=[],
+            special_sections=["rubric_alignment", "source_plan", "academic_integrity_statement"],
+        ),
+    ),
+    "conference-paper": PaperTypeInfo(
+        name="Conference Paper",
+        description="Full conference paper or proceedings manuscript",
+        sections=["Abstract", "Introduction", "Methods", "Results", "Discussion", "Conclusion"],
+        typical_words=3500,
+        concept_requirements=ConceptRequirements(
+            core_required=["novelty_statement", "selling_points"],
+            intro_required=["background", "research_gap", "research_question"],
+            methods_required=["study_design", "outcomes"],
+            special_sections=["venue_format", "presentation_asset_plan"],
+        ),
+    ),
+    "thesis-dissertation": PaperTypeInfo(
+        name="Thesis / Dissertation",
+        description="Degree thesis or dissertation with chapter-level evidence and methods",
+        sections=[
+            "Abstract",
+            "Introduction",
+            "Literature Review",
+            "Methods",
+            "Results",
+            "Discussion",
+            "Conclusion",
+        ],
+        typical_words=40000,
+        concept_requirements=ConceptRequirements(
+            core_required=["background", "research_gap", "research_question", "methods"],
+            intro_required=[],
+            methods_required=["study_design", "participants", "outcomes"],
+            special_sections=["chapter_plan", "ethics_plan", "data_management_plan"],
+        ),
+    ),
+    "arxiv-preprint": PaperTypeInfo(
+        name="arXiv / Repository Preprint",
+        description="Versioned scholarly preprint prepared for a public repository",
+        sections=[
+            "Abstract",
+            "Introduction",
+            "Methods",
+            "Results",
+            "Discussion",
+            "Conclusion",
+            "Data and Code Availability",
+            "Version Notes",
+        ],
+        typical_words=6000,
+        concept_requirements=ConceptRequirements(
+            core_required=["novelty_statement", "selling_points"],
+            intro_required=["background", "research_gap", "research_question"],
+            methods_required=["study_design", "outcomes"],
+            special_sections=["license_plan", "version_notes", "data_code_availability"],
+        ),
+    ),
     "other": PaperTypeInfo(
         name="Other",
         description="Editorial, perspective, methodology paper, etc.",
@@ -225,6 +352,74 @@ WRITING_ORDER: Dict[str, Dict[str, Dict[str, Any]]] = {
     },
     "letter": {
         "Main Text": {"prerequisites": [], "order": 1},
+    },
+    "research-proposal": {
+        "Background and Rationale": {"prerequisites": [], "order": 1},
+        "Objectives": {"prerequisites": ["Background and Rationale"], "order": 2},
+        "Methods": {"prerequisites": ["Objectives"], "order": 3},
+        "Ethics and Data Management": {"prerequisites": ["Methods"], "order": 4},
+        "Timeline": {"prerequisites": ["Methods"], "order": 5},
+        "Budget and Resources": {"prerequisites": ["Timeline"], "order": 6},
+        "Expected Impact": {"prerequisites": ["Objectives", "Methods"], "order": 7},
+        "Executive Summary": {
+            "prerequisites": ["Objectives", "Methods", "Expected Impact"],
+            "order": 8,
+        },
+    },
+    "project-closeout-report": {
+        "Objectives": {"prerequisites": [], "order": 1},
+        "Activities and Methods": {"prerequisites": ["Objectives"], "order": 2},
+        "Results and Deliverables": {"prerequisites": ["Activities and Methods"], "order": 3},
+        "Deviations and Corrective Actions": {
+            "prerequisites": ["Results and Deliverables"],
+            "order": 4,
+        },
+        "Budget and Resources": {"prerequisites": ["Results and Deliverables"], "order": 5},
+        "Data and Artifact Disposition": {
+            "prerequisites": ["Results and Deliverables"],
+            "order": 6,
+        },
+        "Lessons Learned": {"prerequisites": ["Results and Deliverables"], "order": 7},
+        "Conclusion": {"prerequisites": ["Lessons Learned"], "order": 8},
+        "Executive Summary": {
+            "prerequisites": ["Results and Deliverables", "Conclusion"],
+            "order": 9,
+        },
+    },
+    "student-paper": {
+        "Introduction": {"prerequisites": [], "order": 1},
+        "Literature Review": {"prerequisites": ["Introduction"], "order": 2},
+        "Main Analysis": {"prerequisites": ["Literature Review"], "order": 3},
+        "Discussion": {"prerequisites": ["Main Analysis"], "order": 4},
+        "Conclusion": {"prerequisites": ["Discussion"], "order": 5},
+        "Abstract": {"prerequisites": ["Introduction", "Conclusion"], "order": 6},
+    },
+    "conference-paper": {
+        "Methods": {"prerequisites": [], "order": 1},
+        "Results": {"prerequisites": ["Methods"], "order": 2},
+        "Introduction": {"prerequisites": ["Methods"], "order": 3},
+        "Discussion": {"prerequisites": ["Results"], "order": 4},
+        "Conclusion": {"prerequisites": ["Discussion"], "order": 5},
+        "Abstract": {"prerequisites": ["Introduction", "Results", "Conclusion"], "order": 6},
+    },
+    "thesis-dissertation": {
+        "Methods": {"prerequisites": [], "order": 1},
+        "Results": {"prerequisites": ["Methods"], "order": 2},
+        "Literature Review": {"prerequisites": [], "order": 3},
+        "Introduction": {"prerequisites": ["Literature Review"], "order": 4},
+        "Discussion": {"prerequisites": ["Results", "Literature Review"], "order": 5},
+        "Conclusion": {"prerequisites": ["Discussion"], "order": 6},
+        "Abstract": {"prerequisites": ["Introduction", "Results", "Conclusion"], "order": 7},
+    },
+    "arxiv-preprint": {
+        "Methods": {"prerequisites": [], "order": 1},
+        "Results": {"prerequisites": ["Methods"], "order": 2},
+        "Introduction": {"prerequisites": ["Methods"], "order": 3},
+        "Discussion": {"prerequisites": ["Results"], "order": 4},
+        "Data and Code Availability": {"prerequisites": ["Methods", "Results"], "order": 5},
+        "Conclusion": {"prerequisites": ["Discussion"], "order": 6},
+        "Version Notes": {"prerequisites": ["Conclusion"], "order": 7},
+        "Abstract": {"prerequisites": ["Introduction", "Results", "Conclusion"], "order": 8},
     },
 }
 

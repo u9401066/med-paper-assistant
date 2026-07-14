@@ -33,18 +33,25 @@ a per-paper-type trail consistent with CONSTITUTION §22 (auditable).
 
 from __future__ import annotations
 
-from med_paper_assistant.shared.constants import PAPER_TYPES
+from med_paper_assistant.domain.paper_types import PAPER_TYPES
 
 from ._models import HookResult
 
-# All known paper types — canonical taxonomy lives in ``shared.constants``.
+# All known paper types — canonical taxonomy lives in ``domain.paper_types``.
 ALL_PAPER_TYPES: frozenset[str] = frozenset(PAPER_TYPES.keys())
 
 # Empirical study types that contain a formal statistical Methods + Results
 # section. These are the only types for which statistical-alignment hooks make
 # sense.
 EMPIRICAL_TYPES: frozenset[str] = frozenset(
-    {"original-research", "systematic-review", "meta-analysis"}
+    {
+        "original-research",
+        "systematic-review",
+        "meta-analysis",
+        "conference-paper",
+        "thesis-dissertation",
+        "arxiv-preprint",
+    }
 )
 
 # Fallback paper type for unknown/empty inputs (keeps legacy callers unchanged).

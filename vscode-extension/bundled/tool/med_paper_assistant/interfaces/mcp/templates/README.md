@@ -22,7 +22,9 @@ This directory contains **internal templates** used by the MCP server and AI Age
 
 ## Template Architecture | 範本架構
 
-The concept template system uses a **base + paper-type** architecture:
+The concept template system uses a **base + paper-type** architecture for
+journal manuscripts and complete, output-specific contracts for formal outputs
+whose requirements differ from a journal article:
 
 ```
 templates/
@@ -32,6 +34,12 @@ templates/
 ├── concept_systematic_review.md # Systematic review specific sections
 ├── concept_case_report.md       # Case report specific sections
 ├── concept_review_article.md    # Review article specific sections
+├── concept_research_proposal.md # Full proposal planning contract
+├── concept_project_closeout_report.md # Full closeout audit contract
+├── concept_student_paper.md     # Full student authorship contract
+├── concept_conference_paper.md  # Full conference submission contract
+├── concept_thesis_dissertation.md # Full thesis chapter contract
+├── concept_arxiv_preprint.md    # Full versioned preprint contract
 └── README.md                    # This file
 ```
 
@@ -53,6 +61,12 @@ templates/
    - `concept_base.md` is loaded
    - Variables are replaced
    - Paper-type sections are inserted at `{{PAPER_TYPE_SECTIONS}}`
+
+4. **For formal non-journal outputs**:
+   - The complete output-specific template is loaded directly
+   - Novelty is evaluated only when that profile requires it
+   - Planning, delivery, academic-integrity, or versioning claims retain their
+     own auditable structure
 
 ### Variables | 變數
 
@@ -106,6 +120,15 @@ templates/
 
 - Review Scope, Structure/Outline, Key Messages
 - Future Directions, Visual Elements Planning
+
+### Formal Academic Outputs
+
+- Research proposal: objectives, methods, timeline, budget, ethics, risks, impact
+- Project closeout: baseline objectives, deliverables, variance, finance, handoff
+- Student paper: rubric alignment, verified reading plan, authorship and AI-use record
+- Conference paper: compact venue contract plus companion presentation assets
+- Thesis/dissertation: chapter dependencies, committee traceability, data governance
+- arXiv/preprint: reproducibility, licenses, repository identifiers, version notes
 
 ## Usage | 使用方式
 
