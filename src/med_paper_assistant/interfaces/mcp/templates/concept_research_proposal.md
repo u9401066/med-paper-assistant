@@ -10,12 +10,14 @@
 ## 📝 Background and Rationale
 
 > [Describe the current state of knowledge, practical context, affected population,
-> and why the proposed work is timely. Support factual claims with verified sources.]
+>
+> > and why the proposed work is timely. Support factual claims with verified sources.]
 
 ## 📝 Research Gap
 
 > [Identify the specific unresolved problem and distinguish absence of evidence
-> from evidence of no effect.]
+>
+> > from evidence of no effect.]
 
 ## 📝 Objectives
 
@@ -24,7 +26,8 @@
 ## 📝 Methods Overview
 
 > [Describe design, setting, participants or corpus, sampling, measurements,
-> analysis, reproducibility controls, and decision criteria.]
+>
+> > analysis, reproducibility controls, and decision criteria.]
 
 ## 📝 Expected Impact
 
@@ -32,9 +35,9 @@
 
 ## 📝 Timeline and Milestones
 
-| Milestone | Evidence of completion | Owner | Due date | Dependency |
-| --- | --- | --- | --- | --- |
-| [M1] | [Artifact or acceptance criterion] | [Role] | [Date] | [Dependency] |
+| Milestone | Evidence of completion             | Owner  | Due date | Dependency   |
+| --------- | ---------------------------------- | ------ | -------- | ------------ |
+| [M1]      | [Artifact or acceptance criterion] | [Role] | [Date]   | [Dependency] |
 
 ## 📝 Ethics and Data Management
 
@@ -45,15 +48,15 @@
 
 ## 📝 Budget and Resources
 
-| Resource | Justification | Quantity / effort | Estimated cost | Assumption |
-| --- | --- | --- | --- | --- |
-| [Item] | [Why necessary] | [Amount] | [Cost] | [Basis] |
+| Resource | Justification   | Quantity / effort | Estimated cost | Assumption |
+| -------- | --------------- | ----------------- | -------------- | ---------- |
+| [Item]   | [Why necessary] | [Amount]          | [Cost]         | [Basis]    |
 
 ## 📝 Risk Register
 
-| Risk | Likelihood | Impact | Mitigation | Trigger / contingency |
-| --- | --- | --- | --- | --- |
-| [Risk] | [L/M/H] | [L/M/H] | [Action] | [Threshold] |
+| Risk   | Likelihood | Impact  | Mitigation | Trigger / contingency |
+| ------ | ---------- | ------- | ---------- | --------------------- |
+| [Risk] | [L/M/H]    | [L/M/H] | [Action]   | [Threshold]           |
 
 ## 🔒 Author Notes
 

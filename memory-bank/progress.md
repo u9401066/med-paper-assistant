@@ -14,6 +14,7 @@
   - Greedy MCP smoke: 118 total, 116 ok, 2 designed skips, 0 broken/error; basic install smoke: 14/14
   - Packaged and install-smoked `medpaper-assistant-0.9.0.vsix`; VSIX tests 169/169 and validate 92/92
   - Final release matrix: Python 1523 passed / 8 skipped / 26 deselected; Ruff, format, mypy, Bandit, vulture, consistency, tool authority, docs build, MCP boot, npm audit, bundle parity, wheel/sdist content, and VSIX install smoke all passed
+  - Closed release-runner drift found by the first remote dry run: npm 11 lockfile now includes optional `@emnapi` packages, clean `npm ci` passes, and all tracked Markdown passes CI-pinned Prettier 3.1
 
 - **Cross-agent production refresh foundation (2026-07-14)**:
 

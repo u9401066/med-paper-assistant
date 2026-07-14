@@ -8,21 +8,21 @@ word-count boundaries.
 
 ## Supported profiles
 
-| Key | Intended output | Concept contract | Typical words | Statistical hooks |
-| --- | --- | --- | ---: | --- |
-| `original-research` | Clinical or empirical journal article | novelty + selling points | 3,000 | yes |
-| `systematic-review` | Reproducible qualitative evidence synthesis | novelty + selling points | 4,000 | yes |
-| `meta-analysis` | Quantitative evidence synthesis | novelty + selling points | 4,500 | yes |
-| `case-report` | Single case or case series | novelty + selling points | 1,500 | no |
-| `review-article` | Narrative or invited review | novelty + selling points | 5,000 | no |
-| `letter` | Correspondence or brief commentary | novelty | 500 | no |
-| `research-proposal` | Grant, protocol, or institutional plan | background + gap + objectives + methods + expected impact | 5,000 | no |
-| `project-closeout-report` | Final delivery and variance report | baseline + methods + deliverables | 5,000 | no |
-| `student-paper` | Course paper, capstone, or assessed essay | background + question/thesis | 3,000 | no |
-| `conference-paper` | Full proceedings manuscript | novelty + selling points | 3,500 | yes |
-| `thesis-dissertation` | Degree thesis or dissertation | background + gap + question + methodology | 40,000 | yes |
-| `arxiv-preprint` | Versioned repository preprint | novelty + selling points | 6,000 | yes |
-| `other` | Explicitly customized formal output | novelty | 2,000 | no |
+| Key                       | Intended output                             | Concept contract                                          | Typical words | Statistical hooks |
+| ------------------------- | ------------------------------------------- | --------------------------------------------------------- | ------------: | ----------------- |
+| `original-research`       | Clinical or empirical journal article       | novelty + selling points                                  |         3,000 | yes               |
+| `systematic-review`       | Reproducible qualitative evidence synthesis | novelty + selling points                                  |         4,000 | yes               |
+| `meta-analysis`           | Quantitative evidence synthesis             | novelty + selling points                                  |         4,500 | yes               |
+| `case-report`             | Single case or case series                  | novelty + selling points                                  |         1,500 | no                |
+| `review-article`          | Narrative or invited review                 | novelty + selling points                                  |         5,000 | no                |
+| `letter`                  | Correspondence or brief commentary          | novelty                                                   |           500 | no                |
+| `research-proposal`       | Grant, protocol, or institutional plan      | background + gap + objectives + methods + expected impact |         5,000 | no                |
+| `project-closeout-report` | Final delivery and variance report          | baseline + methods + deliverables                         |         5,000 | no                |
+| `student-paper`           | Course paper, capstone, or assessed essay   | background + question/thesis                              |         3,000 | no                |
+| `conference-paper`        | Full proceedings manuscript                 | novelty + selling points                                  |         3,500 | yes               |
+| `thesis-dissertation`     | Degree thesis or dissertation               | background + gap + question + methodology                 |        40,000 | yes               |
+| `arxiv-preprint`          | Versioned repository preprint               | novelty + selling points                                  |         6,000 | yes               |
+| `other`                   | Explicitly customized formal output         | novelty                                                   |         2,000 | no                |
 
 The statistical-hook column controls B8, B11, and B16. Common provenance,
 anti-AI, language, citation, paragraph, and cross-reference checks continue to

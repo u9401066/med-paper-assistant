@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed greedy smoke data fixtures so variable-detection tools receive isolated CSV inputs and the entire 118-tool surface executes instead of stopping early.
 - Fixed reference-analysis updates for legacy workspaces whose metadata predates `unique_id`; the known reference directory now migrates the identifier before centralized persistence.
 - Converted the deprecated `download_pdf` compatibility parameter from a dead variable into explicit deprecation telemetry pointing to asset-aware ingestion.
+- Regenerated the extension lockfile with npm 11 so clean Node 24 runners include required optional `@emnapi` packages, and normalized tracked Markdown with the CI-pinned Prettier 3.1 formatter.
 
 ## [0.8.0] - 2026-06-12
 

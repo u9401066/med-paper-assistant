@@ -10,40 +10,44 @@
 ## 📝 Project Background
 
 > [State the approved scope, baseline, stakeholders, reporting period, and original
-> success criteria. Do not rewrite the original objectives after seeing results.]
+>
+> > success criteria. Do not rewrite the original objectives after seeing results.]
 
 ## 📝 Objectives
 
-| Objective | Baseline success criterion | Final status | Supporting artifact |
-| --- | --- | --- | --- |
-| [Objective] | [Criterion] | [Met / partial / not met] | [Path or identifier] |
+| Objective   | Baseline success criterion | Final status              | Supporting artifact  |
+| ----------- | -------------------------- | ------------------------- | -------------------- |
+| [Objective] | [Criterion]                | [Met / partial / not met] | [Path or identifier] |
 
 ## 📝 Activities and Methods
 
 > [Describe work actually performed, governance, data sources, evaluation method,
-> and any departures from the approved plan.]
+>
+> > and any departures from the approved plan.]
 
 ## 📝 Results and Deliverables
 
 > [Report measured outcomes and accepted deliverables. Keep planned, observed,
-> inferred, and unavailable values explicitly distinct.]
+>
+> > inferred, and unavailable values explicitly distinct.]
 
 ## 📝 Deviations and Corrective Actions
 
-| Variance | Date detected | Cause | Decision | Residual effect |
-| --- | --- | --- | --- | --- |
-| [Variance] | [Date] | [Evidence-based cause] | [Action] | [Effect] |
+| Variance   | Date detected | Cause                  | Decision | Residual effect |
+| ---------- | ------------- | ---------------------- | -------- | --------------- |
+| [Variance] | [Date]        | [Evidence-based cause] | [Action] | [Effect]        |
 
 ## 📝 Budget and Resources
 
-| Category | Approved | Actual | Variance | Explanation |
-| --- | ---: | ---: | ---: | --- |
-| [Category] | [Value] | [Value] | [Value] | [Reason] |
+| Category   | Approved |  Actual | Variance | Explanation |
+| ---------- | -------: | ------: | -------: | ----------- |
+| [Category] |  [Value] | [Value] |  [Value] | [Reason]    |
 
 ## 📝 Lessons Learned
 
 > [Describe transferable lessons, boundaries, and recommendations without turning
-> local observations into unsupported general claims.]
+>
+> > local observations into unsupported general claims.]
 
 ## 📝 Data and Artifact Disposition
 

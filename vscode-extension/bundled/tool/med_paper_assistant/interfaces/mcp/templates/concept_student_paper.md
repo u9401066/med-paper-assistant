@@ -17,9 +17,9 @@
 
 ## 📝 Source and Reading Plan
 
-| Source | Why it is credible | Claim supported | Read / verified by student |
-| --- | --- | --- | --- |
-| [Citation] | [Authority and limitations] | [Claim] | [Yes / no] |
+| Source     | Why it is credible          | Claim supported | Read / verified by student |
+| ---------- | --------------------------- | --------------- | -------------------------- |
+| [Citation] | [Authority and limitations] | [Claim]         | [Yes / no]                 |
 
 ## 📝 Main Analysis Plan
 

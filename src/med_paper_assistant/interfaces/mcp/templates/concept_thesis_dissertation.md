@@ -22,13 +22,14 @@
 ## 📝 Methodology
 
 > [Describe epistemological stance where relevant, design, setting, participants or
-> corpus, data sources, analysis, validation, reflexivity, and reproducibility.]
+>
+> > corpus, data sources, analysis, validation, reflexivity, and reproducibility.]
 
 ## 📝 Chapter Plan
 
-| Chapter | Purpose | Inputs / evidence | Output / decision | Dependency |
-| --- | --- | --- | --- | --- |
-| [Chapter] | [Purpose] | [Sources or data] | [Contribution] | [Prerequisite] |
+| Chapter   | Purpose   | Inputs / evidence | Output / decision | Dependency     |
+| --------- | --------- | ----------------- | ----------------- | -------------- |
+| [Chapter] | [Purpose] | [Sources or data] | [Contribution]    | [Prerequisite] |
 
 ## 📝 Ethics and Data Management
 
@@ -39,7 +40,8 @@
 ## 📝 Contribution and Completion Criteria
 
 > [Define the scholarly contribution, negative-result policy, submission milestones,
-> and committee acceptance criteria.]
+>
+> > and committee acceptance criteria.]
 
 ## 🔒 Candidate Notes
 

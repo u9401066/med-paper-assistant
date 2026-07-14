@@ -10,26 +10,26 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 
 ### 當前狀態
 
-| 項目                  | 數量/狀態                                                                                           |
-| --------------------- | --------------------------------------------------------------------------------------------------- |
-| MCP Tools             | **118 full / 22 compact (default)** + 3 prompts + 3 resources                                       |
-| External MCP Surface  | **PubMed Search 46 tools** + **CGU 24 tools**                                                       |
-| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                          |
-| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**        |
-| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                  |
-| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate |
-| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                      |
+| 項目                  | 數量/狀態                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **118 full / 22 compact (default)** + 3 prompts + 3 resources                                                         |
+| External MCP Surface  | **PubMed Search 46 tools** + **CGU 24 tools**                                                                         |
+| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                            |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**                          |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                    |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                   |
+| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                        |
 | Latest Validation     | Python 1523 passed / 8 skipped / 26 deselected; VSIX 169 passed; MCP smoke 14/14 + 118/118 classified; validate 92/92 |
-| Packaging             | **v0.9.0** wheel/sdist/VSIX built and install-smoked; segmented publish and release in progress        |
+| Packaging             | **v0.9.0** wheel/sdist/VSIX built and install-smoked; segmented publish and release in progress                       |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
 ### 三層演進架構實作狀態
 
-| 層級                         | 狀態                   | 說明                                                 |
-| ---------------------------- | ---------------------- | ---------------------------------------------------- |
-| L1 Event-Driven Hooks        | ✅ 56/79 Code-Enforced | 23 個 Agent-Driven 由 SKILL.md 與契約測試治理        |
-| L2 Code-Level Enforcement    | ✅ 完整                | 13 profiles / 110 constraints + telemetry/evolution |
+| 層級                         | 狀態                   | 說明                                                                   |
+| ---------------------------- | ---------------------- | ---------------------------------------------------------------------- |
+| L1 Event-Driven Hooks        | ✅ 56/79 Code-Enforced | 23 個 Agent-Driven 由 SKILL.md 與契約測試治理                          |
+| L2 Code-Level Enforcement    | ✅ 完整                | 13 profiles / 110 constraints + telemetry/evolution                    |
 | L3 Autonomous Self-Evolution | ⚠️ 大部分完成          | EvolutionVerifier + weekly health 已上線；缺 git post-commit / Auto-PR |
 
 ### 最近變更
@@ -56,6 +56,7 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 - 新增 dependency-free docs site、13-page manifest、formal output guide 與 Mermaid production architecture。
 - 版本已提升至 0.9.0；Python 1523 passed / 8 skipped / 26 deselected，VSIX 169/169 tests、install smoke 與 92/92 validate 通過。
 - wheel、sdist 與 `medpaper-assistant-0.9.0.vsix` 已建立；封裝內容檢查確認六種新 concept templates 與 journal profile 均存在。
+- 首次遠端 release dry run 發現 npm 11 optional dependency lock 漂移與 19 個 Markdown 格式問題；已補齊 `@emnapi` lock entries、以 CI-pinned Prettier 3.1 正規化並以乾淨 `npm ci` 重現通過。
 
 #### v0.7.11 Phase Gate + Release Hardening (2026-05-19)
 

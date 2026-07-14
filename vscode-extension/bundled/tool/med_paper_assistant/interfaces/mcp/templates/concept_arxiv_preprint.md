@@ -7,7 +7,8 @@
 ## 🔒 NOVELTY STATEMENT ⚠️ REQUIRED
 
 > [In at least 20 words, state the contribution and distinguish it from the closest
-> versioned or peer-reviewed work.]
+>
+> > versioned or peer-reviewed work.]
 
 ## 🔒 KEY SELLING POINTS ⚠️ REQUIRED
 
@@ -44,9 +45,9 @@
 
 ## 📝 Version Notes
 
-| Version | Date | Material change | Trigger / linked review |
-| --- | --- | --- | --- |
-| v1 | [Date] | [Initial public version] | [Identifier] |
+| Version | Date   | Material change          | Trigger / linked review |
+| ------- | ------ | ------------------------ | ----------------------- |
+| v1      | [Date] | [Initial public version] | [Identifier]            |
 
 ## 🔒 Author Notes
 

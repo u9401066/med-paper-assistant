@@ -58,6 +58,7 @@ templates/
    - Required fields for that methodology
 
 3. **At project creation**:
+
    - `concept_base.md` is loaded
    - Variables are replaced
    - Paper-type sections are inserted at `{{PAPER_TYPE_SECTIONS}}`

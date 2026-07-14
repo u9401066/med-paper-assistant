@@ -7,7 +7,8 @@
 ## 🔒 NOVELTY STATEMENT ⚠️ REQUIRED
 
 > [In at least 20 words, state the precise contribution, closest prior work,
-> and evidence that distinguishes this submission.]
+>
+> > and evidence that distinguishes this submission.]
 
 ## 🔒 KEY SELLING POINTS ⚠️ REQUIRED
 
