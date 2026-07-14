@@ -276,8 +276,10 @@ class TestMetaLearningEngineIntegration:
         assert "summary" in result
 
     def test_expected_hooks_count(self) -> None:
-        """EXPECTED_HOOKS should contain exactly 60 entries."""
-        assert len(MetaLearningEngine.EXPECTED_HOOKS) == 60
+        """EXPECTED_HOOKS expands the 79-check F family into F1-F4 telemetry IDs."""
+        assert len(MetaLearningEngine.EXPECTED_HOOKS) == 64
+        assert {"A3c", "C7a", "C7b", "C7d", "C14"} <= set(MetaLearningEngine.EXPECTED_HOOKS)
+        assert "C7" not in MetaLearningEngine.EXPECTED_HOOKS
 
 
 # ── 6. EvolutionVerifier ─────────────────────────────────────────────

@@ -1,3 +1,8 @@
+---
+name: parallel-search
+description: Run multiple complementary literature searches and merge results for broad coverage. Triggers include parallel search, 並行搜尋, 廣泛搜尋.
+---
+
 # Parallel Search Skill
 
 觸發：並行搜尋、parallel search、批量搜尋、多組搜尋、廣泛搜尋、comprehensive search

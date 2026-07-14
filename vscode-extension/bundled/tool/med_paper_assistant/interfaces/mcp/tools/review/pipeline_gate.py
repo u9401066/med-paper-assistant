@@ -43,6 +43,7 @@ from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator impo
 from med_paper_assistant.infrastructure.persistence.workspace_state_manager import (
     get_workspace_state_manager,
 )
+from med_paper_assistant.shared.jsonc import load_jsonc
 
 from .._shared import (
     get_optional_tool_decorator,
@@ -1635,9 +1636,9 @@ def register_pipeline_tools(
             servers: dict[str, Any] = {}
             if mcp_path.is_file():
                 try:
-                    raw = re.sub(r"//.*", "", mcp_path.read_text(encoding="utf-8"))
-                    parsed = json.loads(raw)
-                    servers = parsed.get("servers") or parsed.get("mcpServers") or {}
+                    parsed = load_jsonc(mcp_path)
+                    if isinstance(parsed, dict):
+                        servers = parsed.get("servers") or parsed.get("mcpServers") or {}
                 except (json.JSONDecodeError, OSError):
                     servers = {}
 

@@ -1,3 +1,8 @@
+---
+name: reference-management
+description: Save, inspect, format, and verify scholarly references while preserving PubMed-first metadata trust boundaries.
+---
+
 # Reference Management Skill
 
 觸發：存這篇、save、儲存文獻、列出 references、citation、格式化、PDF、foam、wikilink

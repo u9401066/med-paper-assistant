@@ -1,20 +1,14 @@
 from __future__ import annotations
 
-import json
-import re
 from pathlib import Path
+
+from med_paper_assistant.shared.jsonc import load_jsonc
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _load_jsonc(path: Path) -> dict:
-    text = path.read_text(encoding="utf-8")
-    text = re.sub(r"//.*", "", text)
-    return json.loads(text)
-
-
 def test_external_mcp_servers_are_declared_in_workspace_config() -> None:
-    data = _load_jsonc(ROOT / ".vscode" / "mcp.json")
+    data = load_jsonc(ROOT / ".vscode" / "mcp.json")
     servers = data.get("servers") or data.get("mcpServers", {})
 
     for name in ["asset-aware", "pubmed-search", "drawio"]:

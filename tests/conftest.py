@@ -27,7 +27,12 @@ def tmp_workspace(tmp_path):
 @pytest.fixture(autouse=True)
 def isolate_env(monkeypatch, tmp_path):
     """Ensure tests don't accidentally write to real project directories."""
+    from med_paper_assistant.infrastructure.persistence.workspace_state_manager import (
+        reset_workspace_state_manager,
+    )
+
     monkeypatch.setenv("MDPAPER_TEST_MODE", "1")
+    monkeypatch.setenv("MEDPAPER_BASE_DIR", str(tmp_path))
     # Prevent telemetry writes to real .audit/tool-telemetry.yaml
     # (create_server() in some tests sets the module-level _tool_store singleton,
     # which then persists across the entire test session and causes pre-commit
@@ -36,3 +41,6 @@ def isolate_env(monkeypatch, tmp_path):
         "med_paper_assistant.interfaces.mcp.tools._shared.tool_logging._tool_store",
         None,
     )
+    reset_workspace_state_manager()
+    yield
+    reset_workspace_state_manager()

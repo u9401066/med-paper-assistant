@@ -1,3 +1,8 @@
+---
+name: submission-preparation
+description: Prepare journal submission artifacts, cover letters, highlights, reviewer responses, and compliance checklists.
+---
+
 # Submission Preparation Skill
 
 觸發：投稿準備、cover letter、highlights、reviewer response、revision、投稿 checklist

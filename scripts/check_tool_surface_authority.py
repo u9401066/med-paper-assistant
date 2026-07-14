@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AUTHORITY_PATH = REPO_ROOT / "tool-surface-authority.json"
@@ -18,6 +18,25 @@ BUNDLE_MANIFEST_PATH = REPO_ROOT / "vscode-extension" / "bundle-manifest.json"
 
 def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _repository_files(pathspec: str, fallback_glob: str) -> list[Path]:
+    """Return version-controlled repository files, with an archive-safe fallback.
+
+    Local generated or experimental files must not change release authority counts.
+    ``git ls-files --cached`` also sees paths staged for the next commit, while the
+    glob fallback keeps source archives (which have no ``.git`` directory) usable.
+    """
+    result = subprocess.run(
+        ["git", "ls-files", "--cached", "--", pathspec],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return [REPO_ROOT / line for line in result.stdout.splitlines() if line]
+    return [path for path in REPO_ROOT.glob(fallback_glob) if path.is_file()]
 
 
 def get_runtime_surface_counts() -> dict[str, dict[str, int]]:
@@ -45,11 +64,18 @@ def get_runtime_surface_counts() -> dict[str, dict[str, int]]:
 
 
 def get_repository_counts() -> dict[str, int]:
-    skills_dir = REPO_ROOT / ".claude" / "skills"
-    prompts_dir = REPO_ROOT / ".github" / "prompts"
-
-    skills = sum(1 for child in skills_dir.iterdir() if child.is_dir() and (child / "SKILL.md").exists())
-    prompt_workflows = sum(1 for child in prompts_dir.glob("*.prompt.md") if child.is_file())
+    skills = len(
+        _repository_files(
+            ".claude/skills/*/SKILL.md",
+            ".claude/skills/*/SKILL.md",
+        )
+    )
+    prompt_workflows = len(
+        _repository_files(
+            ".github/prompts/*.prompt.md",
+            ".github/prompts/*.prompt.md",
+        )
+    )
 
     return {
         "skills": skills,
@@ -101,7 +127,11 @@ def validate_authority() -> tuple[list[str], list[str]]:
     expected_repo = authority["repository"]
     repo_checks = [
         ("Repository skills", repo_counts["skills"], expected_repo["skills"]),
-        ("Repository prompt workflows", repo_counts["promptWorkflows"], expected_repo["promptWorkflows"]),
+        (
+            "Repository prompt workflows",
+            repo_counts["promptWorkflows"],
+            expected_repo["promptWorkflows"],
+        ),
     ]
     for label, actual, expected in repo_checks:
         if actual == expected:
@@ -112,14 +142,34 @@ def validate_authority() -> tuple[list[str], list[str]]:
     expected_bundle = authority["bundle"]
     bundle_checks = [
         ("Bundled skills", bundle_counts["skills"], expected_bundle["skills"]),
-        ("Bundled prompt workflows", bundle_counts["promptWorkflows"], expected_bundle["promptWorkflows"]),
+        (
+            "Bundled prompt workflows",
+            bundle_counts["promptWorkflows"],
+            expected_bundle["promptWorkflows"],
+        ),
         ("Bundled agents", bundle_counts["agents"], expected_bundle["agents"]),
         ("Bundled templates", bundle_counts["templates"], expected_bundle["templates"]),
         ("Bundled support files", bundle_counts["supportFiles"], expected_bundle["supportFiles"]),
-        ("Bundle manifest chat commands", bundle_counts["chatCommands"], expected_bundle["chatCommands"]),
-        ("Bundle manifest palette commands", bundle_counts["paletteCommands"], expected_bundle["paletteCommands"]),
-        ("package.json chat commands", bundle_counts["packageChatCommands"], expected_bundle["chatCommands"]),
-        ("package.json palette commands", bundle_counts["packagePaletteCommands"], expected_bundle["paletteCommands"]),
+        (
+            "Bundle manifest chat commands",
+            bundle_counts["chatCommands"],
+            expected_bundle["chatCommands"],
+        ),
+        (
+            "Bundle manifest palette commands",
+            bundle_counts["paletteCommands"],
+            expected_bundle["paletteCommands"],
+        ),
+        (
+            "package.json chat commands",
+            bundle_counts["packageChatCommands"],
+            expected_bundle["chatCommands"],
+        ),
+        (
+            "package.json palette commands",
+            bundle_counts["packagePaletteCommands"],
+            expected_bundle["paletteCommands"],
+        ),
     ]
     for label, actual, expected in bundle_checks:
         if actual == expected:

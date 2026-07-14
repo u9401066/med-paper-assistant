@@ -33,27 +33,28 @@ SRC = ROOT / "src" / "med_paper_assistant"
 TESTS = ROOT / "tests"
 
 # Declared hook groups (source of truth from AGENTS.md)
-# A3b and A3c are sub-checks of A3; A7 is a standalone hook.
-# Total A = A1-A7 + A3b = 8 (A3c counted within A3)
+# A3b/A3c and C7a/C7b/C7d are independently reported sub-checks.
+# F is one documented family but expands to F1-F4 telemetry identifiers.
 DECLARED_HOOKS = {
-    "A": 8,  # A1-A7 + A3b (A3c counted within A3)
+    "A": 9,  # A1-A7 + A3b + A3c
     "B": 16,  # B1-B16
-    "C": 13,  # C1-C13
+    "C": 16,  # C1-C6 + C7a/C7b/C7d + C8-C14
     "D": 9,  # D1-D9
     "E": 5,  # E1-E5
-    "F": 4,  # F1-F4
+    "F": 1,  # F data-artifact family (telemetry expands to F1-F4)
     "G": 9,  # G1-G9
     "P": 8,  # P1-P8
     "R": 6,  # R1-R6
 }
-TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 78
+TOTAL_HOOKS = sum(DECLARED_HOOKS.values())  # 79
 
 # Sub-hooks that don't follow sequential numbering (e.g. A3b instead of A8)
 # These are counted in DECLARED_HOOKS totals.
-SUB_HOOKS = {"A3b"}
+SUB_HOOKS = {"A3b", "A3c", "C7a", "C7b", "C7d"}
 # Sequential upper bound per series (for series with sub-hooks)
 # A: 8 total = A1-A7 (sequential) + A3b (sub-hook) → sequential max = 7
-SEQUENTIAL_MAX = {"A": 7}
+SEQUENTIAL_MAX = {"A": 7, "C": 14}
+EXCLUDED_SEQUENTIAL_HOOKS = {"C7"}
 
 # Files to check for hook count
 HOOK_COUNT_FILES = [
@@ -148,6 +149,7 @@ def check_expected_hooks() -> CheckResult:
         max_seq = SEQUENTIAL_MAX.get(letter, count)
         for i in range(1, max_seq + 1):
             full_expected.add(f"{letter}{i}")
+    full_expected -= EXCLUDED_SEQUENTIAL_HOOKS
     full_expected.update(SUB_HOOKS)
 
     # D1-D9: meta-learning engine itself (self-referential, excluded)
@@ -157,9 +159,10 @@ def check_expected_hooks() -> CheckResult:
         for i in range(1, DECLARED_HOOKS.get(letter, 0) + 1):
             agent_behavioral.add(f"{letter}{i}")
 
-    code_enforceable = full_expected - agent_behavioral
-    missing_in_code = code_enforceable - code_hooks
-    extra_in_code = code_hooks - full_expected
+    meta_tracked = full_expected - agent_behavioral
+    meta_tracked.update({"F2", "F3", "F4"})
+    missing_in_code = meta_tracked - code_hooks
+    extra_in_code = code_hooks - meta_tracked
 
     errors: list[str] = []
     if missing_in_code:
@@ -172,7 +175,10 @@ def check_expected_hooks() -> CheckResult:
     return CheckResult(
         "EXPECTED_HOOKS",
         True,
-        f"{len(code_hooks)} code-enforced hooks + {len(agent_behavioral)} agent-behavioral (D/G) = {len(full_expected)} total",
+        (
+            f"{len(code_hooks)} telemetry hook IDs cover {TOTAL_HOOKS} documented checks "
+            "(F expands to F1-F4; D/G tracked outside EXPECTED_HOOKS)"
+        ),
     )
 
 

@@ -27,6 +27,7 @@ from .exceptions import (
     SearchError,
     ValidationError,
 )
+from .jsonc import load_jsonc, loads_jsonc, strip_jsonc_comments, strip_jsonc_trailing_commas
 from .path_guard import PathGuardError, normalize_relative_filename, resolve_child_path
 
 __all__ = [
@@ -56,4 +57,8 @@ __all__ = [
     "PathGuardError",
     "normalize_relative_filename",
     "resolve_child_path",
+    "load_jsonc",
+    "loads_jsonc",
+    "strip_jsonc_comments",
+    "strip_jsonc_trailing_commas",
 ]

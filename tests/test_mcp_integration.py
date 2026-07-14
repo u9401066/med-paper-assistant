@@ -74,8 +74,8 @@ async def open_mcp_session(base_dir: Path | None = None) -> AsyncIterator[Client
 
 
 @pytest.mark.asyncio
-async def test_live_server_exposes_tools_prompts_and_resources() -> None:
-    async with open_mcp_session() as session:
+async def test_live_server_exposes_tools_prompts_and_resources(tmp_workspace: Path) -> None:
+    async with open_mcp_session(tmp_workspace) as session:
         tools = await session.list_tools()
         prompts = await session.list_prompts()
         resources = await session.list_resources()
@@ -103,8 +103,8 @@ async def test_live_server_exposes_tools_prompts_and_resources() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_workspace_state_returns_structured_content() -> None:
-    async with open_mcp_session() as session:
+async def test_get_workspace_state_returns_structured_content(tmp_workspace: Path) -> None:
+    async with open_mcp_session(tmp_workspace) as session:
         result = await session.call_tool("get_workspace_state", {})
 
     payload = result.structuredContent
@@ -116,8 +116,8 @@ async def test_get_workspace_state_returns_structured_content() -> None:
 
 
 @pytest.mark.asyncio
-async def test_resources_are_readable_via_official_client() -> None:
-    async with open_mcp_session() as session:
+async def test_resources_are_readable_via_official_client(tmp_workspace: Path) -> None:
+    async with open_mcp_session(tmp_workspace) as session:
         state = await session.read_resource(AnyUrl("medpaper://workspace/state"))
         projects = await session.read_resource(AnyUrl("medpaper://workspace/projects"))
         templates = await session.read_resource(AnyUrl("medpaper://templates/catalog"))
@@ -207,8 +207,8 @@ async def test_workspace_smoke_create_project_then_state_and_resources(tmp_works
 
 
 @pytest.mark.asyncio
-async def test_prompt_can_be_materialized() -> None:
-    async with open_mcp_session() as session:
+async def test_prompt_can_be_materialized(tmp_workspace: Path) -> None:
+    async with open_mcp_session(tmp_workspace) as session:
         result = await session.get_prompt(
             "draft_section_plan",
             {

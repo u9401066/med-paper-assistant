@@ -12,6 +12,8 @@ from typing import Any, Dict, List
 
 import structlog
 
+from med_paper_assistant.shared.jsonc import loads_jsonc
+
 logger = structlog.get_logger()
 
 
@@ -405,16 +407,10 @@ class FoamSettingsManager:
         Returns:
             Parsed dictionary.
         """
-        import re
-
-        # Remove single-line comments
-        text = re.sub(r"//.*$", "", text, flags=re.MULTILINE)
-        # Remove multi-line comments
-        text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-        # Remove trailing commas before } or ]
-        text = re.sub(r",(\s*[}\]])", r"\1", text)
-
-        return json.loads(text)
+        parsed = loads_jsonc(text)
+        if not isinstance(parsed, dict):
+            raise ValueError("Foam settings must contain a JSON object")
+        return parsed
 
     def _write_settings(self, settings: Dict[str, Any]) -> None:
         """
