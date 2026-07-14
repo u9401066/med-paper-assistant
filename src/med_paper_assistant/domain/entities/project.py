@@ -8,10 +8,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
+from med_paper_assistant.domain.paper_types import PAPER_TYPES
 from med_paper_assistant.domain.value_objects.author import Author
 from med_paper_assistant.shared.constants import (
     DEFAULT_WORKFLOW_MODE,
-    PAPER_TYPES,
     WORKFLOW_MODES,
 )
 from med_paper_assistant.shared.slug import slugify_name
@@ -59,7 +59,8 @@ class Project:
     @property
     def paper_type_info(self) -> Dict[str, Any]:
         """Get paper type configuration."""
-        return PAPER_TYPES.get(self.paper_type, {})
+        profile = PAPER_TYPES.get(self.paper_type)
+        return profile.to_dict() if profile else {}
 
     @property
     def workflow_mode_info(self) -> Dict[str, Any]:

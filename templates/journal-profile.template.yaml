@@ -30,7 +30,9 @@ authors:
 
 # ── 論文類型與結構 ──
 paper:
-  type: "original-research"         # original-research | systematic-review | meta-analysis | case-report | review-article | letter | other
+  # Also supports: research-proposal, project-closeout-report, student-paper,
+  # conference-paper, thesis-dissertation, arxiv-preprint, and other.
+  type: "original-research"         # original-research | systematic-review | meta-analysis | case-report | review-article | letter
   sections:                         # 按期刊要求的 section 順序
     - name: "Title Page"
       required: true

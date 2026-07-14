@@ -46,13 +46,22 @@ class TestApplicabilityMatrix:
         assert EMPIRICAL_TYPES <= ALL_PAPER_TYPES
         assert "original-research" in EMPIRICAL_TYPES
         assert "letter" not in EMPIRICAL_TYPES
+        assert {"conference-paper", "thesis-dissertation", "arxiv-preprint"} <= EMPIRICAL_TYPES
 
     def test_b8_applicable_to_empirical(self) -> None:
         for pt in EMPIRICAL_TYPES:
             assert is_applicable("B8", pt) is True
 
     def test_b8_not_applicable_to_non_empirical(self) -> None:
-        for pt in ("letter", "review-article", "case-report", "other"):
+        for pt in (
+            "letter",
+            "review-article",
+            "case-report",
+            "research-proposal",
+            "project-closeout-report",
+            "student-paper",
+            "other",
+        ):
             assert is_applicable("B8", pt) is False
 
     def test_common_hook_applies_to_all(self) -> None:

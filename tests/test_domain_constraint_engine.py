@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from med_paper_assistant.domain.paper_types import PAPER_TYPES
 from med_paper_assistant.infrastructure.persistence.domain_constraint_engine import (
     _CORE_ANTI_AI_PATTERNS,
     BASE_CONSTRAINTS,
@@ -63,17 +64,30 @@ class TestBaseConstraints:
     def test_base_has_other(self) -> None:
         assert "other" in BASE_CONSTRAINTS
 
-    def test_all_seven_paper_types_present(self) -> None:
-        expected = {
-            "original-research",
-            "case-report",
-            "systematic-review",
-            "meta-analysis",
-            "review-article",
-            "letter",
-            "other",
-        }
-        assert set(BASE_CONSTRAINTS.keys()) == expected
+    def test_all_domain_paper_types_present(self) -> None:
+        assert set(BASE_CONSTRAINTS) == set(PAPER_TYPES)
+        assert len(BASE_CONSTRAINTS) == 13
+
+    @pytest.mark.parametrize(
+        ("paper_type", "required_section", "word_range"),
+        [
+            ("research-proposal", "Timeline", (1500, 12000)),
+            ("project-closeout-report", "Lessons Learned", (1500, 15000)),
+            ("student-paper", "Main Analysis", (1000, 10000)),
+            ("conference-paper", "Results", (1500, 8000)),
+            ("thesis-dissertation", "Literature Review", (10000, 100000)),
+            ("arxiv-preprint", "Version Notes", (2000, 15000)),
+        ],
+    )
+    def test_formal_output_profiles_have_boundaries(
+        self, paper_type: str, required_section: str, word_range: tuple[int, int]
+    ) -> None:
+        constraints = BASE_CONSTRAINTS[paper_type]["constraints"]
+        required = next(c for c in constraints if c["rule"] == "required_sections")
+        boundary = next(c for c in constraints if c["rule"] == "word_count_range")
+
+        assert required_section in required["params"]["sections"]
+        assert (boundary["params"]["min_words"], boundary["params"]["max_words"]) == word_range
 
     def test_original_research_has_constraints(self) -> None:
         constraints = BASE_CONSTRAINTS["original-research"]["constraints"]

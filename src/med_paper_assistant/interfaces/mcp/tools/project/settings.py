@@ -11,7 +11,7 @@ from mcp.server.elicitation import AcceptedElicitation, CancelledElicitation, De
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from med_paper_assistant.domain.paper_types import get_paper_type_dict
+from med_paper_assistant.domain.paper_types import PAPER_TYPES, get_paper_type_dict
 from med_paper_assistant.domain.value_objects.author import Author, generate_author_block
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
@@ -29,24 +29,8 @@ class PaperTypeSchema(BaseModel):
     paper_type: str = Field(
         description="Type of paper",
         json_schema_extra={
-            "enum": [
-                "original-research",
-                "systematic-review",
-                "meta-analysis",
-                "case-report",
-                "review-article",
-                "letter",
-                "other",
-            ],
-            "enumNames": [
-                "Original Research",
-                "Systematic Review",
-                "Meta-Analysis",
-                "Case Report",
-                "Review Article",
-                "Letter",
-                "Other",
-            ],
+            "enum": list(PAPER_TYPES),
+            "enumNames": [profile.name for profile in PAPER_TYPES.values()],
         },
     )
 

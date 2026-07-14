@@ -397,6 +397,78 @@ async def test_project_action_records_asset_ingestion_receipt(tmp_path, monkeypa
 
 
 @pytest.mark.asyncio
+async def test_project_action_records_safe_exemplar_usage(tmp_path, monkeypatch) -> None:
+    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+
+    project_dir = tmp_path / "projects" / "demo-project"
+    project_dir.mkdir(parents=True)
+
+    def fake_resolve_project_context(project=None, **kwargs):
+        return (
+            {
+                "slug": "demo",
+                "name": "Demo",
+                "project_path": str(project_dir),
+                "paper_type": "research-proposal",
+            },
+            None,
+        )
+
+    monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
+    funcs = register_project_facade_tools(
+        FastMCP("project-exemplar-test"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={},
+    )
+
+    result = await funcs["project_action"](
+        action="record_exemplar",
+        exemplar_source_id="source-001",
+        exemplar_roles_json='["structure", "methodology"]',
+        exemplar_target_sections_json='["Methods"]',
+        exemplar_purpose="Calibrate reporting order only.",
+    )
+
+    artifact = project_dir / ".audit" / "exemplar-usage.yaml"
+    data = yaml.safe_load(artifact.read_text(encoding="utf-8"))
+    assert "status: ok" in result
+    assert "evidence_eligible: false" in result
+    assert data["records"][0]["roles"] == ["structure", "methodology"]
+    assert data["records"][0]["citation_credit"] is False
+
+
+@pytest.mark.asyncio
+async def test_project_action_rejects_unsafe_exemplar_role(tmp_path, monkeypatch) -> None:
+    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+
+    project_dir = tmp_path / "projects" / "demo-project"
+    project_dir.mkdir(parents=True)
+    monkeypatch.setattr(
+        project_facade,
+        "resolve_project_context",
+        lambda project=None, **kwargs: ({"project_path": str(project_dir)}, None),
+    )
+    funcs = register_project_facade_tools(
+        FastMCP("project-exemplar-reject-test"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={},
+    )
+
+    result = await funcs["project_action"](
+        action="exemplar_usage",
+        exemplar_source_id="source-001",
+        exemplar_roles_json='["evidence-substitute"]',
+    )
+
+    assert result.startswith("❌ Exemplar policy violation:")
+    assert not (project_dir / ".audit" / "exemplar-usage.yaml").exists()
+
+
+@pytest.mark.asyncio
 async def test_project_action_help_lists_machine_readable_schema() -> None:
     funcs = register_project_facade_tools(
         FastMCP("project-help-schema-test"),
@@ -414,6 +486,7 @@ async def test_project_action_help_lists_machine_readable_schema() -> None:
     assert "journal_profile" in payload["actions"]
     assert "source_materials" in payload["actions"]
     assert "record_asset_ingestion" in payload["actions"]
+    assert "exemplar_usage" in payload["actions"]
 
 
 @pytest.mark.asyncio
