@@ -20,7 +20,7 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                   |
 | Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                        |
 | Latest Validation     | Python 1523 passed / 8 skipped / 26 deselected; VSIX 169 passed; MCP smoke 14/14 + 118/118 classified; validate 92/92 |
-| Packaging             | **v0.9.0** wheel/sdist/VSIX built and install-smoked; segmented publish and release in progress                       |
+| Packaging             | **v0.9.0** GitHub Release + PyPI published; VSIX attached; Marketplace blocked by external `VSCE_PAT` authorization   |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -57,6 +57,8 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 - 版本已提升至 0.9.0；Python 1523 passed / 8 skipped / 26 deselected，VSIX 169/169 tests、install smoke 與 92/92 validate 通過。
 - wheel、sdist 與 `medpaper-assistant-0.9.0.vsix` 已建立；封裝內容檢查確認六種新 concept templates 與 journal profile 均存在。
 - 首次遠端 release dry run 發現 npm 11 optional dependency lock 漂移與 19 個 Markdown 格式問題；已補齊 `@emnapi` lock entries、以 CI-pinned Prettier 3.1 正規化並以乾淨 `npm ci` 重現通過。
+- `master` CI 全綠；annotated tag `v0.9.0` 指向 `4d1bec7`，PyPI trusted publish 成功，GitHub Release 已附 2,031,016-byte VSIX、wheel 與 sdist。
+- VS Marketplace publish 仍因既有 `VSCE_PAT` 身分未獲授權而回報 `TF400813`；屬外部 Marketplace 權限，非 package/build failure。
 
 #### v0.7.11 Phase Gate + Release Hardening (2026-05-19)
 

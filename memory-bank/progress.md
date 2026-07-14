@@ -15,6 +15,8 @@
   - Packaged and install-smoked `medpaper-assistant-0.9.0.vsix`; VSIX tests 169/169 and validate 92/92
   - Final release matrix: Python 1523 passed / 8 skipped / 26 deselected; Ruff, format, mypy, Bandit, vulture, consistency, tool authority, docs build, MCP boot, npm audit, bundle parity, wheel/sdist content, and VSIX install smoke all passed
   - Closed release-runner drift found by the first remote dry run: npm 11 lockfile now includes optional `@emnapi` packages, clean `npm ci` passes, and all tracked Markdown passes CI-pinned Prettier 3.1
+  - Published annotated `v0.9.0` at `4d1bec7`; master CI passed, PyPI trusted publishing succeeded, and GitHub Release carries the VSIX, wheel, and sdist
+  - VS Marketplace publish remains externally blocked by `TF400813` for the configured `VSCE_PAT`; the VSIX itself packages, validates, installs, and is available on GitHub Release
 
 - **Cross-agent production refresh foundation (2026-07-14)**:
 
