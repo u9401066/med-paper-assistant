@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a platform-neutral academic-writing contract with native entrypoints for Claude Code, Codex, and OpenClaw, including proposals, project closeout reports, student papers, preprints, and safe exemplar-paper roles.
+- Added cross-agent contract tests for skill frontmatter, discovery paths, extended output coverage, exemplar anti-copy boundaries, and portable MCP configuration.
+- Added a dependency-free shared JSONC parser with URL, escaped-string, block-comment, trailing-comma, and invalid-input coverage.
+- Added an external-project benchmark covering selected mechanisms from PaperQA, STORM, AI-Scientist-v2, and Quarto.
+- Added a project-local TypeScript ESLint configuration for the VS Code extension.
+
+### Changed
+
+- Aligned PubMed Search documentation to the pinned v0.4.4 generated registry (40 tools) and made its reference skill explicitly version-aware.
+- Updated the repository skill authority from 26 to 38 and repaired five legacy skills with missing or invalid YAML frontmatter.
+- Synchronized Python and skill changes into the VSIX managed bundle and removed unused extension imports/parameters exposed by the new lint gate.
+
+### Fixed
+
+- Fixed meta-learning coverage drift by replacing legacy `C7` with `C7a`/`C7b`/`C7d` and adding missing A3c/C14 telemetry IDs; the 79 documented checks now map explicitly to 64 meta-learning hook IDs.
+- Fixed JSONC parsing that treated `http://` content inside strings as line comments in MCP and Foam settings.
+- Removed a duplicate, machine-specific asset-aware MCP declaration containing hard-coded `/home/eric` paths.
+- Fixed `npm run lint`, which previously failed because the extension had no ESLint configuration.
+
 ## [0.7.9] - 2026-04-24
 
 ### Changed

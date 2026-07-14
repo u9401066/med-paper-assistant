@@ -649,3 +649,29 @@ get_section_requirements(paper_type, section) -> Dict
 - ✅ 不同 paper type 有適當的驗證要求
 - ✅ 漸進式撰寫流程
 - ⚠️ SKILL.md 和文檔需更新
+
+---
+
+## [2026-07-14] Shared Codex/OpenClaw Skill Root and Platform-Neutral Writing Contract
+
+### 背景
+
+Repo 原有 `.claude/skills` 與 integration-generated `.codex/skills`，但最新 Codex 與 OpenClaw 都原生支援 repo `.agents/skills`；持續複製大型 auto-paper 流程會造成 drift。範本文獻若未分角色，也容易被誤當 claim evidence 或產生近似仿寫。
+
+### 決定
+
+1. 以 `.agents/skills` 作為 Codex + OpenClaw 共用 repo skill root，Claude Code 保留 `.claude/skills` adapter。
+2. 把平台中立流程放在 `docs/harness/academic-writing-workflow.md`，adapter 僅負責 discovery 與 tool capability mapping。
+3. 將 `claim_evidence`、`method_authority`、`exemplar_structure`、`exemplar_style`、`user_primary_material` 分成不同來源角色。
+4. 範文只可抽取結構與可量測風格特徵；不得複製或輕度改寫獨特措辭、資料、聲稱、引用、圖表或結論。
+
+### 理由
+
+- 同一 skill root 同時符合 Codex 與 OpenClaw 官方 discovery 慣例。
+- 單一流程權威降低三平台規範漂移。
+- 角色分離可讓引用驗證、著作權與 anti-plagiarism gate 可被程式化審計。
+
+### 後續
+
+- 擴充 code-level output profiles 與 exemplar/evidence artifacts。
+- 新增三平台 smoke、文件網站與 release/install smoke。

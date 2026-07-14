@@ -270,7 +270,7 @@ Copilot Agent Mode 同時連接多個 MCP Server：
 | Server            | 來源                                                                                                                                                                   | 用途                                                           | Tools 數量 |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------- |
 | **mdpaper**       | 本專案                                                                                                                                                                 | 專案管理、草稿、引用、審查、匯出；另含 3 prompts / 3 resources | 88         |
-| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule)                                                                                                                          | PubMed 文獻搜尋                                                | 37         |
+| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule)                                                                                                                          | PubMed 文獻搜尋                                                | 40         |
 | **cgu**           | `integrations/cgu/` (submodule)                                                                                                                                        | 創意發想（快思慢想）                                           | 13         |
 | **drawio**        | `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` → fallback `node integrations/drawio-mcp/src/index.js` → `npx -y @drawio/mcp` | CONSORT/PRISMA 圖表                                            | ~5         |
 | **zotero-keeper** | `uvx zotero-keeper`                                                                                                                                                    | Zotero 書目管理                                                | ~15        |
@@ -340,13 +340,14 @@ Foam (VS Code extension) 提供論文引用的知識圖譜功能：
 
 行為指引層（不是代碼，是 Copilot 的 SOP）：
 
-| 類型             | 位置                              | 數量 | 作用                                                       |
-| ---------------- | --------------------------------- | ---- | ---------------------------------------------------------- |
-| **Skills**       | `.claude/skills/*/SKILL.md`       | 26   | 單一任務的知識（如何組合 tools）                           |
-| **Prompts**      | `.github/prompts/*.prompt.md`     | 15   | 高層編排（多 skill 組合的工作流程）                        |
-| **Hooks**        | `.github/hooks/*.json`            | 1    | deterministic runtime guard for mode/protected-path policy |
-| **Bylaws**       | `.github/bylaws/*.md`             | 4    | 規範（架構、git、memory、python 環境）                     |
-| **Instructions** | `.github/copilot-instructions.md` | 1    | 全域指引入口                                               |
+| 類型              | 位置                              | 數量 | 作用                                                       |
+| ----------------- | --------------------------------- | ---- | ---------------------------------------------------------- |
+| **Skills**        | `.claude/skills/*/SKILL.md`       | 38   | Claude Code 與 workflow-specific 知識                      |
+| **Shared Skills** | `.agents/skills/*/SKILL.md`       | 1    | Codex + OpenClaw 共用 repository skill                     |
+| **Prompts**       | `.github/prompts/*.prompt.md`     | 15   | 高層編排（多 skill 組合的工作流程）                        |
+| **Hooks**         | `.github/hooks/*.json`            | 1    | deterministic runtime guard for mode/protected-path policy |
+| **Bylaws**        | `.github/bylaws/*.md`             | 4    | 規範（架構、git、memory、python 環境）                     |
+| **Instructions**  | `.github/copilot-instructions.md` | 1    | 全域指引入口                                               |
 
 補充：Skill/Prompt 文件中的 Hook A/B/C/D 屬於 workflow-level 指引與審計慣例；真正會在 VS Code agent 執行期 deterministic 攔截的，是 `.github/hooks/` 中的 official hook configuration。
 
@@ -478,7 +479,8 @@ med-paper-assistant/
 ├── scripts/                    # 工具腳本
 ├── docs/                       # 設計文件
 ├── memory-bank/                # 全域 AI 記憶
-├── .claude/skills/             # Copilot Skills（26 個）
+├── .agents/skills/             # Codex + OpenClaw 共用 Skills
+├── .claude/skills/             # Claude Code / Copilot Skills（38 個）
 ├── .github/prompts/            # Copilot Prompts（15 個）
 ├── .github/bylaws/             # 規範（4 個）
 └── .pre-commit-config.yaml     # Git hooks

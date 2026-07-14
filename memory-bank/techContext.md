@@ -42,7 +42,8 @@ med-paper-assistant/
 │   └── journal-profile.template.yaml
 ├── tests/                     # Python tests + authority / sync guards
 ├── memory-bank/               # Context persistence
-├── .claude/skills/            # 26 skills
+├── .agents/skills/            # Codex + OpenClaw shared skills
+├── .claude/skills/            # 38 Claude/workflow skills
 ├── vscode-extension/          # VSIX packaged surface v0.7.2
 └── dashboard/                 # Next.js dashboard
 ```

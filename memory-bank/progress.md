@@ -1,6 +1,15 @@
-# Progress (Updated: 2026-04-24)
+# Progress (Updated: 2026-07-14)
 
 ## Done
+
+- **Cross-agent production refresh foundation (2026-07-14)**:
+
+  - Added native Claude Code plus shared Codex/OpenClaw skill entrypoints and a platform-neutral academic-writing workflow
+  - Added proposal/closeout/student/preprint and exemplar role contracts before code-level profile expansion
+  - Fixed URL-safe JSONC parsing across MCP smoke, Foam settings, and pipeline doctor
+  - Repaired five invalid/missing skill frontmatters and added all-skill discovery tests
+  - Restored a real VSIX ESLint gate and synchronized managed Python/skill bundles
+  - Validation: Python 1278 passed; VSIX 169 passed; ruff, format, mypy, ESLint, and bundle check passed
 
 - **v0.7.9 Vancouver export + FOAM compatibility release prep (2026-04-24)**:
 
@@ -91,11 +100,15 @@
 
 ## Doing
 
-- Publishing v0.7.9: changelog/version/memory update, bundle sync, validation, commit, push master, create and push tag
+- Segmented production refresh: first foundation commit, then academic output domain profiles and evidence/exemplar artifacts
 
 ## Next
 
-- Watch v0.7.9 release tag CI and package publication status
+- Add research proposal, closeout report, student paper, conference/thesis, and arXiv/preprint profiles with code-enforced constraints and templates
+- Implement ranked evidence-context ledger, perspective question map, and bounded branch audit artifacts
+- Continue vulture/orphan cleanup and DDD dependency remediation with regression tests
+- Build the human-facing documentation website with Mermaid-enabled architecture/workflow pages
+- Push segmented commits when DNS/network access returns; release a new version only after full validate/VSIX install smoke
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

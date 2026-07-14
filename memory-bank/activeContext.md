@@ -4,22 +4,22 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-04-24)
+## 當前焦點 (2026-07-14)
 
-v0.7.9 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏，補齊 manuscript citation 與 FOAM wiki-link knowledge-base 雙分支相容性，並收斂遠端 `codex/check-design-errors` branch 的 exports/workspace-state/review-loop 修正；目前進入 commit/push/tag 發布收尾。
+Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的通用學術寫作 harness，逐步增加正式學術產出類型、exemplar-aware 證據邊界、邊界/smoke 測試、死碼/DDD 清理、文件網站與可發布 VSIX。
 
 ### 當前狀態
 
-| 項目                    | 數量/狀態                                                                   |
-| ----------------------- | --------------------------------------------------------------------------- |
-| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources               |
-| Repo Skills / Prompts   | **26 skills / 15 prompt workflows**                                         |
-| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**                |
-| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                          |
-| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)           |
-| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`              |
-| Latest Validation       | Targeted citation/export/wiki-link suite passed; release validation pending |
-| Packaging               | Version bumped to `0.7.9`; tag/push pending                                 |
+| 項目                    | 數量/狀態                                                                  |
+| ----------------------- | -------------------------------------------------------------------------- |
+| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources              |
+| Repo Skills / Prompts   | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows** |
+| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**               |
+| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                         |
+| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)          |
+| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`             |
+| Latest Validation       | Python 1278 passed; VSIX 169 passed; ruff/mypy/ESLint/bundle all passed    |
+| Packaging               | v0.7.9 baseline; production-refresh commits in progress                    |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -32,6 +32,15 @@ v0.7.9 release：修復 Vancouver/BJA superscript export raw `[@citekey]` 泄漏
 | L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
 
 ### 最近變更
+
+#### Cross-Agent Production Refresh — Foundation (2026-07-14)
+
+- 新增 `CLAUDE.md` 與 `.agents/skills/academic-writing-harness`；最新 Codex/OpenClaw 共用 `.agents/skills`，Claude Code 使用 `.claude/skills` 薄入口。
+- 新增 `docs/harness/academic-writing-workflow.md`，定義 proposal、closeout、student paper、preprint 與 exemplar role separation。
+- 新增共享 JSONC parser，修復 `http://` 被誤刪並套用到 Foam 與 pipeline doctor。
+- 修復 5 個無效 skill frontmatter，新增所有 repo skills 的 discovery contract test。
+- 補上 VSIX ESLint 設定、清除 lint 發現的 unused imports/parameters，完成 bundle mirror 同步。
+- 同類專案 benchmark 已記錄 PaperQA、STORM、AI-Scientist-v2、Quarto 的採納與拒絕邊界。
 
 #### v0.7.9 Vancouver Export + FOAM Compatibility Release (2026-04-24)
 

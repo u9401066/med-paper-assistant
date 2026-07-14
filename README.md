@@ -11,7 +11,7 @@
 
 ## 🔬 An MCP-Orchestrated Research Workspace for Medical Paper Writing and LLM Wiki Workflows
 
-3 MCP Servers · 165+ Tools · 26 Skills · 15 Prompts Workflows — monorepo authoring surface plus packaged VSIX surface in one VS Code ecosystem
+3 MCP Servers · 170+ Tools · 38 Skills · 15 Prompt Workflows — a cross-agent authoring surface plus the packaged VSIX experience
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 11-Phase Pipeline, 79 Quality Hooks, Structured Review Loop
@@ -27,12 +27,12 @@ This repository is the **full authoring and integration workspace** behind MedPa
 | Component                                                          | Type                   | Tools                             | Description                                                                                                                           |
 | ------------------------------------------------------------------ | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **mdpaper**                                                        | Core MCP Server        | 117 (full) / 22 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources                                    |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 37                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 40                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 13                                | Creative generation: brainstorm, deep think, spark collision                                                                          |
 | **[VS Code Extension](vscode-extension/)**                         | Extension              | 11 cmds + 10 chat                 | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                 | Project management UI, diagram editor                                                                                                 |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                 | `[[wikilink]]` citation linking, hover preview, graph view                                                                            |
-| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 26                                | Guided multi-tool workflows (literature review, draft writing...)                                                                     |
+| **[Skills](.claude/skills/)**                                      | Agent Workflows        | 38                                | Guided multi-tool workflows plus a shared Claude Code / Codex / OpenClaw academic-writing contract                                    |
 | **[Prompts](.github/prompts/)**                                    | Prompt Files           | 15                                | `/mdpaper.search`, `/mdpaper.draft`, etc.                                                                                             |
 
 **External MCP Servers** (optional, installed via uvx):
@@ -47,7 +47,7 @@ Counts in these tables are release-gated via `tool-surface-authority.json` and `
 
 | Surface             | Best for                                       | What you get                                                                                                                                                                                       |
 | ------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 26 skills, 15 prompt workflows, repo scripts, tests, and authoring docs                                                                |
+| **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 38 skills, 15 prompt workflows, cross-agent harness, repo scripts, tests, and authoring docs                                           |
 | **VSIX extension**  | End users who want the packaged experience     | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (22 tools by default / 117 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
 
 The repository is the broader engineering surface. The VSIX is the curated end-user surface.
@@ -57,6 +57,18 @@ The repository is the broader engineering surface. The VSIX is the curated end-u
 ### How the Pieces Fit Together
 
 ![MedPaper Assistant architecture](docs/assets/medpaper-architecture.svg)
+
+### Claude Code, Codex, and OpenClaw
+
+The same evidence and quality gates are available across agent runtimes:
+
+| Runtime     | Project instructions                                  | Academic-writing skill                                                                 |
+| ----------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Claude Code | [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md) | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) |
+| Codex       | [`AGENTS.md`](AGENTS.md)                              | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) |
+| OpenClaw    | [`AGENTS.md`](AGENTS.md) plus workspace policy        | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) |
+
+The platform-neutral [academic-writing workflow](docs/harness/academic-writing-workflow.md) covers manuscripts, proposals, project closeout reports, student papers, preprints, audit gates, and safe exemplar use.
 
 ---
 
@@ -75,7 +87,7 @@ The repository is the broader engineering surface. The VSIX is the curated end-u
 | Traditional Tools                   | Medical Paper Assistant                                                  |
 | ----------------------------------- | ------------------------------------------------------------------------ |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach                                           |
-| Separate apps for search/write/cite | One orchestrated workspace: 165+ tools and packaged workflows in VS Code |
+| Separate apps for search/write/cite | One orchestrated workspace: 170+ tools and packaged workflows in VS Code |
 | Manual reference management         | Auto-save with verified PubMed data                                      |
 | Export then format                  | Direct Word export with journal styles                                   |
 | Learn complex UI                    | Natural language conversation                                            |
@@ -198,7 +210,7 @@ Tool  = Single capability (search, save, analyze...)
 Skill = Complete knowledge (how to combine tools to accomplish tasks)
 ```
 
-Representative skill families across the 26 skills:
+Representative skill families across the 38 skills:
 
 | Category       | Skills                                                                              | Triggers                                  |
 | -------------- | ----------------------------------------------------------------------------------- | ----------------------------------------- |
@@ -247,7 +259,7 @@ projects/{slug}/
 
 ### Literature & References
 
-- **PubMed + Europe PMC + CORE** search (37 search tools)
+- **PubMed + Europe PMC + CORE** search (40 pinned-runtime tools)
 - **PICO parsing** for clinical questions
 - **MCP-to-MCP verified data** — PMID sent directly, no agent hallucination
 - Layered trust: 🔒 VERIFIED (PubMed) · 🤖 AGENT (AI notes) · ✏️ USER (your notes)
@@ -304,7 +316,7 @@ projects/{slug}/
                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────┐
 │               🤖 Copilot Agent (Orchestrator)                             │
-│      26 Skills + 15 Prompt Workflows + Agent Customization               │
+│      38 Skills + 15 Prompt Workflows + Cross-Agent Customization         │
 │   /mdpaper.search → /mdpaper.concept → /mdpaper.draft → export          │
 └───────┬──────────────────┬──────────────────┬──────────────────┬─────────┘
         │                  │                  │                  │
@@ -312,7 +324,7 @@ projects/{slug}/
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
 │ 117/22 tools  │  │  search       │  │  13 tools     │  │   MCPs (uvx)  │
-│               │  │  37 tools     │  │               │  │               │
+│               │  │  40 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
 │ • drafts      │  │ • CORE        │  │ • spark       │  │               │
@@ -451,7 +463,7 @@ Write, edit, cite — with built-in validation.
 | **Prompts**   | `project_bootstrap`, `draft_section_plan`, `word_export_checklist`                            | Materialize guided prompt workflows through the official MCP prompt API              |
 | **Resources** | `medpaper://workspace/state`, `medpaper://workspace/projects`, `medpaper://templates/catalog` | Surface live workspace state, project lists, and template metadata via MCP resources |
 
-### 🔍 pubmed-search MCP Tools (37 tools)
+### 🔍 pubmed-search MCP Tools (40 tools)
 
 | Category        | Key Tools                                                                 |
 | --------------- | ------------------------------------------------------------------------- |
@@ -562,7 +574,7 @@ med-paper-assistant/
 │   └── interfaces/mcp/            #   MCP server, 117 full / 22 compact tools + 3 prompts + 3 resources
 │
 ├── integrations/                  # Bundled MCP servers
-│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (37 tools)
+│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (40 tools)
 │   └── cgu/                       #   Creative generation (13 tools)
 │
 ├── vscode-extension/              # Packaged VSIX surface
@@ -586,7 +598,8 @@ med-paper-assistant/
 │       ├── projects/              #   Synthesis pages / workstreams (library-wiki path)
 │       └── results/               #   Figures, exports
 │
-├── .claude/skills/                # 26 Agent skill definitions
+├── .agents/skills/                # Codex + OpenClaw repository skills
+├── .claude/skills/                # 38 Claude Code / workflow skill definitions
 ├── .github/prompts/               # 15 Prompt workflow files
 ├── templates/                     # Journal Word templates
 ├── memory-bank/                   # Global project memory
@@ -599,7 +612,7 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                                                  |
 | ------ | --------------------------- | ---------------------------------------------------------------------------- |
-| ✅     | **3 MCP Servers**           | mdpaper (117 full / 22 compact) + pubmed-search (37) + CGU (13)              |
+| ✅     | **3 MCP Servers**           | mdpaper (117 full / 22 compact) + pubmed-search (40) + CGU (13)              |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation    |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                                      |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                                       |

@@ -25,9 +25,21 @@ med-paper-assistant/
 ├── projects/                      # 正式研究專案
 ├── memory-bank/                   # 專案記憶 (版控)
 ├── .github/bylaws/                # 子法規範
-├── .claude/skills/                # Claude Skills
+├── .agents/skills/                # Codex + OpenClaw 共用 Skills
+├── .claude/skills/                # Claude Code / workflow Skills
 └── scripts/                       # 跨平台腳本
 ```
+
+### Cross-Agent Harness 架構 (2026-07-14)
+
+- `AGENTS.md`：Codex 與 repo-level 治理權威；OpenClaw workspace 亦可使用。
+- `CLAUDE.md`：Claude Code 精簡 always-loaded 入口，不複製完整治理內容。
+- `.agents/skills/academic-writing-harness/`：Codex 與 OpenClaw 共用 discovery root。
+- `.claude/skills/academic-writing-harness/`：Claude Code discovery adapter。
+- `docs/harness/academic-writing-workflow.md`：平台中立寫作、exemplar、phase 與 completion contract。
+- `tests/test_agent_harness_contract.py`：frontmatter、路徑、支援類型與可攜性 gate。
+
+原則：平台 adapter 只負責 discovery/tool mapping；科學方法、證據角色與 hard-gate 語義維持單一權威。
 
 ### MCP Server 架構 (115 full / 21 compact default, 2026-04-23)
 

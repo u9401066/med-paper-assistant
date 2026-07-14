@@ -78,6 +78,18 @@
 
 ## ✅ 已完成 (Completed)
 
+### Cross-Agent Production Refresh — Foundation (2026-07)
+
+| Feature                              | Description                                                                |
+| ------------------------------------ | -------------------------------------------------------------------------- |
+| **Claude/Codex/OpenClaw harness** ✅ | `CLAUDE.md`、`.claude/skills` 與 `.agents/skills` 共用平台中立學術寫作契約 |
+| **Exemplar safety contract** ✅      | 範本文獻與 claim evidence 分角色，禁止複製措辭、資料、引用或結論           |
+| **Portable JSONC** ✅                | 共用 parser 保留 URL/quoted comment markers，支援 comments/trailing commas |
+| **Skill discovery gate** ✅          | 38 個 repo skills 的 frontmatter、名稱唯一性與跨平台入口納入測試           |
+| **Extension lint gate** ✅           | `npm run lint` 已由失效 script 轉為可執行 TypeScript ESLint gate           |
+
+下一階段：實作多種學術產出 domain profiles、ranked evidence-context ledger、perspective question map、bounded branches、文件網站與完整 release smoke。
+
 ### Release Reliability & Tool Surface Hardening (2026-04)
 
 | Feature                          | Description                                                                                                       |
