@@ -81,6 +81,21 @@ def test_build_tool_arguments_uses_context_specific_defaults(tmp_path: Path) -> 
     }
 
 
+@pytest.mark.parametrize(
+    "tool_name",
+    ["analyze_dataset", "create_plot", "detect_variable_types", "run_statistical_test"],
+)
+def test_build_tool_arguments_routes_data_tools_to_csv(tmp_path: Path, tool_name: str) -> None:
+    context = SmokeContext(workspace_root=tmp_path, project_slug="smoke-project")
+    schema = {
+        "type": "object",
+        "required": ["filename"],
+        "properties": {"filename": {"type": "string"}},
+    }
+
+    assert build_tool_arguments(tool_name, schema, context) == {"filename": "sample.csv"}
+
+
 def test_build_tool_arguments_returns_none_for_unfillable_required_pmid(tmp_path: Path) -> None:
     context = SmokeContext(workspace_root=tmp_path, project_slug="smoke-project")
     schema = {

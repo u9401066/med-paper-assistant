@@ -196,7 +196,9 @@ def default_string_value(tool_name: str, property_name: str, context: SmokeConte
     if property_name == "filename":
         if "concept" in tool_name:
             return context.concept_name
-        if any(token in tool_name for token in ("dataset", "plot", "table", "statistical")):
+        if any(
+            token in tool_name for token in ("dataset", "plot", "table", "statistical", "variable")
+        ):
             return context.sample_csv_name
         return context.draft_name
     if property_name == "draft_filename":

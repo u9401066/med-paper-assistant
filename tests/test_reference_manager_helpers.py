@@ -36,6 +36,34 @@ def test_get_reference_details_returns_empty_dict_for_missing_reference(tmp_path
     assert manager.get_reference_details("99999999") == {}
 
 
+def test_analysis_update_migrates_legacy_metadata_without_unique_id(tmp_path) -> None:
+    refs_dir = tmp_path / "references"
+    ref_dir = refs_dir / "27345583"
+    ref_dir.mkdir(parents=True)
+    (ref_dir / "metadata.json").write_text(
+        json.dumps(
+            {
+                "pmid": "27345583",
+                "title": "Legacy reference",
+                "authors": ["Greer JA"],
+                "year": "2017",
+                "citation_key": "greer2017_27345583",
+            }
+        ),
+        encoding="utf-8",
+    )
+    manager = ReferenceManager(base_dir=str(refs_dir))
+
+    result = manager.update_reference_analysis_status(
+        "27345583", "Analysis summary", usage_sections=["Discussion"]
+    )
+
+    metadata = manager.get_metadata("27345583")
+    assert result == "Updated 27345583."
+    assert metadata["unique_id"] == "27345583"
+    assert metadata["analysis_completed"] is True
+
+
 def test_reference_id_path_guard_rejects_traversal_for_read_write_delete(tmp_path) -> None:
     refs_dir = tmp_path / "references"
     refs_dir.mkdir()

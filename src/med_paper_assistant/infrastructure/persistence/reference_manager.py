@@ -2701,6 +2701,10 @@ class ReferenceManager:
         if not metadata:
             return f"Reference {reference_id} not found."
 
+        # Older workspaces may predate the multi-source ``unique_id`` field.
+        # The update path already knows the canonical directory identifier, so
+        # migrate it before the centralized persistence pipeline requires it.
+        metadata["unique_id"] = metadata.get("unique_id") or reference_id
         metadata.update(updates)
         if not metadata.get("saved_at"):
             metadata["saved_at"] = __import__("datetime").datetime.now().isoformat()
@@ -2755,6 +2759,11 @@ class ReferenceManager:
         Returns:
             Status message with Foam citation key.
         """
+        if download_pdf:
+            logger.warning(
+                "reference_manager.download_pdf_deprecated",
+                guidance="Use the asset-aware full-text ingestion pathway instead.",
+            )
         # Use domain converter to standardize format
         try:
             ref = self._converter.convert(article)

@@ -117,7 +117,7 @@ class PandocExporter:
             args.extend(["--reference-doc", reference_doc])
 
         # --csl for citation styles
-        csl_path = self._resolve_csl(csl) if csl else None
+        csl_path = self.resolve_csl(csl) if csl else None
         if csl_path:
             args.extend(["--csl", csl_path])
         elif csl:
@@ -214,7 +214,7 @@ class PandocExporter:
         args = list(extra_args or [])
         # Auto-detect LaTeX engine if none specified
         if not any(a.startswith("--pdf-engine") for a in args):
-            engine = self._detect_pdf_engine()
+            engine = self.detect_pdf_engine()
             args.append(f"--pdf-engine={engine}")
 
         return self.convert(
@@ -225,7 +225,7 @@ class PandocExporter:
         )
 
     @staticmethod
-    def _detect_pdf_engine() -> str:
+    def detect_pdf_engine() -> str:
         """Detect available LaTeX engine, preferring xelatex > lualatex > pdflatex."""
         import shutil
 
@@ -233,6 +233,11 @@ class PandocExporter:
             if shutil.which(engine):
                 return engine
         return "pdflatex"  # fallback, will error at Pandoc level if missing
+
+    @staticmethod
+    def _detect_pdf_engine() -> str:
+        """Backward-compatible alias for :meth:`detect_pdf_engine`."""
+        return PandocExporter.detect_pdf_engine()
 
     def markdown_to_html(
         self,
@@ -328,7 +333,7 @@ class PandocExporter:
             os.unlink(bib_path)
 
     @staticmethod
-    def _resolve_csl(csl: str | None) -> str | None:
+    def resolve_csl(csl: str | None) -> str | None:
         """Resolve CSL style name to file path."""
         if not csl:
             return None
@@ -357,3 +362,8 @@ class PandocExporter:
 
         logger.warning("CSL style '%s' not found", csl)
         return None
+
+    @staticmethod
+    def _resolve_csl(csl: str | None) -> str | None:
+        """Backward-compatible alias for :meth:`resolve_csl`."""
+        return PandocExporter.resolve_csl(csl)
