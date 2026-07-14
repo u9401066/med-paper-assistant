@@ -1,6 +1,6 @@
 # Article-Type-Aware Quality Harness
 
-> Status: **Phase 1 implemented** (statistical-hook gating) · Phase 2+ proposed (pending review)
+> Status: **Phase 1 implemented** (statistical-hook gating) · formal-output profile expansion implemented · Phase 2+ proposed
 > Related: CONSTITUTION §22 (auditable/decomposable), §25–26 (stepwise multi-round evolution)
 > Owner: harness / writing-hooks
 > Created during the adversarial-harness improvement track.
@@ -23,20 +23,23 @@ Meanwhile, genuine genre knowledge existed but was **decoupled and shallow**:
 
 | Subsystem                        | Genre-aware?                                                    | Trigger                                    | Gap                                        |
 | -------------------------------- | --------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------ |
-| `DomainConstraintEngine`         | ✅ 7 types, ~69 constraints                                     | Manual MCP tool `check_domain_constraints` | Siloed — not part of the automatic harness |
+| `DomainConstraintEngine`         | ✅ 13 types, 110 constraints                                    | Manual MCP tool `check_domain_constraints` | Siloed — not part of the automatic harness |
 | `WritingHooksEngine` (79 checks) | ❌ mostly generic (only A7 references + journal-profile limits) | Automatic (`run_writing_hooks`)            | Fixed hook set, no `paper_type` gating     |
 
 The multi-phase pipeline itself is sound — `pipeline_gate_validator` defines 14 phases with
 per-phase gates and `checkpoint_manager` records per-phase audit. The problem is **within**
 the per-phase harness, not the phase structure.
 
-## 2. Taxonomy (single source: `shared.constants.PAPER_TYPES`)
+## 2. Taxonomy (single source: `domain.paper_types.PAPER_TYPES`)
 
 `original-research`, `systematic-review`, `meta-analysis`, `case-report`,
-`review-article`, `letter`, `other`.
+`review-article`, `letter`, `research-proposal`, `project-closeout-report`,
+`student-paper`, `conference-paper`, `thesis-dissertation`, `arxiv-preprint`,
+`other`.
 
 **Empirical types** (formal statistical Methods + Results):
-`original-research`, `systematic-review`, `meta-analysis`.
+`original-research`, `systematic-review`, `meta-analysis`, `conference-paper`,
+`thesis-dissertation`, `arxiv-preprint`.
 
 ## 3. Design — Common + Type-Specific harness
 
@@ -79,9 +82,11 @@ flowchart LR
   - New read-only `hook_applicability(paper_type=None)` report for tooling/audit.
 - Tests: `tests/test_hook_applicability.py` (matrix + runner gating + backward-compat).
 
-**Behaviour change (only):** `letter` / `review-article` / `case-report` / `other` now skip
-B8/B11/B16 (recorded as not-applicable) instead of producing false-positive failures.
-Empirical types and the legacy default are unchanged.
+**Behaviour change:** `letter`, `review-article`, `case-report`,
+`research-proposal`, `project-closeout-report`, `student-paper`, and `other`
+skip B8/B11/B16 (recorded as not applicable) instead of producing
+false-positive failures. Conference papers, theses/dissertations, and preprints
+join the original empirical profiles.
 
 ## 5. Phase 2+ — proposed (pending review)
 
@@ -94,7 +99,7 @@ These require product/architecture decisions and are **not** implemented here:
    - meta-analysis → PRISMA flow, I² heterogeneity reporting, forest-plot presence.
    - systematic-review → PRISMA flow, search-strategy completeness.
    - case-report → CARE checklist, de-identification, informed-consent statement.
-3. **Couple `DomainConstraintEngine` into `run_writing_hooks`** so the ~69 type-specific
+3. **Couple `DomainConstraintEngine` into `run_writing_hooks`** so the 110 type-specific
    constraints run automatically, not only via the manual `check_domain_constraints` tool.
 4. **Per-phase × per-type audit surface.** Emit, per phase, the executed common +
    type-specific hook set (e.g. "Phase 5 Writing · meta-analysis · common[…] + specific[B8,
@@ -102,6 +107,5 @@ These require product/architecture decisions and are **not** implemented here:
 
 ## 6. Notes
 
-- `AGENTS.md` / `memory-bank/architect.md` previously described `DomainConstraintEngine` as
-  "3 paper types, 26 constraints" — stale. It actually covers **7 paper types** with ~69
-  constraints; corrected alongside this slice.
+- `DomainConstraintEngine` now covers **13 output profiles** with **110 base
+  constraints**. Exact registry/constraint parity is protected by tests.

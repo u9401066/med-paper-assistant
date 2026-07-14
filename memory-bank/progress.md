@@ -2,6 +2,19 @@
 
 ## Done
 
+- **v0.9.0 formal-output and production harness (2026-07-14)**:
+
+  - Expanded the canonical domain registry from 7 to 13 output profiles and DomainConstraintEngine from 69 to 110 base constraints
+  - Added full concept templates and writing prerequisites for proposal, closeout, student, conference, thesis/dissertation, and arXiv/preprint outputs
+  - Made concept validation profile-aware, including novelty opt-out and validation-mode cache isolation
+  - Added a tamper-detecting exemplar-use audit store and consolidated MCP facade action with hard non-evidence/non-citation/non-copy policy
+  - Removed Application→Infrastructure imports through application-owned Protocol ports and added static DDD boundary tests
+  - Reached zero vulture findings at 80% confidence and fixed legacy reference-analysis migration plus greedy-smoke data fixture failures
+  - Added a dependency-free documentation hub, validated 13-page manifest, formal profile guide, and Mermaid production/DDD diagrams
+  - Greedy MCP smoke: 118 total, 116 ok, 2 designed skips, 0 broken/error; basic install smoke: 14/14
+  - Packaged and install-smoked `medpaper-assistant-0.9.0.vsix`; VSIX tests 169/169 and validate 92/92
+  - Final release matrix: Python 1523 passed / 8 skipped / 26 deselected; Ruff, format, mypy, Bandit, vulture, consistency, tool authority, docs build, MCP boot, npm audit, bundle parity, wheel/sdist content, and VSIX install smoke all passed
+
 - **Cross-agent production refresh foundation (2026-07-14)**:
 
   - Added native Claude Code plus shared Codex/OpenClaw skill entrypoints and a platform-neutral academic-writing workflow

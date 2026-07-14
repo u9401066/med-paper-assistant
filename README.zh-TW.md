@@ -15,6 +15,8 @@
 > 📖 [English Version](README.md)
 
 > 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 13 個主線 gate checkpoint + Phase 2.1 sub-gate、79 項品質檢查、結構化 Review Loop
+>
+> 🧭 **[文件導覽站](docs/index.html)** — 產出型別、跨 Agent harness、證據、架構與維運
 
 ![MedPaper Assistant 概覽](docs/assets/medpaper-intro.svg)
 
@@ -193,6 +195,9 @@ MedPaper 目前已把 Foam 放在瀏覽與圖譜層，讓 Copilot 專注於 inge
 
 教學與參考文件：
 
+- [文件導覽站](docs/index.html)
+- [正式學術產出型別](docs/harness/output-profiles.md)
+- [生產級學術寫作架構](docs/design/production-academic-writing-harness.md)
 - [MedPaper LLM Wiki 使用指南](docs/how-to/llm-wiki.md)
 - [Foam 相依層參考](docs/reference/foam.md)
 - [ICU sedation / delirium graph view 範例](docs/how-to/llm-wiki.md)

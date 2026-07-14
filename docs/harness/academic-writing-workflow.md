@@ -42,15 +42,16 @@ for both roles, each role needs its own reason and verification record.
 
 ## 3. Exemplar-aware writing protocol
 
-Before using a sample paper, create or update
-`projects/{slug}/.audit/exemplars.yaml` with:
+Before using a sample paper, record the bounded use with
+`project_action(action="exemplar_usage", ...)`. This creates or updates
+`projects/{slug}/.audit/exemplar-usage.yaml` with:
 
 - stable identifier and source path/URL;
-- declared role and permitted sections;
-- copyright/access status;
-- extracted features stated as measurements or abstract patterns;
-- prohibited reuse notes;
-- reviewer or user approval when close stylistic imitation is requested.
+- one or more allowed calibration roles and target sections;
+- a concise transformative purpose and optional source SHA-256;
+- immutable policy flags denying evidence eligibility, citation credit, and
+  verbatim copying;
+- independent-verification requirements for every claim and citation.
 
 Allowed extraction includes section topology, rhetorical move sequence,
 paragraph-length distribution, heading depth, reporting density, placement of

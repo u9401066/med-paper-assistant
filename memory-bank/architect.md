@@ -109,7 +109,7 @@ L3: Autonomous Self-Evolution（長期演進）⚠️ 部分
     ✅ GitHub Actions weekly health check (evolution-health.yml)
     ✅ PendingEvolution 跨對話機制 (Phase C 完成)
     ❌ Git post-commit hook (Phase A 未開始)
-    ❌ EvolutionVerifier 類別 (被引用但未實作)
+    ✅ EvolutionVerifier 跨專案品質趨勢與證據彙整（read-only）
     ❌ L3 建議自動產生 PR (Phase B 未完成)
 
 整合流程：
@@ -121,7 +121,7 @@ L3: Autonomous Self-Evolution（長期演進）⚠️ 部分
 
 元件：QualityScorecard(8 dims), HookEffectivenessTracker(56 hooks),
 MetaLearningEngine(D1-D9), WritingHooksEngine(A5/A6/B8/C9/F),
-DomainConstraintEngine(7 paper types, 69 constraints),
+DomainConstraintEngine(13 output profiles, 110 base constraints),
 ToolInvocationStore, PendingEvolutionStore, tool_health
 
 ### 狀態管理架構 (2025-01-22 新增)

@@ -19,8 +19,8 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 | Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                  |
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate |
 | Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                      |
-| Latest Validation     | Python 1475 passed; VSIX 169 passed; smoke 14/14; validate 92/92; npm audit 0; install smoke passed |
-| Packaging             | Upstream tag **v0.8.0** synchronized; production-refresh commits in progress                        |
+| Latest Validation     | Python 1523 passed / 8 skipped / 26 deselected; VSIX 169 passed; MCP smoke 14/14 + 118/118 classified; validate 92/92 |
+| Packaging             | **v0.9.0** wheel/sdist/VSIX built and install-smoked; segmented publish and release in progress        |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -29,8 +29,8 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 | 層級                         | 狀態                   | 說明                                                 |
 | ---------------------------- | ---------------------- | ---------------------------------------------------- |
 | L1 Event-Driven Hooks        | ✅ 56/79 Code-Enforced | 23 個 Agent-Driven 由 SKILL.md 與契約測試治理        |
-| L2 Code-Level Enforcement    | ✅ 完整                | 5 元件全部上線                                       |
-| L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
+| L2 Code-Level Enforcement    | ✅ 完整                | 13 profiles / 110 constraints + telemetry/evolution |
+| L3 Autonomous Self-Evolution | ⚠️ 大部分完成          | EvolutionVerifier + weekly health 已上線；缺 git post-commit / Auto-PR |
 
 ### 最近變更
 
@@ -45,6 +45,17 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 - 安全整合 upstream v0.8.0；保留 constraint ledger、article-type applicability、adversarial harness 與本輪跨 Agent 改造。
 - 將 VSIX 工具鏈升級至 ESLint 10 flat config、typescript-eslint 8.64、VSCE 3.9、Vitest 4.1；`npm audit` 由 22 個漏洞降為 0。
 - 重建並通過 `medpaper-assistant-0.8.0.vsix` install smoke；post-merge Python/VSIX/smoke/validate 全部通過。
+
+#### v0.9.0 Formal Output + Production Harness (2026-07-14)
+
+- 新增 research proposal、project closeout、student paper、conference paper、thesis/dissertation、arXiv/preprint 六種 code-level profiles；總計 13 profiles / 110 base constraints。
+- Concept validator 改為依 profile 動態判斷必填 section 與 novelty，並修正 validation-mode cache collision。
+- 新增 `.audit/exemplar-usage.yaml` 與 compact facade action；exemplar 永遠不能取得 evidence/citation credit 或逐字複製資格。
+- Application layer 以 Protocol ports 取代 Infrastructure 反向 import，並新增 DDD 靜態 boundary tests。
+- vulture 高可信度掃描零發現；118-tool greedy smoke 為 116 ok、2 designed skip、0 broken/error，並修復 legacy metadata `unique_id` migration bug。
+- 新增 dependency-free docs site、13-page manifest、formal output guide 與 Mermaid production architecture。
+- 版本已提升至 0.9.0；Python 1523 passed / 8 skipped / 26 deselected，VSIX 169/169 tests、install smoke 與 92/92 validate 通過。
+- wheel、sdist 與 `medpaper-assistant-0.9.0.vsix` 已建立；封裝內容檢查確認六種新 concept templates 與 journal profile 均存在。
 
 #### v0.7.11 Phase Gate + Release Hardening (2026-05-19)
 
