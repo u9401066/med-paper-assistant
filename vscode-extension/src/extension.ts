@@ -8,9 +8,9 @@ import { shouldSkipMcpRegistration, isDevWorkspace as checkIsDevWorkspace, deter
 let outputChannel: vscode.OutputChannel;
 let resolvedUvPath: string | null = null;
 const LLM_WIKI_GUIDE_RELATIVE_PATH = 'docs/how-to/llm-wiki.md';
-const MANAGED_FOAM_GRAPH_VIEWS = ['Default', 'Evidence', 'Writing', 'Assets', 'Review'] as const;
+type ManagedFoamGraphView = 'Default' | 'Evidence' | 'Writing' | 'Assets' | 'Review';
 
-async function showFoamGraphView(view: (typeof MANAGED_FOAM_GRAPH_VIEWS)[number]): Promise<void> {
+async function showFoamGraphView(view: ManagedFoamGraphView): Promise<void> {
     try {
         await vscode.commands.executeCommand('foam-vscode.show-graph', { view });
     } catch {

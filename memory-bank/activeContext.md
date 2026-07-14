@@ -10,17 +10,17 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 
 ### 當前狀態
 
-| 項目                    | 數量/狀態                                                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
-| MCP Tools               | **118 full / 22 compact (default)** + 3 prompts + 3 resources                                              |
-| External MCP Surface    | **PubMed Search 46 tools** + **CGU 24 tools**                                                              |
-| Repo Skills / Prompts   | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                 |
-| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**               |
-| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                         |
-| Pipeline Docs           | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate        |
-| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`                                             |
-| Latest Validation       | v0.8.0 upstream merged; post-merge full validation pending                                                 |
-| Packaging               | Upstream tag **v0.8.0** synchronized; production-refresh commits in progress                               |
+| 項目                  | 數量/狀態                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **118 full / 22 compact (default)** + 3 prompts + 3 resources                                       |
+| External MCP Surface  | **PubMed Search 46 tools** + **CGU 24 tools**                                                       |
+| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                          |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**        |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                  |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate |
+| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                      |
+| Latest Validation     | Python 1475 passed; VSIX 169 passed; smoke 14/14; validate 92/92; npm audit 0; install smoke passed |
+| Packaging             | Upstream tag **v0.8.0** synchronized; production-refresh commits in progress                        |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -28,7 +28,7 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 
 | 層級                         | 狀態                   | 說明                                                 |
 | ---------------------------- | ---------------------- | ---------------------------------------------------- |
-| L1 Event-Driven Hooks        | ✅ 52/78 Code-Enforced | 26 個 Agent-Driven 僅靠 SKILL.md                     |
+| L1 Event-Driven Hooks        | ✅ 56/79 Code-Enforced | 23 個 Agent-Driven 由 SKILL.md 與契約測試治理        |
 | L2 Code-Level Enforcement    | ✅ 完整                | 5 元件全部上線                                       |
 | L3 Autonomous Self-Evolution | ⚠️ Phase C 完成        | Git post-commit / EvolutionVerifier / Auto-PR 未實作 |
 
@@ -42,6 +42,9 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 - 修復 5 個無效 skill frontmatter，新增所有 repo skills 的 discovery contract test。
 - 補上 VSIX ESLint 設定、清除 lint 發現的 unused imports/parameters，完成 bundle mirror 同步。
 - 同類專案 benchmark 已記錄 PaperQA、STORM、AI-Scientist-v2、Quarto 的採納與拒絕邊界。
+- 安全整合 upstream v0.8.0；保留 constraint ledger、article-type applicability、adversarial harness 與本輪跨 Agent 改造。
+- 將 VSIX 工具鏈升級至 ESLint 10 flat config、typescript-eslint 8.64、VSCE 3.9、Vitest 4.1；`npm audit` 由 22 個漏洞降為 0。
+- 重建並通過 `medpaper-assistant-0.8.0.vsix` install smoke；post-merge Python/VSIX/smoke/validate 全部通過。
 
 #### v0.7.11 Phase Gate + Release Hardening (2026-05-19)
 

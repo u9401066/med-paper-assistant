@@ -222,13 +222,15 @@
     "package": "vsce package"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.100.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "@vscode/vsce": "^2.24.0",
-    "eslint": "^8.57.0",
-    "typescript": "^5.4.0",
-    "vitest": "^4.0.18"
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
+    "@typescript-eslint/parser": "^8.64.0",
+    "@vscode/vsce": "^3.9.2",
+    "eslint": "^10.7.0",
+    "globals": "^17.4.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

@@ -9,7 +9,9 @@
   - Fixed URL-safe JSONC parsing across MCP smoke, Foam settings, and pipeline doctor
   - Repaired five invalid/missing skill frontmatters and added all-skill discovery tests
   - Restored a real VSIX ESLint gate and synchronized managed Python/skill bundles
-  - Validation: Python 1278 passed; VSIX 169 passed; ruff, format, mypy, ESLint, and bundle check passed
+  - Merged upstream v0.8.0 with its constraint ledger, hook applicability, adversarial tests, DOI validation, and current pinned integrations
+  - Upgraded ESLint/typescript-eslint/VSCE/Vitest and lockfile dependencies; npm audit reduced from 22 vulnerabilities to zero
+  - Validation: Python 1475 passed; VSIX 169 passed; smoke 14/14; validate 92/92; ruff, format, mypy, bandit, bundle, npm audit, and VSIX install smoke passed
 
 - **v0.7.11 Phase gate + release hardening (2026-05-19)**:
 
