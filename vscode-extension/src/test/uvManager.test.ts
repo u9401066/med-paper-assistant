@@ -132,7 +132,7 @@ describe('buildUvxCommand', () => {
     });
 
     it('works with CGU package name', () => {
-        const [cmd, args] = buildUvxCommand('uv', 'creativity-generation-unit');
+        const [, args] = buildUvxCommand('uv', 'creativity-generation-unit');
         expect(args).toEqual(['creativity-generation-unit']);
     });
 });

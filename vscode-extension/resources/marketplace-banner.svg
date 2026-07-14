@@ -52,7 +52,7 @@
 
     <rect x="290" y="334" width="168" height="88" rx="24" fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24"/>
     <text x="318" y="372" fill="#7AE6DD" font-size="16" font-weight="700">WORKFLOWS</text>
-    <text x="318" y="408" fill="#F7FBFF" font-size="28" font-weight="800">26 skills</text>
+    <text x="318" y="408" fill="#F7FBFF" font-size="28" font-weight="800">14 bundled skills</text>
 
     <rect x="480" y="334" width="254" height="88" rx="24" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.32"/>
     <text x="508" y="372" fill="#FFD289" font-size="16" font-weight="700">AUTO PAPER</text>

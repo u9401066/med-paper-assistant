@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getPythonArgs, loadSkillsAsInstructions, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS, BUNDLED_SUPPORT_FILES } from './utils';
-import { findUvPath, installUvHeadless, getUvxPath, buildUvxCommand, buildMcpCommand, buildMcpEnv, ensureInstalledTool, findInstalledTool } from './uvManager';
+import { getPythonArgs, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS, BUNDLED_SUPPORT_FILES } from './utils';
+import { findUvPath, installUvHeadless, getUvxPath, buildMcpCommand, buildMcpEnv, ensureInstalledTool, findInstalledTool } from './uvManager';
 import { shouldSkipMcpRegistration, isDevWorkspace as checkIsDevWorkspace, determinePythonPath, countMissingBundledItems, buildDevPythonPath, detectExternallyProvidedMcpServers } from './extensionHelpers';
-import { DrawioPanel } from './drawioPanel';
 
 let outputChannel: vscode.OutputChannel;
 let resolvedUvPath: string | null = null;
@@ -305,7 +304,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
     const provider: vscode.McpServerDefinitionProvider = {
         onDidChangeMcpServerDefinitions: new vscode.EventEmitter<void>().event,
 
-        provideMcpServerDefinitions(token: vscode.CancellationToken): vscode.ProviderResult<vscode.McpServerDefinition[]> {
+        provideMcpServerDefinitions(): vscode.ProviderResult<vscode.McpServerDefinition[]> {
             const workspaceFolders = vscode.workspace.workspaceFolders;
             const wsRoot = workspaceFolders?.[0]?.uri.fsPath;
             const externalServers = getExternallyProvidedManagedServers(context);
@@ -506,8 +505,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
         },
 
         resolveMcpServerDefinition(
-            definition: vscode.McpServerDefinition,
-            token: vscode.CancellationToken
+            definition: vscode.McpServerDefinition
         ): vscode.ProviderResult<vscode.McpServerDefinition> {
             outputChannel.appendLine(`Resolving MCP server: ${definition.label}`);
             return definition;
@@ -758,7 +756,7 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
 
         // Follow-up provider
         participant.followupProvider = {
-            provideFollowups(result, context, token) {
+            provideFollowups() {
                 return [
                     { prompt: '全自動寫論文', label: '🚀 Auto Paper', command: 'autopaper' },
                     { prompt: '搜尋相關文獻', label: '🔍 Search Literature', command: 'search' },
