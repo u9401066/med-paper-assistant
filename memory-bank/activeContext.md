@@ -10,16 +10,17 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 
 ### 當前狀態
 
-| 項目                    | 數量/狀態                                                                  |
-| ----------------------- | -------------------------------------------------------------------------- |
-| MCP Tools               | **117 full / 22 compact (default)** + 3 prompts + 3 resources              |
-| Repo Skills / Prompts   | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows** |
-| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 11 palette / 10 chat**               |
-| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                         |
-| Copilot Lifecycle Hooks | **7** (SessionStart→Stop，`.github/hooks/mdpaper-lifecycle.json`)          |
-| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`             |
-| Latest Validation       | Python 1278 passed; VSIX 169 passed; ruff/mypy/ESLint/bundle all passed    |
-| Packaging               | v0.7.9 baseline; production-refresh commits in progress                    |
+| 項目                    | 數量/狀態                                                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| MCP Tools               | **118 full / 22 compact (default)** + 3 prompts + 3 resources                                              |
+| External MCP Surface    | **PubMed Search 46 tools** + **CGU 24 tools**                                                              |
+| Repo Skills / Prompts   | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                 |
+| VSIX Bundled Surface    | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**               |
+| Hooks                   | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                         |
+| Pipeline Docs           | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate        |
+| Validation Gate         | `scripts/check_tool_surface_authority.py` + `npm run validate`                                             |
+| Latest Validation       | v0.8.0 upstream merged; post-merge full validation pending                                                 |
+| Packaging               | Upstream tag **v0.8.0** synchronized; production-refresh commits in progress                               |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -41,6 +42,29 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 - 修復 5 個無效 skill frontmatter，新增所有 repo skills 的 discovery contract test。
 - 補上 VSIX ESLint 設定、清除 lint 發現的 unused imports/parameters，完成 bundle mirror 同步。
 - 同類專案 benchmark 已記錄 PaperQA、STORM、AI-Scientist-v2、Quarto 的採納與拒絕邊界。
+
+#### v0.7.11 Phase Gate + Release Hardening (2026-05-19)
+
+- **Phase 8-11 gates hardened**: later phases now require completed Phase 7 artifacts/review events, resolved citation wikilinks, valid DOCX/PDF structure, Phase 10 D1-D9 `analysis_steps`, and Phase 10 pass before final delivery.
+- **Export integrity**: `ExportPipeline.export_docx()` now fails missing/corrupt DOCX immediately; `export_pdf()` adds PDF header/trailer smoke validation and returns post-export checks.
+- **Meta-learning provenance**: `MetaLearningEngine` writes `schema`, `source_tool`, and structured D1-D9 `analysis_steps`; Phase 10 rejects count-only hand-authored audit YAML and requires matching `run_meta_learning` evolution-log provenance.
+- **Release workflow**: `.github/workflows/release.yml` uses global `contents: read`, job-local release write permissions, pinned `setup-uv` 0.10.0, `uv sync --frozen --all-extras`, manual dispatch version/tag guard, and `lint-security` before publish/release jobs.
+- **Packaging**: sdist scoped via Hatch include list after discovering an oversized 590 MB sdist; runtime templates/CSL/journal profiles are bundled into the wheel and verified via wheel unpack smoke.
+- **Docs/VSIX**: README EN/zh-TW, CHANGELOG, ROADMAP, auto-paper guide, MCP instructions, source skills, and VSIX bundled skills/Python mirror aligned to facade-first project/draft/export guidance and D1-D9.
+- **Verification**: `uv run pytest tests/ -q --timeout=60 -m "not integration and not slow"` → 1305 passed / 1 skipped / 26 deselected; `npm run test:ci` → 169 passed; `npm run validate -- --skip-tests` → 92 passed; ruff/mypy/bandit/uv build/VSIX smoke/tool authority/MCP boot/wheel-template smoke all pass.
+- **Publication**: `origin/master` and tag `v0.7.11` pushed at commit `8df4531`; GitHub Release exists with VSIX, wheel, and sdist assets; PyPI trusted publish succeeded in Actions.
+- **External publish caveat**: VS Marketplace publish failed in Actions with `TF400813` authorization error for the configured `VSCE_PAT`; this is an external secret/Marketplace permission issue, not a repository package/build failure.
+
+#### v0.7.10 Upstream Dependency + 13-Phase Docs Release (2026-05-13)
+
+- **Remote-first sync**: rebased local work onto upstream `origin/master` `8db10ed` (`v0.7.9`) and kept remote as authority when conflicts appeared.
+- **External MCP updates**: aligned submodules to upstream PubMed Search MCP 0.5.9 (46 tools), Asset-Aware MCP 0.6.30, and CGU upstream master; regenerated `uv.lock`.
+- **PubMed harness**: setup/migration/VSX runtime now uses `NCBI_EMAIL` and the current `pubmed_search.presentation.mcp_server` entrypoint; `uvx` maps to `pubmed-search-mcp`.
+- **Auto-Paper docs**: README, zh-TW README, auto-paper guide, multi-stage review design, skill/prompt assets, SVG/marketplace banner, and VSX package wording now use the 13 main checkpoint + Phase 2.1 sub-gate model.
+- **VSIX authority corrected**: removed the attempted all-harness bundle expansion; package/validation remain at the curated authority surface (14 skills / 13 prompts / 9 agents).
+- **External mirror guard**: root ruff/pre-commit now excludes mirrored external code under `integrations/` and `vscode-extension/bundled/`, preserving byte-for-byte source/bundle sync.
+- **Reviewer/local edit workflow note**: reviewer-driven partial revisions can use focused `pipeline_action` review/gate checks plus targeted tests; they do not require rerunning the whole Auto-Paper pipeline unless phase prerequisites or exported artifacts are invalidated.
+- **Post-release CI/hook hygiene**: updated GitHub Actions to Node 24-ready action majors and changed `paper_precommit.py` to skip silently unless staged draft files exist, then scan only those staged draft projects.
 
 #### v0.7.9 Vancouver Export + FOAM Compatibility Release (2026-04-24)
 
@@ -162,11 +186,13 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 - `application/__init__.py` 的 import chain（missing pubmed modules）— 測試用 sys.modules mock 繞過
 - 部分 test files 需外部模組（pubmed_search, matplotlib）— 已 ignore
 - jq 未安裝 — Copilot Lifecycle Hooks 會 graceful degradation
+- VS Marketplace publish secret needs rotation/permission repair: `VSCE_PAT` was present but Marketplace rejected it with `TF400813` during v0.7.11; PyPI and GitHub Release were completed.
 
 ## 下一步
 
-- [ ] Push `release/v0.7.0` branch and tag `v0.7.3`
-- [ ] Watch GitHub release/CI result after tag propagation
+- [x] Push segmented v0.7.11 release commits and tag `v0.7.11`
+- [x] Watch GitHub release/CI result after tag propagation
+- [ ] Rotate/fix `VSCE_PAT` publisher authorization, then rerun VS Marketplace publish for v0.7.11 or next release
 - [ ] Phase 5c TreeView/CodeLens/Diagnostics features
 - [ ] Dashboard Webview 內嵌（取代 Simple Browser）
 - [ ] CI/CD pipeline for automated VSIX publish

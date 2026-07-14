@@ -19,7 +19,7 @@ description: "📚 literature-survey - 系統性文獻調查"
 
 1. `parse_pico()` / `generate_search_queries(topic, strategy="comprehensive")` → 5 組查詢
 2. 並行 `unified_search(query)` 各 100 篇或不同來源
-3. 若需要整併多批結果，再用 `merge_search_results()` 去重
+3. 若需要整併多批結果，使用 `read_session(action="pmids")` 取回 PMID，再以 PMID/DOI 去重
 
 ## Phase 3: 評估擴展
 

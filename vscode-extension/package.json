@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "Compact-first MCP research workspace with source-material intake for manuscript and library-wiki workflows in VS Code",
-  "version": "0.7.9",
+  "version": "0.8.0",
   "publisher": "u9401066",
   "icon": "resources/icon.png",
   "galleryBanner": {
@@ -74,7 +74,7 @@
           },
           {
             "name": "autopaper",
-            "description": "全自動寫論文（11-Phase Pipeline + 78 Hooks）"
+            "description": "全自動寫論文（13 main gate checkpoints + Phase 2.1 sub-gate + 79 Hooks）"
           },
           {
             "name": "drawio",
@@ -211,8 +211,11 @@
     "bundle:check": "node ./scripts/bundle-assets.cjs check",
     "bundle:sync": "node ./scripts/bundle-assets.cjs sync",
     "bundle:sync-python": "node ./scripts/bundle-assets.cjs sync-python",
+    "sync-assets:check": "npm run bundle:check",
     "pretest": "npm run compile",
     "test": "vitest run",
+    "test:ci": "npm run compile && vitest run",
+    "test:install-smoke": "node ./scripts/install-smoke.cjs",
     "test:watch": "vitest",
     "lint": "eslint src --ext ts",
     "validate": "node ./scripts/run-validate-build.cjs",

@@ -33,8 +33,8 @@ describe('Release workflow artifact contract', () => {
         const vsxIndex = releaseWorkflow.indexOf('publish-vsx:');
 
         expect(releaseWorkflow).toContain('build-artifacts:');
-        expect(releaseWorkflow).toMatch(/publish-pypi:[\s\S]*?needs:\s*\[validate,\s*build-artifacts\]/);
-        expect(releaseWorkflow).toMatch(/publish-vsx:[\s\S]*?needs:\s*\[validate,\s*build-artifacts,\s*publish-pypi\]/);
+        expect(releaseWorkflow).toMatch(/publish-pypi:[\s\S]*?needs:\s*\[validate,\s*build-artifacts,\s*lint-security\]/);
+        expect(releaseWorkflow).toMatch(/publish-vsx:[\s\S]*?needs:\s*\[validate,\s*build-artifacts,\s*publish-pypi,\s*lint-security\]/);
         expect(driftIndex).toBeGreaterThan(-1);
         expect(buildIndex).toBeGreaterThan(driftIndex);
         expect(pypiIndex).toBeGreaterThan(buildIndex);

@@ -116,6 +116,46 @@ def _write_review_loop(audit_dir: Path) -> None:
             }
         )
     )
+    for i in (1, 2):
+        (audit_dir / f"review-report-{i}.md").write_text(f"# Round {i} Review\n")
+        (audit_dir / f"author-response-{i}.md").write_text(f"# Round {i} Response\n")
+        (audit_dir / f"equator-compliance-{i}.md").write_text(f"# Round {i} EQUATOR\n")
+    elog = audit_dir / "evolution-log.jsonl"
+    existing = elog.read_text(encoding="utf-8") if elog.is_file() else ""
+    if "review_round" not in existing:
+        elog.write_text(
+            existing
+            + json.dumps({"event": "review_round", "round": 1})
+            + "\n"
+            + json.dumps({"event": "review_round", "round": 2})
+            + "\n",
+            encoding="utf-8",
+        )
+
+
+def _analysis_steps() -> dict[str, dict[str, str]]:
+    return {f"D{i}": {"status": "completed"} for i in range(1, 10)}
+
+
+def _meta_learning_event(
+    audit_timestamp: str = "2026-01-01T00:00:00",
+    *,
+    adjustments_count: int = 0,
+    lessons_count: int = 0,
+    suggestions_count: int = 0,
+    run_number: int = 0,
+) -> dict[str, object]:
+    return {
+        "schema": "mdpaper.meta_learning_event.v1",
+        "event": "meta_learning",
+        "timestamp": audit_timestamp,
+        "source_tool": "run_meta_learning",
+        "audit_timestamp": audit_timestamp,
+        "run_number": run_number,
+        "adjustments_count": adjustments_count,
+        "lessons_count": lessons_count,
+        "suggestions_count": suggestions_count,
+    }
 
 
 @pytest.fixture
@@ -461,7 +501,9 @@ class TestEndToEndAuditPipeline:
         for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
-        (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "# Manuscript\n\nBody.\n\n## References\n\n"
+        )
         _write_concept_review(audit_dir)
 
         rec = tool_funcs["record_hook_event"]
@@ -506,7 +548,9 @@ class TestEndToEndAuditPipeline:
         for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
-        (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "# Manuscript\n\nBody.\n\n## References\n\n"
+        )
         (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
         _write_concept_review(audit_dir)
         _write_review_loop(audit_dir)
@@ -569,9 +613,8 @@ class TestEndToEndAuditPipeline:
         (audit_dir / "pipeline-run-20260101.md").write_text(
             "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\neq\n"
         )
-        (audit_dir / "evolution-log.jsonl").write_text(
-            json.dumps({"event": "meta_learning"}) + "\n"
-        )
+        with (audit_dir / "evolution-log.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps({"event": "meta_learning"}) + "\n")
         (project_dir / ".memory" / "activeContext.md").write_text("#")
         (project_dir / ".memory" / "progress.md").write_text("#")
 
@@ -786,9 +829,8 @@ class TestPhase10Enhanced:
             "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
         )
         (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
-        (audit_dir / "evolution-log.jsonl").write_text(
-            json.dumps({"event": "meta_learning"}) + "\n"
-        )
+        with (audit_dir / "evolution-log.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps(_meta_learning_event()) + "\n")
 
         r = validator.validate_phase(10)
         assert not r.passed
@@ -802,9 +844,7 @@ class TestPhase10Enhanced:
             "# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n"
         )
         (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
-        (audit_dir / "evolution-log.jsonl").write_text(
-            json.dumps({"event": "meta_learning"}) + "\n"
-        )
+        (audit_dir / "evolution-log.jsonl").write_text(json.dumps(_meta_learning_event()) + "\n")
         (audit_dir / "meta-learning-audit.yaml").write_text("[]")
 
         r = validator.validate_phase(10)
@@ -819,9 +859,7 @@ class TestPhase10Enhanced:
             "# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n"
         )
         (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
-        (audit_dir / "evolution-log.jsonl").write_text(
-            json.dumps({"event": "meta_learning"}) + "\n"
-        )
+        (audit_dir / "evolution-log.jsonl").write_text(json.dumps(_meta_learning_event()) + "\n")
         (audit_dir / "meta-learning-audit.yaml").write_text(
             yaml.dump([{"timestamp": "2026-01-01", "data": "incomplete"}], default_flow_style=False)
         )
@@ -830,7 +868,97 @@ class TestPhase10Enhanced:
         assert not r.passed
         mla_check = next(c for c in r.checks if c.name == "meta-learning-audit:data")
         assert not mla_check.passed
-        assert "missing analysis counts" in mla_check.details
+        assert "analysis counts" in mla_check.details
+
+    def test_fail_count_only_meta_learning_audit(self, validator, project_dir, audit_dir):
+        """Phase 10 requires run_meta_learning provenance, not hand-authored count fields."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(20):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "# Manuscript\n\nBody.\n\n## References\n\n"
+        )
+        _write_concept_review(audit_dir)
+        _write_review_loop(audit_dir)
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+        (audit_dir / "pipeline-run-20260101.md").write_text(
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
+        )
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
+        (audit_dir / "evolution-log.jsonl").write_text(json.dumps(_meta_learning_event()) + "\n")
+        (audit_dir / "meta-learning-audit.yaml").write_text(
+            yaml.dump(
+                [
+                    {
+                        "timestamp": "2026-01-01T00:00:00",
+                        "adjustments_count": 0,
+                        "lessons_count": 0,
+                        "suggestions_count": 0,
+                        "adjustments": [],
+                        "lessons": [],
+                        "suggestions": [],
+                    }
+                ],
+                default_flow_style=False,
+            )
+        )
+
+        r = validator.validate_phase(10)
+
+        assert not r.passed
+        mla_check = next(c for c in r.checks if c.name == "meta-learning-audit:data")
+        assert not mla_check.passed
+        assert "analysis_steps" in mla_check.details
+
+    def test_fail_meta_learning_audit_without_matching_evolution_event(
+        self, validator, project_dir, audit_dir
+    ):
+        """Phase 10 ties the latest audit entry to the run_meta_learning event."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(20):
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+        (project_dir / "concept.md").write_text("# Concept")
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "# Manuscript\n\nBody.\n\n## References\n\n"
+        )
+        _write_concept_review(audit_dir)
+        _write_review_loop(audit_dir)
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+        (audit_dir / "pipeline-run-20260101.md").write_text(
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
+        )
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
+        (audit_dir / "evolution-log.jsonl").write_text(
+            json.dumps(_meta_learning_event(audit_timestamp="2026-01-01T00:00:00")) + "\n"
+        )
+        (audit_dir / "meta-learning-audit.yaml").write_text(
+            yaml.dump(
+                [
+                    {
+                        "schema": "mdpaper.meta_learning_audit.v2",
+                        "timestamp": "2026-01-01T00:01:00",
+                        "source_tool": "run_meta_learning",
+                        "analysis_steps": _analysis_steps(),
+                        "run_number": 0,
+                        "adjustments_count": 0,
+                        "lessons_count": 0,
+                        "suggestions_count": 0,
+                        "adjustments": [],
+                        "lessons": [],
+                        "suggestions": [],
+                    }
+                ],
+                default_flow_style=False,
+            )
+        )
+
+        r = validator.validate_phase(10)
+
+        assert not r.passed
+        mla_check = next(c for c in r.checks if c.name == "meta-learning-audit:data")
+        assert not mla_check.passed
+        assert "matching evolution-log provenance" in mla_check.details
 
     def test_pass_full_phase_10(self, validator, project_dir, audit_dir):
         """Complete Phase 10 with valid meta-learning data → PASS."""
@@ -839,7 +967,9 @@ class TestPhase10Enhanced:
         for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
-        (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "# Manuscript\n\nBody.\n\n## References\n\n"
+        )
         (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
         _write_concept_review(audit_dir)
         _write_review_loop(audit_dir)
@@ -848,18 +978,29 @@ class TestPhase10Enhanced:
             "# Pipeline Run\n## D7 retrospective: Review Retrospective\nReview retro\n## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro\n"
         )
         (audit_dir / "hook-effectiveness.md").write_text("# Hook Effectiveness\n")
-        (audit_dir / "evolution-log.jsonl").write_text(
-            json.dumps({"event": "meta_learning"}) + "\n"
-        )
+        with (audit_dir / "evolution-log.jsonl").open("a", encoding="utf-8") as f:
+            f.write(
+                json.dumps(
+                    _meta_learning_event(
+                        adjustments_count=2,
+                        lessons_count=3,
+                        suggestions_count=1,
+                    )
+                )
+                + "\n"
+            )
         audit_entry = {
+            "schema": "mdpaper.meta_learning_audit.v2",
             "timestamp": "2026-01-01T00:00:00",
+            "source_tool": "run_meta_learning",
+            "analysis_steps": _analysis_steps(),
             "run_number": 0,
             "adjustments_count": 2,
             "lessons_count": 3,
             "suggestions_count": 1,
-            "adjustments": [],
-            "lessons": [],
-            "suggestions": [],
+            "adjustments": [{"hook_id": "A1"}, {"hook_id": "A2"}],
+            "lessons": [{"category": "a"}, {"category": "b"}, {"category": "c"}],
+            "suggestions": [{"type": "x"}],
         }
         (audit_dir / "meta-learning-audit.yaml").write_text(
             yaml.dump([audit_entry], default_flow_style=False)
@@ -910,6 +1051,7 @@ class TestMetaLearningEngineIntegration:
         assert "adjustments_count" in entry
         assert "lessons_count" in entry
         assert "suggestions_count" in entry
+        assert all(f"D{i}" in entry.get("analysis_steps", {}) for i in range(1, 10))
 
     def test_engine_output_passes_phase10_gate(
         self, engine, tracker, scorecard, audit_dir, project_dir
@@ -920,7 +1062,9 @@ class TestMetaLearningEngineIntegration:
         for i in range(20):
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         (project_dir / "concept.md").write_text("# Concept")
-        (project_dir / "drafts" / "manuscript.md").write_text("# Manuscript")
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "# Manuscript\n\nBody.\n\n## References\n\n"
+        )
         _write_concept_review(audit_dir)
         _write_review_loop(audit_dir)
 
@@ -932,11 +1076,23 @@ class TestMetaLearningEngineIntegration:
             scorecard.set_score(dim, 7, "Adequate")
         scorecard.generate_report()
 
-        engine.analyze()
+        result = engine.analyze()
+        audit_trail = result["audit_trail"]
 
         elog = audit_dir / "evolution-log.jsonl"
         with open(elog, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"event": "meta_learning"}) + "\n")
+            f.write(
+                json.dumps(
+                    _meta_learning_event(
+                        audit_timestamp=audit_trail["timestamp"],
+                        adjustments_count=audit_trail["adjustments_count"],
+                        lessons_count=audit_trail["lessons_count"],
+                        suggestions_count=audit_trail["suggestions_count"],
+                        run_number=audit_trail["run_number"],
+                    )
+                )
+                + "\n"
+            )
 
         (audit_dir / "pipeline-run-20260101.md").write_text(
             "# Pipeline Run\n## D7 retrospective: Review Retrospective\nReview retro content\n## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro content\n"

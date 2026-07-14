@@ -38,7 +38,7 @@ REQUIRED_SERVERS: dict[str, dict] = {
         "type": "stdio",
         "command": "uvx",
         "args": ["pubmed-search-mcp"],
-        "env": {"ENTREZ_EMAIL": "medpaper@example.com"},
+        "env": {"NCBI_EMAIL": "medpaper@example.com"},
     },
     "cgu": {
         "type": "stdio",

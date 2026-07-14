@@ -69,7 +69,7 @@ tools:
 ### Step 1: 環境準備
 
 ```
-get_current_project() → 確認專案上下文
+project_action(action="current") → 確認專案上下文
 list_saved_references() → 了解已有文獻（避免重複儲存）
 ```
 

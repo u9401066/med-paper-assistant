@@ -41,18 +41,18 @@ med-paper-assistant/
 
 原則：平台 adapter 只負責 discovery/tool mapping；科學方法、證據角色與 hard-gate 語義維持單一權威。
 
-### MCP Server 架構 (115 full / 21 compact default, 2026-04-23)
+### MCP Server 架構 (118 full / 22 compact default, 2026-07-14)
 
 ```
 .vscode/mcp.json
-├── mdpaper        # 主要 MCP（115 full / 21 compact default）- façade-first 公開 surface
+├── mdpaper        # 主要 MCP（117 full / 22 compact default）- façade-first 公開 surface
 ├── pubmed-search  # PubMed 搜尋 (submodule)
 ├── cgu            # Creativity Generation (submodule)
 ├── zotero-keeper  # 書目管理 (uvx)
 └── drawio         # Draw.io 圖表 (npx @drawio/mcp)
 ```
 
-### MCP Tool 模組分布 (2026-04-23)
+### MCP Tool 模組分布 (2026-05-19)
 
 ```
 tools/
@@ -68,10 +68,10 @@ tools/
 └── discussion/    — (DEPRECATED — 已遷移至 Skills)
 ```
 
-### Tool Surface Policy (2026-04-23)
+### Tool Surface Policy (2026-05-19)
 
-- **full**: 保留所有 115 個 first-party tools，供開發、相容性、進階 orchestration 使用
-- **compact**: 預設公開 21 個工具，以 façade-first surface 為主，降低 agent 選錯 granular verbs 的機率
+- **full**: 保留所有 117 個 first-party tools，供開發、相容性、進階 orchestration 使用
+- **compact**: 預設公開 22 個工具，以 façade-first surface 為主，降低 agent 選錯 granular verbs 的機率
 - **切換方式**: 透過 `MEDPAPER_TOOL_SURFACE=full|compact` 控制；workspace setup、`.vscode/mcp.json` 與 VSX runtime 預設注入 `compact`
 - **Authority**: `tool-surface-authority.json` 是 README / VSIX / validate gate 的單一權威來源
 
@@ -121,7 +121,7 @@ L3: Autonomous Self-Evolution（長期演進）⚠️ 部分
 
 元件：QualityScorecard(8 dims), HookEffectivenessTracker(56 hooks),
 MetaLearningEngine(D1-D9), WritingHooksEngine(A5/A6/B8/C9/F),
-DomainConstraintEngine(3 paper types, 26 constraints),
+DomainConstraintEngine(7 paper types, 69 constraints),
 ToolInvocationStore, PendingEvolutionStore, tool_health
 
 ### 狀態管理架構 (2025-01-22 新增)

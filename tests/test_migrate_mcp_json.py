@@ -55,6 +55,15 @@ class TestFindMissingServers:
         assert set(missing) == set(REQUIRED_SERVERS.keys())
 
 
+def test_pubmed_search_server_uses_upstream_package_entrypoint() -> None:
+    server = REQUIRED_SERVERS["pubmed-search"]
+
+    assert server["command"] == "uvx"
+    assert server["args"] == ["pubmed-search-mcp"]
+    assert server["env"]["NCBI_EMAIL"] == "medpaper@example.com"
+    assert "ENTREZ_EMAIL" not in server["env"]
+
+
 class TestLoadMcpJson:
     def test_loads_plain_json(self, tmp_path: Path):
         p = tmp_path / "mcp.json"

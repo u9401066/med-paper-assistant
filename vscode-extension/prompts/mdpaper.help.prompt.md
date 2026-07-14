@@ -18,21 +18,21 @@ description: "❓ mdpaper.help - 指令與工作流程參考"
 
 這些 prompt workflows 來自 workspace prompt files；若是 VSIX 安裝面，先執行 `MedPaper: Setup Workspace` 讓它們落地到工作區。
 
-| 指令                           | 用途                         |
-| ------------------------------ | ---------------------------- |
-| `/mdpaper.project`             | 建立/切換專案                |
-| `/mdpaper.search`              | 文獻搜尋                     |
-| `/mdpaper.strategy`            | 搜尋策略                     |
-| `/mdpaper.concept`             | 發展概念                     |
-| `/mdpaper.draft`               | 撰寫草稿                     |
-| `/mdpaper.analysis`            | 資料分析                     |
-| `/mdpaper.clarify`             | 潤稿                         |
-| `/mdpaper.format`              | 匯出 Word                    |
-| `/mdpaper.write-paper`         | 完整論文撰寫（11-Phase）     |
-| `/mdpaper.literature-survey`   | 系統性文獻調查 / corpus 建置 |
-| `/mdpaper.manuscript-revision` | 稿件修改與回覆審稿意見       |
-| `/mdpaper.audit`               | 獨立審計與 review loop       |
-| `/mdpaper.help`                | 顯示本說明                   |
+| 指令                           | 用途                           |
+| ------------------------------ | ------------------------------ |
+| `/mdpaper.project`             | 建立/切換專案                  |
+| `/mdpaper.search`              | 文獻搜尋                       |
+| `/mdpaper.strategy`            | 搜尋策略                       |
+| `/mdpaper.concept`             | 發展概念                       |
+| `/mdpaper.draft`               | 撰寫草稿                       |
+| `/mdpaper.analysis`            | 資料分析                       |
+| `/mdpaper.clarify`             | 潤稿                           |
+| `/mdpaper.format`              | 匯出 Word                      |
+| `/mdpaper.write-paper`         | 完整論文撰寫（13 checkpoints） |
+| `/mdpaper.literature-survey`   | 系統性文獻調查 / corpus 建置   |
+| `/mdpaper.manuscript-revision` | 稿件修改與回覆審稿意見         |
+| `/mdpaper.audit`               | 獨立審計與 review loop         |
+| `/mdpaper.help`                | 顯示本說明                     |
 
 ## `@mdpaper` Chat 指令
 

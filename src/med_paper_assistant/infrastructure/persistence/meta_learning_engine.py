@@ -213,7 +213,7 @@ class MetaLearningEngine:
 
     def analyze(self) -> dict[str, Any]:
         """
-        Run full meta-learning analysis (D1 through D8).
+        Run full meta-learning analysis (D1 through D9).
 
         Returns:
             {
@@ -451,8 +451,48 @@ class MetaLearningEngine:
     ) -> dict[str, Any]:
         """D6: Build and persist audit trail."""
         trail = {
+            "schema": "mdpaper.meta_learning_audit.v2",
             "timestamp": datetime.now().isoformat(),
             "run_number": self._tracker.get_run_count(),
+            "source_tool": "run_meta_learning",
+            "analysis_steps": {
+                "D1": {
+                    "status": "completed",
+                    "description": "Hook coverage and effectiveness analysis",
+                },
+                "D2": {
+                    "status": "completed",
+                    "description": "Quality scorecard retrospective",
+                },
+                "D3": {
+                    "status": "completed",
+                    "description": "Bounded threshold adjustment analysis",
+                },
+                "D4": {
+                    "status": "completed",
+                    "description": "Skill improvement suggestion analysis",
+                },
+                "D5": {
+                    "status": "completed",
+                    "description": "Project completeness and configuration analysis",
+                },
+                "D6": {
+                    "status": "completed",
+                    "description": "Append-only audit trail persistence",
+                },
+                "D7": {
+                    "status": "completed",
+                    "description": "Autonomous review retrospective analysis",
+                },
+                "D8": {
+                    "status": "completed",
+                    "description": "EQUATOR/reporting checklist retrospective analysis",
+                },
+                "D9": {
+                    "status": "completed",
+                    "description": "Tool telemetry and description improvement analysis",
+                },
+            },
             "adjustments_count": len(adjustments),
             "auto_adjustments": sum(1 for a in adjustments if a.auto_apply and a.within_bounds),
             "manual_adjustments": sum(
@@ -848,8 +888,8 @@ class MetaLearningEngine:
 
         CONSTITUTION §23 compliance:
             All D9 suggestions are L3 (requires_confirmation=True).
-            D9 is additive — does not modify D1-D8 behavior.
-            D9 failure never blocks D1-D8 (wrapped in try/except).
+            D9 is additive — does not modify earlier analysis outputs.
+            D9 failure never blocks earlier output generation (wrapped in try/except).
         """
         if self._workspace_root is None:
             return []

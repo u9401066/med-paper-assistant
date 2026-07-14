@@ -1,6 +1,7 @@
 """Tests for PipelineGateValidator — hard gate enforcement."""
 
 import json
+import zipfile
 
 import pytest
 import yaml
@@ -80,7 +81,7 @@ def _add_prerequisites(project_dir, up_to_phase: int):
     if up_to_phase >= 7:
         ms = project_dir / "drafts" / "manuscript.md"
         if not ms.is_file():
-            ms.write_text("# Manuscript")
+            ms.write_text("# Manuscript\n\nBody text.\n\n## References\n\n")
     if up_to_phase >= 9:
         sc = project_dir / ".audit" / "quality-scorecard.md"
         if not sc.is_file():
@@ -100,11 +101,125 @@ def _add_prerequisites(project_dir, up_to_phase: int):
                     }
                 )
             )
+        for i in [1, 2]:
+            (project_dir / ".audit" / f"review-report-{i}.md").write_text(f"# Round {i}")
+            (project_dir / ".audit" / f"author-response-{i}.md").write_text(f"# Response {i}")
+            (project_dir / ".audit" / f"equator-compliance-{i}.md").write_text(f"# EQUATOR {i}")
+        elog = project_dir / ".audit" / "evolution-log.jsonl"
+        existing = elog.read_text(encoding="utf-8") if elog.is_file() else ""
+        review_entries = [
+            json.dumps({"event": "review_round", "round": 1}),
+            json.dumps({"event": "review_round", "round": 2}),
+        ]
+        if "review_round" not in existing:
+            elog.write_text(existing + "\n".join(review_entries) + "\n", encoding="utf-8")
     if up_to_phase == 11:
         exports = project_dir / "exports"
         exports.mkdir(parents=True, exist_ok=True)
-        (exports / "paper.docx").write_bytes(b"PK")
-        (exports / "paper.pdf").write_bytes(b"%PDF")
+        _write_minimal_docx(exports / "paper.docx")
+        _write_minimal_pdf(exports / "paper.pdf")
+        audit = project_dir / ".audit"
+        audit_timestamp = "2026-01-01T00:00:00"
+        (audit / "pipeline-run-20260101.md").write_text(
+            "# Pipeline Run\n"
+            "## D7 retrospective: Review Retrospective\nReview retro\n"
+            "## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro\n"
+        )
+        (audit / "hook-effectiveness.md").write_text("# Hook Effectiveness\n")
+        existing = (audit / "evolution-log.jsonl").read_text(encoding="utf-8")
+        if "meta_learning" not in existing:
+            (audit / "evolution-log.jsonl").write_text(
+                existing
+                + json.dumps(
+                    {
+                        "schema": "mdpaper.meta_learning_event.v1",
+                        "event": "meta_learning",
+                        "timestamp": audit_timestamp,
+                        "source_tool": "run_meta_learning",
+                        "audit_timestamp": audit_timestamp,
+                        "run_number": 1,
+                        "adjustments_count": 0,
+                        "lessons_count": 0,
+                        "suggestions_count": 0,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        (audit / "meta-learning-audit.yaml").write_text(
+            yaml.dump(
+                [
+                    {
+                        "schema": "mdpaper.meta_learning_audit.v2",
+                        "timestamp": audit_timestamp,
+                        "source_tool": "run_meta_learning",
+                        "analysis_steps": _analysis_steps(),
+                        "run_number": 1,
+                        "adjustments_count": 0,
+                        "lessons_count": 0,
+                        "suggestions_count": 0,
+                        "adjustments": [],
+                        "lessons": [],
+                        "suggestions": [],
+                    }
+                ],
+                default_flow_style=False,
+            ),
+            encoding="utf-8",
+        )
+
+
+def _write_minimal_docx(path):
+    """Write a minimal structurally valid DOCX fixture."""
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types></Types>")
+        archive.writestr(
+            "word/document.xml",
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            "<w:body><w:p><w:r><w:t>Hello</w:t></w:r></w:p></w:body>"
+            "</w:document>",
+        )
+
+
+def _write_minimal_pdf(path):
+    """Write a minimal parseable one-page PDF fixture."""
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 72 72] /Resources << >> >>",
+    ]
+    payload = b"%PDF-1.4\n"
+    offsets = [0]
+    for index, obj in enumerate(objects, 1):
+        offsets.append(len(payload))
+        payload += f"{index} 0 obj\n".encode() + obj + b"\nendobj\n"
+    xref_offset = len(payload)
+    payload += f"xref\n0 {len(objects) + 1}\n".encode()
+    payload += b"0000000000 65535 f \n"
+    for offset in offsets[1:]:
+        payload += f"{offset:010d} 00000 n \n".encode()
+    payload += (
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n"
+    ).encode()
+    path.write_bytes(payload)
+
+
+def _analysis_steps():
+    return {f"D{i}": {"status": "completed"} for i in range(1, 10)}
+
+
+def _write_review_artifacts(project_dir, rounds: int):
+    audit = project_dir / ".audit"
+    for i in range(1, rounds + 1):
+        (audit / f"review-report-{i}.md").write_text(f"# Round {i} Review\n")
+        (audit / f"author-response-{i}.md").write_text(f"# Round {i} Response\n")
+        (audit / f"equator-compliance-{i}.md").write_text(f"# Round {i} EQUATOR\n")
+    (audit / "evolution-log.jsonl").write_text(
+        "".join(
+            json.dumps({"event": "review_round", "round": i}) + "\n" for i in range(1, rounds + 1)
+        ),
+        encoding="utf-8",
+    )
 
 
 def _approve_required_sections(project_dir):
@@ -904,6 +1019,39 @@ class TestPhase11:
         assert all(kwargs["timeout"] == 3 for _, kwargs in calls)
         assert all(kwargs["env"]["GIT_OPTIONAL_LOCKS"] == "0" for _, kwargs in calls)
 
+    def test_phase11_detects_behind_upstream(self, validator, project_dir, monkeypatch):
+        """`+0 -N` means local is behind upstream and must not be reported as synced."""
+        import subprocess
+
+        _add_prerequisites(project_dir, up_to_phase=11)
+        _write_minimal_docx(project_dir / "exports" / "paper.docx")
+        _write_minimal_pdf(project_dir / "exports" / "paper.pdf")
+        (project_dir / ".git").mkdir()
+
+        def fake_run(cmd, **kwargs):
+            if cmd[1] == "status":
+                return subprocess.CompletedProcess(
+                    cmd,
+                    0,
+                    stdout="# branch.upstream origin/master\n# branch.ab +0 -3\n",
+                    stderr="",
+                )
+            if cmd[1] == "log":
+                return subprocess.CompletedProcess(
+                    cmd,
+                    0,
+                    stdout="abc123 release paper\ndrafts/manuscript.md\n",
+                    stderr="",
+                )
+            raise AssertionError(f"unexpected git command: {cmd}")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+
+        r = validator.validate_phase(11)
+        pushed_check = next(c for c in r.checks if c.name == "git:pushed")
+        assert not pushed_check.passed
+        assert "behind" in pushed_check.details
+
     def test_phase11_allows_missing_upstream(self, validator, project_dir, monkeypatch):
         """Paper-only workflows often have no remote; that should not block delivery."""
         import subprocess
@@ -1294,12 +1442,52 @@ class TestReviewPrerequisite:
         review_check = next(c for c in r.checks if c.name == "prereq:review_completed")
         assert review_check.passed
 
+    def test_phase_8_fails_with_unresolved_citation(self, validator, project_dir):
+        """A References heading alone is not enough for Phase 8 reference sync."""
+        _add_prerequisites(project_dir, up_to_phase=8)
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "# Manuscript\n\nClaim with [[missing2026_99999999]].\n\n## References\n\n"
+        )
+
+        r = validator.validate_phase(8)
+
+        assert not r.passed
+        assert any(c.name == "reference-sync:wikilinks" for c in r.critical_failures)
+
+    def test_phase_8_resolves_legacy_flat_md_reference_files(self, validator, project_dir):
+        """Legacy flat references/key.md files should resolve manuscript wikilinks."""
+        _add_prerequisites(project_dir, up_to_phase=8)
+        key = "smith2026_12345678"
+        (project_dir / "references" / f"{key}.md").write_text("# Smith 2026\n")
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            f"# Manuscript\n\nClaim with [[{key}]].\n\n## References\n\n"
+        )
+
+        r = validator.validate_phase(8)
+
+        c5 = next(c for c in r.checks if c.name == "reference-sync:wikilinks")
+        assert c5.passed
+
     def test_phase_9_also_requires_review(self, validator, project_dir):
         """Phase 9 (Export) should also require review completion."""
         _add_prerequisites(project_dir, up_to_phase=7)
         r = validator.validate_phase(9)
         prereq_names = [c.name for c in r.checks]
         assert "prereq:review_completed" in prereq_names
+
+    def test_phase_9_fails_with_corrupt_export_files(self, validator, project_dir):
+        """Phase 9 must prove export integrity, not just file extensions."""
+        _add_prerequisites(project_dir, up_to_phase=9)
+        exports = project_dir / "exports"
+        (exports / "paper.docx").write_bytes(b"PK")
+        (exports / "paper.pdf").write_bytes(b"%PDF")
+
+        r = validator.validate_phase(9)
+
+        assert not r.passed
+        names = {c.name for c in r.critical_failures}
+        assert "export:docx:integrity" in names
+        assert "export:pdf:integrity" in names
 
     def test_phase_65_does_not_require_review(self, validator, project_dir):
         """Phase 65 (Evolution Gate) sits before Phase 7 — should NOT check review."""
@@ -1358,6 +1546,7 @@ class TestCheckReviewCompleted:
                 }
             )
         )
+        _write_review_artifacts(project_dir, rounds=2)
         passed, details = validator._check_review_completed()
         assert passed
         assert "quality_met" in details
@@ -1376,6 +1565,7 @@ class TestCheckReviewCompleted:
                 }
             )
         )
+        _write_review_artifacts(project_dir, rounds=3)
         passed, details = validator._check_review_completed()
         assert passed
 

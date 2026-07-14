@@ -81,7 +81,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 
 ## MCP Server（runtime-validated authority）
 
-目前 authority：117 full / 22 compact default + 3 prompts + 3 resources。
+目前 authority：118 full / 22 compact default + 3 prompts + 3 resources。
 單一來源：`tool-surface-authority.json`。`scripts/check_tool_surface_authority.py`、release workflow、`npm run validate` 都會驗證這些數字。
 
 | 模組        | 重點                                                                                                                        |
@@ -91,7 +91,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | draft/      | writing + citation + editing (patch_draft)                                                                                  |
 | validation/ | validate_concept + wikilinks                                                                                                |
 | analysis/   | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）                                       |
-| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept                                |
+| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept + constraint ledger            |
 | export/     | word + pandoc (docx/pdf/bib)                                                                                                |
 | facade/     | project/workspace/review/pipeline/export stable entrypoints                                                                 |
 

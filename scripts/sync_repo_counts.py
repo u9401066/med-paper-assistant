@@ -9,7 +9,7 @@ Counts:
   - Agents (.github/agents/*.agent.md)
   - Pre-commit hooks (.pre-commit-config.yaml  "- id:" lines)
   - Quality hooks (from AGENTS.md Hook 架構 table heading)
-  - Pipeline phases (11 — semantic constant)
+  - Pipeline phases (13 gate checkpoints — semantic constant)
 
 Modes:
   --check  : CI mode — exit 1 if any doc is stale (default)
@@ -42,7 +42,7 @@ TOOLS_DIR = SRC / "interfaces" / "mcp" / "tools"
 
 # External MCP counts (not in our codebase — maintained manually)
 EXTERNAL_MCP = {
-    "pubmed-search": 37,
+    "pubmed-search": 46,
     "cgu": 13,
 }
 
@@ -81,7 +81,7 @@ class RepoCounts:
     quality_hooks_agent_driven: int = 0
 
     # Constants (semantic — don't auto-count)
-    phases: int = 11
+    phases: int = 13
     mcp_servers: int = 3
 
 
@@ -264,7 +264,7 @@ def build_replace_rules(c: RepoCounts) -> list[ReplaceRule]:
                 )
             )
 
-        # Quality hooks line: "42 Quality Hooks" / "42 項品質檢查"
+        # Quality hooks line: "78 Quality Hooks" / "78 項品質檢查"
         if is_zh:
             rules.append(
                 ReplaceRule(
@@ -477,7 +477,7 @@ def build_replace_rules(c: RepoCounts) -> list[ReplaceRule]:
                     )
                 )
 
-        # Summary table: "mdpaper (81) + pubmed-search (37) + CGU (13)"
+        # Summary table: "mdpaper (81) + pubmed-search (46) + CGU (13)"
         rules.append(
             ReplaceRule(
                 readme,
@@ -795,9 +795,8 @@ def build_replace_rules(c: RepoCounts) -> list[ReplaceRule]:
         )
 
     # ── docs/auto-paper-guide.md ──
-    # NOTE: auto-paper-guide.md uses "42 項自動品質檢查（Hook A-D）"
-    # which is the Agent-Driven subset (42), NOT total hooks (76).
-    # This is intentional — do NOT auto-replace.
+    # NOTE: auto-paper-guide.md explains 13 semantic gate checkpoints and the
+    # full 78-check hook stack. Phase names remain manually curated.
 
     return rules
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -82,19 +83,30 @@ class GitHooksMixin:
                     )
                 )
 
-            # Check unpushed commits
+            # Check remote drift from porcelain v2 ahead/behind counters.
             has_upstream = "branch.upstream" in result.stdout
-            is_pushed = has_upstream and "branch.ab +0" in result.stdout
+            branch_ab_match = re.search(r"^# branch\.ab \+(\d+) -(\d+)$", result.stdout, re.M)
+            branch_ab = (
+                (int(branch_ab_match.group(1)), int(branch_ab_match.group(2)))
+                if branch_ab_match
+                else None
+            )
+            is_pushed = has_upstream and branch_ab == (0, 0)
             stats["has_upstream"] = has_upstream
+            stats["branch_ahead_behind"] = branch_ab
             stats["is_pushed"] = is_pushed
 
             if has_upstream and not is_pushed:
+                drift = ""
+                if branch_ab:
+                    ahead, behind = branch_ab
+                    drift = f" (ahead={ahead}, behind={behind})"
                 issues.append(
                     HookIssue(
                         hook_id="G9",
                         severity="WARNING",
                         section="git",
-                        message="Unpushed commits detected",
+                        message=f"Git remote drift detected{drift}",
                         suggestion="Optional provenance step: push if this project is configured with a remote",
                     )
                 )

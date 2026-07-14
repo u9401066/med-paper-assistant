@@ -1,5 +1,72 @@
 # Decision Log
 
+## [2026-05-19] v0.7.11 Phase Gate + Release Hardening
+
+### 背景
+
+使用者要求 13 checkpoint surface 做正式發布前 review，並在完成修正後執行 MEM、分段 git、push、tag 發布新版。審查指出 Phase 8-11 仍有「artifact exists but invalid」與「文件/發布面漂移」風險：Phase 8 legacy flat refs 會被 C5 誤判、Phase 9/11 可接受 corrupt exports、Phase 10 可被 count-only audit YAML 假陽性通過、PyPI artifacts 可能遺失 runtime templates，且 release workflow 權限與 install reproducibility 不夠嚴格。
+
+### 本次決定
+
+1. **Phase 8-11 改為資料品質 gate，不只檔案存在**：後續 phase 必須承接 Phase 7 review artifacts、Phase 8 citation wikilink sync、Phase 9 DOCX/PDF integrity、Phase 10 D1-D9 provenance。
+2. **Phase 10 meta-learning audit 採 schema v2 + event provenance**：`MetaLearningEngine` 寫入 `source_tool` 與 `analysis_steps D1-D9`；gate 同時檢查 counts/list 一致性與 matching `run_meta_learning` event，拒絕手寫 count-only YAML。
+3. **Export success 必須代表 artifact 可交付**：`export_docx()` / `export_pdf()` 在回傳 success 前執行 DOCX XML / PDF structural smoke；Phase gate 也用同一套 smoke。
+4. **Release workflow 採 least privilege + reproducible install**：全域 `contents: read`，只有 GitHub Release job 有 `contents: write`；release installs 使用 pinned `setup-uv` 0.10.0 與 `uv sync --frozen --all-extras`；publish jobs 依賴 `lint-security`。
+5. **sdist 必須顯式 scoped 且 wheel 必須含 runtime templates**：Hatch sdist 只 include Python package、templates 與必要 metadata，避免 VSIX/node/workspace artifacts 進 PyPI source distribution，同時用 wheel package data 保留 templates/CSL/journal profiles。
+
+### 成果
+
+- Version: `0.7.11`
+- Local artifacts: `medpaper-assistant-0.7.11.vsix` (1.9 MB), wheel 656 KB, sdist 772 KB
+- Validation: Python 1305 passed / 1 skipped / 26 deselected; VSIX 169 passed; VSIX validate 92 passed; ruff, format, mypy, bandit, MCP boot, tool-surface authority, uv build, install smoke, npm audit, wheel-template smoke, `git diff --check` all passed.
+
+## [2026-05-19] v0.7.11 Release Publication Outcome
+
+### 背景
+
+After pushing `origin/master` and annotated tag `v0.7.11`, GitHub Actions `Release` ran for the tag. The workflow passed validation, three-platform smoke, Python tests, security/audit, bundle drift, build artifacts, and PyPI trusted publishing. It failed only at `publish-vsx`.
+
+### 根因
+
+`publish-vsx` reached Marketplace and attempted to publish `u9401066.medpaper-assistant v0.7.11`, but Marketplace returned `TF400813: The user 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' is not authorized to access this resource.` The `VSCE_PAT` secret was present but lacks the required publisher/resource authorization or is no longer valid.
+
+### 決定
+
+1. Treat VS Marketplace failure as an external credential/permission issue, not a repository release blocker for PyPI/GitHub artifacts.
+2. Manually create GitHub Release `v0.7.11` from the pushed tag and upload the locally verified VSIX, wheel, and sdist so the release is available despite the Marketplace secret failure.
+3. Keep the failed Actions run as evidence that Marketplace publish did not complete; fix/rotate `VSCE_PAT` before retrying Marketplace publishing.
+
+### 成果
+
+- `origin/master` is synced at release commit `8df4531`.
+- Tag `v0.7.11` points to `8df4531`.
+- GitHub Release: `https://github.com/u9401066/med-paper-assistant/releases/tag/v0.7.11`
+- Assets uploaded: `medpaper-assistant-0.7.11.vsix`, `med_paper_assistant-0.7.11-py3-none-any.whl`, `med_paper_assistant-0.7.11.tar.gz`.
+- CI on `master` completed successfully; Release workflow concluded failure only because `publish-vsx` failed authorization.
+
+## [2026-05-13] v0.7.10 Remote-First Upstream Sync + Curated VSIX Authority
+
+### 背景
+
+使用者要求 dependency / harness / docs 全面對齊 GitHub remote upstream 最新，並特別要求最後執行 MEM、分段 git、push、tag 發布新版。`origin/master` 已在 `v0.7.9`，因此本次 release 版本從原先本地的 `v0.6.8` 修正為 `v0.7.10`。
+
+同步過程中發現一批 VSIX imported harness / wrong-repo harness 會把 bundle surface 擴張到 26 skills / 15 prompts / 24 agents，違反 `tool-surface-authority.json` 的正式發行面（14 skills / 13 prompts / 9 agents）。
+
+### 本次決定
+
+1. **Remote-first conflict policy**：rebase 到 `origin/master`，衝突時以 upstream latest 為權威，再重新套入必要的 MedPaper release 修正。
+2. **VSIX 保持 curated bundle authority**：正式 marketplace/VSIX bundle 不採用全部 source harness；仍以 `tool-surface-authority.json` 的 14/13/9 為發行契約。
+3. **Auto-Paper 命名採 13 main checkpoints + Phase 2.1 sub-gate**：避免把 `Phase 2.1` 與 heartbeat 主 checkpoint 混成 14/15 phase；Phase 11 維持 code authority 的 "Final Delivery"。
+4. **外部 mirror 不由 root formatter 改寫**：`integrations/` 與 `vscode-extension/bundled/` 是 external/source mirror，root `ruff` / pre-commit 不應改壞 byte-for-byte parity。
+5. **Reviewer 局部修稿不必整輪重跑**：真實 reviewer comment 可以走 focused patch + review/gate/test path；只有當 phase prerequisite、引用/資產/export artifact 被改壞時才需要回退或重跑對應 phase。
+
+### 成果
+
+- Version: `0.7.10`
+- Release commit: `bd5d4c2 release: prepare v0.7.10 upstream sync`
+- VSIX: `medpaper-assistant-0.7.10.vsix`
+- Validation: full Python suite、VSIX tests、bundle authority、repo counts、smoke test、build validation 全部通過。
+
 ## [2026-04-14] Compact-By-Default Main MCP Surface For Workspace And VSX
 
 ### 背景

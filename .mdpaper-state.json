@@ -1,21 +1,22 @@
 {
   "version": 2,
-  "current_project": "med-paper-assistant-release-v0.7.9",
-  "last_activity": "2026-04-24T13:19:37.173190",
-  "last_updated": "2026-04-24T13:19:37.173221",
+  "current_project": "med-paper-assistant-release-v0.7.10",
+  "last_activity": "2026-05-13T13:51:44.808663",
+  "last_updated": "2026-05-13T13:51:44.808663",
   "workspace_state": {
     "open_drafts": [],
     "pending_validations": [],
     "last_search_pmids": [],
-    "last_tool_called": "run_meta_learning"
+    "last_tool_called": "release_validation"
   },
   "recovery_hints": {
-    "agent_was_doing": "Meta-learning complete for test-project",
-    "next_suggested_action": "Review .audit/meta-learning-feedback.yaml and apply safe pending evolutions",
+    "agent_was_doing": "Prepared v0.7.10 upstream sync release and fixed Windows CI UTF-8 test decoding",
+    "next_suggested_action": "Push master, move v0.7.10 annotated tag to latest HEAD, and verify GitHub Actions",
     "important_context": [
-      "pending_evolutions=36",
-      "auto_apply=1",
-      "requires_confirmation=35"
+      "release_commit=bd5d4c2",
+      "ci_fix_commit=db9c5e1",
+      "vsix=vscode-extension/medpaper-assistant-0.7.10.vsix",
+      "validation=uv lock/ruff/mypy/pytest/smoke/bundle/npm test/npm validate passed"
     ]
   },
   "cross_mcp_state": {

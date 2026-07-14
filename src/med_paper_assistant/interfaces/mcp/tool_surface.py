@@ -9,7 +9,7 @@ ToolSurface = Literal["full", "compact"]
 
 _SURFACE_ENV_VAR = "MEDPAPER_TOOL_SURFACE"
 EXPECTED_TOOL_COUNTS: dict[ToolSurface, int] = {
-    "full": 117,
+    "full": 118,
     "compact": 22,
 }
 

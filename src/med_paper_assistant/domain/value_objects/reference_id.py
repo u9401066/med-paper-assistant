@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
+from med_paper_assistant.shared.doi import normalize_doi_for_filename
+
 
 class ReferenceSource(Enum):
     """Reference source type."""
@@ -94,11 +96,7 @@ class ReferenceId:
 
     def _normalize_doi(self, doi: str) -> str:
         """Normalize DOI for use in filenames."""
-        # Replace special characters with hyphens
-        normalized = re.sub(r"[/.]", "-", doi)
-        # Remove other special characters
-        normalized = re.sub(r"[^a-zA-Z0-9\-]", "", normalized)
-        return normalized.lower()
+        return normalize_doi_for_filename(doi)
 
     @classmethod
     def from_pubmed(cls, pmid: str, author: str = "", year: str = "") -> "ReferenceId":

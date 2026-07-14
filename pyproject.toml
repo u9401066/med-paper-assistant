@@ -1,6 +1,6 @@
 [project]
 name = "med-paper-assistant"
-version = "0.7.9"
+version = "0.8.0"
 description = "An MCP-orchestrated research workspace for manuscript and library-wiki workflows"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -71,6 +71,20 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/med_paper_assistant"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"templates" = "med_paper_assistant/templates"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/med_paper_assistant",
+    "/templates",
+    "/README.md",
+    "/README.zh-TW.md",
+    "/LICENSE",
+    "/pyproject.toml",
+    "/uv.lock",
+]
+
 # ============================================
 # 依賴群組 (uv 推薦格式)
 # ============================================
@@ -103,7 +117,8 @@ creativity-generation-unit = { path = "integrations/cgu", editable = true }
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = ["vscode-extension/bundled"]
+extend-exclude = ["integrations", "vscode-extension/bundled"]
+force-exclude = true
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]

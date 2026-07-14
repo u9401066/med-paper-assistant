@@ -1,6 +1,6 @@
 # Auto-Paper: Fully Autonomous Paper Writing Guide
 
-> **完整的自動論文撰寫系統文件** — 從文獻搜尋到 Word 匯出的 11 階段 Pipeline
+> **完整的自動論文撰寫系統文件** — 13 個主線 gate checkpoint + Phase 2.1 fulltext/source-material sub-gate
 
 ---
 
@@ -8,18 +8,21 @@
 
 - [概觀](#概觀)
 - [快速開始](#快速開始)
-- [11-Phase Pipeline](#11-phase-pipeline)
+- [13 Main Gate Checkpoints](#13-main-gate-checkpoints)
   - [Phase 0: Pre-Planning](#phase-0-pre-planning)
   - [Phase 1: Project Setup](#phase-1-project-setup)
   - [Phase 2: Literature Search](#phase-2-literature-search)
+  - [Phase 2.1: Fulltext & Source-Material Ingestion](#phase-21-fulltext--source-material-ingestion)
   - [Phase 3: Concept Development](#phase-3-concept-development)
   - [Phase 4: Manuscript Planning](#phase-4-manuscript-planning)
   - [Phase 5: Section Writing](#phase-5-section-writing)
   - [Phase 6: Cross-Section Audit](#phase-6-cross-section-audit)
+  - [Phase 6.5: Evolution Gate](#phase-65-evolution-gate)
   - [Phase 7: Autonomous Review](#phase-7-autonomous-review)
   - [Phase 8: Reference Sync](#phase-8-reference-sync)
   - [Phase 9: Export](#phase-9-export)
   - [Phase 10: Retrospective](#phase-10-retrospective)
+  - [Phase 11: Final Delivery](#phase-11-final-delivery)
 - [Hook 品質保證系統](#hook-品質保證系統)
   - [Hook A: post-write](#hook-a-post-write)
   - [Hook B: post-section](#hook-b-post-section)
@@ -39,8 +42,9 @@
 
 Auto-Paper 是 MedPaper Assistant 的全自動論文撰寫技能，具備以下核心特性：
 
-- **11 階段 Pipeline**（Phase 0-11，含 `Phase 6.5`）：從期刊設定到 Word 匯出的完整流程
-- **42 項自動品質檢查**（Hook A-D）：寫作過程中即時修正，不需人工介入
+- **13 個主線 gate checkpoint**（Phase 0-11 + `Phase 6.5`）：從素材登記到 final delivery 的可審計流程
+- **Phase 2.1 sub-gate**：全文與用戶原始素材解析，透過 `phase=21` 獨立驗證，不計入主線 13 checkpoints
+- **79 項品質檢查**（56 Code-Enforced / 23 Agent-Driven）：寫作過程中即時修正，不需人工介入
 - **段落級 Section Brief**：`manuscript-plan.yaml` 控制每段的論點、引用、字數
 - **結構化 Autonomous Review**：模擬 4 種審稿角色，產出 Review Report + Author Response
 - **閉環自我改進**（Meta-Learning）：Hook D 根據統計調整閾值，系統會越來越好
@@ -87,7 +91,7 @@ Meta-Learning (Phase 10)      ← 更新 Skill / Hook / Instructions
 
 ---
 
-## 11-Phase Pipeline
+## 13 Main Gate Checkpoints
 
 ### Phase 0: Pre-Planning
 
@@ -126,7 +130,17 @@ Agent 按優先順序取得資訊：
 4. 選前 15-20 篇 → `save_reference_mcp(pmid)` 儲存（MCP-to-MCP 驗證資料）
 5. 可選：從 Zotero 匯入
 
-**Gate**：≥ 10 篇文獻已儲存
+**Gate**：依 paper type 達到最低文獻數；PubMed Search MCP 0.5.9 提供 46 個搜尋/檢索工具。
+
+### Phase 2.1: Fulltext & Source-Material Ingestion
+
+**定位**：獨立 sub-gate（`phase=21`），位於 Phase 2 與 Phase 3 之間；不計入主線 13 個 checkpoint。
+
+1. 對可取得全文的文獻執行 fulltext ingestion。
+2. 對 Phase 0 標記為 `pending_asset_aware` 的 DOCX/XLSX/PDF/PPTX/CSV 原始素材執行 asset-aware ingestion。
+3. 將 ingestion receipt 寫回 `.audit/source-materials.yaml` / fulltext status artifact。
+
+**Gate**：需要 ingestion 的 primary source materials 皆有 receipt；可取得全文的 references 已標記 `analysis_completed` 或有明確 fallback。
 
 ### Phase 3: Concept Development
 
@@ -186,6 +200,16 @@ FOR section IN writing_order:
 
 **Gate**：0 critical issues
 
+### Phase 6.5: Evolution Gate
+
+**目的**：建立 revision baseline，強制進入 Phase 7 review loop，避免 Hook A-C 全過時跳過審稿。
+
+1. 建立 baseline snapshot。
+2. 寫入 evolution log。
+3. 生成/更新 quality-scorecard。
+
+**Gate**：baseline snapshot + evolution-log entry + quality-scorecard 存在。
+
 ### Phase 7: Autonomous Review
 
 **模擬同行審查**，產出結構化 Review Report + Author Response。
@@ -228,7 +252,7 @@ FOR section IN writing_order:
 
 ### Phase 10: Retrospective
 
-**技能**：meta-learning（Hook D1-D7）
+**技能**：meta-learning（Hook D1-D9）
 
 閉環核心 — 系統從自身的執行經驗學習：
 
@@ -237,19 +261,31 @@ FOR section IN writing_order:
 3. 更新 SKILL.md Lessons Learned
 4. 分析 journal-profile 設定合理性
 5. D7: Review Retrospective — 分析 reviewer 效能，演化審稿指令
+6. D8: EQUATOR Retrospective — 回顧報告指引缺口
+7. D9: Tool Telemetry — 回顧工具誤用與描述改善建議
+
+### Phase 11: Final Delivery
+
+**目的**：確認最終交付物完整；Git provenance 是可用時的加分資訊，不是阻擋所有 paper delivery 的必要條件。
+
+1. 確認 DOCX/PDF 與 submission checklist。
+2. 寫入 final delivery / pipeline-completed artifact。
+3. 如在 git workspace 中，記錄 clean status、commit、push/tag 等 provenance。
+
+**Gate**：最終交付物存在且 export smoke 通過；Git provenance 缺失時回報 warning。
 
 ---
 
 ## Hook 品質保證系統
 
-42 項自動檢查分為 4 層，在寫作過程中即時觸發：
+79 項品質檢查（56 Code-Enforced / 23 Agent-Driven）分層觸發：
 
 | 層級       | 觸發時機                     | 檢查數 | 關注點                                                        |
 | ---------- | ---------------------------- | ------ | ------------------------------------------------------------- |
 | **Hook A** | 每次寫完（post-write）       | A1-A4  | 字數、引用密度、Anti-AI、Wikilink                             |
 | **Hook B** | section 完成（post-section） | B1-B7  | 概念一致、🔒 保護、方法學、Brief 合規                         |
 | **Hook C** | 全稿完成（post-manuscript）  | C1-C14 | 整體一致性、投稿清單、數量合規、時間一致性、強 claim 證據對齊 |
-| **Hook D** | Phase 10 回顧                | D1-D7  | Hook 效能、閾值調整、自我改進                                 |
+| **Hook D** | Phase 10 回顧                | D1-D9  | Hook 效能、閾值調整、review/EQUATOR/tool telemetry 自我改進   |
 
 ### Hook A: post-write
 
@@ -312,6 +348,8 @@ FOR section IN writing_order:
 | D5  | Instruction 改進建議                                    |
 | D6  | 審計軌跡記錄                                            |
 | D7  | Review Retrospective：分析 reviewer 效能 + 演化審稿指令 |
+| D8  | EQUATOR Retrospective：分析 reporting checklist 效能    |
+| D9  | Tool Telemetry：分析工具描述與 pending evolution 建議   |
 
 ---
 

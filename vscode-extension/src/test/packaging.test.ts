@@ -143,6 +143,8 @@ describe('extension entry point', () => {
         expect(content).toContain("'Zotero Keeper'");
         expect(content).toContain("'Draw.io Diagrams'");
         expect(content).toContain("'pubmed-search-mcp'");
+        expect(content).toContain('NCBI_EMAIL: process.env.NCBI_EMAIL || process.env.ENTREZ_EMAIL');
+        expect(content).not.toContain('ENTREZ_EMAIL: process.env.ENTREZ_EMAIL');
         expect(content).toContain("'zotero-keeper'");
         expect(content).toContain("integrations', 'next-ai-draw-io', 'mcp-server'");
         expect(content).toContain("integrations', 'drawio-mcp'");

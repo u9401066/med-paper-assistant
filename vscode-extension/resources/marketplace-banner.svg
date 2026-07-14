@@ -56,7 +56,7 @@
 
     <rect x="480" y="334" width="254" height="88" rx="24" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.32"/>
     <text x="508" y="372" fill="#FFD289" font-size="16" font-weight="700">AUTO PAPER</text>
-    <text x="508" y="408" fill="#F7FBFF" font-size="28" font-weight="800">11 phases / 78 hooks</text>
+    <text x="508" y="408" fill="#F7FBFF" font-size="28" font-weight="800">13 checkpoints / 79 hooks</text>
 
     <rect x="88" y="454" width="480" height="30" rx="15" fill="#F2A33A" fill-opacity="0.14"/>
     <text x="112" y="474" fill="#FFE0A8" font-size="16" font-weight="700">Search  •  Think  •  Draft  •  Review  •  Export</text>

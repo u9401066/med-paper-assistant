@@ -20,6 +20,7 @@ from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.interfaces.mcp.tool_surface import ToolSurface, uses_compact_tool_surface
 
 from .audit_hooks import register_audit_hook_tools
+from .constraint import register_constraint_tools
 from .facade import register_review_facade_tools
 from .formatting import register_formatting_tools
 from .pipeline_gate import register_pipeline_tools
@@ -55,6 +56,10 @@ def register_review_tools(
         mcp,
         register_public_verbs=register_public_verbs,
     )
+    constraint_tools = register_constraint_tools(
+        mcp,
+        register_public_verbs=register_public_verbs,
+    )
     if pipeline_tools:
         register_review_facade_tools(
             mcp,
@@ -62,6 +67,7 @@ def register_review_tools(
             pipeline_tools=pipeline_tools,
             formatting_tools=formatting_tools,
             health_tools=health_tools,
+            constraint_tools=constraint_tools,
         )
 
 
@@ -71,4 +77,5 @@ __all__ = [
     "register_audit_hook_tools",
     "register_review_facade_tools",
     "register_tool_health_tools",
+    "register_constraint_tools",
 ]

@@ -59,7 +59,7 @@ if (Test-Path $mcpJsonPath) {
             "command": "uvx",
             "args": ["pubmed-search-mcp"],
             "env": {
-                "ENTREZ_EMAIL": "medpaper@example.com"
+                "NCBI_EMAIL": "medpaper@example.com"
             }
         },
         "cgu": {

@@ -11,6 +11,43 @@
   - Restored a real VSIX ESLint gate and synchronized managed Python/skill bundles
   - Validation: Python 1278 passed; VSIX 169 passed; ruff, format, mypy, ESLint, and bundle check passed
 
+- **v0.7.11 Phase gate + release hardening (2026-05-19)**:
+
+  - Completed six-agent-per-phase formal review follow-up for the 13 checkpoint surface and implemented the release-blocking fixes found in Phase 8-11.
+  - Hardened Phase 8 reference sync, Phase 9 export integrity, Phase 10 D1-D9 meta-learning provenance, and Phase 11 final-delivery prerequisites.
+  - Added DOCX/PDF post-export validation in `ExportPipeline`; corrupt/missing export files no longer report success.
+  - Added structured `analysis_steps` to `MetaLearningEngine` audit records and made Phase 10 reject count-only audit YAML without matching `run_meta_learning` event provenance.
+  - Packaged runtime templates/CSL/journal profiles into the PyPI wheel and added cross-surface template path resolution.
+  - Fixed Git ahead/behind parsing for final provenance checks and G9 hook warnings.
+  - Updated project skeletons so manuscript/library-wiki projects create `.audit/` and expose `paths.audit`.
+  - Hardened release workflow: least-privilege permissions, pinned `setup-uv` 0.10.0, frozen installs, `lint-security` publish dependency, package.json version validation without Node pre-setup.
+  - Scoped Hatch sdist includes after detecting a 590 MB accidental sdist; rebuilt sdist is 772 KB and wheel is 656 KB with templates included.
+  - Updated README EN/zh-TW, CHANGELOG, ROADMAP, auto-paper guide, MCP instructions, source/VSIX skills, and bundled Python mirror to facade-first guidance.
+  - Packaged `vscode-extension/medpaper-assistant-0.7.11.vsix` (1.9 MB).
+  - Verification passed: Python 1305 passed / 1 skipped / 26 deselected; VSIX 169 passed; `npm run validate -- --skip-tests` 92 passed; ruff, ruff format, mypy, bandit, MCP boot, tool-surface authority, uv build, VSIX smoke, wheel-template smoke, npm audit, and `git diff --check` passed.
+  - Published segmented commits and annotated tag `v0.7.11` to GitHub. CI passed on `master`; release workflow passed validate/smoke/test/security/build/PyPI, but VS Marketplace publish failed because `VSCE_PAT` was not authorized. GitHub Release was manually created with VSIX, wheel, and sdist assets.
+
+- **v0.7.10 upstream dependency + docs/harness release prep (2026-05-13)**:
+
+  - Rebasing completed on top of upstream `origin/master` `8db10ed` (`v0.7.9`), using remote latest as conflict authority.
+  - Updated external MCP contracts: PubMed Search MCP 0.5.9 / 46 tools, Asset-Aware MCP 0.6.30, CGU upstream master, regenerated `uv.lock`.
+  - Updated setup/migration/VSX runtime for PubMed `NCBI_EMAIL`, `pubmed_search.presentation.mcp_server`, and `uvx pubmed-search-mcp`.
+  - Updated README EN/zh-TW, Auto-Paper guide, multi-stage review design, skill/prompt assets, SVG/banner, VSX README/package wording, and repo counts to 117 full / 22 compact, PubMed 46, total ~176 tools, 79 hooks, and 13 pipeline checkpoints.
+  - Corrected VSIX bundle scope back to authority-defined curated surface: 14 skills, 13 prompt workflows, 9 agents, 4 templates, 7 support files, 10 chat commands, 11 palette commands.
+  - Added tests for 13 checkpoint docs, PubMed harness currency, tool-surface authority, source/bundle mirror sync, and PubMed migration/runtime entrypoint behavior.
+  - Added pre-commit/ruff exclusions for external mirrored code under `integrations/` and `vscode-extension/bundled/` so source/bundle parity is not broken by root formatters.
+  - Fixed Windows CI path/config tests by making UTF-8 text decoding explicit in `tests/test_config_paths.py`.
+  - Packaged `vscode-extension/medpaper-assistant-0.7.10.vsix` (1.9 MB).
+  - Verification passed: `uv lock --check`; `uv run ruff check .`; `uv run mypy src --ignore-missing-imports`; `uv run pytest` (1285 passed / 1 skipped / 26 deselected); `uv run python scripts/sync_repo_counts.py --check`; `uv run python scripts/smoke_test.py` (14 checks); `npm run bundle:check`; `npm test` (169 passed); `npm run validate` (92 passed / 0 warnings / 0 failed); `git diff --check`.
+  - Published `v0.7.10`; release workflow and CI completed successfully after the CI follow-up commit/tag alignment.
+
+- **Post-v0.7.10 CI/hook hygiene follow-up (2026-05-13)**:
+
+  - Updated GitHub Actions workflows to Node 24-ready major actions and switched Node jobs to Node.js 24 to address deprecation warnings.
+  - Changed `scripts/hooks/paper_precommit.py` so non-draft commits skip silently and staged draft commits only scan projects with staged draft files.
+  - Added workflow contract tests and paper-precommit regression tests for the new behavior.
+  - Validation passed: `tests/test_embedded_hooks.py`, `tests/test_ci_workflows.py`, targeted `ruff check/format`, `paper_precommit.py`, and `git diff --check`.
+
 - **v0.7.9 Vancouver export + FOAM compatibility release prep (2026-04-24)**:
 
   - Fixed Vancouver/BJA superscript DOCX/PDF export raw `[@citekey]` leakage by always enabling Pandoc citeproc when bibliography data is present and adding `vancouver-superscript.csl`
@@ -101,6 +138,7 @@
 ## Doing
 
 - Segmented production refresh: first foundation commit, then academic output domain profiles and evidence/exemplar artifacts
+- Monitor VS Marketplace secret authorization before the next publication attempt
 
 ## Next
 
@@ -108,7 +146,8 @@
 - Implement ranked evidence-context ledger, perspective question map, and bounded branch audit artifacts
 - Continue vulture/orphan cleanup and DDD dependency remediation with regression tests
 - Build the human-facing documentation website with Mermaid-enabled architecture/workflow pages
-- Push segmented commits when DNS/network access returns; release a new version only after full validate/VSIX install smoke
+- Fix/rotate `VSCE_PAT` publisher authorization before the next Marketplace publish attempt.
+- Push segmented commits after each validated milestone; release a new version only after full validate/VSIX install smoke
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features

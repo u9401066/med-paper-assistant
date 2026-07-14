@@ -3,7 +3,7 @@ Integration test — end-to-end pipeline verification.
 
 Validates that all infrastructure components can initialise and run
 against a realistic project structure.  Covers:
-  - PipelineGateValidator phase sweep (0-10)
+  - PipelineGateValidator phase sweep (13 gate checkpoints)
   - WritingHooksEngine all hooks (A5/A6/B8/C9/F)
   - QualityScorecard create + read
   - HookEffectivenessTracker record + report

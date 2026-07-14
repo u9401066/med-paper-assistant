@@ -19,6 +19,8 @@ from med_paper_assistant.shared.path_guard import (
     normalize_relative_filename,
     resolve_child_path,
 )
+from med_paper_assistant.shared.slug import slugify_token
+from med_paper_assistant.shared.yaml_escape import escape_yaml_value
 
 logger = structlog.get_logger()
 
@@ -220,13 +222,10 @@ class ReferenceManager:
         os.makedirs(self._registry_dir(), exist_ok=True)
 
     def _yaml_escape(self, value: str) -> str:
-        return value.replace("\\", "\\\\").replace('"', '\\"')
+        return escape_yaml_value(value)
 
     def _slugify(self, value: str, fallback: str = "untitled") -> str:
-        import re
-
-        normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-        return normalized or fallback
+        return slugify_token(value, fallback)
 
     def _compute_text_hash(self, content: str) -> str:
         return hashlib.sha256(content.encode("utf-8")).hexdigest()
@@ -3403,43 +3402,6 @@ class ReferenceManager:
 
         # Format: author + year + underscore + PMID for easy verification
         return f"{first_author}{year}_{pmid}"
-
-    def _create_foam_alias(self, pmid: str, citation_key: str):
-        """
-        Create a Foam-friendly alias file that redirects to the main content.
-        This allows users to use [[smith2023_41285088]] for easy linking and verification.
-
-        Args:
-            pmid: PubMed ID.
-            citation_key: Human-friendly citation key with PMID (e.g., 'smith2023_41285088').
-        """
-        try:
-            alias_filename = self._citation_note_filename(citation_key)
-            alias_path = os.path.join(self.base_dir, alias_filename)
-            ref_dir = self._reference_dir(pmid)
-        except (PathGuardError, ValueError):
-            return
-
-        # Since citation_key now includes PMID, collisions are impossible
-        # But still check just in case
-        if os.path.exists(alias_path):
-            return  # Already exists, no need to create
-
-        # Create a redirect file that includes the content
-        # This way Foam can preview it directly
-        content_path = os.path.join(ref_dir, "content.md")
-
-        if os.path.exists(content_path):
-            with open(content_path, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            # Add alias info to the top
-            alias_content = f"<!-- Alias for PMID:{pmid} -->\n"
-            alias_content += f"<!-- Verify: https://pubmed.ncbi.nlm.nih.gov/{pmid}/ -->\n\n"
-            alias_content += content
-
-            with open(alias_path, "w", encoding="utf-8") as f:
-                f.write(alias_content)
 
     def _get_preferred_citation_style(self) -> Optional[str]:
         """

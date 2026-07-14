@@ -60,6 +60,7 @@ _PHASE_NAMES = {
     0: "Configuration",
     1: "Setup",
     2: "Literature",
+    21: "Fulltext Ingestion",
     3: "Concept",
     4: "Planning",
     5: "Writing",
@@ -71,7 +72,7 @@ _PHASE_NAMES = {
     10: "Retrospective",
     11: "Final Delivery",
 }
-_ALL_PHASES = [0, 1, 2, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
+_ALL_PHASES = [0, 1, 2, 21, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11]
 
 # Module-level cache: project path → AutonomousAuditLoop instance
 _active_loops: dict[str, AutonomousAuditLoop] = {}
@@ -330,11 +331,11 @@ def register_pipeline_tools(
         - 7: Autonomous Review (review reports + responses per round)
         - 8: Reference Sync (references section)
         - 9: Export (docx/pdf)
-        - 10: Retrospective (D1-D8 analysis)
+        - 10: Retrospective (D1-D9 analysis)
         - 11: Final Delivery (exports plus optional Git provenance)
 
         Args:
-            phase: Phase number to validate (0-11, use 65 for Phase 6.5)
+            phase: Phase number to validate (0-11, use 21 for Phase 2.1 and 65 for Phase 6.5)
             project: Project slug (optional, uses current project)
             response_format: "markdown" or "json"
             compact: If true, return only failing checks
@@ -1104,6 +1105,9 @@ def register_pipeline_tools(
                 sections_to_rewrite=section_list,
             )
 
+            # Surface the continuity decision (autonomous rewrite vs escalation)
+            continuity = ckpt.get_continuity_plan()
+
             # Auto-sync workspace state
             _sync_to_workspace_state(
                 slug=slug,
@@ -1113,12 +1117,19 @@ def register_pipeline_tools(
                 review_verdict=RoundVerdict.REWRITE_NEEDED.value,
             )
 
+            continuity_line = (
+                "**Continuity**: ✅ Autonomous — rewrite the sections and continue without asking"
+                if continuity.get("auto_resume")
+                else "**Continuity**: ⚠️ Human checkpoint required (regression threshold reached)"
+            )
+
             lines = [
                 "# 🔁 Pipeline Regression: Phase 7 → Phase 5",
                 "",
                 f"**Reason**: {reason}",
                 f"**Sections to rewrite**: {', '.join(section_list)}",
                 f"**Regression count**: {regression_count + 1}/2",
+                continuity_line,
                 "",
                 "## Next Steps",
                 "",
@@ -1254,6 +1265,7 @@ def register_pipeline_tools(
             changed = resume_result["changed"]
             changed_files = resume_result["changed_files"]
             phase_at_pause = resume_result["phase_at_pause"]
+            auto_resume = resume_result.get("auto_resume", not changed)
 
             _sync_to_workspace_state(
                 slug=slug,
@@ -1262,7 +1274,7 @@ def register_pipeline_tools(
                 next_action=(
                     f"Re-run audits for changed files: {', '.join(changed_files)}"
                     if changed
-                    else f"Continue from Phase {phase_at_pause}"
+                    else f"Auto-resume safe — continue from Phase {phase_at_pause}"
                 ),
             )
 
@@ -1271,6 +1283,7 @@ def register_pipeline_tools(
                 "",
                 f"**Phase**: {phase_at_pause}",
                 f"**Drafts modified during pause**: {'Yes' if changed else 'No'}",
+                f"**Auto-resume**: {'✅ Safe — continue autonomously' if auto_resume else '⚠️ Review changes first'}",
             ]
 
             if changed:
@@ -1302,7 +1315,8 @@ def register_pipeline_tools(
                 lines.extend(
                     [
                         "",
-                        "No changes detected. Continuing from where we left off.",
+                        "No changes detected. **Auto-resume is safe** — continue from where we "
+                        "left off without manual intervention.",
                     ]
                 )
 

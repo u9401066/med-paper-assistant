@@ -7,7 +7,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.0] - 2026-06-12
+
+### Added
+
+- Added an article-type-aware applicability layer to the always-on writing harness (`med_paper_assistant.infrastructure.persistence.writing_hooks._applicability`) so genre-specific hooks no longer misfire on manuscripts that lack a statistical Methods/Results structure. The statistical Methods↔Results hooks (B8 data-claim alignment, B11 results-interpretation guard, B16 effect-size reporting) are now gated to empirical paper types (`original-research`, `systematic-review`, `meta-analysis`); for `letter`, `review-article`, `case-report`, and `other` they are recorded as an auditable _not-applicable_ `HookResult` (`passed=True`, `stats.applicable=False`) instead of producing false-positive failures. The common tier (anti-AI, language, word count, citation integrity, wikilinks, paragraph/structure checks) still applies to every type, and the default `original-research` keeps the full legacy hook set unchanged. Adds `WritingHooksEngine.hook_applicability()` for tooling/audit, a single-source applicability matrix, design doc (`docs/design/article-type-aware-harness.md`), and tests (`tests/test_hook_applicability.py`).
+- Added a monotonic constraint ledger (`med_paper_assistant.infrastructure.persistence.constraint_ledger.ConstraintLedger`) that models manuscript convergence as a ratchet: problems raised by hooks/reviewers become persistent constraints that can only move to `satisfied` or (with a required reason) `waived`, never silently disappear; convergence is defined as zero open constraints. Includes idempotent `ingest_hook_issues`, auditable transition history, and graceful handling of a corrupt ledger file.
+- Exposed the constraint ledger through a new full-surface MCP tool, `constraint_action` (`status`/`add`/`satisfy`/`waive`/`reopen`/`ingest`), bringing the MCP tool surface to **118 full / 22 compact**. Compact-surface clients reach the same ledger via `run_quality_checks(action="constraint_ledger"|"constraint_add"|"constraint_satisfy"|"constraint_waive"|"constraint_reopen")`. The tool defaults to the read-only `status` action so smoke discovery stays side-effect free.
+- Added an offline DOI validator (`med_paper_assistant.shared.doi`) and wired it into Hook P7 (reference integrity) so any DOI attached to a cited reference must be syntactically valid (`10.<registrant>/<suffix>`) before the manuscript is finalized; malformed DOIs are now CRITICAL blocking issues while references without a DOI remain acceptable.
+- Added a shared `normalize_doi_for_filename` helper in `med_paper_assistant.shared.doi` as the single source of truth for filesystem-safe DOI slugs.
+- Added a shared slug module (`med_paper_assistant.shared.slug`) exposing `slugify_name` (project-name slugs that drop punctuation) and `slugify_token` (generic tokens that keep punctuation as hyphen separators) as the single source of truth for the two distinct slug algorithms.
+- Added an adversarial / metamorphic verification harness (`tests/test_adversarial_hooks.py`, design in `docs/design/adversarial-verification-harness.md`) that continuously PROVES the quality hooks reject bad input, not just accept good input. Each covered hook (A3 anti-AI, A5 language, A6 overlap, B8 stats alignment, C3 N-value, C4 abbreviation, P7 reference/DOI integrity) has a known-good fixture that must pass and a known-bad mutation that must be caught, plus a coverage ratchet that prevents silently losing adversarial coverage.
+
+### Changed
+
+- Corrected stale documentation that described `DomainConstraintEngine` as covering "3 paper types, 26 constraints" (`AGENTS.md`, `memory-bank/architect.md`); it actually covers **7 paper types** with ~69 structured constraints.
+- Consolidated duplicated DOI filename-normalization logic: `ReferenceId._normalize_doi` and `ReferenceConverter._normalize_doi` now delegate to the shared `normalize_doi_for_filename` instead of each carrying an identical regex implementation.
+- Consolidated four duplicated slug implementations onto the shared slug module: `Project.generate_slug` and `ProjectManager._slugify` now delegate to `slugify_name`, while `ReferenceManager._slugify` and `FoamSettingsManager._slugify` delegate to `slugify_token` (preserving each call site's exact fallback and dot-handling behavior).
+- Consolidated the duplicated `_yaml_escape` one-liner onto a new shared `med_paper_assistant.shared.yaml_escape.escape_yaml_value` helper; `ReferenceManager._yaml_escape` now delegates to it and `library_notes.py` imports it directly. Added `tests/test_yaml_escape.py`, which round-trips escaped values through a real YAML parser to lock in the required backslash-then-quote escape order.
+
+### Removed
+
+- Removed two verified dead private helpers with zero call sites across source, tests, and the bundled mirror: `ReferenceManager._create_foam_alias` and the unused `_insert_line_before` in the legacy DOCX exporter.
+- Removed five dead `if True:` scaffolding conditionals (behavior-preserving dedents) left over from earlier refactors in the draft/validation MCP tools (`draft/templates.py`, `draft/writing.py`, `validation/concept.py`), dropping vulture's 100%-confidence dead-code findings from 6 to 1.
+
+### Fixed
+
+- Re-synced the bundled Python mirror (`vscode-extension/bundled/tool/med_paper_assistant`) with source, restoring the v0.7.12 continuity-harness changes in `checkpoint_manager.py` and `pipeline_gate.py` that had not been mirrored, so the bundled-mirror parity test passes again.
+- Applied `ruff format` to six tracked files that carried committed formatting drift (`infrastructure/persistence/checkpoint_manager.py` plus five hook/ledger/pipeline test modules) and re-synced the bundled mirror, so the release workflow's `ruff format --check src/ tests/` lint gate passes.
+- Re-synced the stale `_capability-index.md` bundle copy (`vscode-extension/prompts/_capability-index.md`) with its `.github/prompts` source so the `vsx-bundle-drift` gate (`npm run bundle:check`) reports all bundled assets in sync.
+- Restored Hook C14 (claim-evidence alignment) to the meta-learning coverage set: `MetaLearningEngine.EXPECTED_HOOKS` and the declared C-series count in `scripts/check_consistency.py` had not been updated when C14 was introduced, so the L3 hook-coverage analysis silently skipped C14 and the consistency checker reported a spurious 78-vs-79 mismatch. Docs, code, and tooling now consistently declare **79 checks** and `check_consistency.py` is back to 6/6.
+
+## [0.7.12] - 2026-06-11
+
+### Added
+
+- Added a pipeline continuity harness so paused runs return an explicit auto-resume decision: `CheckpointManager.get_continuity_plan()` and an enriched `resume_from_pause()` now report `auto_resume`, `next_action`, and `reason`, wired into the `resume_pipeline` and `request_section_rewrite` MCP reports.
+- Added bounded-autonomy safeguards to the continuity harness: a `MAX_CONSECUTIVE_AUTO_RESUMES` budget forces a periodic human checkpoint, and regression states escalate to a human checkpoint once the regression count exceeds the safe threshold.
+- Added a full Phase 0→11 end-to-end lifecycle test (`tests/test_e2e_pipeline_lifecycle.py`) that walks every gate FAIL→PASS in order, plus edge cases for prerequisite skipping, corrupted artifacts, out-of-order execution, regression recovery, and partial review loops.
+
+### Changed
+
+- Extended the pause/resume continuity decision into a single shared helper so the peek (`get_continuity_plan`) and resume (`resume_from_pause`) paths cannot drift, and surfaced the auto-resume status in the checkpoint recovery summary.
+
+## [0.7.11] - 2026-05-19
+
+### Added
+
+- Added release-hardening tests for version parity, README authority counts, least-privilege release permissions, frozen dependency installs, and publish-time security gates.
+- Added a VSIX package smoke script plus `test:ci` / `sync-assets:check` package scripts for explicit extension release validation.
+
+### Changed
+
+- Hardened Phase 8-11 gates so later phases now require completed Phase 7 artifacts, resolved citation wikilinks, structurally valid DOCX/PDF exports, Phase 10 D1-D9 `analysis_steps`, and clean final-delivery prerequisites before optional Git provenance checks run.
+- Packaged built-in templates/CSL/journal profiles into PyPI wheels and taught runtime template resolution to work from repo, VSIX, and installed-wheel layouts.
+- Updated GitHub release workflow to least-privilege permissions, pinned `setup-uv` to 0.10.0, switched release installs to `uv sync --frozen --all-extras`, and added a blocking `lint-security` job before publish/release jobs.
+- Synced README / README.zh-TW / bundled instructions / skills to facade-first `project_action`, `draft_action`, `inspect_export`, and `export_document` calls, and refreshed tool counts for the 117 full / 22 compact mdpaper surface plus 46 PubMed and 24 CGU tools.
+- Updated project skeletons so manuscript and library-wiki projects both create `.audit/` and expose an `audit` path from project metadata.
+
+### Fixed
+
+- Updated GitHub Actions workflows to Node 24-ready action majors (`checkout@v6`, `setup-node@v6`, `setup-python@v6`, `setup-uv@v7`, artifact actions, `github-script@v9`, and `action-gh-release@v3`) and switched Node jobs to Node.js 24.
+- Made the paper pre-commit hook skip silently when no draft files are staged, and limit P-series checks to projects with staged draft files so unrelated release commits no longer print research-draft warnings.
+- Fixed remote drift parsing for Git provenance checks so `branch.ab +0 -N` is correctly reported as behind upstream instead of "pushed".
+- Fixed `project_action(action="create")` with no workflow argument so the facade preserves the manuscript default rather than passing an empty workflow mode.
+- Fixed Phase 8 wikilink resolution for legacy flat `references/*.md` projects and tied Phase 10 audit validation to matching `run_meta_learning` evolution-log provenance.
+
+## [0.7.10] - 2026-05-13
+
+### Changed
+
+- Updated Auto-Paper README, guide, prompt, skill, VSX copy, and visual assets to describe the current 13 main gate checkpoints (`Phase 0-11 + Phase 6.5`) plus the independently validated `Phase 2.1` fulltext/source-material sub-gate.
+- Synced upstream MCP integration refs and release counts for PubMed Search MCP 0.5.9 (46 tools), Asset-Aware MCP 0.6.30, CGU upstream master, 117 full / 22 compact `mdpaper` tools, and 79 quality hooks.
+- Expanded source/VSX harness parity so bundled skills, prompts, agents, and Python mirrors stay aligned with the repository authoring surface.
+
+### Fixed
+
+- Fixed VSX package validation so it selects the `.vsix` matching `package.json` when older local package files are present.
 
 ### Added
 

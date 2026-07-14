@@ -29,8 +29,8 @@ Each skill is a directory containing:
 
 ## How Skills Work
 
-1. **Loading**: When the extension activates, all `SKILL.md` files are loaded
-2. **Injection**: Skills are combined into MCP server instructions
+1. **Loading**: When the extension activates, only skills listed in `bundle-manifest.json` are copied/registered for the packaged surface
+2. **Injection**: Manifest-listed skills are available to the agent; authoring-only skill directories excluded by `.vscodeignore` stay out of the VSIX
 3. **Usage**: The AI agent references these skills when processing requests
 
 ## Adding New Skills

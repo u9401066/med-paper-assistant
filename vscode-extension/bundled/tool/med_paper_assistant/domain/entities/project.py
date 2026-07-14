@@ -14,6 +14,7 @@ from med_paper_assistant.shared.constants import (
     PAPER_TYPES,
     WORKFLOW_MODES,
 )
+from med_paper_assistant.shared.slug import slugify_name
 
 
 class ProjectStatus(Enum):
@@ -158,11 +159,4 @@ class Project:
     @staticmethod
     def generate_slug(name: str) -> str:
         """Generate URL-safe slug from project name."""
-        import re
-
-        slug = name.lower().strip()
-        slug = re.sub(r"[\s_]+", "-", slug)
-        slug = re.sub(r"[^a-z0-9\-]", "", slug)
-        slug = re.sub(r"-+", "-", slug)
-        slug = slug.strip("-")
-        return slug or "untitled"
+        return slugify_name(name)

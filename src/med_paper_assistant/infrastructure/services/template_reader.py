@@ -12,16 +12,12 @@ from typing import List, Optional
 from docx import Document
 
 from med_paper_assistant.shared.path_guard import resolve_child_path
+from med_paper_assistant.shared.template_paths import get_templates_dir
 
 
 def _find_project_templates_dir() -> Path:
     """Locate the repository templates directory regardless of caller or bundle depth."""
-    current = Path(__file__).resolve()
-    for parent in current.parents:
-        templates_dir = parent / "templates"
-        if templates_dir.exists() and (parent / "pyproject.toml").exists():
-            return templates_dir
-    return current.parents[3] / "templates"
+    return get_templates_dir()
 
 
 @dataclass

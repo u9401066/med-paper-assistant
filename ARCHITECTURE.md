@@ -37,7 +37,7 @@ MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫
 
 ## MCP Server（DDD Architecture）
 
-主要的 Python MCP Server，full surface 提供 115 個 tools（88 個 domain tools + 6 個 facade entrypoints），另暴露 3 個 prompts 與 3 個 resources；compact default 暴露 44 個 tools。
+主要的 Python MCP Server，full surface 提供 118 個 tools，另暴露 3 個 prompts 與 3 個 resources；compact default 採 facade-first surface，暴露 22 個 tools。這些公開數量由 `tool-surface-authority.json` 與 validation/release gates 驗證。
 
 ### 層級結構
 
@@ -77,7 +77,7 @@ src/med_paper_assistant/
 │   │   ├── pipeline_gate_validator.py  # Phase Gate 驗證器
 │   │   ├── quality_scorecard.py        # 品質計分卡（8 維度）
 │   │   ├── hook_effectiveness_tracker.py # Hook 效能追蹤
-│   │   ├── meta_learning_engine.py     # D1-D8 自我學習引擎
+│   │   ├── meta_learning_engine.py     # D1-D9 自我學習引擎
 │   │   ├── evolution_verifier.py       # 跨專案演化驗證
 │   │   ├── writing_hooks/              # 寫作 Hooks 套件
 │   │   │   ├── _constants.py           #   常數 + Anti-AI 詞庫
@@ -157,7 +157,7 @@ interfaces → application → domain ← infrastructure
 ### 循環架構
 
 ```
-Pipeline Run（Phase 1-9）
+Pipeline Run（13 gate checkpoints: Phase 0-11 + 6.5）
     │
     │  Hook A/B/C/E/F 在寫作過程中即時觸發
     │  record_hook_event() 記錄每次 hook 的 trigger/pass/fix/false_positive
@@ -193,7 +193,7 @@ verify_evolution() → 跨專案演化驗證
 | 元件                         | 檔案                            | 職責                                                                                                   |
 | ---------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | **QualityScorecard**         | `quality_scorecard.py`          | 8 維度品質評分持久化（citation, methodology, text, concept, format, figure, equator, reproducibility） |
-| **HookEffectivenessTracker** | `hook_effectiveness_tracker.py` | 追蹤 78 個 Hook 的 trigger/pass/fix/FP 事件，計算效能指標                                              |
+| **HookEffectivenessTracker** | `hook_effectiveness_tracker.py` | 追蹤 79 個 Hook 的 trigger/pass/fix/FP 事件，計算效能指標                                              |
 | **MetaLearningEngine**       | `meta_learning_engine.py`       | D1-D9 分析引擎：統計分析 → 閾值建議 → 經驗萃取 → 審計紀錄 → 品質趨勢                                   |
 | **WritingHooksEngine**       | `writing_hooks/` (package)      | Code-enforced hooks：A/B/C/F/G/P 系列，Mixin 架構；12 子模組                                           |
 | **ReviewHooksEngine**        | `review_hooks.py`               | R1-R6 審查品質 Hook：報告深度、回應完整、EQUATOR、追蹤性、Anti-AI、引用預算（Phase 7 HARD GATE）       |
@@ -211,7 +211,7 @@ verify_evolution() → 跨專案演化驗證
 | L3 Instruction | 事實性內容修改                                                                    | 記錄 decisionLog       |
 | **禁止**       | 修改 CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則、Hook D 本身 | —                      |
 
-### Hook 架構（78 checks — 55 Code-Enforced / 23 Agent-Driven）
+### Hook 架構（79 checks — 56 Code-Enforced / 23 Agent-Driven）
 
 | 類型                  | 時機            | 數量 | 重點                                                                                                                                                                                     |
 | --------------------- | --------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -267,13 +267,13 @@ DomainConstraintEngine.evolve()
 
 Copilot Agent Mode 同時連接多個 MCP Server：
 
-| Server            | 來源                                                                                                                                                                   | 用途                                                           | Tools 數量 |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------- |
-| **mdpaper**       | 本專案                                                                                                                                                                 | 專案管理、草稿、引用、審查、匯出；另含 3 prompts / 3 resources | 88         |
-| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule)                                                                                                                          | PubMed 文獻搜尋                                                | 40         |
-| **cgu**           | `integrations/cgu/` (submodule)                                                                                                                                        | 創意發想（快思慢想）                                           | 13         |
-| **drawio**        | `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` → fallback `node integrations/drawio-mcp/src/index.js` → `npx -y @drawio/mcp` | CONSORT/PRISMA 圖表                                            | ~5         |
-| **zotero-keeper** | `uvx zotero-keeper`                                                                                                                                                    | Zotero 書目管理                                                | ~15        |
+| Server            | 來源                                                                                                                                                                   | 用途                                                           | Tools 數量            |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------- |
+| **mdpaper**       | 本專案                                                                                                                                                                 | 專案管理、草稿、引用、審查、匯出；另含 3 prompts / 3 resources | 118 full / 22 compact |
+| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule)                                                                                                                          | PubMed 文獻搜尋                                                | 46                    |
+| **cgu**           | `integrations/cgu/` (submodule)                                                                                                                                        | 創意發想（快思慢想）                                           | 24                    |
+| **drawio**        | `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` → fallback `node integrations/drawio-mcp/src/index.js` → `npx -y @drawio/mcp` | CONSORT/PRISMA 圖表                                            | ~5                    |
+| **zotero-keeper** | `uvx zotero-keeper`                                                                                                                                                    | Zotero 書目管理                                                | ~15                   |
 
 ### MCP-to-MCP 通訊
 
