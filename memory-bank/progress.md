@@ -9,6 +9,8 @@
   - Added 48 native Mermaid diagrams and five new SVG maps; updated three legacy SVGs and validated all eight for XML/accessibility plus rendered readability
   - Added locked GitHub Pages build/deploy workflow and source contract tests for navigation completeness, links, diagrams, SVG accessibility, and deploy ordering
   - Local gates passed: docs source validator, 7 targeted tests, Ruff, and `mkdocs build --strict`
+  - Published commit `153e3b0` to `master`, enabled workflow-based GitHub Pages, set the repository homepage, and verified six public routes with HTTP 200
+  - Remote `Documentation Pages` run `29381248488` and main CI run `29381248501` passed, including three-platform smoke, Python, VSIX, lint/security, Markdown, and Dashboard gates
 
 - **v0.9.0 formal-output and production harness (2026-07-14)**:
 
@@ -163,7 +165,6 @@
 
 ## Doing
 
-- Publish and verify the MkDocs Wiki through GitHub Pages
 - Monitor VS Marketplace secret authorization before the next publication attempt
 
 ## Next
