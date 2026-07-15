@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">MedPaper Assistant mark</title>
+  <desc id="desc">An open research notebook connected to an evidence node.</desc>
+  <rect width="64" height="64" rx="16" fill="#0F766E"/>
+  <path d="M13 17c8-2 14 0 19 5v29c-5-5-11-7-19-5V17Z" fill="#ECFEFF"/>
+  <path d="M51 17c-8-2-14 0-19 5v29c5-5 11-7 19-5V17Z" fill="#CCFBF1"/>
+  <path d="M32 22v29" stroke="#0F766E" stroke-width="2.5"/>
+  <circle cx="47" cy="15" r="7" fill="#F59E0B" stroke="#FEF3C7" stroke-width="2"/>
+  <path d="M45 15h4M47 13v4" stroke="#17302B" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

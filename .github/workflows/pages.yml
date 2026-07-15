@@ -1,0 +1,83 @@
+name: Documentation Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/pages.yml"
+      - "docs/**"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "scripts/build_docs_site.py"
+      - "tests/test_docs_site.py"
+  pull_request:
+    branches: [master]
+    paths:
+      - ".github/workflows/pages.yml"
+      - "docs/**"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "scripts/build_docs_site.py"
+      - "tests/test_docs_site.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build documentation wiki
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install locked documentation dependencies
+        run: uv sync --frozen --only-group docs
+
+      - name: Validate wiki source contracts
+        run: uv run --no-sync python scripts/build_docs_site.py --check
+
+      - name: Build strict static site
+        run: uv run --no-sync mkdocs build --strict
+
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    name: Deploy documentation wiki
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Three-layer quality evolution system</title>
+  <desc id="desc">Event hooks, code enforcement, and scheduled evolution form three auditable layers around the manuscript.</desc>
+  <rect width="1600" height="900" rx="42" fill="#F7FAFC"/>
+  <text x="88" y="88" fill="#0F766E" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="800" letter-spacing="3">QUALITY IS A CONTROL LOOP</text>
+  <text x="88" y="146" fill="#16302B" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="800">Three layers turn every round into evidence.</text>
+
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="140" y="226" width="1320" height="520" rx="52" fill="#DFF7F1" stroke="#14B8A6" stroke-width="3"/>
+    <text x="190" y="282" fill="#0F766E" font-size="22" font-weight="800">L3 · AUTONOMOUS EVOLUTION</text>
+    <text x="190" y="320" fill="#365C55" font-size="20">Meta-learning · weekly health · pending evolutions · CI evidence</text>
+
+    <rect x="270" y="364" width="1060" height="300" rx="42" fill="#FFF3D6" stroke="#F59E0B" stroke-width="3"/>
+    <text x="320" y="420" fill="#B45309" font-size="22" font-weight="800">L2 · CODE-LEVEL ENFORCEMENT</text>
+    <text x="320" y="458" fill="#6B4A18" font-size="20">110 constraints · checkpoints · telemetry · health alerts</text>
+
+    <rect x="420" y="506" width="760" height="112" rx="32" fill="#16302B"/>
+    <text x="470" y="554" fill="#99F6E4" font-size="22" font-weight="800">L1 · EVENT-DRIVEN HOOKS</text>
+    <text x="470" y="590" fill="#FFFFFF" font-size="20">79 checks at section, manuscript, review, and commit boundaries</text>
+  </g>
+
+  <circle cx="800" cy="716" r="68" fill="#0F766E" stroke="#FFFFFF" stroke-width="10"/>
+  <text x="800" y="709" text-anchor="middle" fill="#FFFFFF" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="800">NEXT</text>
+  <text x="800" y="740" text-anchor="middle" fill="#FFFFFF" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="800">ROUND</text>
+  <path d="M800 784V842M800 842C490 842 228 758 228 654" fill="none" stroke="#0F766E" stroke-width="8" stroke-linecap="round"/>
+  <path d="m211 675 17-23 17 23" fill="none" stroke="#0F766E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

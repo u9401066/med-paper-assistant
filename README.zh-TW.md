@@ -4,6 +4,7 @@
   <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white"></a>
   <a href="https://modelcontextprotocol.io/"><img alt="MCP" src="https://img.shields.io/badge/MCP-Compatible-green"></a>
   <a href="https://github.com/features/copilot"><img alt="Copilot" src="https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white"></a>
+  <a href="https://u9401066.github.io/med-paper-assistant/"><img alt="Wiki" src="https://img.shields.io/badge/docs-GitHub_Pages-0f766e?logo=materialformkdocs&logoColor=white"></a>
   <a href="https://github.com/u9401066/med-paper-assistant"><img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue"></a>
 </p>
 
@@ -16,7 +17,7 @@
 
 > 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 13 個主線 gate checkpoint + Phase 2.1 sub-gate、79 項品質檢查、結構化 Review Loop
 >
-> 🧭 **[文件導覽站](docs/index.html)** — 產出型別、跨 Agent harness、證據、架構與維運
+> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 32 個主題頁、Mermaid 流程圖、SVG 架構圖、全文搜尋與深色模式
 
 ![MedPaper Assistant 概覽](docs/assets/medpaper-intro.svg)
 
@@ -195,7 +196,7 @@ MedPaper 目前已把 Foam 放在瀏覽與圖譜層，讓 Copilot 專注於 inge
 
 教學與參考文件：
 
-- [文件導覽站](docs/index.html)
+- [GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)
 - [正式學術產出型別](docs/harness/output-profiles.md)
 - [生產級學術寫作架構](docs/design/production-academic-writing-harness.md)
 - [MedPaper LLM Wiki 使用指南](docs/how-to/llm-wiki.md)

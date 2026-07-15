@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920" role="img" aria-labelledby="title desc">
+  <title id="title">Thirteen formal output profiles</title>
+  <desc id="desc">The output registry groups empirical papers, evidence syntheses, educational outputs, and project documents.</desc>
+  <rect width="1600" height="920" rx="42" fill="#102C3D"/>
+  <text x="88" y="88" fill="#5EEAD4" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="800" letter-spacing="3">CANONICAL OUTPUT REGISTRY</text>
+  <text x="88" y="146" fill="#F8FAFC" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="800">13 profiles, one type-aware quality system</text>
+
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="88" y="216" width="690" height="256" rx="28" fill="#0F766E" fill-opacity=".34" stroke="#5EEAD4" stroke-opacity=".55"/>
+    <text x="126" y="264" fill="#99F6E4" font-size="20" font-weight="800">EMPIRICAL + CLINICAL</text>
+    <text x="126" y="316" fill="#FFFFFF" font-size="27" font-weight="700">Original research</text>
+    <text x="126" y="360" fill="#FFFFFF" font-size="27" font-weight="700">Research letter · Case report</text>
+    <text x="126" y="404" fill="#FFFFFF" font-size="27" font-weight="700">Conference paper · Thesis</text>
+
+    <rect x="822" y="216" width="690" height="256" rx="28" fill="#F59E0B" fill-opacity=".19" stroke="#FBBF24" stroke-opacity=".6"/>
+    <text x="860" y="264" fill="#FDE68A" font-size="20" font-weight="800">EVIDENCE SYNTHESIS + ARGUMENT</text>
+    <text x="860" y="316" fill="#FFFFFF" font-size="27" font-weight="700">Systematic review</text>
+    <text x="860" y="360" fill="#FFFFFF" font-size="27" font-weight="700">Meta-analysis · Narrative review</text>
+    <text x="860" y="404" fill="#FFFFFF" font-size="27" font-weight="700">arXiv / repository preprint</text>
+
+    <rect x="88" y="520" width="690" height="256" rx="28" fill="#F8FAFC" fill-opacity=".08" stroke="#CBD5E1" stroke-opacity=".35"/>
+    <text x="126" y="568" fill="#CBD5E1" font-size="20" font-weight="800">PROJECT DOCUMENTS</text>
+    <text x="126" y="620" fill="#FFFFFF" font-size="27" font-weight="700">Research proposal</text>
+    <text x="126" y="664" fill="#FFFFFF" font-size="27" font-weight="700">Project closeout report</text>
+    <text x="126" y="708" fill="#94A3B8" font-size="21">deliverables · risks · future work</text>
+
+    <rect x="822" y="520" width="690" height="256" rx="28" fill="#5EEAD4" fill-opacity=".12" stroke="#5EEAD4" stroke-opacity=".4"/>
+    <text x="860" y="568" fill="#99F6E4" font-size="20" font-weight="800">EDUCATIONAL + POSITIONAL</text>
+    <text x="860" y="620" fill="#FFFFFF" font-size="27" font-weight="700">Student paper</text>
+    <text x="860" y="664" fill="#FFFFFF" font-size="27" font-weight="700">Letter / correspondence</text>
+    <text x="860" y="708" fill="#94A3B8" font-size="21">scope-aware requirements, not weaker evidence</text>
+  </g>
+
+  <rect x="360" y="830" width="880" height="56" rx="18" fill="#F8FAFC" fill-opacity=".08"/>
+  <text x="800" y="867" text-anchor="middle" fill="#CBD5E1" font-family="Inter,Arial,sans-serif" font-size="21">Profile → writing order → concept requirements → applicable hooks → constraints</text>
+</svg>

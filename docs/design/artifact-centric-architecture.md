@@ -3,7 +3,7 @@
 > **Status**: 📝 Draft (Pending Review)
 > **Author**: MedPaper Team
 > **Created**: 2025-01-22
-> **Related**: [ROADMAP.md](../../ROADMAP.md), [ARCHITECTURE.md](../../ARCHITECTURE.md)
+> **Related**: [ROADMAP.md](https://github.com/u9401066/med-paper-assistant/blob/master/ROADMAP.md), [ARCHITECTURE.md](https://github.com/u9401066/med-paper-assistant/blob/master/ARCHITECTURE.md)
 
 ## 📋 Executive Summary
 

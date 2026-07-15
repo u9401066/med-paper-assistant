@@ -4,9 +4,9 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-07-14)
+## 當前焦點 (2026-07-15)
 
-Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的通用學術寫作 harness，逐步增加正式學術產出類型、exemplar-aware 證據邊界、邊界/smoke 測試、死碼/DDD 清理、文件網站與可發布 VSIX。
+Production refresh 已完成 v0.9.0；本輪把 dependency-free 文件索引升級為公開 GitHub Pages Wiki，以 Mermaid 與 SVG 系統化說明跨 Agent harness、研究 pipeline、證據邊界、品質治理與發布維運。
 
 ### 當前狀態
 
@@ -21,6 +21,7 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 | Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                        |
 | Latest Validation     | Python 1523 passed / 8 skipped / 26 deselected; VSIX 169 passed; MCP smoke 14/14 + 118/118 classified; validate 92/92 |
 | Packaging             | **v0.9.0** GitHub Release + PyPI published; VSIX attached; Marketplace blocked by external `VSCE_PAT` authorization   |
+| Documentation         | **32 pages / 48 Mermaid / 8 accessible SVG**；MkDocs Material strict build + GitHub Pages workflow                    |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -33,6 +34,14 @@ Production refresh：把 repo 擴充為 Claude Code / Codex / OpenClaw 可用的
 | L3 Autonomous Self-Evolution | ⚠️ 大部分完成          | EvolutionVerifier + weekly health 已上線；缺 git post-commit / Auto-PR |
 
 ### 最近變更
+
+#### GitHub Pages Wiki + Visual Architecture (2026-07-15)
+
+- 以 `mkdocs.yml` 與 MkDocs Material 取代舊 `docs/index.html`、manifest 與 generated JavaScript，建立主題式 Wiki 導覽、全文搜尋、深淺色模式與響應式首頁。
+- 新增 Repo、quickstart、pipeline、outputs、evidence、harness、MCP、workspace、quality、development 與 visual atlas 頁；全站目前 32 頁、48 張 native Mermaid 圖。
+- 新增五張 Wiki SVG，並校正三張舊 SVG 的跨 Agent、118-tool、DDD inward dependency 與 Phase 2.1/6.5/11 敘事；八張 SVG 均有 title/desc/ARIA。
+- 新增文件 source validator 與 tests，檢查 orphan pages、broken local links、Mermaid/SVG 覆蓋、SVG accessibility、legacy-site removal 與 Pages deploy ordering。
+- 新增 `.github/workflows/pages.yml`：PR 執行 locked strict build，`master` 經 official Pages artifact/deploy actions 發布。
 
 #### Cross-Agent Production Refresh — Foundation (2026-07-14)
 

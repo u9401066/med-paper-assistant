@@ -3,6 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io/)
 [![Copilot](https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white)](https://github.com/features/copilot)
+[![Wiki](https://img.shields.io/badge/docs-GitHub_Pages-0f766e?logo=materialformkdocs&logoColor=white)](https://u9401066.github.io/med-paper-assistant/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/u9401066/med-paper-assistant)
 
 ![Windows](https://img.shields.io/badge/Windows-0078D6?logo=windows&logoColor=white)
@@ -15,7 +16,7 @@
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 13 main gate checkpoints + Phase 2.1 sub-gate, 79 Quality Hooks, Structured Review Loop
-> 🧭 **[Documentation hub](docs/index.html)** — output profiles, cross-agent harness, evidence, architecture, and operations
+> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 32 topic pages with Mermaid workflows, SVG architecture maps, full-text search, and dark mode
 
 ![MedPaper Assistant overview](docs/assets/medpaper-intro.svg)
 
@@ -194,7 +195,7 @@ The current Foam/Copilot layer now includes orphan / placeholder repair loops, t
 
 Docs and tutorials:
 
-- [Documentation hub](docs/index.html)
+- [GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)
 - [Formal academic output profiles](docs/harness/output-profiles.md)
 - [Production academic-writing architecture](docs/design/production-academic-writing-harness.md)
 - [Using the MedPaper LLM Wiki](docs/how-to/llm-wiki.md)

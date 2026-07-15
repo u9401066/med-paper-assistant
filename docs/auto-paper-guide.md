@@ -2,42 +2,6 @@
 
 > **完整的自動論文撰寫系統文件** — 13 個主線 gate checkpoint + Phase 2.1 fulltext/source-material sub-gate
 
----
-
-## 目錄
-
-- [概觀](#概觀)
-- [快速開始](#快速開始)
-- [13 Main Gate Checkpoints](#13-main-gate-checkpoints)
-  - [Phase 0: Pre-Planning](#phase-0-pre-planning)
-  - [Phase 1: Project Setup](#phase-1-project-setup)
-  - [Phase 2: Literature Search](#phase-2-literature-search)
-  - [Phase 2.1: Fulltext & Source-Material Ingestion](#phase-21-fulltext--source-material-ingestion)
-  - [Phase 3: Concept Development](#phase-3-concept-development)
-  - [Phase 4: Manuscript Planning](#phase-4-manuscript-planning)
-  - [Phase 5: Section Writing](#phase-5-section-writing)
-  - [Phase 6: Cross-Section Audit](#phase-6-cross-section-audit)
-  - [Phase 6.5: Evolution Gate](#phase-65-evolution-gate)
-  - [Phase 7: Autonomous Review](#phase-7-autonomous-review)
-  - [Phase 8: Reference Sync](#phase-8-reference-sync)
-  - [Phase 9: Export](#phase-9-export)
-  - [Phase 10: Retrospective](#phase-10-retrospective)
-  - [Phase 11: Final Delivery](#phase-11-final-delivery)
-- [Hook 品質保證系統](#hook-品質保證系統)
-  - [Hook A: post-write](#hook-a-post-write)
-  - [Hook B: post-section](#hook-b-post-section)
-  - [Hook C: post-manuscript](#hook-c-post-manuscript)
-  - [Hook D: meta-learning](#hook-d-meta-learning)
-- [manuscript-plan.yaml 規格](#manuscript-planyaml-規格)
-- [journal-profile.yaml 規格](#journal-profileyaml-規格)
-- [Autonomous Review 機制](#autonomous-review-機制)
-- [Audit Trail 與 Checkpoint](#audit-trail-與-checkpoint)
-- [跨 MCP 編排](#跨-mcp-編排)
-- [自動決策邏輯](#自動決策邏輯)
-- [自我證明：本系統寫出的論文](#自我證明本系統寫出的論文)
-
----
-
 ## 概觀
 
 Auto-Paper 是 MedPaper Assistant 的全自動論文撰寫技能，具備以下核心特性：
@@ -474,7 +438,7 @@ Phase 0 產出的原始素材清單，驅動後續資料、圖表、Methods/Resu
 `data-artifacts.yaml` 的 `data_anchors` 必須引用 ready/ingested source material、asset-aware doc、tracked data artifact，或可信 data file。若 anchor 來源是 `concept.md`、agent summary、inferred/estimated 值，或指向仍是 `pending_asset_aware` 的 DOCX/PDF，Hook F4 會以 CRITICAL 阻擋。
 | `pipeline.writing.citation_density` | Hook A2 引用密度 |
 
-完整模板見：[templates/journal-profile.template.yaml](../templates/journal-profile.template.yaml)
+完整模板見：[templates/journal-profile.template.yaml](https://github.com/u9401066/med-paper-assistant/blob/master/templates/journal-profile.template.yaml)
 
 ---
 
@@ -611,11 +575,11 @@ Auto-Paper 系統已自主完成一篇完整的學術論文作為自我參照式
 
 ## 相關文件
 
-| 文件                                                                              | 說明                                           |
-| --------------------------------------------------------------------------------- | ---------------------------------------------- |
-| [SKILL.md](../.claude/skills/auto-paper/SKILL.md)                                 | 完整技術定義（Hook 詳細規格 + cascading 流程） |
-| [multi-stage-review-architecture.md](design/multi-stage-review-architecture.md)   | 設計文件（含所有設計決策）                     |
-| [journal-profile.template.yaml](../templates/journal-profile.template.yaml)       | journal-profile 模板                           |
-| [paper-reviewer.agent.md](../.github/agents/paper-reviewer.agent.md)              | 唯讀 Reviewer Agent 模式                       |
-| [mdpaper.write-paper.prompt.md](../.github/prompts/mdpaper.write-paper.prompt.md) | 觸發 Pipeline 的 Prompt                        |
-| [mdpaper.audit.prompt.md](../.github/prompts/mdpaper.audit.prompt.md)             | 獨立審計 Prompt（Phase 6+7）                   |
+| 文件                                                                                                                                       | 說明                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| [SKILL.md](https://github.com/u9401066/med-paper-assistant/blob/master/.claude/skills/auto-paper/SKILL.md)                                 | 完整技術定義（Hook 詳細規格 + cascading 流程） |
+| [multi-stage-review-architecture.md](design/multi-stage-review-architecture.md)                                                            | 設計文件（含所有設計決策）                     |
+| [journal-profile.template.yaml](https://github.com/u9401066/med-paper-assistant/blob/master/templates/journal-profile.template.yaml)       | journal-profile 模板                           |
+| [paper-reviewer.agent.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/agents/paper-reviewer.agent.md)              | 唯讀 Reviewer Agent 模式                       |
+| [mdpaper.write-paper.prompt.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/prompts/mdpaper.write-paper.prompt.md) | 觸發 Pipeline 的 Prompt                        |
+| [mdpaper.audit.prompt.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/prompts/mdpaper.audit.prompt.md)             | 獨立審計 Prompt（Phase 6+7）                   |

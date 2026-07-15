@@ -1,97 +1,229 @@
 #!/usr/bin/env python3
-"""Build or verify the dependency-free documentation index."""
+"""Validate the MkDocs wiki source before a strict site build."""
 
 from __future__ import annotations
 
 import argparse
-import json
+import re
+import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = ROOT / "docs"
-MANIFEST_PATH = DOCS_DIR / "site-manifest.yaml"
-OUTPUT_PATH = DOCS_DIR / "site-content.js"
+CONFIG_PATH = ROOT / "mkdocs.yml"
+SVG_NAMESPACE = "http://www.w3.org/2000/svg"
+MARKDOWN_LINK = re.compile(r"!?\[[^\]]*\]\((?P<target>[^)\n]+)\)")
+MARKDOWN_IMAGE = re.compile(r"!\[(?P<alt>[^\]]*)\]\((?P<target>[^)\n]+)\)")
+EXTERNAL_SCHEMES = ("http://", "https://", "mailto:", "tel:", "data:", "app://")
+LEGACY_SITE_FILES = (
+    "index.html",
+    "site-content.js",
+    "site-manifest.yaml",
+    "site.css",
+    "site.js",
+)
 
 
-def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
-    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+class MkDocsLoader(yaml.SafeLoader):
+    """Safe YAML loader that preserves MkDocs' Python-name configuration values."""
+
+
+def _python_name_constructor(loader: MkDocsLoader, suffix: str, node: yaml.nodes.Node) -> str:
+    loader.construct_scalar(node)
+    return suffix
+
+
+MkDocsLoader.add_multi_constructor("tag:yaml.org,2002:python/name:", _python_name_constructor)
+
+
+def load_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
+    """Load the checked-in MkDocs configuration without importing MkDocs."""
+
+    loaded = yaml.load(path.read_text(encoding="utf-8"), Loader=MkDocsLoader)
     if not isinstance(loaded, dict):
-        raise ValueError("docs site manifest must be a mapping")
+        raise ValueError("mkdocs.yml must contain a mapping")
     return loaded
 
 
-def validate_manifest(manifest: dict[str, Any], docs_dir: Path = DOCS_DIR) -> list[str]:
-    issues: list[str] = []
-    groups = manifest.get("groups")
-    if not isinstance(groups, list) or not groups:
-        return ["groups must be a non-empty list"]
+def iter_nav_paths(node: object) -> Iterator[str]:
+    """Yield source paths from MkDocs' recursively nested nav structure."""
 
-    group_ids: set[str] = set()
-    paths: set[str] = set()
-    for group_index, group in enumerate(groups):
-        if not isinstance(group, dict):
-            issues.append(f"groups[{group_index}] must be a mapping")
-            continue
-        group_id = str(group.get("id", "")).strip()
-        if not group_id or group_id in group_ids:
-            issues.append(f"groups[{group_index}].id must be non-empty and unique")
-        group_ids.add(group_id)
-        items = group.get("items")
-        if not isinstance(items, list) or not items:
-            issues.append(f"groups[{group_index}].items must be a non-empty list")
-            continue
-        for item_index, item in enumerate(items):
-            if not isinstance(item, dict):
-                issues.append(f"groups[{group_index}].items[{item_index}] must be a mapping")
-                continue
-            relative_path = str(item.get("path", "")).strip()
-            if not relative_path or relative_path in paths:
-                issues.append(f"duplicate or missing documentation path: {relative_path!r}")
-                continue
-            paths.add(relative_path)
-            candidate = (docs_dir / relative_path).resolve()
-            try:
-                candidate.relative_to(docs_dir.resolve())
-            except ValueError:
-                issues.append(f"documentation path escapes docs/: {relative_path}")
-                continue
-            if not candidate.is_file():
-                issues.append(f"documentation path not found: {relative_path}")
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, list):
+        for child in node:
+            yield from iter_nav_paths(child)
+    elif isinstance(node, dict):
+        for child in node.values():
+            yield from iter_nav_paths(child)
+
+
+def _path_within(path: Path, parent: Path) -> bool:
+    try:
+        path.resolve().relative_to(parent.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def validate_config(config: dict[str, Any], docs_dir: Path = DOCS_DIR) -> list[str]:
+    """Validate navigation completeness and the GitHub Pages contract."""
+
+    issues: list[str] = []
+    if config.get("site_url") != "https://u9401066.github.io/med-paper-assistant/":
+        issues.append("site_url must target the repository GitHub Pages URL")
+    if config.get("docs_dir", "docs") != "docs":
+        issues.append("docs_dir must remain docs")
+    if not isinstance(config.get("theme"), dict) or config["theme"].get("name") != "material":
+        issues.append("theme.name must be material")
+
+    nav_paths = list(iter_nav_paths(config.get("nav")))
+    if not nav_paths:
+        issues.append("nav must contain at least one documentation page")
+        return issues
+    if len(nav_paths) != len(set(nav_paths)):
+        issues.append("nav paths must be unique")
+    if "index.md" not in nav_paths:
+        issues.append("nav must include index.md")
+
+    for relative_path in nav_paths:
+        candidate = docs_dir / relative_path
+        if not _path_within(candidate, docs_dir):
+            issues.append(f"nav path escapes docs/: {relative_path}")
+        elif not candidate.is_file():
+            issues.append(f"nav path not found: {relative_path}")
+
+    markdown_pages = {path.relative_to(docs_dir).as_posix() for path in docs_dir.rglob("*.md")}
+    orphan_pages = sorted(markdown_pages - set(nav_paths))
+    for orphan in orphan_pages:
+        issues.append(f"markdown page missing from nav: {orphan}")
+
+    for stylesheet in config.get("extra_css", []):
+        candidate = docs_dir / str(stylesheet)
+        if not _path_within(candidate, docs_dir) or not candidate.is_file():
+            issues.append(f"extra_css path not found: {stylesheet}")
+
+    config_text = CONFIG_PATH.read_text(encoding="utf-8")
+    if "name: mermaid" not in config_text:
+        issues.append("native Mermaid custom fence is not configured")
     return issues
 
 
-def render_site_content(manifest: dict[str, Any]) -> str:
-    payload = json.dumps(manifest, ensure_ascii=False, indent=2)
-    return f"window.MEDPAPER_DOCS = {payload};\n"
+def _link_path(target: str) -> str | None:
+    """Return the local path portion of a Markdown link, if it is local."""
+
+    target = target.strip()
+    if target.startswith("<") and ">" in target:
+        target = target[1 : target.index(">")]
+    else:
+        target = target.split(maxsplit=1)[0]
+    if not target or target.startswith("#") or target.startswith(EXTERNAL_SCHEMES):
+        return None
+    return unquote(target.split("#", 1)[0].split("?", 1)[0])
+
+
+def validate_markdown_links(docs_dir: Path = DOCS_DIR) -> list[str]:
+    """Reject local links that cannot be published as part of the static site."""
+
+    issues: list[str] = []
+    for page in sorted(docs_dir.rglob("*.md")):
+        text = page.read_text(encoding="utf-8")
+        for match in MARKDOWN_LINK.finditer(text):
+            local_path = _link_path(match.group("target"))
+            if local_path is None:
+                continue
+            candidate = page.parent / local_path
+            if not _path_within(candidate, docs_dir):
+                issues.append(
+                    f"{page.relative_to(ROOT)} links outside publishable docs/: {local_path}"
+                )
+            elif not candidate.exists():
+                issues.append(f"{page.relative_to(ROOT)} has a missing local link: {local_path}")
+    return issues
+
+
+def validate_visuals(docs_dir: Path = DOCS_DIR) -> list[str]:
+    """Validate Mermaid coverage, image alternatives, and SVG accessibility."""
+
+    issues: list[str] = []
+    mermaid_count = 0
+    for page in sorted(docs_dir.rglob("*.md")):
+        text = page.read_text(encoding="utf-8")
+        mermaid_count += len(re.findall(r"^```mermaid\s*$", text, flags=re.MULTILINE))
+        for match in MARKDOWN_IMAGE.finditer(text):
+            if not match.group("alt").strip():
+                issues.append(f"{page.relative_to(ROOT)} contains an image without alt text")
+    if mermaid_count < 40:
+        issues.append(f"wiki must contain at least 40 Mermaid diagrams; found {mermaid_count}")
+
+    svg_paths = sorted((docs_dir / "assets").glob("*.svg"))
+    if len(svg_paths) < 8:
+        issues.append(f"wiki must contain at least 8 SVG assets; found {len(svg_paths)}")
+    for svg_path in svg_paths:
+        try:
+            root = ET.parse(svg_path).getroot()
+        except ET.ParseError as exc:
+            issues.append(f"{svg_path.relative_to(ROOT)} is invalid XML: {exc}")
+            continue
+        title = root.find(f"{{{SVG_NAMESPACE}}}title")
+        description = root.find(f"{{{SVG_NAMESPACE}}}desc")
+        if title is None or not (title.text or "").strip():
+            issues.append(f"{svg_path.relative_to(ROOT)} is missing a non-empty <title>")
+        if description is None or not (description.text or "").strip():
+            issues.append(f"{svg_path.relative_to(ROOT)} is missing a non-empty <desc>")
+        if root.get("role") != "img" or root.get("aria-labelledby") != "title desc":
+            issues.append(f"{svg_path.relative_to(ROOT)} is missing SVG accessibility attributes")
+    return issues
+
+
+def validate_site(
+    config_path: Path = CONFIG_PATH, docs_dir: Path = DOCS_DIR
+) -> tuple[list[str], dict[str, int]]:
+    """Run all source-level contracts and return issues plus useful counts."""
+
+    config = load_config(config_path)
+    issues = [
+        *validate_config(config, docs_dir),
+        *validate_markdown_links(docs_dir),
+        *validate_visuals(docs_dir),
+    ]
+    for legacy_name in LEGACY_SITE_FILES:
+        if (docs_dir / legacy_name).exists():
+            issues.append(f"legacy documentation site file must be removed: docs/{legacy_name}")
+
+    markdown_text = "\n".join(page.read_text(encoding="utf-8") for page in docs_dir.rglob("*.md"))
+    counts = {
+        "pages": len(list(docs_dir.rglob("*.md"))),
+        "mermaid": len(re.findall(r"^```mermaid\s*$", markdown_text, flags=re.MULTILINE)),
+        "svg": len(list((docs_dir / "assets").glob("*.svg"))),
+    }
+    return issues, counts
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="Verify without writing")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Retained for CI compatibility; validation is always read-only",
+    )
+    parser.parse_args()
 
-    manifest = load_manifest()
-    issues = validate_manifest(manifest)
+    issues, counts = validate_site()
     if issues:
         for issue in issues:
             print(f"ERROR: {issue}")
         return 1
-
-    rendered = render_site_content(manifest)
-    if args.check:
-        if not OUTPUT_PATH.is_file() or OUTPUT_PATH.read_text(encoding="utf-8") != rendered:
-            print("ERROR: docs/site-content.js is out of sync; run scripts/build_docs_site.py")
-            return 1
-        print(
-            f"Documentation site verified: {sum(len(g['items']) for g in manifest['groups'])} pages"
-        )
-        return 0
-
-    OUTPUT_PATH.write_text(rendered, encoding="utf-8")
-    print(f"Documentation site index written: {OUTPUT_PATH.relative_to(ROOT)}")
+    print(
+        "Documentation wiki verified: "
+        f"{counts['pages']} pages · {counts['mermaid']} Mermaid diagrams · "
+        f"{counts['svg']} SVG assets"
+    )
     return 0
 
 

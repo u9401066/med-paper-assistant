@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1180" viewBox="0 0 1900 1180" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1180" viewBox="0 0 1900 1180" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Auto-Paper core pipeline</title>
+  <desc id="desc">The main Phase 0 through 10 research and writing loop, with nested full-text and asset gates and Phase 11 delivery after audit.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1900" y2="1180" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#183E67"/>
@@ -10,10 +12,10 @@
 
   <g font-family="Segoe UI, DejaVu Sans, sans-serif">
     <text x="104" y="130" fill="#F7FBFF" font-size="56" font-weight="800">Auto-Paper pipeline</text>
-    <text x="104" y="178" fill="#C8DCEB" font-size="26">A readable overview of the full writing loop, from journal setup to meta-learning.</text>
+    <text x="104" y="178" fill="#C8DCEB" font-size="26">The core 0–10 loop; nested gates 2.1 and 6.5 feed into Phase 11 delivery.</text>
 
-    <rect x="104" y="222" width="700" height="50" rx="24" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.3"/>
-    <text x="132" y="254" fill="#FFE0A8" font-size="22" font-weight="700">Only manual checkpoint: approve the manuscript plan in Phase 4</text>
+    <rect x="104" y="222" width="1140" height="50" rx="24" fill="#FFF4E6" fill-opacity="0.08" stroke="#F2A33A" stroke-opacity="0.3"/>
+    <text x="132" y="254" fill="#FFE0A8" font-size="22" font-weight="700">Phase 4 approves the plan · Phase 2.1 verifies full text · Phase 6.5 validates assets</text>
 
     <g fill="#F8FCFF" fill-opacity="0.07" stroke="#7AE6DD" stroke-opacity="0.24">
       <rect x="104" y="332" width="234" height="132" rx="26"/>
@@ -130,6 +132,6 @@
     <text x="472" y="1022" fill="#F7FBFF" font-size="22" font-weight="700">Hook C</text>
     <text x="736" y="1022" fill="#F7FBFF" font-size="22" font-weight="700">Review gates</text>
     <text x="1036" y="1022" fill="#F7FBFF" font-size="22" font-weight="700">Hook D</text>
-    <text x="1268" y="1022" fill="#FFE0A8" font-size="22" font-weight="700">10+ refs · novelty 75+ · zero criticals</text>
+    <text x="1224" y="1022" fill="#FFE0A8" font-size="19" font-weight="700">evidence · novelty · zero criticals · delivery</text>
   </g>
 </svg>

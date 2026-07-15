@@ -1,0 +1,138 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+site_name: MedPaper Assistant Wiki
+site_description: 可稽核、跨 Agent、證據導向的學術寫作 harness
+site_author: MedPaper Assistant contributors
+site_url: https://u9401066.github.io/med-paper-assistant/
+repo_url: https://github.com/u9401066/med-paper-assistant
+repo_name: u9401066/med-paper-assistant
+edit_uri: edit/master/docs/
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+
+theme:
+  name: material
+  language: zh-TW
+  logo: assets/wiki-mark.svg
+  favicon: assets/wiki-mark.svg
+  icon:
+    repo: fontawesome/brands/github
+  font:
+    text: Noto Sans TC
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: 切換至深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: 切換至淺色模式
+
+plugins:
+  - search:
+      lang:
+        - en
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: 本頁內容
+  - pymdownx.blocks.caption
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/u9401066/med-paper-assistant
+      name: GitHub repository
+
+copyright: Copyright &copy; MedPaper Assistant contributors · Apache-2.0
+
+nav:
+  - 首頁: index.md
+  - 認識專案:
+      - Repo 導覽: wiki/repo-map.md
+      - 五分鐘開始: wiki/quickstart.md
+      - 跨平台相容性: harness/platform-compatibility.md
+      - 視覺圖譜: wiki/visual-atlas.md
+  - 學術寫作流程:
+      - 研究管線總覽: wiki/research-pipeline.md
+      - 共用寫作契約: harness/academic-writing-workflow.md
+      - Auto-Paper 完整指南: auto-paper-guide.md
+      - 正式產出地圖: wiki/output-landscape.md
+      - 13 種產出規格: harness/output-profiles.md
+  - 證據與知識:
+      - 證據、引用與範文: wiki/evidence-and-citations.md
+      - LLM Wiki 使用指南: how-to/llm-wiki.md
+      - Foam 參考: reference/foam.md
+      - LLM Wiki 資料規格: reference/llm-wiki.md
+  - 系統架構:
+      - Harness 架構: wiki/harness-architecture.md
+      - MCP 生態系: wiki/mcp-ecosystem.md
+      - Workspace 與記憶: wiki/workspace-and-memory.md
+      - Production harness: design/production-academic-writing-harness.md
+      - Artifact-centric architecture: design/artifact-centric-architecture.md
+      - Citation tools architecture: design/citation-tools-architecture.md
+  - 品質與治理:
+      - 品質系統總覽: wiki/quality-and-audit.md
+      - Article-type-aware harness: design/article-type-aware-harness.md
+      - Adversarial verification: design/adversarial-verification-harness.md
+      - Governance review stack: design/autopaper-governance-review-stack.md
+      - Multi-stage review: design/multi-stage-review-architecture.md
+  - 開發與維運:
+      - 開發、測試與發布: wiki/development-and-release.md
+      - Copilot lifecycle hooks: design/copilot-lifecycle-hooks.md
+      - AI writing intelligence: design/ai-writing-intelligence.md
+      - External project benchmark: design/external-project-benchmark.md
+      - Tool consolidation plan: design/tool-consolidation-plan.md
+      - Missing MCP tools: design/missing-mcp-tools.md
+      - Python 3.12 migration: design/python312-migration-plan.md

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a MkDocs Material GitHub Pages wiki with 32 navigable pages, 48 native Mermaid diagrams, eight accessible SVG assets, topic-oriented navigation, full-text search, responsive layouts, and light/dark themes.
+- Added a least-privilege Pages workflow that validates source contracts, performs a strict locked build on pull requests, and deploys the `master` artifact through GitHub's Pages actions.
+- Added documentation contract tests for orphan pages, local links, Mermaid/SVG coverage, SVG accessibility, legacy-site removal, and build-before-deploy workflow ordering.
+
+### Changed
+
+- Replaced the dependency-free card index and generated 13-page manifest with the public `u9401066.github.io/med-paper-assistant` wiki, including architecture, pipeline, evidence, output-profile, quality, workspace, MCP, visual-atlas, and release-operations guides.
+- Updated the existing product, architecture, and Auto-Paper SVGs from VS Code-only and legacy phase wording to the cross-agent, 118-tool, auditable workspace model.
+
 ## [0.9.0] - 2026-07-14
 
 ### Added

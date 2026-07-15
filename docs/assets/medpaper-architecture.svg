@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100" viewBox="0 0 1800 1100" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100" viewBox="0 0 1800 1100" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">MedPaper Assistant architecture</title>
+  <desc id="desc">Cross-agent surfaces invoke MCP application services over a shared project workspace, while dependencies point inward toward the domain layer.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1800" y2="1100" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#183E67"/>
@@ -10,21 +12,21 @@
 
   <g font-family="Segoe UI, DejaVu Sans, sans-serif">
     <text x="104" y="132" fill="#F7FBFF" font-size="56" font-weight="800">MedPaper Assistant architecture</text>
-    <text x="104" y="180" fill="#C8DCEB" font-size="26">A VS Code-first system where the agent, MCP servers, and project files stay aligned around one shared workspace.</text>
+    <text x="104" y="180" fill="#C8DCEB" font-size="26">A cross-agent system where MCP services and project artifacts stay aligned around one auditable workspace.</text>
 
     <rect x="104" y="236" width="1128" height="704" rx="34" fill="#F8FCFF" fill-opacity="0.05" stroke="#7AE6DD" stroke-opacity="0.22"/>
     <text x="146" y="296" fill="#7AE6DD" font-size="22" font-weight="700">SYSTEM VIEW</text>
 
     <rect x="146" y="340" width="1044" height="136" rx="28" fill="#102A46" stroke="#7AE6DD" stroke-opacity="0.22"/>
-    <text x="188" y="386" fill="#7AE6DD" font-size="18" font-weight="700">VS CODE SURFACES</text>
-    <rect x="188" y="408" width="292" height="44" rx="18" fill="#F8FCFF" fill-opacity="0.08"/>
-    <text x="216" y="437" fill="#F7FBFF" font-size="24" font-weight="700">Copilot Agent Mode</text>
-    <rect x="510" y="408" width="256" height="44" rx="18" fill="#F8FCFF" fill-opacity="0.08"/>
-    <text x="538" y="437" fill="#F7FBFF" font-size="24" font-weight="700">MedPaper Extension</text>
-    <rect x="796" y="408" width="140" height="44" rx="18" fill="#F8FCFF" fill-opacity="0.08"/>
-    <text x="838" y="437" fill="#F7FBFF" font-size="24" font-weight="700">Foam</text>
-    <rect x="966" y="408" width="182" height="44" rx="18" fill="#F8FCFF" fill-opacity="0.08"/>
-    <text x="996" y="437" fill="#F7FBFF" font-size="24" font-weight="700">Dashboard</text>
+    <text x="188" y="386" fill="#7AE6DD" font-size="18" font-weight="700">AGENT + USER SURFACES</text>
+    <rect x="188" y="408" width="210" height="44" rx="18" fill="#F8FCFF" fill-opacity="0.08"/>
+    <text x="222" y="437" fill="#F7FBFF" font-size="24" font-weight="700">Claude Code</text>
+    <rect x="424" y="408" width="210" height="44" rx="18" fill="#F8FCFF" fill-opacity="0.08"/>
+    <text x="464" y="437" fill="#F7FBFF" font-size="24" font-weight="700">Codex</text>
+    <rect x="660" y="408" width="238" height="44" rx="18" fill="#F8FCFF" fill-opacity="0.08"/>
+    <text x="694" y="437" fill="#F7FBFF" font-size="24" font-weight="700">Copilot / VSIX</text>
+    <rect x="924" y="408" width="224" height="44" rx="18" fill="#F8FCFF" fill-opacity="0.08"/>
+    <text x="956" y="437" fill="#F7FBFF" font-size="24" font-weight="700">Foam / Web</text>
 
     <rect x="146" y="548" width="1044" height="180" rx="28" fill="#102741" stroke="#7AE6DD" stroke-opacity="0.22"/>
     <text x="188" y="596" fill="#7AE6DD" font-size="18" font-weight="700">MCP LAYER</text>
@@ -75,14 +77,15 @@
 
     <path d="M1486 436V478" stroke="#7AE6DD" stroke-width="8" stroke-linecap="round"/>
     <path d="M1486 570V612" stroke="#7AE6DD" stroke-width="8" stroke-linecap="round"/>
-    <path d="M1486 704V746" stroke="#7AE6DD" stroke-width="8" stroke-linecap="round"/>
+    <path d="M1656 792H1690V524H1656" stroke="#7AE6DD" stroke-width="8" stroke-linecap="round"/>
     <circle cx="1486" cy="436" r="10" fill="#7AE6DD"/>
     <circle cx="1486" cy="478" r="10" fill="#7AE6DD"/>
     <circle cx="1486" cy="570" r="10" fill="#7AE6DD"/>
     <circle cx="1486" cy="612" r="10" fill="#7AE6DD"/>
-    <circle cx="1486" cy="704" r="10" fill="#7AE6DD"/>
-    <circle cx="1486" cy="746" r="10" fill="#7AE6DD"/>
+    <circle cx="1656" cy="792" r="10" fill="#7AE6DD"/>
+    <circle cx="1656" cy="524" r="10" fill="#7AE6DD"/>
 
-    <text x="1316" y="894" fill="#C8DCEB" font-size="20">Filesystem is the shared state across all surfaces.</text>
+    <text x="1316" y="884" fill="#C8DCEB" font-size="18">Interfaces → Application → Domain</text>
+    <text x="1316" y="914" fill="#C8DCEB" font-size="18">Infrastructure implements inward ports.</text>
   </g>
 </svg>

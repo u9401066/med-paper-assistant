@@ -80,17 +80,17 @@
 
 ### Cross-Agent Production Harness v0.9 (2026-07)
 
-| Feature                                 | Description                                                                                 |
-| --------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Claude/Codex/OpenClaw harness** ✅    | `CLAUDE.md`、`.claude/skills` 與 `.agents/skills` 共用平台中立學術寫作契約                  |
-| **13 formal output profiles** ✅        | proposal、closeout、student、conference、thesis、arXiv 加入 domain/template/constraint/hook |
-| **Exemplar audit enforcement** ✅       | `.audit/exemplar-usage.yaml` 固定非證據、非引用、非逐字複製，拒絕 policy tampering          |
-| **Domain constraints** ✅               | 13 種正式產出、110 個 base constraints，並有 registry parity 與 boundary tests              |
-| **DDD / orphan cleanup** ✅             | Application-owned ports、靜態依賴邊界、vulture 80%+ 零發現、deprecated param telemetry      |
-| **118-tool greedy smoke** ✅            | 116 正常、2 個按設計跳過、0 broken/error；包含 legacy reference migration                   |
-| **Documentation site + Mermaid** ✅     | 零 runtime dependency 的 13-page manifest、搜尋導覽、跨 Agent/DDD/evidence 架構圖           |
-| **Portable JSONC / skill discovery** ✅ | URL-safe parser、comments/trailing commas、38 skills frontmatter 與跨平台入口測試           |
-| **Extension production gates** ✅       | ESLint 10、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke       |
+| Feature                                 | Description                                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Claude/Codex/OpenClaw harness** ✅    | `CLAUDE.md`、`.claude/skills` 與 `.agents/skills` 共用平台中立學術寫作契約                     |
+| **13 formal output profiles** ✅        | proposal、closeout、student、conference、thesis、arXiv 加入 domain/template/constraint/hook    |
+| **Exemplar audit enforcement** ✅       | `.audit/exemplar-usage.yaml` 固定非證據、非引用、非逐字複製，拒絕 policy tampering             |
+| **Domain constraints** ✅               | 13 種正式產出、110 個 base constraints，並有 registry parity 與 boundary tests                 |
+| **DDD / orphan cleanup** ✅             | Application-owned ports、靜態依賴邊界、vulture 80%+ 零發現、deprecated param telemetry         |
+| **118-tool greedy smoke** ✅            | 116 正常、2 個按設計跳過、0 broken/error；包含 legacy reference migration                      |
+| **GitHub Pages Wiki + visual atlas** ✅ | MkDocs Material、32 頁、48 張 Mermaid、8 個 accessible SVG、strict Pages deploy 與文件契約測試 |
+| **Portable JSONC / skill discovery** ✅ | URL-safe parser、comments/trailing commas、38 skills frontmatter 與跨平台入口測試              |
+| **Extension production gates** ✅       | ESLint 10、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke          |
 
 下一階段：實作 ranked evidence-context ledger、perspective question map、bounded branch exploration，並把 profile-specific positive hooks 與可選 publishing adapter 納入同樣的跨平台 smoke gate。
 

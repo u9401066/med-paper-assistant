@@ -1,6 +1,14 @@
-# Progress (Updated: 2026-07-14)
+# Progress (Updated: 2026-07-15)
 
 ## Done
+
+- **GitHub Pages Wiki + visual architecture (2026-07-15)**:
+
+  - Replaced the dependency-free 13-page card index with a 32-page MkDocs Material Wiki at `u9401066.github.io/med-paper-assistant`
+  - Added 11 topic-oriented Wiki guides spanning repo orientation, research pipeline, evidence, 13 outputs, cross-agent architecture, MCP, workspace state, quality, release operations, and a visual atlas
+  - Added 48 native Mermaid diagrams and five new SVG maps; updated three legacy SVGs and validated all eight for XML/accessibility plus rendered readability
+  - Added locked GitHub Pages build/deploy workflow and source contract tests for navigation completeness, links, diagrams, SVG accessibility, and deploy ordering
+  - Local gates passed: docs source validator, 7 targeted tests, Ruff, and `mkdocs build --strict`
 
 - **v0.9.0 formal-output and production harness (2026-07-14)**:
 
@@ -155,15 +163,13 @@
 
 ## Doing
 
-- Segmented production refresh: first foundation commit, then academic output domain profiles and evidence/exemplar artifacts
+- Publish and verify the MkDocs Wiki through GitHub Pages
 - Monitor VS Marketplace secret authorization before the next publication attempt
 
 ## Next
 
-- Add research proposal, closeout report, student paper, conference/thesis, and arXiv/preprint profiles with code-enforced constraints and templates
 - Implement ranked evidence-context ledger, perspective question map, and bounded branch audit artifacts
 - Continue vulture/orphan cleanup and DDD dependency remediation with regression tests
-- Build the human-facing documentation website with Mermaid-enabled architecture/workflow pages
 - Fix/rotate `VSCE_PAT` publisher authorization before the next Marketplace publish attempt.
 - Push segmented commits after each validated milestone; release a new version only after full validate/VSIX install smoke
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
