@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Made release archive verification reuse a successful canonical CI job only when its workflow path, branch, commit SHA, job name, status, and conclusion all match; the release still runs the five exact-archive smokes locally when that fail-closed evidence is unavailable, avoiding redundant GitHub codeload throttling without weakening the gate.
+
 ## [1.0.1] - 2026-08-17
 
 ### Added

@@ -188,6 +188,36 @@ def test_release_runs_all_managed_exact_archive_smokes() -> None:
     assert "tests/integration/test_zotero_sdk2_install_smoke.py" in content
 
 
+def test_release_reuses_only_successful_exact_sha_ci_archive_evidence() -> None:
+    release = _workflow("release.yml")
+    job = release["jobs"]["external-mcp-sdk2-smoke"]
+    assert job["permissions"] == {"actions": "read", "contents": "read"}
+
+    steps = {step["name"]: step for step in job["steps"] if "name" in step}
+    verifier = steps["Reuse successful exact-SHA CI archive gate"]
+    script = verifier["run"]
+    for required_contract in (
+        "release_sha = subprocess.check_output(",
+        "head_sha=release_sha",
+        'run.get("path") == ".github/workflows/ci.yml"',
+        'run.get("head_branch") == "master"',
+        'run.get("head_sha") == release_sha',
+        'job.get("name") == "Pinned External MCP SDK 2 Smokes"',
+        'job.get("conclusion") == "success"',
+        "verified={'true' if verified_run else 'false'}",
+    ):
+        assert required_contract in script
+
+    fallback_condition = "steps.exact-sha-ci.outputs.verified != 'true'"
+    for step_name in (
+        "Install uv",
+        "Set up Python",
+        "Install test dependencies",
+        "Initialize and inspect all five immutable SDK2 archives",
+    ):
+        assert steps[step_name]["if"] == fallback_condition
+
+
 def test_release_workflow_uses_frozen_dependency_installs() -> None:
     release = _workflow("release.yml")
     for job_name, step in _iter_steps(release):
