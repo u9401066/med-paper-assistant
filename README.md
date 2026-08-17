@@ -12,7 +12,7 @@
 
 ## 🔬 An Auditable MCP Research Workspace for Autonomous and Human-Guided Academic Writing
 
-MCP surfaces: mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · 38 Skills · 15 Prompt Workflows
+Core research surfaces: mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · Managed MCP integrations: 6 (adds Asset-Aware 30 + Draw.io 23 + Zotero Keeper 32) · 38 Skills · 15 Prompt Workflows
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Autonomous + Human-Guided Writing Guide](docs/auto-paper-guide.md)** — 13 main gate checkpoints + Phase 2.1 sub-gate, 79 Quality Hooks, Structured Review Loop
@@ -33,30 +33,30 @@ This repository is the **full authoring and integration workspace** behind MedPa
 | **mdpaper**                                                        | Core MCP Server        | 118 (full) / 12 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources                                    |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 45                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 24                                | Creative generation: brainstorm, deep think, spark collision                                                                          |
-| **[VS Code Extension](vscode-extension/)**                         | Extension              | 11 cmds + 10 chat                 | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
+| **[VS Code Extension](vscode-extension/)**                         | Extension              | 9 cmds + 10 chat                  | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                 | Project management UI, diagram editor                                                                                                 |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                 | `[[wikilink]]` citation linking, hover preview, graph view                                                                            |
 | **[Skills](.claude/skills/)**                                      | Agent Workflows        | 38                                | Guided multi-tool workflows plus a shared Claude Code / Codex / OpenClaw academic-writing contract                                    |
 | **[Prompts](.github/prompts/)**                                    | Prompt Files           | 15                                | `/mdpaper.search`, `/mdpaper.draft`, etc.                                                                                             |
 
-**External MCP Servers** (optional, installed via uvx):
+The table above shows the three core research servers. These optional servers complete the six managed MCP integrations (installed via uvx):
 
-- **asset-aware** — Ingest user-provided DOCX/XLSX/PDF/PPTX source materials and reference full text before drafting
-- **drawio** — CONSORT/PRISMA flowchart generation
-- **zotero-keeper** — Import references from Zotero library
+- **asset-aware (30 tools)** — Ingest user-provided DOCX/XLSX/PDF/PPTX source materials and reference full text before drafting
+- **drawio (23 tools)** — CONSORT/PRISMA flowchart generation
+- **zotero-keeper (32 tools)** — Import references from Zotero library
 
 Counts in these tables are release-gated via `tool-surface-authority.json` and `vscode-extension/bundle-manifest.json`.
 
 ### Choose Your Install Surface
 
-| Surface             | Best for                                       | What you get                                                                                                                                                                                       |
-| ------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 38 skills, 15 prompt workflows, cross-agent harness, repo scripts, tests, and authoring docs                                           |
-| **VSIX extension**  | End users who want the packaged experience     | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (12 tools by default / 118 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
+| Surface             | Best for                                       | What you get                                                                                                                                                                                      |
+| ------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 38 skills, 15 prompt workflows, cross-agent harness, repo scripts, tests, and authoring docs                                          |
+| **VSIX extension**  | End users who want the packaged experience     | `@mdpaper`, 9 palette commands, compact-first `mdpaper` runtime (12 tools by default / 118 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
 
 The repository is the broader engineering surface. The VSIX is the curated end-user surface.
 
-**VSX note**: The extension persistently maintains only the core MedPaper executable through `uv tool`. Managed external MCPs run from immutable SDK 2 commit archives through isolated `uvx`; PubMed Search or Zotero Keeper registration is skipped when another installed extension explicitly provides it. CI smoke covers `ubuntu-latest`, `windows-latest`, and `macos-14`, plus exact-archive install checks.
+**VSX note**: The extension verifies or installs checksum-pinned `uv`/`uvx` 0.12.5, then launches the matching core package and all managed external MCPs through isolated, exact SDK 2 sources. A workspace that explicitly defines `mdpaper` in `.vscode/mcp.json` remains authoritative and suppresses extension auto-registration. CI smoke covers `ubuntu-latest`, `windows-latest`, and `macos-14`, plus all five exact-archive integrations.
 
 ### How the Pieces Fit Together
 
@@ -288,7 +288,7 @@ projects/{slug}/
 - Statistical tests (t-test, ANOVA, chi², correlation, Mann-Whitney, Fisher's)
 - **Table 1 generator** — Baseline characteristics with automatic variable detection
 - Publication-ready figures (matplotlib/seaborn)
-- **Content-integrity review** — SHA-256/MIME receipts, optional C2PA validation, mandatory documented review for uncertain raster watermarks, and no automatic watermark removal
+- **Content-integrity review** — SHA-256/MIME receipts, optional C2PA validation, and a version-pinned `remove-ai-watermarks` visible/open-DWT detector; the check is offline and detection-only, preserves the original, writes no cleaned derivative, and never treats “not detected” as clean
 
 ### Export & Submission
 
@@ -634,21 +634,21 @@ med-paper-assistant/
 
 ## 🗺️ Roadmap
 
-| Status | Feature                     | Description                                                                  |
-| ------ | --------------------------- | ---------------------------------------------------------------------------- |
-| ✅     | **3 MCP Servers**           | mdpaper (118 full / 12 compact) + pubmed-search (45) + CGU (24)              |
-| ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation    |
-| ✅     | **Project Memory**          | `.memory/` for cross-session AI context                                      |
-| ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                                       |
-| ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                                        |
-| ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                                       |
-| ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                                         |
-| ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)                           |
-| 🔜     | **Richer VSX UX**           | TreeView, CodeLens, Diagnostics, and deeper in-editor surfaces (Direction C) |
-| 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations                                  |
-| 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis                                     |
-| 📋     | **AI Writing Intelligence** | Citation intelligence, coherence engine                                      |
-| 📋     | **REST API Mode**           | Expose tools as REST API                                                     |
+| Status | Feature                     | Description                                                                          |
+| ------ | --------------------------- | ------------------------------------------------------------------------------------ |
+| ✅     | **6 managed MCP servers**   | mdpaper (118/12), PubMed (45), CGU (24), Asset-Aware (30), Draw.io (23), Zotero (32) |
+| ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation            |
+| ✅     | **Project Memory**          | `.memory/` for cross-session AI context                                              |
+| ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                                               |
+| ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                                                |
+| ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                                               |
+| ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                                                 |
+| ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)                                   |
+| 🔜     | **Richer VSX UX**           | TreeView, CodeLens, Diagnostics, and deeper in-editor surfaces (Direction C)         |
+| 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations                                          |
+| 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis                                             |
+| 📋     | **AI Writing Intelligence** | Citation intelligence, coherence engine                                              |
+| 📋     | **REST API Mode**           | Expose tools as REST API                                                             |
 
 **Architecture Direction**: [Direction C — Full VSX + Foam + Pandoc](ROADMAP.md)
 
@@ -675,7 +675,7 @@ If you use Medical Paper Assistant, cite the software release described in [`CIT
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.0.0},
+  version = {1.0.1},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

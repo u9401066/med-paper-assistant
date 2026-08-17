@@ -10,7 +10,7 @@
 
 <p align="center">
   <b>🔬 可稽核的 MCP 自主與人機協作學術寫作工作區</b><br>
-  <i>MCP 工具面：mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · 38 個技能 · 15 個 Prompt 工作流</i>
+  <i>核心研究面：mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · 6 個受管 MCP（加上 Asset-Aware 30 + Draw.io 23 + Zotero Keeper 32）· 38 個技能 · 15 個 Prompt 工作流</i>
 </p>
 
 > 📖 [English Version](README.md)
@@ -34,30 +34,30 @@
 | **mdpaper**                                                        | 核心 MCP Server      | 118（full）/ 12（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources                       |
 | **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 45                              | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                                              |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 24                              | 創意發想：腦力激盪、深度思考、火花碰撞                                                                 |
-| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 11 指令 + 10 chat               | MCP 自動註冊、compact-first 打包面、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者 |
+| **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 9 指令 + 10 chat                | MCP 自動註冊、compact-first 打包面、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者 |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App      | —                               | 專案管理 UI、圖表編輯器                                                                                |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —                               | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖                                                            |
 | **[Skills](.claude/skills/)**                                      | Agent 工作流         | 38                              | 引導式多工具工作流，加上 Claude Code / Codex / OpenClaw 共用學術寫作契約                               |
 | **[Prompts](.github/prompts/)**                                    | Prompt Files         | 15                              | `/mdpaper.search`、`/mdpaper.draft` 等                                                                 |
 
-**外部 MCP Server**（選用，透過 uvx 安裝）：
+上表是三個核心研究 server；以下選用 server 補齊 6 個受管 MCP（透過 uvx 安裝）：
 
-- **asset-aware** — 寫作前解析用戶提供的 DOCX/XLSX/PDF/PPTX 原始素材與文獻全文
-- **drawio** — CONSORT/PRISMA 流程圖生成
-- **zotero-keeper** — 從 Zotero 匯入參考文獻
+- **asset-aware（30 工具）** — 寫作前解析用戶提供的 DOCX/XLSX/PDF/PPTX 原始素材與文獻全文
+- **drawio（23 工具）** — CONSORT/PRISMA 流程圖生成
+- **zotero-keeper（32 工具）** — 從 Zotero 匯入參考文獻
 
 上表與 MCP tool surface 的計數以 `tool-surface-authority.json` 與 `vscode-extension/bundle-manifest.json` 為單一來源，release / validate gate 會自動驗證。
 
 ### 如何選擇安裝面
 
-| 安裝面              | 適合誰                            | 你會拿到什麼                                                                                                                                                                                  |
-| ------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、38 個 skills、15 個 prompt workflows、跨 Agent harness、repo scripts、tests 與作者文件                                                          |
-| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者      | `@mdpaper`、11 個 palette commands、compact-first `mdpaper` runtime（預設 12 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
+| 安裝面              | 適合誰                            | 你會拿到什麼                                                                                                                                                                                 |
+| ------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、38 個 skills、15 個 prompt workflows、跨 Agent harness、repo scripts、tests 與作者文件                                                         |
+| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者      | `@mdpaper`、9 個 palette commands、compact-first `mdpaper` runtime（預設 12 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
 
 也就是說：repository 是較寬的工程面；VSIX 是較收斂的終端使用者面。
 
-**VSX 說明**：擴充功能只透過 `uv tool` 持久維護核心 MedPaper 執行檔。管理中的外部 MCP 均由隔離的 `uvx` 啟動不可變 SDK 2 commit archive；另一個已安裝擴充若明確提供 PubMed Search 或 Zotero Keeper，則跳過重複註冊。CI smoke 覆蓋 `ubuntu-latest`、`windows-latest`、`macos-14`，並加上 exact-archive 安裝檢查。
+**VSX 說明**：擴充功能會驗證或安裝具 SHA-256 allowlist 的 `uv`/`uvx` 0.12.5，再以隔離且精確釘選的 SDK 2 來源啟動同版核心套件與所有受管外部 MCP。若 workspace 已在 `.vscode/mcp.json` 明確定義 `mdpaper`，該設定仍具最高權威並停用擴充功能自動註冊。CI smoke 覆蓋 `ubuntu-latest`、`windows-latest`、`macos-14`，以及五套 exact-archive integration。
 
 ### 各元件如何協作
 
@@ -289,7 +289,7 @@ projects/{slug}/
 - 統計檢定（t-test、ANOVA、chi²、相關性、Mann-Whitney、Fisher's）
 - **Table 1 生成器** — 基線特徵表，自動偵測變數類型
 - 出版品質圖表（matplotlib/seaborn）
-- **內容完整性審閱** — SHA-256/MIME receipt、可選 C2PA 驗證、無法判定的 raster 浮水印必須留下人工審閱紀錄，且不自動移除浮水印
+- **內容完整性審閱** — SHA-256/MIME receipt、可選 C2PA 驗證，以及版本鎖定的 `remove-ai-watermarks` 可見／公開 DWT detector；全程離線、只做偵測、保留原件、不寫出去除後衍生檔，且「未偵測」永遠不等於乾淨
 
 ### 匯出與投稿
 
@@ -634,21 +634,21 @@ med-paper-assistant/
 
 ## 🗺️ 開發藍圖
 
-| 狀態 | 功能                        | 說明                                                             |
-| ---- | --------------------------- | ---------------------------------------------------------------- |
-| ✅   | **3 個 MCP Server**         | mdpaper（118 full / 12 compact）+ pubmed-search (45) + CGU (24)  |
-| ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、命名 graph views、專案隔離        |
-| ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                    |
-| ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                               |
-| ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                                            |
-| ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                                   |
-| ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                               |
-| ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...）              |
-| 🔜   | **更完整的 VSX UX**         | TreeView、CodeLens、Diagnostics 與更深入的編輯器內表面（方向 C） |
-| 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                              |
-| 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                                  |
-| 📋   | **AI Writing Intelligence** | 引用智慧、連貫性引擎                                             |
-| 📋   | **REST API 模式**           | 將工具公開為 REST API                                            |
+| 狀態 | 功能                        | 說明                                                                                       |
+| ---- | --------------------------- | ------------------------------------------------------------------------------------------ |
+| ✅   | **6 個受管 MCP Server**     | mdpaper（118/12）、PubMed（45）、CGU（24）、Asset-Aware（30）、Draw.io（23）、Zotero（32） |
+| ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、命名 graph views、專案隔離                                  |
+| ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                                              |
+| ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                                                         |
+| ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                                                                      |
+| ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                                                             |
+| ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                                                         |
+| ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...）                                        |
+| 🔜   | **更完整的 VSX UX**         | TreeView、CodeLens、Diagnostics 與更深入的編輯器內表面（方向 C）                           |
+| 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                                                        |
+| 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                                                            |
+| 📋   | **AI Writing Intelligence** | 引用智慧、連貫性引擎                                                                       |
+| 📋   | **REST API 模式**           | 將工具公開為 REST API                                                                      |
 
 **架構方向**：[Direction C — Full VSX + Foam + Pandoc](ROADMAP.md)
 
@@ -675,7 +675,7 @@ med-paper-assistant/
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.0.0},
+  version = {1.0.1},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

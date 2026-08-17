@@ -57,20 +57,20 @@ flowchart LR
 3. 單一來源過度支配與合理多來源綜合的 paired fixtures。
 4. prompt injection、惡意 PDF metadata、path traversal 與不可用外部 MCP。
 5. manual/autopilot Phase 4、pause/resume、targeted regression 與 max-round escalation。
-6. C2PA trusted/untrusted/invalid/absent/unsupported、可見訊號與 hash-mutation fixtures。
+6. C2PA trusted/untrusted/invalid/absent/unsupported、版本鎖定 removal-package 的 visible/open-DWT 訊號、離線執行與 hash-mutation fixtures。
 7. 同一內容渲染 DOCX/PDF/HTML，聲稱、引用與 cross-reference 不漂移。
 
 每個 positive fixture 至少有一個只改動關鍵條件的 negative 或 metamorphic pair，防止「所有輸入都 pass」的假 gate。
 
 ## 里程碑
 
-| Milestone   | 交付物                                                           | Release gate                                                       |
-| ----------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
-| M1 Contract | solve→persist→score schema、fixture manifest、failure taxonomy   | scorer 無寫入權；schema 與 locator tests 通過                      |
-| M2 Evidence | claim-evidence、citation、question-map fixtures                  | unsupported claim、錯誤 locator、source dominance 必須被捕捉       |
-| M3 Workflow | manual/autopilot、resume/regression、external MCP degraded cases | 狀態轉移與 audit hash 可重現                                       |
-| M4 Assets   | data/figure/export/content-integrity fixtures                    | 原檔不變、無授權移除、invalid provenance 阻擋                      |
-| M5 Release  | compact 12 + full 118 profile matrix、三平台與 clean install     | 完整命令、版本、counts、hash 與 failure list 附在 release evidence |
+| Milestone   | 交付物                                                           | Release gate                                                                                            |
+| ----------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| M1 Contract | solve→persist→score schema、fixture manifest、failure taxonomy   | scorer 無寫入權；schema 與 locator tests 通過                                                           |
+| M2 Evidence | claim-evidence、citation、question-map fixtures                  | unsupported claim、錯誤 locator、source dominance 必須被捕捉                                            |
+| M3 Workflow | manual/autopilot、resume/regression、external MCP degraded cases | 狀態轉移與 audit hash 可重現                                                                            |
+| M4 Assets   | data/figure/export/content-integrity fixtures                    | 原檔不變、registered-visible/open-DWT detection-only package smoke、無自動移除、invalid provenance 阻擋 |
+| M5 Release  | compact 12 + full 118 profile matrix、三平台與 clean install     | 完整命令、版本、counts、hash 與 failure list 附在 release evidence                                      |
 
 ## 明確拒絕
 

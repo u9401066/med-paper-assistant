@@ -51,6 +51,7 @@ src/med_paper_assistant/
 │   ├── value_objects/               # 值物件
 │   │   ├── reference_id.py         #   ReferenceId（PMID > Zotero > DOI）
 │   │   ├── citation.py             #   Citation
+│   │   ├── content_integrity.py    #   C2PA/watermark/gate receipt 與純 policy
 │   │   └── search_criteria.py      #   SearchCriteria（Pydantic）
 │   ├── services/                    # 領域服務
 │   │   ├── reference_converter.py  #   多來源文獻轉換
@@ -92,7 +93,7 @@ src/med_paper_assistant/
 │   │   │   ├── _precommit.py           #   P 系列 Hooks (P5, P7)
 │   │   │   ├── _git.py                 #   G 系列 Hooks (G9)
 │   │   │   └── _engine.py              #   WritingHooksEngine 組合類
-│   │   └── data_artifact_tracker.py    # 資料與內容完整性 receipt 追蹤
+│   │   ├── data_artifact_tracker.py    # 資料 receipt + injected current-byte reinspection
 │   │   └── review_hooks.py             # R1-R6 審查品質 Hook（Phase 7 HARD GATE）
 │   ├── services/                    # 外部服務
 │   │   ├── drafter.py              #   草稿撰寫 + wikilink 引用
@@ -107,7 +108,8 @@ src/med_paper_assistant/
 │   │   ├── citation_assistant.py   #   引用助手
 │   │   ├── concept_template_reader.py
 │   │   └── prompts.py              #   Section 寫作指引
-│   ├── external/                    # 外部 MCP 與 read-only C2PA adapter
+│   ├── external/                    # read-only C2PA + visible/open-DWT adapters
+│   │   └── content_integrity.py    # pinned detector、MIME/pixel guard、live reinspection
 │   ├── config.py                    # 配置
 │   └── logging.py                   # 日誌
 │
@@ -132,6 +134,7 @@ src/med_paper_assistant/
 │
 └── shared/                          # 共用
     ├── constants.py
+    ├── export_integrity.py        # DOCX/PDF layer-neutral structural smoke
     └── exceptions.py
 ```
 
@@ -148,6 +151,10 @@ interfaces → application → domain ← infrastructure
 - **Application** 只依賴 Domain
 - **Infrastructure** 實作 Domain 定義的介面
 - **Interfaces** 將 MCP Protocol 對接到 Application/Infrastructure
+
+### Code-quality debt ratchet
+
+新程式碼受 `.github/bylaws/ddd-architecture.md` 的 400 行/file、300 行/class、50 行/function 門檻約束。既有大型模組尚未全數拆分；`code-quality-authority.json` 明列當前 39 個 file、24 個 class、328 個 function 例外，`scripts/check_code_quality_authority.py` 會拒絕新增例外、既有例外成長或門檻漂移，並要求每次縮減後同步收緊 authority。CI 另以 `vulture --min-confidence 80` 阻擋高信心孤兒程式碼。這是一個不可倒退的移除路徑，不代表既有 391 項債務已被合理化或完成重構。
 
 ---
 
@@ -191,17 +198,17 @@ verify_evolution() → 跨專案演化驗證
 
 ### 元件責任
 
-| 元件                         | 檔案                            | 職責                                                                                                   |
-| ---------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **QualityScorecard**         | `quality_scorecard.py`          | 8 維度品質評分持久化（citation, methodology, text, concept, format, figure, equator, reproducibility） |
-| **HookEffectivenessTracker** | `hook_effectiveness_tracker.py` | 追蹤 79 個 Hook 的 trigger/pass/fix/FP 事件，計算效能指標                                              |
-| **MetaLearningEngine**       | `meta_learning_engine.py`       | D1-D9 分析引擎：統計分析 → 閾值建議 → 經驗萃取 → 審計紀錄 → 品質趨勢                                   |
-| **WritingHooksEngine**       | `writing_hooks/` (package)      | Code-enforced hooks：A/B/C/F/G/P 系列，Mixin 架構；12 子模組                                           |
-| **ReviewHooksEngine**        | `review_hooks.py`               | R1-R6 審查品質 Hook：報告深度、回應完整、EQUATOR、追蹤性、Anti-AI、引用預算（Phase 7 HARD GATE）       |
-| **EvolutionVerifier**        | `evolution_verifier.py`         | 跨專案演化驗證：收集所有專案 `.audit/` 數據，產生演化證據報告                                          |
-| **DomainConstraintEngine**   | `domain_constraint_engine.py`   | Triad-inspired JSON 約束系統：per paper type 結構化約束、Sand Spreader 驗證、約束演化                  |
-| **PipelineGateValidator**    | `pipeline_gate_validator.py`    | Phase Gate 驗證器：確保每個 Phase 完成必要的品質檢查才能進入下一階段                                   |
-| **WorkspaceStateManager**    | `workspace_state_manager.py`    | 跨 Session 狀態管理：writing_session 自動存檔、recovery summary、checkpoint_writing_context            |
+| 元件                         | 檔案                            | 職責                                                                                                    |
+| ---------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **QualityScorecard**         | `quality_scorecard.py`          | 8 維度品質評分持久化（citation, methodology, text, concept, format, figure, equator, reproducibility）  |
+| **HookEffectivenessTracker** | `hook_effectiveness_tracker.py` | 追蹤 79 個 Hook 的 trigger/pass/fix/FP 事件，計算效能指標                                               |
+| **MetaLearningEngine**       | `meta_learning_engine.py`       | D1-D9 分析引擎：統計分析 → 閾值建議 → 經驗萃取 → 審計紀錄 → 品質趨勢                                    |
+| **WritingHooksEngine**       | `writing_hooks/` (package)      | Code-enforced hooks：A/B/C/F/G/P 系列，Mixin 架構；12 子模組                                            |
+| **ReviewHooksEngine**        | `review_hooks.py`               | R1-R6 審查品質 Hook：報告深度、回應完整、EQUATOR、追蹤性、Anti-AI、引用預算（Phase 7 HARD GATE）        |
+| **EvolutionVerifier**        | `evolution_verifier.py`         | 跨專案演化驗證：收集所有專案 `.audit/` 數據，產生演化證據報告                                           |
+| **DomainConstraintEngine**   | `domain_constraint_engine.py`   | Triad-inspired JSON 約束系統：per paper type 結構化約束、Sand Spreader 驗證、約束演化                   |
+| **PipelineGateValidator**    | `pipeline_gate_validator.py`    | Phase Gate 驗證器：以 unique evidence、artifact hash、current manuscript 與 review receipt 驗證階段轉移 |
+| **WorkspaceStateManager**    | `workspace_state_manager.py`    | 跨 Session 狀態管理：writing_session 自動存檔、recovery summary、checkpoint_writing_context             |
 
 ### 自我改進邊界（CONSTITUTION §23）
 
@@ -268,13 +275,14 @@ DomainConstraintEngine.evolve()
 
 Copilot Agent Mode 同時連接多個 MCP Server：
 
-| Server            | 來源                                                                                                                                                                   | 用途                                                           | Tools 數量            |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------- |
-| **mdpaper**       | 本專案                                                                                                                                                                 | 專案管理、草稿、引用、審查、匯出；另含 3 prompts / 3 resources | 118 full / 22 compact |
-| **pubmed-search** | `integrations/pubmed-search-mcp/` (submodule)                                                                                                                          | PubMed 文獻搜尋                                                | 46                    |
-| **cgu**           | `integrations/cgu/` (submodule)                                                                                                                                        | 創意發想（快思慢想）                                           | 24                    |
-| **drawio**        | `uv run --directory integrations/next-ai-draw-io/mcp-server python -m drawio_mcp_server` → fallback `node integrations/drawio-mcp/src/index.js` → `npx -y @drawio/mcp` | CONSORT/PRISMA 圖表                                            | ~5                    |
-| **zotero-keeper** | `uvx zotero-keeper`                                                                                                                                                    | Zotero 書目管理                                                | ~15                   |
+| Server            | 來源                                                                                                                                 | 用途                                                           | Tools 數量            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | --------------------- |
+| **mdpaper**       | 本專案；MCP Python SDK 2                                                                                                             | 專案管理、草稿、引用、審查、匯出；另含 3 prompts / 3 resources | 118 full / 12 compact |
+| **pubmed-search** | `integrations/pubmed-search-mcp/` immutable submodule；MCP Python SDK 2                                                              | PubMed 文獻搜尋                                                | 45                    |
+| **cgu**           | `integrations/cgu/` immutable submodule；MCP Python SDK 2                                                                            | 創意發想（快思慢想）                                           | 24                    |
+| **asset-aware**   | `integrations/asset-aware-mcp/` immutable submodule；Marketplace 使用 `mcp-integration-lock.json` 的 commit archive                  | 使用者素材與全文解析                                           | 30                    |
+| **drawio**        | 開發模式使用 `integrations/next-ai-draw-io/mcp-server/`；Marketplace 使用 integration lock 的 commit archive；Python/Node 皆為 SDK 2 | CONSORT/PRISMA 圖表                                            | 23 Python / 5 Node    |
+| **zotero-keeper** | 由 integration lock 固定 `v0.7.0-ext` commit archive 的 `mcp-server` 子目錄；禁止浮動 PyPI/MCP 1 fallback                            | Zotero 書目管理                                                | 32                    |
 
 ### MCP-to-MCP 通訊
 
@@ -303,11 +311,11 @@ Reference file:
 
 ## VS Code Extension
 
-[vscode-extension/](vscode-extension/) — TypeScript，提供五個 commands 與十個 chat commands：
+[vscode-extension/](vscode-extension/) — TypeScript，提供九個 palette commands 與十個 chat commands：
 
-1. **MCP Server 註冊**：在 workspace 沒有自行管理 `.vscode/mcp.json` 時，自動註冊 mdpaper，並依環境條件註冊 cgu、pubmed-search、zotero-keeper、drawio
+1. **MCP Server 註冊**：在 workspace 沒有自行管理 `.vscode/mcp.json` 時，自動註冊 mdpaper、pubmed-search、zotero-keeper、asset-aware、drawio，並在 bundled/workspace CGU 可用時註冊 cgu
 2. **Chat Participant**：`@mdpaper` with 10 commands (`/search`, `/draft`, `/concept`, `/project`, `/format`, `/autopaper`, `/drawio`, `/analysis`, `/strategy`, `/help`)
-3. **Commands**：`mdpaper.startServer`, `mdpaper.stopServer`, `mdpaper.showStatus`, `mdpaper.autoPaper`, `mdpaper.setupWorkspace`
+3. **Commands**：`mdpaper.showStatus`、`mdpaper.autoPaper`、`mdpaper.setupWorkspace`、`mdpaper.openLlmWikiGuide`，以及五個 Foam graph views
 4. **Workspace Bootstrap**：複製 14 個 bundled skills、13 個 bundled prompts、9 個 reviewer agents、`copilot-instructions.md`、期刊模板
 
 ---

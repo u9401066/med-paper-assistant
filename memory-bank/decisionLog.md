@@ -1,5 +1,25 @@
 # Decision Log
 
+## [2026-08-17] v1.0.1 Fail-Closed Artifact Trust and Reproducible Local Runtime
+
+### 背景
+
+v1.0.0 已完成 SDK2 major migration，但後續 adversarial audit 發現：序列化 Phase gate evidence 仍可能被 workspace 直接改寫、raster integrity receipt 需 current-byte reinspection、VSIX 的 uv bootstrap 尚未釘選 artifact，且五個外部 MCP archive 未全部進 release smoke。
+
+### 本次決定
+
+1. **Artifact evidence 必須可重算**：Phase 2/2.1/7 不再信任 metadata boolean 或手寫 verdict；canonical identity、raw payload hash、artifact bytes/source revision、review scores/R1-R6/hash chain 都從目前 artifact 重算。
+2. **外部人類決策必須是 verify-only 信任邊界**：MCP 永不持有 signer/private key；只接受 host env allowlist 中 Ed25519 公鑰驗證的 v3 receipt，並綁 project、artifact/state hash、具名 reviewer、confirmation ID 與 timezone-aware timestamp。
+3. **浮水印套件採 detection-only integration**：精確釘選 `remove-ai-watermarks[visible,detect]`，只呼叫可驗證離線的 registered-visible/open-DWT detectors；不呼叫 removal、TrustMark download 或上游 C2PA network path。負結果僅代表 NOT_DETECTED，raster 仍需人類判讀。
+4. **本機 runtime 也要 supply-chain reproducible**：VSIX 只接受精確 uv/uvx 0.12.5，或下載內建 SHA-256 allowlist 的官方 release asset；archive traversal/symlink/zip bomb、managed-path symlink 與 concurrent install 全部 fail closed。
+5. **Legacy code debt 不以大改冒險掩蓋**：本輪刪除 5 個確認零引用符號，新增 deterministic 400/300/50 authority ratchet 與 vulture gate；391 項既有例外公開記錄並禁止成長，後續逐模組拆分。
+6. **每個 managed MCP 都要驗真正發行來源**：五套 exact commit archive 必須 initialize MCP 2 client、列出精確 surface 並呼叫一個離線安全 tool，CI/release 不能再排除這組 slow integration gate。
+
+### 發布邊界
+
+- v1.0.1 只有在 source/bundle parity、完整 Python/VSIX/docs/security/package/archive gates 與遠端 CI 通過後才建 tag。
+- Marketplace recovery 不重用已失效 PAT，也不盲目重跑不可用的 OIDC endpoint；owner credential 是唯一剩餘外部授權邊界。
+
 ## [2026-08-17] v1.0.0 SDK2-Only, Trust-Preserving Academic Writing Platform
 
 ### 背景

@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-17
+
+### Added
+
+- Added a fail-closed Marketplace recovery workflow that verifies the annotated tag, GitHub Release asset identity and SHA-256, isolated VSIX installation, publisher identity, PAT validity, and final Gallery digest before accepting a manual recovery publication.
+- Added adversarial receipts and negative smoke coverage for content-integrity tampering, renamed raster files, decompression-bomb dimensions, missing detector capabilities, detector exceptions, incomplete DWT probes, untrusted metadata labels, and source-byte mutation.
+- Added Ed25519 verification for exceptional human-approval receipts; trusted public keys come only from host process configuration, unsigned v2 receipts are rejected, and no signer or private-key path is exposed to MCP tools.
+- Added a shrink-only 400/300/50 code-quality authority, high-confidence vulture gate, and exact archive initialize/list/call smokes for all five managed MCP integrations.
+
+### Changed
+
+- Replaced the aggregate watermark-package inspection path with deterministic, offline, per-detector registered-visible and open DWT-DCT checks. The pinned package remains detection-only in this project: originals and provenance are preserved, no removal API is called, and no cleaned derivative is written.
+- Updated direct Python and Node dependencies within supported constraints, including MkDocs Material 9.7.7, and aligned the VSIX runtime/type contract with the first VS Code MCP provider API release (`^1.101.0`).
+- Pinned every GitHub Action to an immutable reviewed commit, upgraded the action runtimes, disabled unsafe release caching, and made the strict zizmor audit free of unhandled findings.
+- Aligned CGU and Draw.io package license metadata with their Apache-2.0 repositories and refreshed the immutable integration revisions.
+
+### Fixed
+
+- Fixed content-integrity receipt trust so insertion re-runs all read-only adapters against the current bytes and rejects downgraded C2PA, MIME, visible-watermark applicability, detector-completion, or gate fields; raster uncertainty still requires documented review.
+- Fixed the compact analysis facade so raster watermark review evidence reaches the insertion gate, while raw asset-controlled metadata can no longer be reflected into agent-facing output as instructions.
+- Fixed Phase 2, 2.1, 3, and 7 gates so duplicate or incomplete evidence, fabricated artifact receipts, serialized score/verdict edits, stale manuscript/concept hashes, and unsigned completion overrides cannot unlock later phases.
+- Fixed the persistence-layer live inspection path to preserve the DDD dependency direction instead of importing the Application layer dynamically.
+
+### Removed
+
+- Removed five confirmed zero-reference legacy symbols, two no-op VSIX lifecycle commands, two unread settings, and mutable VSIX runtime-install paths; the remaining 391 declared size exceptions are visible debt that the new ratchet forbids from growing.
+
 ## [1.0.0] - 2026-08-17
 
 ### Added

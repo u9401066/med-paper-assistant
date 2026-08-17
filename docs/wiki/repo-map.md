@@ -60,7 +60,7 @@ Application 不得反向 import Infrastructure；Domain 不得 import 任何外�
 
 ```mermaid
 flowchart LR
-    Client[Agent client] --> Compact[Compact facade<br/>22 tools]
+    Client[Agent client] --> Compact[Compact facade<br/>12 tools]
     Client --> Full[Full surface<br/>118 tools]
     Compact --> UseCases[Application use cases]
     Full --> UseCases

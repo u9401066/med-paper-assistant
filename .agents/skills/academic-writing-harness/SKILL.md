@@ -45,6 +45,15 @@ Codex and OpenClaw. Claude Code uses the matching skill under
 - Run deterministic hooks and satisfy each hard gate before advancing. Release
   claims require frozen positive, negative, mutation, degraded, and resume
   fixtures plus the command, environment, counts, hashes, and failure details.
+- Treat human acceptance as an external authority boundary. An Agent/MCP may
+  inspect or revoke a host-issued Ed25519 confirmation receipt, but must never
+  mint one by labeling its own input as `human`; receipts bind the project,
+  reviewed artifact/state hashes, named reviewer, confirmation identifier, and
+  time, and are verified only against host-configured public keys.
+- Before inserting an image, re-run the read-only C2PA and pinned
+  visible/open-DWT checks against its current bytes. Preserve the original,
+  require documented review for raster uncertainty, and never equate a
+  negative detector result with proof that no watermark exists.
 - Keep verified source data, agent interpretation, and user-authored notes in
   separate trust layers.
 - Finish with cross-section review, reference verification, export validation,

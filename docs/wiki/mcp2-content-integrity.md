@@ -1,6 +1,6 @@
 # MCP 2 與內容完整性
 
-MedPaper Assistant 的 MCP runtime 以 SDK 2.x 為唯一支援基線。內容完整性檢查則用來保存原始資產、驗證可用的 provenance，並把不確定性升級為人工審閱；它不是去浮水印或規避平台政策的功能。
+MedPaper Assistant 的 MCP runtime 以 SDK 2.x 為唯一支援基線。內容完整性檢查則用來保存原始資產、驗證可用的 provenance，並把不確定性升級為 reviewer 審閱。系統會使用版本鎖定的去浮水印套件做額外辨識，但不呼叫移除 API、不覆寫原件、不產生「洗乾淨」的衍生檔，也不規避平台政策。
 
 ## MCP 2 runtime contract
 
@@ -36,7 +36,8 @@ flowchart TD
     H1 --> Mime[MIME identification]
     Mime --> C2PA[Optional C2PA read/validate]
     Mime --> Visible[Conservative visible-mark signals]
-    C2PA & Visible --> H2[SHA-256 after]
+    Mime --> Package[Pinned strict pixel detectors]
+    C2PA & Visible & Package --> H2[SHA-256 after]
     H2 --> Gate{Integrity gate}
     Gate -->|PASS| Review[Asset review]
     Gate -->|HUMAN_REVIEW| Human[Documented visual review]
@@ -44,18 +45,22 @@ flowchart TD
     Gate --> Receipt[(CI-* receipt in data-artifacts audit)]
 ```
 
-檢查器使用標準函式庫計算 SHA-256 與 MIME；原檔在檢查前後的 hash 必須相同。可選的 `c2pa-python` adapter 只讀 manifest、關閉遠端 manifest fetching，且不簽署、不重寫資產。未安裝 optional dependency 或格式不支援時回傳 `UNSUPPORTED`，不會假裝驗證成功。一般 PyPI 安裝可選擇 `[provenance]` extra；Marketplace VSIX 的 core runtime 固定安裝同版本的 `[provenance]` extra，因此 C2PA adapter 不會因 bundle contract 漂移而靜默缺席。
+檢查器使用標準函式庫計算 SHA-256，並以 magic bytes 覆核 PNG/JPEG/WebP 的副檔名 MIME；原檔在三個 adapter 執行前後的 hash 必須相同。可選的 `c2pa-python` adapter 只讀 manifest、關閉遠端 manifest fetching，且不簽署、不重寫資產。`remove-ai-watermarks[visible,detect]==0.26.3` 只呼叫套件的 registered-mark catalog 與公開 DWT-DCT decoder：每個已註冊可見 detector 都必須成功執行，DWT 必須回傳完整 48/136-bit decode，才能記錄陰性結果。它刻意不呼叫 aggregate `identify`，因為其共用 invisible flag 也可能進入可下載權重的 TrustMark 支線；因此本路徑不會走 C2PA reader、TrustMark、diffusion、GPU、模型下載、metadata stripping 或任何 output/removal API。一般 PyPI 安裝可選擇 `[provenance,watermark]` extras；Marketplace VSIX 固定安裝同版本的兩個 extras。PNG/JPEG/WebP 若 MIME 衝突、必要 capability 缺席、版本漂移、無法 decode、尺寸不足以完成兩種 DWT probe、超過 5,000 萬像素或任一 detector 執行失敗會 fail closed。
 
 ### 套件與 API 選擇
 
-| 類別                         | 選擇                                          | API／理由                                                                                                  |
-| ---------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| File identity                | Python stdlib `hashlib`、`mimetypes`          | core dependency；streaming SHA-256、檢查前後重算、保存 MIME 與 bytes                                       |
-| C2PA provenance              | optional extra `c2pa-python`（import `c2pa`） | `Settings.from_dict` → `Context` → `Reader.try_create` → validation state/results；未安裝即 `UNSUPPORTED`  |
-| Visible image watermark      | local conservative signal heuristic           | filename/SVG text 可提出訊號；所有無法證明陰性的 PNG/JPEG 仍要求 visual review，不新增未校準 detector      |
-| Invisible/model watermark    | 暫不選通用套件                                | scheme-specific adapter 必須先有授權樣本、false-positive/negative fixtures、版本固定與 human-review policy |
-| LLM text watermark/detection | 不作 release gate                             | detector 分數不能證明作者或研究誠信；以 disclosure、evidence、版本與人工責任取代                           |
-| Removal                      | 明確拒絕                                      | 不新增 removal MCP tool；合法衍生轉換另建 artifact，保存原檔、授權、命令、hash 與核准                      |
+| 類別                         | 選擇                                           | API／理由                                                                                                 |
+| ---------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| File identity                | Python stdlib `hashlib`、`mimetypes`           | streaming SHA-256、檢查前後重算、保存 MIME 與 bytes                                                       |
+| C2PA provenance              | `c2pa-python==0.37.7`                          | 關閉 remote fetch 的 `Reader.try_create` + validation；未安裝即 `UNSUPPORTED`                             |
+| Conservative signal          | 本地 filename/SVG heuristic                    | 僅提出 `UNCERTAIN`／`HUMAN_REVIEW`，不宣稱 clean                                                          |
+| Removal-package check        | `remove-ai-watermarks[visible,detect]==0.26.3` | Apache-2.0、exact pin、逐一 strict visible + open DWT；不呼叫 aggregate identify/removal、不寫 derivative |
+| Open invisible watermark     | 同一 package 的 torch-free DWT-DCT decoder     | 只涵蓋公開 scheme；陰性不能外推 SynthID、TrustMark 或未公開 vendor scheme                                 |
+| Proprietary/model watermark  | 不設通用陰性結果                               | 需 scheme-specific oracle、授權 fixture 與校準；不下載 GPU 模型                                           |
+| LLM text watermark/detection | 不作 release gate                              | detector 分數不能證明作者或研究誠信；以 disclosure、evidence、版本與人工責任取代                          |
+| Removal/output               | 不暴露 MCP tool、不自動執行                    | 若未來合法製作衍生資產，必須另建 artifact/receipt，保存授權、原件、命令、hash、disclosure 與明確人工核准  |
+
+`remove-ai-watermarks` 仍是單一維護者的 0.x Beta 套件；v0.26.3 的 PyPI artifacts 在本次審計時沒有 PEP 740 provenance bundle。因此它只存在於 optional extra，版本與 wheel/sdist hash 由 lock 精確固定，並以本地 capability、offline、mutation 與正負 fixture 做契約測試。這個依賴風險不能被「目前無已知 CVE」取代，升版時必須重新審查 API、artifact provenance 與 detector 行為。
 
 Adapter 的 read-only 呼叫形狀如下；application 層只保存 bounded validation summary，不把完整 manifest 或憑證內容複製進 audit log：
 
@@ -74,6 +79,20 @@ with c2pa.Context(settings) as context:
 
 `Reader.try_create(...) is None` 對應 `ABSENT`，不是驗證成功或來源不可信。Adapter 例外必須映射成 bounded `UNSUPPORTED`／`ERROR`，不得把任意 parser 訊息或 sensitive metadata 直接回傳給 agent。
 
+第二層 package call 也固定為逐 detector、read-only；任何一支 registered detector 或 DWT completion probe 拋錯，都回 `ERROR`，不會把 silent skip 當成陰性：
+
+```python
+image = image_io.imread(path)
+for mark in watermark_registry.known_marks():
+    detection = mark.detect(image, provenance=False)  # exception => ERROR
+
+decoded = dwt_dct.decode_dwt_dct_lengths(image, (48, 136))
+assert set(decoded) == {48, 136}
+scheme = invisible_watermark.detect_invisible_watermark(path, image=image)
+```
+
+Receipt 只保留 bounded watermark 名稱、signal name、platform、confidence、package version 與 clash；不保存 output image。`NOT_DETECTED` 只代表此版本已知 detector 沒有命中，絕不改寫成 `CLEAN`。
+
 ### Provenance 狀態
 
 | 狀態                      | 意義                                         | Gate                                |
@@ -89,17 +108,17 @@ C2PA assertion 是來源與編輯歷程的可驗證聲明，不等於內容為�
 
 ### 可見與不可見水印
 
-- 可見圖像水印只做保守訊號篩選。結果只有 `UNCERTAIN` 或 `HUMAN_REVIEW`，永遠不宣稱「乾淨」；PNG/JPEG 的 `UNCERTAIN` 也會把 gate 提升為 `HUMAN_REVIEW`。
-- 不可見圖像水印通常是 vendor/model-specific；沒有通用 detector 就回報 `UNSUPPORTED`，不得用單一模型的陰性結果概括所有 scheme。
+- 可見圖像先跑 filename/SVG 保守訊號，再由 pinned package 掃描已註冊版型。兩層都可能誤判或漏判；PNG/JPEG/WebP 即使 package 回 `NOT_DETECTED`，仍維持 `HUMAN_REVIEW`。
+- 公開 DWT-DCT signal 由 `[detect]` extra 離線檢查；專有 SynthID、TrustMark 與其他 vendor scheme 不在通用陰性保證內。
 - LLM 文字水印與 AI 文字偵測器不作為作者身份、研究誠信或可交付性的充分證據。文件品質由來源、方法、可重現性與人工責任確認。
-- 系統不提供自動移除工具。若授權允許製作衍生資產，必須保留原檔、授權依據、轉換命令、新 hash 與人工核准，並把衍生檔視為新 artifact。
+- 套件雖有 removal 能力，本 adapter 沒有可到達的 removal/output 路徑。若授權允許未來製作衍生資產，必須另建 artifact 與 sidecar，保留原檔、授權依據、轉換命令、新 hash、disclosure 與人工核准。
 
 ### Receipt 與 gate
 
 每次 `review_asset_for_insertion` 都建立 `CI-*` receipt，存入專案 `.audit/data-artifacts.yaml`：
 
 ```yaml
-schema_version: "1.0"
+schema_version: "1.2"
 asset_path: results/figures/consort.png
 file:
   sha256: "..."
@@ -112,6 +131,16 @@ provenance:
 visible_watermark:
   status: UNCERTAIN
   signals: []
+removal_package_check:
+  provider: remove-ai-watermarks
+  provider_version: 0.26.3
+  status: NOT_DETECTED
+  inspection_mode: strict_registered_visible_open_dwt_v1
+  checks_requested: [registered_visible, open_dwt_dct]
+  checks_completed: [registered_visible, open_dwt_dct]
+  watermarks: []
+  automated_removal_performed: false
+  derivative_written: false
 gate_status: HUMAN_REVIEW
 gate_reasons:
   - Visible-watermark screening is inconclusive for this image; documented human review is required.
@@ -119,20 +148,22 @@ original_preserved: true
 automated_removal_performed: false
 ```
 
-只要 C2PA 為 `PRESENT_INVALID`／`ERROR`，或檢查前後 hash 不同，就禁止插入。任何 raster 的 `UNCERTAIN` 與明確可見水印訊號都必須附上 `visible_watermark_review` 才能繼續；`ABSENT` 與 `UNSUPPORTED` 會留在 receipt 中，雖不單獨構成拒絕，也不能繞過 raster 人工審閱。
+只要 C2PA 為 `PRESENT_INVALID`／`ERROR`、檢查前後 hash 不同、內容 MIME 與檔名衝突，或 PNG/JPEG/WebP 的 removal-package check 為 `UNSUPPORTED`／`ERROR`／版本不符／required checks 未完成，就禁止插入。Tracker 不只從 receipt enum 與 current bytes 重新計算 gate；每次插入/引用前還會對目前資產重新執行三個 read-only adapter，比對 provenance、可見標記 applicability、package status/completed checks 與 gate，避免本地 actor 把 `BLOCK` receipt 改寫成較弱狀態。`DETECTED` 或任何 raster 的 `UNCERTAIN` 都必須附上 `visible_watermark_review` 才能繼續。這段文字是 self-attested reviewer note，不能被描述為已驗證身分或授權；若權利狀態不明，仍不得使用資產。舊的 schema 1.0/1.1 receipt 會被視為 stale 並要求重新檢查。
 
 ## Release smoke matrix
 
-| Fixture                              | 預期結果                                           |
-| ------------------------------------ | -------------------------------------------------- |
-| 無 manifest 的正常 PNG               | `ABSENT`/`UNSUPPORTED` + `HUMAN_REVIEW`；hash 不變 |
-| 有效且 trusted 的 C2PA asset         | `PRESENT_VALID_TRUSTED`                            |
-| 有效但本機不信任 signer              | `PRESENT_VALID_UNTRUSTED`                          |
-| 被竄改的 manifest/asset              | `PRESENT_INVALID` 且 `BLOCK`                       |
-| 非支援格式                           | `UNSUPPORTED`，不得 crash                          |
-| 未安裝 `c2pa-python`                 | `UNSUPPORTED`，核心安裝仍可用                      |
-| 普通 PNG/JPEG 無明確 signal          | `UNCERTAIN` → `HUMAN_REVIEW`；未附人工記錄不可插入 |
-| filename/SVG 文字有 watermark signal | `HUMAN_REVIEW`；未附人工記錄不可插入               |
-| 檢查器改動 asset bytes               | hash mismatch 且 `BLOCK`                           |
+| Fixture                                       | 預期結果                                                           |
+| --------------------------------------------- | ------------------------------------------------------------------ |
+| 無 manifest 的正常 PNG                        | C2PA `ABSENT` + package `NOT_DETECTED` + `HUMAN_REVIEW`；hash 不變 |
+| 合成 Gemini visible mark                      | package `DETECTED`；離線；無 derivative；原件 hash 不變            |
+| 公開 DWT-DCT positive                         | package signal present；不得外推專有 scheme                        |
+| 有效且 trusted 的 C2PA asset                  | `PRESENT_VALID_TRUSTED`                                            |
+| 有效但本機不信任 signer                       | `PRESENT_VALID_UNTRUSTED`                                          |
+| 被竄改的 manifest/asset                       | `PRESENT_INVALID` 且 `BLOCK`                                       |
+| 非支援格式                                    | package `UNSUPPORTED`，不得 crash                                  |
+| PNG/JPEG/WebP 未安裝／版本漂移／package error | `BLOCK`，提示安裝 exact `[provenance,watermark]` extras            |
+| filename/SVG 文字有 watermark signal          | `HUMAN_REVIEW`；未附 reviewer note 不可插入                        |
+| 任一 inspector 改動 asset bytes               | hash mismatch 且 `BLOCK`                                           |
+| forged schema/version/output/removal receipt  | tracker 拒絕，要求重新檢查                                         |
 
-Fixtures 應固定 byte/hash、license 與預期狀態；測試輸出需保存 SDK 版本、命令與失敗項目。官方技術來源包括 [C2PA specifications](https://c2pa.org/specifications/specifications/2.2/specs/C2PA_Specification.html)、[Content Authenticity Initiative 的 C2PA Python bindings](https://github.com/contentauth/c2pa-python) 與 [C2PA explainer](https://c2pa.org/how-it-works/)。
+Fixtures 應固定 byte/hash、license 與預期狀態；測試輸出需保存 package/SDK 版本、命令與失敗項目。技術與政策來源包括 [C2PA 2.4 specification](https://spec.c2pa.org/specifications/specifications/2.4/specs/ContentCredentials.html)、[C2PA Python bindings](https://github.com/contentauth/c2pa-python)、[`remove-ai-watermarks` v0.26.3](https://pypi.org/project/remove-ai-watermarks/0.26.3/)、其[支援訊號](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.26.3/docs/supported-signals.md)、[已知限制](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.26.3/docs/known-limitations.md)與[法律／安全範圍](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.26.3/docs/legal-and-safety.md)。其 Apache-2.0 code、OpenCV headless、PyWavelets 與 C2PA transitive dependencies 由 `uv.lock` 固定；release 仍需跑 dependency/license audit。

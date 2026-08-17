@@ -369,7 +369,9 @@ pipeline:
    - 仍 < 75 → CGU: `deep_think` / `spark_collision` / `generate_ideas` → 修正 → 再驗證
    - 仍 < 75 → STOP，回報用戶（附 CGU 建議）
 
-**Gate**: concept score ≥ 75 OR 用戶明確說「繼續」
+**Gate**: concept score ≥ 75（`readiness=ready`），或可信 host/UI 依用戶明確決定簽發
+`mdpaper.concept_review_override.v3` Ed25519 receipt。MCP/Agent 只能查詢或撤銷 receipt，
+不得以 `approved_by="human"` 或直接寫 YAML 冒充人類核准。
 
 CGU 工具對應：
 
@@ -856,7 +858,7 @@ Round 3 (IF still CRITICAL):
 **觸發**：**ALWAYS**（Phase 6.5 強制進入，不可跳過）。即使 Hook A-C 全過、quality 已達標，仍必須至少執行 2 rounds（code-enforced `min_rounds=2`）。
 **上限**：`pipeline.review_max_rounds`（預設 3）。
 **最低輪數**：`min_rounds=2`（**Code-Enforced**：`AutonomousAuditLoop._determine_verdict()` 在 round < min_rounds 時強制返回 CONTINUE，不允許提前結束）。
-**Hard Gate**：每輪 MUST call `pipeline_action(action="start_review", min_rounds=2)` 開始 + `pipeline_action(action="submit_review", scores=...)` 結束。Loop 結束後 `pipeline_action(action="validate_phase", phase=7)` 必須 PASS（驗證 rounds_completed >= min_rounds）。
+**Hard Gate**：每輪 MUST call `pipeline_action(action="start_review", min_rounds=2)` 開始 + `pipeline_action(action="submit_review", scores=...)` 結束。Phase 7 固定安全下限為 `min_rounds >= 2`、`quality_threshold >= 7.0`、`max_rounds <= 10`，序列化狀態或專案設定都不能降低。Loop 結束後 `pipeline_action(action="validate_phase", phase=7)` 必須 PASS：除了驗證 rounds、artifact、hash chain、R1-R6 與重算分數，只有 `quality_met` 可在自主模式解鎖 Phase 8。`max_rounds`／`stagnated`／`user_needed` 是升級條件；若人類明確接受低於門檻的結果，可信 host/UI 必須簽發 `mdpaper.review_completion_override.v3` Ed25519 receipt，綁定專案、當前稿件與 loop state。MCP/Agent 只能查詢或撤銷，不能鑄造核准。
 
 #### Multi-Reviewer 設計（模擬 2-3 位獨立審稿人）🆕
 
@@ -1079,7 +1081,7 @@ FOR round = 1 TO N:
   IF round = N AND 總分 < quality_threshold:
     → ⚠️ PARTIAL: 呈現剩餘問題 + 分數趨勢
     → 詢問用戶：
-      a) 接受當前品質（記錄風險）
+      a) 接受當前品質：由可信 host/UI 收集具名 reviewer、rationale 與 accepted risks，簽發 state-bound `mdpaper.review_completion_override.v3` receipt；再呼叫 `pipeline_action(action="approve_review_completion", decision="status")` 驗證。不得由 MCP/Agent 簽發、改寫分數或宣稱 quality_met
       b) 繼續 N 輪（用戶延長 loop）
       c) 手動修改後重新 review
       d) 🔁 回退到 Phase 5 重寫特定 section → call `pipeline_action(action="rewrite_section", ...)`
@@ -2174,7 +2176,7 @@ auto-paper → Phase 0(pre-plan) → project-management(P1) → literature-revie
 - [ ] 所有 Phase 5 FLAG 已在 Phase 6 處理
 - [ ] 全稿通過 Hook C（cascading fix）
 - [ ] Phase 6.5: Evolution Gate baseline snapshot 已建立
-- [ ] Phase 7: Autonomous Review 達到 quality_threshold（MANDATORY，至少 2 rounds，除非 pipeline config 明確調整）
+- [ ] Phase 7: Autonomous Review 達到 quality_threshold（MANDATORY；安全下限至少 2 rounds、threshold ≥ 7.0，不可由 pipeline config 調低）
 - [ ] Hook E: EQUATOR compliance rate ≥ 80% + 所有 ESSENTIAL items reported
 - [ ] quality-scorecard.md 已生成（所有維度 ≥ 6 分，含 EQUATOR 維度）
 - [ ] review-round-\*.md 已生成（每輪完整記錄）

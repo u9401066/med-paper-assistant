@@ -18,7 +18,10 @@ writing. They use the same artifacts and gates:
 - deterministic gates remain observable in either mode;
 - missing evidence, failed tools, and unresolved decisions remain visible;
 - no mode authorizes fabricated data, citations, review, consent, authorship,
-  or submission.
+  or submission;
+- a sub-threshold concept or review can advance only through a state-bound,
+  Ed25519-signed receipt from a trusted host/UI. The MCP may verify or revoke
+  it, but cannot sign it or treat a self-declared `human` field as authority.
 
 Phase 4 is mode-aware. In manual mode the researcher approves the plan. In
 autopilot mode the Agent may perform and record a bounded self-review, but a
@@ -192,13 +195,16 @@ single-case primary materials may legitimately dominate if documented.
 Figures and tables are reviewed before insertion. The receipt records file
 identity, observations, rationale, proposed caption, and—where supported—C2PA
 provenance status. C2PA presence does not prove factual truth, and absence does
-not prove that an asset is untrustworthy. Visible-watermark heuristics may only
-return `UNCERTAIN` or `HUMAN_REVIEW`; raster uncertainty requires a documented
-human conclusion before insertion.
+not prove that an asset is untrustworthy. A pinned `remove-ai-watermarks`
+adapter adds an offline, per-detector read-only check for registered visible marks and
+open DWT-DCT signals. `NOT_DETECTED` is never represented as `CLEAN`, and raster
+uncertainty or a detected signal requires a documented reviewer conclusion.
 
 The harness preserves the original bytes and blocks insertion if the reviewed
-SHA-256 changes. It does not automatically remove visible, invisible, metadata,
-or provenance watermarks. See [MCP 2 and content integrity](../wiki/mcp2-content-integrity.md).
+SHA-256 changes or a required PNG/JPEG/WebP package check cannot run. It calls no
+removal API, strips no metadata, and writes no cleaned derivative. The reviewer
+note is self-attested evidence, not cryptographic proof of identity or usage
+rights. See [MCP 2 and content integrity](../wiki/mcp2-content-integrity.md).
 
 ## 11. Completion and release evidence
 

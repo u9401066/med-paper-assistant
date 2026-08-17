@@ -29,7 +29,7 @@ What actually happens.
 - OS: [e.g. Ubuntu 22.04]
 - Python: [e.g. 3.12.7]
 - med-paper-assistant: [e.g. 0.3.0]
-- VS Code: [e.g. 1.100.0]
+- VS Code: [e.g. 1.101.0]
 
 ## Logs 日誌
 

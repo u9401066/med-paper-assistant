@@ -86,6 +86,18 @@ tools/
 - Reference trust：PubMed client 產生 typed attestation，domain invariant 與 persistence 再驗證；agent/user metadata 與 verified provenance 分層保存。
 - 原則：永遠保留原始 bytes/hash；預設只檢測與記錄，不自動移除 watermark 或 provenance。
 
+### Phase Artifact 與外部核准信任 (2026-08-17)
+
+- Phase 2/2.1：reference identity、verified PubMed raw payload、fulltext/Asset-Aware bytes/hash/size/source revision 與分析欄位皆為 code-enforced evidence。
+- Phase 3/7：正常 ready/quality-met 路徑由 deterministic gate 決定；例外只接受外部 Ed25519 v3 receipt，信任錨來自 host process env，不來自 workspace。
+- Phase 7：review config floor、serialized state、R1-R6 artifacts、evolution events、hash chain 與 current manuscript 全部重算；MCP 不能自行簽核。
+
+### Code Quality 與 VSIX Runtime Authority (2026-08-17)
+
+- `code-quality-authority.json` 對 400 行/file、300 行/class、50 行/function 的既有例外建立 shrink-only ratchet；CI 同時要求 vulture 80%+ 零發現。
+- VSIX palette 為 9 commands、2 settings；移除沒有 lifecycle ownership 的 start/stop 與未讀設定。
+- uv/uvx 固定 0.12.5；官方 release assets 以平台/架構 SHA-256 allowlist、bounded safe extractor、receipt/binary hash、symlink containment 與 install lease 驗證。
+
 ### Self-Evolution 架構 (2026-02-27)
 
 > **核心價值：逐步多輪演進（CONSTITUTION §25-26）**

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 - 2026-08-17
+
+- Hardened the bundled content-integrity gate with deterministic offline visible/open-DWT checks, live receipt reinspection, and fail-closed detector coverage.
+- Aligned the extension with VS Code 1.101 MCP provider APIs and pinned all runtime integrations to audited SDK2 revisions.
+- Added a verified Marketplace recovery path for the already-built VSIX when trusted-publishing infrastructure is unavailable.
+- Required externally issued Ed25519 receipts for any human-approved concept or review exception; MCP tools can inspect or revoke but cannot mint the approval.
+- Updated dependencies and immutable CI actions; see the repository CHANGELOG for the complete release notes.
+
 ## 1.0.0 - 2026-08-17
 
 - Migrated MedPaper, PubMed Search, CGU, Asset-Aware, Draw.io, and Zotero Keeper launch contracts to MCP SDK2-only, immutable runtimes.

@@ -34,15 +34,16 @@ flowchart TB
     Static --> Unit --> Integration --> Smoke --> Product --> Platform
 ```
 
-| Gate                 | 驗證重點                              | 失敗代表什麼                |
-| -------------------- | ------------------------------------- | --------------------------- |
-| Ruff / mypy / Bandit | 風格、型別、安全基線                  | 原始碼品質或安全退化        |
-| vulture allowlist    | 孤兒 function/class                   | 新增未接線 API 或過期程式碼 |
-| pytest               | domain、application、adapter 行為     | 契約或邊界被破壞            |
-| MCP greedy smoke     | registry 中每個 tool 可呼叫           | 對外 surface 不完整         |
-| bundle parity        | `.claude`、`.agents`、`.codex` 等鏡像 | Agent 看到不同工作流程      |
-| package install      | wheel、sdist、VSIX 可安裝             | 發布 artifact 不可用        |
-| MkDocs strict build  | 導覽、連結、Markdown、Mermaid         | Wiki 內容或設定失效         |
+| Gate                   | 驗證重點                              | 失敗代表什麼                |
+| ---------------------- | ------------------------------------- | --------------------------- |
+| Ruff / mypy / Bandit   | 風格、型別、安全基線                  | 原始碼品質或安全退化        |
+| code-quality authority | 400/300/50 大小債務不可新增或成長     | 既有大型模組債務倒退        |
+| vulture 80%+           | 高信心孤兒 function/class             | 新增未接線 API 或過期程式碼 |
+| pytest                 | domain、application、adapter 行為     | 契約或邊界被破壞            |
+| MCP greedy smoke       | registry 中每個 tool 可呼叫           | 對外 surface 不完整         |
+| bundle parity          | `.claude`、`.agents`、`.codex` 等鏡像 | Agent 看到不同工作流程      |
+| package install        | wheel、sdist、VSIX 可安裝             | 發布 artifact 不可用        |
+| MkDocs strict build    | 導覽、連結、Markdown、Mermaid         | Wiki 內容或設定失效         |
 
 常用本機檢查：
 
@@ -52,6 +53,8 @@ uv run ruff check .
 uv run mypy src
 uv run pytest
 uv run python scripts/check_tool_surface_authority.py
+uv run python scripts/check_code_quality_authority.py
+uv run vulture src --min-confidence 80
 uv run python scripts/greedy_mcp_tool_smoke.py --surface compact
 uv run python scripts/greedy_mcp_tool_smoke.py --surface full
 uv run python scripts/build_docs_site.py --check
@@ -132,6 +135,27 @@ stateDiagram-v2
 !!! success "Release evidence，不是永恆數字"
 
     每次 release 都要重新附上 test/smoke counts、compact 12 與 full 118 結果、命令、runner/runtime 版本、fixture 版本、artifact hashes 與完整 failure/skip 列表。歷史 release 的數量不能代替本次執行證據；任何 gate 降級都要有 decision record。
+
+### VS Marketplace fail-closed recovery
+
+`.github/workflows/marketplace-recovery.yml` 只用於補發「已存在且已驗證」的
+GitHub Release VSIX，不會從可變動的 branch 重建套件。手動執行時必須提供不含
+`v` 的穩定版號、GitHub Release 顯示的 64 字元 VSIX SHA-256，並明確勾選發布確認。
+
+Recovery 依序檢查 annotated tag 與 root／VSIX version、GitHub Release 狀態與
+asset digest、內嵌 `package.json`／`extension.vsixmanifest` identity、archive path
+安全性，以及真正的隔離 VS Code 安裝 smoke。只有上述無 credential 階段全部通過，
+`vs-marketplace` environment 的發布 job 才能讀取 `VSCE_PAT`；PAT 只傳入
+`verify-pat` 與 `publish` step，不可出現在參數、輸出或一般 job environment。
+
+`--skip-duplicate` 不代表忽略結果。發布後 workflow 會輪詢公開 Gallery，並要求
+`u9401066.medpaper-assistant@<version>` 的
+`Microsoft.VisualStudio.Services.VsixSha256` 與輸入 digest 完全相同；版本不存在、
+hash 不同或只完成上傳但仍無法公開驗證時，job 都維持失敗。
+
+!!! warning "PAT 只是限時 recovery bridge"
+
+    Publisher owner 必須用同一個 Microsoft account 建立短效、`All accessible organizations`、僅 `Marketplace: Manage` 的 PAT，優先存成受 required reviewer 保護的 `vs-marketplace` environment secret。請用 `gh secret set VSCE_PAT --env vs-marketplace` 的互動式 stdin，不要把 token 放在 shell argument 或文件；完成補發後立即撤銷。Azure DevOps global PAT 將於 2026-12-01 退役，長期發布應改用 Microsoft Entra workload federation 與 `vsce publish --azure-credential`。Marketplace 原生 GitHub OIDC 只有在官方 backend 與 trusted-publisher policy 正式可用後才能啟用，不得在交換失敗時暗中 fallback 到 PAT。
 
 ## GitHub repository governance state
 

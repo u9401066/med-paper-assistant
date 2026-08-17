@@ -94,7 +94,7 @@ Agent 按優先順序取得資訊：
 4. 儲存足以覆蓋 evidence map 的候選文獻 → `save_reference_mcp(pmid)`（MCP-to-MCP verified metadata）
 5. 可選：從 Zotero 匯入
 
-**Gate**：依 paper type 達到最低文獻數；PubMed Search MCP 0.5.9 提供 46 個搜尋/檢索工具。
+**Gate**：依 paper type 達到最低文獻數；PubMed Search MCP 0.6.3 提供 45 個搜尋/檢索工具。
 
 ### Phase 2.1: Fulltext & Source-Material Ingestion
 
@@ -117,7 +117,7 @@ Agent 按優先順序取得資訊：
 4. 分數 < 75 → 自動修正 1 次 → 仍不足 → CGU `deep_think` / `spark_collision` → 再修正
 5. 分數 < 60（兩次）→ **硬停止**，回報用戶
 
-**Gate**：concept score ≥ 75 或用戶明確同意繼續
+**Gate**：concept score ≥ 75（`readiness=ready`），或可信 host/UI 依用戶明確決定簽發 `mdpaper.concept_review_override.v3` Ed25519 receipt。MCP/Agent 只能查詢或撤銷，不能把自己的輸入標成 `human` 來放行。
 
 ### Phase 4: Manuscript Planning
 
@@ -154,7 +154,7 @@ FOR section IN writing_order:
   6. 記錄 audit trail + 更新 checkpoint
 ```
 
-圖像或表格在插入前經 `review_asset_for_insertion` 建立 SHA-256/MIME 與可選 C2PA receipt。檢查不會改動原檔或自動移除浮水印；invalid provenance/hash 變更會阻擋，可見水印訊號只會要求有紀錄的人工審閱。詳見 [MCP 2 與內容完整性](wiki/mcp2-content-integrity.md)。
+圖像或表格在插入前經 `review_asset_for_insertion` 建立 SHA-256/MIME、可選 C2PA 與版本鎖定的 removal-package receipt。`remove-ai-watermarks` 只以離線、逐 detector 的唯讀路徑檢查已知可見標記與公開 DWT-DCT signal，不呼叫 aggregate `identify` 或 removal API、不改原檔、不寫衍生檔；invalid provenance、hash 變更、影像尺寸不受 detector 支援或必要 detector 缺席都會阻擋，任何 signal／不確定結果仍需有紀錄的 reviewer 判斷。詳見 [MCP 2 與內容完整性](wiki/mcp2-content-integrity.md)。
 
 ### Phase 6: Cross-Section Audit
 
@@ -196,8 +196,10 @@ FOR section IN writing_order:
 **Loop 停止條件**：
 
 - 總分 ≥ quality_threshold → ✅ PASS
-- 達到 max_rounds 仍未達標 → 呈現問題 + 讓用戶決定
-- 連續 2 輪分數無改善 → 詢問用戶
+- 達到 max_rounds 仍未達標 → gate 不會自動放行；呈現問題並讓用戶決定
+- 連續 2 輪分數無改善 → gate 不會自動放行；詢問用戶
+- Phase 7 的安全下限固定為 `min_rounds >= 2`、`quality_threshold >= 7.0`、`max_rounds <= 10`；設定或序列化狀態不能調低
+- 人類若接受低於門檻的版本 → 可信 host/UI 簽發 `mdpaper.review_completion_override.v3` Ed25519 receipt，綁定 project、目前 manuscript 與 loop SHA-256；`pipeline_action(action="approve_review_completion", decision="status")` 只驗證 receipt，原分數與非 `quality_met` verdict 保持不變
 
 ### Phase 8: Reference Sync
 
@@ -457,8 +459,12 @@ FOR round = 1 TO review_max_rounds:
   3. Completeness Check: 確保所有 issue 都被回應（禁止忽略）
   4. 執行修正: ACCEPTED issues → patch_draft + re-run Hook A
   5. 品質重評: 更新 quality-scorecard → 比對 threshold
-  → PASS → 結束 | 未達標 → 下一輪
+  → quality_met → 結束 | 未達標 → 下一輪或明確的人類 acceptance receipt
 ```
+
+`max_rounds`、`stagnated` 與 `user_needed` 只代表 loop 終止／需要升級，不代表品質已達標。自主模式只有重算後的 `quality_met` 能通過 Phase 7；人類協作模式可在看過剩餘問題後，由 MCP 之外的可信 host/UI 簽發 v3 Ed25519 receipt（含 rationale、accepted risks、具名 reviewer、project、目前稿件與 loop hash），再用 `approve_review_completion` 的 `status` 動作重新驗證。私鑰不得放入 workspace 或 MCP 環境；host 只以 `MDPAPER_APPROVAL_ED25519_PUBLIC_KEYS` 提供可驗證的公開金鑰。
+
+Host 設定格式為 `MDPAPER_APPROVAL_ED25519_PUBLIC_KEYS='{"trusted-host-2026":"<raw 32-byte Ed25519 public key 的 unpadded base64url>"}'`（最多 64 keys，僅由 host process 注入，不從 workspace `.env` 讀取）。Receipt 的 `signature` 必須恰含 `algorithm="Ed25519"`、`encoding="base64url"`、`key_id`、`value`；`value` 是 64-byte detached signature 的 unpadded base64url。簽署內容為 `mdpaper.external-approval.v3\0` 加上整份 receipt 移除 `signature.value` 後的嚴格 canonical JSON（UTF-8、key 排序、無空白、禁止 NaN）。Concept v3 綁 concept artifact + review SHA-256；Review v3 綁 audit-loop + final manuscript SHA-256。
 
 ### 品質維度（quality-scorecard）
 

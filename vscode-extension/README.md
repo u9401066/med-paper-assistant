@@ -25,7 +25,7 @@ This extension is the packaged end-user surface, not the entire monorepo authori
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **MCP runtime**           | `mdpaper` compact-first surface by default: 12 tools, with optional full 118-tool mode                                                            |
 | **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 4 templates (1 journal profile + 3 CSL styles), and 7 support/reference files |
-| **Workspace UX**          | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs                                               |
+| **Workspace UX**          | `@mdpaper`, 9 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs                                                |
 | **Not the full repo**     | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface          |
 
 ## Installation
@@ -40,13 +40,14 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 ## Requirements
 
-- VS Code 1.100.0 or higher
+- VS Code 1.101.0 or higher (the first stable API surface used by the MCP server provider)
 - GitHub Copilot (for Agent Mode)
-- Python 3.12+ with `uv` (recommended for full MedPaper repo parity; CGU itself supports 3.11+)
+- Python 3.12+ for a full repository development checkout. Marketplace installs manage a checksum-pinned `uv`/`uvx` 0.12.5 runtime automatically; CGU itself supports Python 3.11+.
 
 ## MCP Installation Behavior
 
 - Marketplace MCP runtimes use isolated, exact SDK2 sources. The core package version always matches the VSIX version; PubMed, CGU, Zotero Keeper, Asset-Aware, and Draw.io use immutable integration-lock revisions.
+- The core runtime installs its exact `[provenance,watermark]` extras: C2PA validation plus the pinned, offline `remove-ai-watermarks` per-detector check. It never writes a cleaned derivative or treats a negative detector result as proof of absence.
 - MedPaper never reuses an arbitrary same-named executable from `PATH`, never falls back to an MCP SDK1 package, and does not let fuzzy third-party extension metadata suppress its verified SDK2 definitions.
 - A workspace-level `.vscode/mcp.json` still has highest priority. If the workspace already manages `mdpaper` itself, MedPaper skips auto-registration.
 - CGU is registered only when bundled CGU code or a workspace `integrations/cgu` submodule is present. If CGU is absent, MedPaper continues without it.
@@ -165,7 +166,7 @@ Capability → Skill → Hook → MCP Tool
 
 ### Bundled Assets
 
-The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, **4 templates** (1 journal profile + 3 CSL styles), **7 support/reference files**, **10 chat commands**, and **11 palette commands**. The full repository still contains a broader authoring and maintenance surface.
+The marketplace package bundles **14 skills**, **13 prompt workflows**, **9 reviewer/analysis agents**, **4 templates** (1 journal profile + 3 CSL styles), **7 support/reference files**, **10 chat commands**, and **9 palette commands**. The full repository still contains a broader authoring and maintenance surface.
 
 These counts are release-gated against `bundle-manifest.json` and `tool-surface-authority.json`, so the marketplace docs stay aligned with the packaged surface.
 
@@ -193,8 +194,9 @@ The 118/12 tool counts plus the 3 MCP prompts and 3 MCP resources are runtime-va
 
 - **MedPaper Assistant** - 預設 compact 12 工具（可切換 full 118），另含 3 個 MCP prompts 與 3 個 MCP resources
 - **CGU Creativity** - 創意發想工具
-- **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
-- **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
+- **PubMed Search** - 由 integration lock 固定版本的文獻搜尋工具
+- **Zotero Keeper** - 由 integration lock 固定版本的 Zotero 文獻工具
+- **Asset-Aware Documents** - 使用者素材與全文解析工具
 - **Draw.io Diagrams** - 圖表繪製
 
 預設 `compact` 走 facade-first surface，保留 `project_action`、`library_action`、`reference_action`、`save_reference_mcp`、`draft_action`、`analysis_action`、`validation_action`、`run_quality_checks`、`pipeline_action`、`export_document`、`inspect_export` 等高階入口。`reference_action` 負責一般文獻操作；verified PubMed 儲存仍走直接的 `save_reference_mcp(pmid)`。若你要在 VSIX 版直接跑 full-surface 的 agent wiki workflow，請把 `mdpaper.toolSurface` 切成 `full`；這會額外暴露 `import_local_papers`、`ingest_web_source`、`ingest_markdown_source`、`resolve_reference_identity`、`build_knowledge_map`、`build_synthesis_page`、`materialize_agent_wiki` 等 granular orchestration 工具。
@@ -205,12 +207,10 @@ MCP resources: `medpaper://workspace/state`, `medpaper://workspace/projects`, `m
 
 ## Configuration
 
-| Setting                        | Description     | Default                          |
-| ------------------------------ | --------------- | -------------------------------- |
-| `mdpaper.pythonPath`           | Python 執行路徑 | Auto-detect (uv > venv > system) |
-| `mdpaper.projectsDirectory`    | 專案目錄        | Workspace                        |
-| `mdpaper.toolSurface`          | MCP 工具面      | compact                          |
-| `mdpaper.defaultCitationStyle` | 引用風格        | vancouver                        |
+| Setting               | Description     | Default                          |
+| --------------------- | --------------- | -------------------------------- |
+| `mdpaper.pythonPath`  | Python 執行路徑 | Auto-detect (uv > venv > system) |
+| `mdpaper.toolSurface` | MCP 工具面      | compact                          |
 
 ## Development
 

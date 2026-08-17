@@ -78,19 +78,32 @@ Later               │  Bounded Automation Enhancement                         
 
 ## ✅ 已完成 (Completed)
 
+### MCP SDK2 + Auditable Integrity v1.0 (2026-08)
+
+| Feature                            | Description                                                                                              |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **SDK2-only managed runtimes** ✅  | Root 與五個 managed integrations 皆鎖 immutable SDK2 revision；禁止 FastMCP、SDK1 與 floating fallback   |
+| **Compact/full tool authority** ✅ | 預設 12-tool workflow facade；118-tool advanced surface、3 prompts/resources 與 external counts 有 smoke |
+| **Verified evidence chain** ✅     | PubMed transport/domain/persistence attestation fail closed；agent save 無法偽造 VERIFIED                |
+| **Content-integrity gate** ✅      | C2PA + pinned visible/open-DWT read-only detector、current-byte reinspection、raster human review        |
+| **Phase artifact trust** ✅        | Phase 2/2.1/3/7 驗 unique evidence、artifact hashes、current manuscript 與 Ed25519 human receipts        |
+| **Reproducible release** ✅        | immutable Actions、wheel extras smoke、真實 VSIX install、GitHub/PyPI artifacts 與 Marketplace recovery  |
+
+下一階段：建立授權 fixture registry、scheme-specific proprietary watermark oracle、外部人類簽核 provider，以及跨專案 benchmark/scorer calibration。自動去浮水印、原地覆寫與「未偵測即乾淨」不列入預設產品路徑。
+
 ### Cross-Agent Production Harness v0.9 (2026-07)
 
-| Feature                                 | Description                                                                                     |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| **Claude/Codex/OpenClaw harness** ✅    | `CLAUDE.md`、`.claude/skills` 與 `.agents/skills` 共用平台中立學術寫作契約                      |
-| **13 formal output profiles** ✅        | proposal、closeout、student、conference、thesis、arXiv 加入 domain/template/constraint/hook     |
-| **Exemplar audit enforcement** ✅       | `.audit/exemplar-usage.yaml` 固定非證據、非引用、非逐字複製，拒絕 policy tampering              |
-| **Domain constraints** ✅               | 13 種正式產出、110 個 base constraints，並有 registry parity 與 boundary tests                  |
-| **DDD / orphan cleanup** ✅             | Application-owned ports、靜態依賴邊界、vulture 80%+ 零發現、deprecated param telemetry          |
-| **118-tool greedy smoke** ✅            | 116 正常、2 個按設計跳過、0 broken/error；包含 legacy reference migration                       |
-| **GitHub Pages Wiki + visual atlas** ✅ | MkDocs Material、35 頁、native Mermaid、8 個 accessible SVG、strict Pages deploy 與文件契約測試 |
-| **Portable JSONC / skill discovery** ✅ | URL-safe parser、comments/trailing commas、38 skills frontmatter 與跨平台入口測試               |
-| **Extension production gates** ✅       | ESLint 10、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke           |
+| Feature                                 | Description                                                                                                                      |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Claude/Codex/OpenClaw harness** ✅    | `CLAUDE.md`、`.claude/skills` 與 `.agents/skills` 共用平台中立學術寫作契約                                                       |
+| **13 formal output profiles** ✅        | proposal、closeout、student、conference、thesis、arXiv 加入 domain/template/constraint/hook                                      |
+| **Exemplar audit enforcement** ✅       | `.audit/exemplar-usage.yaml` 固定非證據、非引用、非逐字複製，拒絕 policy tampering                                               |
+| **Domain constraints** ✅               | 13 種正式產出、110 個 base constraints，並有 registry parity 與 boundary tests                                                   |
+| **DDD / orphan ratchet** ✅             | Application-owned ports、靜態依賴邊界、移除 5 個孤兒符號、vulture 80%+ 零發現；391 項既有大小例外由 authority 禁止成長並逐步收斂 |
+| **118-tool greedy smoke** ✅            | 116 正常、2 個按設計跳過、0 broken/error；包含 legacy reference migration                                                        |
+| **GitHub Pages Wiki + visual atlas** ✅ | MkDocs Material、35 頁、native Mermaid、8 個 accessible SVG、strict Pages deploy 與文件契約測試                                  |
+| **Portable JSONC / skill discovery** ✅ | URL-safe parser、comments/trailing commas、38 skills frontmatter 與跨平台入口測試                                                |
+| **Extension production gates** ✅       | ESLint 10、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke                                            |
 
 下一階段：把 ranked evidence-context ledger、perspective question map、bounded branch exploration 與 publishing adapter 納入 frozen fixtures、獨立 scorer、來源支配與跨平台 smoke gate。
 
@@ -798,12 +811,13 @@ EMPTY → EXPLORATION → PROJECT
 - Rule-based patterns - 引用需求偵測
 
 **4 週實作計畫**：
-| Week | 內容 |
-|------|------|
-| Week 1 | Foundation - patterns + analyzer |
-| Week 2 | Search - embedding + local/PubMed |
+
+| Week   | 內容                               |
+| ------ | ---------------------------------- |
+| Week 1 | Foundation - patterns + analyzer   |
+| Week 2 | Search - embedding + local/PubMed  |
 | Week 3 | Verification - claim-citation 匹配 |
-| Week 4 | Integration - MCP tools + 測試 |
+| Week 4 | Integration - MCP tools + 測試     |
 
 ### 8.2 Coherence Engine（Phase 2）
 
