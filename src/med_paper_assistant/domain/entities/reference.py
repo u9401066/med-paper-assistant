@@ -4,12 +4,55 @@ Reference Entity - Represents a literature reference.
 Updated 2025-12: 支援多來源識別符 (PubMed, Zotero, DOI)
 """
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     from med_paper_assistant.domain.services.reference_converter import StandardizedReference
+
+
+def has_verified_pubmed_provenance(payload: Dict[str, Any]) -> bool:
+    """Return whether metadata satisfies the domain's PubMed trust invariant."""
+    if payload.get("verified") is not True:
+        return False
+
+    pmid = str(payload.get("pmid") or "").strip()
+    retrieved_at = str(payload.get("retrieved_at") or "")
+    source_url = str(payload.get("source_url") or "")
+    payload_hash = str(payload.get("payload_hash") or "")
+    provenance = payload.get("provenance", [])
+
+    try:
+        retrieval_time = datetime.fromisoformat(retrieved_at)
+        parsed_source_url = urlparse(source_url)
+    except (TypeError, ValueError):
+        return False
+
+    if (
+        payload.get("data_source") != "pubmed_mcp_api"
+        or not pmid.isdigit()
+        or retrieval_time.tzinfo is None
+        or parsed_source_url.scheme not in {"http", "https"}
+        or not parsed_source_url.hostname
+        or re.fullmatch(r"[0-9a-f]{64}", payload_hash) is None
+        or not isinstance(provenance, (list, tuple))
+    ):
+        return False
+
+    return any(
+        isinstance(entry, dict)
+        and entry.get("event") == "pubmed_mcp_fetch"
+        and entry.get("source") == "pubmed"
+        and entry.get("data_source") == "pubmed_mcp_api"
+        and str(entry.get("requested_pmid") or "") == pmid
+        and entry.get("retrieved_at") == retrieved_at
+        and entry.get("source_url") == source_url
+        and entry.get("payload_hash") == payload_hash
+        for entry in provenance
+    )
 
 
 @dataclass
@@ -59,6 +102,16 @@ class Reference:
     # Pre-formatted citations
     citations: Dict[str, str] = field(default_factory=dict)
 
+    # Layered trust and transport provenance
+    verified: bool = False
+    data_source: str = ""
+    retrieved_at: str = ""
+    source_url: str = ""
+    payload_hash: str = ""
+    provenance: List[Dict[str, Any]] = field(default_factory=list)
+    agent_notes: str = ""
+    trust_level: str = "agent"
+
     # File paths (relative to reference directory)
     has_pdf: bool = False
 
@@ -77,6 +130,24 @@ class Reference:
 
     # Metadata
     saved_at: datetime = field(default_factory=datetime.now)
+
+    def __post_init__(self) -> None:
+        """Enforce that VERIFIED is inseparable from complete PubMed provenance."""
+        self.verified = has_verified_pubmed_provenance(
+            {
+                "verified": self.verified,
+                "pmid": self.pmid,
+                "data_source": self.data_source,
+                "retrieved_at": self.retrieved_at,
+                "source_url": self.source_url,
+                "payload_hash": self.payload_hash,
+                "provenance": self.provenance,
+            }
+        )
+        if self.verified:
+            self.trust_level = "verified"
+        elif self.trust_level == "verified":
+            self.trust_level = "agent"
 
     @property
     def first_author(self) -> str:
@@ -100,8 +171,6 @@ class Reference:
         """
         if self.citation_key:
             return self.citation_key
-
-        import re
 
         author_clean = re.sub(r"[^a-z0-9]", "", self.first_author.lower())
         if not author_clean:
@@ -199,6 +268,14 @@ class Reference:
             "keywords": self.keywords,
             "mesh_terms": self.mesh_terms,
             "citations": self.citations,
+            "verified": self.verified,
+            "data_source": self.data_source,
+            "retrieved_at": self.retrieved_at,
+            "source_url": self.source_url,
+            "payload_hash": self.payload_hash,
+            "provenance": self.provenance,
+            "agent_notes": self.agent_notes,
+            "trust_level": self.trust_level,
             "has_pdf": self.has_pdf,
             "fulltext_ingested": self.fulltext_ingested,
             "fulltext_unavailable_reason": self.fulltext_unavailable_reason,
@@ -237,6 +314,16 @@ class Reference:
             keywords=data.get("keywords", []),
             mesh_terms=data.get("mesh_terms", []),
             citations=data.get("citations", data.get("citation", {})),
+            verified=data.get("verified") is True,
+            data_source=str(data.get("data_source") or ""),
+            retrieved_at=str(data.get("retrieved_at") or ""),
+            source_url=str(data.get("source_url") or ""),
+            payload_hash=str(data.get("payload_hash") or ""),
+            provenance=[entry for entry in data.get("provenance", []) if isinstance(entry, dict)]
+            if isinstance(data.get("provenance", []), list)
+            else [],
+            agent_notes=str(data.get("agent_notes") or ""),
+            trust_level=str(data.get("trust_level") or "agent"),
             has_pdf=data.get("has_pdf", False),
             fulltext_ingested=data.get("fulltext_ingested", False),
             fulltext_unavailable_reason=data.get("fulltext_unavailable_reason", ""),
@@ -272,6 +359,18 @@ class Reference:
             abstract=article.get("abstract", ""),
             keywords=article.get("keywords", []),
             mesh_terms=article.get("mesh_terms", []),
+            verified=article.get("verified") is True,
+            data_source=str(article.get("data_source") or ""),
+            retrieved_at=str(article.get("retrieved_at") or ""),
+            source_url=str(article.get("source_url") or ""),
+            payload_hash=str(article.get("payload_hash") or ""),
+            provenance=[entry for entry in article.get("provenance", []) if isinstance(entry, dict)]
+            if isinstance(article.get("provenance", []), list)
+            else [],
+            agent_notes=str(article.get("agent_notes") or ""),
+            trust_level="verified"
+            if article.get("verified") is True
+            else str(article.get("trust_level") or "agent"),
         )
 
     @classmethod
@@ -302,4 +401,12 @@ class Reference:
             abstract=ref.abstract,
             keywords=ref.keywords or [],
             mesh_terms=ref.mesh_terms or [],
+            verified=ref.verified,
+            data_source=ref.data_source,
+            retrieved_at=ref.retrieved_at,
+            source_url=ref.source_url,
+            payload_hash=ref.payload_hash,
+            provenance=ref.provenance or [],
+            agent_notes=ref.agent_notes,
+            trust_level=ref.trust_level,
         )

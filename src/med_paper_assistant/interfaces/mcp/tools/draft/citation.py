@@ -7,7 +7,7 @@ Citation Tools - 智慧引用助手 MCP 工具
 import os
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.services.citation_assistant import CitationAssistant
 from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
@@ -25,7 +25,7 @@ from .._shared import (
 
 
 def register_citation_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     citation_assistant: CitationAssistant,
     *,
     register_public_verbs: bool = True,

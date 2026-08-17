@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+import pytest
+
 from med_paper_assistant.infrastructure.persistence import _reset_project_manager
 from med_paper_assistant.interfaces.mcp.server import create_server
-from med_paper_assistant.interfaces.mcp.tool_surface import EXPECTED_TOOL_COUNTS
+from med_paper_assistant.interfaces.mcp.tool_surface import (
+    EXPECTED_TOOL_COUNTS,
+    resolve_tool_surface,
+)
 
 
-def _registered_tool_names(surface: str, workspace_root: str) -> set[str]:
+def test_tool_surface_defaults_to_compact(monkeypatch) -> None:
+    monkeypatch.delenv("MEDPAPER_TOOL_SURFACE", raising=False)
+
+    assert resolve_tool_surface() == "compact"
+    assert resolve_tool_surface("full") == "full"
+
+
+async def _registered_tool_names(surface: str, workspace_root: str) -> set[str]:
     import os
 
     previous_base_dir = os.environ.get("MEDPAPER_BASE_DIR")
@@ -17,7 +29,7 @@ def _registered_tool_names(surface: str, workspace_root: str) -> set[str]:
         _reset_project_manager()
 
         server = create_server()
-        return set(server._tool_manager._tools.keys())
+        return {tool.name for tool in await server.list_tools()}
     finally:
         if previous_base_dir is None:
             os.environ.pop("MEDPAPER_BASE_DIR", None)
@@ -32,9 +44,10 @@ def _registered_tool_names(surface: str, workspace_root: str) -> set[str]:
         _reset_project_manager()
 
 
-def test_compact_surface_reduces_main_mdpaper_tool_count(tmp_path) -> None:
-    full_tools = _registered_tool_names("full", str(tmp_path))
-    compact_tools = _registered_tool_names("compact", str(tmp_path))
+@pytest.mark.asyncio
+async def test_compact_surface_reduces_main_mdpaper_tool_count(tmp_path) -> None:
+    full_tools = await _registered_tool_names("full", str(tmp_path))
+    compact_tools = await _registered_tool_names("compact", str(tmp_path))
 
     assert len(full_tools) == EXPECTED_TOOL_COUNTS["full"]
     assert len(compact_tools) == EXPECTED_TOOL_COUNTS["compact"]
@@ -49,6 +62,8 @@ def test_compact_surface_reduces_main_mdpaper_tool_count(tmp_path) -> None:
         "workspace_state_action",
         "validation_action",
         "analysis_action",
+        "reference_action",
+        "save_reference_mcp",
         "run_quality_checks",
         "pipeline_action",
         "export_document",
@@ -56,6 +71,7 @@ def test_compact_surface_reduces_main_mdpaper_tool_count(tmp_path) -> None:
     }.issubset(compact_tools)
 
     assert "create_project" not in compact_tools
+    assert "list_saved_references" not in compact_tools
     assert "check_formatting" not in compact_tools
     assert "run_quality_audit" not in compact_tools
     assert "export_docx" not in compact_tools

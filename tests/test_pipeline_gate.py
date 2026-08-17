@@ -6,6 +6,11 @@ import zipfile
 import pytest
 import yaml
 
+from med_paper_assistant.application.content_integrity import ContentIntegrityInspector
+from med_paper_assistant.infrastructure.external.content_integrity import (
+    C2paProvenanceAdapter,
+    ConservativeVisibleWatermarkHeuristic,
+)
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
     GateCheck,
@@ -247,6 +252,15 @@ def _record_asset_review(
     caption: str,
 ):
     tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    integrity = ContentIntegrityInspector(
+        provenance_inspector=C2paProvenanceAdapter(),
+        visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+    ).inspect(project_dir / asset_path, asset_path=asset_path)
+    integrity_receipt = tracker.record_content_integrity_receipt(
+        asset_type=asset_type,
+        asset_path=asset_path,
+        receipt=integrity.to_dict(),
+    )
     tracker.record_asset_review(
         asset_type=asset_type,
         asset_path=asset_path,
@@ -254,6 +268,7 @@ def _record_asset_review(
         rationale="Caption aligns with the visible content and intended manuscript reference.",
         proposed_caption=caption,
         evidence_excerpt="verified during test",
+        content_integrity_receipt_id=integrity_receipt["id"],
     )
 
 

@@ -92,58 +92,17 @@ echo "  ✅ Dependencies installed"
 # 4. Create or migrate .vscode/mcp.json
 mkdir -p .vscode
 if [ -f .vscode/mcp.json ]; then
-    echo "⚙️  .vscode/mcp.json exists — checking for missing servers..."
-    uv run python "$SCRIPT_DIR/migrate_mcp_json.py" .vscode/mcp.json || true
-else
-    echo "⚙️  Creating .vscode/mcp.json (cross-platform)..."
-    cat > .vscode/mcp.json << 'EOF'
-{
-  "inputs": [],
-  "servers": {
-    "mdpaper": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "med_paper_assistant.interfaces.mcp"],
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src",
-        "MEDPAPER_TOOL_SURFACE": "compact"
-      }
-    },
-    "pubmed-search": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["pubmed-search-mcp"],
-      "env": {
-        "NCBI_EMAIL": "medpaper@example.com"
-      }
-    },
-    "cgu": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "${workspaceFolder}/integrations/cgu", "python", "-m", "cgu.server"],
-      "env": {
-        "CGU_THINKING_ENGINE": "simple"
-      }
-    },
-    "zotero-keeper": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["zotero-keeper"]
-    },
-    "asset-aware": {
-      "type": "stdio",
-      "command": "uv",
-      "args": ["run", "--directory", "${workspaceFolder}/integrations/asset-aware-mcp", "asset-aware-mcp"]
-    },
-    "drawio": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@drawio/mcp"]
+    echo "⚙️  .vscode/mcp.json exists — checking the pinned MCP SDK2 contract..."
+    uv run python "$SCRIPT_DIR/migrate_mcp_json.py" .vscode/mcp.json || {
+        migration_status=$?
+        if [ "$migration_status" -ne 1 ]; then
+            exit "$migration_status"
+        fi
     }
-  }
-}
-EOF
-    echo "  ✅ mcp.json created (mdpaper + pubmed-search + cgu + zotero-keeper + asset-aware + drawio)"
+else
+    echo "⚙️  Creating .vscode/mcp.json from mcp-integration-lock.json..."
+    uv run python "$SCRIPT_DIR/migrate_mcp_json.py" --create .vscode/mcp.json
+    echo "  ✅ mcp.json created (six servers; external runtimes locked to MCP SDK2)"
 fi
 
 echo "✅ Verifying installation..."
@@ -171,5 +130,5 @@ echo ""
 echo "📝 Notes:"
 echo "  - Setup uses pinned submodule commits from this repository for reproducibility."
 echo "  - To update submodules intentionally, run: git submodule update --remote --merge"
-echo "  - Draw.io requires Node.js/npm for the npx fallback."
+echo "  - External Python MCP integrations are locked to SDK2 commits in mcp-integration-lock.json."
 echo ""

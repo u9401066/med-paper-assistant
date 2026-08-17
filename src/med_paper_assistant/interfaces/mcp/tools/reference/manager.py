@@ -6,10 +6,11 @@ save_reference, list, search, format, citation management, analysis
 
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path, PureWindowsPath
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
 from med_paper_assistant.infrastructure.services import Drafter
@@ -17,6 +18,7 @@ from med_paper_assistant.shared.path_guard import PathGuardError
 
 from .._shared import (
     ensure_project_context,
+    get_optional_tool_decorator,
     get_project_list_for_prompt,
     log_agent_misuse,
     log_tool_call,
@@ -25,14 +27,19 @@ from .._shared import (
 
 
 def register_reference_manager_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     ref_manager: ReferenceManager,
     drafter: Drafter,
     project_manager,
     *,
     register_public_verbs: bool = True,
-):
+) -> dict[str, Callable[..., Any]]:
     """Register reference management tools."""
+
+    tool = get_optional_tool_decorator(
+        mcp,
+        register_public_verbs=register_public_verbs,
+    )
 
     # Get project manager for auto-project creation
     project_manager = ref_manager._project_manager
@@ -105,7 +112,7 @@ def register_reference_manager_tools(
 
         return resolved
 
-    @mcp.tool()
+    @tool()
     def save_reference(article: Union[dict, str], project: Optional[str] = None) -> str:
         """
         ⚠️ DEPRECATED — Use save_reference_mcp(pmid) instead for verified data.
@@ -596,7 +603,7 @@ def register_reference_manager_tools(
             log_tool_result("materialize_agent_wiki", result)
             return result + project_msg
 
-    @mcp.tool()
+    @tool()
     def list_saved_references(project: Optional[str] = None) -> str:
         """
         List saved references with title, year, and PDF availability.
@@ -628,7 +635,7 @@ def register_reference_manager_tools(
         output += "\n*📄 = PDF fulltext available*"
         return output
 
-    @mcp.tool()
+    @tool()
     def search_local_references(query: str) -> str:
         """
         Search within saved references by keyword in titles and abstracts.
@@ -656,7 +663,7 @@ def register_reference_manager_tools(
 
         return output
 
-    @mcp.tool()
+    @tool()
     def get_reference_details(pmid: str) -> str:
         """
         Get detailed info and pre-formatted citations for a saved reference.
@@ -692,7 +699,7 @@ def register_reference_manager_tools(
 
         return output
 
-    @mcp.tool()
+    @tool()
     def read_reference_fulltext(pmid: str, max_chars: int = 10000) -> str:
         """
         Read PDF fulltext of a saved reference (PMC Open Access only).
@@ -716,7 +723,7 @@ def register_reference_manager_tools(
 
         return f"# Fulltext: PMID {pmid}\n\n{text}"
 
-    @mcp.tool()
+    @tool()
     def save_reference_pdf(pmid: str, pdf_content: str) -> str:
         """
         Save base64-encoded PDF content for an existing reference.
@@ -733,7 +740,7 @@ def register_reference_manager_tools(
         except Exception as e:
             return f"❌ Error decoding PDF: {str(e)}"
 
-    @mcp.tool()
+    @tool()
     def format_references(
         pmids: str, style: str = "vancouver", journal: Optional[str] = None
     ) -> str:
@@ -784,7 +791,7 @@ def register_reference_manager_tools(
         output += f"\n*Total: {len(pmid_list)} references*"
         return output
 
-    @mcp.tool()
+    @tool()
     def rebuild_foam_aliases(project: Optional[str] = None) -> str:
         """
         Rebuild Foam-compatible markdown files for all references (2025-12 format).
@@ -877,7 +884,7 @@ def register_reference_manager_tools(
         )
         return output
 
-    @mcp.tool()
+    @tool()
     def delete_reference(pmid: str, confirm: bool = False, project: Optional[str] = None) -> str:
         """
         ⚠️ DESTRUCTIVE: Delete a reference and all associated files.
@@ -935,7 +942,7 @@ def register_reference_manager_tools(
             # Error
             return f"❌ {result.get('error', '未知錯誤')}"
 
-    @mcp.tool()
+    @tool()
     def get_reference_for_analysis(pmid: str, project: Optional[str] = None) -> str:
         """
         📖 Get reference content for subagent analysis (Phase 2.1).
@@ -1034,7 +1041,7 @@ def register_reference_manager_tools(
         log_tool_result("get_reference_for_analysis", f"pmid={pmid}, fulltext={fulltext_available}")
         return result
 
-    @mcp.tool()
+    @tool()
     def save_reference_analysis(
         pmid: str,
         summary: str,
@@ -1119,3 +1126,31 @@ def register_reference_manager_tools(
         )
         log_tool_result("save_reference_analysis", f"pmid={pmid}, sections={sections_list}")
         return result
+
+    handlers: dict[str, Callable[..., Any]] = {
+        "save_reference": save_reference,
+        "save_reference_mcp": save_reference_mcp,
+        "list_saved_references": list_saved_references,
+        "search_local_references": search_local_references,
+        "get_reference_details": get_reference_details,
+        "read_reference_fulltext": read_reference_fulltext,
+        "save_reference_pdf": save_reference_pdf,
+        "format_references": format_references,
+        "rebuild_foam_aliases": rebuild_foam_aliases,
+        "delete_reference": delete_reference,
+        "get_reference_for_analysis": get_reference_for_analysis,
+        "save_reference_analysis": save_reference_analysis,
+    }
+    if register_public_verbs:
+        handlers.update(
+            {
+                "import_local_papers": import_local_papers,
+                "ingest_web_source": ingest_web_source,
+                "ingest_markdown_source": ingest_markdown_source,
+                "resolve_reference_identity": resolve_reference_identity,
+                "build_knowledge_map": build_knowledge_map,
+                "build_synthesis_page": build_synthesis_page,
+                "materialize_agent_wiki": materialize_agent_wiki,
+            }
+        )
+    return handlers

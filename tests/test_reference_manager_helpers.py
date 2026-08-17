@@ -1,10 +1,20 @@
 from __future__ import annotations
 
+import base64
 import json
 from pathlib import Path
 
+from med_paper_assistant.application.content_integrity import ContentIntegrityInspector
+from med_paper_assistant.infrastructure.external.content_integrity import (
+    C2paProvenanceAdapter,
+    ConservativeVisibleWatermarkHeuristic,
+)
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
+
+_ONE_PIXEL_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
 
 
 def test_get_reference_details_returns_metadata_and_ref_dir(tmp_path) -> None:
@@ -292,7 +302,7 @@ def test_refresh_foam_graph_materializes_draft_sections_and_assets(tmp_path) -> 
 This section cites [[smith2024_11111111]] and discusses Figure 1 and Table 1.
 """
     (drafts_dir / "draft.md").write_text(draft_text, encoding="utf-8")
-    (figures_dir / "consort.png").write_bytes(b"png")
+    (figures_dir / "consort.png").write_bytes(_ONE_PIXEL_PNG)
     (tables_dir / "baseline.md").write_text("|A|B|\n|---|---|\n|1|2|", encoding="utf-8")
     (tmp_path / "results" / "manifest.json").write_text(
         json.dumps(
@@ -305,6 +315,18 @@ This section cites [[smith2024_11111111]] and discusses Figure 1 and Table 1.
     )
 
     tracker = DataArtifactTracker(tmp_path / ".audit", tmp_path)
+    integrity = ContentIntegrityInspector(
+        provenance_inspector=C2paProvenanceAdapter(),
+        visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+    ).inspect(
+        figures_dir / "consort.png",
+        asset_path="results/figures/consort.png",
+    )
+    integrity_receipt = tracker.record_content_integrity_receipt(
+        asset_type="figure",
+        asset_path="results/figures/consort.png",
+        receipt=integrity.to_dict(),
+    )
     tracker.record_asset_review(
         asset_type="figure",
         asset_path="results/figures/consort.png",
@@ -312,6 +334,11 @@ This section cites [[smith2024_11111111]] and discusses Figure 1 and Table 1.
         rationale="Caption matches the flow diagram.",
         proposed_caption="CONSORT flow",
         evidence_excerpt="Allocation counts are visible in the rendered figure.",
+        content_integrity_receipt_id=integrity_receipt["id"],
+        visible_watermark_review=(
+            "Human reviewer inspected the original raster, found no visible watermark, "
+            "and confirmed authorized reuse."
+        ),
     )
 
     stats = manager.refresh_foam_graph()

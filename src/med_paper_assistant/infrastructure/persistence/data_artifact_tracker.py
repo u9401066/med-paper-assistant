@@ -18,6 +18,7 @@ Design rationale (CONSTITUTION §22):
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from datetime import datetime
@@ -159,6 +160,7 @@ class DataArtifactTracker:
         data["version"] = data.get("version", 1)
         data["artifacts"] = artifacts
         data["asset_reviews"] = data.get("asset_reviews") or data.get("reviews") or []
+        data["content_integrity_receipts"] = data.get("content_integrity_receipts") or []
         data.setdefault("created_at", datetime.now().isoformat())
         return data
 
@@ -185,6 +187,7 @@ class DataArtifactTracker:
             "version": 1,
             "artifacts": [],
             "asset_reviews": [],
+            "content_integrity_receipts": [],
             "created_at": datetime.now().isoformat(),
         }
         return self._data
@@ -496,6 +499,8 @@ class DataArtifactTracker:
         rationale: str,
         proposed_caption: str,
         evidence_excerpt: str | None = None,
+        content_integrity_receipt_id: str | None = None,
+        visible_watermark_review: str | None = None,
     ) -> dict[str, Any]:
         """Record an auditable asset review receipt before insertion/caption writing.
 
@@ -515,12 +520,66 @@ class DataArtifactTracker:
             "rationale": rationale.strip(),
             "proposed_caption": proposed_caption.strip(),
             "evidence_excerpt": (evidence_excerpt or "").strip(),
+            "content_integrity_receipt_id": content_integrity_receipt_id,
+            "visible_watermark_review": (visible_watermark_review or "").strip(),
             "timestamp": datetime.now().isoformat(),
         }
         reviews.append(entry)
         self._save()
         logger.info("Recorded asset review: %s (%s %s)", entry["id"], asset_type, normalized_path)
         return entry
+
+    def record_content_integrity_receipt(
+        self,
+        asset_type: Literal["figure", "table"],
+        asset_path: str,
+        receipt: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Persist a structured, read-only provenance/integrity inspection receipt."""
+        data = self._load()
+        normalized_path = self._normalize_path(asset_path)
+        receipts: list[dict[str, Any]] = data.setdefault("content_integrity_receipts", [])
+        receipt_id = f"CI-{len(receipts) + 1:03d}"
+        entry = {
+            "id": receipt_id,
+            "asset_type": asset_type,
+            "asset_path": normalized_path,
+            **receipt,
+        }
+        # The tracker owns these locators even if a caller supplied aliases.
+        entry["id"] = receipt_id
+        entry["asset_type"] = asset_type
+        entry["asset_path"] = normalized_path
+        receipts.append(entry)
+        self._save()
+        logger.info(
+            "Recorded content integrity receipt: %s (%s %s)",
+            entry["id"],
+            asset_type,
+            normalized_path,
+        )
+        return entry
+
+    def get_content_integrity_receipt(
+        self,
+        asset_path: str,
+        *,
+        receipt_id: str | None = None,
+        asset_type: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Return a referenced receipt, or the latest receipt for an asset."""
+        normalized_path = self._normalize_path(asset_path)
+        receipts = self._load().get("content_integrity_receipts", [])
+        matches = [
+            receipt
+            for receipt in receipts
+            if receipt.get("asset_path") == normalized_path
+            and (receipt_id is None or receipt.get("id") == receipt_id)
+            and (asset_type is None or receipt.get("asset_type") == asset_type)
+        ]
+        if not matches:
+            return None
+        return sorted(matches, key=lambda receipt: receipt.get("inspected_at", ""))[-1]
 
     def get_asset_review(
         self,
@@ -559,6 +618,10 @@ class DataArtifactTracker:
         if review is None:
             return False, "no asset review receipt found"
 
+        integrity_ok, integrity_detail = self._integrity_receipt_satisfies_review(review)
+        if not integrity_ok:
+            return False, integrity_detail
+
         observations = review.get("observations", [])
         if len(observations) < 2:
             return False, "asset review must contain at least 2 observations"
@@ -573,6 +636,91 @@ class DataArtifactTracker:
             return False, "caption differs from reviewed proposed_caption"
 
         return True, review.get("id", "asset review receipt")
+
+    @staticmethod
+    def _sha256(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    def _integrity_receipt_satisfies_review(
+        self,
+        review: dict[str, Any],
+    ) -> tuple[bool, str]:
+        """Validate receipt linkage, gate decision, and current asset identity."""
+        receipt_id = str(review.get("content_integrity_receipt_id") or "").strip()
+        if not receipt_id:
+            return False, "content-integrity receipt missing; review the asset again"
+
+        asset_path = str(review.get("asset_path") or "")
+        receipt = self.get_content_integrity_receipt(
+            asset_path,
+            receipt_id=receipt_id,
+            asset_type=str(review.get("asset_type") or "") or None,
+        )
+        if receipt is None:
+            return False, f"content-integrity receipt {receipt_id} not found"
+
+        gate_status = receipt.get("gate_status")
+        if gate_status == "BLOCK":
+            return False, f"content-integrity receipt {receipt_id} is blocked"
+        if gate_status not in {"PASS", "HUMAN_REVIEW"}:
+            return False, f"content-integrity receipt {receipt_id} has an unknown gate status"
+
+        file_info = receipt.get("file")
+        if not isinstance(file_info, dict):
+            return False, "content-integrity receipt has no file identity"
+        mime_type = file_info.get("mime_type")
+        if not isinstance(mime_type, str) or not mime_type:
+            return False, "content-integrity receipt has no MIME identity"
+
+        visible_watermark = receipt.get("visible_watermark")
+        if not isinstance(visible_watermark, dict):
+            return False, "content-integrity receipt has no visible-watermark assessment"
+        visible_status = visible_watermark.get("status")
+        if visible_status not in {"HUMAN_REVIEW", "UNCERTAIN"}:
+            return False, "content-integrity receipt has an unknown visible-watermark status"
+
+        raster_mime_type = mime_type.lower() in {"image/jpeg", "image/png"}
+        review_required = visible_status == "HUMAN_REVIEW" or (
+            visible_status == "UNCERTAIN"
+            and (raster_mime_type or visible_watermark.get("applicable") is not False)
+        )
+        if review_required and gate_status != "HUMAN_REVIEW":
+            return (
+                False,
+                "content-integrity receipt inconsistently passes an uncertain "
+                "visible-watermark assessment",
+            )
+        if (review_required or gate_status == "HUMAN_REVIEW") and not str(
+            review.get("visible_watermark_review") or ""
+        ).strip():
+            return False, "visible-watermark human review is not documented"
+        if receipt.get("automated_removal_performed") is not False:
+            return False, "receipt does not affirm that automated removal was disabled"
+        if receipt.get("original_preserved") is not True:
+            return False, "receipt does not affirm that original bytes were preserved"
+
+        expected_hash = file_info.get("sha256")
+        if not isinstance(expected_hash, str) or not expected_hash:
+            return False, "content-integrity receipt has no SHA-256 identity"
+        if file_info.get("sha256_after_inspection") != expected_hash:
+            return False, "inspection-time SHA-256 values do not match"
+
+        project_root = self._project_dir.resolve()
+        candidate = (project_root / asset_path).resolve()
+        try:
+            candidate.relative_to(project_root)
+        except ValueError:
+            return False, "reviewed asset path escapes the project root"
+        if not candidate.is_file():
+            return False, "reviewed asset no longer exists"
+        if self._sha256(candidate) != expected_hash:
+            return False, "asset SHA-256 changed after content-integrity review"
+
+        return True, receipt_id
 
     def get_artifacts(self, artifact_type: str | None = None) -> list[dict[str, Any]]:
         """Get all artifacts, optionally filtered by type."""
@@ -738,6 +886,21 @@ class DataArtifactTracker:
                             ),
                         }
                     )
+                else:
+                    integrity_ok, integrity_detail = self._integrity_receipt_satisfies_review(
+                        review
+                    )
+                    if not integrity_ok:
+                        issues.append(
+                            {
+                                "severity": "CRITICAL",
+                                "category": "content_integrity_gate",
+                                "message": (
+                                    f"Content integrity gate failed for {a.get('output_path')}: "
+                                    f"{integrity_detail}"
+                                ),
+                            }
+                        )
 
         # Check 5: Draft cross-references (if draft content provided)
         if draft_content:
@@ -926,6 +1089,35 @@ class DataArtifactTracker:
                     lines.append("- **Observations**:")
                     for observation in observations:
                         lines.append(f"  - {observation}")
+                lines.append("")
+
+        integrity_receipts = data.get("content_integrity_receipts", [])
+        if integrity_receipts:
+            lines.append(f"## Content Integrity Receipts ({len(integrity_receipts)})")
+            lines.append("")
+            for receipt in integrity_receipts:
+                file_info = receipt.get("file", {})
+                provenance = receipt.get("provenance", {})
+                visible = receipt.get("visible_watermark", {})
+                lines.append(f"### {receipt.get('id')} — {receipt.get('asset_path')}")
+                lines.append(f"- **Inspected**: {receipt.get('inspected_at')}")
+                lines.append(f"- **SHA-256**: `{file_info.get('sha256', '')}`")
+                lines.append(f"- **MIME**: {file_info.get('mime_type', '')}")
+                lines.append(f"- **C2PA**: {provenance.get('status', '')}")
+                lines.append(f"- **Visible Watermark**: {visible.get('status', '')}")
+                lines.append(f"- **Gate**: {receipt.get('gate_status', '')}")
+                lines.append(
+                    "- **Original Preserved**: "
+                    + ("yes" if receipt.get("original_preserved") is True else "no")
+                )
+                lines.append(
+                    "- **Automated Removal**: "
+                    + (
+                        "disabled"
+                        if receipt.get("automated_removal_performed") is False
+                        else "UNKNOWN"
+                    )
+                )
                 lines.append("")
 
         report_text = "\n".join(lines)

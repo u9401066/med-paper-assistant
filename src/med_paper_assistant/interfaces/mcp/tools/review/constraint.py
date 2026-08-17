@@ -17,7 +17,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.constraint_ledger import ConstraintLedger
 
@@ -35,7 +35,7 @@ _SUPPORTED_ACTIONS = _READ_ACTIONS | _MUTATION_ACTIONS | {"add", "ingest"}
 
 
 def register_constraint_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     *,
     register_public_verbs: bool = True,
 ) -> dict[str, Callable[..., Any]]:

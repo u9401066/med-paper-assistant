@@ -9,7 +9,7 @@ Split into submodules:
 
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
 from med_paper_assistant.interfaces.mcp.tool_surface import ToolSurface, uses_compact_tool_surface
@@ -20,7 +20,7 @@ from .idea import register_idea_validation_tools
 
 
 def register_validation_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     ref_manager: Optional[ReferenceManager] = None,
     *,
     tool_surface: ToolSurface = "full",

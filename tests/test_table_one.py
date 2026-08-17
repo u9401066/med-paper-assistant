@@ -118,11 +118,13 @@ class TestTableOneGenerator:
 class TestTableOneMCPTool:
     """Test Table 1 MCP tool integration."""
 
-    def test_mcp_tool_exists(self):
+    def test_mcp_tool_exists(self, monkeypatch):
         """Test that the MCP tool is registered."""
         import asyncio
 
         from med_paper_assistant.interfaces.mcp.server import create_server
+
+        monkeypatch.setenv("MEDPAPER_TOOL_SURFACE", "full")
 
         async def check_tool():
             server = create_server()

@@ -1,71 +1,80 @@
 {
-    "inputs": [],
-    "servers": {
-        "mdpaper": {
-            "type": "stdio",
-            "command": "uv",
-            "args": [
-                "run",
-                "--directory",
-                "${workspaceFolder}",
-                "python",
-                "-m",
-                "med_paper_assistant.interfaces.mcp"
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
-                "MEDPAPER_TOOL_SURFACE": "compact"
-            }
-        },
-        "pubmed-search": {
-            "type": "stdio",
-            "command": "uvx",
-            "args": [
-                "pubmed-search-mcp"
-            ],
-            "env": {
-                "ENTREZ_EMAIL": "medpaper@example.com"
-            }
-        },
-        "cgu": {
-            "type": "stdio",
-            "command": "uv",
-            "args": [
-                "run",
-                "--directory",
-                "${workspaceFolder}/integrations/cgu",
-                "python",
-                "-m",
-                "cgu.server"
-            ],
-            "env": {
-                "CGU_THINKING_ENGINE": "simple"
-            }
-        },
-        "zotero-keeper": {
-            "type": "stdio",
-            "command": "uvx",
-            "args": [
-                "zotero-keeper"
-            ]
-        },
-        "asset-aware": {
-            "type": "stdio",
-            "command": "uv",
-            "args": [
-                "run",
-                "--directory",
-                "${workspaceFolder}/integrations/asset-aware-mcp",
-                "asset-aware-mcp"
-            ]
-        },
-        "drawio": {
-            "type": "stdio",
-            "command": "npx",
-            "args": [
-                "-y",
-                "@drawio/mcp"
-            ]
-        }
+  "inputs": [],
+  "servers": {
+    "mdpaper": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${workspaceFolder}",
+        "python",
+        "-m",
+        "med_paper_assistant.interfaces.mcp"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src",
+        "MEDPAPER_TOOL_SURFACE": "compact"
+      }
+    },
+    "pubmed-search": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${workspaceFolder}/integrations/pubmed-search-mcp",
+        "pubmed-search-mcp"
+      ],
+      "env": {
+        "NCBI_EMAIL": "medpaper@example.com"
+      }
+    },
+    "cgu": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${workspaceFolder}/integrations/cgu",
+        "python",
+        "-m",
+        "cgu.server"
+      ],
+      "env": {
+        "CGU_THINKING_ENGINE": "simple"
+      }
+    },
+    "zotero-keeper": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "--from",
+        "https://github.com/u9401066/zotero-keeper/archive/1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5.tar.gz#subdirectory=mcp-server",
+        "zotero-keeper"
+      ]
+    },
+    "asset-aware": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${workspaceFolder}/integrations/asset-aware-mcp",
+        "asset-aware-mcp"
+      ]
+    },
+    "drawio": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${workspaceFolder}/integrations/next-ai-draw-io/mcp-server",
+        "drawio-mcp-server"
+      ]
     }
+  }
 }

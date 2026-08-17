@@ -25,7 +25,8 @@ from typing import Any, Optional
 
 import structlog
 import yaml
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import (
@@ -290,7 +291,7 @@ def _validate_review_score_schema(
 
 
 def register_pipeline_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     project_manager: ProjectManager,
     *,
     register_public_verbs: bool = True,

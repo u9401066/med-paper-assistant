@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.interfaces.mcp.tools.analysis import register_analysis_tools
 from med_paper_assistant.interfaces.mcp.tools.analysis.facade import register_analysis_facade_tools
@@ -86,7 +86,7 @@ def test_analysis_action_routes_asset_tools_on_compact_surface():
         return "figure-ok"
 
     handlers = register_analysis_facade_tools(
-        FastMCP("analysis-facade-test"),
+        MCPServer("analysis-facade-test"),
         stats_tools={},
         table_one_tools={},
         figure_tools={"insert_figure": insert_figure},

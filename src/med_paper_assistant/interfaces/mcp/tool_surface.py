@@ -10,16 +10,16 @@ ToolSurface = Literal["full", "compact"]
 _SURFACE_ENV_VAR = "MEDPAPER_TOOL_SURFACE"
 EXPECTED_TOOL_COUNTS: dict[ToolSurface, int] = {
     "full": 118,
-    "compact": 22,
+    "compact": 12,
 }
 
 
 def resolve_tool_surface(explicit: str | None = None) -> ToolSurface:
     """Resolve the MCP tool surface from explicit input or environment."""
-    candidate = (explicit or os.environ.get(_SURFACE_ENV_VAR, "full")).strip().lower()
-    if candidate == "compact":
-        return cast(ToolSurface, "compact")
-    return cast(ToolSurface, "full")
+    candidate = (explicit or os.environ.get(_SURFACE_ENV_VAR, "compact")).strip().lower()
+    if candidate == "full":
+        return cast(ToolSurface, "full")
+    return cast(ToolSurface, "compact")
 
 
 def uses_compact_tool_surface(explicit: str | None = None) -> bool:

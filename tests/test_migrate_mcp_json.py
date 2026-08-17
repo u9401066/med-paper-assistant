@@ -13,8 +13,10 @@ SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from migrate_mcp_json import (  # noqa: E402
+    INTEGRATION_LOCK,
     REQUIRED_SERVERS,
     find_missing_servers,
+    find_outdated_managed_servers,
     load_mcp_json,
     migrate,
 )
@@ -55,13 +57,59 @@ class TestFindMissingServers:
         assert set(missing) == set(REQUIRED_SERVERS.keys())
 
 
-def test_pubmed_search_server_uses_upstream_package_entrypoint() -> None:
+def test_pubmed_search_server_uses_locked_submodule_entrypoint() -> None:
     server = REQUIRED_SERVERS["pubmed-search"]
 
-    assert server["command"] == "uvx"
-    assert server["args"] == ["pubmed-search-mcp"]
+    assert server["command"] == "uv"
+    assert server["args"] == [
+        "run",
+        "--directory",
+        "${workspaceFolder}/integrations/pubmed-search-mcp",
+        "pubmed-search-mcp",
+    ]
     assert server["env"]["NCBI_EMAIL"] == "medpaper@example.com"
     assert "ENTREZ_EMAIL" not in server["env"]
+
+
+def test_zotero_server_uses_exact_sdk2_archive() -> None:
+    server = REQUIRED_SERVERS["zotero-keeper"]
+    lock = INTEGRATION_LOCK["integrations"]["zotero-keeper"]
+
+    assert server["command"] == "uvx"
+    assert server["args"] == [
+        "--python",
+        "3.12",
+        "--from",
+        lock["package_source"],
+        "zotero-keeper",
+    ]
+    assert lock["version"] == "2.1.0"
+    assert lock["mcp_sdk_major"] == 2
+
+
+def test_only_known_legacy_launchers_are_marked_outdated() -> None:
+    existing = {
+        "servers": {
+            "pubmed-search": {"command": "uvx", "args": ["pubmed-search-mcp"]},
+            "zotero-keeper": {"command": "uvx", "args": ["zotero-keeper"]},
+            "drawio": {"command": "npx", "args": ["-y", "@drawio/mcp"]},
+        }
+    }
+    assert find_outdated_managed_servers(existing) == [
+        "pubmed-search",
+        "zotero-keeper",
+        "drawio",
+    ]
+
+    custom = {
+        "servers": {
+            "zotero-keeper": {
+                "command": "/opt/custom/zotero-keeper",
+                "args": [],
+            }
+        }
+    }
+    assert find_outdated_managed_servers(custom) == []
 
 
 class TestLoadMcpJson:
@@ -105,6 +153,45 @@ class TestMigrate:
         assert rc == 0
         backups = list(p.parent.glob("mcp.json.bak.*"))
         assert len(backups) == 1
+
+    def test_replaces_legacy_launchers_and_preserves_environment(self, tmp_mcp):
+        servers = {name: {"type": "stdio"} for name in REQUIRED_SERVERS}
+        servers["zotero-keeper"] = {
+            "type": "stdio",
+            "command": "uvx",
+            "args": ["zotero-keeper"],
+            "env": {"ZOTERO_TIMEOUT": "45"},
+        }
+        servers["pubmed-search"] = {
+            "type": "stdio",
+            "command": "uvx",
+            "args": ["pubmed-search-mcp"],
+            "env": {"ENTREZ_EMAIL": "researcher@example.org"},
+        }
+        servers["drawio"] = {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["-y", "@drawio/mcp"],
+        }
+        p = tmp_mcp(servers)
+
+        assert migrate(p) == 0
+
+        migrated = json.loads(p.read_text(encoding="utf-8"))["servers"]
+        assert migrated["zotero-keeper"]["args"] == REQUIRED_SERVERS["zotero-keeper"]["args"]
+        assert migrated["zotero-keeper"]["env"] == {"ZOTERO_TIMEOUT": "45"}
+        assert migrated["pubmed-search"]["args"] == REQUIRED_SERVERS["pubmed-search"]["args"]
+        assert migrated["pubmed-search"]["env"]["NCBI_EMAIL"] == "researcher@example.org"
+        assert "ENTREZ_EMAIL" not in migrated["pubmed-search"]["env"]
+        assert migrated["drawio"] == REQUIRED_SERVERS["drawio"]
+
+    def test_creates_new_contract_file_when_requested(self, tmp_path):
+        p = tmp_path / ".vscode" / "mcp.json"
+
+        assert migrate(p, create_if_missing=True) == 0
+
+        created = json.loads(p.read_text(encoding="utf-8"))
+        assert created["servers"] == REQUIRED_SERVERS
 
     def test_already_up_to_date(self, tmp_mcp):
         servers = {name: {"type": "stdio"} for name in REQUIRED_SERVERS}

@@ -5,7 +5,7 @@ import inspect
 from unittest.mock import MagicMock
 
 import pytest
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.interfaces.mcp.tools.analysis import figures as figures_tools
 from med_paper_assistant.interfaces.mcp.tools.analysis import stats as stats_tools
@@ -147,7 +147,7 @@ def test_pandoc_export_tools_guard_library_workflow(monkeypatch):
         ),
     )
 
-    funcs = pandoc_export.register_pandoc_export_tools(FastMCP("pandoc-guard-test"))
+    funcs = pandoc_export.register_pandoc_export_tools(MCPServer("pandoc-guard-test"))
     result = funcs["export_docx"](draft_filename="discussion.md", project="library")
 
     assert result == "workflow-guard"
@@ -164,7 +164,7 @@ def test_word_export_tools_guard_library_workflow(monkeypatch):
     )
 
     funcs = word_export.register_word_export_tools(
-        FastMCP("word-guard-test"),
+        MCPServer("word-guard-test"),
         formatter=MagicMock(),
         template_reader=MagicMock(),
         word_writer=MagicMock(),

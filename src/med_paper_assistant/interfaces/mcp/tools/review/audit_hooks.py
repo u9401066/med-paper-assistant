@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Any, Literal, Optional, cast
 
 import yaml
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import (
     DataArtifactTracker,
@@ -195,7 +196,7 @@ def _write_pipeline_retrospective_artifact(
 
 
 def register_audit_hook_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     *,
     register_public_verbs: bool = True,
 ):

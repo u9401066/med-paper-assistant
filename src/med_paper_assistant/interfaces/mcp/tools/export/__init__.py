@@ -4,7 +4,7 @@ Export Tools Module
 Tools for Word document export and Pandoc-based citation export.
 """
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.services import Formatter, TemplateReader, WordWriter
 from med_paper_assistant.interfaces.mcp.tool_surface import ToolSurface, uses_compact_tool_surface
@@ -15,7 +15,7 @@ from .word import register_word_export_tools
 
 
 def register_export_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     formatter: Formatter,
     template_reader: TemplateReader,
     word_writer: WordWriter,

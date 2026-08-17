@@ -2,15 +2,34 @@
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import yaml
 
+from med_paper_assistant.application.content_integrity import ContentIntegrityInspector
+from med_paper_assistant.domain.value_objects.content_integrity import (
+    ProvenanceAssessment,
+    ProvenanceStatus,
+)
+from med_paper_assistant.infrastructure.external.content_integrity import (
+    C2paProvenanceAdapter,
+    ConservativeVisibleWatermarkHeuristic,
+)
 from med_paper_assistant.infrastructure.persistence import ProjectManager, _reset_project_manager
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 from med_paper_assistant.interfaces.mcp.tools.analysis.figures import register_figure_tools
+
+_ONE_PIXEL_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
+_HUMAN_RASTER_REVIEW = (
+    "Human reviewer inspected the original raster, found no visible watermark, "
+    "and confirmed authorized reuse."
+)
 
 
 class TestCaptionNormalization:
@@ -44,7 +63,7 @@ def figure_tool_funcs(tmp_path: Path, monkeypatch):
     (project_dir / "results" / "tables").mkdir(parents=True)
     (project_dir / ".audit").mkdir(parents=True)
     (project_dir / "drafts").mkdir(parents=True)
-    (project_dir / "results" / "figures" / "consort.png").write_bytes(b"png")
+    (project_dir / "results" / "figures" / "consort.png").write_bytes(_ONE_PIXEL_PNG)
     (project_dir / "results" / "tables" / "baseline.md").write_text("|A|B|\n|---|---|\n|1|2|")
 
     _reset_project_manager()
@@ -113,8 +132,18 @@ def test_review_then_insert_figure_passes(figure_tool_funcs):
         proposed_caption="CONSORT flow diagram",
         evidence_excerpt="Allocation counts visible",
         project="project",
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
     )
     assert "Asset Review Recorded" in review_result
+    assert "Automated removal:** disabled" in review_result
+
+    audit = yaml.safe_load((project_dir / ".audit" / "data-artifacts.yaml").read_text())
+    integrity_receipt = audit["content_integrity_receipts"][0]
+    assert (
+        integrity_receipt["file"]["sha256"] == integrity_receipt["file"]["sha256_after_inspection"]
+    )
+    assert integrity_receipt["original_preserved"] is True
+    assert integrity_receipt["automated_removal_performed"] is False
 
     insert_result = tool_funcs["insert_figure"](
         filename="consort.png",
@@ -163,6 +192,7 @@ def test_caption_normalized_comparison_ignores_trailing_punctuation(figure_tool_
         rationale="The caption fits the asset.",
         proposed_caption="CONSORT flow diagram",
         project="project",
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
     )
 
     # Same caption with trailing period and different case — should still pass
@@ -195,3 +225,154 @@ def test_insert_table_with_inline_content_auto_reviews(figure_tool_funcs):
     review = tracker.get_asset_review("results/tables/auto_table.md", asset_type="table")
     assert review is not None
     assert "inline" in review["observations"][1].lower()
+    assert review["content_integrity_receipt_id"].startswith("CI-")
+
+
+def test_asset_hash_change_after_review_blocks_insertion(figure_tool_funcs):
+    tool_funcs, project_dir = figure_tool_funcs
+
+    tool_funcs["review_asset_for_insertion"](
+        asset_type="figure",
+        filename="consort.png",
+        observations="Two-arm flow|Enrollment and allocation counts shown",
+        rationale="The caption fits the reviewed asset.",
+        proposed_caption="CONSORT flow diagram",
+        project="project",
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
+    )
+    (project_dir / "results" / "figures" / "consort.png").write_bytes(b"changed")
+
+    result = tool_funcs["insert_figure"](
+        filename="consort.png",
+        caption="CONSORT flow diagram",
+        project="project",
+    )
+
+    assert "caption blocked" in result
+    assert "SHA-256 changed" in result
+
+
+def test_visible_watermark_signal_requires_documented_human_review(figure_tool_funcs):
+    tool_funcs, project_dir = figure_tool_funcs
+    (project_dir / "results" / "figures" / "watermarked-preview.png").write_bytes(_ONE_PIXEL_PNG)
+    kwargs = {
+        "asset_type": "figure",
+        "filename": "watermarked-preview.png",
+        "observations": "Visible diagonal overlay|Source label appears in the corner",
+        "rationale": "The caption identifies only the reviewed scientific content.",
+        "proposed_caption": "Reviewed source figure",
+        "project": "project",
+    }
+
+    blocked = tool_funcs["review_asset_for_insertion"](**kwargs)
+    assert "Human Review Required" in blocked
+
+    reviewed = tool_funcs["review_asset_for_insertion"](
+        **kwargs,
+        visible_watermark_review=(
+            "Human reviewer confirmed the visible source mark must remain and reuse is authorized."
+        ),
+    )
+    assert "Asset Review Recorded" in reviewed
+
+
+def test_uncertain_raster_requires_documented_human_review(figure_tool_funcs):
+    tool_funcs, project_dir = figure_tool_funcs
+    kwargs = {
+        "asset_type": "figure",
+        "filename": "consort.png",
+        "observations": "Two-arm flow|Enrollment and allocation counts shown",
+        "rationale": "The caption fits the reviewed raster.",
+        "proposed_caption": "CONSORT flow diagram",
+        "project": "project",
+    }
+
+    blocked = tool_funcs["review_asset_for_insertion"](**kwargs)
+
+    assert "Human Review Required" in blocked
+    tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    assert tracker.get_asset_review("results/figures/consort.png", asset_type="figure") is None
+    integrity = tracker.get_content_integrity_receipt("results/figures/consort.png")
+    assert integrity is not None
+    assert integrity["visible_watermark"]["status"] == "UNCERTAIN"
+    assert integrity["gate_status"] == "HUMAN_REVIEW"
+
+    reviewed = tool_funcs["review_asset_for_insertion"](
+        **kwargs,
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
+    )
+    assert "Asset Review Recorded" in reviewed
+
+
+def test_tracker_rejects_pass_receipt_for_uncertain_raster(figure_tool_funcs):
+    _tool_funcs, project_dir = figure_tool_funcs
+    asset_path = "results/figures/consort.png"
+    tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    integrity = ContentIntegrityInspector(
+        provenance_inspector=C2paProvenanceAdapter(),
+        visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+    ).inspect(project_dir / asset_path, asset_path=asset_path)
+    forged_pass = integrity.to_dict()
+    forged_pass["gate_status"] = "PASS"
+    forged_pass["visible_watermark"]["applicable"] = False
+    receipt = tracker.record_content_integrity_receipt(
+        asset_type="figure",
+        asset_path=asset_path,
+        receipt=forged_pass,
+    )
+    tracker.record_asset_review(
+        asset_type="figure",
+        asset_path=asset_path,
+        observations=["Two-arm flow", "Enrollment counts shown"],
+        rationale="Caption fits the reviewed raster.",
+        proposed_caption="CONSORT flow diagram",
+        content_integrity_receipt_id=receipt["id"],
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
+    )
+
+    ok, detail = tracker.review_satisfies_caption(
+        asset_path,
+        "CONSORT flow diagram",
+        asset_type="figure",
+    )
+
+    assert ok is False
+    assert "inconsistently passes" in detail
+
+
+def test_invalid_c2pa_receipt_blocks_review_gate(figure_tool_funcs, monkeypatch):
+    tool_funcs, project_dir = figure_tool_funcs
+
+    class InvalidProvenance:
+        def inspect(self, _path, _mime_type):
+            return ProvenanceAssessment(
+                status=ProvenanceStatus.PRESENT_INVALID,
+                provider="test-c2pa",
+                summary="data hash mismatch",
+                failure_codes=("assertion.dataHash.mismatch",),
+            )
+
+    inspector = ContentIntegrityInspector(
+        provenance_inspector=InvalidProvenance(),
+        visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+    )
+    monkeypatch.setattr(
+        "med_paper_assistant.interfaces.mcp.tools.analysis.figures._build_content_integrity_inspector",
+        lambda: inspector,
+    )
+
+    result = tool_funcs["review_asset_for_insertion"](
+        asset_type="figure",
+        filename="consort.png",
+        observations="Two-arm flow|Enrollment and allocation counts shown",
+        rationale="The caption fits the reviewed asset.",
+        proposed_caption="CONSORT flow diagram",
+        project="project",
+    )
+
+    assert "Asset Integrity Gate Blocked" in result
+    tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    assert tracker.get_asset_review("results/figures/consort.png", asset_type="figure") is None
+    integrity = tracker.get_content_integrity_receipt("results/figures/consort.png")
+    assert integrity is not None
+    assert integrity["gate_status"] == "BLOCK"

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import subprocess
@@ -39,7 +40,7 @@ def _repository_files(pathspec: str, fallback_glob: str) -> list[Path]:
     return [path for path in REPO_ROOT.glob(fallback_glob) if path.is_file()]
 
 
-def get_runtime_surface_counts() -> dict[str, dict[str, int]]:
+async def _get_runtime_surface_counts() -> dict[str, dict[str, int]]:
     from med_paper_assistant.interfaces.mcp.server import create_server
 
     original = os.environ.get("MEDPAPER_TOOL_SURFACE")
@@ -50,9 +51,9 @@ def get_runtime_surface_counts() -> dict[str, dict[str, int]]:
             os.environ["MEDPAPER_TOOL_SURFACE"] = surface
             mcp = create_server()
             counts[surface] = {
-                "tools": len(mcp._tool_manager._tools),
-                "prompts": len(mcp._prompt_manager._prompts),
-                "resources": len(mcp._resource_manager._resources),
+                "tools": len(await mcp.list_tools()),
+                "prompts": len(await mcp.list_prompts()),
+                "resources": len(await mcp.list_resources()),
             }
     finally:
         if original is None:
@@ -61,6 +62,11 @@ def get_runtime_surface_counts() -> dict[str, dict[str, int]]:
             os.environ["MEDPAPER_TOOL_SURFACE"] = original
 
     return counts
+
+
+def get_runtime_surface_counts() -> dict[str, dict[str, int]]:
+    """Inspect both surfaces through the public MCP SDK 2 server API."""
+    return asyncio.run(_get_runtime_surface_counts())
 
 
 def get_repository_counts() -> dict[str, int]:

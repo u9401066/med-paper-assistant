@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
     PipelineGateValidator,
@@ -56,7 +56,7 @@ async def test_golden_mini_project_source_ingestion_claim_and_anchor_flow(
 
     monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
     funcs = register_project_facade_tools(
-        FastMCP("golden-mini-project"),
+        MCPServer("golden-mini-project"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},

@@ -15,7 +15,7 @@ Migrated to Skills:
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.infrastructure.services.citation_assistant import CitationAssistant
@@ -29,7 +29,7 @@ from .writing import register_writing_tools
 
 
 def register_draft_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     drafter: Drafter,
     figure_tools: Mapping[str, Callable[..., Any]] | None = None,
     *,

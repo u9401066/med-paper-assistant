@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from med_paper_assistant.domain.entities.reference import has_verified_pubmed_provenance
 from med_paper_assistant.shared.doi import normalize_doi_for_filename
 
 
@@ -55,6 +56,16 @@ class StandardizedReference:
     # 元資料
     source_metadata: Optional[Dict[str, Any]] = None  # 保留原始資料
 
+    # 信任與可審計來源
+    verified: bool = False
+    data_source: str = ""
+    retrieved_at: str = ""
+    source_url: str = ""
+    payload_hash: str = ""
+    provenance: Optional[List[Dict[str, Any]]] = None
+    agent_notes: str = ""
+    trust_level: str = "agent"
+
     def __post_init__(self):
         """Initialize default list fields."""
         if self.authors is None:
@@ -67,6 +78,23 @@ class StandardizedReference:
             self.mesh_terms = []
         if self.source_metadata is None:
             self.source_metadata = {}
+        if self.provenance is None:
+            self.provenance = []
+        self.verified = has_verified_pubmed_provenance(
+            {
+                "verified": self.verified,
+                "pmid": self.pmid,
+                "data_source": self.data_source,
+                "retrieved_at": self.retrieved_at,
+                "source_url": self.source_url,
+                "payload_hash": self.payload_hash,
+                "provenance": self.provenance,
+            }
+        )
+        if self.verified:
+            self.trust_level = "verified"
+        elif self.trust_level == "verified":
+            self.trust_level = "agent"
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for storage."""
@@ -90,6 +118,14 @@ class StandardizedReference:
             "abstract": self.abstract,
             "keywords": self.keywords,
             "mesh_terms": self.mesh_terms,
+            "verified": self.verified,
+            "data_source": self.data_source,
+            "retrieved_at": self.retrieved_at,
+            "source_url": self.source_url,
+            "payload_hash": self.payload_hash,
+            "provenance": self.provenance,
+            "agent_notes": self.agent_notes,
+            "trust_level": self.trust_level,
         }
 
 
@@ -129,6 +165,24 @@ class ReferenceConverter:
                 "Received fields: " + ", ".join(article.keys())
             )
 
+    def _extract_trust_metadata(self, article: Dict[str, Any]) -> Dict[str, Any]:
+        """Carry canonical trust fields through the domain conversion boundary."""
+        verified = has_verified_pubmed_provenance(article)
+        provenance = article.get("provenance", [])
+        if not isinstance(provenance, list):
+            provenance = []
+
+        return {
+            "verified": verified,
+            "data_source": str(article.get("data_source") or ""),
+            "retrieved_at": str(article.get("retrieved_at") or ""),
+            "source_url": str(article.get("source_url") or ""),
+            "payload_hash": str(article.get("payload_hash") or ""),
+            "provenance": [entry for entry in provenance if isinstance(entry, dict)],
+            "agent_notes": str(article.get("agent_notes") or ""),
+            "trust_level": "verified" if verified else str(article.get("trust_level") or "agent"),
+        }
+
     def _from_pubmed(self, article: Dict[str, Any]) -> StandardizedReference:
         """Convert PubMed format to standard format."""
         pmid = str(article.get("pmid", ""))
@@ -157,6 +211,7 @@ class ReferenceConverter:
             keywords=article.get("keywords", []),
             mesh_terms=article.get("mesh_terms", []),
             source_metadata=article,
+            **self._extract_trust_metadata(article),
         )
 
     def _from_zotero(self, article: Dict[str, Any]) -> StandardizedReference:
@@ -213,6 +268,7 @@ class ReferenceConverter:
             abstract=article.get("abstractNote") or article.get("abstract", ""),
             keywords=article.get("tags", []),
             source_metadata=article,
+            **self._extract_trust_metadata(article),
         )
 
     def _from_doi_only(self, article: Dict[str, Any]) -> StandardizedReference:
@@ -242,6 +298,7 @@ class ReferenceConverter:
             pages=article.get("pages", ""),
             abstract=article.get("abstract", ""),
             source_metadata=article,
+            **self._extract_trust_metadata(article),
         )
 
     def _extract_first_author(self, article: Dict[str, Any]) -> str:

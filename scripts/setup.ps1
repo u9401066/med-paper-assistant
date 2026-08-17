@@ -36,59 +36,22 @@ $mcpJsonPath = Join-Path $vscodeDir "mcp.json"
 New-Item -ItemType Directory -Path $vscodeDir -Force | Out-Null
 
 if (Test-Path $mcpJsonPath) {
-        Write-Host "mcp.json exists - checking for missing servers..." -ForegroundColor Yellow
+        Write-Host "mcp.json exists - checking the pinned MCP SDK2 contract..." -ForegroundColor Yellow
         $migrationResult = uv run python "$ScriptDir\migrate_mcp_json.py" $mcpJsonPath 2>&1
+        $migrationStatus = $LASTEXITCODE
         Write-Host $migrationResult
-} else {
-        Write-Host "Creating .vscode/mcp.json (cross-platform)..." -ForegroundColor Yellow
-        @'
-{
-    "inputs": [],
-    "servers": {
-        "mdpaper": {
-            "type": "stdio",
-            "command": "uv",
-            "args": ["run", "--directory", "${workspaceFolder}", "python", "-m", "med_paper_assistant.interfaces.mcp"],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
-                "MEDPAPER_TOOL_SURFACE": "compact"
-            }
-        },
-        "pubmed-search": {
-            "type": "stdio",
-            "command": "uvx",
-            "args": ["pubmed-search-mcp"],
-            "env": {
-                "NCBI_EMAIL": "medpaper@example.com"
-            }
-        },
-        "cgu": {
-            "type": "stdio",
-            "command": "uv",
-            "args": ["run", "--directory", "${workspaceFolder}/integrations/cgu", "python", "-m", "cgu.server"],
-            "env": {
-                "CGU_THINKING_ENGINE": "simple"
-            }
-        },
-        "zotero-keeper": {
-            "type": "stdio",
-            "command": "uvx",
-            "args": ["zotero-keeper"]
-        },
-        "asset-aware": {
-            "type": "stdio",
-            "command": "uv",
-            "args": ["run", "--directory", "${workspaceFolder}/integrations/asset-aware-mcp", "asset-aware-mcp"]
-        },
-        "drawio": {
-            "type": "stdio",
-            "command": "npx",
-            "args": ["-y", "@drawio/mcp"]
+        if ($migrationStatus -gt 1) {
+            throw "mcp.json migration failed with exit code $migrationStatus"
         }
-    }
-}
-'@ | Set-Content -Path $mcpJsonPath -Encoding UTF8
-        Write-Host "  mcp.json created" -ForegroundColor Green
+} else {
+        Write-Host "Creating .vscode/mcp.json from mcp-integration-lock.json..." -ForegroundColor Yellow
+        $creationResult = uv run python "$ScriptDir\migrate_mcp_json.py" --create $mcpJsonPath 2>&1
+        $creationStatus = $LASTEXITCODE
+        Write-Host $creationResult
+        if ($creationStatus -ne 0) {
+            throw "mcp.json creation failed with exit code $creationStatus"
+        }
+        Write-Host "  mcp.json created with pinned MCP SDK2 runtimes" -ForegroundColor Green
 }
 
 # 5. Verify installation
@@ -120,5 +83,5 @@ Write-Host ""
 Write-Host "Notes:" -ForegroundColor White
 Write-Host "  - Setup uses pinned submodule commits from this repository for reproducible installs." -ForegroundColor Gray
 Write-Host "  - To update submodules intentionally, run: git submodule update --remote --merge" -ForegroundColor Gray
-Write-Host "  - Draw.io requires Node.js/npm for the npx fallback." -ForegroundColor Gray
+Write-Host "  - External Python MCP integrations are locked to SDK2 commits in mcp-integration-lock.json." -ForegroundColor Gray
 Write-Host ""

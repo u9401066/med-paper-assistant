@@ -1,7 +1,7 @@
 import asyncio
 from unittest.mock import MagicMock
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.interfaces.mcp.tools.draft import register_draft_tools
 from med_paper_assistant.interfaces.mcp.tools.draft.facade import register_draft_facade_tools
@@ -15,7 +15,7 @@ def test_draft_facade_routes_write_action() -> None:
         return "write-ok"
 
     funcs = register_draft_facade_tools(
-        FastMCP("draft-facade-test"),
+        MCPServer("draft-facade-test"),
         writing_tools={"write_draft": write_draft},
         template_tools={},
         editing_tools={},
@@ -47,7 +47,7 @@ def test_draft_facade_write_derives_filename_from_section() -> None:
         return "write-ok"
 
     funcs = register_draft_facade_tools(
-        FastMCP("draft-facade-section-test"),
+        MCPServer("draft-facade-section-test"),
         writing_tools={"write_draft": write_draft},
         template_tools={},
         editing_tools={},
@@ -79,7 +79,7 @@ def test_draft_facade_write_uses_notes_when_content_empty() -> None:
         return "write-ok"
 
     funcs = register_draft_facade_tools(
-        FastMCP("draft-facade-notes-test"),
+        MCPServer("draft-facade-notes-test"),
         writing_tools={"write_draft": write_draft},
         template_tools={},
         editing_tools={},
@@ -112,7 +112,7 @@ def test_draft_facade_write_rejects_missing_filename_and_section() -> None:
         return "write-ok"
 
     funcs = register_draft_facade_tools(
-        FastMCP("draft-facade-missing-filename-test"),
+        MCPServer("draft-facade-missing-filename-test"),
         writing_tools={"write_draft": write_draft},
         template_tools={},
         editing_tools={},
@@ -134,7 +134,7 @@ def test_draft_facade_write_rejects_empty_content() -> None:
         return "write-ok"
 
     funcs = register_draft_facade_tools(
-        FastMCP("draft-facade-empty-content-test"),
+        MCPServer("draft-facade-empty-content-test"),
         writing_tools={"write_draft": write_draft},
         template_tools={},
         editing_tools={},
@@ -155,7 +155,7 @@ def test_draft_facade_count_words_derives_filename_from_section() -> None:
         return "count-ok"
 
     funcs = register_draft_facade_tools(
-        FastMCP("draft-facade-count-section-test"),
+        MCPServer("draft-facade-count-section-test"),
         writing_tools={},
         template_tools={"count_words": count_words},
         editing_tools={},
@@ -181,7 +181,7 @@ def test_draft_facade_routes_patch_alias_to_editing_tools() -> None:
         return "patch-ok"
 
     funcs = register_draft_facade_tools(
-        FastMCP("draft-facade-edit-test"),
+        MCPServer("draft-facade-edit-test"),
         writing_tools={},
         template_tools={},
         editing_tools={"patch_draft": patch_draft},
@@ -209,7 +209,7 @@ def test_draft_facade_routes_patch_alias_to_editing_tools() -> None:
 
 def test_draft_facade_reports_missing_handler() -> None:
     funcs = register_draft_facade_tools(
-        FastMCP("draft-facade-missing-test"),
+        MCPServer("draft-facade-missing-test"),
         writing_tools={},
         template_tools={},
         editing_tools={},

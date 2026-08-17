@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.domain.paper_types import check_writing_prerequisites
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
@@ -340,7 +340,7 @@ def _run_embedded_post_write_hooks(content: str, section_name: str = "manuscript
 
 
 def register_writing_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     drafter: Drafter,
     *,
     register_public_verbs: bool = True,

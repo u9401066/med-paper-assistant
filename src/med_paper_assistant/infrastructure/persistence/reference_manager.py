@@ -11,6 +11,7 @@ import structlog
 if TYPE_CHECKING:
     from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 
+from med_paper_assistant.domain.entities.reference import has_verified_pubmed_provenance
 from med_paper_assistant.domain.services.reference_converter import (
     ReferenceConverter,
 )
@@ -1611,13 +1612,24 @@ class ReferenceManager:
             citation = self._format_citation(payload)
         payload["citation"] = citation
 
-        verified = bool(payload.get("verified", payload.get("_verified", False)))
-        payload["verified"] = verified
+        payload["provenance"] = self._dedupe_provenance(payload.get("provenance", []))
         payload["data_source"] = (
             payload.get("data_source")
             or payload.get("_data_source")
             or payload.get("source", "agent")
         )
+        payload["retrieved_at"] = str(payload.get("retrieved_at") or "")
+        payload["source_url"] = str(payload.get("source_url") or "")
+        payload["payload_hash"] = str(payload.get("payload_hash") or "")
+
+        # Legacy ``_verified`` is read only to downgrade old data safely; it
+        # cannot establish trust without the complete canonical provenance.
+        payload["verified"] = payload.get(
+            "verified",
+            payload.get("_verified", False),
+        )
+        verified = has_verified_pubmed_provenance(payload)
+        payload["verified"] = verified
 
         payload["agent_notes"] = payload.get("agent_notes", payload.get("_agent_notes", ""))
         payload["user_notes"] = payload.get("user_notes", payload.get("_user_notes", ""))
@@ -1639,8 +1651,6 @@ class ReferenceManager:
         )
         payload["legacy_aliases"] = self._dedupe_strings(payload.get("legacy_aliases", []))
         payload["note_materialized"] = True
-        payload["provenance"] = self._dedupe_provenance(payload.get("provenance", []))
-
         saved_at = payload.get("saved_at")
         isoformat = getattr(saved_at, "isoformat", None)
         if callable(isoformat):
@@ -1653,10 +1663,10 @@ class ReferenceManager:
         if payload.get("citation_key"):
             payload["citation_key"] = self._normalize_citation_key(payload["citation_key"])
 
-        if "trust_level" not in payload:
-            if verified:
-                payload["trust_level"] = "verified"
-            elif payload.get("asset_aware_doc_id") or payload.get("fulltext_sections"):
+        if verified:
+            payload["trust_level"] = "verified"
+        elif payload.get("trust_level") in {None, "", "verified"}:
+            if payload.get("asset_aware_doc_id") or payload.get("fulltext_sections"):
                 payload["trust_level"] = "extracted"
             elif payload.get("source") in {"manual", "local", "web", "markdown"}:
                 payload["trust_level"] = "user"
@@ -2759,6 +2769,28 @@ class ReferenceManager:
         Returns:
             Status message with Foam citation key.
         """
+        # This public path is Agent-mediated.  Strip transport attestations so
+        # callers cannot promote arbitrary metadata by adding ``verified=true``.
+        untrusted_article = dict(article)
+        untrusted_article.pop("_verified", None)
+        untrusted_article["verified"] = False
+        untrusted_article["data_source"] = "agent"
+        untrusted_article["trust_level"] = "agent"
+        for field in ("retrieved_at", "source_url", "payload_hash", "provenance"):
+            untrusted_article.pop(field, None)
+
+        return self._save_reference_article(
+            untrusted_article,
+            download_pdf=download_pdf,
+        )
+
+    def _save_reference_article(
+        self,
+        article: Dict[str, Any],
+        *,
+        download_pdf: bool = False,
+    ) -> str:
+        """Persist an article after its caller has established the trust boundary."""
         if download_pdf:
             logger.warning(
                 "reference_manager.download_pdf_deprecated",
@@ -3336,6 +3368,8 @@ class ReferenceManager:
         """
         # Import here to avoid circular dependency
         from med_paper_assistant.infrastructure.services.pubmed_api_client import (
+            PubMedVerificationError,
+            VerifiedArticlePayload,
             get_pubmed_api_client,
         )
 
@@ -3358,24 +3392,48 @@ class ReferenceManager:
 
         # Fetch verified data directly from pubmed-search
         logger.info(f"[MCP-to-MCP] Fetching PMID:{pmid} from pubmed-search")
-        article = client.get_cached_article(pmid, fetch_if_missing=fetch_if_missing)
+        try:
+            article: object = client.get_cached_article(
+                pmid,
+                fetch_if_missing=fetch_if_missing,
+            )
+        except PubMedVerificationError as exc:
+            logger.warning(
+                "reference_manager.pubmed_verification_rejected",
+                pmid=str(pmid),
+                reason=str(exc),
+            )
+            return f"❌ PubMed verification rejected for PMID:{pmid}: {exc}"
 
-        if not article:
+        if article is None:
             return (
                 f"❌ Article PMID:{pmid} not found.\n\n"
                 f"Please search for it first using pubmed-search MCP, then try again.\n"
                 f"Example: unified_search(query='{pmid}[pmid]')"
             )
 
-        # Add layered trust metadata
-        article["_data_source"] = "pubmed_mcp_api"
-        article["_verified"] = True
-        article["_agent_notes"] = agent_notes
-        article["_user_notes"] = ""  # Empty, for user to fill
-        article["_user_tags"] = []  # Empty, for user to fill
+        if not isinstance(article, VerifiedArticlePayload):
+            logger.warning(
+                "reference_manager.pubmed_verification_rejected",
+                pmid=str(pmid),
+                reason="client returned an unattested payload",
+            )
+            return (
+                f"❌ PubMed verification rejected for PMID:{pmid}: "
+                "client returned an unattested payload."
+            )
 
-        # Use existing save_reference with verified data
-        return self.save_reference(article)
+        # Trust fields are minted by PubMedAPIClient, never by this consumer.
+        try:
+            verified_article = article.to_reference_dict(agent_notes=agent_notes)
+        except PubMedVerificationError as exc:
+            logger.warning(
+                "reference_manager.pubmed_verification_rejected",
+                pmid=str(pmid),
+                reason=str(exc),
+            )
+            return f"❌ PubMed verification rejected for PMID:{pmid}: {exc}"
+        return self._save_reference_article(verified_article)
 
     def _generate_citation_key(self, article: Dict[str, Any]) -> str:
         """
@@ -3640,7 +3698,14 @@ class ReferenceManager:
         content += "# 🔒 VERIFIED DATA (from PubMed - do not modify)\n"
         content += f'source: "{article.get("source", "pubmed")}"\n'
         content += f"verified: {str(is_verified).lower()}\n"
-        content += f'data_source: "{data_source}"\n\n'
+        content += f'data_source: "{self._yaml_escape(str(data_source))}"\n'
+        if article.get("retrieved_at"):
+            content += f'retrieved_at: "{self._yaml_escape(str(article["retrieved_at"]))}"\n'
+        if article.get("source_url"):
+            content += f'source_url: "{self._yaml_escape(str(article["source_url"]))}"\n'
+        if article.get("payload_hash"):
+            content += f'payload_hash: "{self._yaml_escape(str(article["payload_hash"]))}"\n'
+        content += f"provenance_count: {len(article.get('provenance', []))}\n\n"
         content += f'reference_id: "{unique_id}"\n'
         content += f'trust_level: "{trust_level}"\n'
 

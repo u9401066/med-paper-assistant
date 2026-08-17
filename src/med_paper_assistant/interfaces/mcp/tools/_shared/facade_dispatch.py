@@ -6,7 +6,7 @@ import inspect
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 
 def normalize_facade_action(action: str, aliases: Mapping[str, str] | None = None) -> str:
@@ -31,11 +31,11 @@ async def invoke_tool_handler(handler: Callable[..., Any], **kwargs: Any) -> Any
 
 
 def get_optional_tool_decorator(
-    mcp: FastMCP,
+    mcp: MCPServer,
     *,
     register_public_verbs: bool,
 ) -> Callable[..., Callable[[Callable[..., Any]], Callable[..., Any]]]:
-    """Return a FastMCP tool decorator or a no-op replacement."""
+    """Return a MCPServer tool decorator or a no-op replacement."""
 
     def tool(*args: Any, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         if register_public_verbs:

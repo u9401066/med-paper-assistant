@@ -1,14 +1,14 @@
 """Progress-notification helpers for MCP tools.
 
-These helpers wrap FastMCP's Context.report_progress so long-running tools can
+These helpers wrap MCPServer's Context.report_progress so long-running tools can
 send incremental progress updates when the client provides a progress token.
-When no progress token exists, FastMCP already no-ops internally, so callers do
+When no progress token exists, MCPServer already no-ops internally, so callers do
 not need separate capability checks.
 """
 
 from __future__ import annotations
 
-from mcp.server.fastmcp import Context
+from mcp.server.mcpserver import Context
 
 
 async def report_tool_progress(
@@ -23,7 +23,7 @@ async def report_tool_progress(
     """Report a coarse-grained tool progress milestone.
 
     Args:
-        ctx: FastMCP request context, or ``None`` when unavailable.
+        ctx: MCPServer request context, or ``None`` when unavailable.
         step: Current completed step count.
         total_steps: Total number of planned steps.
         message: Human-readable progress message.

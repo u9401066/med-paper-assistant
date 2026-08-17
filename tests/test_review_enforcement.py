@@ -490,7 +490,7 @@ class TestRunReviewHooksWithSectionDrafts:
 
     @pytest.mark.asyncio
     async def test_r6_uses_section_files_when_manuscript_missing(self, project_dir, monkeypatch):
-        from mcp.server.fastmcp import FastMCP
+        from mcp.server.mcpserver import MCPServer
 
         from med_paper_assistant.interfaces.mcp.tools.review import audit_hooks
         from med_paper_assistant.interfaces.mcp.tools.review.audit_hooks import (
@@ -525,7 +525,7 @@ class TestRunReviewHooksWithSectionDrafts:
             ),
         )
 
-        funcs = register_audit_hook_tools(FastMCP("review-hooks-section-test"))
+        funcs = register_audit_hook_tools(MCPServer("review-hooks-section-test"))
         result = await funcs["run_review_hooks"](round_num=1, hooks="R6", project="demo")
 
         assert "status: FAIL" in result

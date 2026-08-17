@@ -1,13 +1,12 @@
 #!/bin/bash
 # Verify Draw.io MCP availability for diagram generation.
-# Official Draw.io MCP is distributed as the npm package @drawio/mcp.
+# The fallback is an immutable Python MCP SDK2 package snapshot.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DRAWIO_FORK_DIR="$PROJECT_ROOT/integrations/next-ai-draw-io/mcp-server"
 DRAWIO_FORK_ENTRY="$DRAWIO_FORK_DIR/src/drawio_mcp_server"
-DRAWIO_WORKSPACE_DIR="$PROJECT_ROOT/integrations/drawio-mcp"
-DRAWIO_WORKSPACE_ENTRY="$DRAWIO_WORKSPACE_DIR/src/index.js"
+DRAWIO_PACKAGE_SOURCE="https://github.com/u9401066/next-ai-draw-io/archive/83e35303208766750ff04f2f3637c3b83fce0d0b.tar.gz#subdirectory=mcp-server"
 
 # ── Ensure common tool paths are in PATH (macOS + Linux) ──
 if [ "$(uname -s)" = "Darwin" ]; then
@@ -59,69 +58,30 @@ if [ -d "$DRAWIO_FORK_ENTRY" ]; then
     exit 1
 fi
 
-if [ -f "$DRAWIO_WORKSPACE_ENTRY" ]; then
-    if ! command -v node > /dev/null 2>&1; then
-        echo "❌ Found workspace Draw.io MCP at $DRAWIO_WORKSPACE_DIR, but node is not available."
-        exit 1
-    fi
+if ! command -v uvx > /dev/null 2>&1; then
+    echo "❌ uvx is not available. Install uv to run the pinned Draw.io SDK2 snapshot."
+    exit 1
+fi
 
-    node "$DRAWIO_WORKSPACE_ENTRY" --help > /dev/null 2>&1 &
-    DRAWIO_PID=$!
-    sleep 8
+uvx --python 3.12 --from "$DRAWIO_PACKAGE_SOURCE" drawio-mcp-server --help > /dev/null 2>&1 &
+DRAWIO_PID=$!
+sleep 8
 
-    if kill -0 "$DRAWIO_PID" > /dev/null 2>&1; then
-        kill "$DRAWIO_PID" > /dev/null 2>&1 || true
-        wait "$DRAWIO_PID" 2>/dev/null || true
-        echo "✅ Workspace Draw.io MCP is reachable"
-        echo "   MCP command: node integrations/drawio-mcp/src/index.js"
-        exit 0
-    fi
-
+if kill -0 "$DRAWIO_PID" > /dev/null 2>&1; then
+    kill "$DRAWIO_PID" > /dev/null 2>&1 || true
+    wait "$DRAWIO_PID" 2>/dev/null || true
+    echo "✅ Pinned Draw.io MCP 2.0.0 / SDK2 is reachable via uvx"
+    echo "   Commit: 83e35303208766750ff04f2f3637c3b83fce0d0b"
+    echo "   You can now use Draw.io MCP tools directly in Copilot Agent mode."
+else
     wait "$DRAWIO_PID"
     STATUS=$?
     if [ "$STATUS" -eq 0 ]; then
-        echo "✅ Workspace Draw.io MCP is available"
-        echo "   MCP command: node integrations/drawio-mcp/src/index.js"
-        exit 0
-    fi
-
-    echo "❌ Failed to launch workspace Draw.io MCP from $DRAWIO_WORKSPACE_DIR"
-    exit 1
-fi
-
-if command -v drawio-mcp > /dev/null 2>&1; then
-    echo "✅ drawio-mcp binary is already installed"
-    echo "   MCP command: drawio-mcp"
-    exit 0
-fi
-
-if ! command -v npx > /dev/null 2>&1; then
-    echo "❌ npx is not available. Install Node.js/npm first, or install drawio-mcp globally."
-    echo "   Ubuntu/Debian: sudo apt install nodejs npm"
-    echo "   macOS: brew install node"
-    exit 1
-fi
-
-npx -y @drawio/mcp --help > /dev/null 2>&1 &
-NPX_PID=$!
-sleep 8
-
-if kill -0 "$NPX_PID" > /dev/null 2>&1; then
-    kill "$NPX_PID" > /dev/null 2>&1 || true
-    wait "$NPX_PID" 2>/dev/null || true
-    echo "✅ Official Draw.io MCP is reachable via npx"
-    echo "   MCP command: npx -y @drawio/mcp"
-    echo "   You can now use Draw.io MCP tools directly in Copilot Agent mode."
-else
-    wait "$NPX_PID"
-    STATUS=$?
-    if [ "$STATUS" -eq 0 ]; then
-        echo "✅ Official Draw.io MCP is available via npx"
-        echo "   MCP command: npx -y @drawio/mcp"
+        echo "✅ Pinned Draw.io MCP 2.0.0 / SDK2 is available via uvx"
+        echo "   Commit: 83e35303208766750ff04f2f3637c3b83fce0d0b"
         echo "   You can now use Draw.io MCP tools directly in Copilot Agent mode."
     else
-        echo "❌ Failed to launch @drawio/mcp via npx"
-        echo "   Try: npm install -g @drawio/mcp"
+        echo "❌ Failed to launch the pinned Draw.io SDK2 snapshot"
         exit 1
     fi
 fi

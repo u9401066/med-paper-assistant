@@ -8,7 +8,7 @@ import os
 import re
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.writing_hooks import BODY_SECTIONS
 from med_paper_assistant.infrastructure.services import Drafter
@@ -24,7 +24,7 @@ from .._shared import (
 
 
 def register_template_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     drafter: Drafter,
     *,
     register_public_verbs: bool = True,

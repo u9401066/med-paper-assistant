@@ -6,8 +6,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $DrawioForkDir = Join-Path $ProjectRoot "integrations/next-ai-draw-io/mcp-server"
 $DrawioForkEntry = Join-Path $DrawioForkDir "src/drawio_mcp_server"
-$DrawioWorkspaceDir = Join-Path $ProjectRoot "integrations/drawio-mcp"
-$DrawioWorkspaceEntry = Join-Path $DrawioWorkspaceDir "src/index.js"
+$DrawioPackageSource = "https://github.com/u9401066/next-ai-draw-io/archive/83e35303208766750ff04f2f3637c3b83fce0d0b.tar.gz#subdirectory=mcp-server"
 
 function Test-BackgroundCommand {
     param(
@@ -47,39 +46,16 @@ if (Test-Path $DrawioForkEntry) {
     exit 1
 }
 
-if (Test-Path $DrawioWorkspaceEntry) {
-    if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-        Write-Host "❌ Found workspace Draw.io MCP at $DrawioWorkspaceDir, but node is not available." -ForegroundColor Red
-        exit 1
-    }
-
-    if (Test-BackgroundCommand -FilePath "node" -ArgumentList @($DrawioWorkspaceEntry)) {
-        Write-Host "✅ Workspace Draw.io MCP is reachable" -ForegroundColor Green
-        Write-Host "   MCP command: node integrations/drawio-mcp/src/index.js"
-        exit 0
-    }
-
-    Write-Host "❌ Failed to launch workspace Draw.io MCP from $DrawioWorkspaceDir" -ForegroundColor Red
+if (-not (Get-Command uvx -ErrorAction SilentlyContinue)) {
+    Write-Host "❌ uvx is not available. Install uv to run the pinned Draw.io SDK2 snapshot." -ForegroundColor Red
     exit 1
 }
 
-if (Get-Command drawio-mcp -ErrorAction SilentlyContinue) {
-    Write-Host "✅ drawio-mcp binary is already installed" -ForegroundColor Green
-    Write-Host "   MCP command: drawio-mcp"
+if (Test-BackgroundCommand -FilePath "uvx" -ArgumentList @("--python", "3.12", "--from", $DrawioPackageSource, "drawio-mcp-server", "--help")) {
+    Write-Host "✅ Pinned Draw.io MCP 2.0.0 / SDK2 is available via uvx" -ForegroundColor Green
+    Write-Host "   Commit: 83e35303208766750ff04f2f3637c3b83fce0d0b"
     exit 0
 }
 
-if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ npx is not available. Install Node.js/npm first, or install drawio-mcp globally." -ForegroundColor Red
-    exit 1
-}
-
-if (Test-BackgroundCommand -FilePath "npx" -ArgumentList @("-y", "@drawio/mcp", "--help")) {
-    Write-Host "✅ Official Draw.io MCP is available via npx" -ForegroundColor Green
-    Write-Host "   MCP command: npx -y @drawio/mcp"
-    exit 0
-}
-
-Write-Host "❌ Failed to launch @drawio/mcp via npx" -ForegroundColor Red
-Write-Host "   Try: npm install -g @drawio/mcp"
+Write-Host "❌ Failed to launch the pinned Draw.io SDK2 snapshot" -ForegroundColor Red
 exit 1

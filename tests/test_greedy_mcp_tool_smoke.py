@@ -28,6 +28,7 @@ build_stable_summary = MODULE.build_stable_summary
 classify_call_outcome = MODULE.classify_call_outcome
 prepare_project_fixtures = MODULE.prepare_project_fixtures
 prioritize_tool_names = MODULE.prioritize_tool_names
+report_exit_code = MODULE.report_exit_code
 serialize_outcome = MODULE.serialize_outcome
 should_skip_tool = MODULE.should_skip_tool
 summarize_counts = MODULE.summarize_counts
@@ -35,8 +36,14 @@ ToolOutcome = MODULE.ToolOutcome
 
 
 class _FakeResult:
-    def __init__(self, *, is_error: bool = False):
-        self.isError = is_error
+    def __init__(
+        self,
+        *,
+        is_error: bool = False,
+        structured_content: dict[str, object] | None = None,
+    ):
+        self.is_error = is_error
+        self.structured_content = structured_content
 
 
 def test_prioritize_tool_names_bootstraps_project_first() -> None:
@@ -53,9 +60,10 @@ def test_prioritize_tool_names_bootstraps_project_first() -> None:
 
     assert ordered[0] == "create_project"
     assert ordered[1] == "project_action"
-    assert ordered[2] == "pipeline_action"
+    assert ordered[2] == "validate_concept"
+    assert ordered[3] == "pipeline_action"
     assert ordered.index("project_action") < ordered.index("list_projects")
-    assert ordered[-1] == "validate_concept"
+    assert ordered[-1] == "analyze_dataset"
 
 
 def test_build_tool_arguments_uses_context_specific_defaults(tmp_path: Path) -> None:
@@ -77,7 +85,7 @@ def test_build_tool_arguments_uses_context_specific_defaults(tmp_path: Path) -> 
         "filename": "concept.md",
         "project": "smoke-project",
         "run_novelty_check": False,
-        "structure_only": True,
+        "structure_only": False,
     }
 
 
@@ -141,6 +149,10 @@ def test_build_tool_arguments_fills_reference_fixture_defaults(tmp_path: Path) -
         ("workspace_state_action", "get"),
         ("export_document", "session_start"),
         ("inspect_export", "list_templates"),
+        ("analysis_action", "list_assets"),
+        ("draft_action", "list_drafts"),
+        ("library_action", "list_notes"),
+        ("validation_action", "list"),
     ],
 )
 def test_build_tool_arguments_uses_facade_specific_actions(
@@ -158,6 +170,29 @@ def test_build_tool_arguments_uses_facade_specific_actions(
     args = build_tool_arguments(tool_name, schema, context)
 
     assert args == {"action": expected_action}
+
+
+def test_build_tool_arguments_bootstraps_compact_project(tmp_path: Path) -> None:
+    context = SmokeContext(workspace_root=tmp_path)
+    schema = {
+        "type": "object",
+        "required": ["action"],
+        "properties": {
+            "action": {"type": "string"},
+            "name": {"type": "string", "default": ""},
+        },
+    }
+
+    assert build_tool_arguments("project_action", schema, context) == {
+        "action": "create",
+        "name": "Greedy Smoke Project",
+    }
+
+    context.project_slug = "greedy-smoke-project"
+    assert build_tool_arguments("project_action", schema, context) == {
+        "action": "current",
+        "name": "Greedy Smoke Project",
+    }
 
 
 def test_should_skip_tool_marks_external_reference_tools() -> None:
@@ -192,6 +227,49 @@ def test_classify_call_outcome_distinguishes_precondition_from_broken() -> None:
     assert broken_status == "broken"
 
 
+@pytest.mark.parametrize(
+    "structured_content",
+    [
+        {"ok": False, "message": "validation failed"},
+        {"success": False, "error": "invalid input"},
+        {"status": "failed", "detail": "no result"},
+    ],
+)
+def test_classify_call_outcome_rejects_structured_failures(
+    structured_content: dict[str, object],
+) -> None:
+    status, _ = classify_call_outcome(
+        _FakeResult(structured_content=structured_content),
+        "structured application failure",
+    )
+
+    assert status == "error"
+
+
+def test_classify_call_outcome_recognizes_plain_error_prefix() -> None:
+    status, _ = classify_call_outcome(_FakeResult(), "Error: invalid action")
+
+    assert status == "error"
+
+
+def test_classify_call_outcome_rejects_error_wrapped_by_structured_result() -> None:
+    status, _ = classify_call_outcome(
+        _FakeResult(structured_content={"result": "❌ Unsupported action"}),
+        '{"result":"❌ Unsupported action"}',
+    )
+
+    assert status == "error"
+
+
+def test_report_exit_code_obeys_selected_threshold() -> None:
+    counts = {"broken": 0, "error": 1, "precondition": 1}
+
+    assert report_exit_code("broken", counts) == 0
+    assert report_exit_code("error", counts) == 1
+    assert report_exit_code("precondition", counts) == 1
+    assert report_exit_code("never", counts) == 0
+
+
 def test_summarize_counts_tallies_statuses() -> None:
     outcomes = [
         ToolOutcome("a", "ok", ""),
@@ -214,7 +292,7 @@ def test_summarize_counts_tallies_statuses() -> None:
 
 def test_build_stable_summary_is_ci_friendly_and_splits_skip_categories(tmp_path: Path) -> None:
     workspace_root = tmp_path / "temp-workspace"
-    args = SimpleNamespace(match="", limit=0, stop_on="broken")
+    args = SimpleNamespace(surface="compact", match="", limit=0, stop_on="broken")
     outcomes = [
         ToolOutcome("create_project", "ok", "created"),
         ToolOutcome(
@@ -241,6 +319,7 @@ def test_build_stable_summary_is_ci_friendly_and_splits_skip_categories(tmp_path
 
     assert summary["summary_format"] == "greedy-smoke-summary-v1"
     assert summary["workspace_mode"] == "temporary"
+    assert summary["selection"]["surface"] == "compact"
     assert summary["counts"]["skipped_external"] == 1
     assert summary["counts"]["skipped_interactive"] == 1
     assert summary["grouped_tools"]["skipped"]["interactive"] == ["setup_project_interactive"]

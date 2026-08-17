@@ -32,7 +32,7 @@ Note: Skill tools removed (2025-12-17) - VS Code Copilot now has built-in
       support for .claude/skills/ via the skills attachment system.
 """
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 # Infrastructure modules (DDD architecture)
 from med_paper_assistant.infrastructure.logging import setup_logger
@@ -65,25 +65,25 @@ from med_paper_assistant.interfaces.mcp.tools import (
 from med_paper_assistant.interfaces.mcp.tools._shared import initialize_tool_tracking
 
 
-def create_server() -> FastMCP:
+def create_server(tool_surface: str | None = None) -> MCPServer:
     """
     Create and configure the MedPaper Assistant MCP server.
 
     This function:
     1. Initializes all core modules
-    2. Creates the FastMCP server instance
+    2. Creates the MCPServer server instance
     3. Registers all tools and prompts
 
     Note: Literature search is now handled by pubmed-search MCP server.
     Use VS Code Copilot to orchestrate cross-MCP calls.
 
     Returns:
-        Configured FastMCP server instance
+        Configured MCPServer server instance
     """
     # Setup logging
     logger = setup_logger()
     logger.info("Initializing MedPaper Assistant MCP Server...")
-    tool_surface = resolve_tool_surface()
+    resolved_surface = resolve_tool_surface(tool_surface)
 
     # Initialize core modules — use singleton to avoid dual-instance state bug.
     # get_project_manager() reads MEDPAPER_BASE_DIR env var (set by VSX extension)
@@ -103,11 +103,11 @@ def create_server() -> FastMCP:
     initialize_tool_tracking(project_manager.projects_dir.parent)
 
     # Create MCP server
-    mcp = FastMCP("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)
+    mcp = MCPServer("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)
 
     # Register all tools
     logger.info("Registering project tools (incl. diagrams)...")
-    register_project_tools(mcp, project_manager, tool_surface=tool_surface)
+    register_project_tools(mcp, project_manager, tool_surface=resolved_surface)
 
     logger.info("Registering reference tools...")
     register_reference_tools(
@@ -115,7 +115,7 @@ def create_server() -> FastMCP:
         ref_manager,
         drafter,
         project_manager,
-        tool_surface=tool_surface,
+        tool_surface=resolved_surface,
     )
 
     logger.info("Registering analysis tools...")
@@ -123,7 +123,7 @@ def create_server() -> FastMCP:
         mcp,
         analyzer,
         drafter,
-        tool_surface=tool_surface,
+        tool_surface=resolved_surface,
     )
 
     logger.info("Registering draft tools...")
@@ -140,11 +140,11 @@ def create_server() -> FastMCP:
         mcp,
         drafter,
         figure_tools=draft_figure_tools,
-        tool_surface=tool_surface,
+        tool_surface=resolved_surface,
     )
 
     logger.info("Registering validation tools...")
-    register_validation_tools(mcp, ref_manager, tool_surface=tool_surface)
+    register_validation_tools(mcp, ref_manager, tool_surface=resolved_surface)
 
     logger.info("Registering review tools (incl. pipeline gates)...")
     register_review_tools(
@@ -152,7 +152,7 @@ def create_server() -> FastMCP:
         drafter,
         ref_manager,
         project_manager=project_manager,
-        tool_surface=tool_surface,
+        tool_surface=resolved_surface,
     )
 
     logger.info("Registering export tools...")
@@ -161,7 +161,7 @@ def create_server() -> FastMCP:
         formatter,
         template_reader,
         word_writer,
-        tool_surface=tool_surface,
+        tool_surface=resolved_surface,
     )
 
     # Note: Skill tools removed - VS Code Copilot has built-in skill support
@@ -175,7 +175,7 @@ def create_server() -> FastMCP:
     register_resources(mcp, project_manager, template_reader)
 
     logger.info("MedPaper Assistant MCP Server initialized successfully!")
-    logger.info("Using tool surface: %s", tool_surface)
+    logger.info("Using tool surface: %s", resolved_surface)
     logger.info("Note: Use pubmed-search MCP for literature search.")
     return mcp
 

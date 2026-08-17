@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess  # nosec B404 — only runs fixed git commands
 from pathlib import Path
 from typing import Any
 
@@ -29,17 +31,21 @@ class GitHooksMixin:
         issues: list[HookIssue] = []
         stats: dict[str, Any] = {}
 
-        # Find workspace root (walk up from project_dir)
-        workspace_root = self._project_dir
-        for _ in range(5):
-            if (workspace_root / ".git").is_dir():
-                break
-            parent = workspace_root.parent
-            if parent == workspace_root:
-                break
-            workspace_root = parent
+        env = os.environ.copy()
+        env["GIT_OPTIONAL_LOCKS"] = "0"
+        try:
+            root_result = subprocess.run(  # nosec B603 B607
+                ["git", "rev-parse", "--show-toplevel"],
+                capture_output=True,
+                text=True,
+                cwd=str(self._project_dir),
+                timeout=3,
+                env=env,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            root_result = None
 
-        if not (workspace_root / ".git").is_dir():
+        if root_result is None or root_result.returncode != 0 or not root_result.stdout.strip():
             issues.append(
                 HookIssue(
                     hook_id="G9",
@@ -51,12 +57,9 @@ class GitHooksMixin:
             )
             return HookResult(hook_id="G9", passed=True, issues=issues, stats={"git": "not found"})
 
-        import os
-        import subprocess  # nosec B404 — only runs git commands
+        workspace_root = Path(root_result.stdout.strip()).resolve()
 
         try:
-            env = os.environ.copy()
-            env["GIT_OPTIONAL_LOCKS"] = "0"
             result = subprocess.run(  # nosec B603 B607
                 ["git", "status", "--branch", "--porcelain=v2", "--untracked-files=normal"],
                 capture_output=True,
@@ -65,6 +68,18 @@ class GitHooksMixin:
                 timeout=3,
                 env=env,
             )
+            if result.returncode != 0:
+                message = result.stderr.strip() or "unknown git status failure"
+                issues.append(
+                    HookIssue(
+                        hook_id="G9",
+                        severity="WARNING",
+                        section="git",
+                        message=f"Git command failed: {message}",
+                    )
+                )
+                return HookResult(hook_id="G9", passed=True, issues=issues, stats=stats)
+
             status_lines = result.stdout.strip().split("\n")
             dirty_files = [
                 line for line in status_lines if line.strip() and not line.startswith("#")

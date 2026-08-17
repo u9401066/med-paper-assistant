@@ -280,7 +280,7 @@ class SubmissionChecklist:
             output += f"## {category}\n\n"
             for item in items:
                 icon = {
-                    "pass": "✅",
+                    "pass": "✅",  # nosec B105 - presentation status mapping
                     "fail": "❌",
                     "warning": "⚠️",
                     "info": "ℹ️",

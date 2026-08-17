@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
@@ -781,7 +781,7 @@ def _rewrite_frontmatter(
 
 
 def register_library_note_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     project_manager: ProjectManager,
     *,
     register_public_verbs: bool = True,

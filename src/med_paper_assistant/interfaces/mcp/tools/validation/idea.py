@@ -14,7 +14,7 @@ Moved to Skills (no hard-coded logic needed):
 import re
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from .._shared import (
     ensure_project_context,
@@ -26,7 +26,7 @@ from .._shared import (
 
 
 def register_idea_validation_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     ref_manager=None,
     *,
     register_public_verbs: bool = True,
@@ -40,7 +40,7 @@ def register_idea_validation_tools(
     LLM reasoning produces better results than hard-coded regex.
 
     Args:
-        mcp: FastMCP server instance to register tools on.
+        mcp: MCPServer server instance to register tools on.
         ref_manager: ReferenceManager for querying saved references.
             Optional — tool degrades gracefully if None.
     """

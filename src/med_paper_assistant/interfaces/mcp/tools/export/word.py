@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.domain.services.wikilink_validator import validate_wikilinks_in_content
 from med_paper_assistant.infrastructure.services import Formatter, TemplateReader, WordWriter
@@ -30,7 +30,7 @@ def get_active_documents() -> dict:
 
 
 def register_word_export_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     formatter: Formatter,
     template_reader: TemplateReader,
     word_writer: WordWriter,

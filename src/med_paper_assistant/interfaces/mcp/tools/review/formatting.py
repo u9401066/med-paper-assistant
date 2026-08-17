@@ -11,7 +11,7 @@ import os
 import re
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
 from med_paper_assistant.infrastructure.services import Drafter
@@ -47,7 +47,7 @@ from .submission import JOURNAL_REQUIREMENTS
 
 
 def register_formatting_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     drafter: Drafter,
     ref_manager: ReferenceManager,
     *,
@@ -436,7 +436,11 @@ def register_formatting_tools(
         # Submission checklist section
         if submission_items:
             output += "## 📋 Submission Checklist\n\n"
-            sub_icons = {"pass": "✅", "fail": "❌", "warning": "⚠️"}
+            sub_icons = {
+                "pass": "✅",  # nosec B105 - presentation status mapping
+                "fail": "❌",
+                "warning": "⚠️",
+            }
             for item in submission_items:
                 icon = sub_icons.get(item["status"], "❓")
                 detail = f" — {item['detail']}" if item["detail"] else ""

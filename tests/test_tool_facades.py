@@ -4,7 +4,7 @@ import json
 
 import pytest
 import yaml
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.interfaces.mcp.tools.export.facade import register_export_facade_tools
 from med_paper_assistant.interfaces.mcp.tools.project.facade import register_project_facade_tools
@@ -23,7 +23,7 @@ async def test_run_quality_checks_routes_to_review_hooks() -> None:
         return "review-hooks-ok"
 
     funcs = register_review_facade_tools(
-        FastMCP("review-test"),
+        MCPServer("review-test"),
         audit_tools={"run_review_hooks": run_review_hooks},
         pipeline_tools={},
     )
@@ -54,7 +54,7 @@ async def test_run_quality_checks_routes_domain_constraints_with_project() -> No
         return "constraints-ok"
 
     funcs = register_review_facade_tools(
-        FastMCP("review-constraints-test"),
+        MCPServer("review-constraints-test"),
         audit_tools={"check_domain_constraints": check_domain_constraints},
         pipeline_tools={},
     )
@@ -79,7 +79,7 @@ async def test_run_quality_checks_routes_domain_constraints_with_project() -> No
 @pytest.mark.asyncio
 async def test_run_quality_checks_lists_machine_readable_schema() -> None:
     funcs = register_review_facade_tools(
-        FastMCP("review-list-test"),
+        MCPServer("review-list-test"),
         audit_tools={},
         pipeline_tools={},
     )
@@ -103,7 +103,7 @@ async def test_run_quality_checks_routes_pipeline_retrospective_writer() -> None
         return "retrospective-ok"
 
     funcs = register_review_facade_tools(
-        FastMCP("review-retrospective-test"),
+        MCPServer("review-retrospective-test"),
         audit_tools={"write_pipeline_retrospective": write_pipeline_retrospective},
         pipeline_tools={},
     )
@@ -134,7 +134,7 @@ async def test_pipeline_action_routes_submit_review_round() -> None:
         return "submitted"
 
     funcs = register_review_facade_tools(
-        FastMCP("pipeline-test"),
+        MCPServer("pipeline-test"),
         audit_tools={},
         pipeline_tools={"submit_review_round": submit_review_round},
     )
@@ -159,7 +159,7 @@ async def test_pipeline_action_routes_submit_review_round() -> None:
 @pytest.mark.asyncio
 async def test_pipeline_action_help_lists_supported_actions() -> None:
     funcs = register_review_facade_tools(
-        FastMCP("pipeline-help-test"),
+        MCPServer("pipeline-help-test"),
         audit_tools={},
         pipeline_tools={},
     )
@@ -186,7 +186,7 @@ async def test_pipeline_action_routes_doctor() -> None:
         return '{"schema":"mdpaper.pipeline_doctor.v1"}'
 
     funcs = register_review_facade_tools(
-        FastMCP("pipeline-doctor-route-test"),
+        MCPServer("pipeline-doctor-route-test"),
         audit_tools={},
         pipeline_tools={"pipeline_doctor": pipeline_doctor},
     )
@@ -206,7 +206,7 @@ async def test_project_action_routes_update_settings() -> None:
         return "updated"
 
     funcs = register_project_facade_tools(
-        FastMCP("project-test"),
+        MCPServer("project-test"),
         crud_tools={},
         settings_tools={"update_project_settings": update_project_settings},
         exploration_tools={},
@@ -255,7 +255,7 @@ async def test_project_action_writes_journal_profile(tmp_path, monkeypatch) -> N
 
     monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
     funcs = register_project_facade_tools(
-        FastMCP("project-journal-profile-test"),
+        MCPServer("project-journal-profile-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -308,7 +308,7 @@ async def test_project_action_scans_source_materials(tmp_path, monkeypatch) -> N
 
     monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
     funcs = register_project_facade_tools(
-        FastMCP("project-source-materials-test"),
+        MCPServer("project-source-materials-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -371,7 +371,7 @@ async def test_project_action_records_asset_ingestion_receipt(tmp_path, monkeypa
 
     monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
     funcs = register_project_facade_tools(
-        FastMCP("project-record-asset-ingestion-test"),
+        MCPServer("project-record-asset-ingestion-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -416,7 +416,7 @@ async def test_project_action_records_safe_exemplar_usage(tmp_path, monkeypatch)
 
     monkeypatch.setattr(project_facade, "resolve_project_context", fake_resolve_project_context)
     funcs = register_project_facade_tools(
-        FastMCP("project-exemplar-test"),
+        MCPServer("project-exemplar-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -451,7 +451,7 @@ async def test_project_action_rejects_unsafe_exemplar_role(tmp_path, monkeypatch
         lambda project=None, **kwargs: ({"project_path": str(project_dir)}, None),
     )
     funcs = register_project_facade_tools(
-        FastMCP("project-exemplar-reject-test"),
+        MCPServer("project-exemplar-reject-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -471,7 +471,7 @@ async def test_project_action_rejects_unsafe_exemplar_role(tmp_path, monkeypatch
 @pytest.mark.asyncio
 async def test_project_action_help_lists_machine_readable_schema() -> None:
     funcs = register_project_facade_tools(
-        FastMCP("project-help-schema-test"),
+        MCPServer("project-help-schema-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -492,7 +492,7 @@ async def test_project_action_help_lists_machine_readable_schema() -> None:
 @pytest.mark.asyncio
 async def test_workspace_state_action_lists_structured_schema() -> None:
     funcs = register_project_facade_tools(
-        FastMCP("workspace-state-list-test"),
+        MCPServer("workspace-state-list-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -525,7 +525,7 @@ async def test_library_action_routes_new_library_workflow_handlers() -> None:
         return "materialized"
 
     funcs = register_project_facade_tools(
-        FastMCP("library-facade-test"),
+        MCPServer("library-facade-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -610,7 +610,7 @@ async def test_workspace_state_action_preserves_structured_get_result() -> None:
         }
 
     funcs = register_project_facade_tools(
-        FastMCP("workspace-test"),
+        MCPServer("workspace-test"),
         crud_tools={},
         settings_tools={},
         exploration_tools={},
@@ -637,7 +637,7 @@ async def test_export_document_routes_docx() -> None:
         return "docx-ok"
 
     funcs = register_export_facade_tools(
-        FastMCP("export-test"),
+        MCPServer("export-test"),
         word_tools={},
         pandoc_tools={"export_docx": export_docx},
     )
@@ -666,7 +666,7 @@ async def test_inspect_export_routes_preview_alias() -> None:
         return "preview-ok"
 
     funcs = register_export_facade_tools(
-        FastMCP("inspect-test"),
+        MCPServer("inspect-test"),
         word_tools={},
         pandoc_tools={"preview_citations": preview_citations},
     )
@@ -693,7 +693,7 @@ async def test_inspect_export_routes_docx_smoke_alias() -> None:
         return "docx-smoke-ok"
 
     funcs = register_export_facade_tools(
-        FastMCP("inspect-docx-smoke-test"),
+        MCPServer("inspect-docx-smoke-test"),
         word_tools={},
         pandoc_tools={"inspect_docx_xml": inspect_docx_xml},
     )
@@ -720,7 +720,7 @@ async def test_validation_action_routes_literature_compare() -> None:
         return "literature-ok"
 
     funcs = register_validation_facade_tools(
-        FastMCP("validation-facade-test"),
+        MCPServer("validation-facade-test"),
         concept_tools={},
         idea_tools={"compare_with_literature": compare_with_literature},
     )
@@ -741,7 +741,7 @@ async def test_validation_action_routes_literature_compare() -> None:
 @pytest.mark.asyncio
 async def test_validation_action_lists_supported_actions() -> None:
     funcs = register_validation_facade_tools(
-        FastMCP("validation-list-test"),
+        MCPServer("validation-list-test"),
         concept_tools={},
         idea_tools={},
     )
@@ -759,7 +759,7 @@ async def test_validation_action_lists_supported_actions() -> None:
 @pytest.mark.asyncio
 async def test_export_facades_list_machine_readable_schema() -> None:
     funcs = register_export_facade_tools(
-        FastMCP("export-list-test"),
+        MCPServer("export-list-test"),
         word_tools={},
         pandoc_tools={},
     )

@@ -13,7 +13,7 @@ Solution: Single source of truth in .mdpaper-state.json
 
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import (
     get_workspace_state_manager,
@@ -23,7 +23,7 @@ from .._shared import get_optional_tool_decorator
 
 
 def register_workspace_state_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     *,
     register_public_verbs: bool = True,
 ):

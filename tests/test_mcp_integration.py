@@ -8,19 +8,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pytest
-from mcp import ClientSession
+from mcp import Client, ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
-from pydantic import AnyUrl
+from mcp.types import ElicitResult
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_CORE_TOOL_NAMES = {
-    "create_project",
-    "get_workspace_state",
-    "list_saved_references",
-    "validate_concept",
-    "analyze_dataset",
-    "check_formatting",
-    "start_document_session",
+    "reference_action",
+    "save_reference_mcp",
     "run_quality_checks",
     "pipeline_action",
     "project_action",
@@ -52,13 +47,16 @@ def _tool_text(result) -> str:
 
 
 @asynccontextmanager
-async def open_mcp_session(base_dir: Path | None = None) -> AsyncIterator[ClientSession]:
+async def open_mcp_session(
+    base_dir: Path | None = None, *, surface: str = "full"
+) -> AsyncIterator[ClientSession]:
     env = os.environ.copy()
     existing = env.get("PYTHONPATH")
     src_path = str(ROOT / "src")
     env["PYTHONPATH"] = src_path if not existing else os.pathsep.join([src_path, existing])
     if base_dir is not None:
         env["MEDPAPER_BASE_DIR"] = str(base_dir)
+    env["MEDPAPER_TOOL_SURFACE"] = surface
 
     params = StdioServerParameters(
         command=sys.executable,
@@ -75,7 +73,7 @@ async def open_mcp_session(base_dir: Path | None = None) -> AsyncIterator[Client
 
 @pytest.mark.asyncio
 async def test_live_server_exposes_tools_prompts_and_resources(tmp_workspace: Path) -> None:
-    async with open_mcp_session(tmp_workspace) as session:
+    async with open_mcp_session(tmp_workspace, surface="compact") as session:
         tools = await session.list_tools()
         prompts = await session.list_prompts()
         resources = await session.list_resources()
@@ -103,11 +101,75 @@ async def test_live_server_exposes_tools_prompts_and_resources(tmp_workspace: Pa
 
 
 @pytest.mark.asyncio
+async def test_sdk2_client_resolves_interactive_setup_via_input_required(
+    tmp_workspace: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise the 2026 protocol path instead of the removed v1 backchannel flow."""
+    from med_paper_assistant.infrastructure.persistence import _reset_project_manager
+    from med_paper_assistant.interfaces.mcp.server import create_server
+
+    monkeypatch.setenv("MEDPAPER_BASE_DIR", str(tmp_workspace))
+    monkeypatch.setenv("MEDPAPER_TOOL_SURFACE", "full")
+    _reset_project_manager()
+    elicitation_messages: list[str] = []
+
+    async def answer_setup(_context, params):
+        elicitation_messages.append(params.message)
+        assert params.requested_schema["properties"]["paper_type"]["enum"]
+        return ElicitResult(
+            action="accept",
+            content={
+                "paper_type": "research-proposal",
+                "interaction_style": "中文、精簡",
+                "language_preference": "Traditional Chinese",
+                "writing_style": "Evidence-first",
+                "memo": "SDK 2 resolver smoke",
+            },
+        )
+
+    try:
+        server = create_server()
+        async with Client(
+            server,
+            mode="2026-07-28",
+            elicitation_callback=answer_setup,
+        ) as client:
+            assert client.session.protocol_version == "2026-07-28"
+            tools = await client.list_tools()
+            setup_tool = next(
+                tool for tool in tools.tools if tool.name == "setup_project_interactive"
+            )
+            assert setup_tool.input_schema["properties"] == {}
+
+            await client.call_tool("create_project", {"name": "SDK Two Setup"})
+            result = await client.call_tool("setup_project_interactive", {})
+
+        assert elicitation_messages == [
+            "Set up project **SDK Two Setup**: choose a paper type and optionally record "
+            "interaction, language, writing-style, and project-note preferences."
+        ]
+        assert "Project Setup Complete" in _tool_text(result)
+        project = json.loads(
+            (tmp_workspace / "projects" / "sdk-two-setup" / "project.json").read_text()
+        )
+        assert project["paper_type"] == "research-proposal"
+        assert project["interaction_preferences"] == {
+            "interaction_style": "中文、精簡",
+            "language": "Traditional Chinese",
+            "writing_style": "Evidence-first",
+        }
+        assert project["memo"] == "SDK 2 resolver smoke"
+    finally:
+        _reset_project_manager()
+
+
+@pytest.mark.asyncio
 async def test_get_workspace_state_returns_structured_content(tmp_workspace: Path) -> None:
     async with open_mcp_session(tmp_workspace) as session:
         result = await session.call_tool("get_workspace_state", {})
 
-    payload = result.structuredContent
+    payload = result.structured_content
     assert isinstance(payload, dict)
     assert "recovery_summary" in payload
     assert "workspace_state" in payload
@@ -118,9 +180,9 @@ async def test_get_workspace_state_returns_structured_content(tmp_workspace: Pat
 @pytest.mark.asyncio
 async def test_resources_are_readable_via_official_client(tmp_workspace: Path) -> None:
     async with open_mcp_session(tmp_workspace) as session:
-        state = await session.read_resource(AnyUrl("medpaper://workspace/state"))
-        projects = await session.read_resource(AnyUrl("medpaper://workspace/projects"))
-        templates = await session.read_resource(AnyUrl("medpaper://templates/catalog"))
+        state = await session.read_resource("medpaper://workspace/state")
+        projects = await session.read_resource("medpaper://workspace/projects")
+        templates = await session.read_resource("medpaper://templates/catalog")
 
     state_payload = json.loads(_resource_text(state))
     projects_payload = json.loads(_resource_text(projects))
@@ -134,7 +196,7 @@ async def test_resources_are_readable_via_official_client(tmp_workspace: Path) -
 @pytest.mark.asyncio
 async def test_empty_workspace_projects_resource_has_stable_schema(tmp_workspace: Path) -> None:
     async with open_mcp_session(tmp_workspace) as session:
-        projects = await session.read_resource(AnyUrl("medpaper://workspace/projects"))
+        projects = await session.read_resource("medpaper://workspace/projects")
 
     payload = json.loads(_resource_text(projects))
     assert payload == {"projects": [], "current": None, "count": 0}
@@ -145,7 +207,7 @@ async def test_get_workspace_state_has_stable_empty_shapes(tmp_workspace: Path) 
     async with open_mcp_session(tmp_workspace) as session:
         result = await session.call_tool("get_workspace_state", {})
 
-    payload = result.structuredContent
+    payload = result.structured_content
     assert isinstance(payload, dict)
     assert isinstance(payload["recovery_summary"], str)
     assert isinstance(payload["startup_guidance"], str)
@@ -159,7 +221,7 @@ async def test_templates_catalog_resource_has_stable_schema_for_sparse_workspace
     tmp_workspace: Path,
 ) -> None:
     async with open_mcp_session(tmp_workspace) as session:
-        templates = await session.read_resource(AnyUrl("medpaper://templates/catalog"))
+        templates = await session.read_resource("medpaper://templates/catalog")
 
     payload = json.loads(_resource_text(templates))
     assert isinstance(payload, dict)
@@ -179,11 +241,11 @@ async def test_workspace_smoke_create_project_then_state_and_resources(tmp_works
             },
         )
         state_result = await session.call_tool("get_workspace_state", {})
-        projects_resource = await session.read_resource(AnyUrl("medpaper://workspace/projects"))
-        state_resource = await session.read_resource(AnyUrl("medpaper://workspace/state"))
+        projects_resource = await session.read_resource("medpaper://workspace/projects")
+        state_resource = await session.read_resource("medpaper://workspace/state")
 
     create_text = _tool_text(create_result)
-    state_payload = state_result.structuredContent
+    state_payload = state_result.structured_content
     projects_payload = json.loads(_resource_text(projects_resource))
     workspace_state_payload = json.loads(_resource_text(state_resource))
 

@@ -25,7 +25,7 @@ from med_paper_assistant.infrastructure.persistence.quality_scorecard import (
 
 # ---------------------------------------------------------------------------
 # We import the registration function so we can call the inner tool functions.
-# register_audit_hook_tools(mcp) registers tools on a FastMCP instance AND
+# register_audit_hook_tools(mcp) registers tools on a MCPServer instance AND
 # returns a dict of callable tool functions.
 # ---------------------------------------------------------------------------
 from med_paper_assistant.interfaces.mcp.tools.review.audit_hooks import (

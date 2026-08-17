@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "python_mcp_sdk_major": 2,
+    "allow_mcp_v1_fallback": false
+  },
+  "integrations": {
+    "asset-aware": {
+      "repository": "https://github.com/u9401066/asset-aware-mcp",
+      "source_kind": "git-submodule",
+      "path": "integrations/asset-aware-mcp",
+      "commit": "da8c7b99cbe512b1d51d7ab47698c9154f801ed4",
+      "release_ref": null,
+      "package": "asset-aware-mcp",
+      "version": "1.0.1",
+      "python": ">=3.10",
+      "mcp_sdk_major": 2,
+      "mcp_requirement": "mcp>=2,<3",
+      "entrypoint": "asset-aware-mcp",
+      "package_source": "https://github.com/u9401066/asset-aware-mcp/archive/da8c7b99cbe512b1d51d7ab47698c9154f801ed4.tar.gz"
+    },
+    "pubmed-search": {
+      "repository": "https://github.com/u9401066/pubmed-search-mcp",
+      "source_kind": "git-submodule",
+      "path": "integrations/pubmed-search-mcp",
+      "commit": "b12a55022f29ffe4d71e65c7de9f8aadba46cf73",
+      "release_ref": null,
+      "package": "pubmed-search-mcp",
+      "version": "0.6.3",
+      "python": ">=3.10",
+      "mcp_sdk_major": 2,
+      "mcp_requirement": "mcp>=2,<3",
+      "entrypoint": "pubmed-search-mcp",
+      "package_source": "https://github.com/u9401066/pubmed-search-mcp/archive/b12a55022f29ffe4d71e65c7de9f8aadba46cf73.tar.gz"
+    },
+    "cgu": {
+      "repository": "https://github.com/u9401066/creativity-generation-unit",
+      "source_kind": "git-submodule",
+      "path": "integrations/cgu",
+      "commit": "bf411fca504270417c4598f5c48b8cbc9d50f8a6",
+      "release_ref": null,
+      "package": "creativity-generation-unit",
+      "version": "0.6.0",
+      "python": ">=3.11",
+      "mcp_sdk_major": 2,
+      "mcp_requirement": "mcp>=2,<3",
+      "entrypoint": "cgu-server",
+      "package_source": "https://github.com/u9401066/creativity-generation-unit/archive/bf411fca504270417c4598f5c48b8cbc9d50f8a6.tar.gz"
+    },
+    "drawio": {
+      "repository": "https://github.com/u9401066/next-ai-draw-io",
+      "source_kind": "git-submodule",
+      "path": "integrations/next-ai-draw-io",
+      "package_subdirectory": "mcp-server",
+      "commit": "83e35303208766750ff04f2f3637c3b83fce0d0b",
+      "release_ref": null,
+      "package": "drawio-mcp-server",
+      "version": "2.0.0",
+      "python": ">=3.10",
+      "mcp_sdk_major": 2,
+      "mcp_requirement": "mcp>=2,<3",
+      "entrypoint": "drawio-mcp-server",
+      "package_source": "https://github.com/u9401066/next-ai-draw-io/archive/83e35303208766750ff04f2f3637c3b83fce0d0b.tar.gz#subdirectory=mcp-server"
+    },
+    "zotero-keeper": {
+      "repository": "https://github.com/u9401066/zotero-keeper",
+      "source_kind": "github-archive",
+      "package_subdirectory": "mcp-server",
+      "commit": "1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5",
+      "release_ref": "v0.7.0-ext",
+      "package": "zotero-keeper",
+      "version": "2.1.0",
+      "python": ">=3.12",
+      "mcp_sdk_major": 2,
+      "mcp_requirement": "mcp>=2,<3",
+      "entrypoint": "zotero-keeper",
+      "package_source": "https://github.com/u9401066/zotero-keeper/archive/1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5.tar.gz#subdirectory=mcp-server"
+    }
+  }
+}

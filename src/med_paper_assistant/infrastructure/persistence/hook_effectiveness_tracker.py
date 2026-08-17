@@ -106,7 +106,7 @@ class HookEffectivenessTracker:
         if hook_id not in data["hooks"]:
             data["hooks"][hook_id] = {
                 "trigger": 0,
-                "pass": 0,
+                "pass": 0,  # nosec B105 - hook outcome counter
                 "fix": 0,
                 "false_positive": 0,
             }
@@ -140,7 +140,12 @@ class HookEffectivenessTracker:
         # Also accumulate into aggregate stats
         for hook_id, counts in hook_results.items():
             if hook_id not in data["hooks"]:
-                data["hooks"][hook_id] = {"trigger": 0, "pass": 0, "fix": 0, "false_positive": 0}
+                data["hooks"][hook_id] = {
+                    "trigger": 0,
+                    "pass": 0,  # nosec B105 - hook outcome counter
+                    "fix": 0,
+                    "false_positive": 0,
+                }
             for event_type, count in counts.items():
                 if event_type in data["hooks"][hook_id]:
                     data["hooks"][hook_id][event_type] += count

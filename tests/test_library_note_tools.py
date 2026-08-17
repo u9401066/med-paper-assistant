@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 from med_paper_assistant.interfaces.mcp.tools.project.library_notes import (
@@ -12,7 +12,7 @@ def test_library_note_tools_round_trip(tmp_path):
     pm = ProjectManager(base_path=str(tmp_path))
     pm.create_project(name="Library", workflow_mode="library-wiki")
 
-    funcs = register_library_note_tools(FastMCP("library-note-test"), pm)
+    funcs = register_library_note_tools(MCPServer("library-note-test"), pm)
 
     write_result = funcs["write_library_note"](
         section="inbox",
@@ -51,7 +51,7 @@ def test_library_first_queue_dashboard_and_path_tools(tmp_path):
     pm = ProjectManager(base_path=str(tmp_path))
     pm.create_project(name="Library", workflow_mode="library-wiki")
 
-    funcs = register_library_note_tools(FastMCP("library-dashboard-test"), pm)
+    funcs = register_library_note_tools(MCPServer("library-dashboard-test"), pm)
 
     funcs["write_library_note"](
         section="inbox",
@@ -106,7 +106,7 @@ def test_library_note_metadata_patch_and_triage_progression(tmp_path):
     pm = ProjectManager(base_path=str(tmp_path))
     pm.create_project(name="Library", workflow_mode="library-wiki")
 
-    funcs = register_library_note_tools(FastMCP("library-triage-test"), pm)
+    funcs = register_library_note_tools(MCPServer("library-triage-test"), pm)
 
     funcs["write_library_note"](
         section="inbox",
@@ -166,7 +166,7 @@ def test_materialize_concept_page_derives_from_existing_notes(tmp_path):
     pm = ProjectManager(base_path=str(tmp_path))
     pm.create_project(name="Library", workflow_mode="library-wiki")
 
-    funcs = register_library_note_tools(FastMCP("library-materialize-test"), pm)
+    funcs = register_library_note_tools(MCPServer("library-materialize-test"), pm)
 
     funcs["write_library_note"](
         section="inbox",
@@ -201,7 +201,7 @@ def test_library_note_tools_reject_manuscript_projects(tmp_path):
     pm = ProjectManager(base_path=str(tmp_path))
     pm.create_project(name="Paper", paper_type="review-article")
 
-    funcs = register_library_note_tools(FastMCP("library-note-guard-test"), pm)
+    funcs = register_library_note_tools(MCPServer("library-note-guard-test"), pm)
 
     result = funcs["list_library_notes"]()
 
@@ -215,7 +215,7 @@ def test_template_capture_and_graph_health_dashboards(tmp_path):
     assert Path(created["structure"]["review"]).exists()
     assert Path(created["structure"]["daily"]).exists()
 
-    funcs = register_library_note_tools(FastMCP("library-template-test"), pm)
+    funcs = register_library_note_tools(MCPServer("library-template-test"), pm)
 
     daily_result = funcs["write_library_note"](
         section="daily",
