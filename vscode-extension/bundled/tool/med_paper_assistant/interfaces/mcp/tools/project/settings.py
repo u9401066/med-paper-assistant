@@ -5,10 +5,11 @@ Update settings, get paper types, update status, interactive setup.
 """
 
 import json
+from typing import Annotated
 
 import structlog
-from mcp.server.elicitation import AcceptedElicitation, CancelledElicitation, DeclinedElicitation
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server import MCPServer
+from mcp.server.mcpserver import Elicit, Resolve
 from pydantic import BaseModel, Field
 
 from med_paper_assistant.domain.paper_types import PAPER_TYPES, get_paper_type_dict
@@ -35,14 +36,29 @@ class PaperTypeSchema(BaseModel):
     )
 
 
-class TextInputSchema(BaseModel):
-    """Schema for simple text input."""
+class ProjectSetupSchema(PaperTypeSchema):
+    """Single-round input for the MCP SDK 2 project setup resolver."""
 
-    value: str = Field(default="", description="Enter text (optional)")
+    interaction_style: str = Field(
+        default="",
+        description="Optional interaction preference, for example '中文回答' or 'Be concise'",
+    )
+    language_preference: str = Field(
+        default="",
+        description="Optional preferred language for responses and drafts",
+    )
+    writing_style: str = Field(
+        default="",
+        description="Optional academic writing style guidance",
+    )
+    memo: str = Field(
+        default="",
+        description="Optional project notes such as deadlines, co-authors, or IRB details",
+    )
 
 
 def register_settings_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     project_manager: ProjectManager,
     *,
     register_public_verbs: bool = True,
@@ -50,6 +66,40 @@ def register_settings_tools(
     """Register project settings tools."""
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+
+    def resolve_project_setup() -> ProjectSetupSchema | Elicit[ProjectSetupSchema]:
+        """Resolve setup input through the SDK 2 input-required protocol.
+
+        Modern MCP clients answer this resolver through ``input_responses`` and
+        ``request_state``.  Returning a concrete model avoids elicitation when the
+        tool only needs to report an existing project configuration.
+        """
+        current = project_manager.get_current_project()
+        if not current:
+            return ProjectSetupSchema(paper_type="other")
+
+        info = project_manager.get_project_info(current)
+        paper_type = str(info.get("paper_type", ""))
+        workflow_mode = str(info.get("workflow_mode", DEFAULT_WORKFLOW_MODE))
+        preferences = info.get("interaction_preferences", {})
+
+        if workflow_mode == "library-wiki" or paper_type:
+            return ProjectSetupSchema(
+                paper_type=paper_type or "other",
+                interaction_style=str(preferences.get("interaction_style", "")),
+                language_preference=str(preferences.get("language", "")),
+                writing_style=str(preferences.get("writing_style", "")),
+                memo=str(info.get("memo", "")),
+            )
+
+        project_name = str(info.get("name", current))
+        return Elicit(
+            message=(
+                f"Set up project **{project_name}**: choose a paper type and optionally "
+                "record interaction, language, writing-style, and project-note preferences."
+            ),
+            schema=ProjectSetupSchema,
+        )
 
     @tool()
     def update_project_settings(
@@ -175,9 +225,11 @@ These settings are saved in `project.json` and `.memory/activeContext.md`
             return f"❌ Error: {result.get('error', 'Unknown error')}"
 
     @tool()
-    async def setup_project_interactive(ctx: Context) -> str:
+    async def setup_project_interactive(
+        setup: Annotated[ProjectSetupSchema, Resolve(resolve_project_setup)],
+    ) -> str:
         """
-        Interactive project setup wizard using elicitation (paper type, preferences, memo).
+        Interactive project setup using the MCP SDK 2 input-required resolver flow.
         """
         current = project_manager.get_current_project()
 
@@ -265,42 +317,22 @@ Please first select or create a project:
 可直接請 Copilot 讀取期刊設定檔（如 `bja.yaml`、`anesthesiology.yaml`）來建立 `journal-profile.yaml`。
 """
 
-        # Project not configured yet - run setup wizard
-        # Step 1: Paper Type (Required)
-        paper_type_result = await ctx.elicit(
-            message=f"Setting up project: **{project_name}**\n\nSelect paper type:",
-            schema=PaperTypeSchema,
+        # Project not configured yet - apply the SDK 2 resolver response atomically.
+        paper_type = setup.paper_type
+        interaction_preferences = {
+            key: value
+            for key, value in {
+                "interaction_style": setup.interaction_style,
+                "language": setup.language_preference,
+                "writing_style": setup.writing_style,
+            }.items()
+            if value
+        }
+        project_manager.update_project_settings(
+            paper_type=paper_type,
+            interaction_preferences=interaction_preferences or None,
+            memo=setup.memo or None,
         )
-
-        if isinstance(paper_type_result, CancelledElicitation):
-            return "Setup cancelled."
-
-        if isinstance(paper_type_result, DeclinedElicitation):
-            return "Setup declined. You can run this tool again when ready."
-
-        # Save paper type immediately
-        paper_type = paper_type_result.data.paper_type
-        project_manager.update_project_settings(paper_type=paper_type)
-
-        # Step 2: Interaction Preferences (Optional)
-        prefs_result = await ctx.elicit(
-            message="Interaction preferences? (e.g., '中文回答', 'Be concise', 'Explain reasoning')\n\nLeave blank to skip.",
-            schema=TextInputSchema,
-        )
-
-        if isinstance(prefs_result, AcceptedElicitation) and prefs_result.data.value:
-            project_manager.update_project_settings(
-                interaction_preferences={"interaction_style": prefs_result.data.value}
-            )
-
-        # Step 3: Project Memo (Optional)
-        memo_result = await ctx.elicit(
-            message="Project notes/memo? (e.g., deadlines, co-authors, IRB info)\n\nLeave blank to skip.",
-            schema=TextInputSchema,
-        )
-
-        if isinstance(memo_result, AcceptedElicitation) and memo_result.data.value:
-            project_manager.update_project_settings(memo=memo_result.data.value)
 
         # Get final settings
         final_info = project_manager.get_project_info(current)

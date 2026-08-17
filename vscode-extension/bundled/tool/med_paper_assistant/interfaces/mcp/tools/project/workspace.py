@@ -30,19 +30,17 @@ def register_workspace_tools(
             project_slug: Project slug (default: current project)
         """
         try:
-            # 取得專案
-            if project_slug:
-                project = project_manager.get_project(project_slug)
-            else:
-                project = project_manager.get_current_project()
-
-            if not project:
+            resolved_slug = project_slug or project_manager.get_current_project()
+            if not resolved_slug:
                 return "❌ No project found. Please specify a project slug or set current project."
 
-            project_path = project.get("path", "")
+            project = project_manager.get_project_info(resolved_slug)
+            if not project.get("success"):
+                return f"❌ {project.get('error', f'Project {resolved_slug!r} not found.')}"
+
+            project_path = project.get("project_path", "")
             if not project_path:
-                slug = project.get("slug", project_slug)
-                project_path = os.path.join(project_manager.projects_dir, slug)
+                project_path = os.path.join(project_manager.projects_dir, resolved_slug)
 
             # 要開啟的文件
             files_to_open = [
@@ -70,7 +68,7 @@ def register_workspace_tools(
                 else:
                     not_found.append(file_path)
 
-            result = f"📂 專案: {project.get('name', project_slug)}\n\n"
+            result = f"📂 專案: {project.get('name', resolved_slug)}\n\n"
 
             if opened:
                 result += "✅ 開啟的文件:\n"

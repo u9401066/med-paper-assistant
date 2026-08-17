@@ -11,8 +11,13 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal, Optional, cast
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
+from med_paper_assistant.application.content_integrity import ContentIntegrityInspector
+from med_paper_assistant.infrastructure.external import (
+    C2paProvenanceAdapter,
+    ConservativeVisibleWatermarkHeuristic,
+)
 from med_paper_assistant.infrastructure.persistence import (
     DataArtifactTracker,
     get_project_manager,
@@ -71,6 +76,14 @@ def _get_tracker(project_path: str) -> DataArtifactTracker:
     """Build a DataArtifactTracker for the current project."""
     project_dir = Path(project_path)
     return DataArtifactTracker(project_dir / ".audit", project_dir)
+
+
+def _build_content_integrity_inspector() -> ContentIntegrityInspector:
+    """Build the read-only inspector with optional C2PA support."""
+    return ContentIntegrityInspector(
+        provenance_inspector=C2paProvenanceAdapter(),
+        visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+    )
 
 
 def _relative_asset_path(project_path: str, kind: str, filename: str) -> str:
@@ -179,7 +192,7 @@ def _next_number(entries: list, key: str = "number") -> int:
 
 
 def register_figure_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     drafter: Drafter,
     *,
     register_public_verbs: bool = True,
@@ -197,6 +210,7 @@ def register_figure_tools(
         proposed_caption: str,
         evidence_excerpt: str = "",
         project: Optional[str] = None,
+        visible_watermark_review: str = "",
     ) -> str:
         """
         Record an auditable asset review receipt before inserting a figure/table.
@@ -213,6 +227,8 @@ def register_figure_tools(
             proposed_caption: The caption to be used later in insert_figure/table
             evidence_excerpt: Optional verbatim excerpt from a table or source note
             project: Project slug (uses current if omitted)
+            visible_watermark_review: Required documented human conclusion when the
+                conservative image heuristic returns HUMAN_REVIEW or UNCERTAIN
         """
         log_tool_call(
             "review_asset_for_insertion",
@@ -262,15 +278,59 @@ def register_figure_tools(
         if not os.path.isfile(asset_path):
             return f"❌ File '{filename}' not found in results/{folder}/."
 
-        observation_items = [o.strip() for o in observations.split("|") if o.strip()]
+        asset_rel = _relative_asset_path(project_path, asset_type, filename)
         tracker = _get_tracker(project_path)
+        integrity = _build_content_integrity_inspector().inspect(
+            asset_path,
+            asset_path=asset_rel,
+        )
+        integrity_receipt = tracker.record_content_integrity_receipt(
+            asset_type=cast(Literal["figure", "table"], asset_type),
+            asset_path=asset_rel,
+            receipt=integrity.to_dict(),
+        )
+
+        if integrity.gate_status.value == "BLOCK":
+            reason = "; ".join(integrity.gate_reasons)
+            log_tool_result("review_asset_for_insertion", reason, success=False)
+            return (
+                "❌ **Asset Integrity Gate Blocked**\n\n"
+                f"- **Integrity Receipt:** {integrity_receipt['id']}\n"
+                f"- **C2PA:** {integrity.provenance.status.value}\n"
+                f"- **Reason:** {reason}\n"
+                "- **Original preserved:** "
+                f"{'yes' if integrity.original_preserved else 'no'}\n"
+                "- **Automated removal:** disabled\n\n"
+                "Do not insert or alter this asset. Re-acquire it from an authorized source "
+                "or resolve the provenance failure first."
+            )
+
+        if integrity.gate_status.value == "HUMAN_REVIEW" and not visible_watermark_review.strip():
+            signals = ", ".join(integrity.visible_watermark.signals) or "inconclusive screening"
+            log_tool_result(
+                "review_asset_for_insertion",
+                "visible-watermark human review required",
+                success=False,
+            )
+            return (
+                "⚠️ **Visible-Watermark Human Review Required**\n\n"
+                f"- **Integrity Receipt:** {integrity_receipt['id']}\n"
+                f"- **Signals:** {signals}\n"
+                "- **Automated removal:** disabled\n\n"
+                "Inspect the original asset and call this tool again with "
+                "`visible_watermark_review` documenting the human conclusion and authorization."
+            )
+
+        observation_items = [o.strip() for o in observations.split("|") if o.strip()]
         receipt = tracker.record_asset_review(
             asset_type=cast(Literal["figure", "table"], asset_type),
-            asset_path=_relative_asset_path(project_path, asset_type, filename),
+            asset_path=asset_rel,
             observations=observation_items,
             rationale=rationale,
             proposed_caption=proposed_caption,
             evidence_excerpt=evidence_excerpt,
+            content_integrity_receipt_id=integrity_receipt["id"],
+            visible_watermark_review=visible_watermark_review,
         )
 
         result = (
@@ -280,6 +340,13 @@ def register_figure_tools(
             f"- **File:** results/{folder}/{filename}\n"
             f"- **Caption:** {proposed_caption}\n"
             f"- **Observations:** {len(receipt['observations'])}\n\n"
+            f"- **Integrity Receipt:** {integrity_receipt['id']}\n"
+            f"- **SHA-256:** {integrity.sha256}\n"
+            f"- **MIME:** {integrity.mime_type}\n"
+            f"- **C2PA:** {integrity.provenance.status.value}\n"
+            f"- **Visible Watermark:** {integrity.visible_watermark.status.value}\n"
+            f"- **Integrity Gate:** {integrity.gate_status.value}\n"
+            "- **Automated removal:** disabled\n\n"
             "You can now call `insert_figure` or `insert_table` with the same caption."
         )
         log_tool_result("review_asset_for_insertion", receipt["id"], success=True)
@@ -514,24 +581,36 @@ def register_figure_tools(
 
             tracker = _get_tracker(project_path)
             asset_rel = _relative_asset_path(project_path, "table", filename)
-            existing_review = tracker.get_asset_review(asset_rel, asset_type="table")
-            if not existing_review or DataArtifactTracker._normalize_caption(
-                str(existing_review.get("proposed_caption", ""))
-            ) != DataArtifactTracker._normalize_caption(caption):
-                lines = table_content.strip().split("\n")
-                n_rows = max(0, len(lines) - 2)  # header + delimiter
-                n_cols = len([c for c in (lines[0].split("|") if lines else []) if c.strip()])
-                tracker.record_asset_review(
-                    asset_type="table",
-                    asset_path=asset_rel,
-                    observations=[
-                        f"Table has {n_rows} data rows and {n_cols} columns",
-                        f"Content provided inline ({len(table_content)} chars)",
-                    ],
-                    rationale="Content provided directly via table_content parameter; agent has full access.",
-                    proposed_caption=caption,
-                    evidence_excerpt=table_content[:500],
+            lines = table_content.strip().split("\n")
+            n_rows = max(0, len(lines) - 2)  # header + delimiter
+            n_cols = len([c for c in (lines[0].split("|") if lines else []) if c.strip()])
+            integrity = _build_content_integrity_inspector().inspect(
+                file_path,
+                asset_path=asset_rel,
+            )
+            integrity_receipt = tracker.record_content_integrity_receipt(
+                asset_type="table",
+                asset_path=asset_rel,
+                receipt=integrity.to_dict(),
+            )
+            if integrity.gate_status.value == "BLOCK":
+                return (
+                    "❌ Table integrity gate blocked — "
+                    + "; ".join(integrity.gate_reasons)
+                    + f" (receipt {integrity_receipt['id']})."
                 )
+            tracker.record_asset_review(
+                asset_type="table",
+                asset_path=asset_rel,
+                observations=[
+                    f"Table has {n_rows} data rows and {n_cols} columns",
+                    f"Content provided inline ({len(table_content)} chars)",
+                ],
+                rationale="Content provided directly via table_content parameter; agent has full access.",
+                proposed_caption=caption,
+                evidence_excerpt=table_content[:500],
+                content_integrity_receipt_id=integrity_receipt["id"],
+            )
 
         # Validate file exists
         if not os.path.isfile(file_path):
@@ -547,19 +626,18 @@ def register_figure_tools(
                 "💡 Use `generate_table_one` first, or pass `table_content` to create the file."
             )
 
-        # For file-based tables (no inline content), require explicit review receipt.
-        if not table_content:
-            tracker = _get_tracker(project_path)
-            review_ok, review_detail = tracker.review_satisfies_caption(
-                _relative_asset_path(project_path, "table", filename),
-                caption,
-                asset_type="table",
+        # Every table path, including inline content, must pass receipt/hash validation.
+        tracker = _get_tracker(project_path)
+        review_ok, review_detail = tracker.review_satisfies_caption(
+            _relative_asset_path(project_path, "table", filename),
+            caption,
+            asset_type="table",
+        )
+        if not review_ok:
+            return (
+                f"❌ Table caption blocked — {review_detail}.\n\n"
+                'Call `review_asset_for_insertion(asset_type="table", ...)` first using the same caption.'
             )
-            if not review_ok:
-                return (
-                    f"❌ Table caption blocked — {review_detail}.\n\n"
-                    'Call `review_asset_for_insertion(asset_type="table", ...)` first using the same caption.'
-                )
 
         # Load manifest
         manifest = _load_manifest(project_path)

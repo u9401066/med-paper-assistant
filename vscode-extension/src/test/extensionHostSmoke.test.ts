@@ -27,6 +27,11 @@ const executedCommands: Array<{ command: string; args: unknown[] }> = [];
 const outputLines: string[] = [];
 const outputShow = vi.fn();
 const openedDocumentPaths: string[] = [];
+const extensionVersion = String(
+    JSON.parse(
+        fs.readFileSync(path.resolve(__dirname, '..', '..', 'package.json'), 'utf-8'),
+    ).version,
+);
 
 let registeredProviderId: string | undefined;
 let registeredProvider: {
@@ -116,14 +121,14 @@ vi.mock('../uvManager', () => ({
     findUvPath: vi.fn(async () => 'uv'),
     installUvHeadless: vi.fn(async () => 'uv'),
     getUvxPath: vi.fn(() => 'uvx'),
-    buildUvxCommand: vi.fn(() => ['uvx', []]),
-    buildMcpCommand: vi.fn((_uvPath: string, packageName: string, binaryName?: string) => ['uvx', [binaryName || packageName], false]),
+    buildPinnedUvxCommand: vi.fn((_uvPath: string, packageSource: string, entrypoint: string, pythonVersion?: string) => [
+        'uvx',
+        [...(pythonVersion ? ['--python', pythonVersion] : []), '--from', packageSource, entrypoint],
+    ]),
     buildMcpEnv: vi.fn(({ workspaceDir, pythonPath }: { workspaceDir?: string; pythonPath?: string }) => ({
         MEDPAPER_BASE_DIR: workspaceDir || '',
         PYTHONPATH: pythonPath || '',
     })),
-    ensureInstalledTool: vi.fn(async () => undefined),
-    findInstalledTool: vi.fn(() => null),
 }));
 
 vi.mock('../extensionHelpers', () => ({
@@ -132,7 +137,6 @@ vi.mock('../extensionHelpers', () => ({
     determinePythonPath: vi.fn(() => 'uv'),
     countMissingBundledItems: vi.fn(() => ({ missingSkills: 0, missingAgents: 0, missingPrompts: 0, missingSupportFiles: 0, total: 0 })),
     buildDevPythonPath: vi.fn(() => path.join(os.tmpdir(), 'medpaper-dev-pythonpath')),
-    detectExternallyProvidedMcpServers: vi.fn(() => ({ pubmed: false, zotero: false })),
 }));
 
 vi.mock('../utils', () => ({
@@ -174,7 +178,10 @@ function createExtensionContext() {
         subscriptions: [] as Array<{ dispose: () => void }>,
         extensionPath,
         extensionUri: { fsPath: extensionPath },
-        extension: { id: 'u9401066.medpaper-assistant' },
+        extension: {
+            id: 'u9401066.medpaper-assistant',
+            packageJSON: { version: extensionVersion },
+        },
         globalState: {
             get: <T>(key: string): T | undefined => state.get(key) as T | undefined,
             update: async (key: string, value: unknown) => {
@@ -223,10 +230,76 @@ describe('extension host smoke', () => {
         expect(medpaperDefinition?.command).toBe('uv');
         expect(medpaperDefinition?.args).toEqual(['run', 'python', '-m', 'med_paper_assistant.interfaces.mcp']);
 
+        const zoteroDefinition = definitions.find(definition => definition.label === 'Zotero Keeper');
+        expect(zoteroDefinition?.command).toBe('uvx');
+        expect(zoteroDefinition?.args).toEqual(expect.arrayContaining([
+            '--from',
+            expect.stringContaining('1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5'),
+            'zotero-keeper',
+        ]));
+
+        const drawioDefinition = definitions.find(definition => definition.label === 'Draw.io Diagrams');
+        expect(drawioDefinition?.args).toEqual(expect.arrayContaining([
+            '--from',
+            expect.stringContaining('83e35303208766750ff04f2f3637c3b83fce0d0b'),
+            'drawio-mcp-server',
+        ]));
+
+        const assetAwareDefinition = definitions.find(
+            definition => definition.label === 'Asset-Aware Documents',
+        );
+        expect(assetAwareDefinition?.command).toBe('uvx');
+        expect(assetAwareDefinition?.args).toEqual([
+            '--python',
+            '3.12',
+            '--from',
+            expect.stringContaining('da8c7b99cbe512b1d51d7ab47698c9154f801ed4'),
+            'asset-aware-mcp',
+        ]);
+
         await mockVscode.commands.executeCommand('mdpaper.showStatus');
 
         expect(outputShow).toHaveBeenCalledOnce();
         expect(outputLines.some(line => line.includes('MedPaper Assistant Status: Active'))).toBe(true);
+    });
+
+    it('pins the marketplace core runtime to the VSIX version and ignores PATH binaries', async () => {
+        const helpers = await import('../extensionHelpers');
+        vi.mocked(helpers.isDevWorkspace).mockReturnValue(false);
+        const extension = await import('../extension');
+        const context = createExtensionContext();
+
+        await extension.activate(context as never);
+
+        const definitions = registeredProvider?.provideMcpServerDefinitions(
+            {},
+        ) as TestMcpStdioServerDefinition[];
+        const medpaperDefinition = definitions.find(
+            definition => definition.label === 'MedPaper Assistant',
+        );
+
+        expect(medpaperDefinition?.command).toBe('uvx');
+        expect(medpaperDefinition?.args).toEqual([
+            '--python',
+            '3.12',
+            '--from',
+            `med-paper-assistant[provenance]==${extensionVersion}`,
+            'med-paper-assistant',
+        ]);
+        expect(
+            outputLines.some(line => line.includes('using pre-installed binary')),
+        ).toBe(false);
+
+        const assetAwareDefinition = definitions.find(
+            definition => definition.label === 'Asset-Aware Documents',
+        );
+        expect(assetAwareDefinition?.args).toEqual([
+            '--python',
+            '3.12',
+            '--from',
+            expect.stringContaining('da8c7b99cbe512b1d51d7ab47698c9154f801ed4'),
+            'asset-aware-mcp',
+        ]);
     });
 
     it('registers the LLM wiki guide command and opens the bundled guide', async () => {

@@ -7,7 +7,7 @@ Create, List, Switch, Get Current project operations.
 import json
 import os
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.domain.paper_types import get_paper_type_dict
 from med_paper_assistant.infrastructure.persistence import ProjectManager
@@ -23,7 +23,7 @@ from .._shared import (
 
 
 def register_crud_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     project_manager: ProjectManager,
     *,
     register_public_verbs: bool = True,

@@ -10,38 +10,40 @@ These tools output structured discussion frameworks that real OpenClaw agents
 
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass, field, asdict
-from enum import Enum
-from typing import Optional
-
+from dataclasses import asdict, dataclass
+from enum import StrEnum
 
 # ─── Enums ───────────────────────────────────────────────────
 
-class BrainstormPhase(str, Enum):
+
+class BrainstormPhase(StrEnum):
     """Phases of a brainstorm session."""
-    DIVERGE = "diverge"      # 發散：盡量多想
-    COLLIDE = "collide"      # 碰撞：交叉比較
-    CONVERGE = "converge"    # 收斂：選出最佳
-    EVALUATE = "evaluate"    # 評估：打分排序
+
+    DIVERGE = "diverge"  # 發散：盡量多想
+    COLLIDE = "collide"  # 碰撞：交叉比較
+    CONVERGE = "converge"  # 收斂：選出最佳
+    EVALUATE = "evaluate"  # 評估：打分排序
 
 
-class BrainstormMethod(str, Enum):
+class BrainstormMethod(StrEnum):
     """Structured creativity methods for brainstorming."""
-    FREE = "free"                  # 自由聯想
-    SIX_HATS = "six_hats"         # 六頂思考帽
-    SCAMPER = "scamper"            # SCAMPER 七維度
-    REVERSE = "reverse"            # 反向思考
-    ANALOGY = "analogy"            # 類比遷移
+
+    FREE = "free"  # 自由聯想
+    SIX_HATS = "six_hats"  # 六頂思考帽
+    SCAMPER = "scamper"  # SCAMPER 七維度
+    REVERSE = "reverse"  # 反向思考
+    ANALOGY = "analogy"  # 類比遷移
     CONSTRAINT_REMOVAL = "constraint_removal"  # 去除限制
-    WORST_IDEA = "worst_idea"      # 最爛點子法
+    WORST_IDEA = "worst_idea"  # 最爛點子法
 
 
 # ─── Data Structures ─────────────────────────────────────────
 
+
 @dataclass
 class PhasePrompt:
     """A single phase in the brainstorm protocol."""
+
     phase: str
     title: str
     duration_hint: str
@@ -54,12 +56,13 @@ class PhasePrompt:
 @dataclass
 class BrainstormProtocol:
     """Complete brainstorm protocol output."""
+
     topic: str
     method: str
     method_description: str
     participant_a: str
     participant_b: str
-    phases: list[PhasePrompt]
+    phases: list[dict[str, object]]
     total_phases: int
     markdown_summary: str
 
@@ -67,16 +70,18 @@ class BrainstormProtocol:
 @dataclass
 class IdeaScore:
     """Evaluation score for a single idea."""
+
     idea: str
-    feasibility: float      # 0-10: 技術可行性
-    novelty: float           # 0-10: 新穎度
-    impact: float            # 0-10: 潛在影響力
-    effort: float            # 0-10: 實作成本（10=最輕鬆）
-    weighted_score: float    # 加權總分
-    rationale: str           # 評分理由
+    feasibility: float  # 0-10: 技術可行性
+    novelty: float  # 0-10: 新穎度
+    impact: float  # 0-10: 潛在影響力
+    effort: float  # 0-10: 實作成本（10=最輕鬆）
+    weighted_score: float  # 加權總分
+    rationale: str  # 評分理由
 
 
 # ─── Protocol Generators ─────────────────────────────────────
+
 
 def _generate_free_protocol(topic: str, a: str, b: str) -> list[PhasePrompt]:
     """Free-form brainstorm: diverge → share → collide → converge."""
@@ -104,7 +109,7 @@ def _generate_free_protocol(topic: str, a: str, b: str) -> list[PhasePrompt]:
             instructions="從碰撞中選出最有潛力的 top 3。",
             agent_a_prompt=f"{a}：綜合前兩輪，推薦你認為最有價值的 3 個方向，簡述理由。",
             agent_b_prompt=f"{b}：同樣推薦你的 top 3，標注跟 {a} 重疊或互補的部分。",
-            convergence_prompt=f"兩位的 top 3 有重疊嗎？重疊的就是共識方向。沒重疊的需要再討論。",
+            convergence_prompt="兩位的 top 3 有重疊嗎？重疊的就是共識方向。沒重疊的需要再討論。",
         ),
     ]
 
@@ -239,7 +244,7 @@ def generate_brainstorm_protocol(
 ) -> dict:
     """
     Generate a structured brainstorm protocol for two agents.
-    
+
     Returns a complete discussion script with phase-by-phase prompts
     that real OpenClaw agents can follow in group chat.
     """
@@ -252,23 +257,23 @@ def generate_brainstorm_protocol(
             "available_methods": available,
             "hint": "Use 'free' for open brainstorming, 'six_hats' for structured analysis, 'scamper' for innovation, 'reverse' for contrarian thinking.",
         }
-    
+
     generator = PROTOCOL_GENERATORS.get(bm)
     if not generator:
         return {
             "error": f"Protocol not yet implemented for: {method}",
             "available": [m.value for m, g in PROTOCOL_GENERATORS.items()],
         }
-    
+
     phases = generator(topic, participant_a, participant_b)
-    
+
     # Build markdown summary
     md_lines = [
         f"## 🧠 Brainstorm Protocol: {topic}",
         f"**方法**: {bm.value} | **參與者**: {participant_a} & {participant_b}",
         "",
     ]
-    for i, p in enumerate(phases, 1):
+    for p in phases:
         md_lines.append(f"### {p.title}")
         md_lines.append(f"*⏱ {p.duration_hint}* — {p.instructions}")
         md_lines.append(f"- **{participant_a}**: {p.agent_a_prompt[:80]}...")
@@ -276,7 +281,7 @@ def generate_brainstorm_protocol(
         if p.convergence_prompt:
             md_lines.append(f"- **收斂**: {p.convergence_prompt[:80]}...")
         md_lines.append("")
-    
+
     protocol = BrainstormProtocol(
         topic=topic,
         method=bm.value,
@@ -287,18 +292,18 @@ def generate_brainstorm_protocol(
         total_phases=len(phases),
         markdown_summary="\n".join(md_lines),
     )
-    
+
     return asdict(protocol)
 
 
 def evaluate_ideas(
     ideas: list[str],
-    criteria_weights: Optional[dict] = None,
+    criteria_weights: dict | None = None,
     context: str = "",
 ) -> dict:
     """
     Evaluate and rank a list of ideas.
-    
+
     Returns structured scores on feasibility, novelty, impact, and effort,
     plus a weighted ranking. The calling agent fills in the actual assessment;
     this tool provides the evaluation framework and scoring rubric.
@@ -309,11 +314,11 @@ def evaluate_ideas(
         "impact": 0.30,
         "effort": 0.15,
     }
-    
+
     # Normalize weights
     total_w = sum(weights.values())
     weights = {k: v / total_w for k, v in weights.items()}
-    
+
     rubric = {
         "feasibility": {
             "description": "技術可行性 — 以現有資源和知識，能做到嗎？",
@@ -332,17 +337,19 @@ def evaluate_ideas(
             "scale": "0=需要數年/大團隊, 3=需要數月, 5=數週, 8=數天, 10=幾小時",
         },
     }
-    
+
     evaluation_template = []
     for i, idea in enumerate(ideas, 1):
-        evaluation_template.append({
-            "rank": i,
-            "idea": idea,
-            "scores": {k: "?" for k in weights},
-            "weighted_score": "?",
-            "rationale": f"[請評估：{idea[:50]}...]",
-        })
-    
+        evaluation_template.append(
+            {
+                "rank": i,
+                "idea": idea,
+                "scores": dict.fromkeys(weights, "?"),
+                "weighted_score": "?",
+                "rationale": f"[請評估：{idea[:50]}...]",
+            }
+        )
+
     return {
         "ideas_count": len(ideas),
         "context": context or "(no context provided)",
@@ -359,6 +366,7 @@ def evaluate_ideas(
 
 
 # ─── Helpers ─────────────────────────────────────────────────
+
 
 def _method_descriptions() -> dict:
     return {

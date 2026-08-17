@@ -246,10 +246,16 @@ describe('validate-build core', () => {
         const extensionDir = path.join(repoRoot, 'vscode-extension');
 
         fs.mkdirSync(path.join(repoRoot, '.claude', 'skills', 'demo'), { recursive: true });
+        fs.mkdirSync(path.join(repoRoot, '.claude', 'skills', 'local-experiment'), { recursive: true });
         fs.mkdirSync(path.join(repoRoot, '.github', 'prompts'), { recursive: true });
         fs.mkdirSync(extensionDir, { recursive: true });
 
         fs.writeFileSync(path.join(repoRoot, '.claude', 'skills', 'demo', 'SKILL.md'), '# demo', 'utf-8');
+        fs.writeFileSync(
+            path.join(repoRoot, '.claude', 'skills', 'local-experiment', 'SKILL.md'),
+            '# untracked local experiment',
+            'utf-8',
+        );
         fs.writeFileSync(path.join(repoRoot, '.github', 'prompts', 'demo.prompt.md'), '# demo', 'utf-8');
         fs.writeFileSync(path.join(repoRoot, 'README.md'), 'no authority snippet here', 'utf-8');
         fs.writeFileSync(
@@ -283,6 +289,12 @@ describe('validate-build core', () => {
             extensionDir,
             repoRoot,
             log: collector.log,
+            spawnSync: (_command: string, args: string[]) => ({
+                status: 0,
+                stdout: args.at(-1)?.includes('skills')
+                    ? '.claude/skills/demo/SKILL.md\0'
+                    : '.github/prompts/demo.prompt.md\0',
+            }),
             manifest: {
                 skills: [],
                 prompts: [],
@@ -297,6 +309,7 @@ describe('validate-build core', () => {
         validateBuild.validateToolSurfaceAuthority(reporter, runtime);
 
         expect(reporter.getCounts().failCount).toBe(1);
+        expect(collector.lines.some((line) => line.includes('Repository skills: 1'))).toBe(true);
         expect(collector.lines.some((line) => line.includes('README.md missing authority snippet'))).toBe(true);
 
         fs.rmSync(tempDir, { recursive: true, force: true });

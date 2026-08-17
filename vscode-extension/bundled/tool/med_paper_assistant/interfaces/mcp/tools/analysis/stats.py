@@ -9,7 +9,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.services.analyzer import Analyzer
@@ -42,8 +42,15 @@ def _require_project_info(project_info: dict | None) -> dict:
     return project_info
 
 
+def _scoped_analyzer(analyzer: Analyzer, project_info: dict | None) -> Analyzer:
+    """Bind analysis I/O to the resolved project without mutating shared server state."""
+    if project_info and project_info.get("project_path"):
+        return analyzer.scoped_to_project(project_info["project_path"])
+    return analyzer
+
+
 def register_stats_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     analyzer: Analyzer,
     *,
     register_public_verbs: bool = True,
@@ -79,7 +86,8 @@ def register_stats_tools(
             is_valid, _, project_info = ensure_project_context()
 
         try:
-            result = analyzer.describe_data(filename)
+            active_analyzer = _scoped_analyzer(analyzer, project_info)
+            result = active_analyzer.describe_data(filename)
 
             # Record provenance
             tracker = _get_tracker(project_info) if project_info else None
@@ -172,7 +180,8 @@ def register_stats_tools(
             return "❌ Please specify at least one variable."
 
         try:
-            result = analyzer.run_statistical_test(
+            active_analyzer = _scoped_analyzer(analyzer, project_info)
+            result = active_analyzer.run_statistical_test(
                 filename=filename,
                 test_type=test_type,
                 variables=var_list,
@@ -281,7 +290,8 @@ def register_stats_tools(
             return f"❌ Unknown plot type: {plot_type}\n\nSupported plots: {', '.join(valid_plots)}"
 
         try:
-            result = analyzer.create_plot(
+            active_analyzer = _scoped_analyzer(analyzer, project_info)
+            result = active_analyzer.create_plot(
                 filename=filename,
                 plot_type=plot_type,
                 x_col=x_var,

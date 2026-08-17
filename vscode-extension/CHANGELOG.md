@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 - 2026-08-17
+
+- Migrated MedPaper, PubMed Search, CGU, Asset-Aware, Draw.io, and Zotero Keeper launch contracts to MCP SDK2-only, immutable runtimes.
+- Reduced the default MCP surface to 12 workflow facades while retaining the complete 118-tool advanced surface and three prompts/resources.
+- Added Asset-Aware document ingestion to the Marketplace provider and provenance-aware content-integrity review for figures and research artifacts.
+- Added fail-closed verified PubMed persistence, exact integration-lock revisions, direct/stdio smoke coverage, and source/bundle drift gates.
+- Removed floating `uvx`, arbitrary PATH binary reuse, MCP SDK1/FastMCP fallbacks, and the legacy Draw.io npm launcher.
+- Refreshed the cross-agent academic-writing harness, MkDocs/GitHub Pages handbook, dependency locks, and release automation.
+
 ## 0.7.9 - 2026-04-24
 
 - Corrected marketplace README bundled-template wording to mention the packaged CSL styles.

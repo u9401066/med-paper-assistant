@@ -1,7 +1,7 @@
 """
 CGU MCP Server
 
-使用 FastMCP 提供創意生成工具
+使用官方 MCP Python SDK 2 ``MCPServer`` 提供創意生成工具
 整合 Ollama LLM 進行真實創意生成
 
 支援三種思考模式：
@@ -10,22 +10,25 @@ CGU MCP Server
 - spark: 概念碰撞產生靈感火花
 """
 
-import os
 import logging
+import os
+from typing import Any, cast
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
+from cgu.brainstorm_protocol import (
+    evaluate_ideas as evaluate_ideas_framework,
+)
+from cgu.brainstorm_protocol import (
+    generate_brainstorm_protocol,
+)
 from cgu.core import (
+    METHOD_CONFIGS,
     CreativityLevel,
     CreativityMethod,
     ThinkingMode,
     ThinkingSpeed,
-    METHOD_CONFIGS,
     select_method_for_task,
-)
-from cgu.brainstorm_protocol import (
-    generate_brainstorm_protocol,
-    evaluate_ideas as evaluate_ideas_framework,
 )
 from cgu.tools import CreativityToolbox
 
@@ -46,14 +49,15 @@ THINKING_DEPTH = os.getenv("CGU_THINKING_DEPTH", "medium").lower()
 # Ollama 模型
 OLLAMA_MODEL = os.getenv("CGU_OLLAMA_MODEL", "qwen2.5:3b")
 
-# 初始化 FastMCP Server
-mcp = FastMCP(
+# 初始化 MCP SDK 2 Server
+mcp = MCPServer(
     name="creativity-generation-unit",
     instructions="CGU - MCP-based 創意發想服務，使用快思慢想架構。支援 generate_ideas, spark_collision, apply_method 等工具。",
 )
 
 
 # === LLM 輔助函數 ===
+
 
 def _get_llm_client():
     """取得 LLM 客戶端"""
@@ -63,7 +67,8 @@ def _get_llm_client():
     if not USE_LLM:
         return None
     try:
-        from cgu.llm import get_llm_client, LLMConfig
+        from cgu.llm import LLMConfig, get_llm_client
+
         # 使用環境變數配置
         config = LLMConfig(model=OLLAMA_MODEL)
         return get_llm_client(config)
@@ -81,20 +86,20 @@ def _is_copilot_mode() -> bool:
 def _get_thinking_engine():
     """取得統一思考引擎"""
     try:
-        from cgu.thinking import ThinkingEngine, ThinkingConfig, ThinkingDepth
-        
+        from cgu.thinking import ThinkingConfig, ThinkingDepth, ThinkingEngine
+
         depth_map = {
             "shallow": ThinkingDepth.SHALLOW,
             "medium": ThinkingDepth.MEDIUM,
             "deep": ThinkingDepth.DEEP,
         }
-        
+
         config = ThinkingConfig(depth=depth_map.get(THINKING_DEPTH, ThinkingDepth.MEDIUM))
         engine = ThinkingEngine(config=config)
-        
+
         if _is_copilot_mode():
             engine.set_copilot_mode(True)
-        
+
         return engine
     except Exception as e:
         logger.warning(f"ThinkingEngine 初始化失敗: {e}")
@@ -104,36 +109,36 @@ def _get_thinking_engine():
 # === MCP Tools ===
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def generate_ideas(
     topic: str,
     creativity_level: int = 1,
     count: int = 5,
     constraints: list[str] | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """
     生成創意點子
-    
+
     Args:
         topic: 要發想的主題
         creativity_level: 創意層級 (1=組合, 2=探索, 3=變革)
         count: 要產生的點子數量
         constraints: 限制條件列表
-    
+
     Returns:
         包含點子和連結的字典
     """
     level = CreativityLevel(creativity_level)
     assoc_range = level.association_range
-    
+
     ideas = []
     method_used = "brainstorm"
-    
+
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY
-            
+            from cgu.llm import SYSTEM_PROMPT_CREATIVITY, IdeasOutput
+
             constraints_text = "\n".join(f"- {c}" for c in (constraints or []))
             prompt = f"""為以下主題產生 {count} 個創意點子：
 
@@ -148,12 +153,14 @@ async def generate_ideas(
                 response_model=IdeasOutput,
                 system_prompt=SYSTEM_PROMPT_CREATIVITY,
             )
-            ideas = [{"id": i+1, "content": idea, "association_score": 0.7 - i*0.05} 
-                     for i, idea in enumerate(result.ideas[:count])]
+            ideas = [
+                {"id": i + 1, "content": idea, "association_score": 0.7 - i * 0.05}
+                for i, idea in enumerate(result.ideas[:count])
+            ]
             method_used = "llm_brainstorm"
         except Exception as e:
             logger.warning(f"LLM 生成失敗: {e}")
-    
+
     # Fallback 到 passthrough 框架
     if not ideas:
         if _is_copilot_mode():
@@ -163,7 +170,15 @@ async def generate_ideas(
                 {
                     "id": i + 1,
                     "prompt": f"從「{topic}」的第 {i + 1} 個角度思考（{['功能面', '使用者面', '技術面', '商業面', '社會面', '跨領域', '極端情境'][i % 7]}）",
-                    "thinking_angle": ['功能面', '使用者面', '技術面', '商業面', '社會面', '跨領域', '極端情境'][i % 7],
+                    "thinking_angle": [
+                        "功能面",
+                        "使用者面",
+                        "技術面",
+                        "商業面",
+                        "社會面",
+                        "跨領域",
+                        "極端情境",
+                    ][i % 7],
                     "association_score": 0.5,
                 }
                 for i in range(count)
@@ -174,7 +189,7 @@ async def generate_ideas(
                 {"id": i + 1, "content": f"[模擬] {topic} 的點子 {i + 1}", "association_score": 0.5}
                 for i in range(count)
             ]
-    
+
     return {
         "topic": topic,
         "creativity_level": level.name,
@@ -192,31 +207,31 @@ async def generate_ideas(
     }
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def spark_collision(
     concept_a: str,
     concept_b: str,
-) -> dict:
+) -> dict[str, Any]:
     """
     概念碰撞 - 讓兩個概念產生火花
-    
+
     低關聯但有潛力的連結往往能產生最有創意的點子
-    
+
     Args:
         concept_a: 第一個概念
         concept_b: 第二個概念
-    
+
     Returns:
         碰撞產生的火花和理由
     """
     sparks = []
     rationale = f"從 {concept_a} 的特性與 {concept_b} 的特性中找到意想不到的連結"
-    
+
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import SparkOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_SPARK
-            
+            from cgu.llm import PROMPT_SPARK, SYSTEM_PROMPT_CREATIVITY, SparkOutput
+
             prompt = PROMPT_SPARK.format(
                 concept_a=concept_a,
                 concept_b=concept_b,
@@ -231,14 +246,11 @@ async def spark_collision(
             rationale = result.reasoning
         except Exception as e:
             logger.warning(f"LLM 碰撞失敗: {e}")
-    
+
     # Fallback
     if not sparks:
-        sparks = [
-            f"[模擬] {concept_a} + {concept_b} 的創意組合 {i}"
-            for i in range(1, 4)
-        ]
-    
+        sparks = [f"[模擬] {concept_a} + {concept_b} 的創意組合 {i}" for i in range(1, 4)]
+
     return {
         "concept_a": concept_a,
         "concept_b": concept_b,
@@ -248,34 +260,34 @@ async def spark_collision(
     }
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def associative_expansion(
     seed: str,
     direction: str = "similar",
     depth: int = 2,
-) -> dict:
+) -> dict[str, Any]:
     """
     聯想擴展 - 從種子概念向外擴展
-    
+
     Args:
         seed: 種子概念
         direction: 擴展方向 (similar/opposite/random/cross-domain)
         depth: 擴展深度
-    
+
     Returns:
         擴展後的聯想樹
     """
     valid_directions = ["similar", "opposite", "random", "cross-domain"]
     if direction not in valid_directions:
         direction = "similar"
-    
+
     associations = []
-    
+
     client = _get_llm_client()
     if client is not None:
         try:
-            from cgu.llm import AssociationList, SYSTEM_PROMPT_CREATIVITY
-            
+            from cgu.llm import SYSTEM_PROMPT_CREATIVITY, AssociationList
+
             for level in range(1, depth + 1):
                 prompt = f"""從「{seed}」進行 {direction} 方向的聯想，第 {level} 層擴展。
 請列出 3-5 個聯想概念。
@@ -285,26 +297,31 @@ async def associative_expansion(
 - opposite: 相反或對比概念
 - random: 隨機但有趣的連結
 - cross-domain: 跨領域的概念"""
-                
+
                 result = client.generate_structured(
                     prompt=prompt,
                     response_model=AssociationList,
                     system_prompt=SYSTEM_PROMPT_CREATIVITY,
                 )
-                associations.append({
-                    "level": level,
-                    "concepts": result.associations[:5],
-                })
+                associations.append(
+                    {
+                        "level": level,
+                        "concepts": result.associations[:5],
+                    }
+                )
         except Exception as e:
             logger.warning(f"LLM 聯想失敗: {e}")
-    
+
     # Fallback
     if not associations:
         associations = [
-            {"level": i+1, "concepts": [f"[模擬] {seed} 的 {direction} 聯想 {j}" for j in range(1, 4)]}
+            {
+                "level": i + 1,
+                "concepts": [f"[模擬] {seed} 的 {direction} 聯想 {j}" for j in range(1, 4)],
+            }
             for i in range(depth)
         ]
-    
+
     return {
         "seed": seed,
         "direction": direction,
@@ -315,20 +332,20 @@ async def associative_expansion(
     }
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def apply_method(
     method: str,
     input_concept: str,
     options: dict | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """
     應用特定創意方法
-    
+
     Args:
         method: 方法名稱 (mind_map/scamper/six_hats/mandala_9grid/...)
         input_concept: 輸入概念
         options: 方法特定選項
-    
+
     Returns:
         方法應用結果
     """
@@ -341,11 +358,11 @@ async def apply_method(
             "error": f"Unknown method: {method}",
             "available_methods": available,
         }
-    
+
     config = METHOD_CONFIGS.get(creativity_method)
     if not config:
         return {"error": f"Method config not found: {method}"}
-    
+
     result = {
         "method": method,
         "method_description": config.description,
@@ -355,14 +372,15 @@ async def apply_method(
         "input": input_concept,
         "options": options or {},
     }
-    
+
     client = _get_llm_client()
-    
+
     # SCAMPER 方法
     if method == "scamper":
         if client is not None:
             try:
-                from cgu.llm import ScamperOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_SCAMPER
+                from cgu.llm import PROMPT_SCAMPER, SYSTEM_PROMPT_CREATIVITY, ScamperOutput
+
                 prompt = PROMPT_SCAMPER.format(topic=input_concept)
                 scamper_result = client.generate_structured(
                     prompt=prompt,
@@ -384,12 +402,13 @@ async def apply_method(
                 result["output"] = _simulate_scamper(input_concept)
         else:
             result["output"] = _simulate_scamper(input_concept)
-            
+
     # 六頂思考帽
     elif method == "six_hats":
         if client is not None:
             try:
-                from cgu.llm import SixHatsOutput, SYSTEM_PROMPT_CREATIVITY
+                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, SixHatsOutput
+
                 prompt = f"使用六頂思考帽方法分析主題「{input_concept}」，從白、紅、黑、黃、綠、藍六個角度思考。"
                 hats_result = client.generate_structured(
                     prompt=prompt,
@@ -409,12 +428,13 @@ async def apply_method(
                 result["output"] = _simulate_six_hats(input_concept)
         else:
             result["output"] = _simulate_six_hats(input_concept)
-            
+
     # 九宮格
     elif method == "mandala_9grid":
         if client is not None:
             try:
-                from cgu.llm import MandalaOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_MANDALA
+                from cgu.llm import PROMPT_MANDALA, SYSTEM_PROMPT_CREATIVITY, MandalaOutput
+
                 prompt = PROMPT_MANDALA.format(concept=input_concept)
                 mandala_result = client.generate_structured(
                     prompt=prompt,
@@ -434,9 +454,10 @@ async def apply_method(
     elif method == "5w2h":
         if client is not None:
             try:
-                from cgu.llm import SYSTEM_PROMPT_CREATIVITY
                 from pydantic import BaseModel
-                
+
+                from cgu.llm import SYSTEM_PROMPT_CREATIVITY
+
                 class FiveW2HOutput(BaseModel):
                     what: str
                     why: str
@@ -445,7 +466,7 @@ async def apply_method(
                     where: str
                     how: str
                     how_much: str
-                
+
                 prompt = f"""使用 5W2H 方法分析以下主題：
 
 主題：{input_concept}
@@ -458,7 +479,7 @@ async def apply_method(
 - Where（哪裡）：在哪裡進行？
 - How（如何）：如何實現？
 - How much（多少）：需要多少資源？"""
-                
+
                 output = client.generate_structured(
                     prompt=prompt,
                     response_model=FiveW2HOutput,
@@ -478,12 +499,13 @@ async def apply_method(
                 result["output"] = _simulate_5w2h(input_concept)
         else:
             result["output"] = _simulate_5w2h(input_concept)
-            
+
     # 逆向思考
     elif method == "reverse":
         if client is not None:
             try:
-                from cgu.llm import ReverseOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_REVERSE
+                from cgu.llm import PROMPT_REVERSE, SYSTEM_PROMPT_CREATIVITY, ReverseOutput
+
                 prompt = PROMPT_REVERSE.format(problem=input_concept)
                 reverse_result = client.generate_structured(
                     prompt=prompt,
@@ -500,15 +522,18 @@ async def apply_method(
                 result["output"] = _simulate_reverse(input_concept)
         else:
             result["output"] = _simulate_reverse(input_concept)
-            
+
     # 心智圖
     elif method == "mind_map":
         if client is not None:
             try:
-                from cgu.llm import MindMapOutput, SYSTEM_PROMPT_CREATIVITY, PROMPT_MIND_MAP
+                from cgu.llm import PROMPT_MIND_MAP, SYSTEM_PROMPT_CREATIVITY, MindMapOutput
+
                 branches = (options or {}).get("branches", 4)
                 sub_branches = (options or {}).get("sub_branches", 3)
-                prompt = PROMPT_MIND_MAP.format(topic=input_concept, branches=branches, sub_branches=sub_branches)
+                prompt = PROMPT_MIND_MAP.format(
+                    topic=input_concept, branches=branches, sub_branches=sub_branches
+                )
                 mindmap_result = client.generate_structured(
                     prompt=prompt,
                     response_model=MindMapOutput,
@@ -526,12 +551,13 @@ async def apply_method(
                 result["output"] = _simulate_mind_map(input_concept)
         else:
             result["output"] = _simulate_mind_map(input_concept)
-            
+
     # 腦力激盪
     elif method == "brainstorm":
         if client is not None:
             try:
-                from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY
+                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, IdeasOutput
+
                 count = (options or {}).get("count", 10)
                 prompt = f"""對以下主題進行腦力激盪，產生 {count} 個不受限制的創意點子：
 
@@ -555,15 +581,28 @@ async def apply_method(
                 result["output"] = _simulate_brainstorm(input_concept)
         else:
             result["output"] = _simulate_brainstorm(input_concept)
-            
+
     # 隨機輸入
     elif method == "random_input":
         import random
-        random_words = ["星空", "咖啡", "森林", "機器人", "音樂", "海洋", "夢想", "旅行", "魔法", "時間"]
+
+        random_words = [
+            "星空",
+            "咖啡",
+            "森林",
+            "機器人",
+            "音樂",
+            "海洋",
+            "夢想",
+            "旅行",
+            "魔法",
+            "時間",
+        ]
         random_word = random.choice(random_words)
         if client is not None:
             try:
-                from cgu.llm import SparkOutput, SYSTEM_PROMPT_CREATIVITY
+                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, SparkOutput
+
                 prompt = f"""使用隨機詞強制聯想法：
 
 原始主題：{input_concept}
@@ -590,11 +629,11 @@ async def apply_method(
             result["output"] = _simulate_random_input(input_concept, random_word)
     else:
         result["output"] = f"[模擬] {method} 方法應用於 {input_concept}"
-    
+
     return result
 
 
-def _simulate_scamper(concept: str) -> dict:
+def _simulate_scamper(concept: str) -> dict[str, Any]:
     """Passthrough SCAMPER 框架 — 提供完整 7 維度引導"""
     return {
         "S_substitute": {
@@ -632,7 +671,7 @@ def _simulate_scamper(concept: str) -> dict:
     }
 
 
-def _simulate_six_hats(concept: str) -> dict:
+def _simulate_six_hats(concept: str) -> dict[str, Any]:
     """Passthrough 六頂帽框架 — 提供 6 個角度的具體引導"""
     return {
         "white_facts": {
@@ -672,7 +711,7 @@ def _simulate_six_hats(concept: str) -> dict:
     }
 
 
-def _simulate_mandala(concept: str) -> dict:
+def _simulate_mandala(concept: str) -> dict[str, Any]:
     """Passthrough 九宮格框架"""
     return {
         "center": concept,
@@ -696,16 +735,16 @@ def _simulate_mandala(concept: str) -> dict:
     }
 
 
-def _simulate_5w2h(concept: str) -> dict:
+def _simulate_5w2h(concept: str) -> dict[str, Any]:
     """Passthrough 5W2H 框架"""
     return {
         "what": {"prompt": f"{concept} 具體是什麼？核心定義？", "focus": "清晰定義問題或概念"},
         "why": {"prompt": f"為什麼要做 {concept}？解決什麼痛點？", "focus": "動機、價值、意義"},
-        "who": {"prompt": f"誰參與？誰受益？誰受影響？", "focus": "利害關係人分析"},
-        "when": {"prompt": f"什麼時候開始？什麼時候是最佳時機？", "focus": "時間框架和里程碑"},
-        "where": {"prompt": f"在哪裡進行？適用場景？", "focus": "空間、平台、環境"},
-        "how": {"prompt": f"如何實現？關鍵步驟？", "focus": "方法、流程、技術路線"},
-        "how_much": {"prompt": f"需要多少資源？投入產出比？", "focus": "成本、時間、人力估算"},
+        "who": {"prompt": "誰參與？誰受益？誰受影響？", "focus": "利害關係人分析"},
+        "when": {"prompt": "什麼時候開始？什麼時候是最佳時機？", "focus": "時間框架和里程碑"},
+        "where": {"prompt": "在哪裡進行？適用場景？", "focus": "空間、平台、環境"},
+        "how": {"prompt": "如何實現？關鍵步驟？", "focus": "方法、流程、技術路線"},
+        "how_much": {"prompt": "需要多少資源？投入產出比？", "focus": "成本、時間、人力估算"},
         "_meta": {
             "method": "5W2H",
             "instruction": "逐一回答每個問題，答案越具體越好",
@@ -713,7 +752,7 @@ def _simulate_5w2h(concept: str) -> dict:
     }
 
 
-def _simulate_reverse(concept: str) -> dict:
+def _simulate_reverse(concept: str) -> dict[str, Any]:
     """Passthrough 逆向思考框架"""
     return {
         "reverse_question": f"如何確保 {concept} 一定會失敗？",
@@ -732,15 +771,27 @@ def _simulate_reverse(concept: str) -> dict:
     }
 
 
-def _simulate_mind_map(concept: str) -> dict:
+def _simulate_mind_map(concept: str) -> dict[str, Any]:
     """Passthrough 心智圖框架"""
     return {
         "center": concept,
         "branch_prompts": [
-            {"name": "核心功能/特性", "sub_prompts": ["最重要的功能？", "必須具備的特性？", "區別於其他方案的特點？"]},
-            {"name": "使用者/受眾", "sub_prompts": ["主要使用者是誰？", "次要使用者？", "潛在的意外使用者？"]},
-            {"name": "技術/實現", "sub_prompts": ["需要什麼技術？", "現有技術是否足夠？", "技術風險在哪？"]},
-            {"name": "挑戰/風險", "sub_prompts": ["最大的障礙？", "最容易被忽略的風險？", "資源瓶頸？"]},
+            {
+                "name": "核心功能/特性",
+                "sub_prompts": ["最重要的功能？", "必須具備的特性？", "區別於其他方案的特點？"],
+            },
+            {
+                "name": "使用者/受眾",
+                "sub_prompts": ["主要使用者是誰？", "次要使用者？", "潛在的意外使用者？"],
+            },
+            {
+                "name": "技術/實現",
+                "sub_prompts": ["需要什麼技術？", "現有技術是否足夠？", "技術風險在哪？"],
+            },
+            {
+                "name": "挑戰/風險",
+                "sub_prompts": ["最大的障礙？", "最容易被忽略的風險？", "資源瓶頸？"],
+            },
         ],
         "_meta": {
             "method": "Mind Map (心智圖)",
@@ -749,7 +800,7 @@ def _simulate_mind_map(concept: str) -> dict:
     }
 
 
-def _simulate_brainstorm(concept: str) -> dict:
+def _simulate_brainstorm(concept: str) -> dict[str, Any]:
     """Passthrough 腦力激盪框架"""
     return {
         "warm_up": f"花 30 秒自由聯想：想到 {concept} 你第一個聯想到什麼？",
@@ -773,7 +824,7 @@ def _simulate_brainstorm(concept: str) -> dict:
     }
 
 
-def _simulate_random_input(concept: str, random_word: str) -> dict:
+def _simulate_random_input(concept: str, random_word: str) -> dict[str, Any]:
     """Passthrough 隨機輸入框架"""
     return {
         "random_word": random_word,
@@ -791,22 +842,22 @@ def _simulate_random_input(concept: str, random_word: str) -> dict:
     }
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def select_method(
     creativity_level: int = 1,
     prefer_fast: bool = True,
     is_stuck: bool = False,
     purpose: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """
     根據情況選擇合適的創意方法
-    
+
     Args:
         creativity_level: 創意層級 (1/2/3)
         prefer_fast: 是否偏好快速方法
         is_stuck: 是否卡關中
         purpose: 目的 (廣泛探索/結構化分析/強制創新/系統性組合/多元觀點/問題反轉/完整流程)
-    
+
     Returns:
         推薦的方法和配置
     """
@@ -817,9 +868,9 @@ async def select_method(
         is_stuck=is_stuck,
         purpose=purpose,
     )
-    
+
     config = METHOD_CONFIGS.get(method)
-    
+
     return {
         "recommended_method": method.value,
         "description": config.description if config else "",
@@ -838,39 +889,40 @@ async def select_method(
 # === 新增：深度思考工具 ===
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def deep_think(
     topic: str,
     depth: str = "medium",
     mode: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """
     統一思考介面 - 智能選擇思考深度
-    
+
     Args:
         topic: 思考主題
         depth: 思考深度 - "shallow"（快速）/ "medium"（適中）/ "deep"（深入）
         mode: 強制模式 - "simple"（單次）/ "deep"（多Agent）/ "spark"（碰撞）/ None（自動）
-    
+
     Returns:
         包含點子、火花、推理過程的完整結果
     """
     engine = _get_thinking_engine()
-    
+
     if engine is None:
         # Fallback 到傳統模式
-        return await generate_ideas(topic=topic, count=5)
-    
+        return cast(dict[str, Any], await generate_ideas(topic=topic, count=5))
+
     try:
-        from cgu.thinking import ThinkingMode as TMode, ThinkingDepth
-        
+        from cgu.thinking import ThinkingDepth
+        from cgu.thinking import ThinkingMode as TMode
+
         # 解析深度
         depth_map = {
             "shallow": ThinkingDepth.SHALLOW,
             "medium": ThinkingDepth.MEDIUM,
             "deep": ThinkingDepth.DEEP,
         }
-        
+
         # 解析模式
         mode_map = {
             "simple": TMode.SIMPLE,
@@ -878,15 +930,15 @@ async def deep_think(
             "spark": TMode.SPARK,
             "hybrid": TMode.HYBRID,
         }
-        
+
         result = await engine.think(
             topic=topic,
             mode=mode_map.get(mode) if mode else None,
             depth=depth_map.get(depth, ThinkingDepth.MEDIUM),
         )
-        
-        return result.to_dict()
-        
+
+        return cast(dict[str, Any], result.to_dict())
+
     except Exception as e:
         logger.error(f"深度思考失敗: {e}")
         return {
@@ -895,39 +947,39 @@ async def deep_think(
         }
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def multi_agent_brainstorm(
     topic: str,
     agents: int = 3,
     thinking_steps: int = 3,
     collision_count: int = 5,
-) -> dict:
+) -> dict[str, Any]:
     """
     多 Agent 並發腦力激盪
-    
+
     多個獨立 Agent（Explorer、Critic、Wildcard）並發思考同一主題，
     各自維護獨立 Context 避免污染，最後碰撞產生火花。
-    
+
     Args:
         topic: 思考主題
         agents: Agent 數量（1-5）
         thinking_steps: 每個 Agent 的思考步數
         collision_count: 概念碰撞次數
-    
+
     Returns:
         包含各 Agent 貢獻、火花、最佳想法的結果
     """
     engine = _get_thinking_engine()
-    
+
     if engine is None:
         return {
             "error": "ThinkingEngine 未初始化",
             "hint": "請確認 cgu.thinking 模組可用",
         }
-    
+
     try:
         from cgu.thinking import ThinkingMode
-        
+
         result = await engine.think(
             topic=topic,
             mode=ThinkingMode.DEEP,
@@ -935,7 +987,7 @@ async def multi_agent_brainstorm(
             thinking_steps=thinking_steps,
             collision_count=collision_count,
         )
-        
+
         return {
             "topic": topic,
             "mode": "multi_agent",
@@ -950,48 +1002,48 @@ async def multi_agent_brainstorm(
                 "spark_count": len(result.sparks),
             },
         }
-        
+
     except Exception as e:
         logger.error(f"Multi-Agent 腦力激盪失敗: {e}")
         return {"error": str(e)}
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def spark_collision_deep(
     concept_a: str,
     concept_b: str,
     collision_count: int = 5,
-) -> dict:
+) -> dict[str, Any]:
     """
     深度概念碰撞 - 使用 Multi-Agent 產生意外火花
-    
+
     不同於簡單的 spark_collision，此工具使用多個 Agent
     從不同角度探索兩個概念的連結可能性。
-    
+
     Args:
         concept_a: 第一個概念
         concept_b: 第二個概念
         collision_count: 碰撞次數
-    
+
     Returns:
         包含多層次火花和驚喜度評分的結果
     """
     engine = _get_thinking_engine()
-    
+
     if engine is None:
-        return await spark_collision(concept_a, concept_b)
-    
+        return cast(dict[str, Any], await spark_collision(concept_a, concept_b))
+
     try:
         from cgu.thinking import ThinkingMode
-        
+
         topic = f"{concept_a} × {concept_b}"
-        
+
         result = await engine.think(
             topic=topic,
             mode=ThinkingMode.SPARK,
             collision_count=collision_count,
         )
-        
+
         return {
             "concept_a": concept_a,
             "concept_b": concept_b,
@@ -1001,34 +1053,36 @@ async def spark_collision_deep(
             "ideas": result.ideas,
             "reasoning": result.reasoning_chains,
         }
-        
+
     except Exception as e:
         logger.error(f"深度碰撞失敗: {e}")
-        return await spark_collision(concept_a, concept_b)
+        return cast(dict[str, Any], await spark_collision(concept_a, concept_b))
 
 
-@mcp.tool()
-async def list_methods() -> dict:
+@mcp.tool(structured_output=True)
+async def list_methods() -> dict[str, Any]:
     """
     列出所有可用的創意方法
-    
+
     Returns:
         所有方法的清單和說明
     """
     methods_by_category: dict[str, list[dict]] = {}
-    
+
     for method, config in METHOD_CONFIGS.items():
         category = config.category.value
         if category not in methods_by_category:
             methods_by_category[category] = []
-        
-        methods_by_category[category].append({
-            "name": method.value,
-            "description": config.description,
-            "thinking_speed": config.thinking_speed,
-            "suitable_levels": config.suitable_levels,
-        })
-    
+
+        methods_by_category[category].append(
+            {
+                "name": method.value,
+                "description": config.description,
+                "thinking_speed": config.thinking_speed,
+                "suitable_levels": config.suitable_levels,
+            }
+        )
+
     return {
         "total_methods": len(METHOD_CONFIGS),
         "categories": list(methods_by_category.keys()),
@@ -1039,7 +1093,7 @@ async def list_methods() -> dict:
 # === Spark-Soup: Context Stuffing for Creativity ===
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def spark_soup_generate(
     topic: str,
     fragment_count: int = 20,
@@ -1048,28 +1102,28 @@ async def spark_soup_generate(
     custom_fragments: list[str] | None = None,
     trigger_categories: list[str] | None = None,
     randomness: float = 0.5,
-) -> dict:
+) -> dict[str, Any]:
     """
     組裝「創意湯」- 用碎片化資訊填充 context，激發意外連結
-    
+
     模擬人類接收新聞/書籍/體驗後產生創意的過程。
-    
+
     Args:
         topic: 主題（會在 soup 中重複多次避免遺忘）
         fragment_count: 碎片數量（預設 20）
         topic_repetition: 主題重複次數（預設 5，避免被 context 壓縮遺忘）
         auto_search: 是否自動搜尋外部資訊（需要網路）
         custom_fragments: 使用者自訂碎片列表
-        trigger_categories: 觸發詞類別 
+        trigger_categories: 觸發詞類別
             可選: ["combination", "inversion", "scale", "time", "perspective", "emotion"]
         randomness: 隨機性 0-1（越高碎片越隨機）
-    
+
     Returns:
         包含創意湯、碎片資訊、多樣性評分的結果
     """
     try:
         from cgu.soup import spark_soup
-        
+
         result = await spark_soup(
             topic=topic,
             fragment_count=fragment_count,
@@ -1079,7 +1133,7 @@ async def spark_soup_generate(
             trigger_categories=trigger_categories,
             randomness=randomness,
         )
-        
+
         return {
             "success": True,
             "soup": result.soup,
@@ -1087,10 +1141,10 @@ async def spark_soup_generate(
             "fragments_count": len(result.fragments_used),
             "diversity_score": result.diversity_score,
             "trigger_words_used": result.trigger_words_used,
-            "sources": list(set(f.source.value for f in result.fragments_used)),
+            "sources": list({f.source.value for f in result.fragments_used}),
             "usage_hint": "請將 soup 內容傳給 LLM，讓它從碎片中尋找意外連結來產生創意想法",
         }
-        
+
     except Exception as e:
         logger.error(f"Spark Soup 失敗: {e}")
         return {
@@ -1100,26 +1154,26 @@ async def spark_soup_generate(
         }
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def spark_soup_quick(
     topic: str,
     creativity_boost: float = 0.7,
-) -> dict:
+) -> dict[str, Any]:
     """
     快速創意湯 - 一鍵產生創意湯並直接生成想法
-    
+
     結合 spark_soup + generate_ideas，適合快速發想。
-    
+
     Args:
         topic: 主題
         creativity_boost: 創意增強程度 0-1（影響隨機性和碎片多樣性）
-    
+
     Returns:
         創意湯和基於湯底產生的想法
     """
     try:
         from cgu.soup import spark_soup
-        
+
         # 生成創意湯
         soup_result = await spark_soup(
             topic=topic,
@@ -1129,55 +1183,61 @@ async def spark_soup_quick(
             randomness=creativity_boost,
             trigger_categories=["combination", "perspective"],
         )
-        
+
         # 使用 LLM 基於創意湯生成想法
         client = _get_llm_client()
         ideas = []
-        
+
         if client is not None:
             try:
-                from cgu.llm import IdeasOutput, SYSTEM_PROMPT_CREATIVITY
-                
+                from cgu.llm import SYSTEM_PROMPT_CREATIVITY, IdeasOutput
+
                 prompt = f"""請基於以下「創意湯」產生 5 個創意想法。
 
 {soup_result.soup}
 
 請從碎片中尋找意外的連結，產生新穎的想法。"""
-                
+
                 result = client.generate_structured(
                     prompt=prompt,
                     response_model=IdeasOutput,
                     system_prompt=SYSTEM_PROMPT_CREATIVITY,
                 )
                 ideas = [
-                    {"id": i+1, "content": idea, "source": "spark_soup"}
+                    {"id": i + 1, "content": idea, "source": "spark_soup"}
                     for i, idea in enumerate(result.ideas[:5])
                 ]
             except Exception as e:
                 logger.warning(f"LLM 生成失敗: {e}")
-        
+
         # Fallback
         if not ideas:
             ideas = [
-                {"id": i+1, "content": f"[請基於創意湯思考] {topic} 的想法 {i+1}", "source": "framework"}
+                {
+                    "id": i + 1,
+                    "content": f"[請基於創意湯思考] {topic} 的想法 {i + 1}",
+                    "source": "framework",
+                }
                 for i in range(5)
             ]
-        
+
         return {
             "success": True,
             "topic": topic,
             "ideas": ideas,
-            "soup_preview": soup_result.soup[:500] + "..." if len(soup_result.soup) > 500 else soup_result.soup,
+            "soup_preview": soup_result.soup[:500] + "..."
+            if len(soup_result.soup) > 500
+            else soup_result.soup,
             "diversity_score": soup_result.diversity_score,
             "fragments_count": len(soup_result.fragments_used),
         }
-        
+
     except Exception as e:
         logger.error(f"Quick Spark Soup 失敗: {e}")
-        return await generate_ideas(topic=topic, count=5)
+        return cast(dict[str, Any], await generate_ideas(topic=topic, count=5))
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def collect_creativity_fragments(
     topic: str,
     count: int = 10,
@@ -1185,12 +1245,12 @@ async def collect_creativity_fragments(
     include_random_concepts: bool = True,
     include_search: bool = False,
     randomness: float = 0.5,
-) -> dict:
+) -> dict[str, Any]:
     """
     收集創意碎片 - 從多個來源收集碎片化資訊
-    
+
     可用於自訂創意湯的組裝，或單獨使用碎片進行聯想。
-    
+
     Args:
         topic: 相關主題（用於引導搜尋）
         count: 收集數量
@@ -1198,13 +1258,13 @@ async def collect_creativity_fragments(
         include_random_concepts: 是否包含隨機概念
         include_search: 是否進行網路搜尋（需要網路）
         randomness: 隨機性 0-1
-    
+
     Returns:
         收集到的碎片列表
     """
     try:
         from cgu.soup import collect_fragments
-        
+
         sources = []
         if include_quotes:
             sources.append("quotes")
@@ -1212,17 +1272,17 @@ async def collect_creativity_fragments(
             sources.append("random")
         if include_search:
             sources.append("duckduckgo")
-        
+
         if not sources:
             sources = ["quotes", "random"]
-        
+
         fragments = await collect_fragments(
             topic=topic,
             sources=sources,
             count_per_source=max(3, count // len(sources)),
             randomness=randomness,
         )
-        
+
         return {
             "success": True,
             "topic": topic,
@@ -1236,7 +1296,7 @@ async def collect_creativity_fragments(
             ],
             "total": len(fragments),
         }
-        
+
     except Exception as e:
         logger.error(f"收集碎片失敗: {e}")
         return {
@@ -1245,47 +1305,48 @@ async def collect_creativity_fragments(
         }
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def get_trigger_words(
     categories: list[str] | None = None,
     count: int = 10,
-) -> dict:
+) -> dict[str, Any]:
     """
     取得創意觸發詞 - 用於激發創意的提問
-    
+
     Args:
         categories: 類別列表
             可選: ["combination", "inversion", "scale", "time", "perspective", "emotion"]
         count: 數量
-    
+
     Returns:
         觸發詞列表
     """
     try:
-        from cgu.soup import TRIGGER_WORDS
         import random
-        
+
+        from cgu.soup import TRIGGER_WORDS
+
         requested_cats = categories or list(TRIGGER_WORDS.keys())
-        
+
         all_triggers = []
         triggers_by_category = {}
-        
+
         for cat in requested_cats:
             if cat in TRIGGER_WORDS:
                 triggers = TRIGGER_WORDS[cat]
                 triggers_by_category[cat] = triggers
                 all_triggers.extend(triggers)
-        
+
         # 隨機選擇
         selected = random.sample(all_triggers, min(count, len(all_triggers)))
-        
+
         return {
             "success": True,
             "selected": selected,
             "by_category": triggers_by_category,
             "available_categories": list(TRIGGER_WORDS.keys()),
         }
-        
+
     except Exception as e:
         logger.error(f"取得觸發詞失敗: {e}")
         return {
@@ -1308,7 +1369,7 @@ async def get_creativity_levels() -> str:
 - Description: 已知元素的新組合
 - Example: 將現有功能重新組合
 
-## Level 2: Exploratory (探索創意)  
+## Level 2: Exploratory (探索創意)
 - Association Range: 0.3 - 0.7
 - Description: 在既有規則內探索邊界
 - Example: 延伸現有概念到新領域
@@ -1352,13 +1413,13 @@ async def get_thinking_modes() -> str:
 # === Phase 2: Agent-to-Agent Brainstorming Protocol ===
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def brainstorm_protocol(
     topic: str,
     method: str = "free",
     participant_a: str = "Agent A",
     participant_b: str = "Agent B",
-) -> dict:
+) -> dict[str, Any]:
     """
     產生結構化的雙 Agent 腦力激盪討論框架
 
@@ -1377,7 +1438,7 @@ async def brainstorm_protocol(
     return generate_brainstorm_protocol(topic, method, participant_a, participant_b)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def evaluate_brainstorm_ideas(
     ideas: list[str],
     context: str = "",
@@ -1385,7 +1446,7 @@ async def evaluate_brainstorm_ideas(
     novelty_weight: float = 0.25,
     impact_weight: float = 0.30,
     effort_weight: float = 0.15,
-) -> dict:
+) -> dict[str, Any]:
     """
     評估並排序腦力激盪產生的點子
 
@@ -1428,11 +1489,11 @@ def _get_toolbox() -> CreativityToolbox:
     return _toolbox
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def explore_concept(
     concept: str,
     include_cross_domain: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """
     探索一個概念，找出相關概念、所屬領域、以及跨域的意外發現
 
@@ -1449,11 +1510,11 @@ async def explore_concept(
     return toolbox.explore_concept(concept, include_cross_domain)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def find_connections(
     concept_a: str,
     concept_b: str,
-) -> dict:
+) -> dict[str, Any]:
     """
     尋找兩個概念之間的連結
 
@@ -1471,10 +1532,10 @@ async def find_connections(
     return toolbox.find_connection(concept_a, concept_b)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def check_novelty(
     idea: str,
-) -> dict:
+) -> dict[str, Any]:
     """
     檢查想法的新穎度
 
@@ -1491,11 +1552,11 @@ async def check_novelty(
     return toolbox.check_novelty(idea)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def evolve_idea_tool(
     idea: str,
     mutation_type: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """
     對想法進行突變演化
 
@@ -1515,8 +1576,8 @@ async def evolve_idea_tool(
     return toolbox.evolve_idea(idea, mt)
 
 
-@mcp.tool()
-async def random_concept() -> dict:
+@mcp.tool(structured_output=True)
+async def random_concept() -> dict[str, Any]:
     """
     隨機取得一個概念
 
@@ -1530,11 +1591,11 @@ async def random_concept() -> dict:
     return {"concept": concept}
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def suggest_bridges(
     concept_a: str,
     concept_b: str,
-) -> dict:
+) -> dict[str, Any]:
     """
     建議可能的橋接概念，連接兩個看似不相關的概念
 
@@ -1556,10 +1617,10 @@ async def suggest_bridges(
     }
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def creativity_session_start(
     topic: str,
-) -> dict:
+) -> dict[str, Any]:
     """
     開始一個新的創意探索會話
 
@@ -1577,10 +1638,10 @@ async def creativity_session_start(
     return {"session_id": session_id, "topic": topic}
 
 
-@mcp.tool()
+@mcp.tool(structured_output=True)
 async def creativity_session_record(
     idea: str,
-) -> dict:
+) -> dict[str, Any]:
     """
     記錄並驗證一個想法到當前會話
 
@@ -1601,8 +1662,8 @@ async def creativity_session_record(
         return {"success": False, "error": str(exc)}
 
 
-@mcp.tool()
-async def creativity_session_progress() -> dict:
+@mcp.tool(structured_output=True)
+async def creativity_session_progress() -> dict[str, Any]:
     """
     查看當前創意探索會話的進度摘要
 

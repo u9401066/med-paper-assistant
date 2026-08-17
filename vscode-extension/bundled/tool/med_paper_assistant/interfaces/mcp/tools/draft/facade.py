@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.hook_effectiveness_tracker import (
     HookEffectivenessTracker,
@@ -124,7 +124,7 @@ def _auto_run_post_write_hooks(
 
 
 def register_draft_facade_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     writing_tools: ToolMap,
     template_tools: ToolMap,
     editing_tools: ToolMap,

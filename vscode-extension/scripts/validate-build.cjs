@@ -183,19 +183,39 @@ function loadToolSurfaceAuthority(runtime) {
     }
 }
 
+function countTrackedRepositoryFiles(runtime, pathspec, fallback) {
+    const result = runtime.spawnSync(
+        'git',
+        ['-C', runtime.repoRoot, 'ls-files', '--cached', '-z', '--', pathspec],
+        { encoding: 'utf8' },
+    );
+    if (!result.error && result.status === 0) {
+        return String(result.stdout ?? '')
+            .split('\0')
+            .filter(Boolean)
+            .length;
+    }
+
+    return fallback();
+}
+
 function countRepositorySkills(runtime) {
-    const skillsDir = path.join(runtime.repoRoot, '.claude', 'skills');
-    return runtime.fs.readdirSync(skillsDir, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .filter((entry) => runtime.fs.existsSync(path.join(skillsDir, entry.name, 'SKILL.md')))
-        .length;
+    return countTrackedRepositoryFiles(runtime, '.claude/skills/*/SKILL.md', () => {
+        const skillsDir = path.join(runtime.repoRoot, '.claude', 'skills');
+        return runtime.fs.readdirSync(skillsDir, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .filter((entry) => runtime.fs.existsSync(path.join(skillsDir, entry.name, 'SKILL.md')))
+            .length;
+    });
 }
 
 function countRepositoryPromptWorkflows(runtime) {
-    const promptsDir = path.join(runtime.repoRoot, '.github', 'prompts');
-    return runtime.fs.readdirSync(promptsDir)
-        .filter((entry) => entry.endsWith('.prompt.md'))
-        .length;
+    return countTrackedRepositoryFiles(runtime, '.github/prompts/*.prompt.md', () => {
+        const promptsDir = path.join(runtime.repoRoot, '.github', 'prompts');
+        return runtime.fs.readdirSync(promptsDir)
+            .filter((entry) => entry.endsWith('.prompt.md'))
+            .length;
+    });
 }
 
 function validateToolSurfaceAuthority(reporter, runtime) {

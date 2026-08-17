@@ -23,7 +23,7 @@ This extension is the packaged end-user surface, not the entire monorepo authori
 
 | Included in the VSIX      | Details                                                                                                                                           |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **MCP runtime**           | `mdpaper` compact-first surface by default: 22 tools, with optional full 118-tool mode                                                            |
+| **MCP runtime**           | `mdpaper` compact-first surface by default: 12 tools, with optional full 118-tool mode                                                            |
 | **Bundled setup surface** | 14 curated skills, 13 prompt workflows, 9 reviewer/analysis agents, 4 templates (1 journal profile + 3 CSL styles), and 7 support/reference files |
 | **Workspace UX**          | `@mdpaper`, 11 palette commands, managed Foam graph views, setup command, and bundled LLM wiki docs                                               |
 | **Not the full repo**     | Repo-only authoring assets, maintenance scripts, and extra internal skills stay in the repository rather than the packaged setup surface          |
@@ -46,12 +46,11 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 ## MCP Installation Behavior
 
-- MCP Python tools are installed persistently per machine with `uv tool install`, not once per folder.
-- On later MedPaper extension updates, existing managed tools are checked with `uv tool upgrade` so older installs can move forward without manual reinstall.
-- If another installed VS Code extension already provides `PubMed Search` or `Zotero Keeper` MCP servers, MedPaper skips both persistent tool installation and MCP registration for those servers to avoid duplicated tools.
+- Marketplace MCP runtimes use isolated, exact SDK2 sources. The core package version always matches the VSIX version; PubMed, CGU, Zotero Keeper, Asset-Aware, and Draw.io use immutable integration-lock revisions.
+- MedPaper never reuses an arbitrary same-named executable from `PATH`, never falls back to an MCP SDK1 package, and does not let fuzzy third-party extension metadata suppress its verified SDK2 definitions.
 - A workspace-level `.vscode/mcp.json` still has highest priority. If the workspace already manages `mdpaper` itself, MedPaper skips auto-registration.
 - CGU is registered only when bundled CGU code or a workspace `integrations/cgu` submodule is present. If CGU is absent, MedPaper continues without it.
-- Draw.io fallback uses `npx -y @drawio/mcp`, so Node.js/npm must be installed if you rely on the npm path.
+- Draw.io uses the SDK2 Python server from the workspace submodule or its immutable archive; there is no npm/SDK1 fallback.
 
 ## Quick Start
 
@@ -61,22 +60,22 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 2. 在 Agent Mode 輸入：「全自動寫論文」
 3. 系統自動執行 13 main gate checkpoints，並在 Phase 2 後插入 Phase 2.1 fulltext/source-material sub-gate：
 
-| Phase | 名稱           | 說明                                         |
-| ----- | -------------- | -------------------------------------------- |
-| 0     | 前置規劃       | source-materials.yaml + journal-profile.yaml |
-| 1     | 專案設定       | 專案結構與 workflow config                   |
-| 2     | 文獻搜索       | 並行搜尋 + save_reference_mcp                |
-| 2.1   | 全文/素材解析  | asset-aware + fulltext + source materials    |
-| 3     | 概念發展       | concept.md 撰寫與 novelty framing            |
-| 4     | Novelty 驗證   | 三輪評分 ≥ 75                                |
-| 5     | 逐節撰寫       | Introduction → Discussion                    |
-| 6     | Audit          | quality-scorecard + hooks                    |
-| 6.5   | Evolution Gate | baseline snapshot                            |
-| 7     | 同行審查       | min_rounds=2 + R1-R6 gates                   |
-| 8     | 引用同步       | sync_references                              |
-| 9     | 匯出           | docx + pdf（CRITICAL Gate）                  |
-| 10    | Retrospective  | pipeline-run artifact + meta-learning        |
-| 11    | Final Delivery | final artifacts；Git provenance is optional  |
+| Phase | 名稱           | 說明                                             |
+| ----- | -------------- | ------------------------------------------------ |
+| 0     | 前置規劃       | source-materials.yaml + journal-profile.yaml     |
+| 1     | 專案設定       | 專案結構與 workflow config                       |
+| 2     | 文獻搜索       | 並行搜尋 + reference_action / save_reference_mcp |
+| 2.1   | 全文/素材解析  | asset-aware + fulltext + source materials        |
+| 3     | 概念發展       | concept.md 撰寫與 novelty framing                |
+| 4     | Novelty 驗證   | 三輪評分 ≥ 75                                    |
+| 5     | 逐節撰寫       | Introduction → Discussion                        |
+| 6     | Audit          | quality-scorecard + hooks                        |
+| 6.5   | Evolution Gate | baseline snapshot                                |
+| 7     | 同行審查       | min_rounds=2 + R1-R6 gates                       |
+| 8     | 引用同步       | sync_references                                  |
+| 9     | 匯出           | docx + pdf（CRITICAL Gate）                      |
+| 10    | Retrospective  | pipeline-run artifact + meta-learning            |
+| 11    | Final Delivery | final artifacts；Git provenance is optional      |
 
 ## Usage
 
@@ -186,19 +185,19 @@ Bundled support/reference files: `.github/prompts/_capability-index.md`, `.githu
 
 That means a VSIX-only user can now run `MedPaper: Setup Workspace` and receive the Foam dependency reference, the LLM wiki reference/how-to docs, and the workflow figure directly under `docs/` in their workspace.
 
-### MCP Tools (118 full / 22 compact default)
+### MCP Tools (118 full / 12 compact default)
 
-The 118/22 tool counts plus the 3 MCP prompts and 3 MCP resources are runtime-validated through `tool-surface-authority.json` during validate/release gates.
+The 118/12 tool counts plus the 3 MCP prompts and 3 MCP resources are runtime-validated through `tool-surface-authority.json` during validate/release gates.
 
 自動註冊 MCP Server：
 
-- **MedPaper Assistant** - 預設 compact 22 工具（可切換 full 118），另含 3 個 MCP prompts 與 3 個 MCP resources
+- **MedPaper Assistant** - 預設 compact 12 工具（可切換 full 118），另含 3 個 MCP prompts 與 3 個 MCP resources
 - **CGU Creativity** - 創意發想工具
 - **PubMed Search** - 文獻搜尋工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Zotero Keeper** - Zotero 文獻工具，若未被其他已安裝 VS Code 擴充功能提供才會由 MedPaper 註冊
 - **Draw.io Diagrams** - 圖表繪製
 
-預設 `compact` 走 facade-first surface，保留 `project_action`、`library_action`、`draft_action`、`validation_action`、`run_quality_checks`、`pipeline_action`、`export_document`、`inspect_export` 等高階入口。若你要在 VSIX 版直接跑 full-surface 的 agent wiki workflow，請把 `mdpaper.toolSurface` 切成 `full`；這會額外暴露 `import_local_papers`、`ingest_web_source`、`ingest_markdown_source`、`resolve_reference_identity`、`build_knowledge_map`、`build_synthesis_page`、`materialize_agent_wiki` 等 granular orchestration 工具。
+預設 `compact` 走 facade-first surface，保留 `project_action`、`library_action`、`reference_action`、`save_reference_mcp`、`draft_action`、`analysis_action`、`validation_action`、`run_quality_checks`、`pipeline_action`、`export_document`、`inspect_export` 等高階入口。`reference_action` 負責一般文獻操作；verified PubMed 儲存仍走直接的 `save_reference_mcp(pmid)`。若你要在 VSIX 版直接跑 full-surface 的 agent wiki workflow，請把 `mdpaper.toolSurface` 切成 `full`；這會額外暴露 `import_local_papers`、`ingest_web_source`、`ingest_markdown_source`、`resolve_reference_identity`、`build_knowledge_map`、`build_synthesis_page`、`materialize_agent_wiki` 等 granular orchestration 工具。
 
 MCP prompts: `project_bootstrap`, `draft_section_plan`, `word_export_checklist`.
 

@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 import yaml
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 
 from med_paper_assistant.infrastructure.persistence.exemplar_usage_store import (
     ALLOWED_EXEMPLAR_ROLES,
@@ -562,7 +563,7 @@ def _record_asset_ingestion_receipt(
 
 
 def register_project_facade_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     crud_tools: ToolMap,
     settings_tools: ToolMap,
     exploration_tools: ToolMap,

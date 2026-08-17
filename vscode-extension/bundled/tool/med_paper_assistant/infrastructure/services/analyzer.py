@@ -30,6 +30,14 @@ class Analyzer:
         # Note: Directories are created on-demand when saving files,
         # not at initialization to avoid polluting root directory
 
+    def scoped_to_project(self, project_dir: str | Path) -> "Analyzer":
+        """Return an isolated analyzer bound to one validated project directory."""
+        root = Path(project_dir)
+        return Analyzer(
+            data_dir=str(root / "data"),
+            results_dir=str(root / "results"),
+        )
+
     def load_data(self, filename: str) -> pd.DataFrame:
         """Load data from a CSV file."""
         safe_filename = normalize_relative_filename(

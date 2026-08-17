@@ -1,11 +1,11 @@
 """MCP prompt registrations for interoperable prompt discovery."""
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.services import TemplateReader
 
 
-def register_prompts(mcp: FastMCP, template_reader: TemplateReader):
+def register_prompts(mcp: MCPServer, template_reader: TemplateReader):
     """Register a small set of interoperable MCP prompts."""
 
     @mcp.prompt()

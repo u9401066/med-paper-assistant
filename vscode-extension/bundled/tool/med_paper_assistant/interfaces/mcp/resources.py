@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.project_manager import ProjectManager
 from med_paper_assistant.infrastructure.persistence.workspace_state_manager import (
@@ -14,7 +14,7 @@ from med_paper_assistant.infrastructure.services import TemplateReader
 
 
 def register_resources(
-    mcp: FastMCP,
+    mcp: MCPServer,
     project_manager: ProjectManager,
     template_reader: TemplateReader,
 ) -> None:

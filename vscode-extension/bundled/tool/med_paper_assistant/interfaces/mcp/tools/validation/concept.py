@@ -7,7 +7,7 @@ validate_concept, validate_concept_quick, validate_wikilinks
 import os
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.domain.services.wikilink_validator import (
     validate_wikilinks_in_file,
@@ -31,7 +31,7 @@ _concept_validator = ConceptValidator()
 
 
 def register_concept_validation_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     *,
     register_public_verbs: bool = True,
 ):

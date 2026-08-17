@@ -2,23 +2,23 @@
 
 from cgu.tools.creativity_tools import (
     ConceptExplorer,
-    ConnectionFinder,
-    NoveltyChecker,
-    IdeaEvolver,
-    CreativityLogger,
-    CreativityToolbox,
     # Data classes
     ConceptSearchResult,
     Connection,
-    NoveltyReport,
-    Evolution,
+    ConnectionFinder,
+    CreativityLogger,
     CreativitySession,
+    CreativityToolbox,
+    Evolution,
+    IdeaEvolver,
+    NoveltyChecker,
+    NoveltyReport,
 )
 
 __all__ = [
     # Tools
     "ConceptExplorer",
-    "ConnectionFinder", 
+    "ConnectionFinder",
     "NoveltyChecker",
     "IdeaEvolver",
     "CreativityLogger",

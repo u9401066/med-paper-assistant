@@ -51,7 +51,7 @@ PROMPT_ASSOCIATE = """基於以下概念，產生相關聯想：
 
 聯想方向說明：
 - similar: 相似的概念
-- opposite: 相反或對比的概念  
+- opposite: 相反或對比的概念
 - cross-domain: 跨領域的概念
 - random: 較遠但有潛力的連結"""
 
@@ -232,6 +232,6 @@ def format_constraints(constraints: list[str] | None) -> str:
 def format_ideas_list(ideas: list) -> str:
     """格式化點子列表"""
     return "\n".join(
-        f"{i+1}. {idea.content if hasattr(idea, 'content') else idea}"
+        f"{i + 1}. {idea.content if hasattr(idea, 'content') else idea}"
         for i, idea in enumerate(ideas)
     )

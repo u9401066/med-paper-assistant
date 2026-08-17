@@ -12,7 +12,7 @@ import base64
 from pathlib import Path
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.shared.path_guard import (
@@ -113,7 +113,7 @@ def _save_companion_rendered_asset(
 
 
 def register_diagram_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     project_manager: ProjectManager,
     *,
     register_public_verbs: bool = True,

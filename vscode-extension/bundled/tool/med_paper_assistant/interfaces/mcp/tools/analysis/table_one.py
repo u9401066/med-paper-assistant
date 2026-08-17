@@ -10,7 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.services.analyzer import Analyzer
@@ -34,8 +34,15 @@ def _get_tracker(project_info: dict) -> DataArtifactTracker | None:
     return DataArtifactTracker(project_dir / ".audit", project_dir)
 
 
+def _scoped_analyzer(analyzer: Analyzer, project_info: dict | None) -> Analyzer:
+    """Bind analysis I/O to the resolved project without mutating shared server state."""
+    if project_info and project_info.get("project_path"):
+        return analyzer.scoped_to_project(project_info["project_path"])
+    return analyzer
+
+
 def register_table_one_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     analyzer: Analyzer,
     *,
     register_public_verbs: bool = True,
@@ -98,7 +105,8 @@ def register_table_one_tools(
             return "❌ Please specify at least one continuous or categorical column."
 
         try:
-            result = analyzer.generate_table_one(
+            active_analyzer = _scoped_analyzer(analyzer, project_info)
+            result = active_analyzer.generate_table_one(
                 filename=filename,
                 group_col=group_col,
                 continuous_cols=continuous_list,
@@ -188,13 +196,17 @@ def register_table_one_tools(
         if workflow_error:
             return workflow_error
 
+        project_info = None
         if project:
-            is_valid, msg, _ = ensure_project_context(project)
+            is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+        else:
+            _, _, project_info = ensure_project_context()
 
         try:
-            df = analyzer.load_data(filename)
+            active_analyzer = _scoped_analyzer(analyzer, project_info)
+            df = active_analyzer.load_data(filename)
         except FileNotFoundError:
             return f"❌ Data file '{filename}' not found in data/ directory."
 
@@ -306,12 +318,15 @@ def register_table_one_tools(
         if workflow_error:
             return workflow_error
 
+        project_info = None
         if project:
-            is_valid, msg, _ = ensure_project_context(project)
+            is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
                 return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+        else:
+            _, _, project_info = ensure_project_context()
 
-        data_dir = analyzer.data_dir
+        data_dir = _scoped_analyzer(analyzer, project_info).data_dir
         if not os.path.exists(data_dir):
             return "📁 No data/ directory found.\n\nCreate one and add your CSV files."
 

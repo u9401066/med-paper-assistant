@@ -10,7 +10,7 @@ Migrated to Skills:
 
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import (
     ProjectManager,
@@ -28,7 +28,7 @@ from .tool_health import register_tool_health_tools
 
 
 def register_review_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     drafter: Drafter,
     ref_manager: ReferenceManager,
     project_manager: Optional[ProjectManager] = None,

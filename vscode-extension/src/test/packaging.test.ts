@@ -137,17 +137,20 @@ describe('extension entry point', () => {
         expect(content).toContain('export function deactivate');
     });
 
-    it('registers PubMed Search, Zotero Keeper, and Draw.io MCP servers', () => {
+    it('registers PubMed, Zotero, Asset-Aware, and Draw.io MCP servers', () => {
         const content = fs.readFileSync(path.join(extDir, 'src', 'extension.ts'), 'utf-8');
         expect(content).toContain("'PubMed Search'");
         expect(content).toContain("'Zotero Keeper'");
         expect(content).toContain("'Draw.io Diagrams'");
+        expect(content).toContain("'Asset-Aware Documents'");
         expect(content).toContain("'pubmed-search-mcp'");
         expect(content).toContain('NCBI_EMAIL: process.env.NCBI_EMAIL || process.env.ENTREZ_EMAIL');
         expect(content).not.toContain('ENTREZ_EMAIL: process.env.ENTREZ_EMAIL');
-        expect(content).toContain("'zotero-keeper'");
+        expect(content).toContain("MCP_INTEGRATION_PACKAGES['zotero-keeper']");
+        expect(content).toContain("MCP_INTEGRATION_PACKAGES['asset-aware']");
+        expect(content).toContain("integrations', 'asset-aware-mcp'");
         expect(content).toContain("integrations', 'next-ai-draw-io', 'mcp-server'");
-        expect(content).toContain("integrations', 'drawio-mcp'");
+        expect(content).not.toContain("'@drawio/mcp'");
     });
 });
 

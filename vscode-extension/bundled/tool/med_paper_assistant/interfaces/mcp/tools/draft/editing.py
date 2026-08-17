@@ -11,7 +11,7 @@ partial edits (replace_string_in_file) instead of whole-file write_draft().
 import os
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.domain.services.wikilink_validator import (
     ALL_WIKILINK_PATTERN,
@@ -51,7 +51,7 @@ def _get_references_dir() -> Optional[str]:
 
 
 def register_editing_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     drafter: Drafter,
     *,
     register_public_verbs: bool = True,

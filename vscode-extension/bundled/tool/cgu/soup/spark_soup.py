@@ -9,6 +9,7 @@ Spark-Soup: Context Stuffing for Creativity
 3. 讓 LLM 從碎片中產生意外連結
 """
 
+import asyncio
 import logging
 import random
 from dataclasses import dataclass
@@ -252,32 +253,32 @@ class DuckDuckGoCollector(FragmentCollector):
         try:
             from duckduckgo_search import DDGS
 
-            fragments = []
-
-            # 主題相關搜尋
-            async with DDGS() as ddgs:
-                results = list(ddgs.text(f"{topic} 創新", max_results=count // 2))
-                for r in results:
-                    fragments.append(
-                        Fragment(
-                            content=f"🔍 {r.get('title', '')}: {r.get('body', '')[:100]}...",
-                            source=FragmentSource.DUCKDUCKGO,
-                            relevance=0.7,
-                        )
-                    )
-
-                # 隨機延伸搜尋
-                if randomness > 0.3:
+            def search() -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+                with DDGS() as ddgs:
+                    related = list(ddgs.text(f"{topic} 創新", max_results=count // 2))
+                    if randomness <= 0.3:
+                        return related, []
                     random_word = random.choice(RANDOM_CONCEPTS)
-                    random_results = list(ddgs.text(f"{random_word} 趨勢", max_results=count // 2))
-                    for r in random_results:
-                        fragments.append(
-                            Fragment(
-                                content=f"🎲 {r.get('title', '')}: {r.get('body', '')[:100]}...",
-                                source=FragmentSource.DUCKDUCKGO,
-                                relevance=0.3,
-                            )
-                        )
+                    extended = list(ddgs.text(f"{random_word} 趨勢", max_results=count // 2))
+                    return related, extended
+
+            results, random_results = await asyncio.to_thread(search)
+            fragments = [
+                Fragment(
+                    content=f"🔍 {r.get('title', '')}: {str(r.get('body', ''))[:100]}...",
+                    source=FragmentSource.DUCKDUCKGO,
+                    relevance=0.7,
+                )
+                for r in results
+            ]
+            fragments.extend(
+                Fragment(
+                    content=f"🎲 {r.get('title', '')}: {str(r.get('body', ''))[:100]}...",
+                    source=FragmentSource.DUCKDUCKGO,
+                    relevance=0.3,
+                )
+                for r in random_results
+            )
 
             return fragments[:count]
 

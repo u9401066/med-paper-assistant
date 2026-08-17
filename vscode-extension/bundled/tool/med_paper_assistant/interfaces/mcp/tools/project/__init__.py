@@ -12,7 +12,7 @@ Split into submodules for maintainability:
 - workspace_state: get_workspace_state, sync_workspace_state (with clear)
 """
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 from med_paper_assistant.interfaces.mcp.tool_surface import ToolSurface, uses_compact_tool_surface
@@ -28,7 +28,7 @@ from .workspace_state import register_workspace_state_tools
 
 
 def register_project_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     project_manager: ProjectManager,
     *,
     tool_surface: ToolSurface = "full",

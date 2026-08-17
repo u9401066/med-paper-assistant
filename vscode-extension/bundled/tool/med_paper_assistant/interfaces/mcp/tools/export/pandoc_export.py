@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
 from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
@@ -26,7 +26,7 @@ from .._shared import (
 
 
 def register_pandoc_export_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     *,
     register_public_verbs: bool = True,
 ):

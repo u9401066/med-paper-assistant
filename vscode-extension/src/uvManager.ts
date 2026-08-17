@@ -6,9 +6,9 @@
  * 2. Auto-install uv if not found (cross-platform)
  * 3. Derive uvx path from uv path
  *
- * With uv installed, `uvx med-paper-assistant` handles EVERYTHING:
+ * With uv installed, version-pinned `uvx --from ...` runtimes provide:
  * - Python auto-download (if no Python on system)
- * - Package installation from PyPI in isolated environment
+ * - Package installation from exact SDK2 sources in isolated environments
  * - All dependencies resolved automatically
  * - No interference with user's other packages
  */
@@ -59,24 +59,6 @@ export function enrichPath(basePath: string): string {
     const toAdd = extraDirs.filter(d => !existing.has(d));
     if (toAdd.length === 0) { return basePath; }
     return [...toAdd, basePath].join(path.delimiter);
-}
-
-/**
- * Get all PATH directories after enrichment, preserving order and removing duplicates.
- */
-function getPathDirectories(basePath: string): string[] {
-    const seen = new Set<string>();
-    const dirs: string[] = [];
-
-    for (const dir of enrichPath(basePath).split(path.delimiter)) {
-        if (!dir || seen.has(dir)) {
-            continue;
-        }
-        seen.add(dir);
-        dirs.push(dir);
-    }
-
-    return dirs;
 }
 
 /**
@@ -204,215 +186,15 @@ export async function installUvHeadless(log?: (msg: string) => void): Promise<st
 }
 
 /**
- * Find a pre-installed tool binary in known locations.
- * Checks uv tool directories, Homebrew, and common install paths.
+ * Build an isolated uvx command from an immutable package source.
  *
- * This avoids re-downloading via uvx when the tool is already persistently
- * installed (via `uv tool install`, `pip install --user`, `brew install`, etc.).
- *
- * @param binaryName - The command name to look for (e.g., 'med-paper-assistant')
- * @returns Absolute path to the binary, or null if not found
+ * This intentionally ignores arbitrary pre-installed binaries: a binary with
+ * the same name may come from an MCP SDK v1 release.
  */
-export function findInstalledTool(binaryName: string): string | null {
-    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-    const ext = process.platform === 'win32' ? '.exe' : '';
-    const bin = binaryName + ext;
-
-    const candidates: string[] = getPathDirectories(process.env.PATH || '')
-        .map(dir => path.join(dir, bin));
-
-    if (process.platform === 'win32') {
-        candidates.push(
-            path.join(homeDir, '.local', 'bin', bin),
-            path.join(process.env.LOCALAPPDATA || '', 'uv', 'bin', bin),
-            path.join(homeDir, 'AppData', 'Local', 'uv', 'bin', bin),
-        );
-    } else {
-        candidates.push(
-            path.join(homeDir, '.local', 'bin', bin),       // uv tool install / pip --user
-            path.join(homeDir, '.cargo', 'bin', bin),        // cargo install
-            '/usr/local/bin/' + bin,                         // Homebrew Intel / manual
-        );
-        if (process.platform === 'darwin') {
-            candidates.push('/opt/homebrew/bin/' + bin);     // Homebrew Apple Silicon
-        }
-    }
-
-    for (const c of candidates) {
-        if (c && fs.existsSync(c)) {
-            return c;
-        }
-    }
-
-    return null;
-}
-
-/**
- * Build the install command for a persistent uv tool installation.
- *
- * @param packageName - PyPI package name
- * @param binaryName - Tool binary to install from the package
- * @param pythonVersion - Optional Python version constraint
- * @returns Command string runnable by exec
- */
-export function getUvToolInstallCommand(
-    packageName: string,
-    binaryName?: string,
-    pythonVersion?: string,
-): string {
-    const args = ['tool', 'install'];
-
-    if (pythonVersion) {
-        args.push('--python', pythonVersion);
-    }
-
-    if (binaryName && binaryName !== packageName) {
-        args.push('--from', packageName, binaryName);
-    } else {
-        args.push(packageName);
-    }
-
-    return `uv ${args.join(' ')}`;
-}
-
-/**
- * Build the command for upgrading an already installed uv-managed tool.
- *
- * The upgrade target is the installed tool name, which matches the executable
- * name for normal tools and custom entry points such as cgu-server.
- *
- * @param packageName - PyPI package name (used when binaryName is omitted)
- * @param binaryName - Installed tool name when different from package name
- * @param pythonVersion - Optional Python interpreter/version selector
- * @returns Command string runnable by exec
- */
-export function getUvToolUpgradeCommand(
-    packageName: string,
-    binaryName?: string,
-    pythonVersion?: string,
-): string {
-    const args = ['tool', 'upgrade'];
-
-    if (pythonVersion) {
-        args.push('--python', pythonVersion);
-    }
-
-    args.push(binaryName || packageName);
-    return `uv ${args.join(' ')}`;
-}
-
-/**
- * Ensure a persistent tool binary is installed for marketplace mode.
- *
- * If the binary already exists, it is reused. Otherwise the package is installed
- * with `uv tool install` so future activations can use the persistent binary
- * directly instead of creating a fresh uvx environment.
- *
- * @param packageName - PyPI package name
- * @param binaryName - Expected installed binary name
- * @param pythonVersion - Optional Python version constraint
- * @param log - Optional logging function
- * @returns Installed binary path, or null if install failed
- */
-export async function ensureInstalledTool(
-    packageName: string,
-    binaryName?: string,
-    pythonVersion?: string,
-    log?: (msg: string) => void,
-): Promise<string | null> {
-    const _log = log || (() => {});
-    const bin = binaryName || packageName;
-    const existing = findInstalledTool(bin);
-
-    if (existing) {
-        _log(`Found pre-installed tool: ${bin} -> ${existing}`);
-
-        const upgradeCommand = getUvToolUpgradeCommand(packageName, binaryName, pythonVersion);
-        _log(`Checking for tool upgrades: ${upgradeCommand}`);
-
-        try {
-            await execAsync(upgradeCommand, {
-                timeout: 180000,
-                env: { ...process.env, PATH: enrichPath(process.env.PATH || '') },
-            });
-            const upgraded = findInstalledTool(bin);
-            if (upgraded) {
-                _log(`Tool is up to date: ${bin} -> ${upgraded}`);
-                return upgraded;
-            }
-        } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            _log(`Tool upgrade skipped for ${bin}: ${errorMsg}`);
-        }
-
-        return existing;
-    }
-
-    const command = getUvToolInstallCommand(packageName, binaryName, pythonVersion);
-    _log(`Installing persistent tool: ${packageName} (${bin})`);
-    _log(`Running: ${command}`);
-
-    try {
-        await execAsync(command, {
-            timeout: 180000,
-            env: { ...process.env, PATH: enrichPath(process.env.PATH || '') },
-        });
-
-        const installed = findInstalledTool(bin);
-        if (installed) {
-            _log(`Installed persistent tool: ${bin} -> ${installed}`);
-            return installed;
-        }
-
-        _log(`Install reported success but binary not found: ${bin}`);
-        return null;
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        _log(`Persistent tool install failed for ${packageName}: ${errorMsg}`);
-        return null;
-    }
-}
-
-/**
- * Build MCP server command preferring pre-installed tool over uvx.
- *
- * Resolution order:
- * 1. Pre-installed binary (uv tool install / pip --user / brew) → direct execution
- * 2. uvx (ephemeral environment) → downloads if not cached
- *
- * @param uvPath - Path to the uv binary (for uvx fallback)
- * @param packageName - PyPI package name (e.g., 'med-paper-assistant')
- * @param binaryName - Binary/command name (defaults to packageName)
- * @param pythonVersion - Optional Python version constraint
- * @returns [command, args, isPreInstalled] tuple
- */
-export function buildMcpCommand(
+export function buildPinnedUvxCommand(
     uvPath: string,
-    packageName: string,
-    binaryName?: string,
-    pythonVersion?: string,
-): [string, string[], boolean] {
-    const bin = binaryName || packageName;
-    const installed = findInstalledTool(bin);
-    if (installed) {
-        return [installed, [], true];
-    }
-    const [cmd, args] = buildUvxCommand(uvPath, packageName, pythonVersion);
-    return [cmd, args, false];
-}
-
-/**
- * Build the MCP server command and args for marketplace mode.
- * Uses uvx for complete isolation — no PYTHONPATH needed.
- *
- * @param uvPath - Path to the uv binary
- * @param packageName - PyPI package name (e.g., 'med-paper-assistant')
- * @param pythonVersion - Optional Python version constraint (e.g., '>=3.11')
- * @returns [command, args] tuple
- */
-export function buildUvxCommand(
-    uvPath: string,
-    packageName: string,
+    packageSource: string,
+    entrypoint: string,
     pythonVersion?: string,
 ): [string, string[]] {
     const uvxPath = getUvxPath(uvPath);
@@ -422,8 +204,7 @@ export function buildUvxCommand(
         args.push('--python', pythonVersion);
     }
 
-    args.push(packageName);
-
+    args.push('--from', packageSource, entrypoint);
     return [uvxPath, args];
 }
 

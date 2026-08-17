@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from .._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
 from ..draft.facade import _auto_run_post_write_hooks, _infer_section_name
@@ -14,7 +14,7 @@ ToolMap = Mapping[str, Callable[..., Any]]
 
 
 def register_analysis_facade_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     stats_tools: ToolMap,
     table_one_tools: ToolMap,
     figure_tools: ToolMap,

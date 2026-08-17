@@ -8,17 +8,17 @@ CGU Thinking Module
 """
 
 from cgu.thinking.engine import (
+    ThinkingConfig,
+    ThinkingDepth,
     ThinkingEngine,
     ThinkingMode,
-    ThinkingDepth,
-    ThinkingConfig,
     ThinkingResult,
 )
 from cgu.thinking.facade import (
-    think,
-    quick_think,
     deep_think,
+    quick_think,
     spark_think,
+    think,
 )
 
 __all__ = [

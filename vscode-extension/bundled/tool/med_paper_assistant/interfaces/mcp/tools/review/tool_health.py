@@ -14,7 +14,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.tool_invocation_store import (
     ToolInvocationStore,
@@ -28,7 +28,7 @@ _MISUSE_RATE_THRESHOLD = 0.15  # >15% misuse rate → high_misuse
 
 
 def register_tool_health_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     *,
     register_public_verbs: bool = True,
 ) -> dict[str, Callable[..., Any]]:

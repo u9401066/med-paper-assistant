@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any, Optional
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
 
 from .._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
 
@@ -13,7 +14,7 @@ ToolMap = Mapping[str, Callable[..., Any]]
 
 
 def register_review_facade_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     audit_tools: ToolMap,
     pipeline_tools: ToolMap,
     formatting_tools: ToolMap | None = None,

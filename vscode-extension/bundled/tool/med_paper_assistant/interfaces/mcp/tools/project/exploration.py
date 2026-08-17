@@ -4,7 +4,7 @@ Project Exploration Tools
 Start exploration workspace, convert to project, get exploration status.
 """
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import ProjectManager
 
@@ -12,7 +12,7 @@ from .._shared import get_optional_tool_decorator
 
 
 def register_exploration_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     project_manager: ProjectManager,
     *,
     register_public_verbs: bool = True,
