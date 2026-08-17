@@ -14,6 +14,9 @@ on:
 permissions:
   contents: read
 
+env:
+  RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', inputs.version) || github.ref }}
+
 jobs:
   # ──────────────────────────────────────────────────────
   # 1. Validate tag version matches source files
@@ -24,6 +27,19 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_REF }}
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.0"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
 
       - name: Extract version from tag
         id: version
@@ -81,6 +97,9 @@ jobs:
           fi
           echo "✅ package.json version: $VSX_VERSION"
 
+      - name: Validate every release-facing version surface
+        run: uv run --frozen pytest tests/test_release_hardening.py -q
+
   smoke-cross-platform:
     name: "Cross-Platform Smoke (${{ matrix.label }})"
     runs-on: ${{ matrix.os }}
@@ -98,6 +117,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ env.RELEASE_REF }}
           submodules: recursive
 
       - name: Install uv
@@ -117,10 +137,7 @@ jobs:
 
       - name: Install Python dependencies
         shell: bash
-        run: |
-          uv sync --frozen --all-extras
-          uv pip install -e integrations/pubmed-search-mcp
-          uv pip install -e integrations/cgu
+        run: uv sync --frozen --all-extras
 
       - name: Install VS Code extension dependencies
         working-directory: vscode-extension
@@ -160,6 +177,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ env.RELEASE_REF }}
           submodules: recursive
 
       - name: Install uv
@@ -173,10 +191,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          uv sync --frozen --all-extras
-          uv pip install -e integrations/pubmed-search-mcp
-          uv pip install -e integrations/cgu
+        run: uv sync --frozen --all-extras
 
       - name: Validate tool-surface authority
         run: uv run python scripts/check_tool_surface_authority.py
@@ -184,12 +199,19 @@ jobs:
       - name: Run tests
         run: uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
 
+      - name: Smoke production compact tool surface
+        run: uv run python scripts/greedy_mcp_tool_smoke.py --surface compact --stop-on error --json
+
+      - name: Smoke full diagnostic tool surface
+        run: uv run python scripts/greedy_mcp_tool_smoke.py --surface full --stop-on error --json
+
   lint-security:
     runs-on: ubuntu-latest
     needs: [validate, smoke-cross-platform]
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ env.RELEASE_REF }}
           submodules: recursive
 
       - name: Install uv
@@ -208,10 +230,7 @@ jobs:
           node-version: "24"
 
       - name: Install Python dependencies
-        run: |
-          uv sync --frozen --all-extras
-          uv pip install -e integrations/pubmed-search-mcp
-          uv pip install -e integrations/cgu
+        run: uv sync --frozen --all-extras
 
       - name: Install VS Code extension dependencies
         working-directory: vscode-extension
@@ -233,11 +252,41 @@ jobs:
         working-directory: vscode-extension
         run: npm audit --omit=dev --audit-level=high
 
+  external-mcp-sdk2-smoke:
+    runs-on: ubuntu-latest
+    needs: [validate, smoke-cross-platform]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_REF }}
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.10.0"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: uv sync --frozen --all-extras
+
+      - name: Install and inspect immutable Zotero and Draw.io archives
+        run: >-
+          uv run pytest tests/integration/test_zotero_sdk2_install_smoke.py -q
+          -m "integration and slow"
+
   vsx-bundle-drift:
     runs-on: ubuntu-latest
     needs: [validate, smoke-cross-platform]
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_REF }}
+          submodules: recursive
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -253,11 +302,20 @@ jobs:
         run: npm run bundle:check
 
   build-artifacts:
-    runs-on: ubuntu-latest
-    needs: [validate, smoke-cross-platform, test-python, lint-security, vsx-bundle-drift]
+    runs-on: ubuntu-24.04
+    needs:
+      [
+        validate,
+        smoke-cross-platform,
+        test-python,
+        lint-security,
+        external-mcp-sdk2-smoke,
+        vsx-bundle-drift,
+      ]
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ env.RELEASE_REF }}
           submodules: recursive
 
       - name: Install uv
@@ -306,6 +364,55 @@ jobs:
       - name: Build Python distribution artifacts
         run: uv build
 
+      - name: Install and smoke-test the built wheel
+        shell: bash
+        run: |
+          WHEEL_PATH=$(find dist -maxdepth 1 -name '*.whl' -print -quit)
+          test -n "$WHEEL_PATH"
+          uv venv --python 3.12 "$RUNNER_TEMP/medpaper-wheel-smoke"
+          uv pip install --python "$RUNNER_TEMP/medpaper-wheel-smoke/bin/python" "$WHEEL_PATH"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/medpaper-wheel-smoke/bin/python" - <<'PY'
+          import asyncio
+
+          import med_paper_assistant
+          from med_paper_assistant.interfaces.mcp.server import create_server
+          from med_paper_assistant.shared.template_paths import get_templates_dir
+
+          assert med_paper_assistant.__version__ == "${{ needs.validate.outputs.version }}"
+          assert (get_templates_dir() / "journal-profile.template.yaml").is_file()
+
+          async def smoke() -> None:
+              server = create_server("compact")
+              assert len(await server.list_tools()) == 12
+              assert len(await server.list_prompts()) == 3
+              assert len(await server.list_resources()) == 3
+
+          asyncio.run(smoke())
+          PY
+
+      - name: Download VS Code CLI for isolated install smoke
+        shell: bash
+        run: |
+          VSCODE_VERSION=1.100.0
+          VSCODE_SHA256=7a0bf28cca664b2514a383dd1e9391340039a5a6d554a499767ef3a916b5fe43
+          curl -fsSL "https://update.code.visualstudio.com/${VSCODE_VERSION}/linux-x64/stable" \
+            -o "$RUNNER_TEMP/vscode-linux.tar.gz"
+          echo "$VSCODE_SHA256  $RUNNER_TEMP/vscode-linux.tar.gz" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/vscode-linux"
+          tar -xzf "$RUNNER_TEMP/vscode-linux.tar.gz" \
+            -C "$RUNNER_TEMP/vscode-linux" --strip-components=1
+          echo "VSCODE_CLI=$RUNNER_TEMP/vscode-linux/bin/code" >> "$GITHUB_ENV"
+
+      - name: Install pinned VS Code CLI runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libasound2t64 libgbm1
+
+      - name: Install VSIX into an isolated VS Code profile
+        working-directory: vscode-extension
+        run: npm run test:install-smoke
+
       - name: Upload Python dist artifact
         uses: actions/upload-artifact@v7
         with:
@@ -348,8 +455,13 @@ jobs:
   publish-vsx:
     runs-on: ubuntu-latest
     needs: [validate, build-artifacts, publish-pypi, lint-security]
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_REF }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -366,36 +478,65 @@ jobs:
           name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
           path: release-assets
 
-      - name: Publish to VS Marketplace
+      # OIDC landed upstream after the latest stable npm release. Pin the
+      # audited upstream dependency-hardening commit until it ships as stable.
+      - name: Check out OIDC-capable VSCE
+        uses: actions/checkout@v6
+        with:
+          repository: microsoft/vscode-vsce
+          ref: 70891918a07c4ccfe2f2d081ab2aeeab3cf304bc
+          path: .release-tools/vscode-vsce
+
+      - name: Build pinned VSCE publisher
+        working-directory: .release-tools/vscode-vsce
+        run: |
+          npm ci
+          npm audit --omit=dev --audit-level=high
+          npm run compile
+
+      - name: Publish to VS Marketplace with OIDC
         working-directory: vscode-extension
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           VSIX_PATH=$(find ../release-assets -name '*.vsix' -print -quit)
-          npx --no-install vsce publish --packagePath "$VSIX_PATH" -p "$VSCE_PAT"
+          node ../.release-tools/vscode-vsce/vsce publish --oidc --packagePath "$VSIX_PATH"
 
   # ──────────────────────────────────────────────────────
   # 5. Create GitHub Release
   # ──────────────────────────────────────────────────────
   github-release:
     runs-on: ubuntu-latest
-    needs: [validate, publish-vsx, lint-security]
+    needs: [validate, build-artifacts, publish-pypi, publish-vsx, lint-security]
+    if: >-
+      ${{ always()
+          && needs.validate.result == 'success'
+          && needs.build-artifacts.result == 'success'
+          && needs.publish-pypi.result == 'success'
+          && needs.lint-security.result == 'success' }}
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_REF }}
 
       - name: Download VSIX artifact
         uses: actions/download-artifact@v8
         with:
           name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
+          path: release-assets
+
+      - name: Download Python dist artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: medpaper-python-dist-${{ needs.validate.outputs.version }}
+          path: release-assets
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ needs.validate.outputs.version }}
           generate_release_notes: true
-          files: "*.vsix"
+          files: "release-assets/*"
           body: |
             ## 📦 Installation
 
@@ -404,8 +545,13 @@ jobs:
             pip install med-paper-assistant==${{ needs.validate.outputs.version }}
             ```
 
-            ### VS Code Marketplace
-            Search "MedPaper Assistant" in VS Code Extensions, or:
+            ### VS Code / VS Marketplace
+            Marketplace publish job status: `${{ needs.publish-vsx.result }}`.
+
+            If the status is `success`, search "MedPaper Assistant" in VS Code Extensions or run:
             ```bash
             code --install-extension u9401066.medpaper-assistant
             ```
+
+            If the Marketplace status is not `success`, install the attached
+            `medpaper-assistant-${{ needs.validate.outputs.version }}.vsix` manually.

@@ -25,9 +25,14 @@ def test_release_version_surfaces_match() -> None:
     package_json = json.loads(
         (REPO_ROOT / "vscode-extension" / "package.json").read_text(encoding="utf-8")
     )
+    package_lock = json.loads(
+        (REPO_ROOT / "vscode-extension" / "package-lock.json").read_text(encoding="utf-8")
+    )
 
     expected = pyproject["project"]["version"]
     assert package_json["version"] == expected
+    assert package_lock["version"] == expected
+    assert package_lock["packages"][""]["version"] == expected
     assert _version_from_init(REPO_ROOT / "src" / "med_paper_assistant" / "__init__.py") == expected
     assert (
         _version_from_init(
@@ -40,6 +45,31 @@ def test_release_version_surfaces_match() -> None:
         )
         == expected
     )
+
+    citation = (REPO_ROOT / "CITATION.cff").read_text(encoding="utf-8")
+    citation_version = re.search(r"^version:\s*(\S+)$", citation, re.M)
+    citation_date = re.search(r"^date-released:\s*(\d{4}-\d{2}-\d{2})$", citation, re.M)
+    assert citation_version and citation_version.group(1) == expected
+    assert citation_date
+
+    for readme_name in ("README.md", "README.zh-TW.md"):
+        readme = (REPO_ROOT / readme_name).read_text(encoding="utf-8")
+        assert re.findall(r"version = \{([^}]+)\}", readme) == [expected]
+
+    docs_index = (REPO_ROOT / "docs" / "index.md").read_text(encoding="utf-8")
+    assert f"`v{expected}` 提供 MCP SDK2-only runtime" in docs_index
+
+    changelog = (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert f"## [{expected}] - {citation_date.group(1)}" in changelog
+    vsx_changelog = (REPO_ROOT / "vscode-extension" / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert f"## {expected} - {citation_date.group(1)}" in vsx_changelog
+
+    lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
+    root_packages = [
+        package for package in lock["package"] if package["name"] == "med-paper-assistant"
+    ]
+    assert len(root_packages) == 1
+    assert root_packages[0]["version"] == expected
 
 
 def test_sdist_is_explicitly_scoped() -> None:
@@ -63,6 +93,28 @@ def test_release_helper_uses_portable_pep440_version_updates() -> None:
     assert "sed -i" not in script
     assert "PEP 440" in script
     assert "X.Y.Z-beta.1" not in script
+    assert "git add -A" not in script
+    for surface in (
+        "CITATION.cff",
+        "README.md",
+        "README.zh-TW.md",
+        "docs/index.md",
+        "CHANGELOG.md",
+        "vscode-extension/CHANGELOG.md",
+        "uv lock --offline",
+    ):
+        assert surface in script
+
+
+def test_release_entrypoint_is_preflight_first_and_never_stages_source() -> None:
+    script = (REPO_ROOT / "scripts" / "release.sh").read_text(encoding="utf-8")
+
+    assert "--untracked-files=all" in script
+    assert "uv lock --check" in script
+    assert "test_release_hardening.py" in script
+    assert "test:install-smoke" in script
+    assert "git add" not in script
+    assert "bump-version.sh" not in script
 
 
 def test_readme_authority_counts_have_no_stale_contradictions() -> None:
@@ -113,6 +165,8 @@ def test_release_workflow_manual_dispatch_uses_explicit_version() -> None:
     assert "Validate manual release tag exists" in content
     assert 'TAG_VERSION="${GITHUB_REF_NAME#v}"' in content
     assert 'TAG_VERSION="${{ steps.version.outputs.version }}"' in content
+    assert "RELEASE_REF:" in content
+    assert "ref: ${{ env.RELEASE_REF }}" in content
 
 
 def test_release_workflow_uses_frozen_dependency_installs() -> None:
@@ -134,3 +188,42 @@ def test_release_publish_jobs_depend_on_security_gate() -> None:
         if isinstance(needs, str):
             needs = [needs]
         assert "lint-security" in needs, f"{job_name} does not depend on lint-security"
+
+
+def test_release_artifacts_are_installed_and_published_together() -> None:
+    content = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    build_steps = {
+        step.get("name"): step
+        for step in _workflow("release.yml")["jobs"]["build-artifacts"]["steps"]
+    }
+
+    assert "Install and smoke-test the built wheel" in build_steps
+    assert "Install VSIX into an isolated VS Code profile" in build_steps
+    assert (
+        "test:install-smoke" in build_steps["Install VSIX into an isolated VS Code profile"]["run"]
+    )
+    assert "medpaper-python-dist-${{ needs.validate.outputs.version }}" in content
+    assert 'files: "release-assets/*"' in content
+    assert "update.code.visualstudio.com/latest" not in content
+    assert "sha256sum --check --strict" in content
+    assert "needs.publish-pypi.result == 'success'" in content
+    assert 'echo "VSCODE_CLI=$RUNNER_TEMP/vscode-linux/bin/code"' in content
+    assert "VSCODE_CLI_JS" not in content
+    install_smoke = (REPO_ROOT / "vscode-extension" / "scripts" / "install-smoke.cjs").read_text(
+        encoding="utf-8"
+    )
+    assert "process.env.VSCODE_CLI" in install_smoke
+    assert "--install-extension" in install_smoke
+    assert "--list-extensions" in install_smoke
+    assert "needs.publish-vsx.result" in content
+
+
+def test_release_bundle_checks_have_recursive_submodules() -> None:
+    release = _workflow("release.yml")
+    for job_name in ("validate", "vsx-bundle-drift", "build-artifacts"):
+        checkout = next(
+            step
+            for step in release["jobs"][job_name]["steps"]
+            if step.get("uses") == "actions/checkout@v6"
+        )
+        assert checkout.get("with", {}).get("submodules") == "recursive", job_name

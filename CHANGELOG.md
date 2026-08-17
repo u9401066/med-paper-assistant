@@ -9,16 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-17
+
 ### Added
 
-- Added a MkDocs Material GitHub Pages wiki with 32 navigable pages, 48 native Mermaid diagrams, eight accessible SVG assets, topic-oriented navigation, full-text search, responsive layouts, and light/dark themes.
+- Added an immutable five-integration MCP lock for Asset-Aware, PubMed Search, CGU, Draw.io, and Zotero Keeper, with SDK2-only source contracts and direct plus real-stdio smoke tests.
+- Added release gates for the exact Zotero/Draw.io archive installs, compact and full MCP surfaces, Python artifacts, VSIX bundle parity, and cross-platform server boot.
+- Added a compact `reference_action` facade while keeping provenance-sensitive `save_reference_mcp` directly addressable; the default surface is now 12 tools and the advanced surface remains 118 tools.
+- Added a fail-closed PubMed verification chain with typed attestations, canonical payload hashes, exact PMID matching, trust-preserving domain conversion, and persisted provenance receipts.
+- Added a MkDocs Material GitHub Pages wiki with 35 navigable pages, native Mermaid diagrams, eight accessible SVG assets, topic-oriented navigation, bilingual full-text search, responsive layouts, and light/dark themes.
 - Added a least-privilege Pages workflow that validates source contracts, performs a strict locked build on pull requests, and deploys the `master` artifact through GitHub's Pages actions.
 - Added documentation contract tests for orphan pages, local links, Mermaid/SVG coverage, SVG accessibility, legacy-site removal, and build-before-deploy workflow ordering.
+- Added a platform-neutral evaluation contract that separates solve from score and requires evidence locators, stage budgets, source-dominance checks, frozen positive/negative fixtures, and reproducible release evidence.
+- Added an academic-agent benchmark roadmap grounded in primary project and paper sources, with explicit adoption boundaries, failure taxonomy, fixture families, and milestone gates.
+- Added read-only content-integrity receipts with before/after SHA-256, MIME identity, optional `c2pa-python` provenance validation, conservative visible-watermark review signals, and insertion gates. The workflow preserves originals and intentionally provides no automatic watermark-removal tool.
+- Added `CITATION.cff` and `CODE_OF_CONDUCT.md`, and replaced the placeholder security address and stale support/dependency claims with GitHub private advisory reporting and an honest security-practice inventory.
 
 ### Changed
 
+- Updated the Python, dashboard, VSIX, and integration dependency locks; the supported MCP runtime is now official MCP SDK 2.x throughout the root package and every managed integration.
+- Rebuilt the academic-writing harness around auditable evidence intake, output profiles, evaluation contracts, review loops, constraint-ledger convergence, human checkpoints, and autonomous multi-round execution.
+- Refactored the dashboard's asynchronous React state around keyed request state and cancellation, and brought both Node production dependency trees to zero reported npm audit vulnerabilities.
+- Made Marketplace runtimes reproducible: the core package is pinned to the VSIX version and every managed external MCP server runs from an immutable SDK2 revision rather than a PATH binary or floating package.
 - Replaced the dependency-free card index and generated 13-page manifest with the public `u9401066.github.io/med-paper-assistant` wiki, including architecture, pipeline, evidence, output-profile, quality, workspace, MCP, visual-atlas, and release-operations guides.
-- Updated the existing product, architecture, and Auto-Paper SVGs from VS Code-only and legacy phase wording to the cross-agent, 118-tool, auditable workspace model.
+- Updated the existing product, architecture, and Auto-Paper SVGs from VS Code-only and legacy phase wording to the cross-agent, 118-full/12-compact, auditable workspace model.
+- Migrated the runtime contract to MCP SDK 2.x only, removed legacy v1 fallback expectations, and defined compact/full initialize, discovery, progress, elicitation fallback, cancellation, and shutdown smoke coverage.
+- Reframed legacy “Anti-AI” language as style/authorship-integrity signals: the checks target specificity, consistency, evidence, and disclosure, not detector evasion or authorship classification.
+- Made Phase 4 mode-aware (manual researcher approval or audited autopilot review) and restored Phase 6.5 to its canonical evolution-baseline role rather than an asset gate.
+- Applied the repository description, five research-governance topics, and 15 structured workflow labels on GitHub; documented the remaining ruleset, security-update, wiki, and publishing governance decisions separately.
+
+### Removed
+
+- Removed MCP SDK1 and FastMCP launch paths, the Draw.io npm SDK1 fallback, activation-time floating upgrades, arbitrary pre-installed runtime reuse, fuzzy third-party provider suppression, and verified dead helper functions.
+
+### Fixed
+
+- Fixed `save_reference_mcp` so an unverified, malformed, source-mismatched, or PMID-mismatched PubMed envelope can never be promoted to VERIFIED; forged transport fields are stripped from ordinary agent saves.
+- Fixed Git worktree detection in Hook G9, cross-project analyzer state leakage, compact-facade smoke defaults, project-file API handling, figure integrity receipts, and bundled source drift.
+- Fixed release automation to checkout the requested tag, include recursive submodules, use VS Marketplace OIDC trusted publishing, attach Python and VSIX artifacts, and fail on exact version-surface or integration-smoke drift.
 
 ## [0.9.0] - 2026-07-14
 
@@ -378,7 +406,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dual-Subagent Anti-AI Cross-Audit Protocol (Stage C3)**:
 
   - SKILL.md Stage C3 rewritten: three-layer code scan (A3+A3B+A3C) → agent self-review (6 criteria incl. voice breaks) → dual-subagent cross-audit → verification
-  - Concept-Challenger: new Anti-AI Surface Scanner role (blacklist + structural signals + GPTZero risk assessment)
+  - Concept-Challenger: legacy style-surface scanner role (blacklist + structural signals; detector-risk scoring is retired)
   - Domain-Reviewer: new Voice Analyst role (per-paragraph AI probability scoring 1-5, ESL baseline analysis, TOP 5 suspicious sentences)
   - Cross-comparison protocol: 🔴 both flag → must rewrite, ⚠️ one flags → judge, ✅ both safe → pass
 
