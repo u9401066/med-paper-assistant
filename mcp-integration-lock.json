@@ -17,7 +17,18 @@
       "mcp_sdk_major": 2,
       "mcp_requirement": "mcp>=2,<3",
       "entrypoint": "asset-aware-mcp",
-      "package_source": "https://github.com/u9401066/asset-aware-mcp/archive/da8c7b99cbe512b1d51d7ab47698c9154f801ed4.tar.gz"
+      "package_source": "https://github.com/u9401066/asset-aware-mcp/archive/da8c7b99cbe512b1d51d7ab47698c9154f801ed4.tar.gz",
+      "surface": {
+        "tools": 30,
+        "prompts": 0,
+        "resources": 4
+      },
+      "smoke_call": {
+        "tool": "etl_profile",
+        "arguments": {
+          "op": "list"
+        }
+      }
     },
     "pubmed-search": {
       "repository": "https://github.com/u9401066/pubmed-search-mcp",
@@ -31,13 +42,22 @@
       "mcp_sdk_major": 2,
       "mcp_requirement": "mcp>=2,<3",
       "entrypoint": "pubmed-search-mcp",
-      "package_source": "https://github.com/u9401066/pubmed-search-mcp/archive/b12a55022f29ffe4d71e65c7de9f8aadba46cf73.tar.gz"
+      "package_source": "https://github.com/u9401066/pubmed-search-mcp/archive/b12a55022f29ffe4d71e65c7de9f8aadba46cf73.tar.gz",
+      "surface": {
+        "tools": 45,
+        "prompts": 9,
+        "resources": 14
+      },
+      "smoke_call": {
+        "tool": "list_resolver_presets",
+        "arguments": {}
+      }
     },
     "cgu": {
       "repository": "https://github.com/u9401066/creativity-generation-unit",
       "source_kind": "git-submodule",
       "path": "integrations/cgu",
-      "commit": "bf411fca504270417c4598f5c48b8cbc9d50f8a6",
+      "commit": "f293e190c2e8018729d9dcb78d6f5f39d209a87d",
       "release_ref": null,
       "package": "creativity-generation-unit",
       "version": "0.6.0",
@@ -45,14 +65,23 @@
       "mcp_sdk_major": 2,
       "mcp_requirement": "mcp>=2,<3",
       "entrypoint": "cgu-server",
-      "package_source": "https://github.com/u9401066/creativity-generation-unit/archive/bf411fca504270417c4598f5c48b8cbc9d50f8a6.tar.gz"
+      "package_source": "https://github.com/u9401066/creativity-generation-unit/archive/f293e190c2e8018729d9dcb78d6f5f39d209a87d.tar.gz",
+      "surface": {
+        "tools": 24,
+        "prompts": 0,
+        "resources": 2
+      },
+      "smoke_call": {
+        "tool": "list_methods",
+        "arguments": {}
+      }
     },
     "drawio": {
       "repository": "https://github.com/u9401066/next-ai-draw-io",
       "source_kind": "git-submodule",
       "path": "integrations/next-ai-draw-io",
       "package_subdirectory": "mcp-server",
-      "commit": "83e35303208766750ff04f2f3637c3b83fce0d0b",
+      "commit": "9bde25bac9ec160b912ddfebcb5ac037ce565e2f",
       "release_ref": null,
       "package": "drawio-mcp-server",
       "version": "2.0.0",
@@ -60,7 +89,16 @@
       "mcp_sdk_major": 2,
       "mcp_requirement": "mcp>=2,<3",
       "entrypoint": "drawio-mcp-server",
-      "package_source": "https://github.com/u9401066/next-ai-draw-io/archive/83e35303208766750ff04f2f3637c3b83fce0d0b.tar.gz#subdirectory=mcp-server"
+      "package_source": "https://github.com/u9401066/next-ai-draw-io/archive/9bde25bac9ec160b912ddfebcb5ac037ce565e2f.tar.gz#subdirectory=mcp-server",
+      "surface": {
+        "tools": 23,
+        "prompts": 0,
+        "resources": 0
+      },
+      "smoke_call": {
+        "tool": "list_templates",
+        "arguments": {}
+      }
     },
     "zotero-keeper": {
       "repository": "https://github.com/u9401066/zotero-keeper",
@@ -74,7 +112,16 @@
       "mcp_sdk_major": 2,
       "mcp_requirement": "mcp>=2,<3",
       "entrypoint": "zotero-keeper",
-      "package_source": "https://github.com/u9401066/zotero-keeper/archive/1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5.tar.gz#subdirectory=mcp-server"
+      "package_source": "https://github.com/u9401066/zotero-keeper/archive/1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5.tar.gz#subdirectory=mcp-server",
+      "surface": {
+        "tools": 32,
+        "prompts": 0,
+        "resources": 6
+      },
+      "smoke_call": {
+        "tool": "check_connection",
+        "arguments": {}
+      }
     }
   }
 }

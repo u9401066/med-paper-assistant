@@ -5,6 +5,9 @@ on:
     - cron: "0 9 * * 1" # Every Monday at 09:00 UTC
   workflow_dispatch: # Manual trigger
 
+permissions:
+  contents: read
+
 concurrency:
   group: evolution-health
   cancel-in-progress: true
@@ -14,16 +17,18 @@ jobs:
     name: "Evolution Health Scan"
     runs-on: ubuntu-latest
     permissions:
-      issues: write
+      contents: read
+      issues: write # Required to create or update the single health issue.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "latest"
+          version: "0.12.5"
 
       - name: Install dependencies
         run: uv sync --frozen
@@ -38,7 +43,7 @@ jobs:
 
       - name: Create issue if problems found
         if: always()
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const fs = require('fs');

@@ -375,6 +375,14 @@ def default_string_value(tool_name: str, property_name: str, context: SmokeConte
         return "Smoke Test Note"
     if property_name == "summary":
         return "Synthetic smoke-test summary."
+    if tool_name == "save_reference_analysis" and property_name == "methodology":
+        return "Synthetic cohort methodology with deterministic offline fixtures."
+    if tool_name == "save_reference_analysis" and property_name == "key_findings":
+        return "The controlled smoke workflow completed its expected reference checks."
+    if tool_name == "save_reference_analysis" and property_name == "limitations":
+        return "Synthetic evidence cannot support real clinical or scientific claims."
+    if tool_name == "save_reference_analysis" and property_name == "usage_sections":
+        return "Introduction,Discussion"
     if property_name == "action":
         tool_actions = {
             "run_quality_checks": "writing_hooks",
@@ -416,6 +424,10 @@ def build_value_from_schema(
         ("project_action", "name"),
         ("resolve_reference_identity", "pmid"),
         ("review_asset_for_insertion", "visible_watermark_review"),
+        ("save_reference_analysis", "key_findings"),
+        ("save_reference_analysis", "limitations"),
+        ("save_reference_analysis", "methodology"),
+        ("save_reference_analysis", "usage_sections"),
         ("update_library_note_metadata", "title"),
         ("write_draft", "content"),
         ("write_draft", "filename"),
@@ -436,6 +448,8 @@ def build_value_from_schema(
         return tool_name != "validate_concept"
     if tool_name == "run_review_hooks" and property_name == "round_num":
         return 1
+    if tool_name == "save_reference_analysis" and property_name == "relevance_score":
+        return 3
 
     enum_values = property_schema.get("enum")
     if isinstance(enum_values, list) and enum_values:
@@ -500,6 +514,11 @@ def build_tool_arguments(
         ("resolve_reference_identity", "pmid"),
         ("review_asset_for_insertion", "visible_watermark_review"),
         ("run_review_hooks", "round_num"),
+        ("save_reference_analysis", "key_findings"),
+        ("save_reference_analysis", "limitations"),
+        ("save_reference_analysis", "methodology"),
+        ("save_reference_analysis", "relevance_score"),
+        ("save_reference_analysis", "usage_sections"),
         ("update_library_note_metadata", "title"),
         ("write_draft", "content"),
         ("write_draft", "filename"),
@@ -640,7 +659,20 @@ def prepare_project_fixtures(context: SmokeContext) -> None:
     (tables_dir / context.sample_csv_name).write_text(sample_csv, encoding="utf-8")
     (figures_dir / "smoke-figure.png").write_bytes(
         base64.b64decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+            "iVBORw0KGgoAAAANSUhEUgAAAUAAAAFACAIAAABC8jL9AAACtUlEQVR42u3TMQ0AMAgAwVL/"
+            "EllY0IEHNpI7CZ98ZPUDbvoSgIEBAwMGBgMDBgYMDBgYDAwYGDAwGBgwMGBgwMBgYMDAgIEB"
+            "A4OBAQMDBgYDAwYGDAwYGAwMGBgwMGBgMDBgYMDAYGDAwICBAQODgQEDAwYGAwMGBgwMGBgM"
+            "DBgYMDBgYDAwYGDAwGBgwMCAgQEDg4EBAwMGBgwMBgYMDBgYDAwYGDAwYGAwMGBgwMCAgcHA"
+            "gIEBA4OBAQMDBgYMDAYGDAwYGAwMGBgwMGBgMDBgYMDAgIHBwICBAQODgQEDAwYGDAwGBgwMG"
+            "BgwMBgYMDBgYDAwYGDAwICBwcCAgQEDAwYGAwMGBgwMBgYMDBgYMDAYGDAwYGAwMGBgwMCAg"
+            "cHAgIEBAwMGBgMDBgYMDAYGDAwYGDAwGBgwMGBgwMBgYMDAgIHBwICBAQMDBgYDAwYGDAwGBg"
+            "wMGBgwMBgYMDBgYMDAYGDAwICBwcCAgQEDAwYGAwMGBgwMGBgMDBgYMDAYGDAwYGDAwGBgwMC"
+            "AgQEDg4EBAwMGBgMDBgYMDBgYDAwYGDAwGBgwMGBgwMBgYMDAgIEBA4OBAQMDBgYDAwYGDAwY"
+            "GAwMGBgwMGBgMDBgYMDAYGDAwICBAQODgQEDAwYGDAwGBgwMGBgMDBgYMDBgYDAwYGDAwGBgw"
+            "MCAgQEDg4EBAwMGBgwMBgYMDBgYDAwYGDAwYGAwMGBgwMCAgcHAgIEBA4OBAQMDBgYMDAYGDA"
+            "wYGAwsARgYMDBgYDAwYGDAwICBwcCAgQEDg4EBAwMGBgwMBgYMDBgYMDAYGDAwYGAwMGBgwMC"
+            "AgcHAgIEBAwMGBgMDBgYMDAYGDAwYGDAwGBgwMGBgMDBgYMDAgIHBwICBAQMDBgYDAwYGDAwG"
+            "BgwMGBgwMBgYMDBgYMDAYGDAwMDOAKmOBSMxLNaMAAAAAElFTkSuQmCC"
         )
     )
     for note_name in ("smoke-note.md", "move-note.md", "related-note.md"):
@@ -663,6 +695,8 @@ def prepare_project_fixtures(context: SmokeContext) -> None:
         "journal": "British Journal of Anaesthesia",
         "doi": "10.1093/bja/aex001",
         "abstract": "Synthetic abstract used by greedy MCP smoke fixtures.",
+        "fulltext_ingested": False,
+        "fulltext_unavailable_reason": "synthetic_fixture_has_no_fulltext_source",
         "citation_key": context.reference_citation_key,
         "citation": {
             "vancouver": "Greer JA, Lee DH. Review of remimazolam sedation in ICU patients. Br J Anaesth. 2017;118(1):1-5. PMID:27345583",

@@ -7,6 +7,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 # Cancel in-progress runs for the same branch
 concurrency:
   group: ci-${{ github.ref }}
@@ -27,22 +30,23 @@ jobs:
           - os: macos-14
             label: macos-14
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "latest"
+          version: "0.12.5"
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
 
@@ -72,6 +76,12 @@ jobs:
         shell: bash
         run: uv run pytest tests/test_export_pipeline.py tests/test_figure_embedding.py tests/test_config_paths.py tests/test_copilot_hook_guard.py tests/test_mcp_integration.py -q
 
+      - name: Smoke pinned watermark-removal package offline
+        shell: bash
+        run: >-
+          uv run pytest tests/integration/test_watermark_package_smoke.py -q
+          -m "integration"
+
       - name: Verify MCP server boots directly
         run: uv run python scripts/verify_mcp_server_boot.py
 
@@ -86,17 +96,18 @@ jobs:
     name: "Python Lint & Security"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "latest"
+          version: "0.12.5"
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
@@ -105,6 +116,9 @@ jobs:
 
       - name: Validate tool-surface authority
         run: uv run python scripts/check_tool_surface_authority.py
+
+      - name: Enforce code-quality debt ratchet
+        run: uv run python scripts/check_code_quality_authority.py
 
       - name: Lint (ruff check)
         run: uv run ruff check src/ tests/
@@ -118,22 +132,26 @@ jobs:
       - name: Security scan (bandit)
         run: uv run bandit -c pyproject.toml -r src/
 
+      - name: Detect high-confidence orphan code
+        run: uv run vulture src/ --min-confidence 80
+
   python-test:
     name: "Python Tests"
     runs-on: ubuntu-latest
     needs: [cross-platform-smoke, python-lint]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "latest"
+          version: "0.12.5"
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
@@ -156,24 +174,25 @@ jobs:
     name: "Pinned External MCP SDK 2 Smokes"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "latest"
+          version: "0.12.5"
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Install test dependencies
         run: uv sync --frozen --all-extras
 
-      - name: Install and inspect immutable Zotero and Draw.io archives
+      - name: Initialize and inspect all five immutable SDK2 archives
         run: >-
           uv run pytest tests/integration/test_zotero_sdk2_install_smoke.py -q
           -m "integration and slow"
@@ -186,12 +205,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: cross-platform-smoke
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
 
@@ -222,10 +242,12 @@ jobs:
     name: "Dashboard Build"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
 
@@ -248,10 +270,12 @@ jobs:
     name: "Markdown Format"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
 

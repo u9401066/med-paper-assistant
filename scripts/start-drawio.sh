@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DRAWIO_FORK_DIR="$PROJECT_ROOT/integrations/next-ai-draw-io/mcp-server"
 DRAWIO_FORK_ENTRY="$DRAWIO_FORK_DIR/src/drawio_mcp_server"
-DRAWIO_PACKAGE_SOURCE="https://github.com/u9401066/next-ai-draw-io/archive/83e35303208766750ff04f2f3637c3b83fce0d0b.tar.gz#subdirectory=mcp-server"
+DRAWIO_PACKAGE_SOURCE="https://github.com/u9401066/next-ai-draw-io/archive/9bde25bac9ec160b912ddfebcb5ac037ce565e2f.tar.gz#subdirectory=mcp-server"
 
 # ── Ensure common tool paths are in PATH (macOS + Linux) ──
 if [ "$(uname -s)" = "Darwin" ]; then
@@ -71,14 +71,14 @@ if kill -0 "$DRAWIO_PID" > /dev/null 2>&1; then
     kill "$DRAWIO_PID" > /dev/null 2>&1 || true
     wait "$DRAWIO_PID" 2>/dev/null || true
     echo "✅ Pinned Draw.io MCP 2.0.0 / SDK2 is reachable via uvx"
-    echo "   Commit: 83e35303208766750ff04f2f3637c3b83fce0d0b"
+    echo "   Commit: 9bde25bac9ec160b912ddfebcb5ac037ce565e2f"
     echo "   You can now use Draw.io MCP tools directly in Copilot Agent mode."
 else
     wait "$DRAWIO_PID"
     STATUS=$?
     if [ "$STATUS" -eq 0 ]; then
         echo "✅ Pinned Draw.io MCP 2.0.0 / SDK2 is available via uvx"
-        echo "   Commit: 83e35303208766750ff04f2f3637c3b83fce0d0b"
+        echo "   Commit: 9bde25bac9ec160b912ddfebcb5ac037ce565e2f"
         echo "   You can now use Draw.io MCP tools directly in Copilot Agent mode."
     else
         echo "❌ Failed to launch the pinned Draw.io SDK2 snapshot"

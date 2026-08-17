@@ -50,12 +50,16 @@ fi
 uv lock --check
 uv sync --frozen --all-extras
 uv run pytest tests/test_release_hardening.py -q
+uv run python scripts/check_tool_surface_authority.py
+uv run python scripts/check_code_quality_authority.py
 uv run ruff check src/ tests/
 uv run ruff format --check src/ tests/
 uv run mypy src/
 uv run bandit -r src/ -q
+uv run vulture src/ --min-confidence 80
 uv run pytest tests/ -q -m "not integration and not slow"
 uv run pytest tests/integration/test_zotero_sdk2_install_smoke.py -q -m "integration and slow"
+uv run pytest tests/integration/test_watermark_package_smoke.py -q -m "integration"
 uv build
 
 npm --prefix vscode-extension ci

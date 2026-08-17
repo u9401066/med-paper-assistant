@@ -73,8 +73,11 @@ def test_pages_workflow_builds_strictly_and_deploys_only_after_build() -> None:
 
     assert "scripts/build_docs_site.py --check" in commands
     assert "mkdocs build --strict" in commands
-    assert "actions/configure-pages@v5" in actions
-    assert "actions/upload-pages-artifact@v4" in actions
+    assert "actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d" in actions
+    assert "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9" in actions
     assert deploy["needs"] == "build"
     assert deploy["permissions"] == {"pages": "write", "id-token": "write"}
-    assert deploy["steps"][0]["uses"] == "actions/deploy-pages@v4"
+    assert (
+        deploy["steps"][0]["uses"]
+        == "actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128"
+    )

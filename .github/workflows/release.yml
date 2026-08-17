@@ -17,27 +17,34 @@ permissions:
 env:
   RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/v{0}', inputs.version) || github.ref }}
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ──────────────────────────────────────────────────────
   # 1. Validate tag version matches source files
   # ──────────────────────────────────────────────────────
   validate:
+    name: Validate release authority
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.10.0"
+          version: "0.12.5"
+          enable-cache: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
@@ -56,7 +63,7 @@ jobs:
           import sys
 
           version = sys.argv[1]
-          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+|\.post[0-9]+|\.dev[0-9]+)?", version):
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
               raise SystemExit(1)
           PY
           then
@@ -68,17 +75,21 @@ jobs:
 
       - name: Validate manual release tag exists
         if: github.event_name == 'workflow_dispatch'
+        env:
+          VALIDATED_VERSION: ${{ steps.version.outputs.version }}
         run: |
           git fetch --tags --force
-          git rev-parse --verify --quiet "refs/tags/v${{ steps.version.outputs.version }}" >/dev/null || {
-            echo "❌ Manual release requires tag v${{ steps.version.outputs.version }} to exist"
+          git rev-parse --verify --quiet "refs/tags/v${VALIDATED_VERSION}" >/dev/null || {
+            echo "❌ Manual release requires tag v${VALIDATED_VERSION} to exist"
             exit 1
           }
 
       - name: Validate pyproject.toml version
+        env:
+          VALIDATED_VERSION: ${{ steps.version.outputs.version }}
         run: |
           PYPI_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
-          TAG_VERSION="${{ steps.version.outputs.version }}"
+          TAG_VERSION="$VALIDATED_VERSION"
           if [ "$PYPI_VERSION" != "$TAG_VERSION" ]; then
             echo "❌ Version mismatch: pyproject.toml=$PYPI_VERSION, tag=$TAG_VERSION"
             echo "   Run: ./scripts/bump-version.sh $TAG_VERSION"
@@ -87,9 +98,11 @@ jobs:
           echo "✅ pyproject.toml version: $PYPI_VERSION"
 
       - name: Validate package.json version
+        env:
+          VALIDATED_VERSION: ${{ steps.version.outputs.version }}
         run: |
           VSX_VERSION=$(python -c 'import json, pathlib; print(json.loads(pathlib.Path("vscode-extension/package.json").read_text())["version"])')
-          TAG_VERSION="${{ steps.version.outputs.version }}"
+          TAG_VERSION="$VALIDATED_VERSION"
           if [ "$VSX_VERSION" != "$TAG_VERSION" ]; then
             echo "❌ Version mismatch: package.json=$VSX_VERSION, tag=$TAG_VERSION"
             echo "   Run: ./scripts/bump-version.sh $TAG_VERSION"
@@ -115,25 +128,28 @@ jobs:
           - os: macos-14
             label: macos-14
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.10.0"
+          version: "0.12.5"
+          enable-cache: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          package-manager-cache: false
 
       - name: Install Python dependencies
         shell: bash
@@ -161,6 +177,12 @@ jobs:
         shell: bash
         run: uv run pytest tests/test_export_pipeline.py tests/test_figure_embedding.py tests/test_config_paths.py tests/test_copilot_hook_guard.py tests/test_mcp_integration.py -q
 
+      - name: Smoke pinned watermark-removal package offline
+        shell: bash
+        run: >-
+          uv run pytest tests/integration/test_watermark_package_smoke.py -q
+          -m "integration"
+
       - name: Verify MCP server boots directly
         run: uv run python scripts/verify_mcp_server_boot.py
 
@@ -172,21 +194,24 @@ jobs:
   # 2. Run tests before publishing
   # ──────────────────────────────────────────────────────
   test-python:
+    name: Test Python release surface
     runs-on: ubuntu-latest
     needs: [validate, smoke-cross-platform]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.10.0"
+          version: "0.12.5"
+          enable-cache: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
@@ -195,6 +220,9 @@ jobs:
 
       - name: Validate tool-surface authority
         run: uv run python scripts/check_tool_surface_authority.py
+
+      - name: Enforce code-quality debt ratchet
+        run: uv run python scripts/check_code_quality_authority.py
 
       - name: Run tests
         run: uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
@@ -206,28 +234,32 @@ jobs:
         run: uv run python scripts/greedy_mcp_tool_smoke.py --surface full --stop-on error --json
 
   lint-security:
+    name: Lint and security gates
     runs-on: ubuntu-latest
     needs: [validate, smoke-cross-platform]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.10.0"
+          version: "0.12.5"
+          enable-cache: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          package-manager-cache: false
 
       - name: Install Python dependencies
         run: uv sync --frozen --all-extras
@@ -248,50 +280,59 @@ jobs:
       - name: Security scan
         run: uv run bandit -c pyproject.toml -r src/
 
+      - name: Detect high-confidence orphan code
+        run: uv run vulture src/ --min-confidence 80
+
       - name: Audit extension dependencies
         working-directory: vscode-extension
         run: npm audit --omit=dev --audit-level=high
 
   external-mcp-sdk2-smoke:
+    name: Smoke pinned external MCP SDK2 archives
     runs-on: ubuntu-latest
     needs: [validate, smoke-cross-platform]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.10.0"
+          version: "0.12.5"
+          enable-cache: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Install test dependencies
         run: uv sync --frozen --all-extras
 
-      - name: Install and inspect immutable Zotero and Draw.io archives
+      - name: Initialize and inspect all five immutable SDK2 archives
         run: >-
           uv run pytest tests/integration/test_zotero_sdk2_install_smoke.py -q
           -m "integration and slow"
 
   vsx-bundle-drift:
+    name: Verify VSIX bundle drift
     runs-on: ubuntu-latest
     needs: [validate, smoke-cross-platform]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
           submodules: recursive
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          package-manager-cache: false
 
       - name: Install dependencies
         working-directory: vscode-extension
@@ -302,6 +343,7 @@ jobs:
         run: npm run bundle:check
 
   build-artifacts:
+    name: Build and smoke release artifacts
     runs-on: ubuntu-24.04
     needs:
       [
@@ -313,25 +355,28 @@ jobs:
         vsx-bundle-drift,
       ]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
           submodules: recursive
+          persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          version: "0.10.0"
+          version: "0.12.5"
+          enable-cache: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          package-manager-cache: false
 
       - name: Install VS Code extension dependencies
         working-directory: vscode-extension
@@ -366,21 +411,49 @@ jobs:
 
       - name: Install and smoke-test the built wheel
         shell: bash
+        env:
+          EXPECTED_RELEASE_VERSION: ${{ needs.validate.outputs.version }}
         run: |
           WHEEL_PATH=$(find dist -maxdepth 1 -name '*.whl' -print -quit)
           test -n "$WHEEL_PATH"
           uv venv --python 3.12 "$RUNNER_TEMP/medpaper-wheel-smoke"
-          uv pip install --python "$RUNNER_TEMP/medpaper-wheel-smoke/bin/python" "$WHEEL_PATH"
+          uv pip install --python "$RUNNER_TEMP/medpaper-wheel-smoke/bin/python" \
+            "${WHEEL_PATH}[provenance,watermark]"
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/medpaper-wheel-smoke/bin/python" - <<'PY'
           import asyncio
+          import hashlib
+          import os
+          from importlib.metadata import version
+          from pathlib import Path
 
           import med_paper_assistant
+          import numpy as np
+          from PIL import Image
+          from med_paper_assistant.domain.value_objects.content_integrity import (
+              REMOVAL_PACKAGE_REQUIRED_CHECKS,
+              RemovalPackageStatus,
+          )
+          from med_paper_assistant.infrastructure.external.content_integrity import (
+              RemoveAiWatermarksInspectionAdapter,
+          )
           from med_paper_assistant.interfaces.mcp.server import create_server
           from med_paper_assistant.shared.template_paths import get_templates_dir
 
-          assert med_paper_assistant.__version__ == "${{ needs.validate.outputs.version }}"
+          assert med_paper_assistant.__version__ == os.environ["EXPECTED_RELEASE_VERSION"]
+          assert version("c2pa-python") == "0.37.7"
+          assert version("remove-ai-watermarks") == "0.26.3"
           assert (get_templates_dir() / "journal-profile.template.yaml").is_file()
+
+          asset = Path("wheel-watermark-negative.png")
+          pixels = np.random.default_rng(0).integers(0, 255, (512, 512, 3), dtype=np.uint8)
+          Image.fromarray(pixels).save(asset)
+          before = hashlib.sha256(asset.read_bytes()).hexdigest()
+          package_check = RemoveAiWatermarksInspectionAdapter().inspect(asset, "image/png")
+          assert package_check.status is RemovalPackageStatus.NOT_DETECTED
+          assert package_check.checks_completed == REMOVAL_PACKAGE_REQUIRED_CHECKS
+          assert package_check.derivative_written is False
+          assert hashlib.sha256(asset.read_bytes()).hexdigest() == before
 
           async def smoke() -> None:
               server = create_server("compact")
@@ -394,8 +467,8 @@ jobs:
       - name: Download VS Code CLI for isolated install smoke
         shell: bash
         run: |
-          VSCODE_VERSION=1.100.0
-          VSCODE_SHA256=7a0bf28cca664b2514a383dd1e9391340039a5a6d554a499767ef3a916b5fe43
+          VSCODE_VERSION=1.101.2
+          VSCODE_SHA256=ef62ab0835017bec498e7498fe79eb347f7610fe2da7bd71d5f69d8743ded033
           curl -fsSL "https://update.code.visualstudio.com/${VSCODE_VERSION}/linux-x64/stable" \
             -o "$RUNNER_TEMP/vscode-linux.tar.gz"
           echo "$VSCODE_SHA256  $RUNNER_TEMP/vscode-linux.tar.gz" | sha256sum --check --strict
@@ -414,13 +487,13 @@ jobs:
         run: npm run test:install-smoke
 
       - name: Upload Python dist artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: medpaper-python-dist-${{ needs.validate.outputs.version }}
           path: dist/*
 
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
           path: vscode-extension/*.vsix
@@ -429,6 +502,7 @@ jobs:
   # 3. Publish to PyPI (Trusted Publishing)
   # ──────────────────────────────────────────────────────
   publish-pypi:
+    name: Publish Python distributions
     runs-on: ubuntu-latest
     needs: [validate, build-artifacts, lint-security]
     environment: pypi
@@ -436,13 +510,13 @@ jobs:
       id-token: write # Required for trusted publishing
     steps:
       - name: Download Python dist artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: medpaper-python-dist-${{ needs.validate.outputs.version }}
           path: dist
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
           packages-dir: dist
           skip-existing: true
@@ -453,39 +527,86 @@ jobs:
   # 4. Publish to VS Code Marketplace
   # ──────────────────────────────────────────────────────
   publish-vsx:
+    name: Publish VS Marketplace artifact
     runs-on: ubuntu-latest
     needs: [validate, build-artifacts, publish-pypi, lint-security]
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Required for the VS Marketplace OIDC exchange.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          package-manager-cache: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+          enable-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
 
       - name: Install dependencies
         working-directory: vscode-extension
         run: npm ci
 
       - name: Download VSIX artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
           path: release-assets
 
+      - name: Smoke the published runtime and watermark extras
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          uv venv --python 3.12 "$RUNNER_TEMP/medpaper-pypi-smoke"
+          uv pip install --python "$RUNNER_TEMP/medpaper-pypi-smoke/bin/python" \
+            "med-paper-assistant[provenance,watermark]==$RELEASE_VERSION"
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/medpaper-pypi-smoke/bin/python" - <<'PY'
+          from importlib.metadata import version
+          from pathlib import Path
+
+          import numpy as np
+          from PIL import Image
+          from med_paper_assistant.domain.value_objects.content_integrity import (
+              REMOVAL_PACKAGE_REQUIRED_CHECKS,
+          )
+          from med_paper_assistant.infrastructure.external.content_integrity import (
+              RemoveAiWatermarksInspectionAdapter,
+          )
+
+          assert version("c2pa-python") == "0.37.7"
+          assert version("remove-ai-watermarks") == "0.26.3"
+          asset = Path("pypi-watermark-negative.png")
+          pixels = np.random.default_rng(0).integers(0, 255, (512, 512, 3), dtype=np.uint8)
+          Image.fromarray(pixels).save(asset)
+          result = RemoveAiWatermarksInspectionAdapter().inspect(asset, "image/png")
+          assert result.checks_completed == REMOVAL_PACKAGE_REQUIRED_CHECKS
+          assert result.derivative_written is False
+          PY
+
       # OIDC landed upstream after the latest stable npm release. Pin the
       # audited upstream dependency-hardening commit until it ships as stable.
       - name: Check out OIDC-capable VSCE
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: microsoft/vscode-vsce
           ref: 70891918a07c4ccfe2f2d081ab2aeeab3cf304bc
           path: .release-tools/vscode-vsce
+          persist-credentials: false
 
       - name: Build pinned VSCE publisher
         working-directory: .release-tools/vscode-vsce
@@ -504,6 +625,7 @@ jobs:
   # 5. Create GitHub Release
   # ──────────────────────────────────────────────────────
   github-release:
+    name: Publish GitHub Release
     runs-on: ubuntu-latest
     needs: [validate, build-artifacts, publish-pypi, publish-vsx, lint-security]
     if: >-
@@ -513,26 +635,28 @@ jobs:
           && needs.publish-pypi.result == 'success'
           && needs.lint-security.result == 'success' }}
     permissions:
-      contents: write
+      contents: write # Required to create the release and upload its assets.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.RELEASE_REF }}
+          persist-credentials: false
 
       - name: Download VSIX artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: medpaper-assistant-${{ needs.validate.outputs.version }}.vsix
           path: release-assets
 
       - name: Download Python dist artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: medpaper-python-dist-${{ needs.validate.outputs.version }}
           path: release-assets
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+      # Keep the audited action for its atomic notes + multi-asset upload behavior.
+      - name: Create GitHub Release # zizmor: ignore[superfluous-actions]
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: v${{ needs.validate.outputs.version }}
           generate_release_notes: true

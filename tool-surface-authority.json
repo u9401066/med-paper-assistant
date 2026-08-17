@@ -5,6 +5,13 @@
     "prompts": 3,
     "resources": 3
   },
+  "externalMcp": {
+    "asset-aware": 30,
+    "pubmed-search": 45,
+    "cgu": 24,
+    "drawio": 23,
+    "zotero-keeper": 32
+  },
   "repository": {
     "skills": 38,
     "promptWorkflows": 15
@@ -16,17 +23,19 @@
     "templates": 4,
     "supportFiles": 7,
     "chatCommands": 10,
-    "paletteCommands": 11
+    "paletteCommands": 9
   },
   "docs": {
     "README.md": [
       "118 (full) / 12 (compact default)",
-      "11 cmds + 10 chat",
+      "Managed MCP integrations: 6",
+      "9 cmds + 10 chat",
       "tool-surface-authority.json"
     ],
     "README.zh-TW.md": [
       "118（full）/ 12（compact 預設）",
-      "11 指令 + 10 chat",
+      "6 個受管 MCP",
+      "9 指令 + 10 chat",
       "tool-surface-authority.json"
     ],
     "vscode-extension/README.md": [
@@ -35,7 +44,7 @@
       "9 reviewer/analysis agents",
       "7 support/reference files",
       "10 chat commands",
-      "11 palette commands",
+      "9 palette commands",
       "118 full / 12 compact default",
       "tool-surface-authority.json",
       "4 templates (1 journal profile + 3 CSL styles)"
@@ -47,6 +56,51 @@
     "vscode-extension/copilot-instructions.md": [
       "118 full / 12 compact default + 3 prompts + 3 resources",
       "tool-surface-authority.json"
+    ],
+    "ARCHITECTURE.md": [
+      "118 full / 12 compact",
+      "immutable submodule；MCP Python SDK 2",
+      "Python/Node 皆為 SDK 2",
+      "| 32"
+    ],
+    "docs/design/benchmark-evaluation-roadmap.md": [
+      "registered-visible/open-DWT detection-only package smoke"
+    ]
+  },
+  "forbiddenDocs": {
+    "README.md": [
+      "**3 MCP Servers**",
+      "11 cmds + 10 chat"
+    ],
+    "README.zh-TW.md": [
+      "**3 個 MCP Server**",
+      "11 指令 + 10 chat"
+    ],
+    "vscode-extension/README.md": [
+      "11 palette commands",
+      "mdpaper.projectsDirectory",
+      "mdpaper.defaultCitationStyle"
+    ],
+    "ARCHITECTURE.md": [
+      "118 full / 22 compact",
+      "npx -y @drawio/mcp",
+      "`uvx zotero-keeper`",
+      "| ~15",
+      "mdpaper.startServer",
+      "mdpaper.stopServer"
+    ],
+    "docs/auto-paper-guide.md": [
+      "PubMed Search MCP 0.5.9",
+      "46 個搜尋/檢索工具"
+    ],
+    "docs/wiki/repo-map.md": [
+      "Compact facade<br/>22 tools"
+    ],
+    "src/med_paper_assistant/interfaces/mcp/instructions.py": [
+      "118 full / 22 compact default"
+    ],
+    "docs/design/benchmark-evaluation-roadmap.md": [
+      "identify-only package smoke"
     ]
   }
 }

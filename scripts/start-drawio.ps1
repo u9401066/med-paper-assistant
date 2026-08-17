@@ -6,7 +6,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $DrawioForkDir = Join-Path $ProjectRoot "integrations/next-ai-draw-io/mcp-server"
 $DrawioForkEntry = Join-Path $DrawioForkDir "src/drawio_mcp_server"
-$DrawioPackageSource = "https://github.com/u9401066/next-ai-draw-io/archive/83e35303208766750ff04f2f3637c3b83fce0d0b.tar.gz#subdirectory=mcp-server"
+$DrawioPackageSource = "https://github.com/u9401066/next-ai-draw-io/archive/9bde25bac9ec160b912ddfebcb5ac037ce565e2f.tar.gz#subdirectory=mcp-server"
 
 function Test-BackgroundCommand {
     param(
@@ -53,7 +53,7 @@ if (-not (Get-Command uvx -ErrorAction SilentlyContinue)) {
 
 if (Test-BackgroundCommand -FilePath "uvx" -ArgumentList @("--python", "3.12", "--from", $DrawioPackageSource, "drawio-mcp-server", "--help")) {
     Write-Host "✅ Pinned Draw.io MCP 2.0.0 / SDK2 is available via uvx" -ForegroundColor Green
-    Write-Host "   Commit: 83e35303208766750ff04f2f3637c3b83fce0d0b"
+    Write-Host "   Commit: 9bde25bac9ec160b912ddfebcb5ac037ce565e2f"
     exit 0
 }
 

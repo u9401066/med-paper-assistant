@@ -84,4 +84,5 @@ Write-Host "Notes:" -ForegroundColor White
 Write-Host "  - Setup uses pinned submodule commits from this repository for reproducible installs." -ForegroundColor Gray
 Write-Host "  - To update submodules intentionally, run: git submodule update --remote --merge" -ForegroundColor Gray
 Write-Host "  - External Python MCP integrations are locked to SDK2 commits in mcp-integration-lock.json." -ForegroundColor Gray
+Write-Host "  - Managed MCPs: mdpaper 118/12, pubmed-search 45, CGU 24, asset-aware 30, drawio 23, zotero-keeper 32." -ForegroundColor Gray
 Write-Host ""

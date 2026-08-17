@@ -11,6 +11,8 @@ from typing import Any
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CHECKOUT_ACTION = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+SETUP_UV_ACTION = "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d"
 
 
 def _version_from_init(path: Path) -> str:
@@ -164,17 +166,34 @@ def test_release_workflow_manual_dispatch_uses_explicit_version() -> None:
     assert "github.event.inputs.version" in content
     assert "Validate manual release tag exists" in content
     assert 'TAG_VERSION="${GITHUB_REF_NAME#v}"' in content
-    assert 'TAG_VERSION="${{ steps.version.outputs.version }}"' in content
+    assert "VALIDATED_VERSION: ${{ steps.version.outputs.version }}" in content
+    assert 'TAG_VERSION="$VALIDATED_VERSION"' in content
     assert "RELEASE_REF:" in content
     assert "ref: ${{ env.RELEASE_REF }}" in content
+
+
+def test_release_workflow_accepts_stable_versions_only() -> None:
+    content = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+
+    assert 're.fullmatch(r"[0-9]+\\.[0-9]+\\.[0-9]+", version)' in content
+    assert "((a|b|rc)" not in content
+    assert "\\.post[0-9]+" not in content
+    assert "\\.dev[0-9]+" not in content
+
+
+def test_release_runs_all_managed_exact_archive_smokes() -> None:
+    content = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+
+    assert "Initialize and inspect all five immutable SDK2 archives" in content
+    assert "tests/integration/test_zotero_sdk2_install_smoke.py" in content
 
 
 def test_release_workflow_uses_frozen_dependency_installs() -> None:
     release = _workflow("release.yml")
     for job_name, step in _iter_steps(release):
         uses = step.get("uses", "")
-        if uses == "astral-sh/setup-uv@v7":
-            assert step.get("with", {}).get("version") != "latest", job_name
+        if uses == SETUP_UV_ACTION:
+            assert step.get("with", {}).get("version") == "0.12.5", job_name
         run = step.get("run", "")
         if "uv sync" in run:
             assert "--frozen" in run, f"{job_name} uses non-frozen uv sync"
@@ -192,18 +211,30 @@ def test_release_publish_jobs_depend_on_security_gate() -> None:
 
 def test_release_artifacts_are_installed_and_published_together() -> None:
     content = (REPO_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
-    build_steps = {
-        step.get("name"): step
-        for step in _workflow("release.yml")["jobs"]["build-artifacts"]["steps"]
-    }
+    release = _workflow("release.yml")
+    build_steps = {step.get("name"): step for step in release["jobs"]["build-artifacts"]["steps"]}
 
     assert "Install and smoke-test the built wheel" in build_steps
+    assert (
+        "${WHEEL_PATH}[provenance,watermark]"
+        in build_steps["Install and smoke-test the built wheel"]["run"]
+    )
     assert "Install VSIX into an isolated VS Code profile" in build_steps
     assert (
         "test:install-smoke" in build_steps["Install VSIX into an isolated VS Code profile"]["run"]
     )
     assert "medpaper-python-dist-${{ needs.validate.outputs.version }}" in content
     assert 'files: "release-assets/*"' in content
+    publish_steps = {
+        step.get("name"): step
+        for step in release["jobs"]["publish-vsx"]["steps"]
+        if step.get("name")
+    }
+    assert "Smoke the published runtime and watermark extras" in publish_steps
+    assert (
+        "med-paper-assistant[provenance,watermark]=="
+        in publish_steps["Smoke the published runtime and watermark extras"]["run"]
+    )
     assert "update.code.visualstudio.com/latest" not in content
     assert "sha256sum --check --strict" in content
     assert "needs.publish-pypi.result == 'success'" in content
@@ -224,6 +255,87 @@ def test_release_bundle_checks_have_recursive_submodules() -> None:
         checkout = next(
             step
             for step in release["jobs"][job_name]["steps"]
-            if step.get("uses") == "actions/checkout@v6"
+            if step.get("uses") == CHECKOUT_ACTION
         )
         assert checkout.get("with", {}).get("submodules") == "recursive", job_name
+
+
+def test_marketplace_recovery_is_manual_least_privilege_and_fail_closed() -> None:
+    workflow_path = REPO_ROOT / ".github" / "workflows" / "marketplace-recovery.yml"
+    content = workflow_path.read_text(encoding="utf-8")
+    recovery = _workflow("marketplace-recovery.yml")
+
+    assert "workflow_dispatch:" in content
+    assert "push:" not in content
+    assert "pull_request:" not in content
+    assert recovery.get("permissions") == {"contents": "read"}
+    assert recovery["concurrency"]["group"] == "marketplace-recovery-u9401066-medpaper-assistant"
+    assert recovery["concurrency"]["cancel-in-progress"] is False
+    assert "confirm_publish" in content
+    assert "expected_sha256" in content
+    assert "continue-on-error" not in content
+    assert "--oidc" not in content
+
+    publish = recovery["jobs"]["publish-and-verify"]
+    assert publish["needs"] == ["validate-inputs", "validate-artifact"]
+    assert publish["environment"]["name"] == "vs-marketplace"
+    assert "id-token" not in json.dumps(publish)
+    recovery_checkouts = [
+        step for _, step in _iter_steps(recovery) if step.get("uses") == CHECKOUT_ACTION
+    ]
+    assert recovery_checkouts
+    assert all(
+        step.get("with", {}).get("persist-credentials") is False for step in recovery_checkouts
+    )
+
+
+def test_marketplace_recovery_binds_and_installs_the_existing_release_asset() -> None:
+    content = (REPO_ROOT / ".github" / "workflows" / "marketplace-recovery.yml").read_text(
+        encoding="utf-8"
+    )
+
+    for contract in (
+        "refs/tags/v${{ needs.validate-inputs.outputs.version }}",
+        "git cat-file -t",
+        'gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG"',
+        "gh release download",
+        "RELEASE_DIGEST",
+        "sha256sum --check --strict",
+        "extension/package.json",
+        "extension.vsixmanifest",
+        "VSIX contains duplicate archive members",
+        "VSIX contains an unsafe archive member",
+        'if "\\\\" in name',
+        "npm ci --ignore-scripts",
+        "test:install-smoke",
+        "VSCODE_VERSION=1.101.2",
+        "VSCODE_SHA256=ef62ab0835017bec498e7498fe79eb347f7610fe2da7bd71d5f69d8743ded033",
+    ):
+        assert contract in content
+
+
+def test_marketplace_recovery_limits_pat_exposure_and_verifies_public_hash() -> None:
+    recovery = _workflow("marketplace-recovery.yml")
+    content = (REPO_ROOT / ".github" / "workflows" / "marketplace-recovery.yml").read_text(
+        encoding="utf-8"
+    )
+    publish_steps = recovery["jobs"]["publish-and-verify"]["steps"]
+    secret_steps = [
+        step.get("name") for step in publish_steps if "secrets.VSCE_PAT" in json.dumps(step)
+    ]
+    workflow_secret_references = sum(
+        path.read_text(encoding="utf-8").count("secrets.VSCE_PAT")
+        for path in (REPO_ROOT / ".github" / "workflows").glob("*.yml")
+    )
+
+    assert secret_steps == [
+        "Verify Marketplace PAT authorization",
+        "Publish the verified VSIX",
+    ]
+    assert workflow_secret_references == 2
+    assert "verify-pat u9401066" in content
+    assert "--skip-duplicate" in content
+    assert '-p "$VSCE_PAT"' not in content
+    assert "Microsoft.VisualStudio.Services.VsixSha256" in content
+    assert "ACTUAL_SHA256" in content
+    assert "Marketplace did not expose" in content

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import struct
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -138,6 +139,32 @@ def test_build_tool_arguments_fills_reference_fixture_defaults(tmp_path: Path) -
         "pmid": "27345583",
         "pdf_content": "JVBERi0xLjQKU21va2UgcGRmIGZpeHR1cmUKJSVFT0Y=",
     }
+
+
+def test_build_tool_arguments_supplies_substantive_reference_analysis(tmp_path: Path) -> None:
+    context = SmokeContext(workspace_root=tmp_path, project_slug="smoke-project")
+    schema = {
+        "type": "object",
+        "required": ["pmid", "summary"],
+        "properties": {
+            "pmid": {"type": "string"},
+            "summary": {"type": "string"},
+            "methodology": {"type": "string", "default": ""},
+            "key_findings": {"type": "string", "default": ""},
+            "limitations": {"type": "string", "default": ""},
+            "usage_sections": {"type": "string", "default": ""},
+            "relevance_score": {"type": "integer", "default": 0},
+        },
+    }
+
+    args = build_tool_arguments("save_reference_analysis", schema, context)
+
+    assert args is not None
+    assert args["pmid"] == "27345583"
+    for field in ("summary", "methodology", "key_findings", "limitations"):
+        assert len(args[field]) >= 8
+    assert args["relevance_score"] == 3
+    assert args["usage_sections"] == "Introduction,Discussion"
 
 
 @pytest.mark.parametrize(
@@ -369,9 +396,17 @@ def test_prepare_project_fixtures_creates_reference_and_draft_assets(tmp_path: P
     draft_path = context.project_path / "drafts" / "manuscript.md"
     metadata_path = context.project_path / "references" / "27345583" / "metadata.json"
     note_path = context.project_path / "references" / "27345583" / "greer2017_27345583.md"
+    figure_path = context.project_path / "results" / "figures" / "smoke-figure.png"
 
     assert draft_path.exists()
     assert "Synthetic CSV data were analyzed." in draft_path.read_text(encoding="utf-8")
     assert metadata_path.exists()
-    assert '"citation_key": "greer2017_27345583"' in metadata_path.read_text(encoding="utf-8")
+    metadata_text = metadata_path.read_text(encoding="utf-8")
+    assert '"citation_key": "greer2017_27345583"' in metadata_text
+    assert (
+        '"fulltext_unavailable_reason": "synthetic_fixture_has_no_fulltext_source"' in metadata_text
+    )
     assert note_path.exists()
+    figure_bytes = figure_path.read_bytes()
+    assert figure_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+    assert struct.unpack(">II", figure_bytes[16:24]) == (320, 320)

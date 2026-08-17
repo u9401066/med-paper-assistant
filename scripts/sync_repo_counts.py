@@ -30,6 +30,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,15 +40,35 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "med_paper_assistant"
 TOOLS_DIR = SRC / "interfaces" / "mcp" / "tools"
+TOOL_SURFACE_AUTHORITY = ROOT / "tool-surface-authority.json"
+EXTERNAL_MCP_NAMES = (
+    "asset-aware",
+    "pubmed-search",
+    "cgu",
+    "drawio",
+    "zotero-keeper",
+)
 
-# External MCP counts (not in our codebase — maintained manually)
-EXTERNAL_MCP = {
-    "pubmed-search": 46,
-    "cgu": 13,
-}
+
+def _load_external_mcp_authority() -> dict[str, int]:
+    """Load external counts from the release-gated tool-surface authority."""
+    try:
+        authority = json.loads(TOOL_SURFACE_AUTHORITY.read_text(encoding="utf-8"))
+        external = authority["externalMcp"]
+        counts = {name: int(external[name]) for name in EXTERNAL_MCP_NAMES}
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError(
+            "tool-surface-authority.json must define numeric externalMcp counts "
+            f"for {', '.join(EXTERNAL_MCP_NAMES)}"
+        ) from exc
+    if any(count <= 0 for count in counts.values()):
+        raise RuntimeError("externalMcp tool counts must be positive")
+    return counts
+
+
+EXTERNAL_MCP = _load_external_mcp_authority()
 
 COMPACT_SURFACE_FACADE_GROUPS = {"project", "review", "export"}
-TOOL_SURFACE_AUTHORITY = ROOT / "tool-surface-authority.json"
 
 
 # ── Data Classes ──────────────────────────────────────────────────────
@@ -65,11 +86,16 @@ class RepoCounts:
     mdpaper_total: int = 0
 
     # External MCP
+    asset_aware_tools: int = EXTERNAL_MCP["asset-aware"]
     pubmed_tools: int = EXTERNAL_MCP["pubmed-search"]
     cgu_tools: int = EXTERNAL_MCP["cgu"]
+    drawio_tools: int = EXTERNAL_MCP["drawio"]
+    zotero_tools: int = EXTERNAL_MCP["zotero-keeper"]
 
-    # Derived
+    # Derived. ``total_tools`` and ``mcp_servers`` preserve the historical
+    # three-core-surface aggregate; managed totals include optional integrations.
     total_tools: int = 0
+    managed_total_tools: int = 0
 
     # Other counts
     skills: int = 0
@@ -83,6 +109,7 @@ class RepoCounts:
     # Constants (semantic — don't auto-count)
     phases: int = 13
     mcp_servers: int = 3
+    managed_mcp_servers: int = 6
 
 
 # ── Counting Functions ────────────────────────────────────────────────
@@ -142,19 +169,43 @@ def count_mcp_tools() -> tuple[dict[str, int], int, int]:
     return groups, compact_total, facade_total
 
 
-def count_dir_entries(directory: Path, pattern: str = "*") -> int:
-    """Count matching entries in a directory."""
-    if not directory.exists():
-        return 0
-    return len(list(directory.glob(pattern)))
+def _repository_files(directory: Path, fallback_pattern: str) -> list[Path]:
+    """List tracked files, falling back to the filesystem in source archives."""
+    try:
+        relative = directory.relative_to(ROOT)
+    except ValueError:
+        return []
+    result = subprocess.run(
+        ["git", "ls-files", "--cached", "--", str(relative)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return [ROOT / line for line in result.stdout.splitlines() if line]
+    return [path for path in directory.glob(fallback_pattern) if path.is_file()]
 
 
 def count_skill_dirs() -> int:
-    """Count skill directories under .claude/skills/."""
+    """Count version-controlled skill entrypoints under .claude/skills/."""
     skills_dir = ROOT / ".claude" / "skills"
     if not skills_dir.exists():
         return 0
-    return len([d for d in skills_dir.iterdir() if d.is_dir()])
+    return sum(
+        path.name == "SKILL.md" and path.parent.parent == skills_dir
+        for path in _repository_files(skills_dir, "*/SKILL.md")
+    )
+
+
+def count_repository_docs(directory: Path, suffix: str) -> int:
+    """Count tracked prompt/agent documents without local experimental files."""
+    if not directory.exists():
+        return 0
+    return sum(
+        path.parent == directory and path.name.endswith(suffix)
+        for path in _repository_files(directory, f"*{suffix}")
+    )
 
 
 def count_precommit_hooks() -> int:
@@ -204,11 +255,14 @@ def gather_counts() -> RepoCounts:
             mcp_authority.get("compactTools", counts.mdpaper_compact_total)
         )
     counts.total_tools = counts.mdpaper_total + counts.pubmed_tools + counts.cgu_tools
+    counts.managed_total_tools = counts.total_tools + sum(
+        (counts.asset_aware_tools, counts.drawio_tools, counts.zotero_tools)
+    )
 
     # Skills, Prompts, Agents
     counts.skills = count_skill_dirs()
-    counts.prompts = count_dir_entries(ROOT / ".github" / "prompts", "*.prompt.md")
-    counts.agents = count_dir_entries(ROOT / ".github" / "agents", "*.agent.md")
+    counts.prompts = count_repository_docs(ROOT / ".github" / "prompts", ".prompt.md")
+    counts.agents = count_repository_docs(ROOT / ".github" / "agents", ".agent.md")
 
     # Pre-commit hooks
     counts.precommit_hooks = count_precommit_hooks()
@@ -420,7 +474,7 @@ def build_replace_rules(c: RepoCounts) -> list[ReplaceRule]:
             rules.append(
                 ReplaceRule(
                     readme,
-                    r"\d+\s*技能\s*·\s*\d+\s*Prompts?",
+                    r"\d+\s*技能\s*·\s*\d+\s*Prompts?\b(?!\s*工作流)",
                     f"{c.skills} 技能 · {c.prompts} Prompts",
                     "zh mermaid skills prompts",
                 )
@@ -429,7 +483,7 @@ def build_replace_rules(c: RepoCounts) -> list[ReplaceRule]:
             rules.append(
                 ReplaceRule(
                     readme,
-                    r"\d+\s*Skills?\s*·\s*\d+\s*Prompts?",
+                    r"\d+\s*Skills?\s*·\s*\d+\s*Prompts?\b(?!\s+Workflows)",
                     f"{c.skills} Skills · {c.prompts} Prompts",
                     "en mermaid skills prompts",
                 )
@@ -892,10 +946,14 @@ def main() -> int:
                 "groups": counts.tool_groups,
             },
             "external_mcp": {
+                "asset-aware": counts.asset_aware_tools,
                 "pubmed-search": counts.pubmed_tools,
                 "cgu": counts.cgu_tools,
+                "drawio": counts.drawio_tools,
+                "zotero-keeper": counts.zotero_tools,
             },
             "total_tools": counts.total_tools,
+            "managed_total_tools": counts.managed_total_tools,
             "skills": counts.skills,
             "prompts": counts.prompts,
             "agents": counts.agents,
@@ -906,6 +964,7 @@ def main() -> int:
                 "agent_driven": counts.quality_hooks_agent_driven,
             },
             "mcp_servers": counts.mcp_servers,
+            "managed_mcp_servers": counts.managed_mcp_servers,
             "phases": counts.phases,
         }
         print(json.dumps(data, indent=2))
@@ -921,9 +980,13 @@ def main() -> int:
     print(f"    facade entrypoints: {counts.mdpaper_facade_tools}")
     for g in sorted(counts.tool_groups):
         print(f"    {g + '/':<14s}: {counts.tool_groups[g]}")
-    print(f"  pubmed-search       : {counts.pubmed_tools} (external)")
-    print(f"  CGU                 : {counts.cgu_tools} (external)")
-    print(f"  Total tools         : ~{counts.total_tools}")
+    print(f"  asset-aware         : {counts.asset_aware_tools} (managed external)")
+    print(f"  pubmed-search       : {counts.pubmed_tools} (core external)")
+    print(f"  CGU                 : {counts.cgu_tools} (core external)")
+    print(f"  Draw.io             : {counts.drawio_tools} (managed external)")
+    print(f"  Zotero Keeper       : {counts.zotero_tools} (managed external)")
+    print(f"  Core tools          : ~{counts.total_tools}")
+    print(f"  Managed tools       : ~{counts.managed_total_tools}")
     print(f"  Skills              : {counts.skills}")
     print(f"  Prompts             : {counts.prompts}")
     print(f"  Agents              : {counts.agents}")

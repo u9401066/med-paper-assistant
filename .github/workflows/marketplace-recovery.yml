@@ -1,0 +1,328 @@
+name: Marketplace Recovery
+
+run-name: Marketplace recovery v${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Existing GitHub Release version without leading v"
+        required: true
+        type: string
+      expected_sha256:
+        description: "SHA-256 of the attached medpaper-assistant VERSION VSIX"
+        required: true
+        type: string
+      confirm_publish:
+        description: "Publish the verified release asset to VS Marketplace"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketplace-recovery-u9401066-medpaper-assistant
+  cancel-in-progress: false
+
+jobs:
+  validate-inputs:
+    name: Validate recovery request
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      sha256: ${{ steps.validate.outputs.sha256 }}
+    steps:
+      - name: Require explicit, bounded inputs
+        id: validate
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_SHA256: ${{ inputs.expected_sha256 }}
+          INPUT_CONFIRM: ${{ inputs.confirm_publish }}
+        run: |
+          set -euo pipefail
+          if [ "$INPUT_CONFIRM" != "true" ]; then
+            echo "::error::confirm_publish must be enabled for a recovery publication"
+            exit 1
+          fi
+          if [[ ! "$INPUT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must be a stable X.Y.Z version without a leading v"
+            exit 1
+          fi
+          if [[ ! "$INPUT_SHA256" =~ ^[[:xdigit:]]{64}$ ]]; then
+            echo "::error::expected_sha256 must contain exactly 64 hexadecimal characters"
+            exit 1
+          fi
+          NORMALIZED_SHA256="${INPUT_SHA256,,}"
+          echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha256=$NORMALIZED_SHA256" >> "$GITHUB_OUTPUT"
+
+  validate-artifact:
+    name: Validate and install the released VSIX
+    runs-on: ubuntu-latest
+    needs: validate-inputs
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: v${{ needs.validate-inputs.outputs.version }}
+      VSIX_NAME: medpaper-assistant-${{ needs.validate-inputs.outputs.version }}.vsix
+      EXPECTED_SHA256: ${{ needs.validate-inputs.outputs.sha256 }}
+      EXPECTED_PUBLISHER: u9401066
+      EXPECTED_EXTENSION_NAME: medpaper-assistant
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/v${{ needs.validate-inputs.outputs.version }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Verify annotated tag and repository version surfaces
+        shell: bash
+        env:
+          VALIDATED_VERSION: ${{ needs.validate-inputs.outputs.version }}
+        run: |
+          set -euo pipefail
+          git fetch --force origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          test "$(git cat-file -t "$RELEASE_TAG")" = "tag"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "$RELEASE_TAG^{}")"
+
+          PACKAGE_VERSION=$(jq -r '.version' vscode-extension/package.json)
+          PACKAGE_NAME=$(jq -r '.name' vscode-extension/package.json)
+          PACKAGE_PUBLISHER=$(jq -r '.publisher' vscode-extension/package.json)
+          LOCK_VERSION=$(jq -r '.packages[""].version' vscode-extension/package-lock.json)
+          ROOT_VERSION=$(python3 -c 'import pathlib, tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')
+
+          test "$PACKAGE_VERSION" = "$VALIDATED_VERSION"
+          test "$LOCK_VERSION" = "$PACKAGE_VERSION"
+          test "$ROOT_VERSION" = "$PACKAGE_VERSION"
+          test "$PACKAGE_NAME" = "$EXPECTED_EXTENSION_NAME"
+          test "$PACKAGE_PUBLISHER" = "$EXPECTED_PUBLISHER"
+
+      - name: Download the exact GitHub Release VSIX
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RELEASE_JSON="$RUNNER_TEMP/marketplace-recovery-release.json"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > "$RELEASE_JSON"
+
+          test "$(jq -r '.tag_name' "$RELEASE_JSON")" = "$RELEASE_TAG"
+          test "$(jq -r '.draft' "$RELEASE_JSON")" = "false"
+          test "$(jq -r '.prerelease' "$RELEASE_JSON")" = "false"
+
+          ASSET_COUNT=$(jq --arg name "$VSIX_NAME" '[.assets[] | select(.name == $name)] | length' "$RELEASE_JSON")
+          test "$ASSET_COUNT" = "1"
+          RELEASE_DIGEST=$(jq -r --arg name "$VSIX_NAME" '.assets[] | select(.name == $name) | .digest' "$RELEASE_JSON")
+          test "$RELEASE_DIGEST" = "sha256:$EXPECTED_SHA256"
+
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$VSIX_NAME" \
+            --dir vscode-extension \
+            --clobber
+          echo "$EXPECTED_SHA256  vscode-extension/$VSIX_NAME" | sha256sum --check --strict
+
+      - name: Verify embedded VSIX manifests
+        shell: bash
+        env:
+          VALIDATED_VERSION: ${{ needs.validate-inputs.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 - "vscode-extension/$VSIX_NAME" \
+            "$EXPECTED_PUBLISHER" \
+            "$EXPECTED_EXTENSION_NAME" \
+            "$VALIDATED_VERSION" <<'PY'
+          import json
+          import sys
+          import xml.etree.ElementTree as ET
+          import zipfile
+          from pathlib import PurePosixPath
+
+          vsix_path, expected_publisher, expected_name, expected_version = sys.argv[1:]
+          with zipfile.ZipFile(vsix_path) as archive:
+              names = archive.namelist()
+              if len(names) != len(set(names)):
+                  raise SystemExit("VSIX contains duplicate archive members")
+              for name in names:
+                  path = PurePosixPath(name)
+                  if "\\" in name or path.is_absolute() or ".." in path.parts:
+                      raise SystemExit(f"VSIX contains an unsafe archive member: {name}")
+              if names.count("extension/package.json") != 1:
+                  raise SystemExit("VSIX must contain exactly one extension/package.json")
+              if names.count("extension.vsixmanifest") != 1:
+                  raise SystemExit("VSIX must contain exactly one extension.vsixmanifest")
+
+              package = json.loads(archive.read("extension/package.json"))
+              manifest = ET.fromstring(archive.read("extension.vsixmanifest"))
+
+          expected_package = {
+              "publisher": expected_publisher,
+              "name": expected_name,
+              "version": expected_version,
+          }
+          actual_package = {key: package.get(key) for key in expected_package}
+          if actual_package != expected_package:
+              raise SystemExit(
+                  f"VSIX package identity mismatch: expected {expected_package}, got {actual_package}"
+              )
+
+          identity = next(
+              (element for element in manifest.iter() if element.tag.rsplit("}", 1)[-1] == "Identity"),
+              None,
+          )
+          if identity is None:
+              raise SystemExit("VSIX manifest has no Identity element")
+          expected_identity = {
+              "Publisher": expected_publisher,
+              "Id": expected_name,
+              "Version": expected_version,
+          }
+          actual_identity = {key: identity.attrib.get(key) for key in expected_identity}
+          if actual_identity != expected_identity:
+              raise SystemExit(
+                  f"VSIX manifest identity mismatch: expected {expected_identity}, got {actual_identity}"
+              )
+          PY
+
+      - name: Install extension dependencies from the tagged lockfile
+        working-directory: vscode-extension
+        run: npm ci --ignore-scripts
+
+      - name: Download VS Code CLI for isolated install smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          VSCODE_VERSION=1.101.2
+          VSCODE_SHA256=ef62ab0835017bec498e7498fe79eb347f7610fe2da7bd71d5f69d8743ded033
+          curl -fsSL "https://update.code.visualstudio.com/${VSCODE_VERSION}/linux-x64/stable" \
+            -o "$RUNNER_TEMP/vscode-linux.tar.gz"
+          echo "$VSCODE_SHA256  $RUNNER_TEMP/vscode-linux.tar.gz" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/vscode-linux"
+          tar -xzf "$RUNNER_TEMP/vscode-linux.tar.gz" \
+            -C "$RUNNER_TEMP/vscode-linux" --strip-components=1
+          echo "VSCODE_CLI=$RUNNER_TEMP/vscode-linux/bin/code" >> "$GITHUB_ENV"
+
+      - name: Install pinned VS Code CLI runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libasound2t64 libgbm1
+
+      - name: Install VSIX into an isolated VS Code profile
+        working-directory: vscode-extension
+        run: npm run test:install-smoke
+
+  publish-and-verify:
+    name: Publish and verify Marketplace artifact
+    runs-on: ubuntu-latest
+    needs: [validate-inputs, validate-artifact]
+    timeout-minutes: 15
+    environment:
+      name: vs-marketplace
+      url: https://marketplace.visualstudio.com/items?itemName=u9401066.medpaper-assistant
+    env:
+      RELEASE_TAG: v${{ needs.validate-inputs.outputs.version }}
+      VSIX_NAME: medpaper-assistant-${{ needs.validate-inputs.outputs.version }}.vsix
+      EXPECTED_SHA256: ${{ needs.validate-inputs.outputs.sha256 }}
+      EXPECTED_EXTENSION_ID: u9401066.medpaper-assistant
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/v${{ needs.validate-inputs.outputs.version }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install the pinned Marketplace client
+        working-directory: vscode-extension
+        run: npm ci --ignore-scripts
+
+      - name: Re-download and bind the publication artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$VSIX_NAME" \
+            --dir vscode-extension \
+            --clobber
+          echo "$EXPECTED_SHA256  vscode-extension/$VSIX_NAME" | sha256sum --check --strict
+
+      - name: Verify Marketplace PAT authorization
+        working-directory: vscode-extension
+        shell: bash
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::VSCE_PAT is missing from the vs-marketplace environment or repository"
+            exit 1
+          fi
+          npx --no-install vsce verify-pat u9401066
+
+      - name: Publish the verified VSIX
+        working-directory: vscode-extension
+        shell: bash
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::VSCE_PAT is missing from the vs-marketplace environment or repository"
+            exit 1
+          fi
+          npx --no-install vsce publish \
+            --packagePath "$VSIX_NAME" \
+            --skip-duplicate
+
+      - name: Verify public Gallery version and VSIX hash
+        working-directory: vscode-extension
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ needs.validate-inputs.outputs.version }}
+        run: |
+          set -euo pipefail
+          GALLERY_JSON="$RUNNER_TEMP/marketplace-recovery-gallery.json"
+          for ATTEMPT in $(seq 1 30); do
+            if npx --no-install vsce show "$EXPECTED_EXTENSION_ID" --json > "$GALLERY_JSON"; then
+              test "$(jq -r '.publisher.publisherName' "$GALLERY_JSON")" = "u9401066"
+              test "$(jq -r '.extensionName' "$GALLERY_JSON")" = "medpaper-assistant"
+              ACTUAL_SHA256=$(jq -r --arg version "$EXPECTED_VERSION" '
+                first(
+                  .versions[]
+                  | select(.version == $version)
+                  | select((.targetPlatform // "") == "")
+                  | .properties[]?
+                  | select(.key == "Microsoft.VisualStudio.Services.VsixSha256")
+                  | .value
+                ) // ""
+              ' "$GALLERY_JSON")
+              ACTUAL_SHA256="${ACTUAL_SHA256,,}"
+              if [ -n "$ACTUAL_SHA256" ] && [ "$ACTUAL_SHA256" != "null" ]; then
+                if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+                  echo "::error::Marketplace v$EXPECTED_VERSION hash mismatch: expected $EXPECTED_SHA256, got $ACTUAL_SHA256"
+                  exit 1
+                fi
+                echo "::notice::Verified $EXPECTED_EXTENSION_ID@$EXPECTED_VERSION with SHA-256 $ACTUAL_SHA256"
+                exit 0
+              fi
+            fi
+            echo "Marketplace v$EXPECTED_VERSION is not publicly verifiable yet (attempt $ATTEMPT/30)"
+            sleep 10
+          done
+          echo "::error::Marketplace did not expose $EXPECTED_EXTENSION_ID@$EXPECTED_VERSION with the expected VSIX hash"
+          exit 1

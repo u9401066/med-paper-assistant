@@ -28,6 +28,7 @@ def _pyproject(path: Path) -> dict:
 def test_lock_matrix_covers_every_managed_external_mcp_at_sdk2() -> None:
     lock = _lock()
     integrations = lock["integrations"]
+    authority = json.loads((ROOT / "tool-surface-authority.json").read_text(encoding="utf-8"))
 
     assert lock["policy"] == {
         "python_mcp_sdk_major": 2,
@@ -48,6 +49,11 @@ def test_lock_matrix_covers_every_managed_external_mcp_at_sdk2() -> None:
         assert integration["commit"] in integration["package_source"], name
         assert integration["entrypoint"], name
         assert integration["version"], name
+        assert integration["surface"]["tools"] == authority["externalMcp"][name], name
+        assert integration["surface"]["prompts"] >= 0, name
+        assert integration["surface"]["resources"] >= 0, name
+        assert integration["smoke_call"]["tool"], name
+        assert isinstance(integration["smoke_call"]["arguments"], dict), name
 
 
 def test_locked_submodule_commits_versions_and_requirements_match_checkout() -> None:
@@ -124,3 +130,12 @@ def test_setup_and_vsix_sources_do_not_launch_known_mcp1_fallbacks() -> None:
     assert "buildMcpCommand(uvPath, 'pubmed-search-mcp')" not in combined
     assert "MCP_INTEGRATION_PACKAGES['zotero-keeper']" in combined
     assert "buildPinnedUvxCommand" in combined
+
+
+def test_setup_summaries_list_all_managed_mcp_surfaces() -> None:
+    expected = (
+        "mdpaper 118/12, pubmed-search 45, CGU 24, asset-aware 30, drawio 23, zotero-keeper 32"
+    )
+
+    for relative_path in ("scripts/setup.sh", "scripts/setup.ps1"):
+        assert expected in (ROOT / relative_path).read_text(encoding="utf-8")
