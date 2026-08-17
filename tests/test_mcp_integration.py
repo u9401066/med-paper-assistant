@@ -151,7 +151,9 @@ async def test_sdk2_client_resolves_interactive_setup_via_input_required(
         ]
         assert "Project Setup Complete" in _tool_text(result)
         project = json.loads(
-            (tmp_workspace / "projects" / "sdk-two-setup" / "project.json").read_text()
+            (tmp_workspace / "projects" / "sdk-two-setup" / "project.json").read_text(
+                encoding="utf-8"
+            )
         )
         assert project["paper_type"] == "research-proposal"
         assert project["interaction_preferences"] == {
