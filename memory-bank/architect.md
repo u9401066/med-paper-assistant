@@ -13,8 +13,10 @@ med-paper-assistant/
 │   ├── interfaces/mcp/            # MCP 介面
 │   └── shared/                    # 共用模組
 ├── integrations/                  # 外部整合
-│   ├── pubmed-search-mcp/         # PubMed 搜尋子模組
-│   └── next-ai-draw-io/           # Draw.io forked submodule（主要共同開發線）
+│   ├── asset-aware-mcp/           # PDF/DOCX 與 reusable assets（SDK2）
+│   ├── pubmed-search-mcp/         # PubMed 搜尋（SDK2）
+│   ├── cgu/                       # 創意與論證壓力測試（SDK2）
+│   └── next-ai-draw-io/           # Draw.io Python/TypeScript servers（SDK2）
 ├── _workspace/                    # 🆕 成品暫存區 (Artifact-Centric)
 │   ├── .registry.json             # 成品註冊表
 │   ├── references/                # 暫存參考文獻
@@ -41,15 +43,16 @@ med-paper-assistant/
 
 原則：平台 adapter 只負責 discovery/tool mapping；科學方法、證據角色與 hard-gate 語義維持單一權威。
 
-### MCP Server 架構 (118 full / 22 compact default, 2026-07-14)
+### MCP Server 架構 (118 full / 12 compact default, 2026-08-17)
 
 ```
 .vscode/mcp.json
-├── mdpaper        # 主要 MCP（117 full / 22 compact default）- façade-first 公開 surface
-├── pubmed-search  # PubMed 搜尋 (submodule)
-├── cgu            # Creativity Generation (submodule)
-├── zotero-keeper  # 書目管理 (uvx)
-└── drawio         # Draw.io 圖表 (npx @drawio/mcp)
+├── mdpaper        # 主要 MCP（118 full / 12 compact default）
+├── pubmed-search  # PubMed 搜尋（immutable submodule/archive）
+├── cgu            # Creativity Generation（immutable submodule/archive）
+├── asset-aware    # PDF/DOCX evidence intake（immutable submodule/archive）
+├── zotero-keeper  # 書目管理（immutable commit archive）
+└── drawio         # Draw.io Python server（immutable submodule/archive）
 ```
 
 ### MCP Tool 模組分布 (2026-05-19)
@@ -68,12 +71,20 @@ tools/
 └── discussion/    — (DEPRECATED — 已遷移至 Skills)
 ```
 
-### Tool Surface Policy (2026-05-19)
+### Tool Surface Policy (2026-08-17)
 
-- **full**: 保留所有 117 個 first-party tools，供開發、相容性、進階 orchestration 使用
-- **compact**: 預設公開 22 個工具，以 façade-first surface 為主，降低 agent 選錯 granular verbs 的機率
+- **full**: 保留所有 118 個 first-party tools，供開發、相容性、進階 orchestration 使用
+- **compact**: 預設公開 12 個 workflow tools，以 façade-first surface 為主，降低 agent 選錯 granular verbs 的機率
 - **切換方式**: 透過 `MEDPAPER_TOOL_SURFACE=full|compact` 控制；workspace setup、`.vscode/mcp.json` 與 VSX runtime 預設注入 `compact`
 - **Authority**: `tool-surface-authority.json` 是 README / VSIX / validate gate 的單一權威來源
+
+### Content Integrity 與 Reference Trust (2026-08-17)
+
+- Domain：`ContentIntegrityReceipt` / status/value objects 定義不可變的 hash、provenance 與 review decision。
+- Application：`ContentIntegrityInspector` 編排 MIME、SHA-256、C2PA 與 visible-watermark signals，不依賴 MCP/UI。
+- Infrastructure：optional `c2pa-python` adapter 禁止 remote fetch；未知 raster 回 human review，不得默認通過。
+- Reference trust：PubMed client 產生 typed attestation，domain invariant 與 persistence 再驗證；agent/user metadata 與 verified provenance 分層保存。
+- 原則：永遠保留原始 bytes/hash；預設只檢測與記錄，不自動移除 watermark 或 provenance。
 
 ### Self-Evolution 架構 (2026-02-27)
 

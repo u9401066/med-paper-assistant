@@ -10,10 +10,10 @@ flowchart LR
     P1 --> P2[2 Literature]
     P2 --> P21[2.1 Full text]
     P21 --> P3[3 Concept]
-    P3 --> P4{4 Plan approval}
+    P3 --> P4{4 Plan gate}
     P4 --> P5[5 Draft sections]
     P5 --> P6[6 Manuscript hooks]
-    P6 --> P65[6.5 Assets]
+    P6 --> P65[6.5 Evolution baseline]
     P65 --> P7{7 Review loop}
     P7 -->|rewrite| P5
     P7 --> P8[8 Reference sync]
@@ -35,9 +35,10 @@ Phase 0–11 加上 6.5 是主要 checkpoint surface；2.1 是文獻階段內的
 | 1 Project          | 寫什麼類型？           | config、concept skeleton             | profile 可解析                           |
 | 2 / 2.1 Literature | 有哪些可用證據？       | references、fulltext status          | verified metadata、來源狀態              |
 | 3 Concept          | 問題值得且可寫嗎？     | concept validation                   | required sections、novelty if applicable |
-| 4 Plan             | 寫作順序與資產是什麼？ | manuscript plan                      | 人工核准                                 |
+| 4 Plan             | 寫作順序與資產是什麼？ | manuscript plan                      | manual 人工核准／autopilot 稽核自審      |
 | 5 Draft            | 每節是否有足夠依據？   | section drafts                       | section approval + hooks                 |
-| 6 / 6.5 Quality    | 全稿與圖表是否一致？   | hook reports、assets                 | C/F checks                               |
+| 6 Quality          | 全稿與圖表是否一致？   | hook reports、asset reviews          | C/F checks                               |
+| 6.5 Evolution      | review 前基線是什麼？  | baseline、evolution log、scorecard   | 三項 artifact 存在                       |
 | 7 Review           | 批判性審閱是否閉環？   | review report、author response       | R1–R6 hard gate                          |
 | 8 Reference sync   | 引用是否可解析？       | citation audit                       | wikilinks、budget、distribution          |
 | 9 Export           | 成品是否真的有效？     | DOCX / PDF                           | header/trailer/token smoke               |
@@ -86,12 +87,12 @@ sequenceDiagram
 
 ## 自動化的邊界
 
-Autopilot 可以自我審閱 section、執行 hooks、決定一次合理回退；但不能：
+Autopilot 可以自我審閱 section、執行 hooks、在 Phase 4 留下 plan review／approval artifact，並決定一次合理回退。Manual mode 則由研究者核准 Phase 4；高風險決策、重複回退或用戶指定的 checkpoint 仍須人工介入。任何模式都不能：
 
 - 自動改寫 `CONSTITUTION` 原則。
 - 把範文轉成 claim evidence。
 - 在缺少全文或資料時捏造結果。
-- 跳過 Phase 4 的 manuscript plan 人工核准。
+- 跳過 Phase 4 的 manuscript plan gate 或偽造核准者與理由。
 - 在 Phase 7 review gate 未閉環時宣稱 final。
 
 !!! note "管線是可重組的"

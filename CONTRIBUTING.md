@@ -10,6 +10,8 @@
 
 Thank you for your interest in contributing to Medical Paper Assistant! This document explains how you can participate in the development of this project.
 
+Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md). Report vulnerabilities through the private process in [SECURITY.md](SECURITY.md), not a public issue.
+
 ### What is this document?
 
 This is a **Contributing Guide** - a standard document in open source projects that explains:
@@ -24,7 +26,7 @@ This is a **Contributing Guide** - a standard document in open source projects t
 | Type                         | Description                          | Skill Level  |
 | ---------------------------- | ------------------------------------ | ------------ |
 | 🐛 **Report Bugs**           | Found something broken? Let us know! | Beginner     |
-| �� **Suggest Features**      | Have an idea? Open an issue!         | Beginner     |
+| 💡 **Suggest Features**      | Have an idea? Open an issue!         | Beginner     |
 | 📝 **Improve Documentation** | Fix typos, add examples              | Beginner     |
 | 🧪 **Write Tests**           | Help improve test coverage           | Intermediate |
 | 🔧 **Fix Bugs**              | Pick an issue and submit a fix       | Intermediate |
@@ -52,7 +54,7 @@ git remote add upstream https://github.com/u9401066/med-paper-assistant.git
 
 ```bash
 # Create virtual environment and install all dependencies
-uv sync --all-extras
+uv sync --all-groups --all-extras
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate   # Windows
 ```
@@ -204,6 +206,8 @@ When opening an issue, please include:
 
 感謝您有興趣為 Medical Paper Assistant 做出貢獻！本文件說明如何參與此專案的開發。
 
+參與本專案即受 [行為準則](CODE_OF_CONDUCT.md) 規範；安全漏洞請依 [SECURITY.md](SECURITY.md) 的私密流程回報，不要公開開 issue。
+
 ### 這份文件是什麼？
 
 這是一份**貢獻指南**（Contributing Guide）——開源專案中的標準文件，說明：
@@ -246,7 +250,7 @@ git remote add upstream https://github.com/u9401066/med-paper-assistant.git
 
 ```bash
 # 建立虛擬環境並安裝所有相依套件
-uv sync --all-extras
+uv sync --all-groups --all-extras
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate   # Windows
 ```

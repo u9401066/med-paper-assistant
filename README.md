@@ -1,7 +1,7 @@
 # Medical Paper Assistant
 
 [![Python](https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![MCP](https://img.shields.io/badge/MCP-Compatible-green)](https://modelcontextprotocol.io/)
+[![MCP SDK 2.x](https://img.shields.io/badge/MCP_SDK-2.x-green)](https://modelcontextprotocol.io/)
 [![Copilot](https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white)](https://github.com/features/copilot)
 [![Wiki](https://img.shields.io/badge/docs-GitHub_Pages-0f766e?logo=materialformkdocs&logoColor=white)](https://u9401066.github.io/med-paper-assistant/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/u9401066/med-paper-assistant)
@@ -10,13 +10,15 @@
 ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 ![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)
 
-## 🔬 An MCP-Orchestrated Research Workspace for Medical Paper Writing and LLM Wiki Workflows
+## 🔬 An Auditable MCP Research Workspace for Autonomous and Human-Guided Academic Writing
 
-3 MCP Servers · 188+ Tools · 38 Skills · 15 Prompt Workflows — a cross-agent authoring surface plus the packaged VSIX experience
+MCP surfaces: mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · 38 Skills · 15 Prompt Workflows
 
 > 📖 [繁體中文版](README.zh-TW.md)
-> 🤖 **[Auto-Paper: Fully Autonomous Paper Writing Guide](docs/auto-paper-guide.md)** — 13 main gate checkpoints + Phase 2.1 sub-gate, 79 Quality Hooks, Structured Review Loop
-> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 32 topic pages with Mermaid workflows, SVG architecture maps, full-text search, and dark mode
+> 🤖 **[Auto-Paper: Autonomous + Human-Guided Writing Guide](docs/auto-paper-guide.md)** — 13 main gate checkpoints + Phase 2.1 sub-gate, 79 Quality Hooks, Structured Review Loop
+> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 35 topic pages with Mermaid workflows, SVG architecture maps, full-text search, and dark mode
+
+The goal is not one-shot text generation. MedPaper Assistant supports bounded autonomous runs and researcher-led writing through the same observable checkpoints, evidence locators, quality gates, review receipts, and reproducible exports. A solver produces artifacts; independent checks score those artifacts without granting unsupported claims evidence credit.
 
 ![MedPaper Assistant overview](docs/assets/medpaper-intro.svg)
 
@@ -28,8 +30,8 @@ This repository is the **full authoring and integration workspace** behind MedPa
 
 | Component                                                          | Type                   | Tools                             | Description                                                                                                                           |
 | ------------------------------------------------------------------ | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **mdpaper**                                                        | Core MCP Server        | 118 (full) / 22 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources                                    |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 46                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
+| **mdpaper**                                                        | Core MCP Server        | 118 (full) / 12 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources                                    |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 45                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 24                                | Creative generation: brainstorm, deep think, spark collision                                                                          |
 | **[VS Code Extension](vscode-extension/)**                         | Extension              | 11 cmds + 10 chat                 | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                 | Project management UI, diagram editor                                                                                                 |
@@ -50,11 +52,11 @@ Counts in these tables are release-gated via `tool-surface-authority.json` and `
 | Surface             | Best for                                       | What you get                                                                                                                                                                                       |
 | ------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 38 skills, 15 prompt workflows, cross-agent harness, repo scripts, tests, and authoring docs                                           |
-| **VSIX extension**  | End users who want the packaged experience     | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (22 tools by default / 118 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
+| **VSIX extension**  | End users who want the packaged experience     | `@mdpaper`, 11 palette commands, compact-first `mdpaper` runtime (12 tools by default / 118 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
 
 The repository is the broader engineering surface. The VSIX is the curated end-user surface.
 
-**VSX note**: The MedPaper VS Code extension installs Python MCP tools persistently per machine via `uv tool install`, attempts `uv tool upgrade` on later activations, and skips duplicate PubMed Search / Zotero Keeper registration when another installed VS Code extension already provides those MCP servers. CI smoke now covers `ubuntu-latest`, `windows-latest`, and `macos-14`, including official MCP client checks plus VSX validation smoke.
+**VSX note**: The extension persistently maintains only the core MedPaper executable through `uv tool`. Managed external MCPs run from immutable SDK 2 commit archives through isolated `uvx`; PubMed Search or Zotero Keeper registration is skipped when another installed extension explicitly provides it. CI smoke covers `ubuntu-latest`, `windows-latest`, and `macos-14`, plus exact-archive install checks.
 
 ### How the Pieces Fit Together
 
@@ -89,7 +91,7 @@ The platform-neutral [academic-writing workflow](docs/harness/academic-writing-w
 | Traditional Tools                   | Medical Paper Assistant                                                  |
 | ----------------------------------- | ------------------------------------------------------------------------ |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach                                           |
-| Separate apps for search/write/cite | One orchestrated workspace: 188+ tools and packaged workflows in VS Code |
+| Separate apps for search/write/cite | One workspace: 118/12 mdpaper + 45 PubMed + 24 CGU tools and packaged workflows |
 | Manual reference management         | Auto-save with verified PubMed data                                      |
 | Export then format                  | Direct Word export with journal styles                                   |
 | Learn complex UI                    | Natural language conversation                                            |
@@ -131,8 +133,8 @@ Important installation notes:
 
 - The setup script uses pinned submodule commits for reproducible installs. It does not auto-track the latest upstream submodule HEAD.
 - If you intentionally want newer submodule code, run `git submodule update --remote --merge` yourself and test before committing.
-- `drawio` uses `npx -y @drawio/mcp`, so Node.js/npm must be available on the machine.
-- `zotero-keeper` and `pubmed-search` are launched via `uvx` in the repo workflow. In the VSX workflow they may be provided either by MedPaper itself or by separate installed VS Code extensions.
+- The Draw.io MCP server is the pinned Python SDK 2 package in the submodule (or its immutable commit archive). Node.js/npm is needed only for the optional interactive Draw.io web UI, not as an MCP 1 fallback.
+- Repository mode launches pinned submodules. Marketplace mode installs exact SDK 2 commit archives for PubMed, CGU, Zotero Keeper, and Draw.io; it never floats to an unverified latest package.
 
 **Verify**: In Copilot Chat, type `/mcp` — you should see `mdpaper` listed 🎉
 
@@ -176,7 +178,7 @@ In Copilot Chat, type these prompts to trigger guided workflows:
 **Library Wiki Path**
 
 - Create a project with `workflow_mode="library-wiki"`
-- Move through `search/save_reference_mcp` → `write_library_note` / `move_library_note` → `show_reading_queues` / `build_library_dashboard`
+- Move through `reference_action` plus direct `save_reference_mcp` verified saves → `library_action` → full-surface wiki materialization when needed
 - Use `materialize_agent_wiki`, Foam graph views, and `docs/how-to/llm-wiki.md` for cross-note synthesis and traversal
 
 **Manuscript Path**
@@ -264,9 +266,9 @@ projects/{slug}/
 
 ### Literature & References
 
-- **PubMed + Europe PMC + CORE** search (46 search tools)
+- **PubMed + Europe PMC + CORE** search (45 search tools)
 - **PICO parsing** for clinical questions
-- **MCP-to-MCP verified data** — PMID sent directly, no agent hallucination
+- **MCP-to-MCP verified metadata** — PMID-based retrieval preserves the source response and trust layer; downstream interpretation still requires evidence checks
 - Layered trust: 🔒 VERIFIED (PubMed) · 🤖 AGENT (AI notes) · ✏️ USER (your notes)
 - Foam wikilinks: `[[author2024_12345678]]` with hover preview & backlinks
 - **Library Wiki Path** — `inbox/`, `concepts/`, and `projects/` note flow with reading queues and cross-note dashboards
@@ -278,7 +280,7 @@ projects/{slug}/
 - **Citation-Aware Editing** — `patch_draft` validates all `[[wikilinks]]` before saving
 - **Auto-fix citation format** — `[[12345678]]` → `[[author2024_12345678]]`
 - **Novelty validation** — 3-round independent scoring (threshold: 75/100)
-- **Anti-AI writing rules** — Evidence funnel structure, no clichés
+- **Style and authorship integrity** — Evidence-led prose, voice/clarity checks, and disclosure-aware review; never optimized to evade AI detectors
 
 ### Data Analysis
 
@@ -286,6 +288,7 @@ projects/{slug}/
 - Statistical tests (t-test, ANOVA, chi², correlation, Mann-Whitney, Fisher's)
 - **Table 1 generator** — Baseline characteristics with automatic variable detection
 - Publication-ready figures (matplotlib/seaborn)
+- **Content-integrity review** — SHA-256/MIME receipts, optional C2PA validation, mandatory documented review for uncertain raster watermarks, and no automatic watermark removal
 
 ### Export & Submission
 
@@ -301,7 +304,7 @@ projects/{slug}/
 - **16 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
 - **Workspace State** recovery for cross-session continuity
 - **uv** for all Python package management
-- **MCP SDK features in active use** — tools, elicitation, and progress notifications for long-running audit/review operations
+- **MCP SDK 2.x** — the legacy 1.x runtime is not supported; tools, prompts, resources, elicitation, and progress notifications use the v2 SDK surface
 - **Managed Foam graph views** — named Default, Evidence, Writing, Assets, and Review graph slices
 
 ---
@@ -328,8 +331,8 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│ 118/22 tools  │  │  search       │  │  24 tools     │  │   MCPs (uvx)  │
-│               │  │  46 tools     │  │               │  │               │
+│ 118/12 tools  │  │  search       │  │  24 tools     │  │   MCPs (uvx)  │
+│               │  │  45 tools     │  │               │  │               │
 │ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
 │ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
 │ • drafts      │  │ • CORE        │  │ • spark       │  │               │
@@ -378,11 +381,24 @@ Saved with layered trust:
 
 ## 🛠️ mdpaper MCP Tools
 
-The mdpaper MCP server exposes **118 (full) / 22 (compact default)** tools, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
+The mdpaper MCP server exposes **118 (full) / 12 (compact default)** tools, plus **3 MCP prompts** and **3 MCP resources** for official MCP clients.
 
 These counts are runtime-validated via `tool-surface-authority.json` and `scripts/check_tool_surface_authority.py`, and the validate/release gates fail if the docs drift from that authority.
 
-Compact mode keeps the main facade entrypoints (project/workspace/review/pipeline/export) and hides most granular public verbs; set `MEDPAPER_TOOL_SURFACE=full` to expose the complete surface.
+Compact mode exposes exactly these 12 stable entrypoints and hides most granular public verbs; set `MEDPAPER_TOOL_SURFACE=full` to expose the complete surface.
+
+| Compact capability   | Tools                                                      |
+| -------------------- | ---------------------------------------------------------- |
+| Project / state      | `project_action`, `workspace_state_action`                 |
+| Library / references | `library_action`, `reference_action`, `save_reference_mcp` |
+| Draft / analysis     | `draft_action`, `analysis_action`                          |
+| Validation / review  | `validation_action`, `run_quality_checks`                  |
+| Pipeline             | `pipeline_action`                                          |
+| Export               | `export_document`, `inspect_export`                        |
+
+`save_reference_mcp(pmid)` remains a direct compact safe verb so verified PubMed retrieval cannot be confused with `reference_action(action="save_agent")`, the lower-trust fallback.
+
+The following tables summarize representative full-surface tools; compact clients reach the same domain capabilities through the entrypoints above.
 
 ### 📁 Project Management
 
@@ -401,12 +417,13 @@ Projects, exploration mode, workspace state recovery, diagram management.
 
 Save, search, format, and manage references with Foam integration.
 
-| Key Tools                                           | Description                                                   |
-| --------------------------------------------------- | ------------------------------------------------------------- |
-| `save_reference_mcp`                                | **Recommended** — Save by PMID via MCP-to-MCP (verified data) |
-| `list_saved_references` / `search_local_references` | Browse & search library                                       |
-| `format_references` / `set_citation_style`          | Vancouver / APA / Nature                                      |
-| `sync_references`                                   | Sync `[[wikilinks]]` to numbered references                   |
+| Key Tools                                           | Description                                                            |
+| --------------------------------------------------- | ---------------------------------------------------------------------- |
+| `reference_action`                                  | **Compact default** — browse, retrieve, format, and analyze references |
+| `save_reference_mcp`                                | **Recommended** — Save by PMID via MCP-to-MCP (verified data)          |
+| `list_saved_references` / `search_local_references` | Browse & search library                                                |
+| `format_references` / `set_citation_style`          | Vancouver / APA / Nature                                               |
+| `sync_references`                                   | Sync `[[wikilinks]]` to numbered references                            |
 
 ### ✍️ Draft & Editing
 
@@ -470,7 +487,7 @@ Write, edit, cite — with built-in validation.
 | **Prompts**   | `project_bootstrap`, `draft_section_plan`, `word_export_checklist`                            | Materialize guided prompt workflows through the official MCP prompt API              |
 | **Resources** | `medpaper://workspace/state`, `medpaper://workspace/projects`, `medpaper://templates/catalog` | Surface live workspace state, project lists, and template metadata via MCP resources |
 
-### 🔍 pubmed-search MCP Tools (46 tools)
+### 🔍 pubmed-search MCP Tools (45 tools)
 
 | Category        | Key Tools                                                                     |
 | --------------- | ----------------------------------------------------------------------------- |
@@ -578,10 +595,10 @@ med-paper-assistant/
 │   ├── domain/                    #   Business logic, entities, value objects
 │   ├── application/               #   Use cases, services
 │   ├── infrastructure/            #   DAL, external services
-│   └── interfaces/mcp/            #   MCP server, 118 full / 22 compact tools + 3 prompts + 3 resources
+│   └── interfaces/mcp/            #   MCP server, 118 full / 12 compact tools + 3 prompts + 3 resources
 │
 ├── integrations/                  # Bundled MCP servers
-│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (46 tools)
+│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (45 tools)
 │   └── cgu/                       #   Creative generation (24 tools)
 │
 ├── vscode-extension/              # Packaged VSIX surface
@@ -619,7 +636,7 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                                                  |
 | ------ | --------------------------- | ---------------------------------------------------------------------------- |
-| ✅     | **3 MCP Servers**           | mdpaper (118 full / 22 compact) + pubmed-search (46) + CGU (24)              |
+| ✅     | **3 MCP Servers**           | mdpaper (118 full / 12 compact) + pubmed-search (45) + CGU (24)              |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation    |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                                      |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                                       |
@@ -641,7 +658,7 @@ med-paper-assistant/
 
 ## 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md), and the private vulnerability-reporting process in [SECURITY.md](SECURITY.md).
 
 - 🐛 **Report bugs** — Open an issue
 - 💡 **Suggest features** — Share your ideas
@@ -649,25 +666,25 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-## � Citation
+## 📚 Citation
 
-If you use Medical Paper Assistant in your research, please cite our paper:
+If you use Medical Paper Assistant, cite the software release described in [`CITATION.cff`](CITATION.cff). A BibTeX example is provided for convenience:
 
 ```bibtex
-@article{medpaper2025,
-  title   = {MedPaper Assistant: A Self-Evolving, MCP-Based Framework for
-             AI-Assisted Medical Paper Writing with Closed-Loop Quality Assurance},
-  author  = {[Authors]},
-  year    = {2025},
-  note    = {Submitted to medRxiv},
-  url     = {https://github.com/u9401066/med-paper-assistant}
+@software{medpaperassistant_2026,
+  author  = {{MedPaper Assistant contributors}},
+  title   = {Medical Paper Assistant},
+  year    = {2026},
+  version = {1.0.0},
+  url     = {https://github.com/u9401066/med-paper-assistant},
+  license = {Apache-2.0}
 }
 ```
 
-> **Note:** This paper was produced entirely by the MedPaper Assistant's autonomous pipeline as a self-referential demonstration. The manuscript, audit trail, and all quality metrics are available in [`projects/self-evolving-ai-paper-writing-framework/`](projects/self-evolving-ai-paper-writing-framework/). The preprint is being submitted to [medRxiv](https://submit.medrxiv.org/) — this section will be updated with the DOI once available.
+Do not cite an unpublished manuscript or invent a DOI. Use the archived release DOI if one is added to `CITATION.cff` in the future.
 
 ---
 
-## �📄 License
+## 📄 License
 
 Apache License 2.0 — See [LICENSE](LICENSE)

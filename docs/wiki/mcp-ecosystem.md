@@ -6,7 +6,7 @@ mdpaper MCP 管理研究 project、寫作、驗證與 export；外部 MCP 提供
 
 ```mermaid
 flowchart TB
-    Agent[Agent / MCP client] --> MDP[mdpaper MCP<br/>118 full / 22 compact]
+    Agent[Agent / MCP 2 client] --> MDP[mdpaper MCP<br/>118 full / 12 compact]
     MDP --> PubMed[PubMed Search MCP<br/>metadata + search]
     MDP --> Asset[Asset-Aware MCP<br/>PDF / DOCX parsing]
     MDP --> Zotero[Zotero Keeper<br/>library workflow]
@@ -53,7 +53,7 @@ sequenceDiagram
 
 ### 優先規則
 
-`save_reference_mcp(pmid)` 永遠優先，因為 metadata 直接來自 PubMed API，能保留 verified trust。只有 API 不可用時，才使用 Agent 傳遞的 `save_reference(article)` fallback，且 trust level 不得偽裝成 verified。
+`save_reference_mcp(pmid)` 永遠優先，因為 metadata 直接來自 PubMed API，能保留 verified trust。只有 API 不可用時，compact client 才使用 `reference_action(action="save_agent", article=...)`（full surface 對應 `save_reference(article)`），且 trust level 不得偽裝成 verified。
 
 ## Compact 與 full surface
 
@@ -61,16 +61,23 @@ sequenceDiagram
 flowchart LR
     Intent[Research intent] --> Compact{Compact facade}
     Compact --> Project[project_action]
+    Compact --> Workspace[workspace_state_action]
+    Compact --> Library[library_action]
     Compact --> Reference[reference_action]
+    Compact --> VerifiedSave[save_reference_mcp]
     Compact --> Draft[draft_action]
     Compact --> Analysis[analysis_action]
     Compact --> Validation[validation_action]
-    Compact --> Review[review_action]
-    Compact --> Export[export_action]
-    Project & Reference & Draft & Analysis & Validation & Review & Export --> Full[Specialized full tools]
+    Compact --> Review[run_quality_checks]
+    Compact --> Pipeline[pipeline_action]
+    Compact --> Export[export_document]
+    Compact --> Inspect[inspect_export]
+    Project & Workspace & Library & Reference & VerifiedSave & Draft & Analysis & Validation & Review & Pipeline & Export & Inspect --> Full[Specialized full tools]
 ```
 
-Compact facade 是 Agent 的預設入口，不代表能力縮水。它把大量工具壓縮成 action + typed parameters，並回傳下一步 guidance；full tools 仍能被測試與直接呼叫。
+Compact facade 是 Agent 的預設入口，不代表能力縮水。它把大量工具壓縮成 action + typed parameters，並回傳下一步 guidance；full tools 仍能被測試與直接呼叫。文獻管理使用 `reference_action`，但 verified PubMed save 刻意保留直接的 `save_reference_mcp(pmid)`，避免 agent-passed metadata 被誤標成 verified。
+
+本 repo 只支援 MCP SDK 2.x runtime，不保留 SDK 1.x fallback。compact 12 與 full 118 必須走同一組 domain rules、telemetry 與 release smoke；tools、prompts、resources、progress 與 elicitation 的詳細契約見 [MCP 2 與內容完整性](mcp2-content-integrity.md)。
 
 ## Failure 與 graceful degradation
 
@@ -95,4 +102,4 @@ MCP client 設定通常位於 `.vscode/mcp.json` 或 client-specific configurati
 
 !!! warning "MCP-to-MCP trust"
 
-    mdpaper 接到外部 MCP 結果後仍要保存 provenance。工具回傳「成功」不等於內容自動取得 evidence credit；來源角色與全文狀態仍由本 repo 的 domain rules 判定。
+    mdpaper 接到外部 MCP 結果後仍要保存 provenance。工具回傳「成功」不等於內容自動取得 evidence credit；來源角色與全文狀態仍由本 repo 的 domain rules 判定。對圖像與文件資產，內容完整性 receipt 保存 SHA-256、MIME、可用的 C2PA 驗證與人工審閱訊號，但不會移除浮水印。

@@ -50,7 +50,7 @@ paper types it applies to. The batch runners consult it and **select** which hoo
 flowchart LR
     PT[paper_type] --> SEL{Hook Selector}
     PH[phase] --> SEL
-    SEL -->|tier=common| C[A1-A6 · B9/B10/B12-B14 · C-series · P-series · anti-AI]
+    SEL -->|tier=common| C[A1-A6 · B9/B10/B12-B14 · C-series · P-series · style integrity]
     SEL -->|tier=type-specific| T[by genre]
     T --> OR[empirical: B8/B11/B16 statistical alignment]
     T -.proposed.-> MA[meta-analysis: PRISMA · I² heterogeneity · forest]

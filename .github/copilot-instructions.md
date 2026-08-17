@@ -30,7 +30,7 @@ Normal/Research 下 `.claude/` `.github/` `src/` `tests/` `integrations/` `AGENT
 
 **Path Selection**: 先看 `workflow_mode`。建 library/wiki 時優先 `workflow_mode="library-wiki"`；要寫論文時才用 `workflow_mode="manuscript"`。
 
-**儲存文獻**: `save_reference_mcp(pmid)` 永遠優先（MCP-to-MCP 驗證）。`save_reference()` 僅 API 不可用時 fallback。
+**儲存文獻**: compact surface 以 `reference_action` 管理查詢、讀取、格式化與 agent fallback；verified PubMed 儲存仍以直接的 `save_reference_mcp(pmid)` 永遠優先。`reference_action(action="save_agent")` 僅 API 不可用時 fallback。
 
 **草稿引用**: `get_available_citations()` → `patch_draft()` → `sync_references()`。禁止直接 `replace_string_in_file` 改引用。
 
@@ -81,19 +81,19 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 
 ## MCP Server（runtime-validated authority）
 
-目前 authority：118 full / 22 compact default + 3 prompts + 3 resources。
+目前 authority：118 full / 12 compact default + 3 prompts + 3 resources。
 單一來源：`tool-surface-authority.json`。`scripts/check_tool_surface_authority.py`、release workflow、`npm run validate` 都會驗證這些數字。
 
-| 模組        | 重點                                                                                                                        |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| project/    | CRUD + exploration + workspace state + writing checkpoint                                                                   |
-| reference/  | save_reference_mcp 優先 + subagent analysis + local/web/markdown intake + canonical identity + wiki materialization（full） |
-| draft/      | writing + citation + editing (patch_draft)                                                                                  |
-| validation/ | validate_concept + wikilinks                                                                                                |
-| analysis/   | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）                                       |
-| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept + constraint ledger            |
-| export/     | word + pandoc (docx/pdf/bib)                                                                                                |
-| facade/     | project/workspace/review/pipeline/export stable entrypoints                                                                 |
+| 模組        | 重點                                                                                                                                          |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| project/    | CRUD + exploration + workspace state + writing checkpoint                                                                                     |
+| reference/  | compact `reference_action` + direct `save_reference_mcp` verified save；full 另含 local/web/markdown intake、identity 與 wiki materialization |
+| draft/      | writing + citation + editing (patch_draft)                                                                                                    |
+| validation/ | validate_concept + wikilinks                                                                                                                  |
+| analysis/   | table_one + stats + figures（含 insert_figure/insert_table/list_assets/review_asset）                                                         |
+| review/     | formatting + pipeline + audit + review-hooks + meta-learning + flexibility + approve_concept + constraint ledger                              |
+| export/     | word + pandoc (docx/pdf/bib)                                                                                                                  |
+| facade/     | project/reference/draft/analysis/validation/review/pipeline/export stable entrypoints                                                         |
 
 ## VS Code Copilot Lifecycle Hooks
 

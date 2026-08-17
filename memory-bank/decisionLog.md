@@ -1,5 +1,27 @@
 # Decision Log
 
+## [2026-08-17] v1.0.0 SDK2-Only, Trust-Preserving Academic Writing Platform
+
+### 背景
+
+使用者要求完整更新依賴與關聯 MCP、全面捨棄 SDK1、精煉工具、補足 smoke test、翻新 autonomous/human-guided academic-writing harness、加入浮水印檢查、更新公開文件與 repository governance，並以分段 Git 後發布完整 VSIX。
+
+### 本次決定
+
+1. **SDK2-only 是可執行契約**：root 與五個 managed integrations 都必須有 `mcp>=2,<3`、immutable source、direct/stdio smoke；VSIX 不信任 PATH binary、floating latest 或未知第三方 provider。
+2. **工具面採 12 compact / 118 full**：agent 預設只看 workflow facades，降低選擇噪音；full 保留相容性與進階操作，`save_reference_mcp` 因信任邊界維持直接入口。
+3. **VERIFIED 只能來自二次驗證的 transport attestation**：unverified/malformed/source mismatch/PMID mismatch 一律 fail closed；普通 agent save 永遠不能自行提升信任。
+4. **浮水印需求採 content integrity 而非自動移除**：保存原始檔與 SHA-256/C2PA provenance；可疑或無法判定的 raster 要人工審閱。自動去除可能破壞來源證據，故不納入預設工具。
+5. **Release 必須可重現且可安裝**：所有版本面一致、submodule recursive、wheel 實際安裝、VSIX 實際安裝到隔離 profile、PyPI/Marketplace OIDC、GitHub Release 同時提供 wheel/sdist/VSIX。
+6. **v1.0.0 是 breaking release**：SDK1 fallback 移除、compact surface 收斂與信任契約強化構成 major-version 邊界。
+7. **Repository metadata 採增量治理**：依使用者授權直接更新 description、topics 與結構化 labels，但不刪除既有 labels、不改 default branch；ruleset 與 security settings 保留為需另行審查的高影響決策。
+
+### 預期成果
+
+- MCP SDK2-only、118/12/3/3 authority、五個 immutable integrations、79 hooks、13 output profiles / 110 constraints。
+- 可監控、可回溯、可人工介入的自主寫作與人類輔助寫作共同 workflow。
+- release evidence 由 static checks、完整 tests、greedy smoke、external archive smoke、wheel/VSIX install、docs strict build 與遠端 CI 組成。
+
 ## [2026-07-14] v0.9.0 Provider-Neutral Production Harness
 
 ### 背景

@@ -72,7 +72,7 @@
 ```yaml
 # manuscript-plan.yaml — Phase 4 產出物
 # Agent 根據 concept.md + saved references + journal-profile.yaml 自動生成
-# 用戶在 Phase 4 Gate 確認（唯一人工介入點）
+# Phase 4 Gate：manual 由用戶確認；autopilot 留下稽核自審與核准 artifact
 
 metadata:
   generated_at: "2026-02-25T10:00:00"
@@ -241,7 +241,7 @@ FOR section IN writing_order:
   ── Hook A (per-section, D1 決定) ──
   A1: 字數 vs section.word_budget
   A2: 引用密度（含 Figure/Table 引用）
-  A3: Anti-AI
+  A3: Style integrity (legacy hook id)
   A4: Wikilink 格式
 
   ── Hook B (per-section) ──
@@ -255,14 +255,14 @@ FOR section IN writing_order:
 
 #### 2.3.1 閾值來源對照表
 
-| Hook    | 檢查項    | 改為來源                                                              |
-| ------- | --------- | --------------------------------------------------------------------- |
-| A1      | 字數      | `paper.sections[name].word_limit` ± `pipeline.tolerance.word_percent` |
-| A2      | 引用密度  | `pipeline.writing.citation_density.*`                                 |
-| A3      | Anti-AI   | `pipeline.writing.anti_ai_strictness`                                 |
-| C7      | 數量合規  | `assets.*_max` + `word_limits.*`                                      |
-| B5      | 方法學    | `reporting_guidelines.checklist`                                      |
-| Phase 7 | 閾值/輪數 | `pipeline.autonomous_review.*`                                        |
+| Hook    | 檢查項                               | 改為來源                                                              |
+| ------- | ------------------------------------ | --------------------------------------------------------------------- |
+| A1      | 字數                                 | `paper.sections[name].word_limit` ± `pipeline.tolerance.word_percent` |
+| A2      | 引用密度                             | `pipeline.writing.citation_density.*`                                 |
+| A3      | Style integrity (legacy config name) | `pipeline.writing.anti_ai_strictness`                                 |
+| C7      | 數量合規                             | `assets.*_max` + `word_limits.*`                                      |
+| B5      | 方法學                               | `reporting_guidelines.checklist`                                      |
+| Phase 7 | 閾值/輪數                            | `pipeline.autonomous_review.*`                                        |
 
 #### 2.3.2 journal-profile.yaml 新增欄位
 

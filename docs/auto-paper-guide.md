@@ -1,14 +1,14 @@
-# Auto-Paper: Fully Autonomous Paper Writing Guide
+# Auto-Paper: Autonomous and Human-Guided Writing Guide
 
 > **完整的自動論文撰寫系統文件** — 13 個主線 gate checkpoint + Phase 2.1 fulltext/source-material sub-gate
 
 ## 概觀
 
-Auto-Paper 是 MedPaper Assistant 的全自動論文撰寫技能，具備以下核心特性：
+Auto-Paper 是 MedPaper Assistant 的可稽核學術寫作技能；它可在明確邊界內自主推進，也可讓研究者逐 gate 審閱：
 
 - **13 個主線 gate checkpoint**（Phase 0-11 + `Phase 6.5`）：從素材登記到 final delivery 的可審計流程
 - **Phase 2.1 sub-gate**：全文與用戶原始素材解析，透過 `phase=21` 獨立驗證，不計入主線 13 checkpoints
-- **79 項品質檢查**（56 Code-Enforced / 23 Agent-Driven）：寫作過程中即時修正，不需人工介入
+- **79 項品質檢查**（56 Code-Enforced / 23 Agent-Driven）：寫作過程即時回饋，必要時升級人工判斷
 - **段落級 Section Brief**：`manuscript-plan.yaml` 控制每段的論點、引用、字數
 - **結構化 Autonomous Review**：模擬 4 種審稿角色，產出 Review Report + Author Response
 - **閉環自我改進**（Meta-Learning）：Hook D 根據統計調整閾值，系統會越來越好
@@ -47,11 +47,11 @@ Meta-Learning (Phase 10)      ← 更新 Skill / Hook / Instructions
 
 1. **啟動**：在 Copilot Chat 輸入 `/mdpaper.write-paper`
 2. **登記素材與設定期刊**：先執行 `project_action(action="source_materials")` 掃描用戶提供的 DOCX/XLSX/PDF/CSV，再提供目標期刊名稱（Agent 會自動產生 `journal-profile.yaml`）
-3. **確認大綱**：Agent 搜尋文獻 → 發展概念 → 產出 `manuscript-plan.yaml` → 你確認
+3. **通過計畫 gate**：Agent 搜尋文獻 → 發展概念 → 產出 `manuscript-plan.yaml`；manual mode 由你確認，autopilot 留下自審與核准紀錄
 4. **等待寫作**：Agent 自動撰寫各 section，Hook A-D 即時修正品質
 5. **匯出**：Agent 產出 Word 檔 + 必要投稿文件
 
-> 💡 整個過程中 **唯一需要人工確認** 的是 Phase 4 的 `manuscript-plan.yaml` 大綱。其他階段全部自動執行。
+> 💡 Manual mode 在 Phase 4 等待研究者核准；autopilot 可在 Phase 4 完成可稽核自審。高風險決策、連續退步、超出預算或用戶指定的 checkpoint 仍會升級人工介入。
 
 ---
 
@@ -90,8 +90,8 @@ Agent 按優先順序取得資訊：
 
 1. 生成搜尋策略（MeSH + 同義詞）
 2. 並行搜尋 3-5 組
-3. 以 citation metrics 排序（Relative Citation Ratio）
-4. 選前 15-20 篇 → `save_reference_mcp(pmid)` 儲存（MCP-to-MCP 驗證資料）
+3. 依 question/claim coverage、研究設計、來源角色、可取得全文與時間範圍篩選；citation metrics（如 RCR）只作背景訊號，不作硬排序或排除門檻
+4. 儲存足以覆蓋 evidence map 的候選文獻 → `save_reference_mcp(pmid)`（MCP-to-MCP verified metadata）
 5. 可選：從 Zotero 匯入
 
 **Gate**：依 paper type 達到最低文獻數；PubMed Search MCP 0.5.9 提供 46 個搜尋/檢索工具。
@@ -121,7 +121,7 @@ Agent 按優先順序取得資訊：
 
 ### Phase 4: Manuscript Planning
 
-> **唯一需要人工確認的階段**
+> **Mode-aware gate：manual 人工核准；autopilot 稽核自審**
 
 **產出**：`manuscript-plan.yaml`（段落級 Section Brief）
 
@@ -133,9 +133,9 @@ Agent 按優先順序取得資訊：
 - **Asset Plan**：圖表、統計檢定的生成計畫（含工具、參數、caption）
 - **投稿清單**：依 journal-profile 列出需準備文件
 
-Agent 呈現摘要 → 你確認或調整 → 存入 `projects/{slug}/manuscript-plan.yaml`
+Manual mode：Agent 呈現摘要 → 你確認或調整。Autopilot：Agent 以獨立 plan review 檢查 evidence coverage、預算、寫作順序與 asset plan，並記錄核准理由。兩者都存入 `projects/{slug}/manuscript-plan.yaml` 與 audit artifact。
 
-**Gate**：plan 已確認 + 圖表數量不超限
+**Gate**：plan 有明確 approver/mode/reason + evidence 與 budget coverage + 圖表數量不超限
 
 ### Phase 5: Section Writing
 
@@ -149,10 +149,12 @@ FOR section IN writing_order:
   1. 準備：讀取 plan + 已完成 sections + 可用引用
   2. Asset 生成：依 asset_plan 產生圖表（Table 1、統計圖、流程圖等）
   3. 段落級寫作：依 manuscript-plan.yaml 的 brief 逐段撰寫
-  4. Hook A（post-write）：字數 / 引用密度 / Anti-AI / Wikilink → 最多 3 rounds
+  4. Hook A（post-write）：字數 / 引用密度 / 語體與作者責任訊號 / Wikilink → 最多 3 rounds
   5. Hook B（post-section）：概念一致 / 🔒 保護 / 方法學 / Brief 合規 → 回溯修正
   6. 記錄 audit trail + 更新 checkpoint
 ```
+
+圖像或表格在插入前經 `review_asset_for_insertion` 建立 SHA-256/MIME 與可選 C2PA receipt。檢查不會改動原檔或自動移除浮水印；invalid provenance/hash 變更會阻擋，可見水印訊號只會要求有紀錄的人工審閱。詳見 [MCP 2 與內容完整性](wiki/mcp2-content-integrity.md)。
 
 ### Phase 6: Cross-Section Audit
 
@@ -246,7 +248,7 @@ FOR section IN writing_order:
 
 | 層級       | 觸發時機                     | 檢查數 | 關注點                                                        |
 | ---------- | ---------------------------- | ------ | ------------------------------------------------------------- |
-| **Hook A** | 每次寫完（post-write）       | A1-A4  | 字數、引用密度、Anti-AI、Wikilink                             |
+| **Hook A** | 每次寫完（post-write）       | A1-A4  | 字數、引用密度、語體／作者責任訊號、Wikilink                  |
 | **Hook B** | section 完成（post-section） | B1-B7  | 概念一致、🔒 保護、方法學、Brief 合規                         |
 | **Hook C** | 全稿完成（post-manuscript）  | C1-C14 | 整體一致性、投稿清單、數量合規、時間一致性、強 claim 證據對齊 |
 | **Hook D** | Phase 10 回顧                | D1-D9  | Hook 效能、閾值調整、review/EQUATOR/tool telemetry 自我改進   |
@@ -255,14 +257,14 @@ FOR section IN writing_order:
 
 每次寫完立即執行，最多 N rounds cascading：
 
-| #   | 檢查               | 失敗行為                            |
-| --- | ------------------ | ----------------------------------- |
-| A1  | 字數在 target ±20% | `patch_draft` 精簡/擴充             |
-| A2  | 引用密度達標       | `suggest_citations` + `patch_draft` |
-| A3  | 無 Anti-AI 慣用語  | `patch_draft` 改寫                  |
-| A4  | Wikilink 格式正確  | 自動修復                            |
+| #   | 檢查                 | 失敗行為                            |
+| --- | -------------------- | ----------------------------------- |
+| A1  | 字數在 target ±20%   | `patch_draft` 精簡/擴充             |
+| A2  | 引用密度達標         | `suggest_citations` + `patch_draft` |
+| A3  | 無空泛或模板化慣用語 | `patch_draft` 改成具體、可驗證內容  |
+| A4  | Wikilink 格式正確    | 自動修復                            |
 
-**Anti-AI 禁止詞**：`In recent years`, `It is worth noting`, `plays a crucial role`, `has garnered significant attention` 等 → 替換為具體內容。
+**語體完整性**：`In recent years`, `It is worth noting`, `plays a crucial role`, `has garnered significant attention` 等空泛模板語應替換成具體內容。這個 legacy A3 hook 不用來通過 AI authorship detector、不隱匿 AI 協助，也不能判定作者身份。
 
 **引用密度標準**：Introduction ≥ 1/100 words, Discussion ≥ 1/150 words。
 
@@ -411,18 +413,18 @@ metadata:
 
 Phase 0 產出的期刊約束文件，驅動所有後續 Phase：
 
-| YAML 欄位                         | 影響                              |
-| --------------------------------- | --------------------------------- |
-| `paper.type`                      | Phase 1 設定 / Phase 4 寫作順序   |
-| `paper.sections`                  | Phase 4 大綱結構                  |
-| `word_limits.*`                   | Hook A1 / C6 / C7c 字數檢查       |
-| `assets.figures_max / tables_max` | Phase 4 Asset Plan / C7a 數量檢查 |
-| `references.max_references`       | Phase 2 文獻數 / Phase 8 引用上限 |
-| `references.style`                | Phase 8 引用格式                  |
-| `reporting_guidelines.checklist`  | Hook B5 方法學 / C2 投稿清單      |
-| `pipeline.hook_*_max_rounds`      | Hook A/B/C cascading 上限         |
-| `pipeline.review_max_rounds`      | Phase 7 Review 輪數               |
-| `pipeline.writing.anti_ai_*`      | Hook A3 嚴格度                    |
+| YAML 欄位                         | 影響                                |
+| --------------------------------- | ----------------------------------- |
+| `paper.type`                      | Phase 1 設定 / Phase 4 寫作順序     |
+| `paper.sections`                  | Phase 4 大綱結構                    |
+| `word_limits.*`                   | Hook A1 / C6 / C7c 字數檢查         |
+| `assets.figures_max / tables_max` | Phase 4 Asset Plan / C7a 數量檢查   |
+| `references.max_references`       | Phase 2 文獻數 / Phase 8 引用上限   |
+| `references.style`                | Phase 8 引用格式                    |
+| `reporting_guidelines.checklist`  | Hook B5 方法學 / C2 投稿清單        |
+| `pipeline.hook_*_max_rounds`      | Hook A/B/C cascading 上限           |
+| `pipeline.review_max_rounds`      | Phase 7 Review 輪數                 |
+| `pipeline.writing.anti_ai_*`      | Legacy 欄位：Hook A3 語體訊號嚴格度 |
 
 ## source-materials.yaml 規格
 
@@ -462,9 +464,9 @@ FOR round = 1 TO review_max_rounds:
 
 | 維度         | 評分 (0-10)              | 權重 |
 | ------------ | ------------------------ | ---- |
-| 引用品質     | 充分、最新、高影響力     | 15%  |
+| 引用品質     | 相關、方法適切、可定位   | 15%  |
 | 方法學再現性 | 設計、統計、EQUATOR 合規 | 25%  |
-| 文字品質     | 清晰、邏輯、無 AI 痕跡   | 20%  |
+| 文字品質     | 清晰、邏輯、具體且可追溯 | 20%  |
 | 概念一致性   | NOVELTY + SELLING POINTS | 20%  |
 | 格式合規     | 字數、圖表、引用數       | 10%  |
 | 圖表品質     | 必要性、清晰度、caption  | 10%  |
@@ -548,19 +550,20 @@ Pipeline 編排 5 個 MCP Server + 外部工具：
 
 ### 必須停下
 
-| 情境                               | 行為               |
-| ---------------------------------- | ------------------ |
-| Concept < 60（兩次）               | 硬停止，回報用戶   |
-| Phase 4 大綱                       | 必須用戶確認       |
-| Phase 6 N 輪 cascading 仍 CRITICAL | 呈現問題讓用戶決定 |
-| Review 連續 2 輪無分數改善         | 詢問用戶           |
-| 需修改 AGENTS.md 核心原則          | 永遠需確認         |
+| 情境                                      | 行為               |
+| ----------------------------------------- | ------------------ |
+| Concept < 60（兩次）                      | 硬停止，回報用戶   |
+| Phase 4 manual mode 大綱                  | 必須用戶確認       |
+| Phase 4 autopilot 缺少自審／核准 artifact | 硬停止，補齊 gate  |
+| Phase 6 N 輪 cascading 仍 CRITICAL        | 呈現問題讓用戶決定 |
+| Review 連續 2 輪無分數改善                | 詢問用戶           |
+| 需修改 AGENTS.md 核心原則                 | 永遠需確認         |
 
 ---
 
-## 自我證明：本系統寫出的論文
+## 示範專案（非獨立驗證）
 
-Auto-Paper 系統已自主完成一篇完整的學術論文作為自我參照式驗證：
+Repo 內含一個由 Auto-Paper pipeline 產生的示範專案，可用來檢查 artifact 與 workflow wiring；它不是獨立 benchmark、臨床驗證或同行審查證據：
 
 > **MedPaper Assistant: A Self-Evolving, MCP-Based Framework for AI-Assisted Medical Paper Writing with Closed-Loop Quality Assurance**
 
@@ -569,7 +572,7 @@ Auto-Paper 系統已自主完成一篇完整的學術論文作為自我參照式
 - **匯出**：`exports/manuscript.docx` + `exports/arxiv/manuscript.pdf`（LaTeX）
 - **審計軌跡**：`.audit/` 目錄包含完整 Pipeline 執行紀錄
 
-此論文由系統的 autonomous pipeline 完全自主產出，全部 10 篇 PubMed 索引文獻透過 MCP-to-MCP 通訊達到 100% 驗證完整性，零引用幻覺。
+示範保留 10 篇 PubMed metadata 的 MCP-to-MCP receipt。這只能證明保存路徑與識別資料可追蹤，不能保證每個 claim 被全文支持；正式品質宣稱必須通過獨立 scorer 與 frozen fixtures，見 [Evaluation contract](harness/evaluation-contract.md)。
 
 ---
 
@@ -583,3 +586,4 @@ Auto-Paper 系統已自主完成一篇完整的學術論文作為自我參照式
 | [paper-reviewer.agent.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/agents/paper-reviewer.agent.md)              | 唯讀 Reviewer Agent 模式                       |
 | [mdpaper.write-paper.prompt.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/prompts/mdpaper.write-paper.prompt.md) | 觸發 Pipeline 的 Prompt                        |
 | [mdpaper.audit.prompt.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/prompts/mdpaper.audit.prompt.md)             | 獨立審計 Prompt（Phase 6+7）                   |
+| [evaluation-contract.md](harness/evaluation-contract.md)                                                                                   | solve→score、evidence locator 與 release gates |

@@ -25,9 +25,11 @@ word-count boundaries.
 | `other`                   | Explicitly customized formal output         | novelty                                                   |         2,000 | no                |
 
 The statistical-hook column controls B8, B11, and B16. Common provenance,
-anti-AI, language, citation, paragraph, and cross-reference checks continue to
-run for every profile. A skipped type-specific hook remains visible in the
-audit record as not applicable.
+style/authorship-integrity signals, language, citation, paragraph, and
+cross-reference checks continue to run for every profile. These signals target
+specificity and traceability; they are not optimized to evade AI authorship
+detectors and do not determine authorship. A skipped type-specific hook
+remains visible in the audit record as not applicable.
 
 ## Profile-specific integrity rules
 

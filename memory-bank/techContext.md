@@ -3,7 +3,7 @@
 ## Technology Stack
 
 - **Core Language**: Python 3.12+ (MCP server, data processing)
-- **MCP Framework**: FastMCP (mcp library)
+- **MCP Framework**: official Python MCP SDK 2 (`mcp>=2,<3`, `MCPServer`)
 - **Interface**: VS Code + GitHub Copilot via MCP
 - **Environment**: uv + venv (pyproject.toml + uv.lock)
 - **Key Dependencies**:
@@ -35,7 +35,7 @@ med-paper-assistant/
 │   │   │                      # MetaLearningEngine, QualityScorecard
 │   │   └── services/          # Drafter, CSLFormatter, PandocExporter
 │   ├── interfaces/
-│   │   └── mcp/tools/         # compact-first MCP surface (115 full / 21 default)
+│   │   └── mcp/tools/         # compact-first MCP surface (118 full / 12 default)
 │   └── shared/                # Cross-cutting utilities
 ├── templates/
 │   ├── csl/                   # CSL style files
@@ -44,7 +44,7 @@ med-paper-assistant/
 ├── memory-bank/               # Context persistence
 ├── .agents/skills/            # Codex + OpenClaw shared skills
 ├── .claude/skills/            # 38 Claude/workflow skills
-├── vscode-extension/          # VSIX packaged surface v0.7.2
+├── vscode-extension/          # VSIX package aligned with the root release
 └── dashboard/                 # Next.js dashboard
 ```
 

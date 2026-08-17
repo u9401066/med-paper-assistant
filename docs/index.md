@@ -11,9 +11,9 @@ hide:
 
 <span class="wiki-kicker">PRODUCTION ACADEMIC WRITING HARNESS</span>
 
-# 把學術寫作變成可重現的工程流程
+# 把自主與人類協作寫作變成可重現的工程流程
 
-MedPaper Assistant 讓 Claude Code、Codex、OpenClaw 與 VS Code Copilot 共用同一套研究契約：文獻必須可追溯、草稿必須經過 gate、每一輪修訂都留下 audit trail。
+MedPaper Assistant 讓 Claude Code、Codex、OpenClaw 與 VS Code Copilot 共用同一套研究契約：自主 agent 可以在明確預算與邊界內推進，人類可以審閱、暫停與回退；文獻必須可追溯、草稿必須經過 gate、每一輪修訂都留下 audit trail。
 
 [五分鐘開始](wiki/quickstart.md){ .md-button .md-button--primary }
 [探索完整架構](wiki/harness-architecture.md){ .md-button }
@@ -30,7 +30,7 @@ MedPaper Assistant 讓 Claude Code、Codex、OpenClaw 與 VS Code Copilot 共用
 
 <div class="wiki-stats" markdown>
 
-<div><strong>118</strong><span>Full MCP tools</span></div>
+<div><strong>12 / 118</strong><span>Compact default / full MCP tools</span></div>
 <div><strong>13</strong><span>正式產出 profiles</span></div>
 <div><strong>79</strong><span>品質檢查</span></div>
 <div><strong>3</strong><span>演進治理層</span></div>
@@ -43,7 +43,7 @@ MedPaper Assistant 讓 Claude Code、Codex、OpenClaw 與 VS Code Copilot 共用
 flowchart LR
     Human([研究者]) --> Agent{Claude / Codex<br/>OpenClaw / Copilot}
     Agent --> Contract[共用 writing contract]
-    Contract --> MCP[mdpaper MCP<br/>118 tools]
+    Contract --> MCP[mdpaper MCP<br/>12 compact / 118 full]
     MCP --> Evidence[PubMed + full text<br/>Zotero + local sources]
     MCP --> Project[(Project workspace)]
     Project --> Draft[Draft + assets]
@@ -61,7 +61,7 @@ flowchart LR
     class Evidence,Project,Audit store
 ```
 
-系統不是「丟一個 prompt，拿一篇文章」。它把研究拆成可以暫停、回退、審閱與重現的 artifact pipeline；Agent 可以更換，但 evidence boundary 與品質 gate 不變。
+系統不是「丟一個 prompt，拿一篇文章」。它把研究拆成可以暫停、回退、審閱與重現的 artifact pipeline；solver 產出、獨立 scorer 依定位到來源與 artifact 的證據評分。Agent 可以更換，但 evidence boundary 與品質 gate 不變。
 
 ## 依你的角色開始
 
@@ -106,7 +106,7 @@ stateDiagram-v2
     [*] --> Exploration
     Exploration --> Project: concept + scope 成形
     Project --> EvidenceReady: 搜尋、全文、來源角色
-    EvidenceReady --> PlanApproved: manuscript plan gate
+    EvidenceReady --> PlanApproved: manual approval or audited autopilot review
     PlanApproved --> Drafting
     Drafting --> Reviewing: section + manuscript hooks
     Reviewing --> Drafting: rewrite / regression
@@ -116,7 +116,7 @@ stateDiagram-v2
     Published --> [*]
 ```
 
-每個箭頭都有對應的 MCP action、檔案產物與驗證證據。從 [Auto-Paper 指南](auto-paper-guide.md) 可查看完整 phase 契約；從 [品質與稽核](wiki/quality-and-audit.md) 可查看 gate 的實作位置。
+每個箭頭都有對應的 MCP action、檔案產物與驗證證據。從 [Auto-Paper 指南](auto-paper-guide.md) 可查看完整 phase 契約；從 [評估契約](harness/evaluation-contract.md) 可查看 solve→score、fixture 與 release evidence；從 [品質與稽核](wiki/quality-and-audit.md) 可查看 gate 的實作位置。
 
 ## 這個 wiki 怎麼讀
 
@@ -138,4 +138,4 @@ flowchart TB
 
 !!! info "目前穩定版本"
 
-    `v0.9.0` 提供 13 種正式學術產出、110 個 base constraints、跨 Agent harness、exemplar audit、完整 MCP smoke 與可安裝 VSIX。版本與 artifact 請見 [GitHub Releases](https://github.com/u9401066/med-paper-assistant/releases)。
+    `v1.0.0` 提供 MCP SDK2-only runtime、118 full / 12 compact 工具面、13 種正式學術產出、110 個 base constraints、可審計跨 Agent harness、內容來源完整性 gate，以及可安裝 VSIX。版本與 artifact 請見 [GitHub Releases](https://github.com/u9401066/med-paper-assistant/releases)。

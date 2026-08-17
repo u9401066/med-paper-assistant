@@ -46,7 +46,7 @@ sequenceDiagram
 
     A->>P: unified_search(query)
     P-->>A: PMID + verified metadata
-    A->>M: save_reference_mcp(pmid)
+    A->>M: save_reference_mcp(pmid) [direct compact safe verb]
     M->>P: retrieve canonical record
     P-->>M: source-authentic metadata
     M->>R: persist 🔒 VERIFIED layer
@@ -54,6 +54,8 @@ sequenceDiagram
 ```
 
 若 API 不可用，可用 Agent-passed metadata fallback，但必須保留較低 trust 與 provenance；不得靜默升級成 verified。
+
+compact surface 的搜尋、詳情、全文、格式化與 analysis 走 `reference_action`；`save_reference_mcp(pmid)` 是刻意保留的直接入口。API 不可用時才可用 `reference_action(action="save_agent", article=...)`，且結果維持 agent trust layer。
 
 ## Claim–evidence 對齊
 

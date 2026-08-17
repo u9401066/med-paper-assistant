@@ -2,22 +2,24 @@
 
 <p align="center">
   <a href="https://www.python.org/downloads/"><img alt="Python" src="https://img.shields.io/badge/Python-3.12+-blue?logo=python&logoColor=white"></a>
-  <a href="https://modelcontextprotocol.io/"><img alt="MCP" src="https://img.shields.io/badge/MCP-Compatible-green"></a>
+  <a href="https://modelcontextprotocol.io/"><img alt="MCP SDK 2.x" src="https://img.shields.io/badge/MCP_SDK-2.x-green"></a>
   <a href="https://github.com/features/copilot"><img alt="Copilot" src="https://img.shields.io/badge/GitHub_Copilot-Ready-8957e5?logo=github&logoColor=white"></a>
   <a href="https://u9401066.github.io/med-paper-assistant/"><img alt="Wiki" src="https://img.shields.io/badge/docs-GitHub_Pages-0f766e?logo=materialformkdocs&logoColor=white"></a>
   <a href="https://github.com/u9401066/med-paper-assistant"><img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue"></a>
 </p>
 
 <p align="center">
-  <b>🔬 以 MCP 協調的醫學研究工作區：論文寫作與 LLM Wiki 雙工作流</b><br>
-  <i>3 個 MCP Server · 188+ 個工具 · 38 個技能 · 15 個 Prompt 工作流 — 跨 Agent 作者面與 VSIX 打包體驗</i>
+  <b>🔬 可稽核的 MCP 自主與人機協作學術寫作工作區</b><br>
+  <i>MCP 工具面：mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · 38 個技能 · 15 個 Prompt 工作流</i>
 </p>
 
 > 📖 [English Version](README.md)
 
-> 🤖 **[Auto-Paper：全自動論文撰寫指南](docs/auto-paper-guide.md)** — 13 個主線 gate checkpoint + Phase 2.1 sub-gate、79 項品質檢查、結構化 Review Loop
+> 🤖 **[Auto-Paper：自主＋人類協作寫作指南](docs/auto-paper-guide.md)** — 13 個主線 gate checkpoint + Phase 2.1 sub-gate、79 項品質檢查、結構化 Review Loop
 >
-> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 32 個主題頁、Mermaid 流程圖、SVG 架構圖、全文搜尋與深色模式
+> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 35 個主題頁、Mermaid 流程圖、SVG 架構圖、全文搜尋與深色模式
+
+核心目標不是一次生成整篇文字，而是讓受邊界約束的自主流程與研究者主導的寫作共用可觀察 checkpoint、evidence locator、quality gate、審閱 receipt 與可重現匯出。Solver 負責產生 artifacts，獨立檢查負責評分，未被證據支持的內容不會因文字流暢而取得 evidence credit。
 
 ![MedPaper Assistant 概覽](docs/assets/medpaper-intro.svg)
 
@@ -29,8 +31,8 @@
 
 | 元件                                                               | 類型                 | 工具數                          | 說明                                                                                                   |
 | ------------------------------------------------------------------ | -------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **mdpaper**                                                        | 核心 MCP Server      | 118（full）/ 22（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources                       |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 46                              | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                                              |
+| **mdpaper**                                                        | 核心 MCP Server      | 118（full）/ 12（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources                       |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 45                              | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                                              |
 | **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 24                              | 創意發想：腦力激盪、深度思考、火花碰撞                                                                 |
 | **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 11 指令 + 10 chat               | MCP 自動註冊、compact-first 打包面、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者 |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App      | —                               | 專案管理 UI、圖表編輯器                                                                                |
@@ -51,11 +53,11 @@
 | 安裝面              | 適合誰                            | 你會拿到什麼                                                                                                                                                                                  |
 | ------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、38 個 skills、15 個 prompt workflows、跨 Agent harness、repo scripts、tests 與作者文件                                                          |
-| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者      | `@mdpaper`、11 個 palette commands、compact-first `mdpaper` runtime（預設 22 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
+| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者      | `@mdpaper`、11 個 palette commands、compact-first `mdpaper` runtime（預設 12 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
 
 也就是說：repository 是較寬的工程面；VSIX 是較收斂的終端使用者面。
 
-**VSX 說明**：MedPaper 的 VS Code 擴充功能會用 `uv tool install` 以電腦為單位持久安裝 Python MCP 工具，後續啟動會嘗試 `uv tool upgrade` 升級；若系統上已有其他 VS Code 擴充功能提供 `PubMed Search` 或 `Zotero Keeper` MCP server，MedPaper 會自動跳過重複安裝與重複註冊。CI smoke 目前覆蓋 `ubuntu-latest`、`windows-latest`、`macos-14`，並包含 official MCP client 檢查與 VSX validate smoke。
+**VSX 說明**：擴充功能只透過 `uv tool` 持久維護核心 MedPaper 執行檔。管理中的外部 MCP 均由隔離的 `uvx` 啟動不可變 SDK 2 commit archive；另一個已安裝擴充若明確提供 PubMed Search 或 Zotero Keeper，則跳過重複註冊。CI smoke 覆蓋 `ubuntu-latest`、`windows-latest`、`macos-14`，並加上 exact-archive 安裝檢查。
 
 ### 各元件如何協作
 
@@ -90,7 +92,7 @@
 | 傳統工具                   | Medical Paper Assistant                                  |
 | -------------------------- | -------------------------------------------------------- |
 | 固定模板、僵化流程         | 彈性、探索式方法                                         |
-| 搜尋/寫作/引用分開多個 App | 同一個協調工作區：188+ 個工具與打包工作流都在 VS Code 裡 |
+| 搜尋/寫作/引用分開多個 App | 同一工作區：118/12 mdpaper + 45 PubMed + 24 CGU 工具與打包工作流 |
 | 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料                               |
 | 匯出後再排版               | 直接匯出符合期刊格式的 Word                              |
 | 學習複雜介面               | 自然語言對話                                             |
@@ -132,8 +134,8 @@ cd med-paper-assistant
 
 - 安裝腳本使用本 repository 釘選的 submodule commit，確保可重現安裝；不會在安裝時自動追最新 upstream HEAD。
 - 如果你要刻意升級 submodule，請自行執行 `git submodule update --remote --merge`，並在提交前完成測試。
-- `drawio` 透過 `npx -y @drawio/mcp` 啟動，因此機器上必須有 Node.js/npm。
-- 在 repo 工作流中，`zotero-keeper` 與 `pubmed-search` 走 `uvx`；在 VSX 工作流中，則可能由 MedPaper 本身或其他已安裝的 VS Code 擴充功能提供。
+- Draw.io MCP server 使用 submodule 內釘選的 Python SDK 2 套件（或對應不可變 commit archive）。只有選用的互動式 Draw.io web UI 需要 Node.js/npm，不再把 Node MCP 1 當 fallback。
+- Repository mode 啟動釘選 submodule；Marketplace mode 對 PubMed、CGU、Zotero Keeper 與 Draw.io 安裝精確的 SDK 2 commit archive，不會漂移到未驗證的 latest package。
 
 **驗證**：在 Copilot Chat 輸入 `/mcp`，應該看到 `mdpaper` 🎉
 
@@ -177,7 +179,7 @@ Windows PowerShell：
 **Library Wiki Path**
 
 - 先建立 `workflow_mode="library-wiki"` 專案
-- 走 `search/save_reference_mcp` → `write_library_note` / `move_library_note` → `show_reading_queues` / `build_library_dashboard`
+- 走 `reference_action` 加上直接的 `save_reference_mcp` verified save → `library_action` → 必要時切 full surface 生成 wiki
 - 需要時再用 `materialize_agent_wiki`、Foam graph views 與 `docs/how-to/llm-wiki.md` 做跨筆記合成與巡覽
 
 **Manuscript Path**
@@ -265,9 +267,9 @@ projects/{slug}/
 
 ### 文獻搜尋與管理
 
-- **PubMed + Europe PMC + CORE** 搜尋（46 個搜尋工具）
+- **PubMed + Europe PMC + CORE** 搜尋（45 個搜尋工具）
 - **PICO 解析** 處理臨床問題
-- **MCP-to-MCP 驗證資料** — 只傳 PMID，杜絕 Agent 幻覺
+- **MCP-to-MCP 驗證 metadata** — PMID 查詢保留來源回應與信任層；後續詮釋仍須通過 evidence checks
 - 分層信任：🔒 VERIFIED（PubMed）· 🤖 AGENT（AI 筆記）· ✏️ USER（你的筆記）
 - Foam wikilink：`[[author2024_12345678]]` 含懸停預覽和反向連結
 - **Library Wiki Path** — `inbox/`、`concepts/`、`projects/` 三層筆記流，支援 reading queues 與 cross-note dashboard
@@ -279,7 +281,7 @@ projects/{slug}/
 - **Citation-Aware Editing** — `patch_draft` 儲存前驗證所有 `[[wikilinks]]`
 - **自動修復引用格式** — `[[12345678]]` → `[[author2024_12345678]]`
 - **新穎性驗證** — 3 輪獨立評分（門檻：75/100）
-- **Anti-AI 寫作規則** — 證據漏斗結構、禁止陳腔濫調
+- **語體與作者完整性** — 證據導向、voice/clarity 與揭露檢查；不以規避 AI detector 為優化目標
 
 ### 資料分析
 
@@ -287,6 +289,7 @@ projects/{slug}/
 - 統計檢定（t-test、ANOVA、chi²、相關性、Mann-Whitney、Fisher's）
 - **Table 1 生成器** — 基線特徵表，自動偵測變數類型
 - 出版品質圖表（matplotlib/seaborn）
+- **內容完整性審閱** — SHA-256/MIME receipt、可選 C2PA 驗證、無法判定的 raster 浮水印必須留下人工審閱紀錄，且不自動移除浮水印
 
 ### 匯出與投稿
 
@@ -302,7 +305,7 @@ projects/{slug}/
 - **16 個 pre-commit hooks**（ruff、mypy、bandit、pytest、prettier、doc-update...）
 - **Workspace State** 跨 session 狀態恢復
 - **uv** 管理所有 Python 套件
-- **已實際啟用的 MCP SDK 能力** — tools、elicitation，以及長任務 audit/review 的 progress notifications
+- **MCP SDK 2.x** — 不支援舊 1.x runtime；tools、prompts、resources、elicitation 與長任務 progress notifications 均走 v2 SDK surface
 - **受管 Foam graph views** — Default、Evidence、Writing、Assets、Review 五個命名圖譜切片
 
 ---
@@ -329,8 +332,8 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 外部 MCPs   │
-│ 118/22 工具   │  │  search       │  │  24 工具      │  │   (uvx)       │
-│               │  │  46 工具      │  │               │  │               │
+│ 118/12 工具   │  │  search       │  │  24 工具      │  │   (uvx)       │
+│               │  │  45 工具      │  │               │  │               │
 │ • 專案管理    │  │ • PubMed      │  │ • 腦力激盪    │  │ 🎨 drawio     │
 │ • 參考文獻    │  │ • Europe PMC  │  │ • 深度思考    │  │ • 流程圖      │
 │ • 草稿        │  │ • CORE        │  │ • 火花碰撞    │  │               │
@@ -378,11 +381,24 @@ pubmed-search: GET /api/cached_article/24891204
 
 ## 🛠️ mdpaper MCP 工具
 
-mdpaper MCP server 暴露 **118（full）/ 22（compact 預設）** 個工具，另加 **3 個 MCP prompts** 與 **3 個 MCP resources**。
+mdpaper MCP server 暴露 **118（full）/ 12（compact 預設）** 個工具，另加 **3 個 MCP prompts** 與 **3 個 MCP resources**。
 
 這些數字由 `tool-surface-authority.json` 與 `scripts/check_tool_surface_authority.py` 依實際 runtime 註冊結果驗證；只要文件與權威數據漂移，validate / release gate 就會失敗。
 
-compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/export），隱藏多數細粒度 public verbs；若要完整 surface，設定 `MEDPAPER_TOOL_SURFACE=full`。
+compact 模式只暴露以下 12 個穩定入口，隱藏多數細粒度 public verbs；若要完整 surface，設定 `MEDPAPER_TOOL_SURFACE=full`。
+
+| Compact 能力 | 工具                                                       |
+| ------------ | ---------------------------------------------------------- |
+| 專案／狀態   | `project_action`、`workspace_state_action`                 |
+| 知識庫／文獻 | `library_action`、`reference_action`、`save_reference_mcp` |
+| 草稿／分析   | `draft_action`、`analysis_action`                          |
+| 驗證／審閱   | `validation_action`、`run_quality_checks`                  |
+| Pipeline     | `pipeline_action`                                          |
+| 匯出         | `export_document`、`inspect_export`                        |
+
+`save_reference_mcp(pmid)` 刻意保留為直接的 compact safe verb，避免 verified PubMed retrieval 與較低信任層的 `reference_action(action="save_agent")` fallback 混淆。
+
+以下表格整理具代表性的 full-surface 工具；compact client 透過上述入口抵達相同 domain capabilities。
 
 ### 📁 專案管理
 
@@ -403,6 +419,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 
 | 關鍵工具                                            | 說明                                                  |
 | --------------------------------------------------- | ----------------------------------------------------- |
+| `reference_action`                                  | **Compact 預設** — 瀏覽、讀取、格式化與分析文獻       |
 | `save_reference_mcp`                                | **推薦** — 透過 PMID 經由 MCP-to-MCP 儲存（驗證資料） |
 | `list_saved_references` / `search_local_references` | 瀏覽和搜尋已存文獻                                    |
 | `format_references` / `set_citation_style`          | Vancouver / APA / Nature                              |
@@ -470,7 +487,7 @@ compact 模式會保留主要 facade 入口（project/workspace/review/pipeline/
 | **Prompts**   | `project_bootstrap`、`draft_section_plan`、`word_export_checklist`                            | 透過官方 MCP prompt API 生成引導式工作流內容          |
 | **Resources** | `medpaper://workspace/state`、`medpaper://workspace/projects`、`medpaper://templates/catalog` | 透過 MCP resources 暴露工作區狀態、專案列表與模板資訊 |
 
-### 🔍 pubmed-search MCP 工具（46 工具）
+### 🔍 pubmed-search MCP 工具（45 工具）
 
 | 分類            | 關鍵工具                                                                  |
 | --------------- | ------------------------------------------------------------------------- |
@@ -578,10 +595,10 @@ med-paper-assistant/
 │   ├── domain/                    #   業務邏輯、實體、值物件
 │   ├── application/               #   用例、服務
 │   ├── infrastructure/            #   DAL、外部服務
-│   └── interfaces/mcp/            #   MCP Server，118 full / 22 compact 工具 + 3 prompts + 3 resources
+│   └── interfaces/mcp/            #   MCP Server，118 full / 12 compact 工具 + 3 prompts + 3 resources
 │
 ├── integrations/                  # 內建 MCP Server
-│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（46 工具）
+│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（45 工具）
 │   └── cgu/                       #   創意發想（24 工具）
 │
 ├── vscode-extension/              # 打包後的 VSIX surface
@@ -619,7 +636,7 @@ med-paper-assistant/
 
 | 狀態 | 功能                        | 說明                                                             |
 | ---- | --------------------------- | ---------------------------------------------------------------- |
-| ✅   | **3 個 MCP Server**         | mdpaper（118 full / 22 compact）+ pubmed-search (46) + CGU (24)  |
+| ✅   | **3 個 MCP Server**         | mdpaper（118 full / 12 compact）+ pubmed-search (45) + CGU (24)  |
 | ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、命名 graph views、專案隔離        |
 | ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                    |
 | ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                               |
@@ -641,7 +658,7 @@ med-paper-assistant/
 
 ## 🤝 參與貢獻
 
-我們歡迎貢獻！詳見 [CONTRIBUTING.md](CONTRIBUTING.md)。
+我們歡迎貢獻！請參閱 [CONTRIBUTING.md](CONTRIBUTING.md)、[行為準則](CODE_OF_CONDUCT.md) 與 [SECURITY.md](SECURITY.md) 的私密漏洞回報流程。
 
 - 🐛 **回報 Bug** — 開 issue
 - 💡 **建議功能** — 分享想法
@@ -649,25 +666,25 @@ med-paper-assistant/
 
 ---
 
-## � 引用
+## 📚 引用
 
-如果您在研究中使用了 Medical Paper Assistant，請引用我們的論文：
+如果您使用 Medical Paper Assistant，請引用 [`CITATION.cff`](CITATION.cff) 所描述的軟體版本。以下提供 BibTeX 範例：
 
 ```bibtex
-@article{medpaper2025,
-  title   = {MedPaper Assistant: A Self-Evolving, MCP-Based Framework for
-             AI-Assisted Medical Paper Writing with Closed-Loop Quality Assurance},
-  author  = {[Authors]},
-  year    = {2025},
-  note    = {Submitted to medRxiv},
-  url     = {https://github.com/u9401066/med-paper-assistant}
+@software{medpaperassistant_2026,
+  author  = {{MedPaper Assistant contributors}},
+  title   = {Medical Paper Assistant},
+  year    = {2026},
+  version = {1.0.0},
+  url     = {https://github.com/u9401066/med-paper-assistant},
+  license = {Apache-2.0}
 }
 ```
 
-> **說明：** 這篇論文完全由 MedPaper Assistant 的自主 Pipeline 產出，作為自我參照式驗證。稿件、審計軌跡和所有品質指標均可在 [`projects/self-evolving-ai-paper-writing-framework/`](projects/self-evolving-ai-paper-writing-framework/) 查看。預印本正投稿至 [medRxiv](https://submit.medrxiv.org/) — DOI 可用後將更新此區塊。
+請勿引用未公開稿件或自行填入 DOI；未來若有 archived release DOI，會直接更新在 `CITATION.cff`。
 
 ---
 
-## �📄 授權
+## 📄 授權
 
 Apache License 2.0 — 詳見 [LICENSE](LICENSE)

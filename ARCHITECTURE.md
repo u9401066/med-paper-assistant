@@ -37,7 +37,7 @@ MedPaper Assistant 是一個**以 Copilot Agent Mode 為核心的醫學論文寫
 
 ## MCP Server（DDD Architecture）
 
-主要的 Python MCP Server，full surface 提供 118 個 tools，另暴露 3 個 prompts 與 3 個 resources；compact default 採 facade-first surface，暴露 22 個 tools。這些公開數量由 `tool-surface-authority.json` 與 validation/release gates 驗證。
+主要的 Python MCP Server，full surface 提供 118 個 tools，另暴露 3 個 prompts 與 3 個 resources；compact default 採 facade-first surface，暴露 12 個 tools。這些公開數量由 `tool-surface-authority.json` 與 validation/release gates 驗證。
 
 ### 層級結構
 
@@ -61,6 +61,7 @@ src/med_paper_assistant/
 │   └── paper_types.py              # 論文類型定義
 │
 ├── application/                     # 應用層：Use Case 編排
+│   ├── content_integrity.py       # 只讀內容來源/原檔完整性編排
 │   └── use_cases/
 │       ├── save_reference.py       #   儲存文獻（MCP-to-MCP 驗證流程）
 │       └── create_project.py       #   建立專案
@@ -91,7 +92,7 @@ src/med_paper_assistant/
 │   │   │   ├── _precommit.py           #   P 系列 Hooks (P5, P7)
 │   │   │   ├── _git.py                 #   G 系列 Hooks (G9)
 │   │   │   └── _engine.py              #   WritingHooksEngine 組合類
-│   │   └── data_artifact_tracker.py    # 資料溯源追蹤
+│   │   └── data_artifact_tracker.py    # 資料與內容完整性 receipt 追蹤
 │   │   └── review_hooks.py             # R1-R6 審查品質 Hook（Phase 7 HARD GATE）
 │   ├── services/                    # 外部服務
 │   │   ├── drafter.py              #   草稿撰寫 + wikilink 引用
@@ -106,19 +107,19 @@ src/med_paper_assistant/
 │   │   ├── citation_assistant.py   #   引用助手
 │   │   ├── concept_template_reader.py
 │   │   └── prompts.py              #   Section 寫作指引
-│   ├── external/                    # 外部 MCP 整合
+│   ├── external/                    # 外部 MCP 與 read-only C2PA adapter
 │   ├── config.py                    # 配置
 │   └── logging.py                   # 日誌
 │
 ├── interfaces/                      # 介面層：MCP Protocol 對接
 │   └── mcp/
-│       ├── server.py               #   create_server() → FastMCP
+│       ├── server.py               #   create_server() → MCP SDK 2 MCPServer
 │       ├── __main__.py             #   Entry point（python -m）
 │       ├── config.py               #   SERVER_INSTRUCTIONS
 │       ├── instructions.py         #   動態指令生成
 │       ├── prompts/                #   MCP Prompts
 │       ├── resources.py            #   MCP Resources
-│       └── tools/                  #   MCP Tools（7 domain groups + 6 facade entrypoints）
+│       └── tools/                  #   118 full / 12 compact（預設）MCP tools
 │           ├── project/            #     CRUD, settings, exploration, diagrams
 │           ├── reference/          #     save, search, format, citations
 │           ├── draft/              #     write, read, cite, templates

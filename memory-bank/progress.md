@@ -1,6 +1,17 @@
-# Progress (Updated: 2026-07-15)
+# Progress (Updated: 2026-08-17)
 
 ## Done
+
+- **v1.0.0 SDK2-only + auditable academic-writing release candidate (2026-08-17)**:
+
+  - Migrated the root server and all five managed integrations to official MCP SDK2 contracts; removed FastMCP/SDK1, floating `uvx`, arbitrary PATH reuse, and the Draw.io npm fallback.
+  - Added immutable integration authority, direct/stdio/archive smokes, compact/full exact-count boot gates, and Marketplace definitions for all managed servers including Asset-Aware.
+  - Compressed the default surface to 12 workflow tools while retaining 118 advanced tools plus three prompts/resources.
+  - Added fail-closed PubMed VERIFIED provenance and read-only content-integrity receipts with C2PA support and human review for uncertain raster assets.
+  - Refreshed dependencies, dashboard async React state, docs/harness/site/governance, release scripts, wheel smoke, real VSIX install smoke, and Marketplace OIDC publishing.
+  - Prepared synchronized v1.0.0 version surfaces and changelogs; completed local Python 1605-test, VSIX 150-test, full/compact greedy, archive, wheel, package, docs, security, and authority gates.
+  - Applied the GitHub description, five governance topics, and 15 structured labels while retaining existing labels and the `master` default branch.
+  - Segmented root commits, master CI, tag/release, Marketplace verification, and stale branch/PR cleanup remain in progress.
 
 - **GitHub Pages Wiki + visual architecture (2026-07-15)**:
 

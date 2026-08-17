@@ -2,8 +2,8 @@
 
 ## Vision
 
-成為醫學研究人員從文獻探索到論文發表的完整 AI 輔助平台。
-**支援多個論文專案並行管理，確保每篇論文都達到頂尖期刊標準。**
+成為從文獻探索到可交付學術產出的可稽核 MCP + harness：agent 可在邊界內自主推進，人類可監控、審閱、暫停與回退。
+**支援多種研究與教學產出，透過可重現 evidence、獨立 scoring 與品質 gate 最大化可信度；不保證投稿接受或以模型自評取代專業責任。**
 
 ### 核心價值：逐步多輪演進（Iterative Multi-Round Evolution）
 
@@ -48,19 +48,19 @@
                     ┌─────────────────────────────────────────────────────────────┐
                     │              MedPaper Assistant 發展藍圖                    │
                     ├─────────────────────────────────────────────────────────────┤
-2026 Q1             │  Phase 4: MVP for Original Research ✅                      │
-(Current)           │  Phase 5a: Artifact-Centric Architecture                    │
-                    │  Phase 5c: Full VSX + Pandoc Export 🔥                      │
+2026 H2 (Current)   │  MCP SDK 2-only runtime + 12-tool compact surface           │
+                    │  Content-integrity receipts + asset insertion gate          │
+                    │  Solve → persist → independent score contract               │
                     ├─────────────────────────────────────────────────────────────┤
-2026 Q2             │  Phase 5b: Project Portfolio Management                     │
-                    │  Phase 8: AI Writing Intelligence                           │
+Next                │  Frozen benchmark fixtures + evidence locator ledger        │
+                    │  Source-dominance, budget and degraded-path evaluation       │
                     ├─────────────────────────────────────────────────────────────┤
-2026 Q3             │  Phase 6: Systematic Review Pipeline                        │
+Later               │  Phase 6: Systematic Review Pipeline                        │
                     │  ├── PRISMA Flow Tools                                      │
                     │  ├── Risk of Bias Assessment                                │
                     │  └── Meta-analysis Integration                              │
                     ├─────────────────────────────────────────────────────────────┤
-2026 Q4             │  Phase 7: AI Automation Enhancement                         │
+Later               │  Bounded Automation Enhancement                             │
                     │  ├── Auto-generate Full Draft from concept.md               │
                     │  ├── Cross-section Consistency Auto-fix                     │
                     │  ├── Smart Citation Suggestions                             │
@@ -80,19 +80,30 @@
 
 ### Cross-Agent Production Harness v0.9 (2026-07)
 
-| Feature                                 | Description                                                                                    |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **Claude/Codex/OpenClaw harness** ✅    | `CLAUDE.md`、`.claude/skills` 與 `.agents/skills` 共用平台中立學術寫作契約                     |
-| **13 formal output profiles** ✅        | proposal、closeout、student、conference、thesis、arXiv 加入 domain/template/constraint/hook    |
-| **Exemplar audit enforcement** ✅       | `.audit/exemplar-usage.yaml` 固定非證據、非引用、非逐字複製，拒絕 policy tampering             |
-| **Domain constraints** ✅               | 13 種正式產出、110 個 base constraints，並有 registry parity 與 boundary tests                 |
-| **DDD / orphan cleanup** ✅             | Application-owned ports、靜態依賴邊界、vulture 80%+ 零發現、deprecated param telemetry         |
-| **118-tool greedy smoke** ✅            | 116 正常、2 個按設計跳過、0 broken/error；包含 legacy reference migration                      |
-| **GitHub Pages Wiki + visual atlas** ✅ | MkDocs Material、32 頁、48 張 Mermaid、8 個 accessible SVG、strict Pages deploy 與文件契約測試 |
-| **Portable JSONC / skill discovery** ✅ | URL-safe parser、comments/trailing commas、38 skills frontmatter 與跨平台入口測試              |
-| **Extension production gates** ✅       | ESLint 10、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke          |
+| Feature                                 | Description                                                                                     |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Claude/Codex/OpenClaw harness** ✅    | `CLAUDE.md`、`.claude/skills` 與 `.agents/skills` 共用平台中立學術寫作契約                      |
+| **13 formal output profiles** ✅        | proposal、closeout、student、conference、thesis、arXiv 加入 domain/template/constraint/hook     |
+| **Exemplar audit enforcement** ✅       | `.audit/exemplar-usage.yaml` 固定非證據、非引用、非逐字複製，拒絕 policy tampering              |
+| **Domain constraints** ✅               | 13 種正式產出、110 個 base constraints，並有 registry parity 與 boundary tests                  |
+| **DDD / orphan cleanup** ✅             | Application-owned ports、靜態依賴邊界、vulture 80%+ 零發現、deprecated param telemetry          |
+| **118-tool greedy smoke** ✅            | 116 正常、2 個按設計跳過、0 broken/error；包含 legacy reference migration                       |
+| **GitHub Pages Wiki + visual atlas** ✅ | MkDocs Material、35 頁、native Mermaid、8 個 accessible SVG、strict Pages deploy 與文件契約測試 |
+| **Portable JSONC / skill discovery** ✅ | URL-safe parser、comments/trailing commas、38 skills frontmatter 與跨平台入口測試               |
+| **Extension production gates** ✅       | ESLint 10、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke           |
 
-下一階段：實作 ranked evidence-context ledger、perspective question map、bounded branch exploration，並把 profile-specific positive hooks 與可選 publishing adapter 納入同樣的跨平台 smoke gate。
+下一階段：把 ranked evidence-context ledger、perspective question map、bounded branch exploration 與 publishing adapter 納入 frozen fixtures、獨立 scorer、來源支配與跨平台 smoke gate。
+
+### 2026 H2 quality and evaluation priorities
+
+| Priority                   | Outcome                                                       | Required evidence                                                                       |
+| -------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **MCP 2 completion**       | SDK 2.x-only runtime；預設 12 compact、診斷 118 full          | initialize/discovery、progress、elicitation fallback、cancel/shutdown、兩 surface smoke |
+| **Content integrity**      | 原檔 SHA-256/MIME receipt、可選 C2PA、保守人工水印審閱        | trusted/untrusted/invalid/absent/unsupported/hash-mutation fixtures；禁止自動移除       |
+| **Independent evaluation** | solve→persist→score，scorer 唯讀                              | rubric/fixture/version/hash、evidence locators、完整 failures                           |
+| **Evidence quality**       | claim-span ledger、source dominance 與 contradiction handling | positive/negative/metamorphic pairs、全文缺失 degraded paths                            |
+| **Human collaboration**    | manual/autopilot gate、pause/resume、精準 escalation          | approver/mode/reason、state transition、regression budget                               |
+| **Release governance**     | 文件、citation、security、Pages、package/VSIX 一致            | 12/118 counts、三平台結果、artifact hashes、遠端設定 review issue                       |
 
 ### Release Reliability & Tool Surface Hardening (2026-04)
 
@@ -101,7 +112,7 @@
 | **Cross-platform Path Guard** ✅  | 全 repo filename/path 入口統一經過共享 guard，覆蓋 Linux/macOS/Windows traversal、UNC、drive、reserved names      |
 | **MCP Phase 5 Surface 修復** ✅   | `draft_action(write section=...)`、`analysis_action` 資產入口、data-artifacts manifest、validation aliases 已對齊 |
 | **VSX Bundled Parity** ✅         | Source 與 VS Code extension bundled Python mirror 重新同步，release 前 parity scan 無 drift                       |
-| **Authority-driven Counts** ✅    | `tool-surface-authority.json` 成為 official count source；repo/VSX docs 同步至 117 full / 22 compact              |
+| **Authority-driven Counts** ✅    | `tool-surface-authority.json` 成為 official count source；repo/VSX docs 同步至 118 full / 12 compact              |
 | **Phase 8-11 Release Gates** ✅   | reference sync、DOCX/PDF integrity、D1-D9 meta-learning audit、final delivery prerequisites 已 code-enforced      |
 | **Release Workflow Hardening** ✅ | release workflow 採 least-privilege、frozen uv installs、publish 前 `lint-security` gate 與 VSIX package smoke    |
 
@@ -128,18 +139,18 @@
 
 ### Phase 3: Knowledge Management (2025-12 ~ 2026-01)
 
-| Feature                      | Description                         |
-| ---------------------------- | ----------------------------------- |
-| Foam Integration             | Wikilinks、Hover Preview、Backlinks |
-| MCP-to-MCP Communication     | 分層信任、資料完整性保證            |
-| Project Memory               | `.memory/` 專案記憶系統             |
-| **Three Reviewers Model**    | Novelty 三位審稿人驗證模型          |
-| **Anti-AI Writing Logic**    | 去 AI 味、證據漏斗結構              |
-| **uv Toolchain**             | 全專案標準化 uv 套件管理            |
-| **Citation Assistant** ✨    | 智慧引用助手 - 選段落找引用         |
-| **CRUD 盤點完成** ✅         | 52 工具盤點，識別 Delete 操作缺口   |
-| **Tool Description 精簡** ✅ | 71 工具 docstring 精簡，-77% token  |
-| **Python 3.12 遷移** ✅      | UV 管理、pyproject.toml 更新        |
+| Feature                          | Description                                         |
+| -------------------------------- | --------------------------------------------------- |
+| Foam Integration                 | Wikilinks、Hover Preview、Backlinks                 |
+| MCP-to-MCP Communication         | 分層信任、資料完整性保證                            |
+| Project Memory                   | `.memory/` 專案記憶系統                             |
+| **Three Reviewers Model**        | Novelty 三位審稿人驗證模型                          |
+| **Style / Authorship Integrity** | 具體語體、證據漏斗與揭露責任；不做 detector evasion |
+| **uv Toolchain**                 | 全專案標準化 uv 套件管理                            |
+| **Citation Assistant** ✨        | 智慧引用助手 - 選段落找引用                         |
+| **CRUD 盤點完成** ✅             | 52 工具盤點，識別 Delete 操作缺口                   |
+| **Tool Description 精簡** ✅     | 71 工具 docstring 精簡，-77% token                  |
+| **Python 3.12 遷移** ✅          | UV 管理、pyproject.toml 更新                        |
 
 ### Phase 3.5: Infrastructure & Quality Cleanup (2026-01) 🆕
 
@@ -164,7 +175,7 @@
 
 ## 🚨 已知問題 (Known Issues) - 已大幅改善
 
-> **2026-01 狀態更新：Issue #2, #3 已透過「三位審稿人模型」與「去 AI 味寫作邏輯」改善**
+> **2026-08 狀態更新：Issue #2, #3 以多角色審閱、具體語體、evidence locator 與獨立 scoring 持續改善；模型自評不等於驗證。**
 
 ### Issue #1: 驗證機制不穩定 ⭐⭐⭐ (優先級下調)
 
@@ -183,12 +194,12 @@
 
 ### Issue #3: AI 建議無法達到學術標準 ✅ 已改善
 
-| 問題     | 說明                                           | 狀態      |
-| -------- | ---------------------------------------------- | --------- |
-| **現象** | ~~AI 給的寫作建議過於籠統~~                    | ✅ 已改善 |
-| **改善** | **Anti-AI Writing Rules** - 禁止陳腔濫調       | ✅        |
-| **改善** | **Evidence Funnel** - 強制引用具體數據         | ✅        |
-| **改善** | `draft_section` 自動注入已存文獻的摘要作為背景 | ✅        |
+| 問題     | 說明                                                                 | 狀態      |
+| -------- | -------------------------------------------------------------------- | --------- |
+| **現象** | ~~AI 給的寫作建議過於籠統~~                                          | ✅ 已改善 |
+| **改善** | **Style integrity rules** — 禁止空泛陳腔濫調，但不優化 detector 分數 | ✅        |
+| **改善** | **Evidence Funnel** - 強制引用具體數據                               | ✅        |
+| **改善** | `draft_section` 自動注入已存文獻的摘要作為背景                       | ✅        |
 
 ### Issue #4: 跨 MCP 協調不一致 ⭐⭐ (優先級下調)
 
@@ -384,7 +395,7 @@ EMPTY → EXPLORATION → PROJECT
 
 ---
 
-## �️ Phase 5c: Full VSX + Pandoc Export (2026 Q1-Q2) 🔥
+## 🖥️ Phase 5c: Full VSX + Pandoc Export (2026 Q1-Q2) 🔥
 
 > **架構方向 C：將 VS Code Extension 升級為完整的論文寫作環境**
 > 決策日期：2026-01 | 決策依據：需要比 Speckit-like shell prompts 更豐富的 UI 互動
@@ -465,16 +476,16 @@ EMPTY → EXPLORATION → PROJECT
 
 ### 5c.3 Foam 保留 + 強化
 
-| 功能                      | 說明                                        | 狀態    |
-| ------------------------- | ------------------------------------------- | ------- |
-| **保持現有**              | [[wikilink]] 引用、hover preview、backlinks | ✅ 已有 |
-| **Graph Scope**           | `foam_settings.py` 動態切換專案範圍         | ✅ 已有 |
-| **Enhanced Autocomplete** | 文獻 autocomplete 加入 impact factor        | 📋      |
-| **Backlink Dashboard**    | 在 Dashboard 中顯示引用圖譜                 | 📋      |
+| 功能                      | 說明                                                         | 狀態    |
+| ------------------------- | ------------------------------------------------------------ | ------- |
+| **保持現有**              | [[wikilink]] 引用、hover preview、backlinks                  | ✅ 已有 |
+| **Graph Scope**           | `foam_settings.py` 動態切換專案範圍                          | ✅ 已有 |
+| **Enhanced Autocomplete** | 文獻 autocomplete 加入 evidence role、全文與 provenance 訊號 | 📋      |
+| **Backlink Dashboard**    | 在 Dashboard 中顯示引用圖譜                                  | 📋      |
 
 ---
 
-## �📊 Phase 5b: Project Portfolio Management (2026 Q2)
+## 📊 Phase 5b: Project Portfolio Management (2026 Q2)
 
 > **多論文專案管理：讓研究者能同時管理多個進行中的論文**
 

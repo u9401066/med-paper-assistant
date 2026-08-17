@@ -60,20 +60,20 @@ protects itself the same way it protects the manuscript.
 
 ## Hooks covered
 
-| Hook | Quality property                          | Known-bad mutation                                                                               |
-| ---- | ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| A3   | Anti-AI phrasing                          | inject canonical AI filler ("it is important to note", "plays a crucial role", "groundbreaking") |
-| A5   | Language consistency (American)           | swap American → British spelling (analyse/colour/randomised)                                     |
-| A6   | Internal overlap / copy-paste             | duplicate a paragraph                                                                            |
-| B8   | Stats test alignment (Results ↔ Methods) | use a statistical test in Results never declared in Methods                                      |
-| B9   | Section tense                             | write Methods in present tense ("we measure/analyze/assess")                                     |
-| B11  | Results objectivity                       | inject ≥5 interpretive/speculative phrases into Results                                          |
-| B12  | Introduction structure                    | preview study results inside the Introduction                                                    |
-| B13  | Discussion structure                      | omit the limitations paragraph                                                                   |
-| B14  | Ethical statements                        | omit the ethics-approval statement                                                               |
-| C3   | N-value consistency                       | report a different sample size in Results than Methods                                           |
-| C4   | Abbreviation first use                    | use a non-common abbreviation with no definition                                                 |
-| P7   | Reference + DOI integrity                 | attach a malformed DOI to a saved reference                                                      |
+| Hook | Quality property                          | Known-bad mutation                                                                            |
+| ---- | ----------------------------------------- | --------------------------------------------------------------------------------------------- |
+| A3   | Empty/template phrasing                   | inject canonical filler ("it is important to note", "plays a crucial role", "groundbreaking") |
+| A5   | Language consistency (American)           | swap American → British spelling (analyse/colour/randomised)                                  |
+| A6   | Internal overlap / copy-paste             | duplicate a paragraph                                                                         |
+| B8   | Stats test alignment (Results ↔ Methods) | use a statistical test in Results never declared in Methods                                   |
+| B9   | Section tense                             | write Methods in present tense ("we measure/analyze/assess")                                  |
+| B11  | Results objectivity                       | inject ≥5 interpretive/speculative phrases into Results                                       |
+| B12  | Introduction structure                    | preview study results inside the Introduction                                                 |
+| B13  | Discussion structure                      | omit the limitations paragraph                                                                |
+| B14  | Ethical statements                        | omit the ethics-approval statement                                                            |
+| C3   | N-value consistency                       | report a different sample size in Results than Methods                                        |
+| C4   | Abbreviation first use                    | use a non-common abbreviation with no definition                                              |
+| P7   | Reference + DOI integrity                 | attach a malformed DOI to a saved reference                                                   |
 
 Each row has a paired known-good fixture proving the verifier does **not**
 false-positive on clean input.

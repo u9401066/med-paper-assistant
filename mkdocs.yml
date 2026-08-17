@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 site_name: MedPaper Assistant Wiki
-site_description: 可稽核、跨 Agent、證據導向的學術寫作 harness
+site_description: 可監控、可稽核、支援自主與人類協作的證據導向學術寫作 harness
 site_author: MedPaper Assistant contributors
 site_url: https://u9401066.github.io/med-paper-assistant/
 repo_url: https://github.com/u9401066/med-paper-assistant
@@ -55,6 +55,7 @@ plugins:
   - search:
       lang:
         - en
+        - zh
 
 markdown_extensions:
   - abbr
@@ -107,6 +108,7 @@ nav:
   - 學術寫作流程:
       - 研究管線總覽: wiki/research-pipeline.md
       - 共用寫作契約: harness/academic-writing-workflow.md
+      - 評估契約: harness/evaluation-contract.md
       - Auto-Paper 完整指南: auto-paper-guide.md
       - 正式產出地圖: wiki/output-landscape.md
       - 13 種產出規格: harness/output-profiles.md
@@ -118,6 +120,7 @@ nav:
   - 系統架構:
       - Harness 架構: wiki/harness-architecture.md
       - MCP 生態系: wiki/mcp-ecosystem.md
+      - MCP 2 與內容完整性: wiki/mcp2-content-integrity.md
       - Workspace 與記憶: wiki/workspace-and-memory.md
       - Production harness: design/production-academic-writing-harness.md
       - Artifact-centric architecture: design/artifact-centric-architecture.md
@@ -133,6 +136,7 @@ nav:
       - Copilot lifecycle hooks: design/copilot-lifecycle-hooks.md
       - AI writing intelligence: design/ai-writing-intelligence.md
       - External project benchmark: design/external-project-benchmark.md
+      - Benchmark evaluation roadmap: design/benchmark-evaluation-roadmap.md
       - Tool consolidation plan: design/tool-consolidation-plan.md
       - Missing MCP tools: design/missing-mcp-tools.md
       - Python 3.12 migration: design/python312-migration-plan.md

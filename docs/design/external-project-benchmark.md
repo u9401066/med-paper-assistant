@@ -4,6 +4,10 @@ This benchmark records which mechanisms are worth adapting and which are not.
 It is a design input, not an instruction to copy code or silently add runtime
 dependencies. Re-evaluate upstream behavior and licenses before implementation.
 
+This page preserves the first comparison set. The expanded primary-source
+matrix, frozen-fixture contract, metrics, and implementation milestones live in
+the [benchmark and evaluation roadmap](benchmark-evaluation-roadmap.md).
+
 ## Compared projects
 
 | Project                                                                 | Useful upstream mechanism                                                                                                     | Local gap                                                                                                                               | Decision                                                                                                                                                              |

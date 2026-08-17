@@ -4,24 +4,24 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-07-15)
+## 當前焦點 (2026-08-17)
 
-Production refresh 已完成 v0.9.0；公開 GitHub Pages Wiki 已上線，以 Mermaid 與 SVG 系統化說明跨 Agent harness、研究 pipeline、證據邊界、品質治理與發布維運。後續回到 evidence-context ledger、bounded exploration 與 Marketplace 授權修復。
+正在完成 v1.0.0 的 SDK2-only production release：所有 managed MCP runtime 已移除 SDK1/FastMCP/floating fallback，核心工具面精煉為 118 full / 12 compact，PubMed VERIFIED 信任鏈與 content-integrity receipts 改為 fail-closed，跨 Agent academic-writing harness、文件站與 release gates 已全面翻新。本機完整驗證與 GitHub metadata 同步已完成；待分段提交、遠端 CI、tag 與 Marketplace OIDC 發布。
 
 ### 當前狀態
 
 | 項目                  | 數量/狀態                                                                                                               |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| MCP Tools             | **118 full / 22 compact (default)** + 3 prompts + 3 resources                                                           |
-| External MCP Surface  | **PubMed Search 46 tools** + **CGU 24 tools**                                                                           |
+| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                           |
+| External MCP Surface  | PubMed **45** + CGU **24** + Asset-Aware **30** + Draw.io Python **23** + Zotero Keeper **32**（immutable SDK2 pins）    |
 | Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                              |
 | VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**                            |
 | Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                      |
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                     |
 | Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                          |
-| Latest Validation     | Python 1523 passed / 8 skipped / 26 deselected; VSIX 169 passed; MCP smoke 14/14 + 118/118 classified; validate 92/92   |
-| Packaging             | **v0.9.0** GitHub Release + PyPI published; VSIX attached; Marketplace blocked by external `VSCE_PAT` authorization     |
-| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**32 pages / 48 Mermaid / 8 accessible SVG**；Pages CI ✅ |
+| Latest Validation     | Python **1605 passed / 8 skipped**；VSIX **150 passed**；full greedy **0 broken/error**；wheel/VSIX/archive/docs gates ✅ |
+| Packaging             | **v1.0.0 release candidate**；wheel/sdist/real VSIX install smoke 與 OIDC trusted publish 已納入 release gate          |
+| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**             |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -34,6 +34,16 @@ Production refresh 已完成 v0.9.0；公開 GitHub Pages Wiki 已上線，以 M
 | L3 Autonomous Self-Evolution | ⚠️ 大部分完成          | EvolutionVerifier + weekly health 已上線；缺 git post-commit / Auto-PR |
 
 ### 最近變更
+
+#### v1.0.0 MCP SDK2 + Auditable Writing Harness (2026-08-17)
+
+- Root、Asset-Aware、PubMed Search、CGU、Draw.io Python/TypeScript 與 Zotero Keeper 全部鎖定 MCP SDK2；Marketplace 只使用 VSIX 同版本核心與 immutable integration revisions。
+- compact surface 由 22 收斂為 12 個 workflow facades，reference verbs 合併到 `reference_action`，但 provenance-sensitive `save_reference_mcp` 保留直接入口；full surface 維持 118。
+- 修復 VERIFIED 引用信任鏈：PubMed envelope、source、PMID、title 與 canonical hash 任一不符即拒絕，domain/converter/persistence 完整保存 provenance，普通 agent save 無法偽造 verified。
+- 新增 DDD `ContentIntegrityInspector` 與 CI receipts：保留原始 bytes/hash、可選 C2PA manifest 驗證、可見 watermark 保守訊號，未知 raster 必須人工審閱；不提供破壞 provenance 的自動移除工具。
+- 翻新 academic-writing harness、evaluation contract、35-page MkDocs site、benchmark roadmap、README/中英文件、release/governance/security 文件與 8 張 SVG。
+- Release automation 改成 fail-closed version authority、recursive submodules、built-wheel smoke、real isolated VSIX install、PyPI/Marketplace OIDC 與 GitHub Release wheel/sdist/VSIX artifacts。
+- GitHub repository description、五個 research-governance topics 與 15 個結構化 labels 已透過 API 套用；既有 labels 與 `master` default branch 保留。
 
 #### GitHub Pages Wiki + Visual Architecture (2026-07-15)
 

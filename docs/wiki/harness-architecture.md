@@ -21,6 +21,22 @@ flowchart TB
 
 Adapter 可以描述 client 特有的 discovery 或 command，但不能各自發明 evidence policy。共用契約位於 [Academic-writing workflow](../harness/academic-writing-workflow.md)。
 
+## Solve → persist → score
+
+```mermaid
+flowchart LR
+    Input[Versioned inputs] --> Solver[Solver: research + compose]
+    Solver --> Artifact[(Persisted artifact + hash)]
+    Artifact --> Scorer[Read-only scorer]
+    Rubric[Frozen rubric + fixtures] --> Scorer
+    Scorer --> Result[(Locations + scores + failures)]
+    Result --> Gate{Gate decision}
+    Gate -->|revise| Solver
+    Gate -->|pass| Next[Next phase]
+```
+
+Solver 與 scorer 可以使用相同或不同 model/provider，但職責、context 與權限必須分離。Scorer 不得修稿，solver 不得改 rubric 或 expected fixture；每個 material claim 必須以 source revision、page/section/span、offset（若可得）與 span hash 定位。完整規格見 [Evaluation contract](../harness/evaluation-contract.md)。
+
 ## DDD 四層
 
 ```mermaid
@@ -83,7 +99,7 @@ sequenceDiagram
     F-->>C: compact response
 ```
 
-Facade-first surface 減少 Agent 選錯工具；full tool surface 仍保留作為進階與相容入口。所有路徑都應經過相同 guard、telemetry 與 domain constraints。
+Facade-first 的 12-tool default surface 減少 Agent 選錯工具；118-tool full surface 仍保留作為進階、診斷與相容入口。所有路徑都應經過相同 guard、telemetry 與 domain constraints；完整 MCP 2 runtime 契約見 [MCP 2 與內容完整性](mcp2-content-integrity.md)。
 
 ## Canonical registry 如何傳播
 

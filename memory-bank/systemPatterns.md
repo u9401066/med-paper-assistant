@@ -16,9 +16,9 @@ src/med_paper_assistant/
 │   ├── persistence/     # ProjectManager, ReferenceManager
 │   ├── services/        # Analyzer, Drafter, Formatter, Foam settings
 │   └── external/        # Integration clients / optional adapters
-└── interfaces/mcp/      # MCP server (compact-first; 115 full / 21 default)
+└── interfaces/mcp/      # MCP SDK 2 server (118 full / 12 compact default)
     ├── __main__.py      # Entry point (avoids RuntimeWarning)
-    ├── server.py        # FastMCP setup
+    ├── server.py        # Official MCPServer composition root
     └── tools/           # Modular tool registration
 ```
 
@@ -31,23 +31,18 @@ integrations/next-ai-draw-io/
 └── mcp-server/
   └── src/drawio_mcp_server/
     ├── __main__.py      # Entry point for forked MCP server
-    ├── server.py        # FastMCP tools MedPaper can patch directly
+    ├── server.py        # MCP SDK 2 tools MedPaper can patch directly
     ├── config.py        # Environment config
     ├── web_client.py    # HTTP client to the forked web app
     ├── diagram_generator.py
     ├── validator.py     # XML validation
     └── tools/           # Modular tools
 
-Fallback reference implementation:
-
-integrations/drawio-mcp/
-└── src/index.js         # Optional official checkout for protocol/design reference
-
 Resolution order in MedPaper runtime:
 1. `integrations/next-ai-draw-io/mcp-server`
-2. `integrations/drawio-mcp`
-3. installed `drawio-mcp` binary
-4. `npx -y @drawio/mcp`
+2. immutable SDK 2 source archive pinned by `mcp-integration-lock.json`
+
+There is no SDK 1, npm, floating-package, or activation-time fallback.
 ```
 
 - **Memory Bank**: .memory/ directory for context persistence.
