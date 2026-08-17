@@ -3,8 +3,16 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Diagram } from '@/types/diagram';
 
+async function requestDiagrams(projectSlug: string, signal?: AbortSignal): Promise<Diagram[]> {
+  const res = await fetch(`/api/diagrams?project=${projectSlug}`, { signal });
+  if (!res.ok) throw new Error('Failed to fetch diagrams');
+  const data = await res.json();
+  return data.diagrams || [];
+}
+
 export function useDiagrams(projectSlug: string | null) {
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
+  const [loadedProjectSlug, setLoadedProjectSlug] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentDiagram, setCurrentDiagram] = useState<{
@@ -24,11 +32,9 @@ export function useDiagrams(projectSlug: string | null) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/diagrams?project=${projectSlug}`);
-      if (!res.ok) throw new Error('Failed to fetch diagrams');
-
-      const data = await res.json();
-      setDiagrams(data.diagrams || []);
+      const items = await requestDiagrams(projectSlug);
+      setDiagrams(items);
+      setLoadedProjectSlug(projectSlug);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -151,13 +157,32 @@ export function useDiagrams(projectSlug: string | null) {
 
   // Fetch on mount or project change
   useEffect(() => {
-    fetchDiagrams();
-  }, [fetchDiagrams]);
+    if (!projectSlug) return;
+
+    const controller = new AbortController();
+    const requestedSlug = projectSlug;
+    void requestDiagrams(requestedSlug, controller.signal)
+      .then((items) => {
+        setDiagrams(items);
+        setLoadedProjectSlug(requestedSlug);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return;
+        setLoadedProjectSlug(requestedSlug);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      });
+
+    return () => controller.abort();
+  }, [projectSlug]);
+
+  const projectDiagrams = projectSlug === loadedProjectSlug ? diagrams : [];
+  const isProjectLoading = projectSlug !== null && projectSlug !== loadedProjectSlug;
 
   return {
-    diagrams,
+    diagrams: projectDiagrams,
     currentDiagram,
-    isLoading,
+    isLoading: isLoading || isProjectLoading,
     error,
     fetchDiagrams,
     loadDiagram,

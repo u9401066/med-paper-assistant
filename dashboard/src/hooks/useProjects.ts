@@ -20,6 +20,15 @@ function openFileInVSCode(filePath: string) {
   window.open(uri, '_blank');
 }
 
+async function requestProjects(signal?: AbortSignal): Promise<{
+  projects: Project[];
+  current: Project | null;
+}> {
+  const res = await fetch('/api/projects', { signal });
+  if (!res.ok) throw new Error('Failed to fetch projects');
+  return res.json();
+}
+
 export function useProjects(): UseProjectsResult {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -31,10 +40,7 @@ export function useProjects(): UseProjectsResult {
       setIsLoading(true);
       setError(null);
 
-      const res = await fetch('/api/projects');
-      if (!res.ok) throw new Error('Failed to fetch projects');
-
-      const data = await res.json();
+      const data = await requestProjects();
       setProjects(data.projects);
       setCurrentProject(data.current);
     } catch (err) {
@@ -107,8 +113,24 @@ export function useProjects(): UseProjectsResult {
   }, [currentProject]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+    void requestProjects(controller.signal)
+      .then((data) => {
+        setProjects(data.projects);
+        setCurrentProject(data.current);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, []);
 
   return {
     projects,

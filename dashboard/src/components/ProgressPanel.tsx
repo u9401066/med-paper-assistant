@@ -8,32 +8,35 @@ interface ProgressPanelProps {
 }
 
 export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
-  const [stats, setStats] = useState<ProjectStats | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{
+    projectSlug: string;
+    stats: ProjectStats | null;
+    error: string | null;
+  } | null>(null);
 
   useEffect(() => {
-    if (!projectSlug) {
-      setStats(null);
-      return;
-    }
+    if (!projectSlug) return;
 
-    const fetchStats = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/projects/${projectSlug}/stats`);
+    const controller = new AbortController();
+    const requestedSlug = projectSlug;
+    void fetch(`/api/projects/${requestedSlug}/stats`, { signal: controller.signal })
+      .then(async (res) => {
         if (!res.ok) throw new Error('Failed to fetch stats');
-        const data = await res.json();
-        setStats(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        return (await res.json()) as ProjectStats;
+      })
+      .then((stats) => {
+        setResult({ projectSlug: requestedSlug, stats, error: null });
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return;
+        setResult({
+          projectSlug: requestedSlug,
+          stats: null,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      });
 
-    fetchStats();
+    return () => controller.abort();
   }, [projectSlug]);
 
   if (!projectSlug) {
@@ -44,7 +47,7 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
     );
   }
 
-  if (isLoading) {
+  if (result?.projectSlug !== projectSlug) {
     return (
       <div className="text-center py-8 text-gray-500 dark:text-gray-400">
         Loading progress...
@@ -52,14 +55,15 @@ export function ProgressPanel({ projectSlug }: ProgressPanelProps) {
     );
   }
 
-  if (error) {
+  if (result.error) {
     return (
       <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
-        {error}
+        {result.error}
       </div>
     );
   }
 
+  const stats = result.stats;
   if (!stats) return null;
 
   const totalWords =
