@@ -137,16 +137,16 @@ stateDiagram-v2
 
 2026-08-17 已在確認 repository owner 與 default branch 後，透過 GitHub API 套用 description、topics 與 labels；既有 labels 保留，避免破壞現有 issue／PR。其餘高影響設定仍列為待決策，不由文件更新暗中變更。
 
-| 項目                   | 建議狀態 | 可追蹤動作                                                                                                                                                                     |
-| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Repository description | 已套用   | `Auditable MCP + cross-agent harness for autonomous and human-guided academic writing—from verified evidence to reviewed DOCX/PDF.`                                          |
-| Topics                 | 已套用   | 新增 `ai-agents`、`human-in-the-loop`、`research-automation`、`reproducible-research`、`research-software`；保留既有 topics，避免無審查的破壞性刪除                              |
-| Labels                 | 已套用   | 新增 15 個 `type:*`、`area:*`、`status:*` 與 release/quality labels，包含 workflow 使用的 `evolution-health`、`skip-changelog`；既有 labels 保留                              |
-| Default branch         | 已確認   | 維持 `master`；若未來遷移到 `main`，必須同一變更更新 CI、Pages、release、badges、`edit_uri` 與 branch protection，不能只改遠端名稱                                             |
-| Ruleset                | 建議     | 要求 CI/Pages contract checks、review conversation resolution、禁止 force-push/deletion；視維護人數決定 required approvals                                                     |
-| Security updates       | 建議     | 啟用 private vulnerability reporting、dependency graph 與 Dependabot security updates；提交 `.github/dependabot.yml` 前先定更新頻率與 submodule/Node/Python ownership          |
-| Wiki duplication       | 建議     | 公開文件以 MkDocs Pages 為 canonical；停用內建 GitHub Wiki，或只產生清楚標示的 mirror，避免兩份手寫文件漂移                                                                    |
+| 項目                   | 建議狀態 | 可追蹤動作                                                                                                                                                                                                 |
+| ---------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repository description | 已套用   | `Auditable MCP + cross-agent harness for autonomous and human-guided academic writing—from verified evidence to reviewed DOCX/PDF.`                                                                        |
+| Topics                 | 已套用   | 新增 `ai-agents`、`human-in-the-loop`、`research-automation`、`reproducible-research`、`research-software`；保留既有 topics，避免無審查的破壞性刪除                                                        |
+| Labels                 | 已套用   | 新增 15 個 `type:*`、`area:*`、`status:*` 與 release/quality labels，包含 workflow 使用的 `evolution-health`、`skip-changelog`；既有 labels 保留                                                           |
+| Default branch         | 已確認   | 維持 `master`；若未來遷移到 `main`，必須同一變更更新 CI、Pages、release、badges、`edit_uri` 與 branch protection，不能只改遠端名稱                                                                         |
+| Ruleset                | 建議     | 要求 CI/Pages contract checks、review conversation resolution、禁止 force-push/deletion；視維護人數決定 required approvals                                                                                 |
+| Security updates       | 建議     | 啟用 private vulnerability reporting、dependency graph 與 Dependabot security updates；提交 `.github/dependabot.yml` 前先定更新頻率與 submodule/Node/Python ownership                                      |
+| Wiki duplication       | 建議     | 公開文件以 MkDocs Pages 為 canonical；停用內建 GitHub Wiki，或只產生清楚標示的 mirror，避免兩份手寫文件漂移                                                                                                |
 | Releases               | 建議     | PyPI 維持 OIDC trusted publishing；VS Marketplace 發布後驗證公開版本與 VSIX hash。若 Marketplace 外部 policy 失敗，GitHub Release 必須顯示 job status、標成 degraded path，並指向附檔 VSIX，不得假裝已上架 |
-| Community health       | 本變更   | 維護 `CITATION.cff`、`CODE_OF_CONDUCT.md`、`SECURITY.md`；後續加入 issue-form schema 與 support policy                                                                         |
+| Community health       | 本變更   | 維護 `CITATION.cff`、`CODE_OF_CONDUCT.md`、`SECURITY.md`；後續加入 issue-form schema 與 support policy                                                                                                     |
 
 遠端治理變更必須保留 before/after API output、rollback 方法與執行者；未取得明確授權時，文件 PR 不得偷偷改 description、topics、labels、ruleset 或 Pages 設定。本次同步依使用者明確要求執行，rollback 可用 `gh repo edit` 還原 description/topics，labels 則逐項更新或刪除。

@@ -52,7 +52,7 @@ flowchart TD
 | ---------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | File identity                | Python stdlib `hashlib`、`mimetypes`          | core dependency；streaming SHA-256、檢查前後重算、保存 MIME 與 bytes                                       |
 | C2PA provenance              | optional extra `c2pa-python`（import `c2pa`） | `Settings.from_dict` → `Context` → `Reader.try_create` → validation state/results；未安裝即 `UNSUPPORTED`  |
-| Visible image watermark      | local conservative signal heuristic           | filename/SVG text 可提出訊號；所有無法證明陰性的 PNG/JPEG 仍要求 visual review，不新增未校準 detector       |
+| Visible image watermark      | local conservative signal heuristic           | filename/SVG text 可提出訊號；所有無法證明陰性的 PNG/JPEG 仍要求 visual review，不新增未校準 detector      |
 | Invisible/model watermark    | 暫不選通用套件                                | scheme-specific adapter 必須先有授權樣本、false-positive/negative fixtures、版本固定與 human-review policy |
 | LLM text watermark/detection | 不作 release gate                             | detector 分數不能證明作者或研究誠信；以 disclosure、evidence、版本與人工責任取代                           |
 | Removal                      | 明確拒絕                                      | 不新增 removal MCP tool；合法衍生轉換另建 artifact，保存原檔、授權、命令、hash 與核准                      |
@@ -76,14 +76,14 @@ with c2pa.Context(settings) as context:
 
 ### Provenance 狀態
 
-| 狀態                      | 意義                                         | Gate                       |
-| ------------------------- | -------------------------------------------- | -------------------------- |
-| `PRESENT_VALID_TRUSTED`   | manifest 有效，且本機 trust store 可建立信任 | C2PA 本身不阻擋；圖像仍需可見檢查 |
-| `PRESENT_VALID_UNTRUSTED` | manifest 有效，但本機未建立 signer trust     | C2PA 本身不阻擋；保留限制       |
-| `PRESENT_INVALID`         | manifest 存在但密碼學驗證失敗                | `BLOCK`                    |
-| `ABSENT`                  | 找不到 C2PA manifest                         | C2PA 本身不阻擋；不能推論來源   |
+| 狀態                      | 意義                                         | Gate                                |
+| ------------------------- | -------------------------------------------- | ----------------------------------- |
+| `PRESENT_VALID_TRUSTED`   | manifest 有效，且本機 trust store 可建立信任 | C2PA 本身不阻擋；圖像仍需可見檢查   |
+| `PRESENT_VALID_UNTRUSTED` | manifest 有效，但本機未建立 signer trust     | C2PA 本身不阻擋；保留限制           |
+| `PRESENT_INVALID`         | manifest 存在但密碼學驗證失敗                | `BLOCK`                             |
+| `ABSENT`                  | 找不到 C2PA manifest                         | C2PA 本身不阻擋；不能推論來源       |
 | `UNSUPPORTED`             | dependency 或格式不支援                      | C2PA 本身不阻擋；記錄 degraded path |
-| `ERROR`                   | 檢查器發生未分類錯誤                         | `BLOCK`                    |
+| `ERROR`                   | 檢查器發生未分類錯誤                         | `BLOCK`                             |
 
 C2PA assertion 是來源與編輯歷程的可驗證聲明，不等於內容為真、研究設計有效或授權充分。反過來，沒有 C2PA 也不表示資產不可信。科學聲稱仍需 claim-evidence、授權與人工內容審閱。
 
@@ -123,16 +123,16 @@ automated_removal_performed: false
 
 ## Release smoke matrix
 
-| Fixture                              | 預期結果                                               |
-| ------------------------------------ | ------------------------------------------------------ |
-| 無 manifest 的正常 PNG               | `ABSENT`/`UNSUPPORTED` + `HUMAN_REVIEW`；hash 不變     |
-| 有效且 trusted 的 C2PA asset         | `PRESENT_VALID_TRUSTED`                                |
-| 有效但本機不信任 signer              | `PRESENT_VALID_UNTRUSTED`                              |
-| 被竄改的 manifest/asset              | `PRESENT_INVALID` 且 `BLOCK`                           |
-| 非支援格式                           | `UNSUPPORTED`，不得 crash                              |
-| 未安裝 `c2pa-python`                 | `UNSUPPORTED`，核心安裝仍可用                          |
-| 普通 PNG/JPEG 無明確 signal           | `UNCERTAIN` → `HUMAN_REVIEW`；未附人工記錄不可插入     |
-| filename/SVG 文字有 watermark signal | `HUMAN_REVIEW`；未附人工記錄不可插入                   |
-| 檢查器改動 asset bytes               | hash mismatch 且 `BLOCK`                               |
+| Fixture                              | 預期結果                                           |
+| ------------------------------------ | -------------------------------------------------- |
+| 無 manifest 的正常 PNG               | `ABSENT`/`UNSUPPORTED` + `HUMAN_REVIEW`；hash 不變 |
+| 有效且 trusted 的 C2PA asset         | `PRESENT_VALID_TRUSTED`                            |
+| 有效但本機不信任 signer              | `PRESENT_VALID_UNTRUSTED`                          |
+| 被竄改的 manifest/asset              | `PRESENT_INVALID` 且 `BLOCK`                       |
+| 非支援格式                           | `UNSUPPORTED`，不得 crash                          |
+| 未安裝 `c2pa-python`                 | `UNSUPPORTED`，核心安裝仍可用                      |
+| 普通 PNG/JPEG 無明確 signal          | `UNCERTAIN` → `HUMAN_REVIEW`；未附人工記錄不可插入 |
+| filename/SVG 文字有 watermark signal | `HUMAN_REVIEW`；未附人工記錄不可插入               |
+| 檢查器改動 asset bytes               | hash mismatch 且 `BLOCK`                           |
 
 Fixtures 應固定 byte/hash、license 與預期狀態；測試輸出需保存 SDK 版本、命令與失敗項目。官方技術來源包括 [C2PA specifications](https://c2pa.org/specifications/specifications/2.2/specs/C2PA_Specification.html)、[Content Authenticity Initiative 的 C2PA Python bindings](https://github.com/contentauth/c2pa-python) 與 [C2PA explainer](https://c2pa.org/how-it-works/)。

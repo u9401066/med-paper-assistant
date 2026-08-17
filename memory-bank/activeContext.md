@@ -10,18 +10,18 @@
 
 ### 當前狀態
 
-| 項目                  | 數量/狀態                                                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                           |
-| External MCP Surface  | PubMed **45** + CGU **24** + Asset-Aware **30** + Draw.io Python **23** + Zotero Keeper **32**（immutable SDK2 pins）    |
-| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                              |
-| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**                            |
-| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                      |
-| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                     |
-| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                          |
+| 項目                  | 數量/狀態                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                             |
+| External MCP Surface  | PubMed **45** + CGU **24** + Asset-Aware **30** + Draw.io Python **23** + Zotero Keeper **32**（immutable SDK2 pins）     |
+| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                                |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 11 palette / 10 chat**                              |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                        |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                       |
+| Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                            |
 | Latest Validation     | Python **1605 passed / 8 skipped**；VSIX **150 passed**；full greedy **0 broken/error**；wheel/VSIX/archive/docs gates ✅ |
-| Packaging             | **v1.0.0 release candidate**；wheel/sdist/real VSIX install smoke 與 OIDC trusted publish 已納入 release gate          |
-| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**             |
+| Packaging             | **v1.0.0 release candidate**；wheel/sdist/real VSIX install smoke 與 OIDC trusted publish 已納入 release gate             |
+| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**                |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 

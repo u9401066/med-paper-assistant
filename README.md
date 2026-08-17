@@ -88,13 +88,13 @@ The platform-neutral [academic-writing workflow](docs/harness/academic-writing-w
 - 🧭 **Guided Process** — Step-by-step prompts guide you from concept to publication-ready manuscript
 - 🔗 **All-in-One** — Search, write, cite, analyze, export — all integrated inside VS Code
 
-| Traditional Tools                   | Medical Paper Assistant                                                  |
-| ----------------------------------- | ------------------------------------------------------------------------ |
-| Fixed templates, rigid workflow     | Flexible, exploratory approach                                           |
+| Traditional Tools                   | Medical Paper Assistant                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| Fixed templates, rigid workflow     | Flexible, exploratory approach                                                  |
 | Separate apps for search/write/cite | One workspace: 118/12 mdpaper + 45 PubMed + 24 CGU tools and packaged workflows |
-| Manual reference management         | Auto-save with verified PubMed data                                      |
-| Export then format                  | Direct Word export with journal styles                                   |
-| Learn complex UI                    | Natural language conversation                                            |
+| Manual reference management         | Auto-save with verified PubMed data                                             |
+| Export then format                  | Direct Word export with journal styles                                          |
+| Learn complex UI                    | Natural language conversation                                                   |
 
 ---
 
