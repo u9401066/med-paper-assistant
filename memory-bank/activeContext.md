@@ -6,22 +6,22 @@
 
 ## 當前焦點 (2026-08-17)
 
-v1.0.1 hardening 已進入 release preflight：在 v1.0.0 SDK2-only 基線上，Phase 2/2.1/3/7 改為重算 evidence/hash/review gate，外部人類核准採 host-trusted Ed25519 receipt；watermark package 僅執行離線 registered-visible/open-DWT 檢測並以 current-byte reinspection 防 receipt 竄改。VSIX 改用 SHA-256 allowlist 的 uv/uvx 0.12.5、精確 integration archives 與真實安裝 smoke。Marketplace 1.0.0 仍因 Microsoft OIDC endpoint 404 停在公開 0.7.10；已新增 fail-closed PAT recovery workflow，但必須由 owner 輪替有效憑證後才能執行。
+v1.0.1 hardening 已完成 source、VSIX、docs 與 remote preflight：在 v1.0.0 SDK2-only 基線上，Phase 2/2.1/3/7 改為重算 evidence/hash/review gate，外部人類核准採 host-trusted Ed25519 receipt；watermark package 僅執行離線 registered-visible/open-DWT 檢測並以 current-byte reinspection 防 receipt 竄改。VSIX 改用 SHA-256 allowlist 的 uv/uvx 0.12.5、精確 integration archives 與真實安裝 smoke。主 CI `32039237331`（含五套 immutable archive）與 Pages `32039237364` 全綠，下一步是在乾淨 clone 執行 v1.0.1 release/tag。Marketplace 1.0.0 仍因 Microsoft OIDC endpoint 404 停在公開 0.7.10；已新增 fail-closed PAT recovery workflow，但必須由 owner 輪替有效憑證後才能執行。
 
 ### 當前狀態
 
-| 項目                  | 數量/狀態                                                                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                                                                                              |
-| External MCP Surface  | PubMed **45** + CGU **24** + Asset-Aware **30** + Draw.io Python **23** + Zotero Keeper **32**（immutable SDK2 pins）                                                                      |
-| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                                                                                                 |
-| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 9 palette / 10 chat**                                                                                                |
-| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                                                                                         |
-| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                                                        |
-| Validation Gate       | tool/count/code-quality authorities + Ruff/mypy/Bandit/vulture + `npm run validate`                                                                                                        |
-| Latest Validation     | Python **1697 passed / 8 skipped / 34 deselected**；VSIX **174/174**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；archive remote gate 待最終確認 |
-| Packaging             | **v1.0.1 preflight**；v1.0.0 PyPI/GitHub ✅；Marketplace OIDC endpoint 404，PAT recovery 待 owner credential                                                                               |
-| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**                                                                                 |
+| 項目                  | 數量/狀態                                                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                                                                                                           |
+| External MCP Surface  | PubMed **45** + CGU **24** + Asset-Aware **30** + Draw.io Python **23** + Zotero Keeper **32**（immutable SDK2 pins）                                                                                   |
+| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                                                                                                              |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 9 palette / 10 chat**                                                                                                             |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                                                                                                      |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                                                                     |
+| Validation Gate       | tool/count/code-quality authorities + Ruff/mypy/Bandit/vulture + `npm run validate`                                                                                                                     |
+| Latest Validation     | Python **1697 passed / 8 skipped / 34 deselected**；VSIX **174/174**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；五套 immutable archive **5/5**；CI/Pages ✅ |
+| Packaging             | **v1.0.1 preflight**；v1.0.0 PyPI/GitHub ✅；Marketplace OIDC endpoint 404，PAT recovery 待 owner credential                                                                                            |
+| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**                                                                                              |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 

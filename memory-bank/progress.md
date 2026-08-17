@@ -179,7 +179,7 @@
 
 ## Doing
 
-- **v1.0.1 final preflight and segmented release**：source/VSIX/docs bundle 已同步；待完整 Python/VSIX/package/archive gates、精準分段 commits、push/CI、tag 與公開 artifact 驗證。
+- **v1.0.1 final preflight and segmented release**：source/VSIX/docs bundle、四個精準分段 commits 與 push 已完成；主 CI `32039237331`、Pages `32039237364` 及五套 immutable archive smoke 全綠。待乾淨 clone release/tag 與公開 artifact 驗證。
 - **VS Marketplace recovery**：OIDC backend 目前不可用；recovery workflow 已具 tag/version/SHA/install/PAT/gallery fail-closed checks，但需 owner 輪替有效 `VSCE_PAT` 或以 portal 上傳同一份已驗證 VSIX。
 
 ## Next
@@ -187,7 +187,7 @@
 - Implement ranked evidence-context ledger, perspective question map, and bounded branch audit artifacts
 - 依 `code-quality-authority.json` 逐步拆分 391 項 legacy size exceptions；每次只允許縮減，不允許新增或成長
 - Configure a Marketplace-supported workload identity/trusted-publishing policy, or use the publisher portal to upload the already verified v1.0.0 VSIX; do not reuse the unauthorized legacy PAT.
-- 完成 v1.0.1 CI 後，以乾淨 temporary worktree 執行 release preflight/tag，避免夾帶使用者未追蹤檔案
+- 以乾淨 temporary clone 執行 v1.0.1 release preflight/tag，避免夾帶使用者未追蹤檔案
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features
