@@ -104,8 +104,6 @@
     "help"
   ],
   "paletteCommands": [
-    "mdpaper.startServer",
-    "mdpaper.stopServer",
     "mdpaper.showStatus",
     "mdpaper.autoPaper",
     "mdpaper.setupWorkspace",

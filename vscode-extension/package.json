@@ -2,7 +2,7 @@
   "name": "medpaper-assistant",
   "displayName": "MedPaper Assistant",
   "description": "Compact-first MCP research workspace with source-material intake for manuscript and library-wiki workflows in VS Code",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "u9401066",
   "icon": "resources/icon.png",
   "galleryBanner": {
@@ -15,7 +15,7 @@
     "url": "https://github.com/u9401066/med-paper-assistant"
   },
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.101.0"
   },
   "categories": [
     "AI",
@@ -112,16 +112,6 @@
     ],
     "commands": [
       {
-        "command": "mdpaper.startServer",
-        "title": "Start MedPaper MCP Server",
-        "category": "MedPaper"
-      },
-      {
-        "command": "mdpaper.stopServer",
-        "title": "Stop MedPaper MCP Server",
-        "category": "MedPaper"
-      },
-      {
         "command": "mdpaper.showStatus",
         "title": "Show MedPaper Status",
         "category": "MedPaper"
@@ -175,11 +165,6 @@
           "default": "",
           "description": "Path to Python executable. Leave empty to use bundled Python or system default."
         },
-        "mdpaper.projectsDirectory": {
-          "type": "string",
-          "default": "",
-          "description": "Default directory for research projects. Leave empty to use workspace."
-        },
         "mdpaper.toolSurface": {
           "type": "string",
           "enum": [
@@ -188,17 +173,6 @@
           ],
           "default": "compact",
           "description": "MedPaper MCP tool surface. Use full to expose advanced wiki/reference orchestration tools such as import_local_papers, ingest_web_source, ingest_markdown_source, resolve_reference_identity, and materialize_agent_wiki."
-        },
-        "mdpaper.defaultCitationStyle": {
-          "type": "string",
-          "enum": [
-            "vancouver",
-            "apa",
-            "harvard",
-            "chicago"
-          ],
-          "default": "vancouver",
-          "description": "Default citation style for references."
         }
       }
     }
@@ -224,7 +198,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^20.0.0",
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "1.101.0",
     "@typescript-eslint/eslint-plugin": "^8.64.0",
     "@typescript-eslint/parser": "^8.64.0",
     "@vscode/vsce": "^3.9.2",

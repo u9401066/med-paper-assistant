@@ -2,12 +2,20 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { getPythonArgs, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS, BUNDLED_SUPPORT_FILES } from './utils';
-import { findUvPath, installUvHeadless, getUvxPath, buildPinnedUvxCommand, buildMcpEnv } from './uvManager';
-import { shouldSkipMcpRegistration, isDevWorkspace as checkIsDevWorkspace, determinePythonPath, countMissingBundledItems, buildDevPythonPath } from './extensionHelpers';
+import { REQUIRED_UV_VERSION, findUvPath, installUvHeadless, getUvxPath, buildPinnedUvxCommand, buildMcpEnv } from './uvManager';
+import {
+    shouldSkipMcpRegistration,
+    isDevWorkspace as checkIsDevWorkspace,
+    determinePythonPath,
+    countMissingBundledItems,
+    buildDevPythonPath,
+} from './extensionHelpers';
 import { MCP_INTEGRATION_PACKAGES } from './mcpIntegrationPackages';
 
 let outputChannel: vscode.OutputChannel;
 let resolvedUvPath: string | null = null;
+let mcpRegistrationSource = 'not registered';
+let inspectMcpDefinitionCount: (() => Promise<number>) | null = null;
 const LLM_WIKI_GUIDE_RELATIVE_PATH = 'docs/how-to/llm-wiki.md';
 type ManagedFoamGraphView = 'Default' | 'Evidence' | 'Writing' | 'Assets' | 'Review';
 
@@ -20,20 +28,14 @@ async function showFoamGraphView(view: ManagedFoamGraphView): Promise<void> {
 }
 
 function getBundledWorkspaceDocs(): string[] {
-    return BUNDLED_SUPPORT_FILES
-        .map(file => file.workspaceDestination)
-        .filter(destination => destination.startsWith('docs/'));
+    return BUNDLED_SUPPORT_FILES.map(file => file.workspaceDestination).filter(destination => destination.startsWith('docs/'));
 }
 
-async function openWorkspaceOrBundledDocument(
-    context: vscode.ExtensionContext,
-    relativePath: string,
-): Promise<void> {
+async function openWorkspaceOrBundledDocument(context: vscode.ExtensionContext, relativePath: string): Promise<void> {
     const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    const candidates = [
-        wsRoot ? path.join(wsRoot, relativePath) : null,
-        path.join(context.extensionPath, relativePath),
-    ].filter((candidate): candidate is string => Boolean(candidate));
+    const candidates = [wsRoot ? path.join(wsRoot, relativePath) : null, path.join(context.extensionPath, relativePath)].filter(
+        (candidate): candidate is string => Boolean(candidate),
+    );
 
     const targetPath = candidates.find(candidate => fs.existsSync(candidate));
     if (!targetPath) {
@@ -64,15 +66,25 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Register Commands
     context.subscriptions.push(
-        vscode.commands.registerCommand('mdpaper.startServer', () => {
-            vscode.window.showInformationMessage('MedPaper MCP Server is managed automatically by VS Code.');
-        }),
-        vscode.commands.registerCommand('mdpaper.stopServer', () => {
-            vscode.window.showInformationMessage('MedPaper MCP Server will stop when VS Code closes.');
-        }),
-        vscode.commands.registerCommand('mdpaper.showStatus', () => {
+        vscode.commands.registerCommand('mdpaper.showStatus', async () => {
             outputChannel.show();
-            outputChannel.appendLine(`[${new Date().toISOString()}] MedPaper Assistant Status: Active`);
+            const log = (msg: string) => outputChannel.appendLine(`[uv] ${msg}`);
+            const verifiedUv = await findUvPath(log, context.globalStorageUri.fsPath);
+            resolvedUvPath = verifiedUv;
+
+            let definitionCount = 0;
+            if (inspectMcpDefinitionCount) {
+                try {
+                    definitionCount = await inspectMcpDefinitionCount();
+                } catch (error) {
+                    outputChannel.appendLine(`[MCP] Definition inspection failed: ${error}`);
+                }
+            }
+
+            const ready = Boolean(verifiedUv && definitionCount > 0);
+            outputChannel.appendLine(`[${new Date().toISOString()}] MedPaper Assistant Status: ${ready ? 'Ready' : 'Not ready'}`);
+            outputChannel.appendLine(`[Status] uv ${verifiedUv ? `verified at ${verifiedUv}` : 'missing or version-mismatched'}`);
+            outputChannel.appendLine(`[Status] MCP ${mcpRegistrationSource}; ${definitionCount} definition(s) available`);
         }),
         vscode.commands.registerCommand('mdpaper.autoPaper', () => {
             // Check if journal-profile template exists in workspace
@@ -82,22 +94,25 @@ export async function activate(context: vscode.ExtensionContext) {
                 if (!fs.existsSync(templatePath)) {
                     const bundledTemplate = path.join(context.extensionPath, 'templates', 'journal-profile.template.yaml');
                     if (fs.existsSync(bundledTemplate)) {
-                        vscode.window.showWarningMessage(
-                            'MedPaper: journal-profile.template.yaml 尚未存在於 workspace。Auto Paper Phase 0 需要此模板。要複製嗎？',
-                            '複製模板', '稍後再說'
-                        ).then(selection => {
-                            if (selection === '複製模板') {
-                                fs.mkdirSync(path.dirname(templatePath), { recursive: true });
-                                fs.copyFileSync(bundledTemplate, templatePath);
-                                vscode.window.showInformationMessage('MedPaper: journal-profile.template.yaml 已複製到 templates/');
-                            }
-                        });
+                        vscode.window
+                            .showWarningMessage(
+                                'MedPaper: journal-profile.template.yaml 尚未存在於 workspace。Auto Paper Phase 0 需要此模板。要複製嗎？',
+                                '複製模板',
+                                '稍後再說',
+                            )
+                            .then(selection => {
+                                if (selection === '複製模板') {
+                                    fs.mkdirSync(path.dirname(templatePath), { recursive: true });
+                                    fs.copyFileSync(bundledTemplate, templatePath);
+                                    vscode.window.showInformationMessage('MedPaper: journal-profile.template.yaml 已複製到 templates/');
+                                }
+                            });
                     }
                 }
             }
             // Open Copilot chat with autopaper command
             vscode.commands.executeCommand('workbench.action.chat.open', {
-                query: '@mdpaper /autopaper 全自動寫論文'
+                query: '@mdpaper /autopaper 全自動寫論文',
             });
         }),
         vscode.commands.registerCommand('mdpaper.setupWorkspace', () => {
@@ -120,7 +135,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
         vscode.commands.registerCommand('mdpaper.showGraphReview', async () => {
             await showFoamGraphView('Review');
-        })
+        }),
     );
 
     // Auto-scaffold: check if workspace is missing skills/agents/prompts
@@ -132,17 +147,17 @@ export async function activate(context: vscode.ExtensionContext) {
 
 /**
  * Ensure uv is installed. If not, offer to auto-install.
- * Stores the resolved uv path in module-level variable and globalState.
+ * Keeps only a freshly validated path in process memory; managed installs are
+ * rediscovered from their hash-bound receipt on the next activation.
  */
 async function ensureUvReady(context: vscode.ExtensionContext): Promise<void> {
     const log = (msg: string) => outputChannel.appendLine(`[uv] ${msg}`);
 
     log('Checking uv installation...');
-    resolvedUvPath = await findUvPath(log);
+    resolvedUvPath = await findUvPath(log, context.globalStorageUri.fsPath);
 
     if (resolvedUvPath) {
         log(`uv is ready: ${resolvedUvPath}`);
-        context.globalState.update('uvPath', resolvedUvPath);
         return;
     }
 
@@ -152,7 +167,7 @@ async function ensureUvReady(context: vscode.ExtensionContext): Promise<void> {
         'MedPaper Assistant 需要 "uv" (Python 套件管理器) 才能運行。要自動安裝嗎？\n安裝後會自動處理 Python 和所有相依套件。',
         '自動安裝 uv',
         '手動安裝',
-        '取消'
+        '取消',
     );
 
     if (choice === '自動安裝 uv') {
@@ -160,38 +175,29 @@ async function ensureUvReady(context: vscode.ExtensionContext): Promise<void> {
             {
                 location: vscode.ProgressLocation.Notification,
                 title: 'MedPaper: 正在安裝 uv...',
-                cancellable: false
+                cancellable: false,
             },
-            async (progress) => {
+            async progress => {
                 progress.report({ message: '下載並安裝 uv (Python 套件管理器)...' });
-                const installed = await installUvHeadless(log);
+                const installed = await installUvHeadless(context.globalStorageUri.fsPath, log);
 
                 if (installed) {
                     progress.report({ message: '安裝完成！' });
-                    context.globalState.update('uvPath', installed);
-
-                    const reload = await vscode.window.showInformationMessage(
-                        '✅ uv 安裝成功！請重新載入 VS Code 以完成設定。',
-                        '重新載入'
-                    );
-                    if (reload === '重新載入') {
-                        vscode.commands.executeCommand('workbench.action.reloadWindow');
-                    }
+                    await vscode.window.showInformationMessage(`✅ uv ${REQUIRED_UV_VERSION} 安裝與驗證成功。`);
                 } else {
-                    vscode.window.showErrorMessage(
-                        'uv 安裝失敗。請手動安裝: https://docs.astral.sh/uv/',
-                        '開啟安裝頁面'
-                    ).then(c => {
-                        if (c === '開啟安裝頁面') {
-                            vscode.env.openExternal(vscode.Uri.parse('https://docs.astral.sh/uv/getting-started/installation/'));
-                        }
-                    });
+                    vscode.window
+                        .showErrorMessage(`uv ${REQUIRED_UV_VERSION} 安裝或驗證失敗。請檢查輸出紀錄，或手動安裝相同版本。`, '開啟固定版本頁面')
+                        .then(c => {
+                            if (c === '開啟固定版本頁面') {
+                                vscode.env.openExternal(vscode.Uri.parse(`https://github.com/astral-sh/uv/releases/tag/${REQUIRED_UV_VERSION}`));
+                            }
+                        });
                 }
                 return installed;
-            }
+            },
         );
     } else if (choice === '手動安裝') {
-        vscode.env.openExternal(vscode.Uri.parse('https://docs.astral.sh/uv/getting-started/installation/'));
+        vscode.env.openExternal(vscode.Uri.parse(`https://github.com/astral-sh/uv/releases/tag/${REQUIRED_UV_VERSION}`));
     }
     // choice === '取消' → resolvedUvPath stays null
 }
@@ -206,6 +212,8 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 const content = fs.readFileSync(mcpJsonPath, 'utf-8');
                 if (shouldSkipMcpRegistration(content)) {
                     outputChannel.appendLine('[MCP] Found mdpaper in .vscode/mcp.json - skipping auto-registration');
+                    mcpRegistrationSource = 'workspace .vscode/mcp.json';
+                    inspectMcpDefinitionCount = async () => 1;
                     return { dispose: () => {} };
                 }
                 outputChannel.appendLine('[MCP] Found .vscode/mcp.json but no mdpaper defined - proceeding with auto-registration');
@@ -229,8 +237,11 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
             // Detect development workspace (has src/med_paper_assistant/ source code)
             const isDevWorkspace = wsRoot ? checkIsDevWorkspace(wsRoot) : false;
 
-            // Use stored uv path, or fallback
-            const uvPath = resolvedUvPath || (context.globalState.get<string>('uvPath')) || 'uv';
+            if (!resolvedUvPath) {
+                outputChannel.appendLine(`[MCP] Definitions unavailable: uv and uvx ${REQUIRED_UV_VERSION} have not been verified`);
+                return [];
+            }
+            const uvPath = resolvedUvPath;
             const uvxPath = getUvxPath(uvPath);
 
             outputChannel.appendLine(`[MCP] Mode: ${isDevWorkspace ? 'development' : 'marketplace'}, uv: ${uvPath}, uvx: ${uvxPath}`);
@@ -254,13 +265,17 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 // Dev PYTHONPATH: workspace src + integrations + bundled
                 const pythonPathEnv = buildDevPythonPath(wsRoot, bundledToolPath);
 
-                mcpEnv = buildMcpEnv({ workspaceDir: wsRoot, pythonPath: pythonPathEnv, toolSurface });
+                mcpEnv = buildMcpEnv({
+                    workspaceDir: wsRoot,
+                    pythonPath: pythonPathEnv,
+                    toolSurface,
+                });
             } else {
                 // Marketplace: run the exact Python package version paired with this VSIX.
                 const extensionVersion = String(context.extension.packageJSON.version);
                 [mdpaperCommand, mdpaperArgs] = buildPinnedUvxCommand(
                     uvPath,
-                    `med-paper-assistant[provenance]==${extensionVersion}`,
+                    `med-paper-assistant[provenance,watermark]==${extensionVersion}`,
                     'med-paper-assistant',
                     '3.12',
                 );
@@ -269,18 +284,11 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
             }
 
             outputChannel.appendLine(`[MCP] MedPaper: ${mdpaperCommand} ${mdpaperArgs.join(' ')}`);
-            definitions.push(new vscode.McpStdioServerDefinition(
-                'MedPaper Assistant',
-                mdpaperCommand,
-                mdpaperArgs,
-                mcpEnv
-            ));
+            definitions.push(new vscode.McpStdioServerDefinition('MedPaper Assistant', mdpaperCommand, mdpaperArgs, mcpEnv));
 
             // --- 2. CGU ---
             const hasCguBundled = fs.existsSync(path.join(bundledToolPath, 'cgu'));
-            const cguInWorkspace = wsRoot
-                ? fs.existsSync(path.join(wsRoot, 'integrations', 'cgu', 'src', 'cgu'))
-                : false;
+            const cguInWorkspace = wsRoot ? fs.existsSync(path.join(wsRoot, 'integrations', 'cgu', 'src', 'cgu')) : false;
 
             if (hasCguBundled || cguInWorkspace) {
                 let cguCommand: string;
@@ -292,102 +300,60 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                     cguArgs = getPythonArgs(pythonPath, 'cgu.server');
                 } else {
                     const pin = MCP_INTEGRATION_PACKAGES.cgu;
-                    const [cmd, args] = buildPinnedUvxCommand(
-                        uvPath,
-                        pin.packageSource,
-                        pin.entrypoint,
-                        pin.pythonVersion,
-                    );
+                    const [cmd, args] = buildPinnedUvxCommand(uvPath, pin.packageSource, pin.entrypoint, pin.pythonVersion);
                     cguCommand = cmd;
                     cguArgs = args;
                     outputChannel.appendLine(`[MCP] CGU: locked ${pin.version} / SDK${pin.sdkMajor} (${pin.commit})`);
                 }
 
                 outputChannel.appendLine(`[MCP] CGU: ${cguCommand} ${cguArgs.join(' ')}`);
-                definitions.push(new vscode.McpStdioServerDefinition(
-                    'CGU Creativity',
-                    cguCommand,
-                    cguArgs,
-                    mcpEnv
-                ));
+                definitions.push(new vscode.McpStdioServerDefinition('CGU Creativity', cguCommand, cguArgs, mcpEnv));
             } else {
                 outputChannel.appendLine('[MCP] CGU not found — skipping registration');
             }
 
             // --- 3. PubMed Search ---
-            const pubmedInWorkspace = wsRoot
-                ? fs.existsSync(path.join(wsRoot, 'integrations', 'pubmed-search-mcp', 'src', 'pubmed_search'))
-                : false;
+            const pubmedInWorkspace = wsRoot ? fs.existsSync(path.join(wsRoot, 'integrations', 'pubmed-search-mcp', 'src', 'pubmed_search')) : false;
 
             let pubmedCommand: string;
             let pubmedArgs: string[];
 
             if (pubmedInWorkspace) {
                 pubmedCommand = uvPath;
-                pubmedArgs = [
-                    'run',
-                    '--directory', path.join(wsRoot!, 'integrations', 'pubmed-search-mcp'),
-                    'pubmed-search-mcp'
-                ];
+                pubmedArgs = ['run', '--directory', path.join(wsRoot!, 'integrations', 'pubmed-search-mcp'), 'pubmed-search-mcp'];
                 outputChannel.appendLine('[MCP] PubMed Search: using workspace integration');
             } else {
                 const pin = MCP_INTEGRATION_PACKAGES['pubmed-search'];
-                const [cmd, args] = buildPinnedUvxCommand(
-                    uvPath,
-                    pin.packageSource,
-                    pin.entrypoint,
-                    pin.pythonVersion,
-                );
+                const [cmd, args] = buildPinnedUvxCommand(uvPath, pin.packageSource, pin.entrypoint, pin.pythonVersion);
                 pubmedCommand = cmd;
                 pubmedArgs = args;
                 outputChannel.appendLine(`[MCP] PubMed Search: locked ${pin.version} / SDK${pin.sdkMajor} (${pin.commit})`);
             }
 
             outputChannel.appendLine(`[MCP] PubMed Search: ${pubmedCommand} ${pubmedArgs.join(' ')}`);
-            definitions.push(new vscode.McpStdioServerDefinition(
-                'PubMed Search',
-                pubmedCommand,
-                pubmedArgs,
-                {
+            definitions.push(
+                new vscode.McpStdioServerDefinition('PubMed Search', pubmedCommand, pubmedArgs, {
                     ...mcpEnv,
-                    NCBI_EMAIL: process.env.NCBI_EMAIL || process.env.ENTREZ_EMAIL || 'medpaper@example.com'
-                }
-            ));
+                    NCBI_EMAIL: process.env.NCBI_EMAIL || process.env.ENTREZ_EMAIL || 'medpaper@example.com',
+                }),
+            );
 
             // --- 4. Zotero Keeper ---
             const pin = MCP_INTEGRATION_PACKAGES['zotero-keeper'];
-            const [zoteroCommand, zoteroArgs] = buildPinnedUvxCommand(
-                uvPath,
-                pin.packageSource,
-                pin.entrypoint,
-                pin.pythonVersion,
-            );
+            const [zoteroCommand, zoteroArgs] = buildPinnedUvxCommand(uvPath, pin.packageSource, pin.entrypoint, pin.pythonVersion);
             outputChannel.appendLine(`[MCP] Zotero Keeper: locked ${pin.version} / SDK${pin.sdkMajor} (${pin.commit})`);
             outputChannel.appendLine(`[MCP] Zotero Keeper: ${zoteroCommand} ${zoteroArgs.join(' ')}`);
-            definitions.push(new vscode.McpStdioServerDefinition(
-                'Zotero Keeper',
-                zoteroCommand,
-                zoteroArgs,
-                mcpEnv
-            ));
+            definitions.push(new vscode.McpStdioServerDefinition('Zotero Keeper', zoteroCommand, zoteroArgs, mcpEnv));
 
             // --- 5. Asset-Aware Documents ---
-            const assetAwareDir = wsRoot
-                ? path.join(wsRoot, 'integrations', 'asset-aware-mcp')
-                : null;
-            const assetAwareEntry = assetAwareDir
-                ? path.join(assetAwareDir, 'src', 'server.py')
-                : null;
+            const assetAwareDir = wsRoot ? path.join(wsRoot, 'integrations', 'asset-aware-mcp') : null;
+            const assetAwareEntry = assetAwareDir ? path.join(assetAwareDir, 'src', 'server.py') : null;
             let assetAwareCommand: string;
             let assetAwareArgs: string[];
 
             if (assetAwareEntry && fs.existsSync(assetAwareEntry)) {
                 assetAwareCommand = uvPath;
-                assetAwareArgs = [
-                    'run',
-                    '--directory', assetAwareDir!,
-                    'asset-aware-mcp',
-                ];
+                assetAwareArgs = ['run', '--directory', assetAwareDir!, 'asset-aware-mcp'];
                 outputChannel.appendLine('[MCP] Asset-Aware: using workspace integration');
             } else {
                 const assetAwarePin = MCP_INTEGRATION_PACKAGES['asset-aware'];
@@ -397,74 +363,54 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                     assetAwarePin.entrypoint,
                     assetAwarePin.pythonVersion,
                 );
-                outputChannel.appendLine(
-                    `[MCP] Asset-Aware: locked ${assetAwarePin.version} / SDK${assetAwarePin.sdkMajor} (${assetAwarePin.commit})`,
-                );
+                outputChannel.appendLine(`[MCP] Asset-Aware: locked ${assetAwarePin.version} / SDK${assetAwarePin.sdkMajor} (${assetAwarePin.commit})`);
             }
 
             outputChannel.appendLine(`[MCP] Asset-Aware: ${assetAwareCommand} ${assetAwareArgs.join(' ')}`);
-            definitions.push(new vscode.McpStdioServerDefinition(
-                'Asset-Aware Documents',
-                assetAwareCommand,
-                assetAwareArgs,
-                mcpEnv,
-            ));
+            definitions.push(new vscode.McpStdioServerDefinition('Asset-Aware Documents', assetAwareCommand, assetAwareArgs, mcpEnv));
 
             // --- 6. Draw.io ---
-            const drawioForkDir = wsRoot
-                ? path.join(wsRoot, 'integrations', 'next-ai-draw-io', 'mcp-server')
-                : null;
-            const drawioForkEntry = drawioForkDir
-                ? path.join(drawioForkDir, 'src', 'drawio_mcp_server')
-                : null;
+            const drawioForkDir = wsRoot ? path.join(wsRoot, 'integrations', 'next-ai-draw-io', 'mcp-server') : null;
+            const drawioForkEntry = drawioForkDir ? path.join(drawioForkDir, 'src', 'drawio_mcp_server') : null;
             let drawioCommand: string;
             let drawioArgs: string[];
 
             if (drawioForkEntry && fs.existsSync(drawioForkEntry)) {
                 drawioCommand = uvPath;
-                drawioArgs = [
-                    'run',
-                    '--directory', drawioForkDir!,
-                    'python',
-                    '-m',
-                    'drawio_mcp_server',
-                ];
+                drawioArgs = ['run', '--directory', drawioForkDir!, 'python', '-m', 'drawio_mcp_server'];
                 outputChannel.appendLine('[MCP] Draw.io: using forked workspace integration from integrations/next-ai-draw-io/mcp-server');
             } else {
                 const pin = MCP_INTEGRATION_PACKAGES.drawio;
-                [drawioCommand, drawioArgs] = buildPinnedUvxCommand(
-                    uvPath,
-                    pin.packageSource,
-                    pin.entrypoint,
-                    pin.pythonVersion,
-                );
+                [drawioCommand, drawioArgs] = buildPinnedUvxCommand(uvPath, pin.packageSource, pin.entrypoint, pin.pythonVersion);
                 outputChannel.appendLine(`[MCP] Draw.io: locked ${pin.version} / SDK${pin.sdkMajor} (${pin.commit})`);
             }
 
             outputChannel.appendLine(`[MCP] Draw.io: ${drawioCommand} ${drawioArgs.join(' ')}`);
-            definitions.push(new vscode.McpStdioServerDefinition(
-                'Draw.io Diagrams',
-                drawioCommand,
-                drawioArgs,
-                mcpEnv
-            ));
+            definitions.push(new vscode.McpStdioServerDefinition('Draw.io Diagrams', drawioCommand, drawioArgs, mcpEnv));
 
             return definitions;
         },
 
-        resolveMcpServerDefinition(
-            definition: vscode.McpServerDefinition
-        ): vscode.ProviderResult<vscode.McpServerDefinition> {
+        resolveMcpServerDefinition(definition: vscode.McpServerDefinition): vscode.ProviderResult<vscode.McpServerDefinition> {
             outputChannel.appendLine(`Resolving MCP server: ${definition.label}`);
             return definition;
+        },
+    };
+
+    mcpRegistrationSource = 'extension definition provider';
+    inspectMcpDefinitionCount = async () => {
+        const tokenSource = new vscode.CancellationTokenSource();
+        try {
+            const definitions = await provider.provideMcpServerDefinitions(tokenSource.token);
+            return Array.isArray(definitions) ? definitions.length : 0;
+        } finally {
+            tokenSource.dispose();
         }
     };
 
     // Use VS Code API to register the provider
     return vscode.lm.registerMcpServerDefinitionProvider('mdpaper', provider);
 }
-
-
 
 /**
  * Run a tool-calling loop: sends the user prompt + available MCP tools to the
@@ -494,16 +440,10 @@ async function runWithTools(
         inputSchema: t.inputSchema,
     }));
 
-    const messages: vscode.LanguageModelChatMessage[] = [
-        vscode.LanguageModelChatMessage.User(options?.promptOverride ?? request.prompt),
-    ];
+    const messages: vscode.LanguageModelChatMessage[] = [vscode.LanguageModelChatMessage.User(options?.promptOverride ?? request.prompt)];
 
     for (let round = 0; round < maxRounds; round++) {
-        const response = await request.model.sendRequest(
-            messages,
-            { tools: chatTools },
-            token,
-        );
+        const response = await request.model.sendRequest(messages, { tools: chatTools }, token);
 
         // Collect parts from the stream – text goes to UI, tool calls are batched
         const toolCalls: vscode.LanguageModelToolCallPart[] = [];
@@ -530,21 +470,24 @@ async function runWithTools(
         const toolResults: (vscode.LanguageModelToolResultPart | vscode.LanguageModelTextPart)[] = [];
         for (const call of toolCalls) {
             try {
-                const result = await vscode.lm.invokeTool(call.name, {
-                    input: call.input,
-                    toolInvocationToken: request.toolInvocationToken,
-                }, token);
+                const result = await vscode.lm.invokeTool(
+                    call.name,
+                    {
+                        input: call.input,
+                        toolInvocationToken: request.toolInvocationToken,
+                    },
+                    token,
+                );
 
                 // Extract text from tool result
-                const texts = result.content
-                    .filter((p): p is vscode.LanguageModelTextPart => p instanceof vscode.LanguageModelTextPart)
-                    .map(p => p.value);
+                const texts = result.content.filter((p): p is vscode.LanguageModelTextPart => p instanceof vscode.LanguageModelTextPart).map(p => p.value);
                 toolResults.push(new vscode.LanguageModelToolResultPart(call.callId, [new vscode.LanguageModelTextPart(texts.join('\n'))]));
             } catch (err) {
-                toolResults.push(new vscode.LanguageModelToolResultPart(
-                    call.callId,
-                    [new vscode.LanguageModelTextPart(`Tool error: ${err instanceof Error ? err.message : String(err)}`)],
-                ));
+                toolResults.push(
+                    new vscode.LanguageModelToolResultPart(call.callId, [
+                        new vscode.LanguageModelTextPart(`Tool error: ${err instanceof Error ? err.message : String(err)}`),
+                    ]),
+                );
             }
         }
 
@@ -576,12 +519,7 @@ function buildAutopaperExecutionPrompt(userPrompt: string, autoPaperSkill: strin
         return preamble;
     }
 
-    return [
-        preamble,
-        '',
-        'Reference workflow instructions:',
-        autoPaperSkill,
-    ].join('\n');
+    return [preamble, '', 'Reference workflow instructions:', autoPaperSkill].join('\n');
 }
 
 /** Tool name filter helpers */
@@ -594,7 +532,10 @@ const TOOL_FILTERS: Record<string, (t: vscode.LanguageModelToolInformation) => b
     analysis: t => /analy|statistic|plot|table|dataset|figure/i.test(t.name + ' ' + t.description),
     strategy: t => /search|strategy|query|mesh/i.test(t.name + ' ' + t.description),
     drawio: t => /diagram|drawio|draw|figure/i.test(t.name + ' ' + t.description),
-    autopaper: t => /project|workspace|exploration|search|reference|citation|concept|novelty|draft|write|section|word|analysis|statistic|table|figure|diagram|review|pipeline|approve|rewrite|pause|resume|format|export|document|sync/i.test(t.name + ' ' + t.description),
+    autopaper: t =>
+        /project|workspace|exploration|search|reference|citation|concept|novelty|draft|write|section|word|analysis|statistic|table|figure|diagram|review|pipeline|approve|rewrite|pause|resume|format|export|document|sync/i.test(
+            t.name + ' ' + t.description,
+        ),
 };
 
 function registerChatParticipant(context: vscode.ExtensionContext): vscode.Disposable | null {
@@ -606,15 +547,20 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
             request: vscode.ChatRequest,
             chatContext: vscode.ChatContext,
             stream: vscode.ChatResponseStream,
-            token: vscode.CancellationToken
+            token: vscode.CancellationToken,
         ) => {
             // Commands that use the tool-calling loop
             const toolCommand = request.command;
             if (toolCommand && toolCommand in TOOL_FILTERS) {
                 const icons: Record<string, string> = {
-                    search: '🔍', draft: '✍️', concept: '💡',
-                    project: '📁', format: '📄', analysis: '📊',
-                    strategy: '🎯', drawio: '📐',
+                    search: '🔍',
+                    draft: '✍️',
+                    concept: '💡',
+                    project: '📁',
+                    format: '📄',
+                    analysis: '📊',
+                    strategy: '🎯',
+                    drawio: '📐',
                 };
                 stream.markdown(`${icons[toolCommand] || '🔧'} **正在使用 MCP 工具處理您的請求…**\n\n`);
                 await runWithTools(request, stream, token, TOOL_FILTERS[toolCommand]);
@@ -626,16 +572,10 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                 case 'autopaper': {
                     const autoPaperSkill = loadSkillContent(skillsPath, 'auto-paper');
                     stream.markdown('🚀 **正在啟動 Auto Paper pipeline...**\n\n');
-                    await runWithTools(
-                        request,
-                        stream,
-                        token,
-                        TOOL_FILTERS.autopaper,
-                        {
-                            maxRounds: 12,
-                            promptOverride: buildAutopaperExecutionPrompt(request.prompt, autoPaperSkill),
-                        },
-                    );
+                    await runWithTools(request, stream, token, TOOL_FILTERS.autopaper, {
+                        maxRounds: 12,
+                        promptOverride: buildAutopaperExecutionPrompt(request.prompt, autoPaperSkill),
+                    });
                     return { metadata: { command: request.command } };
                 }
 
@@ -672,7 +612,9 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                     stream.markdown('| `/mdpaper.audit` | 獨立審計與 review loop |\n');
                     stream.markdown('| `/mdpaper.help` | 顯示 prompt workflow 說明 |\n\n');
                     stream.markdown('### 🛤️ 兩條工作流\n\n');
-                    stream.markdown('- `library-wiki`：`/mdpaper.search` 或 `unified_search()` → `save_reference_mcp()` → `write_library_note()` → `show_reading_queues()` / `build_library_dashboard()`\n');
+                    stream.markdown(
+                        '- `library-wiki`：`/mdpaper.search` 或 `unified_search()` → `save_reference_mcp()` → `write_library_note()` → `show_reading_queues()` / `build_library_dashboard()`\n',
+                    );
                     stream.markdown('- `manuscript`：`/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.analysis` → `/mdpaper.format`\n\n');
                     stream.markdown('### 📏 核心規則\n\n');
                     stream.markdown('- 儲存文獻優先 `save_reference_mcp(pmid)`\n');
@@ -706,13 +648,29 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
         participant.followupProvider = {
             provideFollowups() {
                 return [
-                    { prompt: '全自動寫論文', label: '🚀 Auto Paper', command: 'autopaper' },
-                    { prompt: '搜尋相關文獻', label: '🔍 Search Literature', command: 'search' },
-                    { prompt: '開始撰寫草稿', label: '✍️ Start Drafting', command: 'draft' },
-                    { prompt: '驗證研究概念', label: '💡 Validate Concept', command: 'concept' },
-                    { prompt: '畫流程圖', label: '📐 Draw.io', command: 'drawio' }
+                    {
+                        prompt: '全自動寫論文',
+                        label: '🚀 Auto Paper',
+                        command: 'autopaper',
+                    },
+                    {
+                        prompt: '搜尋相關文獻',
+                        label: '🔍 Search Literature',
+                        command: 'search',
+                    },
+                    {
+                        prompt: '開始撰寫草稿',
+                        label: '✍️ Start Drafting',
+                        command: 'draft',
+                    },
+                    {
+                        prompt: '驗證研究概念',
+                        label: '💡 Validate Concept',
+                        command: 'concept',
+                    },
+                    { prompt: '畫流程圖', label: '📐 Draw.io', command: 'drawio' },
                 ];
-            }
+            },
         };
 
         return participant;
@@ -739,8 +697,6 @@ function getToolSurface(): 'compact' | 'full' {
     return config.get<'compact' | 'full'>('toolSurface') || 'compact';
 }
 
-
-
 async function autoScaffoldIfNeeded(context: vscode.ExtensionContext): Promise<void> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
@@ -756,14 +712,7 @@ async function autoScaffoldIfNeeded(context: vscode.ExtensionContext): Promise<v
         missingPrompts,
         missingSupportFiles,
         total: totalMissing,
-    } = countMissingBundledItems(
-        wsRoot,
-        extPath,
-        BUNDLED_SKILLS,
-        BUNDLED_AGENTS,
-        BUNDLED_PROMPTS,
-        BUNDLED_SUPPORT_FILES,
-    );
+    } = countMissingBundledItems(wsRoot, extPath, BUNDLED_SKILLS, BUNDLED_AGENTS, BUNDLED_PROMPTS, BUNDLED_SUPPORT_FILES);
 
     if (totalMissing === 0) {
         outputChannel.appendLine('[AutoScaffold] Workspace already has all bundled skills, prompts, agents, and support docs/files.');
@@ -775,21 +724,31 @@ async function autoScaffoldIfNeeded(context: vscode.ExtensionContext): Promise<v
     const alreadyPrompted = context.globalState.get<boolean>(stateKey);
 
     if (alreadyPrompted) {
-        outputChannel.appendLine(`[AutoScaffold] Already prompted for this workspace (${totalMissing} items missing). Run "MedPaper: Setup Workspace" to update.`);
+        outputChannel.appendLine(
+            `[AutoScaffold] Already prompted for this workspace (${totalMissing} items missing). Run "MedPaper: Setup Workspace" to update.`,
+        );
         return;
     }
 
     const detail = [];
-    if (missingSkills > 0) { detail.push(`${missingSkills} skills`); }
-    if (missingAgents > 0) { detail.push(`${missingAgents} agents`); }
-    if (missingPrompts > 0) { detail.push(`${missingPrompts} prompts`); }
-    if (missingSupportFiles > 0) { detail.push(`${missingSupportFiles} support docs/files`); }
+    if (missingSkills > 0) {
+        detail.push(`${missingSkills} skills`);
+    }
+    if (missingAgents > 0) {
+        detail.push(`${missingAgents} agents`);
+    }
+    if (missingPrompts > 0) {
+        detail.push(`${missingPrompts} prompts`);
+    }
+    if (missingSupportFiles > 0) {
+        detail.push(`${missingSupportFiles} support docs/files`);
+    }
 
     const selection = await vscode.window.showInformationMessage(
         `MedPaper: 偵測到 workspace 缺少 ${detail.join('、')}。要設定嗎？`,
         '設定 Workspace',
         '稍後再說',
-        '不再提醒'
+        '不再提醒',
     );
 
     if (selection === '設定 Workspace') {
@@ -853,8 +812,7 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
         const src = path.join(extPath, 'templates', tmpl);
         const dst = path.join(wsRoot, 'templates', tmpl);
         if (fs.existsSync(src)) {
-            const needsCopy = !fs.existsSync(dst) ||
-                fs.readFileSync(src, 'utf-8') !== fs.readFileSync(dst, 'utf-8');
+            const needsCopy = !fs.existsSync(dst) || fs.readFileSync(src, 'utf-8') !== fs.readFileSync(dst, 'utf-8');
             if (needsCopy) {
                 fs.mkdirSync(path.dirname(dst), { recursive: true });
                 fs.copyFileSync(src, dst);
@@ -878,10 +836,7 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
 
     if (copied > 0) {
         if (copiedDocs.length > 0) {
-            const docsSelection = await vscode.window.showInformationMessage(
-                `MedPaper: 已新增 docs/ 內容：${copiedDocs.join('、')}。`,
-                '開啟 LLM Wiki Guide'
-            );
+            const docsSelection = await vscode.window.showInformationMessage(`MedPaper: 已新增 docs/ 內容：${copiedDocs.join('、')}。`, '開啟 LLM Wiki Guide');
             if (docsSelection === '開啟 LLM Wiki Guide') {
                 await openWorkspaceOrBundledDocument(context, LLM_WIKI_GUIDE_RELATIVE_PATH);
             }
@@ -889,16 +844,17 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
 
         const selection = await vscode.window.showInformationMessage(
             `MedPaper: 已設定 ${copied} 個檔案（skills、prompts、agents、support docs/files、templates）到 workspace。重新載入視窗以啟用全部功能。`,
-            '重新載入'
+            '重新載入',
         );
         if (selection === '重新載入') {
             vscode.commands.executeCommand('workbench.action.reloadWindow');
         }
     } else {
         const docs = getBundledWorkspaceDocs();
-        const message = docs.length > 0
-            ? `MedPaper: Workspace 已是最新，無需更新。可用「MedPaper: Open LLM Wiki Guide」直接開啟 ${LLM_WIKI_GUIDE_RELATIVE_PATH}。`
-            : 'MedPaper: Workspace 已是最新，無需更新。';
+        const message =
+            docs.length > 0
+                ? `MedPaper: Workspace 已是最新，無需更新。可用「MedPaper: Open LLM Wiki Guide」直接開啟 ${LLM_WIKI_GUIDE_RELATIVE_PATH}。`
+                : 'MedPaper: Workspace 已是最新，無需更新。';
         vscode.window.showInformationMessage(message);
     }
 

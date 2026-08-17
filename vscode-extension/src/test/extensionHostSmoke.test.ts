@@ -27,16 +27,14 @@ const executedCommands: Array<{ command: string; args: unknown[] }> = [];
 const outputLines: string[] = [];
 const outputShow = vi.fn();
 const openedDocumentPaths: string[] = [];
-const extensionVersion = String(
-    JSON.parse(
-        fs.readFileSync(path.resolve(__dirname, '..', '..', 'package.json'), 'utf-8'),
-    ).version,
-);
+const extensionVersion = String(JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', '..', 'package.json'), 'utf-8')).version);
 
 let registeredProviderId: string | undefined;
-let registeredProvider: {
-    provideMcpServerDefinitions: (token: unknown) => unknown;
-} | undefined;
+let registeredProvider:
+    | {
+          provideMcpServerDefinitions: (token: unknown) => unknown;
+      }
+    | undefined;
 
 const mockOutputChannel = {
     appendLine: vi.fn((line: string) => {
@@ -56,7 +54,11 @@ const mockVscode = {
         withProgress: vi.fn(async (_options: unknown, task: (progress: { report: (value: unknown) => void }) => Promise<unknown>) => task({ report: vi.fn() })),
     },
     workspace: {
-        workspaceFolders: [{ uri: { fsPath: path.join(os.tmpdir(), 'medpaper-vsx-smoke-workspace') } }],
+        workspaceFolders: [
+            {
+                uri: { fsPath: path.join(os.tmpdir(), 'medpaper-vsx-smoke-workspace') },
+            },
+        ],
         openTextDocument: vi.fn(async (uri: { fsPath: string }) => {
             openedDocumentPaths.push(uri.fsPath);
             return { uri };
@@ -83,7 +85,9 @@ const mockVscode = {
         tools: [],
         registerMcpServerDefinitionProvider: vi.fn((providerId: string, provider: unknown) => {
             registeredProviderId = providerId;
-            registeredProvider = provider as { provideMcpServerDefinitions: (token: unknown) => unknown };
+            registeredProvider = provider as {
+                provideMcpServerDefinitions: (token: unknown) => unknown;
+            };
             return { dispose: vi.fn() };
         }),
         invokeTool: vi.fn(),
@@ -113,11 +117,16 @@ const mockVscode = {
     ProgressLocation: {
         Notification: 15,
     },
+    CancellationTokenSource: class {
+        public readonly token = {};
+        public dispose(): void {}
+    },
 };
 
 vi.mock('vscode', () => mockVscode);
 
 vi.mock('../uvManager', () => ({
+    REQUIRED_UV_VERSION: '0.12.5',
     findUvPath: vi.fn(async () => 'uv'),
     installUvHeadless: vi.fn(async () => 'uv'),
     getUvxPath: vi.fn(() => 'uvx'),
@@ -135,7 +144,13 @@ vi.mock('../extensionHelpers', () => ({
     shouldSkipMcpRegistration: vi.fn(() => false),
     isDevWorkspace: vi.fn(() => true),
     determinePythonPath: vi.fn(() => 'uv'),
-    countMissingBundledItems: vi.fn(() => ({ missingSkills: 0, missingAgents: 0, missingPrompts: 0, missingSupportFiles: 0, total: 0 })),
+    countMissingBundledItems: vi.fn(() => ({
+        missingSkills: 0,
+        missingAgents: 0,
+        missingPrompts: 0,
+        missingSupportFiles: 0,
+        total: 0,
+    })),
     buildDevPythonPath: vi.fn(() => path.join(os.tmpdir(), 'medpaper-dev-pythonpath')),
 }));
 
@@ -178,6 +193,9 @@ function createExtensionContext() {
         subscriptions: [] as Array<{ dispose: () => void }>,
         extensionPath,
         extensionUri: { fsPath: extensionPath },
+        globalStorageUri: {
+            fsPath: path.join(os.tmpdir(), 'medpaper-vsx-global-storage'),
+        },
         extension: {
             id: 'u9401066.medpaper-assistant',
             packageJSON: { version: extensionVersion },
@@ -201,7 +219,13 @@ describe('extension host smoke', () => {
         openedDocumentPaths.length = 0;
         registeredProviderId = undefined;
         registeredProvider = undefined;
-        mockVscode.workspace.workspaceFolders = [{ uri: { fsPath: fs.mkdtempSync(path.join(os.tmpdir(), 'medpaper-vsx-smoke-workspace-')) } }];
+        mockVscode.workspace.workspaceFolders = [
+            {
+                uri: {
+                    fsPath: fs.mkdtempSync(path.join(os.tmpdir(), 'medpaper-vsx-smoke-workspace-')),
+                },
+            },
+        ];
     });
 
     afterEach(() => {
@@ -232,22 +256,16 @@ describe('extension host smoke', () => {
 
         const zoteroDefinition = definitions.find(definition => definition.label === 'Zotero Keeper');
         expect(zoteroDefinition?.command).toBe('uvx');
-        expect(zoteroDefinition?.args).toEqual(expect.arrayContaining([
-            '--from',
-            expect.stringContaining('1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5'),
-            'zotero-keeper',
-        ]));
+        expect(zoteroDefinition?.args).toEqual(
+            expect.arrayContaining(['--from', expect.stringContaining('1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5'), 'zotero-keeper']),
+        );
 
         const drawioDefinition = definitions.find(definition => definition.label === 'Draw.io Diagrams');
-        expect(drawioDefinition?.args).toEqual(expect.arrayContaining([
-            '--from',
-            expect.stringContaining('83e35303208766750ff04f2f3637c3b83fce0d0b'),
-            'drawio-mcp-server',
-        ]));
-
-        const assetAwareDefinition = definitions.find(
-            definition => definition.label === 'Asset-Aware Documents',
+        expect(drawioDefinition?.args).toEqual(
+            expect.arrayContaining(['--from', expect.stringContaining('9bde25bac9ec160b912ddfebcb5ac037ce565e2f'), 'drawio-mcp-server']),
         );
+
+        const assetAwareDefinition = definitions.find(definition => definition.label === 'Asset-Aware Documents');
         expect(assetAwareDefinition?.command).toBe('uvx');
         expect(assetAwareDefinition?.args).toEqual([
             '--python',
@@ -260,7 +278,24 @@ describe('extension host smoke', () => {
         await mockVscode.commands.executeCommand('mdpaper.showStatus');
 
         expect(outputShow).toHaveBeenCalledOnce();
-        expect(outputLines.some(line => line.includes('MedPaper Assistant Status: Active'))).toBe(true);
+        expect(outputLines.some(line => line.includes('MedPaper Assistant Status: Ready'))).toBe(true);
+        expect(outputLines.some(line => line.includes('MCP extension definition provider; 6 definition(s) available'))).toBe(true);
+    });
+
+    it('reports Not ready and exposes no definitions when pinned uv cannot be verified', async () => {
+        const uvManager = await import('../uvManager');
+        vi.mocked(uvManager.findUvPath).mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+        const extension = await import('../extension');
+        const context = createExtensionContext();
+
+        await extension.activate(context as never);
+        const definitions = registeredProvider?.provideMcpServerDefinitions({});
+        expect(definitions).toEqual([]);
+
+        await mockVscode.commands.executeCommand('mdpaper.showStatus');
+        expect(outputLines.some(line => line.includes('MedPaper Assistant Status: Not ready'))).toBe(true);
+        expect(outputLines.some(line => line.includes('missing or version-mismatched'))).toBe(true);
+        expect(outputLines.some(line => line.includes('0 definition(s) available'))).toBe(true);
     });
 
     it('pins the marketplace core runtime to the VSIX version and ignores PATH binaries', async () => {
@@ -271,28 +306,20 @@ describe('extension host smoke', () => {
 
         await extension.activate(context as never);
 
-        const definitions = registeredProvider?.provideMcpServerDefinitions(
-            {},
-        ) as TestMcpStdioServerDefinition[];
-        const medpaperDefinition = definitions.find(
-            definition => definition.label === 'MedPaper Assistant',
-        );
+        const definitions = registeredProvider?.provideMcpServerDefinitions({}) as TestMcpStdioServerDefinition[];
+        const medpaperDefinition = definitions.find(definition => definition.label === 'MedPaper Assistant');
 
         expect(medpaperDefinition?.command).toBe('uvx');
         expect(medpaperDefinition?.args).toEqual([
             '--python',
             '3.12',
             '--from',
-            `med-paper-assistant[provenance]==${extensionVersion}`,
+            `med-paper-assistant[provenance,watermark]==${extensionVersion}`,
             'med-paper-assistant',
         ]);
-        expect(
-            outputLines.some(line => line.includes('using pre-installed binary')),
-        ).toBe(false);
+        expect(outputLines.some(line => line.includes('using pre-installed binary'))).toBe(false);
 
-        const assetAwareDefinition = definitions.find(
-            definition => definition.label === 'Asset-Aware Documents',
-        );
+        const assetAwareDefinition = definitions.find(definition => definition.label === 'Asset-Aware Documents');
         expect(assetAwareDefinition?.args).toEqual([
             '--python',
             '3.12',
@@ -341,7 +368,7 @@ describe('extension host smoke', () => {
         expect(fs.existsSync(path.join(wsRoot, 'docs', 'reference', 'llm-wiki.md'))).toBe(true);
         expect(mockVscode.window.showInformationMessage).toHaveBeenCalledWith(
             expect.stringContaining('已新增 docs/ 內容：docs/reference/llm-wiki.md、docs/how-to/llm-wiki.md。'),
-            '開啟 LLM Wiki Guide'
+            '開啟 LLM Wiki Guide',
         );
     });
 });

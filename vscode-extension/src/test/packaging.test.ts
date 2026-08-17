@@ -70,7 +70,15 @@ describe('package.json manifest', () => {
         expect(props).toBeDefined();
         expect(props['mdpaper.pythonPath']).toBeDefined();
         expect(props['mdpaper.toolSurface']).toBeDefined();
-        expect(props['mdpaper.defaultCitationStyle']).toBeDefined();
+        expect(props['mdpaper.projectsDirectory']).toBeUndefined();
+        expect(props['mdpaper.defaultCitationStyle']).toBeUndefined();
+    });
+
+    it('does not expose fake MCP lifecycle commands', () => {
+        const commandIds = pkg.contributes.commands.map((command: { command: string }) => command.command);
+        expect(commandIds).not.toContain('mdpaper.startServer');
+        expect(commandIds).not.toContain('mdpaper.stopServer');
+        expect(commandIds).toContain('mdpaper.showStatus');
     });
 
     it('has required devDependencies', () => {
@@ -167,6 +175,16 @@ describe('module structure', () => {
         expect(fs.existsSync(path.join(extDir, 'src', 'uvManager.ts'))).toBe(true);
     });
 
+    it('uses a checksum-pinned uv release instead of mutable remote installers', () => {
+        const source = fs.readFileSync(path.join(extDir, 'src', 'uvManager.ts'), 'utf-8');
+        expect(source).toContain("REQUIRED_UV_VERSION = '0.12.5'");
+        expect(source).toContain('verifyArchiveSha256');
+        expect(source).toContain('assertSafeArchivePath');
+        expect(source).not.toContain('astral.sh/uv/install');
+        expect(source).not.toMatch(/curl\s.*\|\s*(?:sh|bash)/);
+        expect(source).not.toContain('ExecutionPolicy ByPass');
+    });
+
     it('extensionHelpers.ts exists', () => {
         expect(fs.existsSync(path.join(extDir, 'src', 'extensionHelpers.ts'))).toBe(true);
     });
@@ -187,9 +205,8 @@ describe('version consistency', () => {
         expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
-    it('vscode engine is compatible (>=1.100.0)', () => {
-        const engine = pkg.engines.vscode;
-        // Should be ^1.100.0 or similar
-        expect(engine).toMatch(/\d+\.\d+/);
+    it('pins the engine floor to the first stable MCP provider API', () => {
+        expect(pkg.engines.vscode).toBe('^1.101.0');
+        expect(pkg.devDependencies['@types/vscode']).toBe('1.101.0');
     });
 });
