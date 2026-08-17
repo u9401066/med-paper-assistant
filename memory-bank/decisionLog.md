@@ -22,6 +22,13 @@
 - 可監控、可回溯、可人工介入的自主寫作與人類輔助寫作共同 workflow。
 - release evidence 由 static checks、完整 tests、greedy smoke、external archive smoke、wheel/VSIX install、docs strict build 與遠端 CI 組成。
 
+### 發布結果
+
+- `master` final code commit `340b0a4` 與 tag `v1.0.0` 已推送；CI run `32025463212` 全綠，release workflow 中所有 validation/build/security/install jobs 均成功。
+- PyPI trusted publishing 與 GitHub Release 成功；wheel、sdist、VSIX 三項 artifacts 均公開且 digest 已保存。
+- VS Marketplace OIDC publish 確實執行，但 Marketplace token exchange endpoint 回 404。這是外部服務/identity policy 阻擋，不能以忽略錯誤偽裝成功；GitHub Release 因此明確標示 failure 並提供實測安裝成功的 VSIX fallback。
+- 第三方 badge PR #14 因缺乏可重現 assessment artifact 而關閉；兩個 stale branches 在確認無獨有 commit 後刪除，remote 回到單一 `master`。
+
 ## [2026-07-14] v0.9.0 Provider-Neutral Production Harness
 
 ### 背景

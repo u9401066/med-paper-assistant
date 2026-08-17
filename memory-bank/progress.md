@@ -2,7 +2,7 @@
 
 ## Done
 
-- **v1.0.0 SDK2-only + auditable academic-writing release candidate (2026-08-17)**:
+- **v1.0.0 SDK2-only + auditable academic-writing release (2026-08-17)**:
 
   - Migrated the root server and all five managed integrations to official MCP SDK2 contracts; removed FastMCP/SDK1, floating `uvx`, arbitrary PATH reuse, and the Draw.io npm fallback.
   - Added immutable integration authority, direct/stdio/archive smokes, compact/full exact-count boot gates, and Marketplace definitions for all managed servers including Asset-Aware.
@@ -11,7 +11,10 @@
   - Refreshed dependencies, dashboard async React state, docs/harness/site/governance, release scripts, wheel smoke, real VSIX install smoke, and Marketplace OIDC publishing.
   - Prepared synchronized v1.0.0 version surfaces and changelogs; completed local Python 1605-test, VSIX 150-test, full/compact greedy, archive, wheel, package, docs, security, and authority gates.
   - Applied the GitHub description, five governance topics, and 15 structured labels while retaining existing labels and the `master` default branch.
-  - Segmented root commits, master CI, tag/release, Marketplace verification, and stale branch/PR cleanup remain in progress.
+  - Published seven segmented root commits and tag `v1.0.0` at `340b0a4`; root CI run `32025463212` and all code/build/install jobs in the release workflow passed.
+  - Published PyPI 1.0.0 and GitHub Release wheel/sdist/VSIX with matching SHA-256 digests; GitHub Pages remains green.
+  - Exercised Marketplace OIDC publishing, which failed at Microsoft's `/_apis/gallery/token` endpoint with 404. The public Marketplace remains on 0.7.10, while the release page exposes the verified VSIX and explicitly reports the degraded Marketplace status.
+  - Closed badge-only PR #14 because it lacked reproducible assessment evidence; deleted two stale branches after confirming both had zero commits not already reachable from `master`.
 
 - **GitHub Pages Wiki + visual architecture (2026-07-15)**:
 
@@ -176,13 +179,13 @@
 
 ## Doing
 
-- Monitor VS Marketplace secret authorization before the next publication attempt
+- Track the external VS Marketplace identity/backend requirement; repository packaging and install evidence are complete.
 
 ## Next
 
 - Implement ranked evidence-context ledger, perspective question map, and bounded branch audit artifacts
 - Continue vulture/orphan cleanup and DDD dependency remediation with regression tests
-- Fix/rotate `VSCE_PAT` publisher authorization before the next Marketplace publish attempt.
+- Configure a Marketplace-supported workload identity/trusted-publishing policy, or use the publisher portal to upload the already verified v1.0.0 VSIX; do not reuse the unauthorized legacy PAT.
 - Push segmented commits after each validated milestone; release a new version only after full validate/VSIX install smoke
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)

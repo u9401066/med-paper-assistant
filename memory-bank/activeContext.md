@@ -6,7 +6,7 @@
 
 ## 當前焦點 (2026-08-17)
 
-正在完成 v1.0.0 的 SDK2-only production release：所有 managed MCP runtime 已移除 SDK1/FastMCP/floating fallback，核心工具面精煉為 118 full / 12 compact，PubMed VERIFIED 信任鏈與 content-integrity receipts 改為 fail-closed，跨 Agent academic-writing harness、文件站與 release gates 已全面翻新。本機完整驗證與 GitHub metadata 同步已完成；待分段提交、遠端 CI、tag 與 Marketplace OIDC 發布。
+v1.0.0 SDK2-only production release 已完成核心發布：所有 managed MCP runtime 已移除 SDK1/FastMCP/floating fallback，核心工具面精煉為 118 full / 12 compact，PubMed VERIFIED 信任鏈與 content-integrity receipts 改為 fail-closed，跨 Agent academic-writing harness、文件站與 release gates 已全面翻新。PyPI、GitHub Release、Pages、repository metadata、舊 PR/branch 清理均已完成；VS Marketplace OIDC token exchange 因 Microsoft endpoint 回 404 而外部阻擋，已提供經 install-smoke 驗證的 release VSIX 作為明確 fallback。
 
 ### 當前狀態
 
@@ -20,7 +20,7 @@
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                       |
 | Validation Gate       | `scripts/check_tool_surface_authority.py` + `npm run validate`                                                            |
 | Latest Validation     | Python **1605 passed / 8 skipped**；VSIX **150 passed**；full greedy **0 broken/error**；wheel/VSIX/archive/docs gates ✅ |
-| Packaging             | **v1.0.0 release candidate**；wheel/sdist/real VSIX install smoke 與 OIDC trusted publish 已納入 release gate             |
+| Packaging             | **v1.0.0 released**；PyPI + GitHub wheel/sdist/VSIX ✅；Marketplace OIDC endpoint 404，手動 VSIX fallback ✅              |
 | Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**                |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
@@ -44,6 +44,10 @@
 - 翻新 academic-writing harness、evaluation contract、35-page MkDocs site、benchmark roadmap、README/中英文件、release/governance/security 文件與 8 張 SVG。
 - Release automation 改成 fail-closed version authority、recursive submodules、built-wheel smoke、real isolated VSIX install、PyPI/Marketplace OIDC 與 GitHub Release wheel/sdist/VSIX artifacts。
 - GitHub repository description、五個 research-governance topics 與 15 個結構化 labels 已透過 API 套用；既有 labels 與 `master` default branch 保留。
+- 分七個 root commits 推送至 `master`，final CI run `32025463212` 全綠；tag `v1.0.0` 指向 `340b0a4`，release gate 的三平台 smoke、SDK2 archive、完整 Python、security、bundle、wheel 與 VSIX install jobs 全部成功。
+- PyPI 1.0.0 與 GitHub Release 已發布；GitHub assets 的 SHA-256 為 VSIX `56335e9c…9666c`、wheel `51ea0d49…b6aa2`、sdist `3816ba0f…b4a52`。
+- VS Marketplace OIDC 已由 tag workflow 實際觸發，但 Marketplace `/_apis/gallery/token` 回 `404 Not Found`；公開 Marketplace 因此外部維持 0.7.10。Release notes 明示 degraded status，使用者可安裝已驗證的 attached VSIX，未以綠燈掩蓋發布失敗。
+- 關閉無可重現評估證據的第三方 badge PR #14；刪除兩個相對 `master` 無獨有 commit 的 stale branches，remote 僅保留 `master`。
 
 #### GitHub Pages Wiki + Visual Architecture (2026-07-15)
 
@@ -223,13 +227,13 @@
 - `application/__init__.py` 的 import chain（missing pubmed modules）— 測試用 sys.modules mock 繞過
 - 部分 test files 需外部模組（pubmed_search, matplotlib）— 已 ignore
 - jq 未安裝 — Copilot Lifecycle Hooks 會 graceful degradation
-- VS Marketplace publish secret needs rotation/permission repair: `VSCE_PAT` was present but Marketplace rejected it with `TF400813` during v0.7.11; PyPI and GitHub Release were completed.
+- VS Marketplace trusted-publishing backend/policy 仍需 publisher owner 與 Microsoft 端確認：v1.0.0 使用官方 VSCE OIDC 流程，但 token exchange endpoint 回 404；舊 `VSCE_PAT` 先前亦因 `TF400813` 無權限，不能作為可信 fallback。
 
 ## 下一步
 
-- [x] Push segmented v0.7.11 release commits and tag `v0.7.11`
-- [x] Watch GitHub release/CI result after tag propagation
-- [ ] Rotate/fix `VSCE_PAT` publisher authorization, then rerun VS Marketplace publish for v0.7.11 or next release
+- [x] Push segmented v1.0.0 commits、tag、PyPI 與 GitHub Release
+- [x] 完成 repository metadata、PR 與 stale branch cleanup
+- [ ] 由 publisher owner 設定 Marketplace 支援的 workload identity / trusted-publishing policy，或於 portal 手動上傳 v1.0.0 VSIX
 - [ ] Phase 5c TreeView/CodeLens/Diagnostics features
 - [ ] Dashboard Webview 內嵌（取代 Simple Browser）
 - [ ] CI/CD pipeline for automated VSIX publish
