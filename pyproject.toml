@@ -1,6 +1,6 @@
 [project]
 name = "med-paper-assistant"
-version = "1.0.0"
+version = "1.0.1"
 description = "An MCP-orchestrated research workspace for manuscript and library-wiki workflows"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -26,6 +26,8 @@ dependencies = [
     "pypandoc>=1.16.2",
     "citeproc-py>=0.6.0",
     "defusedxml>=0.7.1",
+    # Explicit verifier for externally signed Phase 3/7 human-approval receipts.
+    "cryptography>=50,<51",
 ]
 
 # ============================================
@@ -50,11 +52,20 @@ publishing = [
 ]
 # Optional, read-only C2PA provenance validation. Core installs degrade to UNSUPPORTED.
 provenance = [
-    "c2pa-python>=0.37.1,<0.38",
+    "c2pa-python==0.37.7",
+]
+# Pinned CPU-only second opinion. Runtime uses detection-only paths and never writes a derivative.
+watermark = [
+    "c2pa-python==0.37.7",
+    "remove-ai-watermarks[visible,detect]==0.26.3",
+    "numpy==2.5.2",
+    "opencv-python-headless==5.0.0.93",
+    "pillow==12.3.0",
+    "pywavelets==1.9.0",
 ]
 # 完整安裝（開發用）
 all = [
-    "med-paper-assistant[pubmed,creativity,analysis,publishing,provenance]",
+    "med-paper-assistant[pubmed,creativity,analysis,publishing,provenance,watermark]",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -107,7 +118,7 @@ dev = [
     "types-pyyaml>=6.0.12.20250915",
 ]
 docs = [
-    "mkdocs-material==9.7.6",
+    "mkdocs-material==9.7.7",
 ]
 
 # ============================================

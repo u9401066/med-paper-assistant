@@ -1,21 +1,38 @@
 """Tests for PipelineGateValidator — hard gate enforcement."""
 
+import base64
+import hashlib
 import json
 import zipfile
 
 import pytest
 import yaml
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from med_paper_assistant.application.content_integrity import ContentIntegrityInspector
+from med_paper_assistant.infrastructure.external import approval_signatures
+from med_paper_assistant.infrastructure.external.approval_signatures import (
+    APPROVAL_PUBLIC_KEYS_ENV,
+    CONCEPT_APPROVAL_SCHEMA,
+    REVIEW_APPROVAL_SCHEMA,
+    canonical_external_approval_payload,
+)
 from med_paper_assistant.infrastructure.external.content_integrity import (
     C2paProvenanceAdapter,
     ConservativeVisibleWatermarkHeuristic,
+    RemoveAiWatermarksInspectionAdapter,
+)
+from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import (
+    AuditLoopConfig,
+    AutonomousAuditLoop,
+    Severity,
 )
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
     GateCheck,
     GateResult,
     PipelineGateValidator,
+    derive_reference_source_revision,
 )
 
 
@@ -31,6 +48,36 @@ def project_dir(tmp_path):
 @pytest.fixture
 def validator(project_dir):
     return PipelineGateValidator(project_dir)
+
+
+def _base64url(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+def _configure_approval_signer(monkeypatch) -> Ed25519PrivateKey:
+    """Configure only a test public key; private material never enters production."""
+    private_key = Ed25519PrivateKey.generate()
+    monkeypatch.setenv(
+        APPROVAL_PUBLIC_KEYS_ENV,
+        json.dumps({"test-trusted-host": _base64url(private_key.public_key().public_bytes_raw())}),
+    )
+    return private_key
+
+
+def _sign_approval_receipt(
+    receipt: dict[str, object], private_key: Ed25519PrivateKey
+) -> dict[str, object]:
+    receipt["signature"] = {
+        "algorithm": "Ed25519",
+        "encoding": "base64url",
+        "key_id": "test-trusted-host",
+        "value": "",
+    }
+    signature = private_key.sign(canonical_external_approval_payload(receipt))
+    signature_block = receipt["signature"]
+    assert isinstance(signature_block, dict)
+    signature_block["value"] = _base64url(signature)
+    return receipt
 
 
 def _add_prerequisites(project_dir, up_to_phase: int):
@@ -53,7 +100,7 @@ def _add_prerequisites(project_dir, up_to_phase: int):
             ref_dir.mkdir(parents=True, exist_ok=True)
             meta = ref_dir / "metadata.json"
             if not meta.is_file():
-                meta.write_text(f'{{"pmid": "0000{i}"}}')
+                meta.write_text(json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}))
     if up_to_phase >= 4:
         concept = project_dir / "concept.md"
         if not concept.is_file():
@@ -93,31 +140,8 @@ def _add_prerequisites(project_dir, up_to_phase: int):
             sc.write_text("# Scorecard")
     # Phase 8+ needs completed review loop (Phase 7 prerequisite)
     if up_to_phase >= 8:
-        loop_state = project_dir / ".audit" / "audit-loop-review.json"
-        if not loop_state.is_file():
-            loop_state.write_text(
-                json.dumps(
-                    {
-                        "config": {"min_rounds": 2, "max_rounds": 3},
-                        "rounds": [
-                            {"round": 1, "verdict": "needs_revision"},
-                            {"round": 2, "verdict": "quality_met"},
-                        ],
-                    }
-                )
-            )
-        for i in [1, 2]:
-            (project_dir / ".audit" / f"review-report-{i}.md").write_text(f"# Round {i}")
-            (project_dir / ".audit" / f"author-response-{i}.md").write_text(f"# Response {i}")
-            (project_dir / ".audit" / f"equator-compliance-{i}.md").write_text(f"# EQUATOR {i}")
-        elog = project_dir / ".audit" / "evolution-log.jsonl"
-        existing = elog.read_text(encoding="utf-8") if elog.is_file() else ""
-        review_entries = [
-            json.dumps({"event": "review_round", "round": 1}),
-            json.dumps({"event": "review_round", "round": 2}),
-        ]
-        if "review_round" not in existing:
-            elog.write_text(existing + "\n".join(review_entries) + "\n", encoding="utf-8")
+        if not (project_dir / ".audit" / "audit-loop-review.json").is_file():
+            _complete_review_loop(project_dir, rounds=2)
     if up_to_phase == 11:
         exports = project_dir / "exports"
         exports.mkdir(parents=True, exist_ok=True)
@@ -213,16 +237,218 @@ def _analysis_steps():
     return {f"D{i}": {"status": "completed"} for i in range(1, 10)}
 
 
+def _write_reference_analysis_receipt(
+    ref_dir,
+    pmid: str,
+    *,
+    fulltext_ingested: bool = False,
+) -> None:
+    metadata_path = ref_dir / "metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata.update(
+        {
+            "analysis_completed": True,
+            "analysis_source_tool": "save_reference_analysis",
+            "fulltext_ingested": fulltext_ingested,
+            "fulltext_unavailable_reason": "not_open_access" if not fulltext_ingested else "",
+            "asset_aware_doc_id": f"doc-{pmid}" if fulltext_ingested else None,
+            "fulltext_sections": ["Methods", "Results"] if fulltext_ingested else [],
+        }
+    )
+    source_valid, _, source_revision, source_kind = derive_reference_source_revision(
+        ref_dir, metadata
+    )
+    if not source_valid:
+        source_revision = "0" * 64
+        source_kind = "asset-aware"
+    analysis = {
+        "schema": "mdpaper.reference_analysis.v1",
+        "source_tool": "save_reference_analysis",
+        "pmid": pmid,
+        "summary": "Structured evidence analysis for the saved reference.",
+        "methodology": "The study design and analysis methods were appraised.",
+        "key_findings": "Findings were mapped to bounded manuscript claims.",
+        "limitations": "Limitations and applicability were recorded.",
+        "usage_sections": ["Introduction", "Discussion"],
+        "relevance_score": 4,
+        "source_revision_sha256": source_revision,
+        "source_kind": source_kind,
+        "analyzed_at": "2026-08-17T00:00:00+00:00",
+    }
+    analysis_path = ref_dir / "analysis.json"
+    analysis_path.write_text(json.dumps(analysis, indent=2), encoding="utf-8")
+    metadata.update(
+        {
+            "analysis_artifact_sha256": hashlib.sha256(analysis_path.read_bytes()).hexdigest(),
+            "analysis_completed_at": analysis["analyzed_at"],
+            "analysis_source_revision_sha256": source_revision,
+            "analysis_summary": analysis["summary"],
+            "usage_sections": analysis["usage_sections"],
+        }
+    )
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+
+def _write_asset_aware_reference_receipt(ref_dir, pmid: str) -> None:
+    """Create one valid Asset-Aware extraction and its source-bound analysis."""
+    asset_dir = ref_dir / "artifacts" / "asset-aware"
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    artifact_path = asset_dir / "sections.md"
+    artifact_path.write_text(
+        "# Methods\n\nSubstantive extracted methods.\n\n# Results\n\nSubstantive findings.\n",
+        encoding="utf-8",
+    )
+    artifact_raw = artifact_path.read_bytes()
+    artifacts = [
+        {
+            "path": "sections.md",
+            "sha256": hashlib.sha256(artifact_raw).hexdigest(),
+            "bytes": len(artifact_raw),
+        }
+    ]
+    revision_payload = {
+        "asset_aware_doc_id": f"doc-{pmid}",
+        "fulltext_sections": ["Methods", "Results"],
+        "artifacts": artifacts,
+    }
+    source_revision = hashlib.sha256(
+        json.dumps(
+            revision_payload,
+            allow_nan=False,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    receipt_path = asset_dir / "receipt.json"
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "schema": "mdpaper.asset_aware_fulltext.v1",
+                "source_tool": "asset-aware",
+                "asset_aware_doc_id": f"doc-{pmid}",
+                "fulltext_sections": ["Methods", "Results"],
+                "completed_at": "2026-08-17T00:00:00+00:00",
+                "source_revision_sha256": source_revision,
+                "artifacts": artifacts,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    metadata_path = ref_dir / "metadata.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata.update(
+        {
+            "fulltext_ingested": True,
+            "asset_aware_doc_id": f"doc-{pmid}",
+            "fulltext_sections": ["Methods", "Results"],
+            "fulltext_receipt_sha256": hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
+        }
+    )
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    _write_reference_analysis_receipt(ref_dir, pmid, fulltext_ingested=True)
+
+
+def _review_drafts_hash(project_dir) -> str:
+    digest = hashlib.sha256()
+    manuscript = project_dir / "drafts" / "manuscript.md"
+    draft_files = (
+        [manuscript] if manuscript.is_file() else sorted((project_dir / "drafts").glob("*.md"))
+    )
+    for draft_file in draft_files:
+        digest.update(draft_file.name.encode("utf-8"))
+        digest.update(draft_file.read_bytes())
+    return digest.hexdigest() if draft_files else ""
+
+
 def _write_review_artifacts(project_dir, rounds: int):
     audit = project_dir / ".audit"
     for i in range(1, rounds + 1):
-        (audit / f"review-report-{i}.md").write_text(f"# Round {i} Review\n")
-        (audit / f"author-response-{i}.md").write_text(f"# Round {i} Response\n")
-        (audit / f"equator-compliance-{i}.md").write_text(f"# Round {i} EQUATOR\n")
-    (audit / "evolution-log.jsonl").write_text(
-        "".join(
-            json.dumps({"event": "review_round", "round": i}) + "\n" for i in range(1, rounds + 1)
-        ),
+        report = (
+            "---\nmajor: 1\nminor: 0\noptional: 0\n---\n"
+            f"# Round {i} Review\n\n"
+            "## Methodology assessment\n"
+            "The methodology reviewer identified one reproducibility concern.\n\n"
+            "## Clinical domain assessment\n"
+            "The domain reviewer checked whether the interpretation matched the study setting.\n\n"
+            "## Statistical assessment\n"
+            "The statistic reviewer checked estimates, uncertainty, and reporting choices.\n\n"
+            "## Major issues\n"
+            "- major: Clarify the analysis rationale and its evidentiary support.\n\n"
+            + "Additional reviewer analysis explains the evidence and bounded correction. "
+            * 55
+        )
+        (audit / f"review-report-{i}.md").write_text(report, encoding="utf-8")
+        (audit / f"author-response-{i}.md").write_text(
+            f"# Round {i} Response\n\n"
+            "ACCEPT — Changed the manuscript to clarify the analysis rationale; "
+            "the revision is supported by the recorded evidence and reference audit.\n",
+            encoding="utf-8",
+        )
+        (audit / f"equator-compliance-{i}.md").write_text(
+            f"# Round {i} EQUATOR\n\n"
+            "- [x] Title and abstract\n"
+            "- [x] Background and objectives\n"
+            "- [x] Methods and setting\n"
+            "- [x] Results and uncertainty\n"
+            "- [x] Discussion and limitations\n",
+            encoding="utf-8",
+        )
+
+
+def _complete_review_loop(project_dir, rounds: int, *, terminal: str = "quality_met") -> None:
+    audit = project_dir / ".audit"
+    drafts = project_dir / "drafts"
+    audit.mkdir(parents=True, exist_ok=True)
+    drafts.mkdir(parents=True, exist_ok=True)
+    manuscript = drafts / "manuscript.md"
+    if not manuscript.is_file():
+        manuscript.write_text("# Manuscript\n\nInitial evidence-grounded text.\n", encoding="utf-8")
+
+    _write_review_artifacts(project_dir, rounds)
+    config = AuditLoopConfig(
+        min_rounds=2,
+        max_rounds=rounds if terminal == "max_rounds" else max(3, rounds),
+        quality_threshold=7.0,
+        context="review",
+    )
+    loop = AutonomousAuditLoop(audit, config=config)
+    events: list[dict[str, object]] = []
+    for round_num in range(1, rounds + 1):
+        start_hash = _review_drafts_hash(project_dir)
+        loop.start_round(artifact_hash=start_hash)
+        issue_index = loop.record_issue(
+            hook_id="R1",
+            severity=Severity.MAJOR,
+            description=f"Round {round_num} review issue",
+            suggested_fix="Clarify the evidence-grounded analysis rationale",
+        )
+        manuscript.write_text(
+            manuscript.read_text(encoding="utf-8")
+            + f"\nRound {round_num} revision clarifies the analysis rationale.\n",
+            encoding="utf-8",
+        )
+        loop.record_fix(issue_index, "author_revision", True)
+        final_round = round_num == rounds
+        score = 8.0 if final_round and terminal == "quality_met" else 6.0
+        scores = {dimension: score for dimension in config.dimension_weights}
+        verdict = loop.complete_round(scores, artifact_hash=_review_drafts_hash(project_dir))
+        events.append(
+            {
+                "event": "review_round",
+                "round": round_num,
+                "verdict": verdict.value,
+                "scores": scores,
+                "weighted_score": score,
+                "timestamp": f"2026-08-17T00:00:0{round_num}",
+            }
+        )
+
+    evolution_log = audit / "evolution-log.jsonl"
+    existing = evolution_log.read_text(encoding="utf-8") if evolution_log.is_file() else ""
+    evolution_log.write_text(
+        existing + "".join(json.dumps(event) + "\n" for event in events),
         encoding="utf-8",
     )
 
@@ -255,6 +481,7 @@ def _record_asset_review(
     integrity = ContentIntegrityInspector(
         provenance_inspector=C2paProvenanceAdapter(),
         visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+        removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
     ).inspect(project_dir / asset_path, asset_path=asset_path)
     integrity_receipt = tracker.record_content_integrity_receipt(
         asset_type=asset_type,
@@ -347,7 +574,9 @@ class TestPhase2:
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
-            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+            )
         r = validator.validate_phase(2)
         assert r.passed
 
@@ -357,7 +586,9 @@ class TestPhase2:
         for i in range(10):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
-            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+            )
         r = validator.validate_phase(2)
         assert not r.passed
         ref_check = next(c for c in r.checks if c.name == "references_count")
@@ -374,7 +605,9 @@ class TestPhase2:
         for i in range(8):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
-            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+            )
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(2)
         assert r.passed
@@ -390,7 +623,9 @@ class TestPhase2:
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
-            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+            )
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(2)
         assert not r.passed
@@ -410,13 +645,15 @@ class TestPhase2:
         for i in range(22):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
-            (ref_dir / "metadata.json").write_text(f'{{"pmid": "0000{i}"}}')
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+            )
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(2)
         assert not r.passed  # 22 < 25
 
-    def test_legacy_flat_md_refs_counted(self, validator, project_dir):
-        """Legacy .md refs (without metadata.json) are still counted."""
+    def test_legacy_flat_md_refs_require_structured_migration(self, validator, project_dir):
+        """Arbitrary Markdown cannot satisfy bibliographic integrity."""
         (project_dir / "project.json").write_text('{"slug": "test"}')
         # Use letter type with low minimum (5) for easy testing
         import yaml
@@ -426,7 +663,137 @@ class TestPhase2:
             (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(2)
-        assert r.passed
+        assert not r.passed
+        integrity = next(check for check in r.checks if check.name == "references_integrity")
+        assert "require structured migration" in integrity.details
+
+    def test_forged_verified_reference_is_not_counted(self, validator, project_dir):
+        """A verified label without immutable PubMed provenance must fail closed."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(20):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True)
+            metadata = {"pmid": f"0000{i}", "title": f"Reference {i}"}
+            if i == 0:
+                metadata.update(
+                    {
+                        "verified": True,
+                        "trust_level": "verified",
+                        "data_source": "pubmed_mcp_api",
+                    }
+                )
+            (ref_dir / "metadata.json").write_text(json.dumps(metadata))
+
+        result = validator.validate_phase(2)
+
+        assert not result.passed
+        integrity = next(check for check in result.checks if check.name == "references_integrity")
+        assert "lacks PubMed provenance" in integrity.details
+
+    def test_duplicate_pmid_cannot_inflate_reference_count(self, validator, project_dir):
+        """Directory count and citation aliases cannot turn one paper into five."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "journal-profile.yaml").write_text(
+            yaml.safe_dump({"paper": {"type": "letter"}})
+        )
+        for i in range(5):
+            ref_dir = project_dir / "references" / f"copy-{i}"
+            ref_dir.mkdir(parents=True)
+            (ref_dir / "metadata.json").write_text(
+                json.dumps(
+                    {
+                        "pmid": "12345678",
+                        "title": "The same paper in every directory",
+                        "citation_key": f"alias-{i}",
+                    }
+                )
+            )
+
+        result = validator.validate_phase(2)
+
+        assert not result.passed
+        count = next(check for check in result.checks if check.name == "references_count")
+        integrity = next(check for check in result.checks if check.name == "references_integrity")
+        assert count.details.startswith("1/5")
+        assert "duplicate identity pmid:12345678" in integrity.details
+
+    def test_citation_key_only_is_not_a_bibliographic_identity(self, validator, project_dir):
+        ref_dir = project_dir / "references" / "alias-only"
+        ref_dir.mkdir(parents=True)
+        (ref_dir / "metadata.json").write_text(
+            json.dumps({"citation_key": "invented2026", "title": "Invented reference"})
+        )
+
+        _, invalid, _ = validator._reference_records(project_dir / "references")
+
+        assert invalid == ["alias-only: no stable reference identity"]
+
+    def test_matching_verified_labels_without_raw_payload_fail_closed(self, validator, project_dir):
+        """An attacker can recompute labels/hashes, but cannot omit persisted source evidence."""
+        pmid = "12345678"
+        title = "Fabricated verified paper"
+        retrieved_at = "2026-08-17T00:00:00+00:00"
+        source_url = f"http://127.0.0.1:8765/api/cached_article/{pmid}"
+        payload_hash = "a" * 64
+        ref_dir = project_dir / "references" / pmid
+        ref_dir.mkdir(parents=True)
+        (ref_dir / "metadata.json").write_text(
+            json.dumps(
+                {
+                    "pmid": pmid,
+                    "title": title,
+                    "verified": True,
+                    "trust_level": "verified",
+                    "data_source": "pubmed_mcp_api",
+                    "retrieved_at": retrieved_at,
+                    "source_url": source_url,
+                    "payload_hash": payload_hash,
+                    "provenance": [
+                        {
+                            "event": "pubmed_mcp_fetch",
+                            "source": "pubmed",
+                            "data_source": "pubmed_mcp_api",
+                            "requested_pmid": pmid,
+                            "retrieved_at": retrieved_at,
+                            "source_url": source_url,
+                            "payload_hash": payload_hash,
+                        }
+                    ],
+                }
+            )
+        )
+
+        records, invalid, _ = validator._reference_records(project_dir / "references")
+
+        assert not records
+        assert "missing its PubMed transport payload" in invalid[0]
+
+        metadata = json.loads((ref_dir / "metadata.json").read_text(encoding="utf-8"))
+        transport_payload = {"pmid": pmid, "title": title}
+        actual_hash = hashlib.sha256(
+            json.dumps(
+                transport_payload,
+                allow_nan=False,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        attacker_url = f"https://attacker.invalid/api/cached_article/{pmid}"
+        metadata.update(
+            {
+                "source_url": attacker_url,
+                "payload_hash": actual_hash,
+                "pubmed_transport_payload": transport_payload,
+            }
+        )
+        metadata["provenance"][0].update({"source_url": attacker_url, "payload_hash": actual_hash})
+        (ref_dir / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+
+        records, invalid, _ = validator._reference_records(project_dir / "references")
+
+        assert not records
+        assert "configured trusted endpoint" in invalid[0]
 
 
 class TestWorkflowModeShortCircuit:
@@ -506,11 +873,14 @@ class TestPhase3And4:
         assert not r.passed
         decision_check = next(c for c in r.checks if c.name == "concept-review-decision")
         assert decision_check.passed is False
-        assert "manual approval required" in decision_check.details
+        assert "external human approval receipt is missing" in decision_check.details
 
-    def test_phase4_allows_manual_override_for_revise_readiness(self, validator, project_dir):
+    def test_phase4_allows_signed_external_override_for_revise_readiness(
+        self, validator, project_dir, monkeypatch
+    ):
         _add_prerequisites(project_dir, up_to_phase=4)
-        (project_dir / ".audit" / "concept-review.yaml").write_text(
+        review_path = project_dir / ".audit" / "concept-review.yaml"
+        review_path.write_text(
             "metadata:\n"
             "  generated_at: '2026-01-01T00:00:00'\n"
             "review:\n"
@@ -526,12 +896,28 @@ class TestPhase3And4:
             "  selling_points_locked:\n"
             "    present: true\n"
         )
+        receipt = _sign_approval_receipt(
+            {
+                "schema": CONCEPT_APPROVAL_SCHEMA,
+                "approved_to_proceed": True,
+                "approved_at": "2026-08-17T00:00:00+00:00",
+                "approved_by": "principal-investigator:pi-001",
+                "accepted_readiness": "revise",
+                "rationale": "The concept is clinically meaningful despite weak novelty score.",
+                "accepted_risks": "Novelty limitations will be disclosed in the manuscript.",
+                "mode": "human-collaboration",
+                "decision_source": "external-user-confirmation",
+                "confirmation_id": "concept-confirmation-0001",
+                "project_slug": "test",
+                "concept_review_sha256": hashlib.sha256(review_path.read_bytes()).hexdigest(),
+                "concept_artifact_sha256": hashlib.sha256(
+                    (project_dir / "concept.md").read_bytes()
+                ).hexdigest(),
+            },
+            _configure_approval_signer(monkeypatch),
+        )
         (project_dir / ".audit" / "concept-review-override.yaml").write_text(
-            "approved_to_proceed: true\n"
-            "approved_by: human\n"
-            "accepted_readiness: revise\n"
-            "rationale: The concept is clinically meaningful despite weak novelty score.\n"
-            "mode: human-collaboration\n"
+            yaml.safe_dump(receipt, sort_keys=False)
         )
         (project_dir / "manuscript-plan.yaml").write_text("title: draft\n")
 
@@ -539,7 +925,90 @@ class TestPhase3And4:
 
         assert r.passed
         decision_check = next(c for c in r.checks if c.name == "concept-review-ready")
-        assert "manual override" in decision_check.details
+        assert "external approval" in decision_check.details
+
+    def test_concept_override_requires_specific_reviewer_and_current_review_hash(
+        self, validator, project_dir, monkeypatch
+    ):
+        _add_prerequisites(project_dir, up_to_phase=4)
+        review_path = project_dir / ".audit" / "concept-review.yaml"
+        review = yaml.safe_load(review_path.read_text(encoding="utf-8"))
+        review["review"]["readiness"] = "revise"
+        review_path.write_text(yaml.safe_dump(review, sort_keys=False), encoding="utf-8")
+        approved_review_bytes = review_path.read_bytes()
+        override_path = project_dir / ".audit" / "concept-review-override.yaml"
+        private_key = _configure_approval_signer(monkeypatch)
+        receipt = _sign_approval_receipt(
+            {
+                "schema": CONCEPT_APPROVAL_SCHEMA,
+                "approved_to_proceed": True,
+                "approved_at": "2026-08-17T00:00:00+00:00",
+                "approved_by": "human",
+                "accepted_readiness": "revise",
+                "rationale": "Proceed as a scoped interim report with an explicit caveat.",
+                "accepted_risks": "The concept needs further novelty validation.",
+                "mode": "human-collaboration",
+                "decision_source": "external-user-confirmation",
+                "confirmation_id": "concept-confirmation-0002",
+                "project_slug": "test",
+                "concept_review_sha256": hashlib.sha256(review_path.read_bytes()).hexdigest(),
+                "concept_artifact_sha256": hashlib.sha256(
+                    (project_dir / "concept.md").read_bytes()
+                ).hexdigest(),
+            },
+            private_key,
+        )
+        override_path.write_text(yaml.safe_dump(receipt), encoding="utf-8")
+
+        generic_result = validator.validate_phase(3)
+        generic_check = next(
+            check for check in generic_result.checks if check.name == "concept-review-decision"
+        )
+        assert not generic_check.passed
+        assert "specific external reviewer identity" in generic_check.details
+
+        receipt["approved_by"] = "principal-investigator:pi-002"
+        _sign_approval_receipt(receipt, private_key)
+        override_path.write_text(yaml.safe_dump(receipt), encoding="utf-8")
+        assert validator.validate_phase(3).passed
+
+        review_path.write_text(
+            review_path.read_text(encoding="utf-8") + "\n# post-approval mutation\n",
+            encoding="utf-8",
+        )
+        stale_result = validator.validate_phase(3)
+        stale_check = next(
+            check for check in stale_result.checks if check.name == "concept-review-decision"
+        )
+        assert not stale_check.passed
+        assert "stale for the current concept review" in stale_check.details
+
+        review_path.write_bytes(approved_review_bytes)
+        concept_path = project_dir / "concept.md"
+        concept_path.write_text(
+            concept_path.read_text(encoding="utf-8") + "\nPost-approval concept mutation.\n",
+            encoding="utf-8",
+        )
+        stale_concept_result = validator.validate_phase(3)
+        stale_concept_check = next(
+            check
+            for check in stale_concept_result.checks
+            if check.name == "concept-review-decision"
+        )
+        assert not stale_concept_check.passed
+        assert "stale for the current concept artifact" in stale_concept_check.details
+
+    def test_ready_concept_does_not_require_crypto_backend(
+        self, validator, project_dir, monkeypatch
+    ):
+        _add_prerequisites(project_dir, up_to_phase=4)
+
+        def missing_backend():
+            raise ModuleNotFoundError("cryptography intentionally unavailable")
+
+        monkeypatch.setattr(approval_signatures, "_load_ed25519_backend", missing_backend)
+
+        assert validator.validate_phase(3).passed
 
 
 class TestPhase5:
@@ -935,31 +1404,107 @@ class TestPhase7:
         assert "review:author-response-1.md" in names
 
     def test_pass_complete_review(self, validator, project_dir):
-        """Full review loop with all artifacts should PASS."""
+        """A state-machine review with revalidated R1-R6 artifacts should PASS."""
         _add_prerequisites(project_dir, up_to_phase=7)
-        audit = project_dir / ".audit"
-        state = {
-            "config": {"max_rounds": 3},
-            "rounds": [
-                {"round": 1, "verdict": "continue"},
-                {"round": 2, "verdict": "quality_met"},
-            ],
-        }
-        (audit / "audit-loop-review.json").write_text(json.dumps(state))
-        for i in [1, 2]:
-            (audit / f"review-report-{i}.md").write_text(f"# Round {i}")
-            (audit / f"author-response-{i}.md").write_text(f"# Response {i}")
-            (audit / f"equator-compliance-{i}.md").write_text(f"# EQUATOR {i}")
-
-        # evolution-log with review_round events
-        entries = [
-            json.dumps({"event": "review_round", "round": 1}),
-            json.dumps({"event": "review_round", "round": 2}),
-        ]
-        (audit / "evolution-log.jsonl").write_text("\n".join(entries) + "\n")
+        _complete_review_loop(project_dir, rounds=2)
 
         r = validator.validate_phase(7)
+
         assert r.passed
+        checks = {check.name: check for check in r.checks}
+        assert all(checks[f"review:r{hook_num}-2"].passed for hook_num in range(1, 7))
+
+    def test_fail_when_quality_met_verdict_is_handwritten(self, validator, project_dir):
+        """A plausible label cannot replace state-machine score recomputation."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        _complete_review_loop(project_dir, rounds=2)
+        loop_path = project_dir / ".audit" / "audit-loop-review.json"
+        state = json.loads(loop_path.read_text(encoding="utf-8"))
+        state["rounds"][-1]["scores"] = {
+            dimension: 1.0 for dimension in state["config"]["dimension_weights"]
+        }
+        state["rounds"][-1]["weighted_avg"] = 1.0
+        state["rounds"][-1]["verdict"] = "quality_met"
+        loop_path.write_text(json.dumps(state), encoding="utf-8")
+
+        result = validator.validate_phase(7)
+
+        assert not result.passed
+        integrity = next(check for check in result.checks if check.name == "review:state_integrity")
+        assert "recomputed verdict" in integrity.details
+
+    def test_fail_when_current_manuscript_differs_from_final_reviewed_artifact(
+        self, validator, project_dir
+    ):
+        """A quality verdict cannot be replayed after post-review manuscript edits."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        _complete_review_loop(project_dir, rounds=2)
+        manuscript = project_dir / "drafts" / "manuscript.md"
+        manuscript.write_text(
+            manuscript.read_text(encoding="utf-8") + "\nUnreviewed conclusion added later.\n",
+            encoding="utf-8",
+        )
+
+        result = validator.validate_phase(7)
+
+        assert not result.passed
+        current = next(
+            check for check in result.checks if check.name == "review:final-artifact-current"
+        )
+        assert not current.passed
+        assert "does not match" in current.details
+
+    def test_review_policy_floor_rejects_lowered_serialized_threshold(self, validator, project_dir):
+        """Editing persisted config cannot turn zero scores into quality evidence."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        _complete_review_loop(project_dir, rounds=2)
+        loop_path = project_dir / ".audit" / "audit-loop-review.json"
+        state = json.loads(loop_path.read_text(encoding="utf-8"))
+        state["config"]["min_rounds"] = 1
+        state["config"]["quality_threshold"] = 0
+        loop_path.write_text(json.dumps(state), encoding="utf-8")
+
+        result = validator.validate_phase(7)
+
+        assert not result.passed
+        integrity = next(check for check in result.checks if check.name == "review:state_integrity")
+        assert "min_rounds must be at least 2" in integrity.details
+        assert "quality_threshold must be at least 7.0" in integrity.details
+
+    def test_fail_when_review_artifacts_bypass_r1_r6(self, validator, project_dir):
+        """Replacing a reviewed report with a stub invalidates the hard gate."""
+        _add_prerequisites(project_dir, up_to_phase=7)
+        _complete_review_loop(project_dir, rounds=2)
+        (project_dir / ".audit" / "review-report-2.md").write_text(
+            "# Handwritten verdict\nLooks good.\n", encoding="utf-8"
+        )
+
+        result = validator.validate_phase(7)
+
+        assert not result.passed
+        assert any(check.name == "review:r1-2" for check in result.critical_failures)
+
+    def test_fail_closed_when_review_hook_execution_raises(
+        self, validator, project_dir, monkeypatch
+    ):
+        """An unexpected hook exception becomes a failed gate, not an unhandled bypass."""
+        from med_paper_assistant.infrastructure.persistence.review_hooks import (
+            ReviewHooksEngine,
+        )
+
+        _add_prerequisites(project_dir, up_to_phase=7)
+        _complete_review_loop(project_dir, rounds=2)
+
+        def fail_hooks(*args, **kwargs):
+            raise RuntimeError("simulated hook failure")
+
+        monkeypatch.setattr(ReviewHooksEngine, "run_all", fail_hooks)
+
+        result = validator.validate_phase(7)
+
+        assert not result.passed
+        r1 = next(check for check in result.checks if check.name == "review:r1-1")
+        assert "hook execution failed: RuntimeError" in r1.details
 
 
 class TestPhase65:
@@ -1138,8 +1683,9 @@ class TestPhase21SourceMaterials:
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "analysis_completed": True})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
             )
+            _write_reference_analysis_receipt(ref_dir, f"0000{i}")
         (project_dir / "references" / "fulltext-ingestion-status.md").write_text("ok")
         (project_dir / ".audit" / "source-materials.yaml").write_text(
             yaml.dump(
@@ -1171,8 +1717,9 @@ class TestPhase21SourceMaterials:
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "analysis_completed": True})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
             )
+            _write_reference_analysis_receipt(ref_dir, f"0000{i}")
         (project_dir / "references" / "fulltext-ingestion-status.md").write_text("ok")
         (project_dir / ".audit" / "source-materials.yaml").write_text(
             yaml.dump(
@@ -1210,8 +1757,9 @@ class TestPhase21Ordering:
             ref_dir = refs / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "analysis_completed": True})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
             )
+            _write_reference_analysis_receipt(ref_dir, f"0000{i}")
 
         r = validator.validate_phase(21)
         names = {c.name for c in r.checks}
@@ -1220,6 +1768,146 @@ class TestPhase21Ordering:
         assert "prereq:manuscript.md" not in names
         assert "prereq:quality-scorecard" not in names
         assert "prereq:review_completed" not in names
+
+    def test_boolean_only_analysis_claim_fails_closed(self, validator, project_dir):
+        """analysis_completed=true is not evidence without a hashed producer artifact."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(20):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True, exist_ok=True)
+            (ref_dir / "metadata.json").write_text(
+                json.dumps(
+                    {
+                        "pmid": f"0000{i}",
+                        "title": f"Reference {i}",
+                        "analysis_completed": True,
+                        "fulltext_ingested": False,
+                        "fulltext_unavailable_reason": "not_open_access",
+                    }
+                )
+            )
+        (project_dir / "references" / "fulltext-ingestion-status.md").write_text("recorded")
+
+        result = validator.validate_phase(21)
+
+        assert not result.passed
+        analysis = next(check for check in result.checks if check.name == "analysis_coverage")
+        assert "analysis.json is missing" in analysis.details
+
+    def test_fulltext_metadata_without_physical_artifact_fails_closed(self, validator, project_dir):
+        """Asset-Aware ids/section labels alone cannot prove fulltext ingestion."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        for i in range(20):
+            ref_dir = project_dir / "references" / f"ref-{i}"
+            ref_dir.mkdir(parents=True, exist_ok=True)
+            (ref_dir / "metadata.json").write_text(
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+            )
+            _write_reference_analysis_receipt(
+                ref_dir,
+                f"0000{i}",
+                fulltext_ingested=True,
+            )
+        (project_dir / "references" / "fulltext-ingestion-status.md").write_text("recorded")
+
+        result = validator.validate_phase(21)
+
+        assert not result.passed
+        fulltext = next(check for check in result.checks if check.name == "fulltext_evidence")
+        assert "without a verifiable source receipt" in fulltext.details
+
+    def test_asset_aware_source_revision_is_recomputed_from_manifest(self, validator, project_dir):
+        ref_dir = project_dir / "references" / "12345678"
+        ref_dir.mkdir(parents=True)
+        metadata_path = ref_dir / "metadata.json"
+        metadata_path.write_text(
+            json.dumps({"pmid": "12345678", "title": "Receipt-bound extraction"})
+        )
+        _write_asset_aware_reference_receipt(ref_dir, "12345678")
+        receipt_path = ref_dir / "artifacts" / "asset-aware" / "receipt.json"
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        receipt["source_revision_sha256"] = "f" * 64
+        receipt_path.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        metadata["fulltext_receipt_sha256"] = hashlib.sha256(receipt_path.read_bytes()).hexdigest()
+        metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+        valid, details, _, _ = validator._validate_fulltext_status(ref_dir, metadata)
+
+        assert not valid
+        assert "source revision does not match its manifest" in details
+
+    def test_asset_aware_one_byte_artifact_fails_closed(self, validator, project_dir):
+        ref_dir = project_dir / "references" / "12345678"
+        ref_dir.mkdir(parents=True)
+        metadata_path = ref_dir / "metadata.json"
+        metadata_path.write_text(json.dumps({"pmid": "12345678", "title": "Tiny fake extraction"}))
+        _write_asset_aware_reference_receipt(ref_dir, "12345678")
+        (ref_dir / "artifacts" / "asset-aware" / "sections.md").write_bytes(b"x")
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+
+        valid, details, _, _ = validator._validate_fulltext_status(ref_dir, metadata)
+
+        assert not valid
+        assert "too small" in details
+
+    def test_analysis_is_invalidated_when_metadata_source_revision_changes(
+        self, validator, project_dir
+    ):
+        ref_dir = project_dir / "references" / "12345678"
+        ref_dir.mkdir(parents=True)
+        metadata_path = ref_dir / "metadata.json"
+        metadata_path.write_text(
+            json.dumps({"pmid": "12345678", "title": "Metadata-only analysis"})
+        )
+        _write_reference_analysis_receipt(ref_dir, "12345678")
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        metadata["fulltext_unavailable_reason"] = "publisher_paywall"
+        metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+        source_valid, _, source_revision, source_kind = validator._validate_fulltext_status(
+            ref_dir, metadata
+        )
+
+        analysis_valid, details = validator._validate_reference_analysis(
+            ref_dir,
+            metadata,
+            source_revision_sha256=source_revision,
+            source_kind=source_kind,
+        )
+
+        assert source_valid
+        assert not analysis_valid
+        assert "stale for the current source revision" in details
+
+    def test_one_character_analysis_field_is_not_substantive(self, validator, project_dir):
+        ref_dir = project_dir / "references" / "12345678"
+        ref_dir.mkdir(parents=True)
+        metadata_path = ref_dir / "metadata.json"
+        metadata_path.write_text(json.dumps({"pmid": "12345678", "title": "Shallow analysis"}))
+        _write_reference_analysis_receipt(ref_dir, "12345678")
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        analysis_path = ref_dir / "analysis.json"
+        analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+        analysis["methodology"] = "x"
+        analysis_path.write_text(json.dumps(analysis, indent=2), encoding="utf-8")
+        metadata["analysis_artifact_sha256"] = hashlib.sha256(
+            analysis_path.read_bytes()
+        ).hexdigest()
+        metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+        source_valid, _, source_revision, source_kind = validator._validate_fulltext_status(
+            ref_dir, metadata
+        )
+
+        analysis_valid, details = validator._validate_reference_analysis(
+            ref_dir,
+            metadata,
+            source_revision_sha256=source_revision,
+            source_kind=source_kind,
+        )
+
+        assert source_valid
+        assert not analysis_valid
+        assert "methodology must contain at least 8" in details
 
 
 class TestHeartbeat:
@@ -1436,15 +2124,7 @@ class TestReviewPrerequisite:
     def test_phase_8_fails_with_insufficient_rounds(self, validator, project_dir):
         """Phase 8 should fail when fewer than min_rounds completed."""
         _add_prerequisites(project_dir, up_to_phase=7)
-        loop_state = project_dir / ".audit" / "audit-loop-review.json"
-        loop_state.write_text(
-            json.dumps(
-                {
-                    "config": {"min_rounds": 2, "max_rounds": 3},
-                    "rounds": [{"round": 1, "verdict": "needs_revision"}],
-                }
-            )
-        )
+        _complete_review_loop(project_dir, rounds=1)
         r = validator.validate_phase(8)
         review_check = next(c for c in r.checks if c.name == "prereq:review_completed")
         assert not review_check.passed
@@ -1529,7 +2209,7 @@ class TestReviewPrerequisite:
         r = validator.validate_phase(8)
         review_check = next(c for c in r.checks if c.name == "prereq:review_completed")
         assert not review_check.passed
-        assert "not properly terminated" in review_check.details
+        assert "state integrity" in review_check.details.lower()
 
 
 class TestCheckReviewCompleted:
@@ -1550,39 +2230,131 @@ class TestCheckReviewCompleted:
 
     def test_quality_met_verdict(self, validator, project_dir):
         """Should pass with quality_met verdict."""
-        (project_dir / ".audit" / "audit-loop-review.json").write_text(
-            json.dumps(
-                {
-                    "config": {"min_rounds": 2, "max_rounds": 3},
-                    "rounds": [
-                        {"round": 1, "verdict": "needs_revision"},
-                        {"round": 2, "verdict": "quality_met"},
-                    ],
-                }
-            )
-        )
-        _write_review_artifacts(project_dir, rounds=2)
+        _complete_review_loop(project_dir, rounds=2)
         passed, details = validator._check_review_completed()
         assert passed
         assert "quality_met" in details
 
-    def test_max_rounds_verdict(self, validator, project_dir):
-        """Should pass with max_rounds verdict (reviewed enough times)."""
-        (project_dir / ".audit" / "audit-loop-review.json").write_text(
-            json.dumps(
-                {
-                    "config": {"min_rounds": 2, "max_rounds": 3},
-                    "rounds": [
-                        {"round": 1, "verdict": "needs_revision"},
-                        {"round": 2, "verdict": "needs_revision"},
-                        {"round": 3, "verdict": "max_rounds"},
-                    ],
-                }
-            )
-        )
-        _write_review_artifacts(project_dir, rounds=3)
+    def test_quality_met_does_not_require_crypto_backend(self, validator, project_dir, monkeypatch):
+        _complete_review_loop(project_dir, rounds=2)
+
+        def missing_backend():
+            raise ModuleNotFoundError("cryptography intentionally unavailable")
+
+        monkeypatch.setattr(approval_signatures, "_load_ed25519_backend", missing_backend)
+
         passed, details = validator._check_review_completed()
         assert passed
+        assert "quality_met" in details
+
+    def test_max_rounds_verdict_requires_signed_state_bound_human_override(
+        self, validator, project_dir, monkeypatch
+    ):
+        """A round limit is an escalation, not autonomous evidence of quality."""
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        _complete_review_loop(project_dir, rounds=3, terminal="max_rounds")
+        passed, details = validator._check_review_completed()
+        assert not passed
+        assert "human approval receipt is missing" in details
+
+        state_path = project_dir / ".audit" / "audit-loop-review.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        private_key = _configure_approval_signer(monkeypatch)
+        receipt = _sign_approval_receipt(
+            {
+                "schema": REVIEW_APPROVAL_SCHEMA,
+                "approved_to_proceed": True,
+                "approved_at": state["rounds"][-1]["completed_at"],
+                "approved_by": "principal-investigator:pi-001",
+                "accepted_verdict": "max_rounds",
+                "final_weighted_score": state["rounds"][-1]["weighted_avg"],
+                "quality_threshold": state["config"]["quality_threshold"],
+                "audit_loop_sha256": hashlib.sha256(state_path.read_bytes()).hexdigest(),
+                "final_artifact_sha256": state["rounds"][-1]["artifact_hash_end"],
+                "rationale": "The deadline requires a clearly disclosed interim report.",
+                "accepted_risks": "The manuscript remains below the configured target.",
+                "mode": "human-collaboration",
+                "decision_source": "external-user-confirmation",
+                "confirmation_id": "review-confirmation-0001",
+                "project_slug": "test",
+            },
+            private_key,
+        )
+        unsigned_v2 = {key: value for key, value in receipt.items() if key != "signature"}
+        unsigned_v2["schema"] = "mdpaper.review_completion_override.v2"
+        (project_dir / ".audit" / "review-completion-override.yaml").write_text(
+            yaml.safe_dump(unsigned_v2, sort_keys=False),
+            encoding="utf-8",
+        )
+        passed, details = validator._check_review_completed()
+        assert not passed
+        assert "schema is unsupported" in details
+
+        (project_dir / ".audit" / "review-completion-override.yaml").write_text(
+            yaml.safe_dump(receipt, sort_keys=False),
+            encoding="utf-8",
+        )
+        passed, details = validator._check_review_completed()
+        assert passed
+        assert "max_rounds" in details
+
+        override_path = project_dir / ".audit" / "review-completion-override.yaml"
+        receipt = yaml.safe_load(override_path.read_text(encoding="utf-8"))
+        receipt["approved_by"] = "human"
+        _sign_approval_receipt(receipt, private_key)
+        override_path.write_text(yaml.safe_dump(receipt), encoding="utf-8")
+        passed, details = validator._check_review_completed()
+        assert not passed
+        assert "specific external reviewer identity" in details
+
+        state["rounds"][-1]["weighted_avg"] = 6.1
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        passed, details = validator._check_review_completed()
+        assert not passed
+        assert "stale" in details or "state integrity" in details
+
+    def test_signed_review_override_becomes_stale_after_manuscript_change(
+        self, validator, project_dir, monkeypatch
+    ):
+        (project_dir / "project.json").write_text('{"slug": "test"}')
+        _complete_review_loop(project_dir, rounds=3, terminal="max_rounds")
+        state_path = project_dir / ".audit" / "audit-loop-review.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        receipt = _sign_approval_receipt(
+            {
+                "schema": REVIEW_APPROVAL_SCHEMA,
+                "approved_to_proceed": True,
+                "approved_at": state["rounds"][-1]["completed_at"],
+                "approved_by": "principal-investigator:pi-001",
+                "accepted_verdict": "max_rounds",
+                "final_weighted_score": state["rounds"][-1]["weighted_avg"],
+                "quality_threshold": state["config"]["quality_threshold"],
+                "audit_loop_sha256": hashlib.sha256(state_path.read_bytes()).hexdigest(),
+                "final_artifact_sha256": state["rounds"][-1]["artifact_hash_end"],
+                "rationale": "The deadline requires a clearly disclosed interim report.",
+                "accepted_risks": "The manuscript remains below the configured target.",
+                "mode": "human-collaboration",
+                "decision_source": "external-user-confirmation",
+                "confirmation_id": "review-confirmation-stale-0001",
+                "project_slug": "test",
+            },
+            _configure_approval_signer(monkeypatch),
+        )
+        (project_dir / ".audit" / "review-completion-override.yaml").write_text(
+            yaml.safe_dump(receipt, sort_keys=False),
+            encoding="utf-8",
+        )
+        assert validator._check_review_completed()[0]
+
+        manuscript = project_dir / "drafts" / "manuscript.md"
+        manuscript.write_text(
+            manuscript.read_text(encoding="utf-8") + "\nPost-approval mutation.\n",
+            encoding="utf-8",
+        )
+
+        passed, details = validator._check_review_completed()
+        assert not passed
+        assert "final-artifact-current" in details
 
     def test_rewrite_needed_verdict_does_not_complete_review(self, validator, project_dir):
         """rewrite_needed must regress to Phase 5, not unlock Phase 8."""
@@ -1596,4 +2368,4 @@ class TestCheckReviewCompleted:
         )
         passed, details = validator._check_review_completed()
         assert not passed
-        assert "not properly terminated" in details
+        assert "state integrity" in details.lower()

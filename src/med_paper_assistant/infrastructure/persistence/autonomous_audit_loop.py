@@ -32,7 +32,8 @@ Stop conditions (Ralph Wiggum–proof):
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+import math
+from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -41,6 +42,16 @@ from typing import Any
 import structlog
 
 logger = structlog.get_logger()
+
+
+# Phase 7 is a release-quality gate, so callers may make it stricter but may
+# not lower these repository policy floors.  Keeping the policy beside the
+# state machine also lets the persisted-state verifier reject hand-edited
+# configurations instead of merely recomputing a verdict against an
+# attacker-controlled threshold.
+REVIEW_MIN_ROUNDS_FLOOR = 2
+REVIEW_QUALITY_THRESHOLD_FLOOR = 7.0
+REVIEW_MAX_ROUNDS_LIMIT = 10
 
 
 # ── Enums ──────────────────────────────────────────────────────────────
@@ -131,6 +142,46 @@ class AuditLoopConfig:
     )
 
 
+def validate_review_config_policy(config: AuditLoopConfig) -> list[str]:
+    """Return policy errors for a Phase 7 review configuration.
+
+    Other audit-loop contexts intentionally retain their existing flexibility;
+    only the ``review`` context is a Phase 7 hard gate.
+    """
+
+    if config.context != "review":
+        return []
+
+    errors: list[str] = []
+    if (
+        isinstance(config.min_rounds, bool)
+        or not isinstance(config.min_rounds, int)
+        or config.min_rounds < REVIEW_MIN_ROUNDS_FLOOR
+    ):
+        errors.append(f"review min_rounds must be at least {REVIEW_MIN_ROUNDS_FLOOR}")
+    if (
+        isinstance(config.max_rounds, bool)
+        or not isinstance(config.max_rounds, int)
+        or not isinstance(config.min_rounds, int)
+        or config.max_rounds < config.min_rounds
+        or config.max_rounds > REVIEW_MAX_ROUNDS_LIMIT
+    ):
+        errors.append(
+            f"review max_rounds must be >= min_rounds and not exceed {REVIEW_MAX_ROUNDS_LIMIT}"
+        )
+    if (
+        isinstance(config.quality_threshold, bool)
+        or not isinstance(config.quality_threshold, (int, float))
+        or not math.isfinite(float(config.quality_threshold))
+        or float(config.quality_threshold) < REVIEW_QUALITY_THRESHOLD_FLOOR
+        or float(config.quality_threshold) > 10.0
+    ):
+        errors.append(
+            f"review quality_threshold must be at least {REVIEW_QUALITY_THRESHOLD_FLOOR:.1f}"
+        )
+    return errors
+
+
 # ── Main Engine ────────────────────────────────────────────────────────
 
 
@@ -200,7 +251,7 @@ class AutonomousAuditLoop:
         self._current_issues = []
         self._current_fixes = []
         self._in_round = True
-        self._round_start_time = datetime.now().isoformat()
+        self._round_start_time = datetime.now().astimezone().isoformat()
         self._artifact_hash_start = artifact_hash
 
         # Carry forward persistent critical issues from previous round
@@ -286,7 +337,7 @@ class AutonomousAuditLoop:
             scores=scores,
             weighted_avg=round(weighted_avg, 2),
             started_at=self._round_start_time,
-            completed_at=datetime.now().isoformat(),
+            completed_at=datetime.now().astimezone().isoformat(),
             artifact_hash_start=getattr(self, "_artifact_hash_start", ""),
             artifact_hash_end=artifact_hash,
         )
@@ -329,7 +380,7 @@ class AutonomousAuditLoop:
                 weighted_avg=0.0,
                 verdict=RoundVerdict.REWRITE_NEEDED.value,
                 started_at=self._round_start_time,
-                completed_at=datetime.now().isoformat(),
+                completed_at=datetime.now().astimezone().isoformat(),
             )
             self._rounds.append(record)
             self._in_round = False
@@ -384,6 +435,313 @@ class AutonomousAuditLoop:
             }
             for r in self._rounds
         ]
+
+    @classmethod
+    def validate_serialized_state(cls, data: Any) -> list[str]:
+        """Recompute persisted scores and verdicts instead of trusting JSON labels.
+
+        The audit-loop file is intentionally human-readable, so a phase gate must
+        treat it as untrusted input.  This verifier reconstructs the state machine
+        round by round and returns every integrity error it finds.  It performs no
+        writes and is safe to call from prerequisite and release gates.
+        """
+        errors: list[str] = []
+        if not isinstance(data, dict):
+            return ["audit loop state must be a JSON object"]
+        if data.get("version") != 1:
+            errors.append("audit loop version must be 1")
+
+        raw_config = data.get("config")
+        if not isinstance(raw_config, dict):
+            return [*errors, "audit loop config must be a JSON object"]
+
+        config_fields = {item.name for item in fields(AuditLoopConfig)}
+        missing_config = sorted(config_fields - raw_config.keys())
+        unknown_config = sorted(raw_config.keys() - config_fields)
+        if missing_config:
+            errors.append(f"audit loop config missing fields: {', '.join(missing_config)}")
+        if unknown_config:
+            errors.append(f"audit loop config has unknown fields: {', '.join(unknown_config)}")
+
+        try:
+            config = AuditLoopConfig(
+                **{name: raw_config[name] for name in config_fields if name in raw_config}
+            )
+        except (TypeError, ValueError) as exc:
+            return [*errors, f"audit loop config is invalid: {exc}"]
+
+        min_rounds_valid = not (
+            isinstance(config.min_rounds, bool)
+            or not isinstance(config.min_rounds, int)
+            or config.min_rounds < 1
+        )
+        if not min_rounds_valid:
+            errors.append("config.min_rounds must be a positive integer")
+        max_rounds_valid = not (
+            isinstance(config.max_rounds, bool)
+            or not isinstance(config.max_rounds, int)
+            or not min_rounds_valid
+            or config.max_rounds < config.min_rounds
+        )
+        if not max_rounds_valid:
+            errors.append("config.max_rounds must be an integer >= min_rounds")
+        if (
+            isinstance(config.quality_threshold, bool)
+            or not isinstance(config.quality_threshold, (int, float))
+            or not math.isfinite(float(config.quality_threshold))
+            or not 0 <= float(config.quality_threshold) <= 10
+        ):
+            errors.append("config.quality_threshold must be between 0 and 10")
+        if (
+            isinstance(config.stagnation_rounds, bool)
+            or not isinstance(config.stagnation_rounds, int)
+            or config.stagnation_rounds < 1
+        ):
+            errors.append("config.stagnation_rounds must be a positive integer")
+        if (
+            isinstance(config.stagnation_delta, bool)
+            or not isinstance(config.stagnation_delta, (int, float))
+            or not math.isfinite(float(config.stagnation_delta))
+            or not 0 <= float(config.stagnation_delta) <= 10
+        ):
+            errors.append("config.stagnation_delta must be between 0 and 10")
+        valid_severities = {severity.value for severity in Severity}
+        if (
+            not isinstance(config.auto_fix_severities, list)
+            or not config.auto_fix_severities
+            or any(
+                not isinstance(severity, str) or severity not in valid_severities
+                for severity in config.auto_fix_severities
+            )
+        ):
+            errors.append("config.auto_fix_severities must contain known severity strings")
+        if not isinstance(config.context, str) or not config.context.strip():
+            errors.append("config.context must be a non-empty string")
+
+        weights = config.dimension_weights
+        valid_weights = isinstance(weights, dict) and bool(weights)
+        if valid_weights:
+            for name, weight in weights.items():
+                if (
+                    not isinstance(name, str)
+                    or not name
+                    or isinstance(weight, bool)
+                    or not isinstance(weight, (int, float))
+                    or not math.isfinite(float(weight))
+                    or float(weight) <= 0
+                ):
+                    valid_weights = False
+                    break
+        if not valid_weights:
+            errors.append("config.dimension_weights must contain positive numeric weights")
+            weights = {}
+        elif abs(sum(float(weight) for weight in weights.values()) - 1.0) > 1e-6:
+            errors.append("config.dimension_weights must sum to 1.0")
+
+        errors.extend(validate_review_config_policy(config))
+
+        if errors:
+            return errors
+
+        raw_rounds = data.get("rounds")
+        if not isinstance(raw_rounds, list):
+            return [*errors, "audit loop rounds must be a JSON array"]
+        if isinstance(config.max_rounds, int) and len(raw_rounds) > config.max_rounds:
+            errors.append(
+                f"audit loop contains {len(raw_rounds)} rounds, above max_rounds={config.max_rounds}"
+            )
+
+        verifier = cls(Path("."), config=config)
+        terminal_seen = False
+        for index, raw_round in enumerate(raw_rounds, start=1):
+            prefix = f"round {index}"
+            if not isinstance(raw_round, dict):
+                errors.append(f"{prefix} must be a JSON object")
+                continue
+            if raw_round.get("round_number") != index:
+                errors.append(f"{prefix} round_number must be {index}")
+            if terminal_seen:
+                errors.append(f"{prefix} appears after a terminal verdict")
+
+            raw_scores = raw_round.get("scores")
+            scores: dict[str, float] = {}
+            scores_valid = False
+            if not isinstance(raw_scores, dict) or set(raw_scores) != set(weights):
+                errors.append(f"{prefix} scores must exactly match configured dimensions")
+            else:
+                scores_valid = True
+                for dimension, score in raw_scores.items():
+                    if (
+                        isinstance(score, bool)
+                        or not isinstance(score, (int, float))
+                        or not math.isfinite(float(score))
+                        or not 0 <= float(score) <= 10
+                    ):
+                        errors.append(f"{prefix} score {dimension!r} must be between 0 and 10")
+                        scores_valid = False
+                if scores_valid:
+                    scores = {
+                        str(dimension): float(score) for dimension, score in raw_scores.items()
+                    }
+
+            computed_weighted = verifier._compute_weighted_avg(scores) if scores_valid else 0.0
+            stored_weighted = raw_round.get("weighted_avg")
+            if (
+                isinstance(stored_weighted, bool)
+                or not isinstance(stored_weighted, (int, float))
+                or not math.isfinite(float(stored_weighted))
+                or abs(float(stored_weighted) - round(computed_weighted, 2)) > 1e-6
+            ):
+                errors.append(
+                    f"{prefix} weighted_avg does not match the configured score calculation"
+                )
+
+            raw_issues = raw_round.get("issues")
+            if not isinstance(raw_issues, list):
+                errors.append(f"{prefix} issues must be a JSON array")
+                raw_issues = []
+            current_issues: list[AuditIssue] = []
+            for issue_index, raw_issue in enumerate(raw_issues):
+                if not isinstance(raw_issue, dict):
+                    errors.append(f"{prefix} issue {issue_index} must be a JSON object")
+                    continue
+                issue_fields = {item.name for item in fields(AuditIssue)}
+                if set(raw_issue) != issue_fields:
+                    errors.append(f"{prefix} issue {issue_index} has an invalid schema")
+                    continue
+                hook_id = raw_issue.get("hook_id")
+                severity = raw_issue.get("severity")
+                description = raw_issue.get("description")
+                suggested_fix = raw_issue.get("suggested_fix")
+                section = raw_issue.get("section")
+                fixed = raw_issue.get("fixed")
+                persistent_rounds = raw_issue.get("persistent_rounds")
+                if (
+                    not isinstance(hook_id, str)
+                    or not hook_id.strip()
+                    or severity not in valid_severities
+                    or not isinstance(description, str)
+                    or not description.strip()
+                    or not isinstance(suggested_fix, str)
+                    or not suggested_fix.strip()
+                    or (section is not None and not isinstance(section, str))
+                    or not isinstance(fixed, bool)
+                    or isinstance(persistent_rounds, bool)
+                    or not isinstance(persistent_rounds, int)
+                    or persistent_rounds < 0
+                ):
+                    errors.append(f"{prefix} issue {issue_index} has invalid field values")
+                    continue
+                current_issues.append(
+                    AuditIssue(
+                        hook_id=hook_id,
+                        severity=severity,
+                        description=description,
+                        suggested_fix=suggested_fix,
+                        section=section,
+                        fixed=fixed,
+                        persistent_rounds=persistent_rounds,
+                    )
+                )
+
+            raw_fixes = raw_round.get("fixes")
+            if not isinstance(raw_fixes, list) or any(
+                not isinstance(item, dict) for item in raw_fixes
+            ):
+                errors.append(f"{prefix} fixes must be a JSON array of objects")
+                raw_fixes = []
+            else:
+                fix_fields = {item.name for item in fields(AuditFix)}
+                successful_fix_indexes: set[int] = set()
+                for fix_index, raw_fix in enumerate(raw_fixes):
+                    if set(raw_fix) != fix_fields:
+                        errors.append(f"{prefix} fix {fix_index} has an invalid schema")
+                        continue
+                    issue_index = raw_fix.get("issue_index")
+                    strategy = raw_fix.get("strategy")
+                    success = raw_fix.get("success")
+                    details = raw_fix.get("details")
+                    if (
+                        isinstance(issue_index, bool)
+                        or not isinstance(issue_index, int)
+                        or not 0 <= issue_index < len(current_issues)
+                        or not isinstance(strategy, str)
+                        or not strategy.strip()
+                        or not isinstance(success, bool)
+                        or not isinstance(details, str)
+                    ):
+                        errors.append(f"{prefix} fix {fix_index} has invalid field values")
+                        continue
+                    if success:
+                        successful_fix_indexes.add(issue_index)
+                fixed_issue_indexes = {
+                    issue_index for issue_index, issue in enumerate(current_issues) if issue.fixed
+                }
+                if successful_fix_indexes != fixed_issue_indexes:
+                    errors.append(f"{prefix} issue fixed flags do not match successful fix records")
+
+            started_at = raw_round.get("started_at")
+            completed_at = raw_round.get("completed_at")
+            try:
+                if not isinstance(started_at, str) or not isinstance(completed_at, str):
+                    raise TypeError("timestamps must be strings")
+                started_time = datetime.fromisoformat(started_at)
+                completed_time = datetime.fromisoformat(completed_at)
+                if started_time.utcoffset() is None or completed_time.utcoffset() is None:
+                    raise ValueError("timestamps must include a UTC offset")
+                if completed_time < started_time:
+                    raise ValueError("completion precedes start")
+            except (TypeError, ValueError):
+                errors.append(f"{prefix} timestamps are missing, invalid, or out of order")
+
+            verifier._current_round = index
+            verifier._current_issues = current_issues
+            expected_verdict = verifier._determine_verdict(computed_weighted)
+            stored_verdict = raw_round.get("verdict")
+            if stored_verdict != expected_verdict.value:
+                errors.append(
+                    f"{prefix} verdict={stored_verdict!r} does not match recomputed "
+                    f"verdict={expected_verdict.value!r}"
+                )
+            terminal_seen = expected_verdict is not RoundVerdict.CONTINUE
+
+            verifier._rounds.append(
+                RoundRecord(
+                    round_number=index,
+                    issues=raw_issues,
+                    fixes=raw_fixes,
+                    scores=scores,
+                    weighted_avg=round(computed_weighted, 2),
+                    verdict=expected_verdict.value,
+                    started_at=str(raw_round.get("started_at", "")),
+                    completed_at=str(raw_round.get("completed_at", "")),
+                    artifact_hash_start=str(raw_round.get("artifact_hash_start", "")),
+                    artifact_hash_end=str(raw_round.get("artifact_hash_end", "")),
+                )
+            )
+
+        in_round = data.get("in_round")
+        completed = data.get("completed")
+        if not isinstance(in_round, bool):
+            errors.append("audit loop in_round must be boolean")
+            in_round = False
+        if not isinstance(completed, bool):
+            errors.append("audit loop completed must be boolean")
+            completed = False
+        expected_current_round = len(raw_rounds) + (1 if in_round else 0)
+        current_round = data.get("current_round")
+        if (
+            isinstance(current_round, bool)
+            or not isinstance(current_round, int)
+            or current_round != expected_current_round
+        ):
+            errors.append(f"current_round must be {expected_current_round}")
+        if completed != terminal_seen:
+            errors.append("completed flag does not match the recomputed final verdict")
+        if completed and in_round:
+            errors.append("a completed audit loop cannot have an active round")
+
+        return errors
 
     @property
     def is_completed(self) -> bool:
@@ -525,7 +883,7 @@ class AutonomousAuditLoop:
             "rounds": [asdict(r) for r in self._rounds],
             "rewrite_sections": self._rewrite_sections,
             "rewrite_reason": self._rewrite_reason,
-            "saved_at": datetime.now().isoformat(),
+            "saved_at": datetime.now().astimezone().isoformat(),
         }
         self._data_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 

@@ -20,13 +20,31 @@ from __future__ import annotations
 
 import hashlib
 import json
+import mimetypes
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal, Protocol, cast
 
 import structlog
 import yaml
+
+from med_paper_assistant.domain.value_objects.content_integrity import (
+    REMOVAL_PACKAGE_INSPECTION_MODE,
+    REMOVAL_PACKAGE_PROVIDER,
+    REMOVAL_PACKAGE_REQUIRED_CHECKS,
+    REMOVAL_PACKAGE_VERSION,
+    ContentIntegrityReceipt,
+    ProvenanceAssessment,
+    ProvenanceStatus,
+    RemovalPackageAssessment,
+    RemovalPackageStatus,
+    VisibleWatermarkAssessment,
+    VisibleWatermarkStatus,
+    decide_integrity_gate,
+    detect_raster_mime_signature,
+)
+from med_paper_assistant.infrastructure.external import reinspect_content_integrity
 
 logger = structlog.get_logger()
 
@@ -43,6 +61,17 @@ _UNTRUSTED_ANCHOR_SOURCE_HINTS = {
     "llm",
     "summary",
 }
+
+
+class ContentIntegrityReinspector(Protocol):
+    """Injected port for validating the current bytes of a reviewed asset."""
+
+    def __call__(
+        self,
+        path: str | Path,
+        *,
+        asset_path: str | None = None,
+    ) -> ContentIntegrityReceipt: ...
 
 
 class DataArtifactTracker:
@@ -66,12 +95,19 @@ class DataArtifactTracker:
     DATA_FILE = "data-artifacts.yaml"
     REPORT_FILE = "data-artifacts.md"
 
-    def __init__(self, audit_dir: str | Path, project_dir: str | Path) -> None:
+    def __init__(
+        self,
+        audit_dir: str | Path,
+        project_dir: str | Path,
+        *,
+        content_integrity_reinspector: ContentIntegrityReinspector = reinspect_content_integrity,
+    ) -> None:
         self._audit_dir = Path(audit_dir)
         self._project_dir = Path(project_dir)
         self._data_path = self._audit_dir / self.DATA_FILE
         self._report_path = self._audit_dir / self.REPORT_FILE
         self._data: dict[str, Any] | None = None
+        self._content_integrity_reinspector = content_integrity_reinspector
 
     def _normalize_path(self, path: str | None) -> str | None:
         """Normalize project-relative paths for stable audit matching."""
@@ -645,6 +681,23 @@ class DataArtifactTracker:
                 digest.update(chunk)
         return digest.hexdigest()
 
+    def _inspect_current_content_integrity(
+        self,
+        candidate: Path,
+        asset_path: str,
+    ) -> dict[str, Any]:
+        """Re-run the read-only adapters instead of trusting a mutable YAML receipt.
+
+        The audit file is intentionally human-readable and can be edited by the
+        same local actor that invokes a tool.  Reinspection makes the insertion
+        gate depend on the current bytes and adapter results, while the persisted
+        receipt remains useful as an audit/history record.
+        """
+        return self._content_integrity_reinspector(
+            candidate,
+            asset_path=asset_path,
+        ).to_dict()
+
     def _integrity_receipt_satisfies_review(
         self,
         review: dict[str, Any],
@@ -662,6 +715,8 @@ class DataArtifactTracker:
         )
         if receipt is None:
             return False, f"content-integrity receipt {receipt_id} not found"
+        if receipt.get("schema_version") != "1.2":
+            return False, "content-integrity receipt schema is stale; review the asset again"
 
         gate_status = receipt.get("gate_status")
         if gate_status == "BLOCK":
@@ -675,18 +730,160 @@ class DataArtifactTracker:
         mime_type = file_info.get("mime_type")
         if not isinstance(mime_type, str) or not mime_type:
             return False, "content-integrity receipt has no MIME identity"
+        declared_mime_type = file_info.get("declared_mime_type")
+        content_mime_type = file_info.get("content_mime_type")
+        mime_type_mismatch = file_info.get("mime_type_mismatch")
+        if not isinstance(declared_mime_type, str) or not declared_mime_type:
+            return False, "content-integrity receipt has no declared MIME identity"
+        if content_mime_type is not None and not isinstance(content_mime_type, str):
+            return False, "content-integrity receipt has an invalid content MIME identity"
+        if not isinstance(mime_type_mismatch, bool):
+            return False, "content-integrity receipt has no MIME mismatch decision"
+        if mime_type != (content_mime_type or declared_mime_type):
+            return False, "content-integrity receipt has inconsistent MIME identities"
+        if mime_type_mismatch != (
+            content_mime_type is not None and content_mime_type != declared_mime_type
+        ):
+            return False, "content-integrity receipt has an inconsistent MIME mismatch flag"
+
+        provenance = receipt.get("provenance")
+        if not isinstance(provenance, dict):
+            return False, "content-integrity receipt has no provenance assessment"
+        provenance_status_value = provenance.get("status")
+        if not isinstance(provenance_status_value, str):
+            return False, "content-integrity receipt has an unknown provenance status"
+        try:
+            provenance_status = ProvenanceStatus(provenance_status_value)
+        except ValueError:
+            return False, "content-integrity receipt has an unknown provenance status"
+        failure_codes = provenance.get("failure_codes")
+        if not isinstance(failure_codes, list) or any(
+            not isinstance(item, str) for item in failure_codes
+        ):
+            return False, "content-integrity receipt has invalid provenance failure codes"
+        provenance_assessment = ProvenanceAssessment(
+            status=provenance_status,
+            provider=str(provenance.get("provider") or ""),
+            summary=str(provenance.get("summary") or ""),
+            validation_state=(
+                provenance.get("validation_state")
+                if isinstance(provenance.get("validation_state"), str)
+                else None
+            ),
+            failure_codes=tuple(failure_codes),
+            manifest_embedded=(
+                provenance.get("manifest_embedded")
+                if isinstance(provenance.get("manifest_embedded"), bool)
+                else None
+            ),
+        )
 
         visible_watermark = receipt.get("visible_watermark")
         if not isinstance(visible_watermark, dict):
             return False, "content-integrity receipt has no visible-watermark assessment"
-        visible_status = visible_watermark.get("status")
-        if visible_status not in {"HUMAN_REVIEW", "UNCERTAIN"}:
+        visible_status_value = visible_watermark.get("status")
+        if not isinstance(visible_status_value, str):
             return False, "content-integrity receipt has an unknown visible-watermark status"
+        try:
+            visible_status = VisibleWatermarkStatus(visible_status_value)
+        except ValueError:
+            return False, "content-integrity receipt has an unknown visible-watermark status"
+        visible_signals = visible_watermark.get("signals")
+        visible_applicable = visible_watermark.get("applicable")
+        if not isinstance(visible_signals, list) or any(
+            not isinstance(item, str) for item in visible_signals
+        ):
+            return False, "content-integrity receipt has invalid visible-watermark signals"
+        if not isinstance(visible_applicable, bool):
+            return False, "content-integrity receipt has no visible-watermark applicability"
+        visible_assessment = VisibleWatermarkAssessment(
+            status=visible_status,
+            summary=str(visible_watermark.get("summary") or ""),
+            signals=tuple(visible_signals),
+            applicable=visible_applicable,
+        )
 
-        raster_mime_type = mime_type.lower() in {"image/jpeg", "image/png"}
-        review_required = visible_status == "HUMAN_REVIEW" or (
-            visible_status == "UNCERTAIN"
-            and (raster_mime_type or visible_watermark.get("applicable") is not False)
+        removal_check = receipt.get("removal_package_check")
+        if not isinstance(removal_check, dict):
+            return False, "content-integrity receipt has no removal-package assessment"
+        removal_status_value = removal_check.get("status")
+        if not isinstance(removal_status_value, str):
+            return False, "content-integrity receipt has an unknown removal-package status"
+        try:
+            removal_status = RemovalPackageStatus(removal_status_value)
+        except ValueError:
+            return False, "content-integrity receipt has an unknown removal-package status"
+        if removal_check.get("provider") != REMOVAL_PACKAGE_PROVIDER:
+            return False, "content-integrity receipt has an unexpected removal-package provider"
+        if removal_check.get("inspection_mode") != REMOVAL_PACKAGE_INSPECTION_MODE:
+            return False, "removal-package assessment did not use the pixel-only inspection mode"
+        if removal_check.get("automated_removal_performed") is not False:
+            return False, "removal-package assessment does not affirm removal was disabled"
+        if removal_check.get("derivative_written") is not False:
+            return False, "removal-package assessment does not affirm no derivative was written"
+        removal_requested = removal_check.get("checks_requested")
+        removal_completed = removal_check.get("checks_completed")
+        if removal_requested != list(REMOVAL_PACKAGE_REQUIRED_CHECKS):
+            return False, "removal-package assessment did not request every required pixel check"
+        if removal_status in {RemovalPackageStatus.DETECTED, RemovalPackageStatus.NOT_DETECTED}:
+            if removal_completed != list(REMOVAL_PACKAGE_REQUIRED_CHECKS):
+                return (
+                    False,
+                    "removal-package assessment did not complete every required pixel check",
+                )
+        elif removal_completed not in ([], None):
+            return False, "incomplete removal-package assessment claims completed pixel checks"
+        removal_clashes = removal_check.get("integrity_clashes")
+        removal_applicable = removal_check.get("applicable")
+        if not isinstance(removal_clashes, list) or any(
+            not isinstance(item, str) for item in removal_clashes
+        ):
+            return False, "content-integrity receipt has invalid removal-package clashes"
+        if not isinstance(removal_applicable, bool):
+            return False, "content-integrity receipt has no removal-package applicability"
+        removal_assessment = RemovalPackageAssessment(
+            status=removal_status,
+            provider=REMOVAL_PACKAGE_PROVIDER,
+            provider_version=(
+                removal_check.get("provider_version")
+                if isinstance(removal_check.get("provider_version"), str)
+                else None
+            ),
+            summary=str(removal_check.get("summary") or ""),
+            integrity_clashes=tuple(removal_clashes),
+            checks_requested=tuple(removal_requested),
+            checks_completed=tuple(removal_completed or ()),
+            applicable=removal_applicable,
+        )
+
+        raster_mime_type = mime_type.lower() in {"image/jpeg", "image/png", "image/webp"}
+        if raster_mime_type and removal_status in {
+            RemovalPackageStatus.DETECTED,
+            RemovalPackageStatus.NOT_DETECTED,
+        }:
+            if removal_check.get("provider_version") != REMOVAL_PACKAGE_VERSION:
+                return False, "content-integrity receipt has an unpinned removal-package version"
+        if raster_mime_type and removal_status in {
+            RemovalPackageStatus.UNSUPPORTED,
+            RemovalPackageStatus.ERROR,
+        }:
+            return False, "required removal-package inspection did not complete"
+        recomputed_gate, _recomputed_reasons = decide_integrity_gate(
+            provenance_assessment,
+            visible_assessment,
+            removal_assessment,
+            original_preserved=receipt.get("original_preserved") is True,
+            mime_type=mime_type,
+            mime_type_mismatch=mime_type_mismatch,
+        )
+        if recomputed_gate.value == "BLOCK":
+            return False, "content-integrity receipt recomputes to a blocked gate"
+        if recomputed_gate.value == "HUMAN_REVIEW" and gate_status != "HUMAN_REVIEW":
+            return False, "content-integrity receipt gate is weaker than the recomputed decision"
+
+        review_required = visible_status is VisibleWatermarkStatus.HUMAN_REVIEW or (
+            visible_status is VisibleWatermarkStatus.UNCERTAIN
+            and (raster_mime_type or visible_applicable)
         )
         if review_required and gate_status != "HUMAN_REVIEW":
             return (
@@ -694,6 +891,8 @@ class DataArtifactTracker:
                 "content-integrity receipt inconsistently passes an uncertain "
                 "visible-watermark assessment",
             )
+        if removal_status is RemovalPackageStatus.DETECTED and gate_status != "HUMAN_REVIEW":
+            return False, "removal-package detection did not trigger human review"
         if (review_required or gate_status == "HUMAN_REVIEW") and not str(
             review.get("visible_watermark_review") or ""
         ).strip():
@@ -719,6 +918,76 @@ class DataArtifactTracker:
             return False, "reviewed asset no longer exists"
         if self._sha256(candidate) != expected_hash:
             return False, "asset SHA-256 changed after content-integrity review"
+        with candidate.open("rb") as stream:
+            actual_content_mime = detect_raster_mime_signature(stream.read(16))
+        actual_declared_mime = (
+            {".webp": "image/webp"}.get(candidate.suffix.lower())
+            or mimetypes.guess_type(candidate.name)[0]
+            or "application/octet-stream"
+        )
+        if actual_content_mime != content_mime_type:
+            return False, "asset content MIME signature changed after integrity review"
+        if actual_declared_mime != declared_mime_type:
+            return False, "asset filename MIME changed after integrity review"
+
+        try:
+            live_receipt = self._inspect_current_content_integrity(candidate, asset_path)
+        except Exception as exc:
+            return False, f"live content-integrity reinspection failed: {type(exc).__name__}"
+        live_file = live_receipt.get("file")
+        live_provenance = live_receipt.get("provenance")
+        live_visible = live_receipt.get("visible_watermark")
+        live_removal = live_receipt.get("removal_package_check")
+        if not all(
+            isinstance(item, dict)
+            for item in (live_file, live_provenance, live_visible, live_removal)
+        ):
+            return False, "live content-integrity reinspection returned an invalid receipt"
+        live_file = cast(dict[str, Any], live_file)
+        live_provenance = cast(dict[str, Any], live_provenance)
+        live_visible = cast(dict[str, Any], live_visible)
+        live_removal = cast(dict[str, Any], live_removal)
+        if live_file.get("sha256") != expected_hash:
+            return False, "live content-integrity reinspection used different asset bytes"
+        if live_receipt.get("original_preserved") is not True:
+            return False, "live content-integrity reinspection did not preserve the original"
+        if live_receipt.get("gate_status") == "BLOCK":
+            return False, "live content-integrity reinspection blocks this asset"
+
+        comparisons = (
+            ("provenance status", provenance.get("status"), live_provenance.get("status")),
+            (
+                "visible-watermark status",
+                visible_watermark.get("status"),
+                live_visible.get("status"),
+            ),
+            (
+                "visible-watermark applicability",
+                visible_watermark.get("applicable"),
+                live_visible.get("applicable"),
+            ),
+            ("removal-package status", removal_check.get("status"), live_removal.get("status")),
+            (
+                "removal-package applicability",
+                removal_check.get("applicable"),
+                live_removal.get("applicable"),
+            ),
+            (
+                "removal-package completed checks",
+                removal_check.get("checks_completed"),
+                live_removal.get("checks_completed"),
+            ),
+            ("gate status", gate_status, live_receipt.get("gate_status")),
+        )
+        for label, stored_value, live_value in comparisons:
+            if stored_value != live_value:
+                return False, f"content-integrity receipt {label} differs from live reinspection"
+
+        if (
+            live_receipt.get("gate_status") == "HUMAN_REVIEW"
+            and not str(review.get("visible_watermark_review") or "").strip()
+        ):
+            return False, "live content-integrity reinspection requires documented human review"
 
         return True, receipt_id
 
@@ -1099,12 +1368,17 @@ class DataArtifactTracker:
                 file_info = receipt.get("file", {})
                 provenance = receipt.get("provenance", {})
                 visible = receipt.get("visible_watermark", {})
+                removal = receipt.get("removal_package_check", {})
                 lines.append(f"### {receipt.get('id')} — {receipt.get('asset_path')}")
                 lines.append(f"- **Inspected**: {receipt.get('inspected_at')}")
                 lines.append(f"- **SHA-256**: `{file_info.get('sha256', '')}`")
                 lines.append(f"- **MIME**: {file_info.get('mime_type', '')}")
                 lines.append(f"- **C2PA**: {provenance.get('status', '')}")
                 lines.append(f"- **Visible Watermark**: {visible.get('status', '')}")
+                lines.append(
+                    "- **Removal-Package Check**: "
+                    f"{removal.get('status', '')} ({removal.get('provider_version') or 'n/a'})"
+                )
                 lines.append(f"- **Gate**: {receipt.get('gate_status', '')}")
                 lines.append(
                     "- **Original Preserved**: "

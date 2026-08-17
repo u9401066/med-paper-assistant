@@ -24,18 +24,32 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
+import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import structlog
 import yaml
 
+from med_paper_assistant.domain.entities.reference import has_verified_pubmed_provenance
+from med_paper_assistant.infrastructure.external.approval_signatures import (
+    CONCEPT_APPROVAL_SCHEMA,
+    REVIEW_APPROVAL_SCHEMA,
+    verify_external_approval_signature,
+)
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
+from med_paper_assistant.shared.export_integrity import (
+    inspect_docx_xml_smoke,
+    inspect_pdf_smoke,
+)
 
 logger = structlog.get_logger()
 
@@ -59,6 +73,263 @@ _PIPELINE_PHASE_NAMES = {
 }
 _PIPELINE_PHASE_RANK = {phase: index for index, phase in enumerate(_PIPELINE_PHASES)}
 _META_LEARNING_STEPS = tuple(f"D{i}" for i in range(1, 10))
+_SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
+_MIN_REFERENCE_ARTIFACT_BYTES = 16
+REFERENCE_ANALYSIS_TEXT_MINIMUMS = {
+    "summary": 20,
+    "methodology": 8,
+    "key_findings": 8,
+    "limitations": 8,
+}
+
+
+def _canonical_json_sha256(payload: Any) -> str:
+    """Return the SHA-256 of strict, deterministic JSON."""
+    canonical = json.dumps(
+        payload,
+        allow_nan=False,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _reference_identity(metadata: dict[str, Any]) -> str:
+    """Return a source-qualified bibliographic identity, or an empty string."""
+    pmid = str(metadata.get("pmid") or "").strip()
+    if pmid.isdigit():
+        return f"pmid:{pmid}"
+
+    doi = str(metadata.get("doi") or metadata.get("DOI") or "").strip().lower()
+    doi = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", doi)
+    doi = re.sub(r"^doi:\s*", "", doi)
+    if doi.startswith("10.") and "/" in doi:
+        return f"doi:{doi}"
+
+    zotero_key = str(metadata.get("zotero_key") or "").strip()
+    if zotero_key:
+        return f"zotero:{zotero_key}"
+
+    unique_id = str(metadata.get("unique_id") or "").strip()
+    content_hash = str(metadata.get("content_hash") or "").strip().lower()
+    imported_from = str(metadata.get("imported_from") or "").strip()
+    if unique_id and imported_from and _SHA256_PATTERN.fullmatch(content_hash):
+        return f"local:{content_hash}"
+    return ""
+
+
+def _validate_pubmed_transport_payload(metadata: dict[str, Any]) -> tuple[bool, str]:
+    """Bind VERIFIED metadata to the exact PubMed transport payload bytes."""
+    if not has_verified_pubmed_provenance(metadata):
+        return False, "verified trust claim lacks PubMed provenance"
+
+    transport_payload = metadata.get("pubmed_transport_payload")
+    if not isinstance(transport_payload, dict):
+        return False, "verified reference is missing its PubMed transport payload"
+    try:
+        actual_hash = _canonical_json_sha256(transport_payload)
+    except (TypeError, ValueError):
+        return False, "PubMed transport payload is not canonical JSON"
+
+    recorded_hash = str(metadata.get("payload_hash") or "").strip().lower()
+    if actual_hash != recorded_hash:
+        return False, "PubMed transport payload hash does not match provenance"
+    pmid = str(metadata.get("pmid") or "").strip()
+    if str(transport_payload.get("pmid") or "").strip() != pmid:
+        return False, "PubMed transport payload PMID does not match metadata"
+    if (
+        str(transport_payload.get("title") or "").strip()
+        != str(metadata.get("title") or "").strip()
+    ):
+        return False, "PubMed transport payload title does not match metadata"
+    source_url = str(metadata.get("source_url") or "")
+    configured_endpoint = os.environ.get("PUBMED_MCP_API_URL", "http://127.0.0.1:8765").rstrip("/")
+    try:
+        configured_url = urlsplit(configured_endpoint)
+        recorded_url = urlsplit(source_url)
+        configured_authority = (
+            configured_url.scheme.lower(),
+            (configured_url.hostname or "").lower(),
+            configured_url.port,
+        )
+        recorded_authority = (
+            recorded_url.scheme.lower(),
+            (recorded_url.hostname or "").lower(),
+            recorded_url.port,
+        )
+    except ValueError:
+        return False, "PubMed source URL is invalid"
+    if recorded_authority != configured_authority:
+        return False, "PubMed source URL does not match the configured trusted endpoint"
+    if re.search(rf"/api/cached_article/{re.escape(pmid)}(?:\?|$)", source_url) is None:
+        return False, "PubMed source URL does not identify the recorded PMID"
+    return True, f"PubMed payload sha256={actual_hash[:12]}…"
+
+
+def derive_reference_source_revision(
+    ref_dir: Path,
+    metadata: dict[str, Any],
+) -> tuple[bool, str, str, str]:
+    """Validate Phase 2.1 source evidence and return its immutable revision.
+
+    The returned tuple is ``(valid, details, source_revision_sha256,
+    source_kind)``.  Analysis receipts bind to the revision so replacing a PDF,
+    extraction, or metadata-only fallback invalidates stale analysis.
+    """
+
+    def _safe_artifact(path: Path) -> tuple[bool, bytes, str]:
+        try:
+            if path.is_symlink() or not path.is_file():
+                return False, b"", "artifact is not a regular file"
+            raw = path.read_bytes()
+        except OSError:
+            return False, b"", "artifact is unreadable"
+        if len(raw) < _MIN_REFERENCE_ARTIFACT_BYTES:
+            return (
+                False,
+                raw,
+                (f"artifact is too small ({len(raw)} < {_MIN_REFERENCE_ARTIFACT_BYTES} bytes)"),
+            )
+        return True, raw, hashlib.sha256(raw).hexdigest()
+
+    if metadata.get("fulltext_ingested") is True:
+        source_artifacts = sorted((ref_dir / "source").glob("*"))
+        for source_path in source_artifacts:
+            valid, _, digest_or_error = _safe_artifact(source_path)
+            if not valid:
+                continue
+            recorded_hash = str(metadata.get("content_hash") or "").strip().lower()
+            if _SHA256_PATTERN.fullmatch(recorded_hash) is None:
+                return False, "source artifact exists but metadata content_hash is missing", "", ""
+            if digest_or_error != recorded_hash:
+                continue
+            return (
+                True,
+                f"source artifact verified: {source_path.name} sha256={recorded_hash[:12]}…",
+                recorded_hash,
+                "local-source",
+            )
+        if source_artifacts:
+            return False, "no source artifact matches metadata content_hash", "", ""
+
+        receipt_path = ref_dir / "artifacts" / "asset-aware" / "receipt.json"
+        if receipt_path.is_file():
+            try:
+                receipt_raw = receipt_path.read_bytes()
+                receipt = json.loads(receipt_raw.decode("utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                return False, "Asset-Aware receipt is unreadable or invalid JSON", "", ""
+            if not isinstance(receipt, dict):
+                return False, "Asset-Aware receipt must be a JSON object", "", ""
+            if receipt.get("schema") != "mdpaper.asset_aware_fulltext.v1":
+                return False, "Asset-Aware receipt schema is unsupported", "", ""
+            if receipt.get("source_tool") != "asset-aware":
+                return False, "Asset-Aware receipt source_tool is invalid", "", ""
+            receipt_hash = hashlib.sha256(receipt_raw).hexdigest()
+            if metadata.get("fulltext_receipt_sha256") != receipt_hash:
+                return False, "Asset-Aware receipt hash does not match metadata", "", ""
+            doc_id = str(metadata.get("asset_aware_doc_id") or "").strip()
+            sections = metadata.get("fulltext_sections")
+            normalized_sections = (
+                [str(section).strip() for section in sections if str(section).strip()]
+                if isinstance(sections, list)
+                else []
+            )
+            if not doc_id or receipt.get("asset_aware_doc_id") != doc_id:
+                return False, "Asset-Aware document identity does not match metadata", "", ""
+            if not normalized_sections or receipt.get("fulltext_sections") != normalized_sections:
+                return False, "Asset-Aware sections do not match metadata", "", ""
+            source_revision = str(receipt.get("source_revision_sha256") or "").lower()
+            if _SHA256_PATTERN.fullmatch(source_revision) is None:
+                return False, "Asset-Aware source revision is missing", "", ""
+            completed_at = receipt.get("completed_at")
+            try:
+                if not isinstance(completed_at, str):
+                    raise TypeError
+                completed_time = datetime.fromisoformat(completed_at)
+                if completed_time.utcoffset() is None:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return False, "Asset-Aware receipt timestamp is invalid", "", ""
+
+            artifacts = receipt.get("artifacts")
+            if not isinstance(artifacts, list) or not artifacts:
+                return False, "Asset-Aware receipt has no artifact manifest", "", ""
+            artifact_root = receipt_path.parent.resolve()
+            seen_paths: set[str] = set()
+            for index, entry in enumerate(artifacts):
+                if not isinstance(entry, dict):
+                    return False, f"Asset-Aware artifact {index} is invalid", "", ""
+                relative_path = entry.get("path")
+                if (
+                    not isinstance(relative_path, str)
+                    or not relative_path
+                    or relative_path in seen_paths
+                ):
+                    return False, f"Asset-Aware artifact {index} path is invalid", "", ""
+                seen_paths.add(relative_path)
+                candidate = receipt_path.parent / relative_path
+                try:
+                    resolved = candidate.resolve()
+                    resolved.relative_to(artifact_root)
+                except (OSError, ValueError):
+                    return False, "Asset-Aware artifact escapes its receipt directory", "", ""
+                valid, raw, digest_or_error = _safe_artifact(candidate)
+                if not valid:
+                    return False, f"Asset-Aware {relative_path}: {digest_or_error}", "", ""
+                if entry.get("sha256") != digest_or_error or entry.get("bytes") != len(raw):
+                    return False, f"Asset-Aware {relative_path} hash/size mismatch", "", ""
+            computed_revision = _canonical_json_sha256(
+                {
+                    "asset_aware_doc_id": doc_id,
+                    "fulltext_sections": normalized_sections,
+                    "artifacts": artifacts,
+                }
+            )
+            if source_revision != computed_revision:
+                return False, "Asset-Aware source revision does not match its manifest", "", ""
+            return (
+                True,
+                f"Asset-Aware receipt verified ({len(artifacts)} artifacts)",
+                source_revision,
+                "asset-aware",
+            )
+
+        legacy_artifacts = [
+            *sorted(ref_dir.glob("fulltext.*")),
+            *sorted((ref_dir / "sections").glob("*.md")),
+        ]
+        recorded_hash = str(metadata.get("fulltext_artifact_sha256") or "").strip().lower()
+        for legacy_path in legacy_artifacts:
+            valid, _, digest_or_error = _safe_artifact(legacy_path)
+            if valid and digest_or_error == recorded_hash:
+                return (
+                    True,
+                    f"fulltext artifact verified: {legacy_path.name} sha256={recorded_hash[:12]}…",
+                    recorded_hash,
+                    "legacy-fulltext",
+                )
+        if legacy_artifacts:
+            return False, "legacy fulltext artifact hash/size is invalid", "", ""
+        return False, "fulltext_ingested=true without a verifiable source receipt", "", ""
+
+    reason = str(metadata.get("fulltext_unavailable_reason") or "").strip()
+    if len(reason) < 8:
+        return False, "fulltext unavailable reason is missing or too vague", "", ""
+    revision_payload = {
+        "identity": _reference_identity(metadata),
+        "title": str(metadata.get("title") or "").strip(),
+        "abstract": str(metadata.get("abstract") or "").strip(),
+        "payload_hash": str(metadata.get("payload_hash") or "").strip().lower(),
+        "fulltext_unavailable_reason": reason,
+    }
+    return (
+        True,
+        f"metadata-only fallback recorded: {reason}",
+        _canonical_json_sha256(revision_payload),
+        "metadata-only",
+    )
 
 
 @dataclass
@@ -405,6 +676,26 @@ class PipelineGateValidator:
 
         workflow_mode = str(data.get("workflow_mode") or DEFAULT_WORKFLOW_MODE).strip()
         return workflow_mode or DEFAULT_WORKFLOW_MODE
+
+    def _compute_review_drafts_hash(self) -> str:
+        """Match the review tools' hash of the canonical reviewed artifact."""
+        if not self._drafts_dir.is_dir():
+            return ""
+        manuscript = self._drafts_dir / "manuscript.md"
+        draft_files = (
+            [manuscript] if manuscript.is_file() else sorted(self._drafts_dir.glob("*.md"))
+        )
+        if not draft_files:
+            return ""
+
+        digest = hashlib.sha256()
+        try:
+            for draft_file in draft_files:
+                digest.update(draft_file.name.encode("utf-8"))
+                digest.update(draft_file.read_bytes())
+        except OSError:
+            return ""
+        return digest.hexdigest()
 
     def validate_phase(self, phase: int) -> GateResult:
         """
@@ -1155,16 +1446,173 @@ class PipelineGateValidator:
     # ── Helpers ─────────────────────────────────────────────────────
 
     @staticmethod
-    def _count_references(refs_dir: Path) -> int:
-        """Count references: PMID subdirs with metadata.json, or flat .md files."""
+    def _reference_records(
+        refs_dir: Path,
+    ) -> tuple[list[tuple[Path, dict[str, Any]]], list[str], int]:
+        """Load unique, sufficiently described references and reject forged trust."""
         if not refs_dir.is_dir():
-            return 0
-        # Primary: count subdirs containing metadata.json (PMID-based storage)
-        count = len(list(refs_dir.glob("*/metadata.json")))
-        if count > 0:
-            return count
-        # Fallback: count flat .md files (legacy format)
-        return len(list(refs_dir.glob("*.md")))
+            return [], [], 0
+
+        records: list[tuple[Path, dict[str, Any]]] = []
+        invalid: list[str] = []
+        seen_identities: dict[str, str] = {}
+        metadata_paths = sorted(refs_dir.glob("*/metadata.json"))
+        for metadata_path in metadata_paths:
+            try:
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                invalid.append(f"{metadata_path.parent.name}: unreadable metadata.json")
+                continue
+            if not isinstance(metadata, dict):
+                invalid.append(f"{metadata_path.parent.name}: metadata must be an object")
+                continue
+
+            identity = _reference_identity(metadata)
+            if not identity:
+                invalid.append(f"{metadata_path.parent.name}: no stable reference identity")
+                continue
+            title = str(metadata.get("title") or "").strip()
+            if not title:
+                invalid.append(f"{metadata_path.parent.name}: bibliographic title is missing")
+                continue
+            if identity in seen_identities:
+                invalid.append(
+                    f"{metadata_path.parent.name}: duplicate identity {identity} "
+                    f"(already stored by {seen_identities[identity]})"
+                )
+                continue
+
+            trust_level = str(metadata.get("trust_level") or "").strip().lower()
+            data_source = str(metadata.get("data_source") or "").strip().lower()
+            claims_verified = (
+                metadata.get("verified") is True
+                or trust_level == "verified"
+                or data_source == "pubmed_mcp_api"
+            )
+            if claims_verified:
+                provenance_valid, provenance_details = _validate_pubmed_transport_payload(metadata)
+                if not provenance_valid:
+                    invalid.append(f"{metadata_path.parent.name}: {provenance_details}")
+                    continue
+            seen_identities[identity] = metadata_path.parent.name
+            records.append((metadata_path.parent, metadata))
+
+        legacy_files = []
+        for path in sorted(refs_dir.glob("*.md")):
+            if path.name == "fulltext-ingestion-status.md" or not path.is_file():
+                continue
+            try:
+                if path.stat().st_size > 0:
+                    legacy_files.append(path)
+            except OSError:
+                invalid.append(f"{path.name}: unreadable legacy reference")
+        if legacy_files:
+            invalid.append(
+                f"{len(legacy_files)} legacy Markdown reference(s) require structured migration"
+            )
+        return records, invalid, len(legacy_files)
+
+    @classmethod
+    def _count_references(cls, refs_dir: Path) -> int:
+        """Count valid structured references, or non-empty legacy Markdown records."""
+        records, _, legacy_count = cls._reference_records(refs_dir)
+        return len(records) if records else legacy_count
+
+    @staticmethod
+    def _validate_reference_analysis(
+        ref_dir: Path,
+        metadata: dict[str, Any],
+        *,
+        source_revision_sha256: str,
+        source_kind: str,
+    ) -> tuple[bool, str]:
+        """Verify a complete analysis and bind it to the validated source revision."""
+        analysis_path = ref_dir / "analysis.json"
+        if not analysis_path.is_file():
+            return False, "analysis.json is missing"
+        try:
+            raw = analysis_path.read_bytes()
+            analysis = json.loads(raw.decode("utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return False, "analysis.json is unreadable or invalid JSON"
+        if not isinstance(analysis, dict):
+            return False, "analysis.json must contain an object"
+        if analysis.get("schema") != "mdpaper.reference_analysis.v1":
+            return False, "analysis.json schema is missing or unsupported"
+        if analysis.get("source_tool") != "save_reference_analysis":
+            return False, "analysis.json source_tool is not save_reference_analysis"
+        for field_name, minimum_chars in REFERENCE_ANALYSIS_TEXT_MINIMUMS.items():
+            field_value = str(analysis.get(field_name) or "").strip()
+            if len(field_value) < minimum_chars:
+                return (
+                    False,
+                    f"analysis.json {field_name} must contain at least "
+                    f"{minimum_chars} substantive characters",
+                )
+        usage_sections = analysis.get("usage_sections")
+        if (
+            not isinstance(usage_sections, list)
+            or not usage_sections
+            or any(
+                not isinstance(section, str) or not section.strip() for section in usage_sections
+            )
+        ):
+            return False, "analysis.json usage_sections must contain named manuscript sections"
+        relevance_score = analysis.get("relevance_score")
+        if (
+            isinstance(relevance_score, bool)
+            or not isinstance(relevance_score, int)
+            or not 1 <= relevance_score <= 5
+        ):
+            return False, "analysis.json relevance_score must be an integer from 1 to 5"
+        if analysis.get("source_revision_sha256") != source_revision_sha256:
+            return False, "analysis.json is stale for the current source revision"
+        if analysis.get("source_kind") != source_kind:
+            return False, "analysis.json source_kind does not match source evidence"
+
+        expected_ids = {
+            str(value).strip()
+            for value in (metadata.get("unique_id"), metadata.get("pmid"))
+            if str(value or "").strip()
+        }
+        if not expected_ids:
+            expected_ids.add(ref_dir.name)
+        if str(analysis.get("pmid") or "").strip() not in expected_ids:
+            return False, "analysis.json reference identity does not match metadata"
+
+        analyzed_at = str(analysis.get("analyzed_at") or "")
+        try:
+            analyzed_time = datetime.fromisoformat(analyzed_at)
+            if analyzed_time.utcoffset() is None:
+                raise ValueError
+        except ValueError:
+            return False, "analysis.json analyzed_at is invalid"
+
+        actual_hash = hashlib.sha256(raw).hexdigest()
+        if metadata.get("analysis_artifact_sha256") != actual_hash:
+            return False, "analysis artifact hash does not match metadata"
+        if metadata.get("analysis_source_tool") != "save_reference_analysis":
+            return False, "metadata analysis_source_tool is invalid"
+        if metadata.get("analysis_completed_at") != analyzed_at:
+            return False, "metadata analysis_completed_at does not match analysis.json"
+        if metadata.get("analysis_source_revision_sha256") != source_revision_sha256:
+            return False, "metadata analysis receipt is stale for the current source"
+        if (
+            str(metadata.get("analysis_summary") or "").strip()
+            != str(analysis.get("summary") or "").strip()
+        ):
+            return False, "metadata analysis_summary does not match analysis.json"
+        if metadata.get("usage_sections") != usage_sections:
+            return False, "metadata usage_sections do not match analysis.json"
+        return True, f"verified analysis artifact sha256={actual_hash[:12]}…"
+
+    @staticmethod
+    def _validate_fulltext_status(
+        ref_dir: Path,
+        metadata: dict[str, Any],
+    ) -> tuple[bool, str, str, str]:
+        """Delegate to the shared, receipt-bound source revision validator."""
+        return derive_reference_source_revision(ref_dir, metadata)
 
     def _get_paper_type_from_profile(self) -> str:
         """Read paper.type from journal-profile.yaml (default: 'original-research')."""
@@ -1237,51 +1685,162 @@ class PipelineGateValidator:
                 "MISSING — run start_review_round to begin Phase 7 review loop",
             )
 
-        try:
-            state = json.loads(loop_state_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return False, "audit-loop-review.json is corrupt or unreadable"
-
-        rounds = state.get("rounds", [])
-        rounds_completed = len(rounds)
-        min_rounds = state.get("config", {}).get("min_rounds", 2)
-        max_rounds = state.get("config", {}).get("max_rounds", 3)
-
-        if rounds_completed < min_rounds:
-            return (
-                False,
-                f"{rounds_completed}/{min_rounds} rounds completed — "
-                f"need {min_rounds - rounds_completed} more review round(s). "
-                f"Call start_review_round → submit_review_round.",
-            )
-
-        # Check for valid termination verdict
-        last_verdict = rounds[-1].get("verdict", "unknown") if rounds else "unknown"
-        valid_verdicts = {"quality_met", "max_rounds", "stagnated", "user_needed"}
-        if last_verdict not in valid_verdicts:
-            return (
-                False,
-                f"Review loop not properly terminated (verdict={last_verdict}). "
-                f"Call submit_review_round to complete the current round.",
-            )
-
         phase7_result = self._validate_phase_7()
         phase7_failures = phase7_result.critical_failures
         if phase7_failures:
+            state_check = next(
+                (check for check in phase7_failures if check.name == "review:state_integrity"),
+                None,
+            )
+            if state_check is not None:
+                return False, f"Review state integrity failed: {state_check.details}"
+            rounds_check = next(
+                (check for check in phase7_failures if check.name == "review:rounds_completed"),
+                None,
+            )
+            if rounds_check is not None:
+                return False, rounds_check.details
+            termination = next(
+                (check for check in phase7_failures if check.name == "review:proper_termination"),
+                None,
+            )
+            if termination is not None:
+                return False, f"Review loop not properly terminated ({termination.details})."
             examples = ", ".join(c.name for c in phase7_failures[:5])
             return False, f"Phase 7 artifact gate failed: {examples}"
+
+        state = json.loads(loop_state_path.read_text(encoding="utf-8"))
+        rounds = state["rounds"]
+        rounds_completed = len(rounds)
+        config = state["config"]
+        max_rounds = config["max_rounds"]
+        last_verdict = rounds[-1]["verdict"]
 
         return (
             True,
             f"{rounds_completed}/{max_rounds} rounds completed, verdict={last_verdict}",
         )
 
+    def _validate_review_completion_override(
+        self,
+        loop_state_path: Path,
+        *,
+        verdict: str,
+        weighted_score: float,
+        quality_threshold: float,
+        final_completed_at: str,
+        final_artifact_sha256: str,
+    ) -> tuple[bool, str]:
+        """Validate a human-collaboration receipt for a sub-threshold review loop.
+
+        A terminal state such as ``max_rounds`` is an escalation condition, not
+        proof that the manuscript met its quality target.  The receipt binds an
+        explicit human decision to the exact persisted loop bytes and score so a
+        stale approval cannot silently unlock Phase 8 after the state changes.
+        """
+        override_path = loop_state_path.parent / "review-completion-override.yaml"
+        if not override_path.is_file():
+            return False, "human approval receipt is missing"
+        try:
+            override = yaml.safe_load(override_path.read_text(encoding="utf-8"))
+            state_hash = hashlib.sha256(loop_state_path.read_bytes()).hexdigest()
+        except (OSError, yaml.YAMLError):
+            return False, "human approval receipt is unreadable"
+        if not isinstance(override, dict):
+            return False, "human approval receipt must be a YAML object"
+
+        required_strings = {
+            "approved_by": override.get("approved_by"),
+            "rationale": override.get("rationale"),
+            "accepted_risks": override.get("accepted_risks"),
+        }
+        empty_fields = [
+            name
+            for name, value in required_strings.items()
+            if not isinstance(value, str) or not value.strip()
+        ]
+        if empty_fields:
+            return False, f"human approval receipt has empty fields: {', '.join(empty_fields)}"
+
+        if override.get("schema") != REVIEW_APPROVAL_SCHEMA:
+            return False, "human approval receipt schema is unsupported"
+        signature_verification = verify_external_approval_signature(override)
+        if not signature_verification.valid:
+            return False, f"human approval receipt: {signature_verification.details}"
+        if override.get("approved_to_proceed") is not True:
+            return False, "human approval receipt does not approve proceeding"
+        if override.get("mode") != "human-collaboration":
+            return False, "human approval receipt mode must be human-collaboration"
+        if override.get("decision_source") != "external-user-confirmation":
+            return False, "human approval receipt was not issued by an external user confirmation"
+        if override.get("accepted_verdict") != verdict:
+            return False, "human approval receipt verdict does not match review state"
+        if override.get("audit_loop_sha256") != state_hash:
+            return False, "human approval receipt is stale for the current review state"
+        if override.get("final_artifact_sha256") != final_artifact_sha256:
+            return False, "human approval receipt is stale for the current manuscript"
+
+        confirmation_id = override.get("confirmation_id")
+        if (
+            not isinstance(confirmation_id, str)
+            or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{15,127}", confirmation_id) is None
+        ):
+            return False, "human approval receipt confirmation_id is missing or invalid"
+
+        approved_by = str(required_strings["approved_by"]).strip().lower()
+        if approved_by in {"human", "user", "agent", "ai", "llm", "autopilot"}:
+            return False, "human approval receipt requires a specific external reviewer identity"
+
+        project_slug = self._project_dir.name
+        project_json = self._project_dir / "project.json"
+        if project_json.is_file():
+            try:
+                project_data = json.loads(project_json.read_text(encoding="utf-8"))
+                if isinstance(project_data, dict):
+                    project_slug = str(project_data.get("slug") or project_slug)
+            except (OSError, json.JSONDecodeError):
+                return False, "project identity is unreadable"
+        if override.get("project_slug") != project_slug:
+            return False, "human approval receipt belongs to a different project"
+
+        stored_score = override.get("final_weighted_score")
+        stored_threshold = override.get("quality_threshold")
+        if (
+            isinstance(stored_score, bool)
+            or not isinstance(stored_score, (int, float))
+            or not math.isclose(float(stored_score), weighted_score, abs_tol=1e-6)
+        ):
+            return False, "human approval receipt score does not match review state"
+        if (
+            isinstance(stored_threshold, bool)
+            or not isinstance(stored_threshold, (int, float))
+            or not math.isclose(float(stored_threshold), quality_threshold, abs_tol=1e-6)
+        ):
+            return False, "human approval receipt threshold does not match review config"
+        try:
+            approved_at = override.get("approved_at")
+            if not isinstance(approved_at, str):
+                raise TypeError("approved_at must be a string")
+            approved_time = datetime.fromisoformat(approved_at)
+            completed_time = datetime.fromisoformat(final_completed_at)
+            if approved_time.utcoffset() is None or completed_time.utcoffset() is None:
+                raise ValueError("timestamps must include a UTC offset")
+            if approved_time < completed_time:
+                return False, "human approval predates the final review round"
+            if approved_time > datetime.now().astimezone() + timedelta(minutes=5):
+                return False, "human approval receipt timestamp is in the future"
+        except (TypeError, ValueError):
+            return False, "human approval receipt timestamp is invalid"
+        return (
+            True,
+            "explicit human approval by "
+            f"{required_strings['approved_by']} ({signature_verification.details})",
+        )
+
     @staticmethod
     def _check_docx_integrity(path: Path) -> tuple[bool, str]:
         """Validate a DOCX export enough for a release gate."""
-        from med_paper_assistant.application.export_pipeline import ExportPipeline
-
-        result = ExportPipeline.inspect_docx_xml_smoke(path)
+        result = inspect_docx_xml_smoke(path)
         if result.get("passed"):
             stats = result.get("stats", {})
             return (
@@ -1301,9 +1860,7 @@ class PipelineGateValidator:
     @staticmethod
     def _check_pdf_integrity(path: Path) -> tuple[bool, str]:
         """Validate a PDF export with lightweight structural checks."""
-        from med_paper_assistant.application.export_pipeline import ExportPipeline
-
-        result = ExportPipeline.inspect_pdf_smoke(path)
+        result = inspect_pdf_smoke(path)
         if result.get("passed"):
             stats = result.get("stats", {})
             return (
@@ -1370,7 +1927,7 @@ class PipelineGateValidator:
         return review if isinstance(review, dict) else {}
 
     def _load_concept_review_override(self) -> dict[str, Any]:
-        """Load manual concept review override decision when available."""
+        """Load an externally issued concept review decision when available."""
         override_path = self._audit_dir / "concept-review-override.yaml"
         if not override_path.is_file():
             return {}
@@ -1381,6 +1938,91 @@ class PipelineGateValidator:
             return {}
 
         return override if isinstance(override, dict) else {}
+
+    def _validate_concept_review_override(
+        self,
+        *,
+        readiness: str,
+    ) -> tuple[bool, str]:
+        """Validate a trusted-host receipt bound to the exact concept review."""
+        review_path = self._audit_dir / "concept-review.yaml"
+        override = self._load_concept_review_override()
+        if not override:
+            return False, "external human approval receipt is missing"
+        try:
+            review_hash = hashlib.sha256(review_path.read_bytes()).hexdigest()
+            concept_hash = hashlib.sha256(self._find_concept_path().read_bytes()).hexdigest()
+        except OSError:
+            return False, "concept or concept review is unreadable"
+
+        required_strings = {
+            "approved_by": override.get("approved_by"),
+            "rationale": override.get("rationale"),
+            "accepted_risks": override.get("accepted_risks"),
+        }
+        empty_fields = [
+            name
+            for name, value in required_strings.items()
+            if not isinstance(value, str) or not value.strip()
+        ]
+        if empty_fields:
+            return False, f"concept approval has empty fields: {', '.join(empty_fields)}"
+        if override.get("schema") != CONCEPT_APPROVAL_SCHEMA:
+            return False, "concept approval schema is unsupported"
+        signature_verification = verify_external_approval_signature(override)
+        if not signature_verification.valid:
+            return False, f"concept approval: {signature_verification.details}"
+        if override.get("approved_to_proceed") is not True:
+            return False, "concept approval does not approve proceeding"
+        if override.get("mode") != "human-collaboration":
+            return False, "concept approval mode must be human-collaboration"
+        if override.get("decision_source") != "external-user-confirmation":
+            return False, "concept approval was not issued by an external user confirmation"
+        if override.get("accepted_readiness") != readiness:
+            return False, "concept approval readiness does not match the current review"
+        if override.get("concept_review_sha256") != review_hash:
+            return False, "concept approval is stale for the current concept review"
+        if override.get("concept_artifact_sha256") != concept_hash:
+            return False, "concept approval is stale for the current concept artifact"
+
+        confirmation_id = override.get("confirmation_id")
+        if (
+            not isinstance(confirmation_id, str)
+            or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{15,127}", confirmation_id) is None
+        ):
+            return False, "concept approval confirmation_id is missing or invalid"
+        approved_by = str(required_strings["approved_by"]).strip().lower()
+        if approved_by in {"human", "user", "agent", "ai", "llm", "autopilot"}:
+            return False, "concept approval requires a specific external reviewer identity"
+
+        project_slug = self._project_dir.name
+        project_path = self._project_dir / "project.json"
+        if project_path.is_file():
+            try:
+                project_data = json.loads(project_path.read_text(encoding="utf-8"))
+                if isinstance(project_data, dict):
+                    project_slug = str(project_data.get("slug") or project_slug)
+            except (OSError, json.JSONDecodeError):
+                return False, "project identity is unreadable"
+        if override.get("project_slug") != project_slug:
+            return False, "concept approval belongs to a different project"
+
+        try:
+            approved_at = override.get("approved_at")
+            if not isinstance(approved_at, str):
+                raise TypeError
+            approval_time = datetime.fromisoformat(approved_at)
+            if approval_time.utcoffset() is None:
+                raise ValueError
+            if approval_time > datetime.now().astimezone() + timedelta(minutes=5):
+                return False, "concept approval timestamp is in the future"
+        except (TypeError, ValueError):
+            return False, "concept approval timestamp is invalid"
+        return (
+            True,
+            f"external approval by {required_strings['approved_by']} "
+            f"({signature_verification.details})",
+        )
 
     def _concept_review_is_complete(self, review: dict[str, Any]) -> tuple[bool, str]:
         """Check whether concept-review.yaml contains the minimum planning contract."""
@@ -1430,16 +2072,12 @@ class PipelineGateValidator:
         if readiness == "ready":
             return True, "ready"
 
-        override = self._load_concept_review_override()
-        approved = bool(override.get("approved_to_proceed"))
-        rationale = str(override.get("rationale", "")).strip()
-        accepted_readiness = str(override.get("accepted_readiness", "")).strip().lower()
-        approved_by = str(override.get("approved_by", "human")).strip() or "human"
-
-        if approved and rationale and accepted_readiness == readiness:
-            return True, f"manual override by {approved_by} (readiness={readiness})"
-
-        return False, f"readiness={readiness}; manual approval required"
+        override_valid, override_details = self._validate_concept_review_override(
+            readiness=readiness
+        )
+        if override_valid:
+            return True, f"{override_details} (readiness={readiness})"
+        return False, f"readiness={readiness}; {override_details}"
 
     # ── Phase Validators ───────────────────────────────────────────
 
@@ -1502,6 +2140,7 @@ class PipelineGateValidator:
 
         checks = []
         refs_dir = self._project_dir / "references"
+        records, invalid_records, legacy_count = self._reference_records(refs_dir)
         ref_count = self._count_references(refs_dir)
 
         # Determine paper type and minimum
@@ -1516,6 +2155,18 @@ class PipelineGateValidator:
                 passed=passed,
                 details=f"{ref_count}/{min_refs} references found"
                 + ("" if passed else f" — need {min_refs - ref_count} more"),
+            )
+        )
+        checks.append(
+            GateCheck(
+                name="references_integrity",
+                description="Reference metadata has stable identity and honest trust provenance",
+                passed=not invalid_records,
+                details=(
+                    f"{len(records)} structured + {legacy_count} legacy references validated"
+                    if not invalid_records
+                    else "; ".join(invalid_records[:5])
+                ),
             )
         )
 
@@ -1538,15 +2189,20 @@ class PipelineGateValidator:
         """Phase 2.1: Fulltext ingestion + per-reference analysis."""
         checks = []
         refs_dir = self._project_dir / "references"
+        records, invalid_records, legacy_count = self._reference_records(refs_dir)
 
         # Check fulltext-ingestion-status.md exists
         status_file = refs_dir / "fulltext-ingestion-status.md"
+        try:
+            status_exists = status_file.is_file() and status_file.stat().st_size > 0
+        except OSError:
+            status_exists = False
         checks.append(
             GateCheck(
                 name="fulltext_ingestion_status",
                 description="Fulltext ingestion status file created",
-                passed=status_file.is_file(),
-                details="exists" if status_file.is_file() else "MISSING",
+                passed=status_exists,
+                details="exists and is non-empty" if status_exists else "MISSING or empty",
             )
         )
 
@@ -1557,29 +2213,48 @@ class PipelineGateValidator:
         not_analyzed_count = 0
         total_refs = 0
 
-        if refs_dir.is_dir():
-            for ref_dir in refs_dir.iterdir():
-                if not ref_dir.is_dir() or ref_dir.name.startswith("."):
-                    continue
-                meta_path = ref_dir / "metadata.json"
-                if not meta_path.is_file():
-                    continue
-                total_refs += 1
-                try:
-                    import json
+        analysis_failures: list[str] = []
+        fulltext_failures: list[str] = []
+        for ref_dir, metadata in records:
+            total_refs += 1
+            (
+                fulltext_valid,
+                fulltext_details,
+                source_revision_sha256,
+                source_kind,
+            ) = self._validate_fulltext_status(ref_dir, metadata)
+            if fulltext_valid and metadata.get("fulltext_ingested") is True:
+                ingested_count += 1
+            else:
+                not_ingested_count += 1
+            if not fulltext_valid:
+                fulltext_failures.append(f"{ref_dir.name}: {fulltext_details}")
 
-                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                    if meta.get("fulltext_ingested", False):
-                        ingested_count += 1
-                    else:
-                        not_ingested_count += 1
-                    if meta.get("analysis_completed", False):
-                        analyzed_count += 1
-                    else:
-                        not_analyzed_count += 1
-                except Exception:
-                    not_ingested_count += 1
-                    not_analyzed_count += 1
+            analysis_valid = False
+            analysis_details = "source evidence is invalid"
+            if fulltext_valid:
+                analysis_valid, analysis_details = self._validate_reference_analysis(
+                    ref_dir,
+                    metadata,
+                    source_revision_sha256=source_revision_sha256,
+                    source_kind=source_kind,
+                )
+            if metadata.get("analysis_completed") is True and analysis_valid:
+                analyzed_count += 1
+            else:
+                not_analyzed_count += 1
+                if metadata.get("analysis_completed") is not True:
+                    analysis_failures.append(f"{ref_dir.name}: analysis_completed is not true")
+                else:
+                    analysis_failures.append(f"{ref_dir.name}: {analysis_details}")
+
+        if invalid_records:
+            analysis_failures.extend(invalid_records)
+            fulltext_failures.extend(invalid_records)
+        if legacy_count:
+            migration_error = f"{legacy_count} legacy references require structured migration"
+            analysis_failures.append(migration_error)
+            fulltext_failures.append(migration_error)
 
         checks.append(
             GateCheck(
@@ -1591,13 +2266,32 @@ class PipelineGateValidator:
             )
         )
 
+        checks.append(
+            GateCheck(
+                name="fulltext_evidence",
+                description="Every reference has ingestion evidence or an explicit fallback reason",
+                passed=not fulltext_failures and total_refs > 0,
+                details=(
+                    f"{total_refs} reference fulltext statuses verified"
+                    if not fulltext_failures and total_refs > 0
+                    else "; ".join(fulltext_failures[:5]) or "no structured references"
+                ),
+                severity="CRITICAL",
+            )
+        )
+
         # Analysis coverage check (CRITICAL — every ref must be analyzed)
         checks.append(
             GateCheck(
                 name="analysis_coverage",
                 description="References with subagent analysis completed",
-                passed=total_refs == 0 or not_analyzed_count == 0,
-                details=f"{analyzed_count}/{total_refs} analyzed, {not_analyzed_count} pending",
+                passed=total_refs > 0 and not analysis_failures and not_analyzed_count == 0,
+                details=(
+                    f"{analyzed_count}/{total_refs} analysis artifacts verified"
+                    if total_refs > 0 and not analysis_failures and not_analyzed_count == 0
+                    else "; ".join(analysis_failures[:5])
+                    or f"{analyzed_count}/{total_refs} analyzed, {not_analyzed_count} pending"
+                ),
                 severity="CRITICAL",
             )
         )
@@ -2180,27 +2874,68 @@ class PipelineGateValidator:
         )
 
         # Parse loop state to find how many rounds were completed
+        rounds: list[dict[str, Any]] = []
+        state: dict[str, Any] = {}
+        state_errors: list[str] = []
         rounds_completed = 0
         loop_verdict = "unknown"
         max_rounds = 3
         min_rounds = 2
         if loop_state.is_file():
             try:
-                state = json.loads(loop_state.read_text(encoding="utf-8"))
-                rounds_completed = len(state.get("rounds", []))
-                max_rounds = state.get("config", {}).get("max_rounds", 3)
-                min_rounds = state.get("config", {}).get("min_rounds", 2)
-                if state.get("rounds"):
-                    loop_verdict = state["rounds"][-1].get("verdict", "unknown")
+                raw_state = json.loads(loop_state.read_text(encoding="utf-8"))
+                if isinstance(raw_state, dict):
+                    state = raw_state
+                else:
+                    state_errors.append("audit loop state must be a JSON object")
             except (json.JSONDecodeError, OSError):
-                pass
+                state_errors.append("audit-loop-review.json is corrupt or unreadable")
+
+        if state:
+            from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import (
+                AutonomousAuditLoop,
+            )
+
+            state_errors.extend(AutonomousAuditLoop.validate_serialized_state(state))
+            raw_rounds = state.get("rounds")
+            if isinstance(raw_rounds, list):
+                rounds = [item for item in raw_rounds if isinstance(item, dict)]
+                rounds_completed = len(raw_rounds)
+            raw_config = state.get("config")
+            if isinstance(raw_config, dict):
+                if raw_config.get("context") != "review":
+                    state_errors.append("audit loop config.context must be 'review'")
+                raw_max = raw_config.get("max_rounds")
+                raw_min = raw_config.get("min_rounds")
+                if isinstance(raw_max, int) and not isinstance(raw_max, bool):
+                    max_rounds = raw_max
+                if isinstance(raw_min, int) and not isinstance(raw_min, bool):
+                    min_rounds = raw_min
+            if rounds and len(rounds) == rounds_completed:
+                loop_verdict = str(rounds[-1].get("verdict", "unknown"))
+
+        checks.append(
+            GateCheck(
+                name="review:state_integrity",
+                description="Review state scores and verdicts recompute from the state machine",
+                passed=bool(state) and not state_errors,
+                details=(
+                    "scores, weighted averages, and verdicts recomputed successfully"
+                    if state and not state_errors
+                    else "; ".join(state_errors[:5]) or "MISSING"
+                ),
+            )
+        )
 
         checks.append(
             GateCheck(
                 name="review:rounds_completed",
                 description=f"At least {min_rounds} review rounds completed (code-enforced)",
                 passed=rounds_completed >= min_rounds,
-                details=f"{rounds_completed}/{max_rounds} rounds completed (min={min_rounds}), verdict={loop_verdict}",
+                details=(
+                    f"{rounds_completed}/{min_rounds} minimum rounds completed "
+                    f"(max={max_rounds}), verdict={loop_verdict}"
+                ),
             )
         )
 
@@ -2235,7 +2970,126 @@ class PipelineGateValidator:
                 )
             )
 
-        # 3. If 0 rounds completed, flag that we need artifacts for round 1
+        # 3. Re-run R1-R6 from current artifacts and verify the manuscript hash chain.
+        manuscript_path = self._drafts_dir / "manuscript.md"
+        manuscript_content = ""
+        manuscript_hash = self._compute_review_drafts_hash()
+        if manuscript_path.is_file():
+            try:
+                manuscript_content = manuscript_path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                manuscript_content = ""
+
+        previous_end_hash = ""
+        hash_pattern = re.compile(r"^[0-9a-f]{64}$")
+        for i, round_state in enumerate(rounds, start=1):
+            raw_start_hash = round_state.get("artifact_hash_start")
+            raw_end_hash = round_state.get("artifact_hash_end")
+            start_hash = raw_start_hash if isinstance(raw_start_hash, str) else ""
+            end_hash = raw_end_hash if isinstance(raw_end_hash, str) else ""
+            hash_errors: list[str] = []
+            if not hash_pattern.fullmatch(start_hash):
+                hash_errors.append("missing or invalid artifact_hash_start")
+            if not hash_pattern.fullmatch(end_hash):
+                hash_errors.append("missing or invalid artifact_hash_end")
+            if previous_end_hash and start_hash != previous_end_hash:
+                hash_errors.append("round start hash does not match the previous round end hash")
+            previous_end_hash = end_hash
+            checks.append(
+                GateCheck(
+                    name=f"review:hash-chain-{i}",
+                    description=f"Round {i} manuscript hashes form an auditable chain",
+                    passed=bool(manuscript_hash) and not hash_errors,
+                    details=(
+                        "start/end hashes verified"
+                        if manuscript_hash and not hash_errors
+                        else "; ".join(hash_errors) or "manuscript missing or unreadable"
+                    ),
+                )
+            )
+
+            raw_fixes = round_state.get("fixes", [])
+            issues_fixed = (
+                sum(1 for fix in raw_fixes if isinstance(fix, dict) and fix.get("success") is True)
+                if isinstance(raw_fixes, list)
+                else 0
+            )
+            hook_results: dict[str, Any] = {}
+            hook_error = ""
+            if manuscript_content:
+                try:
+                    from med_paper_assistant.infrastructure.persistence.review_hooks import (
+                        ReviewHooksEngine,
+                    )
+
+                    hook_results = ReviewHooksEngine(self._project_dir).run_all(
+                        round_num=i,
+                        issues_fixed=issues_fixed,
+                        manuscript_changed=(
+                            bool(start_hash and end_hash) and start_hash != end_hash
+                        ),
+                        manuscript_content=manuscript_content,
+                    )
+                except Exception as exc:
+                    hook_error = f"hook execution failed: {type(exc).__name__}: {exc}"
+            else:
+                hook_error = "manuscript missing, empty, or unreadable"
+
+            for hook_id in ("R1", "R2", "R3", "R4", "R5", "R6"):
+                result = hook_results.get(hook_id)
+                issue_details = []
+                if result is not None:
+                    issue_details = [
+                        issue.message for issue in result.issues if issue.severity == "CRITICAL"
+                    ]
+                passed = (
+                    result is not None
+                    and not issue_details
+                    and (result.passed or bool(result.issues))
+                )
+                checks.append(
+                    GateCheck(
+                        name=f"review:{hook_id.lower()}-{i}",
+                        description=f"Round {i} {hook_id} review hook revalidation",
+                        passed=passed,
+                        details=(
+                            "revalidated from current artifacts"
+                            if passed
+                            else "; ".join(issue_details[:3])
+                            or hook_error
+                            or f"{hook_id} did not return a result"
+                        ),
+                    )
+                )
+
+        final_recorded_hash = ""
+        if rounds:
+            raw_final_hash = rounds[-1].get("artifact_hash_end")
+            if isinstance(raw_final_hash, str):
+                final_recorded_hash = raw_final_hash
+        current_hash_matches = bool(
+            manuscript_hash
+            and hash_pattern.fullmatch(final_recorded_hash)
+            and final_recorded_hash == manuscript_hash
+        )
+        checks.append(
+            GateCheck(
+                name="review:final-artifact-current",
+                description="Final reviewed artifact hash matches the current manuscript",
+                passed=current_hash_matches,
+                details=(
+                    f"current manuscript sha256={manuscript_hash[:12]}…"
+                    if current_hash_matches
+                    else (
+                        "current manuscript does not match the final reviewed hash "
+                        f"(recorded={final_recorded_hash[:12] or 'missing'}…, "
+                        f"current={manuscript_hash[:12] or 'missing'}…)"
+                    )
+                ),
+            )
+        )
+
+        # 4. If 0 rounds completed, flag that we need artifacts for round 1
         if rounds_completed == 0:
             for artifact in [
                 "review-report-1.md",
@@ -2251,47 +3105,103 @@ class PipelineGateValidator:
                     )
                 )
 
-        # 4. evolution-log.jsonl must contain review_round events
+        # 5. evolution-log.jsonl must contain review_round events
         elog = self._audit_dir / "evolution-log.jsonl"
-        has_review_event = False
-        review_events_count = 0
+        review_events: list[dict[str, Any]] = []
+        evolution_errors: list[str] = []
         if elog.is_file():
             try:
-                for line in elog.read_text(encoding="utf-8").strip().split("\n"):
+                for line_number, line in enumerate(
+                    elog.read_text(encoding="utf-8").splitlines(), start=1
+                ):
                     if line.strip():
                         entry = json.loads(line)
-                        if entry.get("event") == "review_round":
-                            has_review_event = True
-                            review_events_count += 1
-            except (json.JSONDecodeError, OSError):
-                pass
+                        if not isinstance(entry, dict):
+                            evolution_errors.append(
+                                f"evolution log line {line_number} is not an object"
+                            )
+                        elif entry.get("event") == "review_round":
+                            review_events.append(entry)
+            except json.JSONDecodeError as exc:
+                evolution_errors.append(f"evolution log contains invalid JSON: {exc}")
+            except OSError as exc:
+                evolution_errors.append(f"evolution log is unreadable: {exc}")
+
+        if len(review_events) < rounds_completed:
+            evolution_errors.append(
+                f"only {len(review_events)}/{rounds_completed} review_round events recorded"
+            )
+        elif rounds_completed:
+            for index, (round_state, event) in enumerate(
+                zip(rounds, review_events[-rounds_completed:], strict=True),
+                start=1,
+            ):
+                if event.get("round") != index:
+                    evolution_errors.append(f"review event {index} has the wrong round number")
+                if event.get("verdict") != round_state.get("verdict"):
+                    evolution_errors.append(f"review event {index} verdict does not match state")
+                if event.get("scores") != round_state.get("scores"):
+                    evolution_errors.append(f"review event {index} scores do not match state")
+                if event.get("weighted_score") != round_state.get("weighted_avg"):
+                    evolution_errors.append(
+                        f"review event {index} weighted score does not match state"
+                    )
+                try:
+                    event_timestamp = event.get("timestamp")
+                    if not isinstance(event_timestamp, str):
+                        raise TypeError("timestamp must be a string")
+                    datetime.fromisoformat(event_timestamp)
+                except (TypeError, ValueError):
+                    evolution_errors.append(f"review event {index} timestamp is invalid")
 
         checks.append(
             GateCheck(
                 name="evolution-log:review_events",
-                description="evolution-log.jsonl contains review_round events",
-                passed=has_review_event,
-                details=f"{review_events_count} review_round events"
-                if has_review_event
-                else "MISSING",
+                description="evolution-log.jsonl contains state-consistent review_round events",
+                passed=rounds_completed > 0 and not evolution_errors,
+                details=(
+                    f"{len(review_events)} state-consistent review_round events"
+                    if rounds_completed > 0 and not evolution_errors
+                    else "; ".join(evolution_errors[:5]) or "MISSING"
+                ),
             )
         )
 
-        # 5. Verify loop terminated properly (not just abandoned)
-        proper_termination = loop_verdict in (
-            "quality_met",
-            "max_rounds",
-            "stagnated",
-            "user_needed",
-        )
+        # 6. Verify loop terminated properly (not just abandoned).  Only a
+        # recomputed quality_met verdict is autonomous evidence of completion.
+        # Other terminal verdicts require an explicit, state-bound human receipt.
+        terminal_escalations = {"max_rounds", "stagnated", "user_needed"}
+        override_valid = False
+        override_details = "not required"
+        if not state_errors and loop_verdict in terminal_escalations and rounds:
+            final_score = rounds[-1].get("weighted_avg")
+            raw_threshold = state.get("config", {}).get("quality_threshold")
+            if (
+                isinstance(final_score, (int, float))
+                and not isinstance(final_score, bool)
+                and (
+                    isinstance(raw_threshold, (int, float)) and not isinstance(raw_threshold, bool)
+                )
+            ):
+                override_valid, override_details = self._validate_review_completion_override(
+                    loop_state,
+                    verdict=loop_verdict,
+                    weighted_score=float(final_score),
+                    quality_threshold=float(raw_threshold),
+                    final_completed_at=str(rounds[-1].get("completed_at") or ""),
+                    final_artifact_sha256=str(rounds[-1].get("artifact_hash_end") or ""),
+                )
+        proper_termination = not state_errors and (loop_verdict == "quality_met" or override_valid)
         checks.append(
             GateCheck(
                 name="review:proper_termination",
-                description="Review loop terminated with valid verdict",
+                description="Review met its quality target or has explicit human acceptance",
                 passed=proper_termination,
-                details=f"verdict={loop_verdict}"
-                if proper_termination
-                else f"verdict={loop_verdict} — loop may not have run to completion",
+                details=(
+                    f"verdict={loop_verdict}"
+                    if loop_verdict == "quality_met" and proper_termination
+                    else f"verdict={loop_verdict}; {override_details}"
+                ),
             )
         )
 

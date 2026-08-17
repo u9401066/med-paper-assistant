@@ -17,6 +17,7 @@ from med_paper_assistant.application.content_integrity import ContentIntegrityIn
 from med_paper_assistant.infrastructure.external import (
     C2paProvenanceAdapter,
     ConservativeVisibleWatermarkHeuristic,
+    RemoveAiWatermarksInspectionAdapter,
 )
 from med_paper_assistant.infrastructure.persistence import (
     DataArtifactTracker,
@@ -79,10 +80,11 @@ def _get_tracker(project_path: str) -> DataArtifactTracker:
 
 
 def _build_content_integrity_inspector() -> ContentIntegrityInspector:
-    """Build the read-only inspector with optional C2PA support."""
+    """Build the read-only C2PA and removal-package inspection pipeline."""
     return ContentIntegrityInspector(
         provenance_inspector=C2paProvenanceAdapter(),
         visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+        removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
     )
 
 
@@ -297,16 +299,21 @@ def register_figure_tools(
                 "❌ **Asset Integrity Gate Blocked**\n\n"
                 f"- **Integrity Receipt:** {integrity_receipt['id']}\n"
                 f"- **C2PA:** {integrity.provenance.status.value}\n"
+                "- **Removal-package check:** "
+                f"{integrity.removal_package_check.status.value}\n"
                 f"- **Reason:** {reason}\n"
                 "- **Original preserved:** "
                 f"{'yes' if integrity.original_preserved else 'no'}\n"
                 "- **Automated removal:** disabled\n\n"
-                "Do not insert or alter this asset. Re-acquire it from an authorized source "
-                "or resolve the provenance failure first."
+                "Do not insert or alter this asset. If the removal-package check is unavailable, "
+                "install `med-paper-assistant[provenance,watermark]`; otherwise re-acquire the "
+                "asset from an authorized source or resolve the provenance failure first."
             )
 
         if integrity.gate_status.value == "HUMAN_REVIEW" and not visible_watermark_review.strip():
-            signals = ", ".join(integrity.visible_watermark.signals) or "inconclusive screening"
+            signals = list(integrity.visible_watermark.signals)
+            signals.extend(integrity.removal_package_check.signal_names)
+            signal_summary = ", ".join(signals) or "inconclusive screening"
             log_tool_result(
                 "review_asset_for_insertion",
                 "visible-watermark human review required",
@@ -315,10 +322,13 @@ def register_figure_tools(
             return (
                 "⚠️ **Visible-Watermark Human Review Required**\n\n"
                 f"- **Integrity Receipt:** {integrity_receipt['id']}\n"
-                f"- **Signals:** {signals}\n"
+                f"- **Signals:** {signal_summary}\n"
+                "- **Removal-package check:** "
+                f"{integrity.removal_package_check.status.value}\n"
                 "- **Automated removal:** disabled\n\n"
                 "Inspect the original asset and call this tool again with "
-                "`visible_watermark_review` documenting the human conclusion and authorization."
+                "`visible_watermark_review` documenting the reviewer conclusion. This field is "
+                "self-attested; it does not cryptographically verify reviewer identity or rights."
             )
 
         observation_items = [o.strip() for o in observations.split("|") if o.strip()]
@@ -345,6 +355,8 @@ def register_figure_tools(
             f"- **MIME:** {integrity.mime_type}\n"
             f"- **C2PA:** {integrity.provenance.status.value}\n"
             f"- **Visible Watermark:** {integrity.visible_watermark.status.value}\n"
+            "- **Removal-package check:** "
+            f"{integrity.removal_package_check.status.value}\n"
             f"- **Integrity Gate:** {integrity.gate_status.value}\n"
             "- **Automated removal:** disabled\n\n"
             "You can now call `insert_figure` or `insert_table` with the same caption."

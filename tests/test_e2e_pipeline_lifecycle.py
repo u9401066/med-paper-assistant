@@ -27,6 +27,7 @@ spawn — so they are fast and OOM-safe (no parallel workers required).
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -34,6 +35,11 @@ from pathlib import Path
 import pytest
 import yaml
 
+from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import (
+    AuditLoopConfig,
+    AutonomousAuditLoop,
+    Severity,
+)
 from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
     PipelineGateValidator,
 )
@@ -93,13 +99,88 @@ class PipelineProjectBuilder:
         for i in range(MIN_REFS):
             ref_dir = self.refs / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
+            pmid = f"300000{i:02d}"
+            asset_dir = ref_dir / "artifacts" / "asset-aware"
+            asset_dir.mkdir(parents=True, exist_ok=True)
+            sections_path = asset_dir / "sections.md"
+            sections_path.write_text(
+                "# Methods\n\nExtracted method evidence.\n\n# Results\n\nExtracted findings.\n",
+                encoding="utf-8",
+            )
+            section_raw = sections_path.read_bytes()
+            artifact_records = [
+                {
+                    "path": "sections.md",
+                    "sha256": hashlib.sha256(section_raw).hexdigest(),
+                    "bytes": len(section_raw),
+                }
+            ]
+            revision_payload = {
+                "asset_aware_doc_id": f"doc-{pmid}",
+                "fulltext_sections": ["Methods", "Results"],
+                "artifacts": artifact_records,
+            }
+            source_revision = hashlib.sha256(
+                json.dumps(
+                    revision_payload,
+                    allow_nan=False,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest()
+            receipt_path = asset_dir / "receipt.json"
+            receipt_path.write_text(
+                json.dumps(
+                    {
+                        "schema": "mdpaper.asset_aware_fulltext.v1",
+                        "source_tool": "asset-aware",
+                        "asset_aware_doc_id": f"doc-{pmid}",
+                        "fulltext_sections": ["Methods", "Results"],
+                        "completed_at": "2026-08-17T00:00:00+00:00",
+                        "source_revision_sha256": source_revision,
+                        "artifacts": artifact_records,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            analysis = {
+                "schema": "mdpaper.reference_analysis.v1",
+                "source_tool": "save_reference_analysis",
+                "pmid": pmid,
+                "summary": "Structured evidence analysis for the lifecycle fixture.",
+                "methodology": "The study design and methods were appraised.",
+                "key_findings": "Findings were mapped to bounded claims.",
+                "limitations": "Applicability limitations were recorded.",
+                "usage_sections": ["Introduction", "Discussion"],
+                "relevance_score": 4,
+                "source_revision_sha256": source_revision,
+                "source_kind": "asset-aware",
+                "analyzed_at": "2026-08-17T00:00:00+00:00",
+            }
+            analysis_path = ref_dir / "analysis.json"
+            analysis_path.write_text(json.dumps(analysis, indent=2), encoding="utf-8")
             (ref_dir / "metadata.json").write_text(
                 json.dumps(
                     {
-                        "pmid": f"300000{i:02d}",
+                        "pmid": pmid,
                         "title": f"Reference {i}",
                         "analysis_completed": True,
+                        "analysis_artifact_sha256": hashlib.sha256(
+                            analysis_path.read_bytes()
+                        ).hexdigest(),
+                        "analysis_source_tool": "save_reference_analysis",
+                        "analysis_completed_at": analysis["analyzed_at"],
+                        "analysis_source_revision_sha256": source_revision,
+                        "analysis_summary": analysis["summary"],
+                        "usage_sections": analysis["usage_sections"],
                         "fulltext_ingested": True,
+                        "asset_aware_doc_id": f"doc-{pmid}",
+                        "fulltext_sections": ["Methods", "Results"],
+                        "fulltext_receipt_sha256": hashlib.sha256(
+                            receipt_path.read_bytes()
+                        ).hexdigest(),
                     }
                 ),
                 encoding="utf-8",
@@ -163,7 +244,8 @@ class PipelineProjectBuilder:
             "## Introduction\nBackground and the research gap addressed here.\n\n"
             "## Methods\nWe enrolled one hundred participants and analysed them.\n\n"
             "## Results\nThe cohort showed the anticipated pattern of recovery.\n\n"
-            "## Discussion\nThis is the first study to examine the question.\n",
+            "## Discussion\nThis is the first study to examine the question.\n\n"
+            "## References\n\n1. Author A. Title. Journal. 2024.\n",
             encoding="utf-8",
         )
         self._approve_all_sections()
@@ -217,25 +299,86 @@ class PipelineProjectBuilder:
 
     # ── Phase 7: Autonomous Review ────────────────────────────────
     def complete_phase_7(self, rounds: int = 2) -> None:
-        loop_state = {
-            "config": {"min_rounds": 2, "max_rounds": 3},
-            "rounds": [],
-        }
+        config = AuditLoopConfig(
+            min_rounds=2,
+            max_rounds=3,
+            quality_threshold=7.0,
+            context="review",
+        )
+        loop = AutonomousAuditLoop(self.audit, config=config)
         elog = self.audit / "evolution-log.jsonl"
         for i in range(1, rounds + 1):
-            verdict = "quality_met" if i == rounds else "needs_revision"
-            loop_state["rounds"].append({"round": i, "verdict": verdict})
-            (self.audit / f"review-report-{i}.md").write_text(
-                f"# Review Report {i}\nDetailed findings.", encoding="utf-8"
+            report = (
+                "---\nmajor: 1\nminor: 0\noptional: 0\n---\n"
+                f"# Review Report {i}\n\n"
+                "## Methodology assessment\n"
+                "The methodology reviewer identified a reproducibility concern.\n\n"
+                "## Clinical domain assessment\n"
+                "The domain reviewer checked interpretation against the study setting.\n\n"
+                "## Statistical assessment\n"
+                "The statistic reviewer checked estimates and uncertainty.\n\n"
+                "## Major issues\n"
+                "- major: Clarify the analysis rationale and supporting evidence.\n\n"
+                + "Additional reviewer analysis explains the evidence and bounded correction. "
+                * 55
             )
+            (self.audit / f"review-report-{i}.md").write_text(report, encoding="utf-8")
             (self.audit / f"author-response-{i}.md").write_text(
-                f"# Author Response {i}\nPoint-by-point response.", encoding="utf-8"
+                f"# Author Response {i}\n\n"
+                "ACCEPT — Changed the manuscript to clarify the analysis rationale; "
+                "the revision is supported by the evidence and reference audit.\n",
+                encoding="utf-8",
             )
             (self.audit / f"equator-compliance-{i}.md").write_text(
-                f"# EQUATOR {i}\nCONSORT checklist addressed.", encoding="utf-8"
+                f"# EQUATOR {i}\n\n"
+                "- [x] Title and abstract\n"
+                "- [x] Background and objectives\n"
+                "- [x] Methods and setting\n"
+                "- [x] Results and uncertainty\n"
+                "- [x] Discussion and limitations\n",
+                encoding="utf-8",
             )
-            self._append_jsonl(elog, {"event": "review_round", "round": i, "verdict": verdict})
-        (self.audit / "audit-loop-review.json").write_text(json.dumps(loop_state), encoding="utf-8")
+
+            loop.start_round(artifact_hash=self._review_drafts_hash())
+            issue_index = loop.record_issue(
+                hook_id="R1",
+                severity=Severity.MAJOR,
+                description=f"Round {i} review issue",
+                suggested_fix="Clarify the evidence-grounded analysis rationale",
+            )
+            manuscript = self.drafts / "manuscript.md"
+            if manuscript.is_file():
+                manuscript.write_text(
+                    manuscript.read_text(encoding="utf-8")
+                    + f"\nRound {i} revision clarifies the analysis rationale.\n",
+                    encoding="utf-8",
+                )
+                loop.record_fix(issue_index, "author_revision", True)
+            else:
+                loop.record_fix(issue_index, "author_revision", False)
+            score = 8.0 if i == rounds and rounds >= config.min_rounds else 6.0
+            scores = {dimension: score for dimension in config.dimension_weights}
+            verdict = loop.complete_round(scores, artifact_hash=self._review_drafts_hash())
+            self._append_jsonl(
+                elog,
+                {
+                    "event": "review_round",
+                    "round": i,
+                    "verdict": verdict.value,
+                    "scores": scores,
+                    "weighted_score": score,
+                    "timestamp": f"2026-08-17T00:00:0{i}",
+                },
+            )
+
+    def _review_drafts_hash(self) -> str:
+        digest = hashlib.sha256()
+        manuscript = self.drafts / "manuscript.md"
+        draft_files = [manuscript] if manuscript.is_file() else sorted(self.drafts.glob("*.md"))
+        for draft_file in draft_files:
+            digest.update(draft_file.name.encode("utf-8"))
+            digest.update(draft_file.read_bytes())
+        return digest.hexdigest() if draft_files else ""
 
     # ── Phase 8: Reference Sync ───────────────────────────────────
     def complete_phase_8(self) -> None:
@@ -415,10 +558,15 @@ class TestFullLifecycleHappyPath:
         for phase in LIFECYCLE_PHASES:
             v = PipelineGateValidator(builder.root)
             before = v.validate_phase(phase)
-            assert not before.passed, (
-                f"Phase {phase} unexpectedly PASSED before its artifacts were built. "
-                f"Failures: {[c.name for c in before.critical_failures]}"
-            )
+            if phase == 8:
+                # Reference sync must be finalized before Phase 7 so the review
+                # receipt stays bound to the release manuscript.
+                assert before.passed
+            else:
+                assert not before.passed, (
+                    f"Phase {phase} unexpectedly PASSED before its artifacts were built. "
+                    f"Failures: {[c.name for c in before.critical_failures]}"
+                )
 
             completion[phase]()
 

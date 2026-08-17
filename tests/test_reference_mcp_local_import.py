@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from collections.abc import AsyncIterator
@@ -117,27 +118,52 @@ async def test_local_import_and_analysis_round_trip_updates_note_and_metadata(
         analysis_package = await session.call_tool(
             "get_reference_for_analysis", {"pmid": "12345678"}
         )
+        shallow_result = await session.call_tool(
+            "save_reference_analysis",
+            {
+                "pmid": "12345678",
+                "summary": "This summary is long enough to reach the minimum.",
+                "methodology": "x",
+                "key_findings": "y",
+                "limitations": "z",
+                "usage_sections": "Discussion",
+                "relevance_score": 4,
+            },
+        )
         save_result = await session.call_tool(
             "save_reference_analysis",
             {
                 "pmid": "12345678",
                 "summary": "Parsed fulltext confirms the local import pipeline works.",
+                "methodology": "The imported fulltext methods were reviewed for reproducibility.",
+                "key_findings": "The parsed sections contain evidence usable in the planned report.",
+                "limitations": "The local synthetic fixture does not represent a complete journal PDF.",
                 "usage_sections": "Introduction,Discussion",
                 "relevance_score": 4,
             },
         )
 
     analysis_text = _tool_text(analysis_package)
+    shallow_text = _tool_text(shallow_result)
     save_text = _tool_text(save_result)
 
     assert updated_after_resolution["pmid"] == "12345678"
     assert updated_after_resolution["content_hash"]
     assert (canonical_ref_dir / "artifacts" / "asset-aware" / "sections.md").exists()
+    receipt_path = canonical_ref_dir / "artifacts" / "asset-aware" / "receipt.json"
+    assert receipt_path.exists()
+    assert (
+        updated_after_resolution["fulltext_receipt_sha256"]
+        == hashlib.sha256(receipt_path.read_bytes()).hexdigest()
+    )
     assert "Fulltext available**: Yes" in analysis_text
     assert "Parsed section content." in analysis_text
+    assert "requires substantive fields" in shallow_text
     assert "✅ Analysis saved" in save_text
 
     updated_metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    analysis_path = canonical_ref_dir / "analysis.json"
+    saved_analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
     note_text = note_path.read_text(encoding="utf-8")
 
     assert updated_metadata["analysis_completed"] is True
@@ -145,6 +171,19 @@ async def test_local_import_and_analysis_round_trip_updates_note_and_metadata(
         "Parsed fulltext confirms the local import pipeline works."
     )
     assert updated_metadata["usage_sections"] == ["Introduction", "Discussion"]
+    assert saved_analysis["schema"] == "mdpaper.reference_analysis.v1"
+    assert saved_analysis["source_tool"] == "save_reference_analysis"
+    assert (
+        updated_metadata["analysis_artifact_sha256"]
+        == hashlib.sha256(analysis_path.read_bytes()).hexdigest()
+    )
+    assert updated_metadata["analysis_source_tool"] == "save_reference_analysis"
+    assert updated_metadata["analysis_completed_at"] == saved_analysis["analyzed_at"]
+    assert (
+        updated_metadata["analysis_source_revision_sha256"]
+        == saved_analysis["source_revision_sha256"]
+        == updated_metadata["content_hash"]
+    )
     assert initial_metadata["citation_key"] in updated_metadata["legacy_aliases"]
     assert ref_id in updated_metadata["legacy_aliases"]
     assert "analysis_completed: true" in note_text

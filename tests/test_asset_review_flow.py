@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -17,19 +16,23 @@ from med_paper_assistant.domain.value_objects.content_integrity import (
 from med_paper_assistant.infrastructure.external.content_integrity import (
     C2paProvenanceAdapter,
     ConservativeVisibleWatermarkHeuristic,
+    RemoveAiWatermarksInspectionAdapter,
 )
 from med_paper_assistant.infrastructure.persistence import ProjectManager, _reset_project_manager
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 from med_paper_assistant.interfaces.mcp.tools.analysis.figures import register_figure_tools
 
-_ONE_PIXEL_PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
-)
 _HUMAN_RASTER_REVIEW = (
     "Human reviewer inspected the original raster, found no visible watermark, "
     "and confirmed authorized reuse."
 )
+
+
+def _write_test_png(path: Path) -> None:
+    from PIL import Image
+
+    Image.new("RGB", (320, 320), color=(220, 225, 230)).save(path, format="PNG")
 
 
 class TestCaptionNormalization:
@@ -63,7 +66,7 @@ def figure_tool_funcs(tmp_path: Path, monkeypatch):
     (project_dir / "results" / "tables").mkdir(parents=True)
     (project_dir / ".audit").mkdir(parents=True)
     (project_dir / "drafts").mkdir(parents=True)
-    (project_dir / "results" / "figures" / "consort.png").write_bytes(_ONE_PIXEL_PNG)
+    _write_test_png(project_dir / "results" / "figures" / "consort.png")
     (project_dir / "results" / "tables" / "baseline.md").write_text("|A|B|\n|---|---|\n|1|2|")
 
     _reset_project_manager()
@@ -254,7 +257,7 @@ def test_asset_hash_change_after_review_blocks_insertion(figure_tool_funcs):
 
 def test_visible_watermark_signal_requires_documented_human_review(figure_tool_funcs):
     tool_funcs, project_dir = figure_tool_funcs
-    (project_dir / "results" / "figures" / "watermarked-preview.png").write_bytes(_ONE_PIXEL_PNG)
+    _write_test_png(project_dir / "results" / "figures" / "watermarked-preview.png")
     kwargs = {
         "asset_type": "figure",
         "filename": "watermarked-preview.png",
@@ -311,6 +314,7 @@ def test_tracker_rejects_pass_receipt_for_uncertain_raster(figure_tool_funcs):
     integrity = ContentIntegrityInspector(
         provenance_inspector=C2paProvenanceAdapter(),
         visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+        removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
     ).inspect(project_dir / asset_path, asset_path=asset_path)
     forged_pass = integrity.to_dict()
     forged_pass["gate_status"] = "PASS"
@@ -337,7 +341,240 @@ def test_tracker_rejects_pass_receipt_for_uncertain_raster(figure_tool_funcs):
     )
 
     assert ok is False
-    assert "inconsistently passes" in detail
+    assert "weaker than the recomputed decision" in detail
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    [
+        ("provider_version", "99.0.0", "unpinned"),
+        ("derivative_written", True, "no derivative"),
+        ("automated_removal_performed", True, "removal was disabled"),
+        ("checks_completed", [], "complete every required pixel check"),
+    ],
+)
+def test_tracker_rejects_tampered_removal_package_receipt(
+    figure_tool_funcs,
+    field,
+    value,
+    expected,
+):
+    _tool_funcs, project_dir = figure_tool_funcs
+    asset_path = "results/figures/consort.png"
+    tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    receipt_payload = (
+        ContentIntegrityInspector(
+            provenance_inspector=C2paProvenanceAdapter(),
+            visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+            removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
+        )
+        .inspect(project_dir / asset_path, asset_path=asset_path)
+        .to_dict()
+    )
+    receipt_payload["removal_package_check"][field] = value
+    receipt = tracker.record_content_integrity_receipt(
+        asset_type="figure",
+        asset_path=asset_path,
+        receipt=receipt_payload,
+    )
+    tracker.record_asset_review(
+        asset_type="figure",
+        asset_path=asset_path,
+        observations=["Two-arm flow", "Enrollment counts shown"],
+        rationale="Caption fits the reviewed raster.",
+        proposed_caption="CONSORT flow diagram",
+        content_integrity_receipt_id=receipt["id"],
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
+    )
+
+    ok, detail = tracker.review_satisfies_caption(
+        asset_path,
+        "CONSORT flow diagram",
+        asset_type="figure",
+    )
+
+    assert ok is False
+    assert expected in detail
+
+
+@pytest.mark.parametrize("status", ["PRESENT_INVALID", "ERROR"])
+def test_tracker_recomputes_and_rejects_forged_provenance_gate(
+    figure_tool_funcs,
+    status,
+):
+    _tool_funcs, project_dir = figure_tool_funcs
+    asset_path = "results/figures/consort.png"
+    tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    receipt_payload = (
+        ContentIntegrityInspector(
+            provenance_inspector=C2paProvenanceAdapter(),
+            visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+            removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
+        )
+        .inspect(project_dir / asset_path, asset_path=asset_path)
+        .to_dict()
+    )
+    receipt_payload["provenance"]["status"] = status
+    receipt_payload["gate_status"] = "HUMAN_REVIEW"
+    receipt = tracker.record_content_integrity_receipt(
+        asset_type="figure",
+        asset_path=asset_path,
+        receipt=receipt_payload,
+    )
+    tracker.record_asset_review(
+        asset_type="figure",
+        asset_path=asset_path,
+        observations=["Two-arm flow", "Enrollment counts shown"],
+        rationale="Caption fits the reviewed raster.",
+        proposed_caption="CONSORT flow diagram",
+        content_integrity_receipt_id=receipt["id"],
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
+    )
+
+    ok, detail = tracker.review_satisfies_caption(
+        asset_path,
+        "CONSORT flow diagram",
+        asset_type="figure",
+    )
+
+    assert ok is False
+    assert "recomputes to a blocked gate" in detail
+
+
+def test_tracker_rejects_receipt_that_hides_live_invalid_provenance(
+    figure_tool_funcs,
+    monkeypatch,
+):
+    """Editing both serialized status and gate cannot bypass current-byte inspection."""
+    _tool_funcs, project_dir = figure_tool_funcs
+    asset_path = "results/figures/consort.png"
+    tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    receipt_payload = (
+        ContentIntegrityInspector(
+            provenance_inspector=C2paProvenanceAdapter(),
+            visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+            removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
+        )
+        .inspect(project_dir / asset_path, asset_path=asset_path)
+        .to_dict()
+    )
+    receipt_payload["provenance"]["status"] = "ABSENT"
+    receipt_payload["gate_status"] = "HUMAN_REVIEW"
+    receipt = tracker.record_content_integrity_receipt(
+        asset_type="figure",
+        asset_path=asset_path,
+        receipt=receipt_payload,
+    )
+    tracker.record_asset_review(
+        asset_type="figure",
+        asset_path=asset_path,
+        observations=["Two-arm flow", "Enrollment counts shown"],
+        rationale="Caption fits the reviewed raster.",
+        proposed_caption="CONSORT flow diagram",
+        content_integrity_receipt_id=receipt["id"],
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
+    )
+
+    original_reinspect = tracker._inspect_current_content_integrity
+
+    def invalid_live_receipt(candidate, reviewed_path):
+        live = original_reinspect(candidate, reviewed_path)
+        live["provenance"]["status"] = "PRESENT_INVALID"
+        live["gate_status"] = "BLOCK"
+        return live
+
+    monkeypatch.setattr(tracker, "_inspect_current_content_integrity", invalid_live_receipt)
+    ok, detail = tracker.review_satisfies_caption(
+        asset_path,
+        "CONSORT flow diagram",
+        asset_type="figure",
+    )
+
+    assert ok is False
+    assert "live content-integrity reinspection blocks" in detail
+
+
+def test_tracker_rejects_svg_applicability_and_gate_tamper(figure_tool_funcs):
+    _tool_funcs, project_dir = figure_tool_funcs
+    asset_path = "results/figures/diagram.svg"
+    (project_dir / asset_path).write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg"><text>Evidence flow</text></svg>',
+        encoding="utf-8",
+    )
+    tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    receipt_payload = (
+        ContentIntegrityInspector(
+            provenance_inspector=C2paProvenanceAdapter(),
+            visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+            removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
+        )
+        .inspect(project_dir / asset_path, asset_path=asset_path)
+        .to_dict()
+    )
+    receipt_payload["visible_watermark"]["applicable"] = False
+    receipt_payload["gate_status"] = "PASS"
+    receipt = tracker.record_content_integrity_receipt(
+        asset_type="figure",
+        asset_path=asset_path,
+        receipt=receipt_payload,
+    )
+    tracker.record_asset_review(
+        asset_type="figure",
+        asset_path=asset_path,
+        observations=["Evidence flow", "Single text label"],
+        rationale="Caption matches the reviewed vector.",
+        proposed_caption="Evidence flow diagram",
+        content_integrity_receipt_id=receipt["id"],
+        visible_watermark_review="Human reviewer inspected the SVG source and approved reuse.",
+    )
+
+    ok, detail = tracker.review_satisfies_caption(
+        asset_path,
+        "Evidence flow diagram",
+        asset_type="figure",
+    )
+
+    assert ok is False
+    assert "differs from live reinspection" in detail or "inconsistently passes" in detail
+
+
+def test_tracker_rejects_stale_content_integrity_schema(figure_tool_funcs):
+    _tool_funcs, project_dir = figure_tool_funcs
+    asset_path = "results/figures/consort.png"
+    tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
+    receipt_payload = (
+        ContentIntegrityInspector(
+            provenance_inspector=C2paProvenanceAdapter(),
+            visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+            removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
+        )
+        .inspect(project_dir / asset_path, asset_path=asset_path)
+        .to_dict()
+    )
+    receipt_payload["schema_version"] = "1.0"
+    receipt = tracker.record_content_integrity_receipt(
+        asset_type="figure",
+        asset_path=asset_path,
+        receipt=receipt_payload,
+    )
+    tracker.record_asset_review(
+        asset_type="figure",
+        asset_path=asset_path,
+        observations=["Two-arm flow", "Enrollment counts shown"],
+        rationale="Caption fits the reviewed raster.",
+        proposed_caption="CONSORT flow diagram",
+        content_integrity_receipt_id=receipt["id"],
+        visible_watermark_review=_HUMAN_RASTER_REVIEW,
+    )
+
+    ok, detail = tracker.review_satisfies_caption(
+        asset_path,
+        "CONSORT flow diagram",
+        asset_type="figure",
+    )
+
+    assert ok is False
+    assert "schema is stale" in detail
 
 
 def test_invalid_c2pa_receipt_blocks_review_gate(figure_tool_funcs, monkeypatch):
@@ -355,6 +592,7 @@ def test_invalid_c2pa_receipt_blocks_review_gate(figure_tool_funcs, monkeypatch)
     inspector = ContentIntegrityInspector(
         provenance_inspector=InvalidProvenance(),
         visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+        removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
     )
     monkeypatch.setattr(
         "med_paper_assistant.interfaces.mcp.tools.analysis.figures._build_content_integrity_inspector",

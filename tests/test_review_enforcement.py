@@ -430,14 +430,14 @@ class TestCrossSessionHashPersistence:
         assert "round_start_time" in data
 
 
-# ── _compute_manuscript_hash: multi-file behaviour ─────────────────────
+# ── _compute_manuscript_hash: canonical-artifact behaviour ─────────────
 
 
-class TestComputeManuscriptHashMultiFile:
-    """Test that _compute_manuscript_hash hashes ALL .md files in drafts/."""
+class TestComputeManuscriptHashCanonicalArtifact:
+    """The final manuscript wins; section files are a fallback only."""
 
-    def test_section_file_change_alters_hash(self, project_dir):
-        """Modifying a section file (not manuscript.md) must change the hash."""
+    def test_section_file_does_not_replace_canonical_manuscript(self, project_dir):
+        """A scratch section must not impersonate a reviewed manuscript change."""
         from med_paper_assistant.interfaces.mcp.tools.review.pipeline_gate import (
             _compute_manuscript_hash,
         )
@@ -447,10 +447,10 @@ class TestComputeManuscriptHashMultiFile:
         intro = project_dir / "drafts" / "introduction.md"
         intro.write_text("# Introduction\n\nSome intro text.\n", encoding="utf-8")
         h2 = _compute_manuscript_hash(project_dir)
-        assert h1 != h2, "Hash must change when a new section file is added"
+        assert h1 == h2
 
-    def test_modifying_section_file_changes_hash(self, project_dir):
-        """Editing an existing section file must change the hash."""
+    def test_modifying_scratch_section_does_not_change_canonical_hash(self, project_dir):
+        """Only changes to the canonical manuscript invalidate its review hash."""
         from med_paper_assistant.interfaces.mcp.tools.review.pipeline_gate import (
             _compute_manuscript_hash,
         )
@@ -460,7 +460,21 @@ class TestComputeManuscriptHashMultiFile:
         h1 = _compute_manuscript_hash(project_dir)
         intro.write_text("# Introduction v2 — revised\n", encoding="utf-8")
         h2 = _compute_manuscript_hash(project_dir)
-        assert h1 != h2
+        assert h1 == h2
+
+    def test_section_only_project_hash_changes_with_section(self, project_dir):
+        """Section files remain the deterministic fallback before assembly."""
+        from med_paper_assistant.interfaces.mcp.tools.review.pipeline_gate import (
+            _compute_manuscript_hash,
+        )
+
+        (project_dir / "drafts" / "manuscript.md").unlink()
+        intro = project_dir / "drafts" / "introduction.md"
+        intro.write_text("# Introduction v1\n", encoding="utf-8")
+        h1 = _compute_manuscript_hash(project_dir)
+        intro.write_text("# Introduction v2 — revised\n", encoding="utf-8")
+
+        assert h1 != _compute_manuscript_hash(project_dir)
 
     def test_hash_deterministic_across_calls(self, project_dir):
         """Hash is deterministic (sorted filenames)."""

@@ -361,3 +361,47 @@ def test_review_pipeline_tools_guard_library_workflow(monkeypatch):
         )
         == "workflow-guard"
     )
+
+
+def test_pipeline_mcp_cannot_mint_human_override_receipts(monkeypatch, tmp_path):
+    project_dir = tmp_path / "project"
+    audit_dir = project_dir / ".audit"
+    audit_dir.mkdir(parents=True)
+    (project_dir / "project.json").write_text('{"slug": "demo"}', encoding="utf-8")
+    (audit_dir / "concept-review.yaml").write_text(
+        "review:\n  readiness: revise\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        pipeline_tools,
+        "resolve_project_context",
+        lambda project=None, required_mode="manuscript", project_manager=None: (
+            {"slug": "demo", "project_path": str(project_dir)},
+            None,
+        ),
+    )
+    handlers = pipeline_tools.register_pipeline_tools(
+        MCPServer("no-human-impersonation"),
+        project_manager=MagicMock(),
+        register_public_verbs=False,
+    )
+
+    concept_result = handlers["approve_concept_review"](
+        action="approve",
+        rationale="Agent-provided rationale",
+        accepted_risks="Agent-provided risks",
+        approved_by="human",
+        project="demo",
+    )
+    review_result = handlers["approve_review_completion"](
+        action="approve",
+        rationale="Agent-provided rationale",
+        accepted_risks="Agent-provided risks",
+        approved_by="human",
+        project="demo",
+    )
+
+    assert "Cannot Be Minted by MCP" in concept_result
+    assert "Cannot Be Minted by MCP" in review_result
+    assert not (audit_dir / "concept-review-override.yaml").exists()
+    assert not (audit_dir / "review-completion-override.yaml").exists()

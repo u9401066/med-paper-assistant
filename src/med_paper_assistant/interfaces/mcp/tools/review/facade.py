@@ -333,6 +333,7 @@ def register_review_facade_tools(
         - resume
         - approve_section
         - approve_concept_review
+        - approve_review_completion
         - reset_review_loop
         - list
         """
@@ -411,13 +412,28 @@ def register_review_facade_tools(
                     },
                     "approve_concept_review": {
                         "handler": "approve_concept_review",
-                        "params": [
-                            "decision",
-                            "feedback",
-                            "rationale",
-                            "accepted_risks",
-                            "project",
-                        ],
+                        "params": ["decision", "project"],
+                        "decision_values": ["status", "revoke"],
+                        "external_receipt_schema": "mdpaper.concept_review_override.v3",
+                        "external_receipt_signature": {
+                            "algorithm": "Ed25519",
+                            "encoding": "base64url",
+                            "fields": ["key_id", "value"],
+                            "trusted_keys_env": "MDPAPER_APPROVAL_ED25519_PUBLIC_KEYS",
+                        },
+                        "required_binding": ["concept_artifact_sha256", "concept_review_sha256"],
+                    },
+                    "approve_review_completion": {
+                        "handler": "approve_review_completion",
+                        "params": ["decision", "project"],
+                        "decision_values": ["status", "revoke"],
+                        "external_receipt_schema": "mdpaper.review_completion_override.v3",
+                        "external_receipt_signature": {
+                            "algorithm": "Ed25519",
+                            "encoding": "base64url",
+                            "fields": ["key_id", "value"],
+                            "trusted_keys_env": "MDPAPER_APPROVAL_ED25519_PUBLIC_KEYS",
+                        },
                     },
                     "reset_review_loop": {
                         "handler": "reset_review_loop",
@@ -429,6 +445,7 @@ def register_review_facade_tools(
                     "Phase 7 flow: start_review -> create review artifacts -> patch draft -> submit_review -> validate_phase.",
                     "Figure/table assets are handled by analysis_action or draft_action, not pipeline_action.",
                     "Use response_format='json' and compact=true on validate_phase for agent-friendly gate output.",
+                    "A sub-threshold review can only be accepted by an external trusted host/UI; pipeline_action can inspect or revoke that receipt, but cannot mint it.",
                 ],
             )
         if normalized in {
@@ -515,6 +532,16 @@ def register_review_facade_tools(
             ),
             "approve_concept_review": (
                 "approve_concept_review",
+                {
+                    "action": decision,
+                    "rationale": rationale,
+                    "accepted_risks": accepted_risks,
+                    "project": project,
+                    "approved_by": approved_by,
+                },
+            ),
+            "approve_review_completion": (
+                "approve_review_completion",
                 {
                     "action": decision,
                     "rationale": rationale,

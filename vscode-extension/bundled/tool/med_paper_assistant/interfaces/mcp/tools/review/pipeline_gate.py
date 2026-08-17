@@ -14,6 +14,7 @@ Tools:
 - pause_pipeline: Pause pipeline for user manual editing
 - resume_pipeline: Resume pipeline after pause, detecting user edits
 - approve_section: Approve or request revision for a written section
+- approve_review_completion: Inspect/revoke an externally issued review receipt
 """
 
 import hashlib
@@ -24,7 +25,6 @@ from pathlib import Path
 from typing import Any, Optional
 
 import structlog
-import yaml
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
 
@@ -34,6 +34,7 @@ from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import
     AutonomousAuditLoop,
     RoundVerdict,
     Severity,
+    validate_review_config_policy,
 )
 from med_paper_assistant.infrastructure.persistence.checkpoint_manager import (
     CheckpointManager,
@@ -92,6 +93,21 @@ def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> 
     audit_dir = project_path / ".audit"
     loop_file = audit_dir / "audit-loop-review.json"
 
+    # Validate caller-supplied policy before consulting the cache.  Otherwise a
+    # low-threshold request could appear to succeed merely because an older loop
+    # happened to be cached.
+    requested_config = AuditLoopConfig(
+        max_rounds=config.get("max_rounds", 3) if config else 3,
+        min_rounds=config.get("min_rounds", 2) if config else 2,
+        quality_threshold=config.get("quality_threshold", 7.0) if config else 7.0,
+        stagnation_rounds=config.get("stagnation_rounds", 2) if config else 2,
+        stagnation_delta=config.get("stagnation_delta", 0.3) if config else 0.3,
+        context="review",
+    )
+    policy_errors = validate_review_config_policy(requested_config)
+    if policy_errors:
+        raise ValueError("; ".join(policy_errors))
+
     # If cached loop is completed and checkpoint file is gone, evict stale cache
     if cache_key in _active_loops:
         cached = _active_loops[cache_key]
@@ -100,15 +116,22 @@ def _get_or_create_loop(project_dir: str | Path, config: dict | None = None) -> 
         else:
             return cached
 
-    # Create loop config
-    loop_config = AuditLoopConfig(
-        max_rounds=config.get("max_rounds", 3) if config else 3,
-        min_rounds=config.get("min_rounds", 2) if config else 2,
-        quality_threshold=config.get("quality_threshold", 7.0) if config else 7.0,
-        stagnation_rounds=config.get("stagnation_rounds", 2) if config else 2,
-        stagnation_delta=config.get("stagnation_delta", 0.3) if config else 0.3,
-        context="review",
-    )
+    # A restored loop must use the persisted configuration that produced its
+    # earlier verdicts.  Loading rounds into a fresh default configuration can
+    # silently change the state machine after a process restart.
+    loop_config = requested_config
+    if loop_file.is_file():
+        try:
+            persisted = json.loads(loop_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError("Persisted review state is unreadable or corrupt") from exc
+        state_errors = AutonomousAuditLoop.validate_serialized_state(persisted)
+        if state_errors:
+            raise ValueError(
+                "Persisted review state failed integrity checks: " + "; ".join(state_errors[:3])
+            )
+        loop_config = AuditLoopConfig(**persisted["config"])
+
     loop = AutonomousAuditLoop(str(audit_dir), config=loop_config)
 
     # Try to load from checkpoint
@@ -180,16 +203,18 @@ def _sync_to_workspace_state(
 
 
 def _compute_manuscript_hash(project_dir: str | Path) -> str:
-    """Compute SHA-256 hash of ALL draft .md files for change detection.
+    """Hash exactly the draft artifact consumed by the review hooks.
 
-    Hashes every .md file in drafts/ (sorted by name for determinism),
-    so that modifications via patch_draft() to ANY section file
-    (e.g. introduction.md, methods.md) are detected — not just manuscript.md.
+    When ``manuscript.md`` exists it is the canonical review target; changing a
+    scratch/section file must not satisfy the "review changed the manuscript"
+    requirement.  Section-only projects use the same sorted aggregate fallback
+    as ``read_review_manuscript_content``.
     """
     drafts_dir = Path(project_dir) / "drafts"
     if not drafts_dir.is_dir():
         return ""
-    md_files = sorted(drafts_dir.glob("*.md"))
+    manuscript = drafts_dir / "manuscript.md"
+    md_files = [manuscript] if manuscript.is_file() else sorted(drafts_dir.glob("*.md"))
     if not md_files:
         return ""
     h = hashlib.sha256()
@@ -882,16 +907,21 @@ def register_pipeline_tools(
 
             # Auto-sync pipeline state (anti-compaction)
             await report_tool_progress(ctx, 3, 5, "Evaluating verdict and syncing state", end=95)
-            is_done = verdict.value in (
-                "quality_met",
+            is_quality_met = verdict.value == "quality_met"
+            needs_human_decision = verdict.value in (
                 "max_rounds",
                 "stagnated",
                 "user_needed",
             )
             if verdict.value == "rewrite_needed":
                 next_act = "Call request_section_rewrite() to regress to Phase 5 before continuing."
-            elif is_done:
+            elif is_quality_met:
                 next_act = "Phase 7 complete. Run validate_phase_gate(7), then proceed to Phase 8."
+            elif needs_human_decision:
+                next_act = (
+                    "Quality is below the configured target. Escalate to the user; either revise "
+                    "or have a trusted host/UI record an external confirmation receipt."
+                )
             else:
                 next_act = (
                     f"Start review round {status['current_round'] + 1} with start_review_round()"
@@ -899,7 +929,7 @@ def register_pipeline_tools(
             _sync_to_workspace_state(
                 slug=slug,
                 phase=7,
-                gate_passed=is_done,
+                gate_passed=is_quality_met,
                 next_action=next_act,
                 current_round=status["current_round"],
                 review_verdict=verdict.value,
@@ -915,8 +945,8 @@ def register_pipeline_tools(
             verdict_actions = {
                 "continue": "🔄 **CONTINUE** — Start next round with `start_review_round()`",
                 "quality_met": "🎉 **QUALITY_MET** — Quality threshold reached! Proceed to Phase 8.",
-                "max_rounds": "⚠️ **MAX_ROUNDS** — Maximum rounds reached. Proceed to Phase 8 with current quality.",
-                "stagnated": "⚠️ **STAGNATED** — No improvement detected. Consider user intervention or proceed.",
+                "max_rounds": "⚠️ **MAX_ROUNDS** — Quality target was not met. Human decision is required.",
+                "stagnated": "⚠️ **STAGNATED** — No improvement detected. Human decision is required.",
                 "user_needed": "🛑 **USER_NEEDED** — Critical unresolved issues. Escalate to user.",
                 "rewrite_needed": "🔁 **REWRITE_NEEDED** — Section(s) need major rewrite. Call `request_section_rewrite()` to regress to Phase 5.",
             }
@@ -1442,29 +1472,26 @@ def register_pipeline_tools(
 
     @tool()
     def approve_concept_review(
-        action: str = "approve",
+        action: str = "status",
         rationale: str = "",
         accepted_risks: str = "",
         project: Optional[str] = None,
-        approved_by: str = "human",
+        approved_by: str = "",
     ) -> str:
         """
-        ✅ Record a human decision for Concept Review when proceeding despite revise/blocked readiness.
+        Inspect or revoke external Concept Review acceptance.
 
-        This is the explicit bypass path for human-collaboration mode.
-        Full-autonomous mode should NOT use this tool; it should reach
-        `readiness=ready` through normal concept iteration.
+        The MCP and autonomous Agent share one authority and therefore cannot
+        mint human evidence. A trusted host/UI must issue the v2 receipt.
 
         Actions:
-        - "approve": Allow downstream planning despite current concept-review readiness.
+        - "status": Inspect whether the current review/receipt is actionable.
         - "revoke": Remove the previous manual approval and restore normal hard gate behavior.
 
         Args:
-            action: "approve" or "revoke"
-            rationale: Why the human wants to proceed despite validator concerns
-            accepted_risks: Risks the human accepts for downstream drafting/planning
+            action: "status" or "revoke" ("approve" returns a refusal for compatibility)
             project: Project slug (optional, uses current project)
-            approved_by: Free-text approver label, defaults to "human"
+            approved_by: Deprecated compatibility field; never establishes authority
 
         Returns:
             Confirmation plus current gating implication
@@ -1482,8 +1509,8 @@ def register_pipeline_tools(
                 return workflow_error
             project_info = _require_project_info(project_info)
 
-            if action not in ("approve", "revoke"):
-                return "❌ Action must be 'approve' or 'revoke'."
+            if action not in ("approve", "status", "revoke"):
+                return "❌ Action must be 'status' or 'revoke'."
 
             project_dir = Path(project_info["project_path"])
             audit_dir = project_dir / ".audit"
@@ -1497,9 +1524,6 @@ def register_pipeline_tools(
                     "is normalized before any manual approval is recorded."
                 )
 
-            review = yaml.safe_load(concept_review_path.read_text(encoding="utf-8")) or {}
-            readiness = str(review.get("review", {}).get("readiness", "")).strip().lower()
-
             if action == "revoke":
                 if override_path.is_file():
                     override_path.unlink()
@@ -1509,48 +1533,107 @@ def register_pipeline_tools(
                     "Manual bypass has been removed. Phase 3/4 now require `readiness=ready` again."
                 )
 
-            if readiness == "ready":
-                return (
-                    "✅ Concept review is already `ready`. Manual bypass is unnecessary; "
-                    "the normal full-autonomous path can continue."
+            if action == "approve":
+                return "\n".join(
+                    [
+                        "# 🚫 Human Approval Cannot Be Minted by MCP",
+                        "",
+                        "The autonomous Agent and this MCP share the same authority; ",
+                        "`approved_by='human'` is therefore not acceptance evidence.",
+                        "A trusted host/UI must create `concept-review-override.yaml` ",
+                        "with schema `mdpaper.concept_review_override.v3`, the current ",
+                        "concept artifact/review hashes, and an Ed25519 signature. ",
+                        "Trusted public keys come only from ",
+                        "`MDPAPER_APPROVAL_ED25519_PUBLIC_KEYS`.",
+                    ]
                 )
 
-            if not rationale.strip():
-                return "❌ Rationale is required when approving a concept review override."
-
-            override = {
-                "approved_to_proceed": True,
-                "approved_at": datetime.now().isoformat(),
-                "approved_by": approved_by.strip() or "human",
-                "accepted_readiness": readiness,
-                "rationale": rationale.strip(),
-                "accepted_risks": accepted_risks.strip(),
-                "mode": "human-collaboration",
-            }
-            override_path.write_text(
-                yaml.safe_dump(override, allow_unicode=True, sort_keys=False),
-                encoding="utf-8",
-            )
-
-            log_tool_result(
-                "approve_concept_review", f"override approved for readiness={readiness}"
-            )
+            actionable, details = PipelineGateValidator(project_dir)._concept_review_is_actionable()
+            status = "PASS" if actionable else "BLOCKED"
+            log_tool_result("approve_concept_review", f"override status={status}")
             return "\n".join(
                 [
-                    "# ✅ Concept Review Override Recorded",
+                    f"# Concept Review Status: {status}",
                     "",
-                    f"- Current readiness: {readiness}",
-                    f"- Approved by: {override['approved_by']}",
-                    f"- Override file: {override_path}",
-                    "",
-                    "Phase 3/4 may now proceed in human-collaboration mode.",
-                    "Full-autonomous mode should still avoid this path and keep iterating to `ready`.",
+                    f"- Receipt: {'present' if override_path.is_file() else 'missing'}",
+                    f"- Gate: {details}",
                 ]
             )
 
         except Exception as e:
             log_tool_error("approve_concept_review", e)
             return f"❌ Error processing concept review approval: {e}"
+
+    def approve_review_completion(
+        action: str = "status",
+        rationale: str = "",
+        accepted_risks: str = "",
+        project: Optional[str] = None,
+        approved_by: str = "",
+    ) -> str:
+        """Inspect or revoke external human acceptance of a sub-threshold review.
+
+        This MCP shares the autonomous Agent's authority, so it deliberately
+        cannot mint a human-approval receipt. A trusted host/UI must create the
+        v3 Ed25519-signed external-user-confirmation receipt. This helper can
+        inspect or revoke that receipt without impersonating a reviewer. Trusted
+        public keys come only from ``MDPAPER_APPROVAL_ED25519_PUBLIC_KEYS``.
+        """
+        log_tool_call(
+            "approve_review_completion",
+            {"action": action, "project": project, "approved_by": approved_by},
+        )
+        try:
+            project_info, workflow_error = resolve_project_context(
+                project,
+                required_mode="manuscript",
+            )
+            if workflow_error:
+                return workflow_error
+            project_info = _require_project_info(project_info)
+            if action not in ("approve", "status", "revoke"):
+                return "❌ Action must be 'status' or 'revoke'."
+
+            project_dir = Path(project_info["project_path"])
+            audit_dir = project_dir / ".audit"
+            override_path = audit_dir / "review-completion-override.yaml"
+            if action == "revoke":
+                if override_path.is_file():
+                    override_path.unlink()
+                log_tool_result("approve_review_completion", "override revoked")
+                return (
+                    "# ↩️ Review Completion Override Revoked\n\nPhase 7 again requires quality_met."
+                )
+
+            if action == "approve":
+                return "\n".join(
+                    [
+                        "# 🚫 Human Approval Cannot Be Minted by MCP",
+                        "",
+                        "The autonomous Agent and this MCP share the same authority; ",
+                        "`approved_by='human'` is therefore not acceptance evidence.",
+                        "A trusted host/UI must create `review-completion-override.yaml` ",
+                        "with schema `mdpaper.review_completion_override.v3`, the current ",
+                        "manuscript/loop hashes, and an Ed25519 signature. ",
+                        "Trusted public keys come only from ",
+                        "`MDPAPER_APPROVAL_ED25519_PUBLIC_KEYS`.",
+                    ]
+                )
+
+            passed, details = PipelineGateValidator(project_dir)._check_review_completed()
+            status = "PASS" if passed else "BLOCKED"
+            log_tool_result("approve_review_completion", f"override status={status}")
+            return "\n".join(
+                [
+                    f"# Review Completion Status: {status}",
+                    "",
+                    f"- Receipt: {'present' if override_path.is_file() else 'missing'}",
+                    f"- Gate: {details}",
+                ]
+            )
+        except Exception as e:
+            log_tool_error("approve_review_completion", e)
+            return f"❌ Error processing review completion approval: {e}"
 
     @tool()
     def reset_review_loop(
@@ -1790,6 +1873,7 @@ def register_pipeline_tools(
         "resume_pipeline": resume_pipeline,
         "approve_section": approve_section,
         "approve_concept_review": approve_concept_review,
+        "approve_review_completion": approve_review_completion,
         "reset_review_loop": reset_review_loop,
     }
 

@@ -110,3 +110,39 @@ def test_analysis_action_routes_asset_tools_on_compact_surface():
         "after_section": "Results",
         "project": "demo",
     }
+
+
+def test_analysis_action_forwards_watermark_review_on_compact_surface():
+    review_calls: dict[str, object] = {}
+
+    def review_asset_for_insertion(**kwargs):
+        review_calls.update(kwargs)
+        return "review-ok"
+
+    handlers = register_analysis_facade_tools(
+        MCPServer("analysis-watermark-review-test"),
+        stats_tools={},
+        table_one_tools={},
+        figure_tools={"review_asset_for_insertion": review_asset_for_insertion},
+    )
+    result = __import__("asyncio").run(
+        handlers["analysis_action"](
+            action="review_asset",
+            asset_type="figure",
+            filename="flow.png",
+            observations="Two groups|Counts shown",
+            rationale="Caption matches the rendered flow",
+            proposed_caption="Participant flow",
+            evidence_excerpt="n=120",
+            visible_watermark_review=(
+                "Reviewer inspected the original and documented the reuse decision."
+            ),
+            project="demo",
+        )
+    )
+
+    assert result == "review-ok"
+    assert review_calls["visible_watermark_review"] == (
+        "Reviewer inspected the original and documented the reuse decision."
+    )
+    assert review_calls["project"] == "demo"

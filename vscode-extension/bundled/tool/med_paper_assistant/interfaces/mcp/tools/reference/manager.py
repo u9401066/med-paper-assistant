@@ -4,6 +4,7 @@ Reference Manager Tools
 save_reference, list, search, format, citation management, analysis
 """
 
+import hashlib
 import json
 import os
 from collections.abc import Callable
@@ -13,6 +14,10 @@ from typing import Any, Optional, Union
 from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence import ReferenceManager
+from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
+    REFERENCE_ANALYSIS_TEXT_MINIMUMS,
+    derive_reference_source_revision,
+)
 from med_paper_assistant.infrastructure.services import Drafter
 from med_paper_assistant.shared.path_guard import PathGuardError
 
@@ -1072,6 +1077,29 @@ def register_reference_manager_tools(
         """
         log_tool_call("save_reference_analysis", {"pmid": pmid, "project": project})
 
+        structured_fields = {
+            "summary": summary.strip(),
+            "methodology": methodology.strip(),
+            "key_findings": key_findings.strip(),
+            "limitations": limitations.strip(),
+        }
+        insufficient_fields = [
+            f"{name}>={REFERENCE_ANALYSIS_TEXT_MINIMUMS[name]} chars"
+            for name, value in structured_fields.items()
+            if len(value) < REFERENCE_ANALYSIS_TEXT_MINIMUMS[name]
+        ]
+        if insufficient_fields:
+            return (
+                "❌ A complete reference analysis requires substantive fields: "
+                + ", ".join(insufficient_fields)
+                + "."
+            )
+        summary = structured_fields["summary"]
+        if isinstance(relevance_score, bool) or not isinstance(relevance_score, int):
+            return "❌ relevance_score must be an integer from 1 to 5."
+        if not 1 <= relevance_score <= 5:
+            return "❌ relevance_score must be between 1 and 5."
+
         if project:
             is_valid, msg, project_info = ensure_project_context(project)
             if not is_valid:
@@ -1088,17 +1116,30 @@ def register_reference_manager_tools(
         sections_list = (
             [s.strip() for s in usage_sections.split(",") if s.strip()] if usage_sections else []
         )
+        if not sections_list:
+            return "❌ usage_sections must name at least one manuscript section."
+
+        metadata = ref_manager.get_metadata(pmid)
+        source_valid, source_details, source_revision, source_kind = (
+            derive_reference_source_revision(ref_dir, metadata)
+        )
+        if not source_valid:
+            return f"❌ Reference source evidence is incomplete: {source_details}"
 
         # Build analysis data
         analysis = {
+            "schema": "mdpaper.reference_analysis.v1",
+            "source_tool": "save_reference_analysis",
             "pmid": pmid,
             "summary": summary,
-            "methodology": methodology,
-            "key_findings": key_findings,
-            "limitations": limitations,
+            "methodology": structured_fields["methodology"],
+            "key_findings": structured_fields["key_findings"],
+            "limitations": structured_fields["limitations"],
             "usage_sections": sections_list,
-            "relevance_score": max(1, min(5, relevance_score)),
-            "analyzed_at": __import__("datetime").datetime.now().isoformat(),
+            "relevance_score": relevance_score,
+            "source_revision_sha256": source_revision,
+            "source_kind": source_kind,
+            "analyzed_at": __import__("datetime").datetime.now().astimezone().isoformat(),
         }
 
         # Save analysis.json
@@ -1107,12 +1148,19 @@ def register_reference_manager_tools(
             json.dumps(analysis, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
+        analysis_hash = hashlib.sha256(analysis_path.read_bytes()).hexdigest()
 
         update_result = ref_manager.update_reference_analysis_status(
             pmid,
             summary,
             usage_sections=sections_list,
             analysis_completed=True,
+            analysis_receipt={
+                "analysis_artifact_sha256": analysis_hash,
+                "analysis_source_tool": "save_reference_analysis",
+                "analysis_completed_at": analysis["analyzed_at"],
+                "analysis_source_revision_sha256": source_revision,
+            },
         )
         if update_result != f"Updated {pmid}.":
             return f"⚠️ Analysis saved but metadata update failed: {update_result}"

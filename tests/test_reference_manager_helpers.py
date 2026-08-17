@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import json
 from pathlib import Path
 
@@ -8,13 +7,16 @@ from med_paper_assistant.application.content_integrity import ContentIntegrityIn
 from med_paper_assistant.infrastructure.external.content_integrity import (
     C2paProvenanceAdapter,
     ConservativeVisibleWatermarkHeuristic,
+    RemoveAiWatermarksInspectionAdapter,
 )
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 
-_ONE_PIXEL_PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
-)
+
+def _write_test_png(path: Path) -> None:
+    from PIL import Image
+
+    Image.new("RGB", (320, 320), color=(220, 225, 230)).save(path, format="PNG")
 
 
 def test_get_reference_details_returns_metadata_and_ref_dir(tmp_path) -> None:
@@ -302,7 +304,7 @@ def test_refresh_foam_graph_materializes_draft_sections_and_assets(tmp_path) -> 
 This section cites [[smith2024_11111111]] and discusses Figure 1 and Table 1.
 """
     (drafts_dir / "draft.md").write_text(draft_text, encoding="utf-8")
-    (figures_dir / "consort.png").write_bytes(_ONE_PIXEL_PNG)
+    _write_test_png(figures_dir / "consort.png")
     (tables_dir / "baseline.md").write_text("|A|B|\n|---|---|\n|1|2|", encoding="utf-8")
     (tmp_path / "results" / "manifest.json").write_text(
         json.dumps(
@@ -318,6 +320,7 @@ This section cites [[smith2024_11111111]] and discusses Figure 1 and Table 1.
     integrity = ContentIntegrityInspector(
         provenance_inspector=C2paProvenanceAdapter(),
         visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+        removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
     ).inspect(
         figures_dir / "consort.png",
         asset_path="results/figures/consort.png",

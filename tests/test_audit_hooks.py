@@ -1,6 +1,7 @@
 """Tests for hard audit hooks — MCP tool functions + validator enforcement."""
 
 import asyncio
+import hashlib
 import inspect
 import json
 from pathlib import Path
@@ -9,6 +10,11 @@ from unittest.mock import patch
 import pytest
 import yaml
 
+from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import (
+    AuditLoopConfig,
+    AutonomousAuditLoop,
+    Severity,
+)
 from med_paper_assistant.infrastructure.persistence.hook_effectiveness_tracker import (
     HookEffectivenessTracker,
 )
@@ -104,31 +110,84 @@ def _write_concept_review(audit_dir: Path) -> None:
 
 
 def _write_review_loop(audit_dir: Path) -> None:
-    """Write a minimal completed review loop for pipeline gate prerequisites (phase >= 8)."""
-    (audit_dir / "audit-loop-review.json").write_text(
-        json.dumps(
+    """Create an authentic two-round review state for later phase prerequisites."""
+    project_dir = audit_dir.parent
+    manuscript = project_dir / "drafts" / "manuscript.md"
+
+    def draft_hash() -> str:
+        digest = hashlib.sha256()
+        for path in sorted((project_dir / "drafts").glob("*.md")):
+            digest.update(path.name.encode("utf-8"))
+            digest.update(path.read_bytes())
+        return digest.hexdigest()
+
+    config = AuditLoopConfig(
+        min_rounds=2,
+        max_rounds=3,
+        quality_threshold=7.0,
+        context="review",
+    )
+    loop = AutonomousAuditLoop(audit_dir, config=config)
+    events = []
+    for i in (1, 2):
+        (audit_dir / f"review-report-{i}.md").write_text(
+            "---\nmajor: 1\nminor: 0\noptional: 0\n---\n"
+            f"# Round {i} Review\n\n"
+            "## Methodology assessment\nA reproducibility concern was identified.\n\n"
+            "## Clinical domain assessment\nInterpretation was checked against context.\n\n"
+            "## Statistical assessment\nEstimates and uncertainty were reviewed.\n\n"
+            "## Major issues\n- major: Clarify the analysis rationale.\n\n"
+            + "The evidence and bounded correction were examined in detail. "
+            * 60,
+            encoding="utf-8",
+        )
+        (audit_dir / f"author-response-{i}.md").write_text(
+            f"# Round {i} Response\n\n"
+            "ACCEPT — Changed the analysis rationale with supporting evidence.\n",
+            encoding="utf-8",
+        )
+        (audit_dir / f"equator-compliance-{i}.md").write_text(
+            f"# Round {i} EQUATOR\n\n"
+            "- [x] Title and abstract\n"
+            "- [x] Background and objectives\n"
+            "- [x] Methods and setting\n"
+            "- [x] Results and uncertainty\n"
+            "- [x] Discussion and limitations\n",
+            encoding="utf-8",
+        )
+
+        loop.start_round(artifact_hash=draft_hash())
+        issue_index = loop.record_issue(
+            "R1",
+            Severity.MAJOR,
+            f"Round {i} review issue",
+            "Clarify the evidence-grounded analysis rationale",
+        )
+        manuscript.write_text(
+            manuscript.read_text(encoding="utf-8")
+            + f"\nRound {i} revision clarifies the analysis rationale.\n",
+            encoding="utf-8",
+        )
+        loop.record_fix(issue_index, "author_revision", True)
+        score = 8.0 if i == 2 else 6.0
+        scores = {dimension: score for dimension in config.dimension_weights}
+        verdict = loop.complete_round(scores, artifact_hash=draft_hash())
+        events.append(
             {
-                "config": {"min_rounds": 2, "max_rounds": 3},
-                "rounds": [
-                    {"round": 1, "verdict": "needs_revision"},
-                    {"round": 2, "verdict": "quality_met"},
-                ],
+                "event": "review_round",
+                "round": i,
+                "verdict": verdict.value,
+                "scores": scores,
+                "weighted_score": score,
+                "timestamp": f"2026-01-01T00:00:0{i}",
             }
         )
-    )
-    for i in (1, 2):
-        (audit_dir / f"review-report-{i}.md").write_text(f"# Round {i} Review\n")
-        (audit_dir / f"author-response-{i}.md").write_text(f"# Round {i} Response\n")
-        (audit_dir / f"equator-compliance-{i}.md").write_text(f"# Round {i} EQUATOR\n")
+
     elog = audit_dir / "evolution-log.jsonl"
     existing = elog.read_text(encoding="utf-8") if elog.is_file() else ""
     if "review_round" not in existing:
         elog.write_text(
-            existing
-            + json.dumps({"event": "review_round", "round": 1})
-            + "\n"
-            + json.dumps({"event": "review_round", "round": 2})
-            + "\n",
+            existing + "".join(json.dumps(event) + "\n" for event in events),
             encoding="utf-8",
         )
 

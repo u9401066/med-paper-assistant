@@ -12,26 +12,6 @@ from med_paper_assistant.infrastructure.persistence import get_project_manager
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
 
 
-class ProjectContextError(Exception):
-    """Raised when project context validation fails."""
-
-    pass
-
-
-def get_current_project_info() -> Dict[str, Any]:
-    """
-    Get current project information.
-
-    Returns:
-        Dict with project info or empty dict if no project active.
-    """
-    pm = get_project_manager()
-    current_slug = pm.get_current_project()
-    if current_slug:
-        return pm.get_project_info(current_slug)
-    return {}
-
-
 def validate_project_slug(project_slug: str) -> Tuple[bool, str, Optional[Dict]]:
     """
     Validate that a project slug exists and return project info.
@@ -106,21 +86,6 @@ def ensure_project_context(project_slug: Optional[str] = None) -> Tuple[bool, st
                 return False, f"No active project. Please specify one of: {', '.join(slugs)}", None
             else:
                 return False, "No projects exist. Create one first with create_project().", None
-
-
-def format_project_context_error(message: str, available_projects: Optional[list] = None) -> str:
-    """Format a helpful error message for project context issues."""
-    lines = ["⚠️ **Project Context Required**\n", message]
-
-    if available_projects:
-        lines.append("\n**Available projects:**")
-        for p in available_projects:
-            status = p.get("status", "unknown")
-            lines.append(f"- `{p.get('slug')}` - {p.get('name')} ({status})")
-
-    lines.append("\n**To specify a project, include `project` parameter in your tool call.**")
-
-    return "\n".join(lines)
 
 
 def get_project_list_for_prompt() -> str:

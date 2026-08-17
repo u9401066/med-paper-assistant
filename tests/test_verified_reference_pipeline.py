@@ -11,6 +11,9 @@ import pytest
 
 from med_paper_assistant.domain.entities.reference import Reference
 from med_paper_assistant.domain.services.reference_converter import ReferenceConverter
+from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
+    PipelineGateValidator,
+)
 from med_paper_assistant.infrastructure.persistence.reference_manager import ReferenceManager
 from med_paper_assistant.infrastructure.persistence.writing_hooks import WritingHooksEngine
 from med_paper_assistant.infrastructure.services import pubmed_api_client
@@ -48,6 +51,7 @@ def _mock_pubmed_http(
     envelope: Any,
     raw_body: bytes | None = None,
 ) -> None:
+    monkeypatch.setenv("PUBMED_MCP_API_URL", "https://pubmed.test")
     real_client = httpx.Client
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -230,6 +234,7 @@ def test_save_reference_mcp_persists_trust_chain_and_passes_p7(
     assert metadata["provenance"][0]["payload_hash"] == metadata["payload_hash"]
     assert metadata["agent_notes"] == "Use in the Discussion."
     assert metadata["trust_level"] == "verified"
+    assert metadata["pubmed_transport_payload"] == ARTICLE
 
     provenance_path = project_dir / "references" / PMID / "provenance.json"
     assert json.loads(provenance_path.read_text(encoding="utf-8")) == metadata["provenance"]
@@ -243,6 +248,16 @@ def test_save_reference_mcp_persists_trust_chain_and_passes_p7(
     assert p7.passed is True
     assert p7.stats["verified_count"] == 1
     assert p7.stats["unverified_count"] == 0
+
+    records, invalid, _ = PipelineGateValidator._reference_records(project_dir / "references")
+    assert len(records) == 1
+    assert not invalid
+
+    metadata["pubmed_transport_payload"]["title"] = "Post-save forged title"
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    records, invalid, _ = PipelineGateValidator._reference_records(project_dir / "references")
+    assert not records
+    assert "payload hash does not match provenance" in invalid[0]
 
 
 def test_save_reference_mcp_rejection_does_not_write(

@@ -3,6 +3,8 @@ import json
 import os
 import re
 import shutil
+from copy import deepcopy
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -2563,6 +2565,7 @@ class ReferenceManager:
         return destination
 
     def _persist_extracted_artifacts(self, ref_dir: str | Path, payload: Dict[str, Any]) -> None:
+        """Persist extraction outputs and mint a hash-bound Asset-Aware receipt."""
         extracted_markdown = payload.get("extracted_markdown", "")
         manifest = payload.get("asset_aware_manifest")
         blocks = payload.get("asset_aware_blocks")
@@ -2584,6 +2587,76 @@ class ReferenceManager:
 
         if segmentation:
             self._write_json_file(os.path.join(artifact_dir, "segmentation.json"), segmentation)
+
+        if not payload.get("fulltext_ingested") or not os.path.isdir(artifact_dir):
+            return
+
+        artifact_root = Path(artifact_dir)
+        artifact_records: list[dict[str, Any]] = []
+        for artifact_path in sorted(artifact_root.iterdir()):
+            if artifact_path.name == "receipt.json" or not artifact_path.is_file():
+                continue
+            raw = artifact_path.read_bytes()
+            if not raw:
+                continue
+            artifact_records.append(
+                {
+                    "path": artifact_path.name,
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                    "bytes": len(raw),
+                }
+            )
+        if not artifact_records:
+            return
+
+        sections = payload.get("fulltext_sections")
+        normalized_sections = (
+            [str(section).strip() for section in sections if str(section).strip()]
+            if isinstance(sections, list)
+            else []
+        )
+        asset_doc_id = str(payload.get("asset_aware_doc_id") or "").strip()
+        if not asset_doc_id or not normalized_sections:
+            return
+
+        source_revision_payload = {
+            "asset_aware_doc_id": asset_doc_id,
+            "fulltext_sections": normalized_sections,
+            "artifacts": artifact_records,
+        }
+        source_revision = hashlib.sha256(
+            json.dumps(
+                source_revision_payload,
+                allow_nan=False,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        receipt_path = artifact_root / "receipt.json"
+        completed_at = datetime.now(timezone.utc).isoformat()
+        existing_receipt = self._read_json_file(str(receipt_path), {})
+        if (
+            isinstance(existing_receipt, dict)
+            and existing_receipt.get("source_revision_sha256") == source_revision
+            and existing_receipt.get("asset_aware_doc_id") == asset_doc_id
+            and existing_receipt.get("fulltext_sections") == normalized_sections
+            and existing_receipt.get("artifacts") == artifact_records
+            and isinstance(existing_receipt.get("completed_at"), str)
+        ):
+            completed_at = existing_receipt["completed_at"]
+
+        receipt = {
+            "schema": "mdpaper.asset_aware_fulltext.v1",
+            "source_tool": "asset-aware",
+            "asset_aware_doc_id": asset_doc_id,
+            "fulltext_sections": normalized_sections,
+            "completed_at": completed_at,
+            "source_revision_sha256": source_revision,
+            "artifacts": artifact_records,
+        }
+        self._write_json_file(str(receipt_path), receipt)
+        payload["fulltext_receipt_sha256"] = hashlib.sha256(receipt_path.read_bytes()).hexdigest()
 
     def _files_have_same_content(self, source_path: str, target_path: str) -> bool:
         if not os.path.exists(source_path) or not os.path.exists(target_path):
@@ -2688,6 +2761,9 @@ class ReferenceManager:
         ref_dir = self._reference_dir(payload["unique_id"])
         os.makedirs(ref_dir, exist_ok=True)
 
+        # Extraction persistence can add a receipt hash to metadata, so it must
+        # run before metadata.json is serialized.
+        self._persist_extracted_artifacts(ref_dir, payload)
         self._write_json_file(os.path.join(ref_dir, "metadata.json"), payload)
         if payload.get("provenance"):
             self._write_json_file(os.path.join(ref_dir, "provenance.json"), payload["provenance"])
@@ -2697,7 +2773,6 @@ class ReferenceManager:
         with open(os.path.join(ref_dir, md_filename), "w", encoding="utf-8") as handle:
             handle.write(content)
 
-        self._persist_extracted_artifacts(ref_dir, payload)
         self._upsert_identity_registry(payload)
         if rebuild_index:
             self._rebuild_index()
@@ -2773,6 +2848,8 @@ class ReferenceManager:
         # callers cannot promote arbitrary metadata by adding ``verified=true``.
         untrusted_article = dict(article)
         untrusted_article.pop("_verified", None)
+        untrusted_article.pop("_pubmed_transport_payload", None)
+        untrusted_article.pop("pubmed_transport_payload", None)
         untrusted_article["verified"] = False
         untrusted_article["data_source"] = "agent"
         untrusted_article["trust_level"] = "agent"
@@ -2809,6 +2886,18 @@ class ReferenceManager:
 
         # Add pre-formatted citation strings to metadata
         ref_dict = ref.to_dict()
+        transport_payload = article.get("_pubmed_transport_payload")
+        if ref.verified and isinstance(transport_payload, dict):
+            canonical = json.dumps(
+                transport_payload,
+                allow_nan=False,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+            if hashlib.sha256(canonical).hexdigest() != ref.payload_hash:
+                return "Error: PubMed transport payload no longer matches its provenance hash."
+            ref_dict["pubmed_transport_payload"] = deepcopy(transport_payload)
         ref_dict["citation"] = self._format_citation(ref_dict)
         ref_dict["saved_at"] = __import__("datetime").datetime.now().isoformat()
 
@@ -3222,6 +3311,7 @@ class ReferenceManager:
             "content_hash",
             "imported_from",
             "asset_aware_doc_id",
+            "fulltext_receipt_sha256",
             "fulltext_unavailable_reason",
             "agent_notes",
             "user_notes",
@@ -3295,6 +3385,7 @@ class ReferenceManager:
         analysis_summary: str,
         usage_sections: Optional[List[str]] = None,
         analysis_completed: bool = True,
+        analysis_receipt: Optional[Dict[str, str]] = None,
     ) -> str:
         """Centralized write path for analysis status metadata."""
         updates = {
@@ -3302,6 +3393,15 @@ class ReferenceManager:
             "analysis_summary": analysis_summary,
             "usage_sections": usage_sections or [],
         }
+        for key in (
+            "analysis_artifact_sha256",
+            "analysis_source_tool",
+            "analysis_completed_at",
+            "analysis_source_revision_sha256",
+        ):
+            value = (analysis_receipt or {}).get(key, "")
+            if value:
+                updates[key] = value
         return self._update_reference_metadata(reference_id, updates, log_event="analysis_status")
 
     def save_reference_by_pmid(self, pmid: str) -> str:
@@ -3433,6 +3533,7 @@ class ReferenceManager:
                 reason=str(exc),
             )
             return f"❌ PubMed verification rejected for PMID:{pmid}: {exc}"
+        verified_article["_pubmed_transport_payload"] = deepcopy(article.article)
         return self._save_reference_article(verified_article)
 
     def _generate_citation_key(self, article: Dict[str, Any]) -> str:

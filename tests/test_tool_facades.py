@@ -172,9 +172,48 @@ async def test_pipeline_action_help_lists_supported_actions() -> None:
     assert "validate_phase" in payload["actions"]
     assert "start_review" in payload["actions"]
     assert "submit_review" in payload["actions"]
+    assert "approve_review_completion" in payload["actions"]
+    assert payload["actions"]["approve_review_completion"]["decision_values"] == [
+        "status",
+        "revoke",
+    ]
+    assert payload["actions"]["approve_concept_review"]["external_receipt_schema"].endswith(".v3")
+    signature_contract = payload["actions"]["approve_concept_review"]["external_receipt_signature"]
+    assert signature_contract["algorithm"] == "Ed25519"
+    assert signature_contract["trusted_keys_env"] == "MDPAPER_APPROVAL_ED25519_PUBLIC_KEYS"
     assert "doctor" in payload["actions"]
     assert "score_schema" in payload["actions"]["submit_review"]
     assert "analysis_action" in " ".join(payload["notes"])
+
+
+@pytest.mark.asyncio
+async def test_pipeline_action_routes_review_completion_status() -> None:
+    captured: dict[str, object] = {}
+
+    def approve_review_completion(**kwargs):
+        captured.update(kwargs)
+        return "approved"
+
+    funcs = register_review_facade_tools(
+        MCPServer("pipeline-review-approval-route-test"),
+        audit_tools={},
+        pipeline_tools={"approve_review_completion": approve_review_completion},
+    )
+
+    result = await funcs["pipeline_action"](
+        action="approve_review_completion",
+        decision="status",
+        project="demo",
+    )
+
+    assert result == "approved"
+    assert captured == {
+        "action": "status",
+        "rationale": "",
+        "accepted_risks": "",
+        "project": "demo",
+        "approved_by": "human",
+    }
 
 
 @pytest.mark.asyncio

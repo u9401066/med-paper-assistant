@@ -6,8 +6,7 @@ Submission preparation tools have been migrated to skills:
   → .claude/skills/submission-preparation/SKILL.md
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 # Type alias for journal requirements
 JournalReqs = dict[str, Any]
@@ -213,82 +212,3 @@ JOURNAL_REQUIREMENTS: dict[str, JournalReqs] = {
         "orcid": "optional",
     },
 }
-
-
-@dataclass
-class ChecklistItem:
-    """Represents a submission checklist item."""
-
-    category: str
-    item: str
-    status: str  # "pass", "fail", "warning", "info"
-    details: Optional[str] = None
-
-
-@dataclass
-class SubmissionChecklist:
-    """Submission checklist report."""
-
-    items: list[ChecklistItem] = field(default_factory=list)
-
-    def add(
-        self,
-        category: str,
-        item: str,
-        status: str,
-        details: Optional[str] = None,
-    ):
-        self.items.append(
-            ChecklistItem(category=category, item=item, status=status, details=details)
-        )
-
-    @property
-    def pass_count(self) -> int:
-        return sum(1 for i in self.items if i.status == "pass")
-
-    @property
-    def fail_count(self) -> int:
-        return sum(1 for i in self.items if i.status == "fail")
-
-    @property
-    def warning_count(self) -> int:
-        return sum(1 for i in self.items if i.status == "warning")
-
-    def to_markdown(self, journal_name: str) -> str:
-        output = f"# 📋 Submission Checklist for {journal_name}\n\n"
-
-        # Summary
-        total = len(self.items)
-        output += "## Summary\n"
-        output += f"- ✅ Pass: {self.pass_count}/{total}\n"
-        output += f"- ❌ Fail: {self.fail_count}\n"
-        output += f"- ⚠️ Warning: {self.warning_count}\n\n"
-
-        if self.fail_count == 0:
-            output += "🎉 **Ready for submission!**\n\n"
-        else:
-            output += "⚠️ **Please fix the issues before submission.**\n\n"
-
-        # Group by category
-        categories: dict[str, list[ChecklistItem]] = {}
-        for item in self.items:
-            if item.category not in categories:
-                categories[item.category] = []
-            categories[item.category].append(item)
-
-        for category, items in categories.items():
-            output += f"## {category}\n\n"
-            for item in items:
-                icon = {
-                    "pass": "✅",  # nosec B105 - presentation status mapping
-                    "fail": "❌",
-                    "warning": "⚠️",
-                    "info": "ℹ️",
-                }.get(item.status, "❓")
-                output += f"- {icon} {item.item}"
-                if item.details:
-                    output += f" — {item.details}"
-                output += "\n"
-            output += "\n"
-
-        return output

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from mcp.server import MCPServer
 
 from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
     PipelineGateValidator,
+    derive_reference_source_revision,
 )
 from med_paper_assistant.infrastructure.persistence.writing_hooks import WritingHooksEngine
 from med_paper_assistant.interfaces.mcp.tools.project.facade import register_project_facade_tools
@@ -35,10 +37,45 @@ async def test_golden_mini_project_source_ingestion_claim_and_anchor_flow(
     for i in range(20):
         ref_dir = project_dir / "references" / f"ref-{i}"
         ref_dir.mkdir(parents=True, exist_ok=True)
-        (ref_dir / "metadata.json").write_text(
-            json.dumps({"pmid": f"1000{i}", "analysis_completed": True}),
-            encoding="utf-8",
+        pmid = f"1000{i}"
+        metadata = {
+            "pmid": pmid,
+            "title": f"Golden reference {i}",
+            "analysis_completed": True,
+            "analysis_source_tool": "save_reference_analysis",
+            "fulltext_ingested": False,
+            "fulltext_unavailable_reason": "not_open_access",
+        }
+        source_valid, _, source_revision, source_kind = derive_reference_source_revision(
+            ref_dir, metadata
         )
+        assert source_valid
+        analysis = {
+            "schema": "mdpaper.reference_analysis.v1",
+            "source_tool": "save_reference_analysis",
+            "pmid": pmid,
+            "summary": "Structured evidence analysis for the golden reference.",
+            "methodology": "Methods and design were appraised.",
+            "key_findings": "Findings were mapped to bounded claims.",
+            "limitations": "Applicability limitations were recorded.",
+            "usage_sections": ["Introduction", "Discussion"],
+            "relevance_score": 4,
+            "source_revision_sha256": source_revision,
+            "source_kind": source_kind,
+            "analyzed_at": "2026-08-17T00:00:00+00:00",
+        }
+        analysis_path = ref_dir / "analysis.json"
+        analysis_path.write_text(json.dumps(analysis, indent=2), encoding="utf-8")
+        metadata.update(
+            {
+                "analysis_artifact_sha256": hashlib.sha256(analysis_path.read_bytes()).hexdigest(),
+                "analysis_completed_at": analysis["analyzed_at"],
+                "analysis_source_revision_sha256": source_revision,
+                "analysis_summary": analysis["summary"],
+                "usage_sections": analysis["usage_sections"],
+            }
+        )
+        (ref_dir / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
     source_docx = workspace / "20240112 primary screening table.docx"
     source_docx.write_text("mock docx", encoding="utf-8")
 

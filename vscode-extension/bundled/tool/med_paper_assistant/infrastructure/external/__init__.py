@@ -5,6 +5,16 @@ Note: PubMed search functionality is now provided by pubmed-search MCP server.
 Use MCP protocol for search operations, not direct imports.
 """
 
-from .content_integrity import C2paProvenanceAdapter, ConservativeVisibleWatermarkHeuristic
+from .content_integrity import (
+    C2paProvenanceAdapter,
+    ConservativeVisibleWatermarkHeuristic,
+    RemoveAiWatermarksInspectionAdapter,
+    reinspect_content_integrity,
+)
 
-__all__ = ["C2paProvenanceAdapter", "ConservativeVisibleWatermarkHeuristic"]
+__all__ = [
+    "C2paProvenanceAdapter",
+    "ConservativeVisibleWatermarkHeuristic",
+    "RemoveAiWatermarksInspectionAdapter",
+    "reinspect_content_integrity",
+]

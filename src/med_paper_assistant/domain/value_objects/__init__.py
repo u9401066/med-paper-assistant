@@ -5,10 +5,16 @@ Domain Value Objects
 from .author import Author, generate_author_block
 from .citation import CitationFormat, CitationStyle
 from .content_integrity import (
+    REMOVAL_PACKAGE_INSPECTION_MODE,
+    REMOVAL_PACKAGE_PROVIDER,
+    REMOVAL_PACKAGE_REQUIRED_CHECKS,
+    REMOVAL_PACKAGE_VERSION,
     ContentIntegrityReceipt,
     IntegrityGateStatus,
     ProvenanceAssessment,
     ProvenanceStatus,
+    RemovalPackageAssessment,
+    RemovalPackageStatus,
     VisibleWatermarkAssessment,
     VisibleWatermarkStatus,
 )
@@ -24,6 +30,12 @@ __all__ = [
     "IntegrityGateStatus",
     "ProvenanceAssessment",
     "ProvenanceStatus",
+    "REMOVAL_PACKAGE_INSPECTION_MODE",
+    "REMOVAL_PACKAGE_PROVIDER",
+    "REMOVAL_PACKAGE_REQUIRED_CHECKS",
+    "REMOVAL_PACKAGE_VERSION",
+    "RemovalPackageAssessment",
+    "RemovalPackageStatus",
     "SearchCriteria",
     "VisibleWatermarkAssessment",
     "VisibleWatermarkStatus",
