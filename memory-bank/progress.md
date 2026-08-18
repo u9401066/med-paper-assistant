@@ -1,6 +1,14 @@
-# Progress (Updated: 2026-08-17)
+# Progress (Updated: 2026-08-18)
 
 ## Done
+
+- **v1.0.1 trust, reproducibility, and public release (2026-08-18)**:
+
+  - Published five intentional root commit groups plus release-workflow hardening to `master`; annotated `v1.0.1` points to release source `b4ef4c7` and current `master` is `6766ddd`.
+  - Passed tag-source CI `32039614054`, post-hardening CI `32041426671`, Pages `32039237364`, three-platform smokes, 1,698-test remote Python suite, VSIX 174/174, full/compact MCP, watermark, security, bundle, wheel-install, real VS Code install, and five immutable SDK2 archive gates.
+  - Published PyPI 1.0.1 wheel/sdist and GitHub Release wheel/sdist/VSIX. Public SHA-256 values are wheel `8425bbb9…7918`, sdist `c7763c3c…3f9`, and VSIX `391ebc2d…050c`; PyPI publish attestations match the downloadable GitHub files byte-for-byte.
+  - Release attempt 8 succeeded in every job except VS Marketplace. Microsoft Marketplace still returns 404 for `/_apis/gallery/token`; the public listing remains 0.7.10, while the v1.0.1 release explicitly reports the degraded channel and supplies the verified VSIX.
+  - Added exact-SHA successful-CI archive-evidence reuse to prevent GitHub codeload outages from weakening or indefinitely blocking an already-proven release; fallback direct archive smokes remain fail-closed.
 
 - **v1.0.0 SDK2-only + auditable academic-writing release (2026-08-17)**:
 
@@ -179,15 +187,13 @@
 
 ## Doing
 
-- **v1.0.1 final preflight and segmented release**：source/VSIX/docs bundle、四個精準分段 commits 與 push 已完成；主 CI `32039237331`、Pages `32039237364` 及五套 immutable archive smoke 全綠。待乾淨 clone release/tag 與公開 artifact 驗證。
-- **VS Marketplace recovery**：OIDC backend 目前不可用；recovery workflow 已具 tag/version/SHA/install/PAT/gallery fail-closed checks，但需 owner 輪替有效 `VSCE_PAT` 或以 portal 上傳同一份已驗證 VSIX。
+- **VS Marketplace recovery**：v1.0.1 的 PyPI、GitHub Release 與 attached VSIX 已完成；Marketplace OIDC backend 目前不可用。Recovery workflow 已具 tag/version/SHA/install/PAT/gallery fail-closed checks，但需 owner 輪替有效 `VSCE_PAT` 或以 portal 上傳同一份已驗證 VSIX。
 
 ## Next
 
 - Implement ranked evidence-context ledger, perspective question map, and bounded branch audit artifacts
 - 依 `code-quality-authority.json` 逐步拆分 391 項 legacy size exceptions；每次只允許縮減，不允許新增或成長
-- Configure a Marketplace-supported workload identity/trusted-publishing policy, or use the publisher portal to upload the already verified v1.0.0 VSIX; do not reuse the unauthorized legacy PAT.
-- 以乾淨 temporary clone 執行 v1.0.1 release preflight/tag，避免夾帶使用者未追蹤檔案
+- Configure a Marketplace-supported workload identity/trusted-publishing policy, rotate a short-lived authorized PAT for the guarded recovery workflow, or use the publisher portal to upload the already verified v1.0.1 VSIX; do not reuse the unauthorized legacy PAT.
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features
