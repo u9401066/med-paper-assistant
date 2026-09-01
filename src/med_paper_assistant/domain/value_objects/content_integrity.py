@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import Any
 
 REMOVAL_PACKAGE_PROVIDER = "remove-ai-watermarks"
-REMOVAL_PACKAGE_VERSION = "0.26.3"
+REMOVAL_PACKAGE_VERSION = "0.36.0"
 REMOVAL_PACKAGE_INSPECTION_MODE = "strict_registered_visible_open_dwt_v1"
 REMOVAL_PACKAGE_REQUIRED_CHECKS = ("registered_visible", "open_dwt_dct")
 

@@ -529,8 +529,8 @@ jobs:
           from med_paper_assistant.shared.template_paths import get_templates_dir
 
           assert med_paper_assistant.__version__ == os.environ["EXPECTED_RELEASE_VERSION"]
-          assert version("c2pa-python") == "0.37.7"
-          assert version("remove-ai-watermarks") == "0.26.3"
+          assert version("c2pa-python") == "0.37.8"
+          assert version("remove-ai-watermarks") == "0.36.0"
           assert (get_templates_dir() / "journal-profile.template.yaml").is_file()
 
           asset = Path("wheel-watermark-negative.png")
@@ -676,8 +676,8 @@ jobs:
               RemoveAiWatermarksInspectionAdapter,
           )
 
-          assert version("c2pa-python") == "0.37.7"
-          assert version("remove-ai-watermarks") == "0.26.3"
+          assert version("c2pa-python") == "0.37.8"
+          assert version("remove-ai-watermarks") == "0.36.0"
           asset = Path("pypi-watermark-negative.png")
           pixels = np.random.default_rng(0).integers(0, 255, (512, 512, 3), dtype=np.uint8)
           Image.fromarray(pixels).save(asset)

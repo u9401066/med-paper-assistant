@@ -1,6 +1,6 @@
 [project]
 name = "med-paper-assistant"
-version = "1.0.1"
+version = "1.0.2"
 description = "An MCP-orchestrated research workspace for manuscript and library-wiki workflows"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -52,12 +52,12 @@ publishing = [
 ]
 # Optional, read-only C2PA provenance validation. Core installs degrade to UNSUPPORTED.
 provenance = [
-    "c2pa-python==0.37.7",
+    "c2pa-python==0.37.8",
 ]
 # Pinned CPU-only second opinion. Runtime uses detection-only paths and never writes a derivative.
 watermark = [
-    "c2pa-python==0.37.7",
-    "remove-ai-watermarks[visible,detect]==0.26.3",
+    "c2pa-python==0.37.8",
+    "remove-ai-watermarks[visible,detect]==0.36.0",
     "numpy==2.5.2",
     "opencv-python-headless==5.0.0.93",
     "pillow==12.3.0",
@@ -151,6 +151,9 @@ asyncio_mode = "auto"
 addopts = "-m 'not integration and not slow'"
 timeout = 60
 markers = [
+    "contract: repository, release, documentation, and public-surface contracts",
+    "mcp: MCP SDK client/server protocol behavior",
+    "smoke: process, package, or representative product-path smoke tests",
     "slow: marks tests as slow (deselect with '-m not slow')",
     "integration: marks tests requiring external services",
 ]

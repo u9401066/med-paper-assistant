@@ -10,6 +10,7 @@ node_modules/**
 tsconfig.json
 vsc-extension-quickstart.md
 **/*.ts
+**/*.mts
 **/.DS_Store
 **/Thumbs.db
 
