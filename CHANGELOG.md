@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-09-01
+
+### Added
+
+- Added a technical Phase gate contract covering every code phase (`0`, `1`, `2`, `2.1`, `3`, `4`, `5`, `6`, `6.5`, `7`, `8`, `9`, `10`, and `11`) with the implemented hard gates, workflow obligations, advisories, and concrete repair paths.
+- Added a documentation contract test derived from the validator's phase authority so new or changed code phases must remain represented in both the design contract and the human-facing website.
+
+### Changed
+
+- Rewrote the public research-pipeline page in plain language around what each stage produces, what actually blocks progress, how to repair a failure, and which decisions still require human judgment.
+- Aligned the Auto-Paper skill, guide, design documents, README files, roadmap, and website navigation with the same Phase gate vocabulary and the implemented C5/C6/C7a/C7b/C7d/R6 responsibilities.
+
+### Fixed
+
+- Removed documentation overclaims around Phase 4 approval coverage, Phase 6 unresolved-critical enforcement, Phase 8 formatting and citation-budget enforcement, and a nonexistent Phase 11 completion marker.
+- Clarified validator messages so recorded section approvals may come from manual review or an audited autopilot path, without changing the underlying enforcement behavior.
+
 ## [1.0.2] - 2026-09-01
 
 ### Changed

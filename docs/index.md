@@ -138,4 +138,4 @@ flowchart TB
 
 !!! info "目前穩定版本"
 
-    `v1.0.2` 提供 MCP SDK2-only runtime、118 full / 12 compact 工具面、13 種正式學術產出、110 個 base constraints、可審計跨 Agent harness、內容來源完整性 gate，以及可安裝 VSIX。版本與 artifact 請見 [GitHub Releases](https://github.com/u9401066/med-paper-assistant/releases)。
+    `v1.0.3` 提供 MCP SDK2-only runtime、118 full / 12 compact 工具面、13 種正式學術產出、110 個 base constraints、可審計跨 Agent harness、內容來源完整性 gate，以及可安裝 VSIX。版本與 artifact 請見 [GitHub Releases](https://github.com/u9401066/med-paper-assistant/releases)。

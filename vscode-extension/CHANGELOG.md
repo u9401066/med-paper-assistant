@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3 - 2026-09-01
+
+- See the repository CHANGELOG for the complete release notes.
+
 ## 1.0.2 - 2026-09-01
 
 - See the repository CHANGELOG for the complete release notes.
