@@ -12,6 +12,8 @@ from mcp import Client, ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.types import ElicitResult
 
+pytestmark = [pytest.mark.mcp, pytest.mark.smoke]
+
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_CORE_TOOL_NAMES = {
     "reference_action",

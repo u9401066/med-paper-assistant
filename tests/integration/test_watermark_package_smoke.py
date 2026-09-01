@@ -22,6 +22,8 @@ from med_paper_assistant.infrastructure.external.content_integrity import (
     RemoveAiWatermarksInspectionAdapter,
 )
 
+pytestmark = [pytest.mark.integration, pytest.mark.smoke]
+
 
 def _textured_bgr(size: int = 512):
     import numpy as np
@@ -64,12 +66,11 @@ def _embed_open_dwt_dct(bgr, message: int):
     return cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
 
 
-@pytest.mark.integration
 def test_pinned_removal_package_detects_synthetic_mark_without_writing_derivative(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Exercise the real 0.26.3 detector on an upstream-algorithm synthetic mark."""
+    """Exercise the real pinned detector on an upstream-algorithm synthetic mark."""
     import numpy as np
     from PIL import Image
     from remove_ai_watermarks.gemini_engine import GeminiEngine, get_watermark_config
@@ -129,7 +130,6 @@ def test_pinned_removal_package_detects_synthetic_mark_without_writing_derivativ
     assert list(tmp_path.iterdir()) == [asset]
 
 
-@pytest.mark.integration
 def test_pinned_removal_package_detects_open_dwt_dct_offline(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -157,7 +157,6 @@ def test_pinned_removal_package_detects_open_dwt_dct_offline(
     assert list(tmp_path.iterdir()) == [asset]
 
 
-@pytest.mark.integration
 def test_negative_package_result_never_turns_raster_gate_clean(tmp_path: Path) -> None:
     import cv2
 

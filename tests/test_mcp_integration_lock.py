@@ -6,8 +6,11 @@ import sys
 import tomllib
 from pathlib import Path
 
+import pytest
 from packaging.requirements import Requirement
 from packaging.version import Version
+
+pytestmark = pytest.mark.contract
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "mcp-integration-lock.json"

@@ -8,6 +8,8 @@ from types import SimpleNamespace
 
 import pytest
 
+pytestmark = [pytest.mark.mcp, pytest.mark.smoke]
+
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "greedy_mcp_tool_smoke.py"
 
 

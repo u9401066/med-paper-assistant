@@ -5,12 +5,6 @@ LiteratureSearcher = pytest.importorskip(
 ).LiteratureSearcher
 
 
-@pytest.mark.skip(reason="StrategyManager removed during DDD refactor - needs reimplementation")
-def test_strategy_manager(tmp_path):
-    """StrategyManager was removed during DDD refactor. Test kept as spec reference."""
-    pass
-
-
 def test_abstract_filtering():
     searcher = LiteratureSearcher()
 

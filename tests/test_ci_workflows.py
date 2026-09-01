@@ -8,12 +8,14 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 from yaml.constructor import ConstructorError
 from yaml.nodes import MappingNode
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_DIR = REPO_ROOT / ".github" / "workflows"
+pytestmark = pytest.mark.contract
 
 ACTION_PINS = {
     "actions/checkout": ("3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"),

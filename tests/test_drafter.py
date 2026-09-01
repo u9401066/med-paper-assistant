@@ -12,57 +12,6 @@ from med_paper_assistant.infrastructure.services.drafter import (
 )
 
 
-@pytest.mark.integration
-def test_drafter(tmp_path):
-    # Setup
-    test_ref_dir = str(tmp_path / "test_references_draft")
-    test_draft_dir = str(tmp_path / "test_drafts")
-
-    ref_manager = ReferenceManager(base_dir=test_ref_dir)
-    drafter = Drafter(ref_manager, drafts_dir=test_draft_dir)
-
-    # 1. Prepare a known PMID (e.g., 41285088 from previous test)
-    pmid = "41285088"
-
-    # 2. Create Content with Placeholder
-    content = f"""
-# Introduction
-
-Asthma is a chronic condition (PMID:{pmid}).
-Recent studies have shown significant economic burden [PMID:{pmid}].
-    """
-
-    print("Creating draft...")
-    filepath = drafter.create_draft("test_intro", content)
-    print(f"Draft created at: {filepath}")
-
-    # 3. Verify Output
-    if os.path.exists(filepath):
-        with open(filepath, "r", encoding="utf-8") as f:
-            final_content = f.read()
-
-        print("\n--- Final Content ---")
-        print(final_content)
-        print("---------------------")
-
-        if "[1]" in final_content and "## References" in final_content:
-            print("Test PASSED: Citations and Bibliography found.")
-        else:
-            print("Test FAILED: Missing citations or bibliography.")
-
-        # Check if reference was automatically fetched/saved
-        if os.path.exists(os.path.join(test_ref_dir, pmid)):
-            print(f"Reference {pmid} was automatically saved.")
-        else:
-            print(f"Reference {pmid} was NOT saved (Unexpected).")
-
-    else:
-        print("Test FAILED: File not created.")
-
-
-# ── Unit Tests (no network, no integration mark) ──────────────────────────
-
-
 class TestDraftFilenameValidation:
     """Tests for cross-platform-safe draft filenames."""
 

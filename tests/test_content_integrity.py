@@ -323,10 +323,10 @@ def test_provenance_extra_declares_the_read_only_c2pa_sdk() -> None:
         (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
     )
 
-    assert pyproject["project"]["optional-dependencies"]["provenance"] == ["c2pa-python==0.37.7"]
+    assert pyproject["project"]["optional-dependencies"]["provenance"] == ["c2pa-python==0.37.8"]
     assert pyproject["project"]["optional-dependencies"]["watermark"] == [
-        "c2pa-python==0.37.7",
-        "remove-ai-watermarks[visible,detect]==0.26.3",
+        "c2pa-python==0.37.8",
+        "remove-ai-watermarks[visible,detect]==0.36.0",
         "numpy==2.5.2",
         "opencv-python-headless==5.0.0.93",
         "pillow==12.3.0",
