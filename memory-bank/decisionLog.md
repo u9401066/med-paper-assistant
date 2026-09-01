@@ -20,6 +20,12 @@
 - Root basic/compact/full MCP 及五套 external SDK2 archive smokes 均通過，0 broken / 0 unexpected error。
 - Python、Node、security、docs、package、bundle 與 authority gates 全綠；僅保留有清楚原因的外部或 workflow preconditions。
 
+### 發布結果
+
+- 四段 release commits 與一筆 Markdown authority 修正已推送；annotated `v1.0.2` 指向 `43a74f85e767561c7fc883717805231ba5b0c921`，exact-SHA CI `33484784062` 全綠。
+- PyPI 1.0.2 與 GitHub Release 已公開；wheel/sdist 的 PyPI provenance subjects、GitHub assets 與記錄的 SHA-256 完全相符。
+- Release workflow `33485127367` 的 code、security、artifact、install、PyPI 與 GitHub Release jobs 全部成功。VS Marketplace OIDC 唯一失敗原因是 Microsoft endpoint 連續兩次回 503；維持 fail-closed，不以忽略錯誤作假綠，並提供已通過隔離安裝 smoke 的 VSIX。
+
 ## [2026-08-17] v1.0.1 Fail-Closed Artifact Trust and Reproducible Local Runtime
 
 ### 背景

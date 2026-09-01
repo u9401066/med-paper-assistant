@@ -11,7 +11,9 @@
   - Final local gates passed: Python fast 1690 passed / 7 skipped / 25 deselected; contract 35/35; MCP 43/43; watermark integration 3/3; external archive 5/5; Ruff, format, mypy, Bandit, vulture, authority/consistency, strict MkDocs, wheel/sdist build, VSIX Node 24 lint + 174 tests + bundle/package, Dashboard Node 24 lint/build, npm audit, and `git diff --check`.
   - Synchronized README EN/zh-TW, VSIX/Dashboard development requirements, MCP2 content-integrity documentation, workflow references, CHANGELOG, lock/version assertions, and bundled Python parity without overwriting unrelated user work.
   - Synchronized all public version surfaces to 1.0.2 and built the local release artifacts. Full-suite coverage is reported honestly at 66.43%; the release guidance now follows the executable CI gates and forbids inflating coverage with tests that do not exercise production behavior.
-  - Pending: segmented commits, exact-SHA master CI, annotated `v1.0.2` tag, and public artifact/attestation verification.
+  - Published four intentional release commits plus one Markdown authority fix; annotated `v1.0.2` points to `43a74f85e767561c7fc883717805231ba5b0c921`, and exact-SHA CI `33484784062` passed every platform and quality job.
+  - Published PyPI 1.0.2 and GitHub Release wheel/sdist/VSIX. SHA-256: wheel `29d74fc971e78bd400efaf03f441f54307749e340ada074e1ece5b17f804857b`, sdist `ea3e10574b44d20fb8f76573765fa66b0907e77a8ee9de5e12eca0c3acaed35e`, VSIX `65c346e907c667b38d92b0d951d87c398c04e42775f5fb9a233eb9f657f88e22`; both PyPI provenance subjects match the public artifacts and `release.yml` publisher.
+  - Release workflow `33485127367` passed release authority, three-platform smoke, Python/security/archive/bundle/build/install, PyPI publish, and GitHub Release. VS Marketplace OIDC alone failed twice because Microsoft's endpoint returned 503; the release remains fail-closed and supplies the verified VSIX fallback.
 
 - **v1.0.1 trust, reproducibility, and public release (2026-08-18)**:
 

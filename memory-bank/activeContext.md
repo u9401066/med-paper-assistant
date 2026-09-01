@@ -6,7 +6,7 @@
 
 ## 當前焦點 (2026-09-01)
 
-v1.0.2 SDK2 hardening release candidate 已完成本機複查：root 與五個 immutable integration 的實際 MCP initialize/list/call 均成功，compact/full greedy smoke 無 broken/error；Python、VSIX、Dashboard、文件、security、build 與 bundle gates 全綠。依賴更新至目前相容的 stable 版本（MCP 2.1.1、C2PA 0.37.8、remove-ai-watermarks 0.36.0），source-build 基線統一為 Node 24。測試移除 fake、print-only、吞例外與永久 skip 案例，改以 `contract`、`mcp`、`smoke`、`integration` 分層；完整 suite coverage 66.43% 如實記錄，不以低價值 tests 灌高。未擴張架構或 MCP surface，等待分段 commits、master CI、annotated tag 與遠端 release 驗證。
+v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的實際 MCP initialize/list/call 均成功，compact/full greedy smoke 無 broken/error；Python、VSIX、Dashboard、文件、security、build、bundle 與 exact-SHA CI gates 全綠。依賴更新至目前相容的 stable 版本（MCP 2.1.1、C2PA 0.37.8、remove-ai-watermarks 0.36.0），source-build 基線統一為 Node 24。測試移除 fake、print-only、吞例外與永久 skip 案例，改以 `contract`、`mcp`、`smoke`、`integration` 分層；完整 suite coverage 66.43% 如實記錄，不以低價值 tests 灌高。PyPI 與 GitHub Release 已公開且 provenance/digests 相符；VS Marketplace OIDC 兩次遭 Microsoft 503，保留 fail-closed 狀態並提供已驗證 VSIX。
 
 ### 當前狀態
 
@@ -20,7 +20,7 @@ v1.0.2 SDK2 hardening release candidate 已完成本機複查：root 與五個 i
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                                                                                                                                         |
 | Validation Gate       | tool/count/code-quality authorities + Ruff/mypy/Bandit/vulture + `npm run validate`                                                                                                                                                                                         |
 | Latest Validation     | Python fast **1690 passed / 7 skipped / 25 deselected**；contract **35/35**；MCP **43/43**；VSIX **174/174**；compact MCP **11 ok / 1 designed skip**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；五套 immutable archive **5/5** |
-| Packaging             | **v1.0.2 local wheel/sdist/VSIX ✅；remote release pending**；Marketplace OIDC endpoint 404 的既有外部邊界仍明示 degraded，不作假綠                                                                                                                                         |
+| Packaging             | **v1.0.2 PyPI + GitHub Release ✅**；wheel/sdist provenance 與 GitHub digests 相符；Marketplace OIDC 兩次回 503，已驗證 VSIX 由 GitHub Release 提供                                                                                                                         |
 | Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**                                                                                                                                                                  |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
@@ -43,6 +43,9 @@ v1.0.2 SDK2 hardening release candidate 已完成本機複查：root 與五個 i
 - 移除只測自建 fake、print-only、吞例外與永久 skip 的低價值 tests；新增 test layer markers 與 `tests/README.md`，保留真實邊界、contract、transport、integration 與 regression coverage。
 - README、zh-TW、VSIX/Dashboard 開發說明、MCP2 content-integrity、workflow、CHANGELOG 與 35-page strict MkDocs site 已同步。
 - 版本權威同步至 1.0.2，local wheel/sdist 與 1.98 MB VSIX 已建立；release-prep 指引已與實際 CI authority 對齊，不以 repo 未設定的 coverage 門檻誘發無意義 unit tests。
+- 分四段 release commits 推送並以 `43a74f85e767561c7fc883717805231ba5b0c921` 建立 annotated `v1.0.2`；exact-SHA CI `33484784062` 全綠。
+- PyPI 1.0.2 與 GitHub Release 已公開，wheel/sdist 的 PyPI attestations 與公開 SHA-256 完全相符；Release workflow `33485127367` 除 VS Marketplace 外全部成功。
+- Marketplace OIDC 首次與一次安全重跑都由 Microsoft endpoint 回 503；不再盲目重試，release notes 明示 degraded channel 並提供通過隔離安裝 smoke 的 VSIX。
 
 #### v1.0.1 Trust + Reproducibility Hardening (2026-08-17)
 
