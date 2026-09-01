@@ -1,5 +1,25 @@
 # Decision Log
 
+## [2026-09-01] Phase Gate Truth Has Three Explicit Levels
+
+### 背景
+
+網站與部分設計文件把「Agent 應做的校正」寫成「程式已強制」，導致研究者無法判斷某項規則究竟會擋關、只會提醒，或只是設計目標。典型漂移包括 Phase 4 approval/coverage、Phase 6 的 0-critical 說法、Phase 8 引用格式／預算、Phase 11 completion marker，以及舊 C7c/C7e 編號。
+
+### 決定
+
+1. `PipelineGateValidator.validate_phase()` 的 CRITICAL checks 是 hard-gate 實作權威；heartbeat 只供導航。
+2. Auto-Paper skill 的搜尋、審閱、修稿與人工確認若未由 validator 重算，明確標為 workflow contract，不得宣稱 code-enforced。
+3. WARNING/INFO 明確標為 advisory，不以 warning 阻擋 paper-only delivery。
+4. Design contract 使用精確技術語言；公開 Wiki 對每個 Phase 使用「真正擋關／流程要求／沒通過怎麼修／人要判斷」的人類語言。
+5. 文件 contract test 從 code phase authority 取得 14 個 phase values，要求 design 與 human docs 逐 Phase 覆蓋，避免日後只新增 code 而漏更新網站。
+
+### 結果
+
+- Phase 0–11、2.1、6.5 的 design/code/website 說法對齊。
+- C7 family 固定為 C7a 圖表數量、C7b asset-plan coverage、C7d cross-reference；C6/C5/R6 分別承擔字數、Wikilink、引用預算。
+- 現有功能沒有為了文件一致性而擴張；未 code-enforced 的設計目標被如實揭露，而不是用新抽象或低價值 tests 掩蓋。
+
 ## [2026-09-01] SDK2 Audit Without Surface or Architecture Expansion
 
 ### 背景

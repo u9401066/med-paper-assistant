@@ -2,6 +2,22 @@
 
 ## Done
 
+- **v1.0.3 Phase gate alignment release preflight (2026-09-01)**:
+
+  - Synchronized all public version surfaces to 1.0.3 and updated CHANGELOG, README EN/zh-TW, ROADMAP, website navigation, technical design, human guidance, and bundled VSIX mirrors.
+  - Passed Python fast 1691/1691, contract 36/36, MCP 43/43, targeted pipeline/docs 209/209, basic smoke 14/14, watermark 3/3, and all five immutable SDK2 archive smokes.
+  - Passed tool-surface/code-quality/consistency authorities, Ruff, format, mypy, Bandit, vulture, strict 36-page MkDocs, and scoped Markdown/diff checks without increasing the existing code-size debt ratchet.
+  - Under Node 24, passed VSIX lint, 174/174 tests, bundle parity, 92/92 validate, package build, zero production audit findings, and a real isolated install into the pinned VS Code 1.101.2 CLI; Dashboard lint/build/audit also passed.
+  - Built and isolated-smoked the 1.0.3 wheel plus sdist/VSIX. Local SHA-256: wheel `147bfe36…3091f`, sdist `b465e5ca‣5a0a9`, VSIX `63e6c5bf‣935ea`. Public digests will be recorded only after the tag workflow publishes its own artifacts.
+
+- **Phase gate design/code/website truth alignment (2026-09-01)**:
+
+  - Audited all 14 code phase values (`0, 1, 2, 21, 3, 4, 5, 6, 65, 7, 8, 9, 10, 11`) against `PipelineGateValidator`, Auto-Paper workflow/design documents, and the public MkDocs site.
+  - Added a technical phase-gate contract that distinguishes CRITICAL code enforcement, workflow obligations, and WARNING/INFO advisories, with a concrete recovery path for every phase.
+  - Rewrote the public pipeline page in plain language around “what you get / what really blocks / how to fix it / what needs human judgment”.
+  - Corrected overclaims around Phase 4 approval coverage, Phase 6 unresolved-critical enforcement, Phase 8 formatting/budget checks, and Phase 11 completion markers; corrected C7 to the implemented C7a counts, C7b asset coverage, and C7d cross-references.
+  - Added a contract test deriving phase coverage from the code authority and requiring both design and human documentation for every phase. Validation: 100 targeted docs/pipeline tests passed; 36-page/52-Mermaid/8-SVG site validation, strict MkDocs, Ruff, Prettier, and local-link checks passed.
+
 - **v1.0.2 SDK2 migration audit and release preflight (2026-09-01)**:
 
   - Confirmed the root remains SDK2-only with 118 full / 12 compact tools and no FastMCP/SDK1 fallback; initialized all submodules and preserved their immutable authority revisions.

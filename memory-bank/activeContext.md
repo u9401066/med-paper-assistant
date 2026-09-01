@@ -6,7 +6,11 @@
 
 ## 當前焦點 (2026-09-01)
 
+v1.0.3 Phase gate 說明對齊修正已完成本機 release preflight：程式的 hard-gate 行為沒有擴張，而是將 validator 訊息、Auto-Paper skill/design 與公開網站統一成 14 個 code phases 的真實契約。Python fast 1691 tests、contract 36、MCP 43、Node 24 VSIX 174、Dashboard production build、strict docs、security/authority、compact/full greedy、watermark、五套 immutable archives、wheel 與真實 VSIX 安裝 smoke 全綠。版本權威與本機 artifacts 已同步為 1.0.3，尚待分段 commit、exact-SHA CI、tag 與公開發布。
+
 v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的實際 MCP initialize/list/call 均成功，compact/full greedy smoke 無 broken/error；Python、VSIX、Dashboard、文件、security、build、bundle 與 exact-SHA CI gates 全綠。依賴更新至目前相容的 stable 版本（MCP 2.1.1、C2PA 0.37.8、remove-ai-watermarks 0.36.0），source-build 基線統一為 Node 24。測試移除 fake、print-only、吞例外與永久 skip 案例，改以 `contract`、`mcp`、`smoke`、`integration` 分層；完整 suite coverage 66.43% 如實記錄，不以低價值 tests 灌高。PyPI 與 GitHub Release 已公開且 provenance/digests 相符；VS Marketplace OIDC 兩次遭 Microsoft 503，保留 fail-closed 狀態並提供已驗證 VSIX。
+
+目前進一步完成 Phase gate 三方對齊：`PipelineGateValidator` 的實際 CRITICAL/WARNING 邊界、Auto-Paper workflow/design，以及公開 Wiki 使用相同的 Phase 0–11、2.1、6.5 契約。網站改以「真正擋關／流程要求／提醒／沒通過怎麼修」說明，不再把 Phase 4 approval coverage、Phase 6 的 0-unresolved-critical workflow target、Phase 8 格式／預算或 Phase 11 completion marker 誤稱為現有 code hard gate；C7 family 統一為 C7a/C7b/C7d。
 
 ### 當前狀態
 
@@ -19,9 +23,9 @@ v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的
 | Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                                                                                                                                                                          |
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                                                                                                                                         |
 | Validation Gate       | tool/count/code-quality authorities + Ruff/mypy/Bandit/vulture + `npm run validate`                                                                                                                                                                                         |
-| Latest Validation     | Python fast **1690 passed / 7 skipped / 25 deselected**；contract **35/35**；MCP **43/43**；VSIX **174/174**；compact MCP **11 ok / 1 designed skip**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；五套 immutable archive **5/5** |
-| Packaging             | **v1.0.2 PyPI + GitHub Release ✅**；wheel/sdist provenance 與 GitHub digests 相符；Marketplace OIDC 兩次回 503，已驗證 VSIX 由 GitHub Release 提供                                                                                                                         |
-| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**                                                                                                                                                                  |
+| Latest Validation     | Python fast **1691 passed / 7 skipped / 25 deselected**；contract **36/36**；MCP **43/43**；VSIX **174/174**；compact MCP **11 ok / 1 designed skip**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；五套 immutable archive **5/5** |
+| Packaging             | **v1.0.3 local wheel/sdist/VSIX + isolated install smoke ✅**；尚待 exact-SHA CI/tag/publication；**v1.0.2 PyPI + GitHub Release ✅**                                                                                                                                       |
+| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**36 pages / 52 Mermaid / 8 accessible SVG**；Phase gate design/code/human contract tests                                                                                                                     |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -34,6 +38,14 @@ v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的
 | L3 Autonomous Self-Evolution | ⚠️ 大部分完成          | EvolutionVerifier + weekly health 已上線；缺 git post-commit / Auto-PR |
 
 ### 最近變更
+
+#### Phase Gate Design / Code / Website Alignment (2026-09-01)
+
+- 新增 `docs/design/phase-gate-contract.md`，逐 Phase 記錄 code hard gate、workflow obligation、advisory 與修正路徑。
+- 將公開 pipeline 頁重寫為研究者可直接理解的「真正擋關／沒通過怎麼修」，完整涵蓋 14 個 code phase values。
+- 修正 Auto-Paper guide/skill 與歷史 multi-stage design 的錯誤宣稱：C7b 是 asset-plan coverage；C6/C5/R6 分別負責字數、Wikilink、引用預算。
+- 修正 Phase 5 gate 的人類用語，recorded approval 可由 manual 或有 audit 的 autopilot 產生，不再錯寫成一律 user-approved。
+- 新增 code phase 對 design + human docs 的 contract test；targeted pipeline/docs tests、site validator、Prettier 與 strict MkDocs build 全綠。
 
 #### v1.0.2 SDK2 Dependency, Smoke, Test, and Docs Release Prep (2026-09-01)
 
