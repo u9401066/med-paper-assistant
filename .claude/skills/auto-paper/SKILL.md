@@ -185,7 +185,7 @@ Agent 按優先順序取得期刊要求：
 | `paper.sections`                 | Phase 4 大綱, Phase 5 寫作順序              |
 | `word_limits.*`                  | Hook A1 字數, Hook C6 總字數                |
 | `assets.figures_max/tables_max`  | Phase 4 Asset Plan, Phase 5 Asset 生成      |
-| `references.max_references`      | Phase 2 文獻數量, Phase 8 引用上限          |
+| `references.max_references`      | Phase 7 R6 / Phase 8 reference workflow     |
 | `references.reference_limits`    | 按論文類型的引用上限（覆蓋 max_references） |
 | `references.style`               | Phase 8 引用格式                            |
 | `reporting_guidelines.checklist` | Hook B5 方法學, Hook C2 投稿清單            |
@@ -230,7 +230,7 @@ pipeline:
 - Phase 7 達 max_rounds 且品質未達標
 - regression_count > 2（防止無限循環）
 
-**Gate**: journal-profile.yaml 存在 + 用戶已確認關鍵欄位（字數、圖表上限）
+**Code hard gate**: `journal-profile.yaml` + `.audit/source-materials.yaml` 存在。關鍵欄位是否合理／已由用戶確認是 workflow 判斷，不由 Phase 0 validator 逐欄驗證。
 
 ---
 
@@ -245,7 +245,7 @@ pipeline:
 5. `project_action(action="update", target_journal=journal.name)`
 6. `workspace_state_action(action="sync", doing="phase 1 setup", next_action="phase 2 literature")`
 
-**Gate**: 專案存在 + paper_type 與 journal-profile 一致
+**Code hard gate**: `drafts/`、`references/`、`data/`、`results/`、`.audit/`、`.memory/` 存在。paper type 對齊是 setup workflow 要求；Phase 2 起另以 `project.json` 作前置條件。
 
 ---
 
@@ -261,7 +261,7 @@ pipeline:
 5. 選前 15-20 篇 → `save_reference_mcp(pmid, agent_notes)`
 6. [Optional] Zotero: `search_items(query)` → 取 PMID → `save_reference_mcp()`
 
-**Gate**: Paper-type-aware 最低文獻數（Code-Enforced）
+**Code hard gate**: Paper-type-aware 最低文獻數 + 每筆 reference 有穩定 identity 與誠實 trust provenance。搜尋策略／選文紀錄缺失只警告。
 
 | Paper Type        | 最低文獻數 |
 | ----------------- | ---------- |
@@ -320,8 +320,7 @@ pipeline:
 | ...  | ...  | ✅       | doc_abc     | ✅       | I/M/R/D  |       |
 | ...  | ...  | ❌       | —           | ⚠️       | I only   | 非 OA |
 
-**Gate**: fulltext-ingestion-status.md 已建立 + 每篇文獻標記全文狀態
-**CRITICAL Gate**: 所有文獻必須有 `analysis_completed: true`（Pipeline Gate Phase 2.1 強制檢查）
+**Code hard gate**: `fulltext-ingestion-status.md` 非空；每篇文獻都有可驗證 ingestion evidence 或明確 fallback；`analysis_completed: true` 必須對得上目前 source revision 的 analysis artifact；primary user materials 不得仍為 `pending_asset_aware`。
 **WARNING Gate**: 若 >50% 文獻無全文 → 提醒用戶考慮補充 OA 文獻
 
 ---
@@ -369,7 +368,7 @@ pipeline:
    - 仍 < 75 → CGU: `deep_think` / `spark_collision` / `generate_ideas` → 修正 → 再驗證
    - 仍 < 75 → STOP，回報用戶（附 CGU 建議）
 
-**Gate**: concept score ≥ 75（`readiness=ready`），或可信 host/UI 依用戶明確決定簽發
+**Code hard gate**: `concept.md` 含 NOVELTY / KEY SELLING POINTS、structured concept review 完整，且 decision 可採用（通常為 `readiness=ready`），或可信 host/UI 依用戶明確決定簽發
 `mdpaper.concept_review_override.v3` Ed25519 receipt。MCP/Agent 只能查詢或撤銷 receipt，
 不得以 `approved_by="human"` 或直接寫 YAML 冒充人類核准。
 
@@ -413,7 +412,7 @@ CGU 工具對應：
    - 🗣️ 呈現 manuscript-plan.yaml 摘要給用戶確認
    - 用戶調整 → 確認 → 存入
 
-**Gate**: manuscript-plan.yaml 存在 + 圖表數量不超限
+**Code hard gate**: Phase 3 concept review 仍可採用 + `manuscript-plan.yaml`（或 legacy `drafts/manuscript-plan.md`）存在。圖表數量、coverage、approval reason 是本 workflow 的自審／人工審閱要求；目前 Phase 4 validator 未逐欄重算。
 
 寫作順序（依 journal-profile.paper.sections，fallback 到 paper type 預設）：
 
@@ -803,7 +802,7 @@ Round 3 (IF still CRITICAL):
 6. 更新 checkpoint.json
 ```
 
-**Gate**: 0 critical issues（warnings 記錄但可接受）
+**Workflow exit target**: Hook C/F 已處理至沒有未解決 CRITICAL（warnings 記錄但可接受）。**Code hard gate** 另驗證 quality-scorecard / hook-effectiveness 的有效資料與 data-artifact report；目前 validator 不在 Phase 6 內重跑全部 A/B/C hooks，也不單獨解析 unresolved-critical count。
 
 #### Cascading 回溯規則
 
@@ -815,10 +814,8 @@ Round 3 (IF still CRITICAL):
 | C5 Wikilinks 不可解析     | 對應 section        | Hook A2 → A4                 |
 | C6 總字數超標             | 最長 section        | Hook A1 → patch              |
 | C7a 圖表超限              | —                   | 合併或移至 supplementary     |
-| C7b 引用超限              | —                   | 標記低引用 refs → 用戶決定   |
-| C7c 字數精確比對          | 最長 section        | Hook A1 → patch              |
+| C7b asset-plan 未覆蓋     | 對應 section/asset  | 補登記、放置或可匯出資產     |
 | C7d phantom 引用          | 對應 section        | 插入缺漏圖表或移除引用       |
-| C7e Wikilink 不一致       | 對應 section        | Hook A4 → patch              |
 | C11 引用分布不均          | 缺引用的 section    | Hook A2 → 補引用             |
 | C12 引用缺決策紀錄        | —                   | 生成 citation_decisions.json |
 | C13 圖表順序/caption 問題 | 對應 section        | Hook C7d → patch             |
@@ -1313,7 +1310,7 @@ Phase 7, Stage D（品質重評）:
 4. 驗證引用數量 ≤ `references.reference_limits[paper.type]`（fallback `max_references`）
 5. IF 超過上限 → 標記最少被引用的 refs → 建議刪除
 
-**Gate**: 0 broken links + 引用數量合規
+**Code hard gate**: Phase 7 已完成 + References section 存在 + citation wikilinks 全部可解析。格式、引用數量／分布是本 workflow 與 C-series/R6 checks，不由 Phase 8 validator 額外重算。
 
 ---
 
@@ -1336,7 +1333,7 @@ Facade 入口仍是 `export_document(action="docx")` / `export_document(action="
 6. `inspect_export(action="verify_document")` → `export_document(action="session_save")`
 7. `inspect_export(action="docx_smoke")` 或 `inspect_export(action="xml_smoke")` → 驗證 DOCX zip/XML 結構、`word/document.xml`、段落與可見文字
 
-**Gate**: `pipeline_action(action="validate_phase", phase=9)` — docx + pdf 必須存在（CRITICAL）+ 必要文件清單完成；DOCX XML smoke 應 PASS 才進入最終交付
+**Code hard gate**: `pipeline_action(action="validate_phase", phase=9)` — Phase 6–8 前置條件有效，DOCX + PDF 都存在且各自通過 integrity smoke。必要投稿文件清單是下方 submission-readiness advisory task，不是 Phase 9 validator 的額外 hard check。
 
 ---
 
@@ -1394,6 +1391,8 @@ Facade 入口仍是 `export_document(action="docx")` / `export_document(action="
 6. 🆕 D7: 分析 review-report + author-response → 演化 Reviewer 指令
 7. 🆕 D8: 分析 equator-compliance → 演化 EQUATOR 偵測與分類邏輯
 
+**Code hard gate**: `pipeline-run-*.md` 含 D7/D8、hook-effectiveness report、`run_meta_learning` evolution event，以及可互相核對的 v2 audit schema、D1-D9、counts/lists/provenance。Project Memory 缺失只警告。
+
 ---
 
 ### Phase 11: FINAL DELIVERY（Code-Enforced — CRITICAL Gate）🆕
@@ -1421,7 +1420,7 @@ Facade 入口仍是 `export_document(action="docx")` / `export_document(action="
 3. `pipeline_action(action="validate_phase", phase=11, response_format="json", compact=true)` → 驗證 PASS
 4. 若專案使用 Git，可選擇 commit/push 作為 provenance；若用戶只是寫 paper，不需要 remote
 
-**Gate**: `pipeline_action(action="validate_phase", phase=11)` — final paper delivery artifacts complete；Git remote/push 不作為硬性條件
+**Code hard gate**: `pipeline_action(action="validate_phase", phase=11)` — DOCX/PDF 再次通過 integrity smoke且 Phase 10 仍通過；目前沒有額外 completion-marker 檔案要求。Git remote/push 不作為硬性條件。
 
 ---
 
@@ -1781,22 +1780,22 @@ B7c 為 ADVISORY（順序偏離可接受）。
 
 ### Hook C: post-manuscript（全稿完成後，含分層回溯，最多 N rounds，N = `pipeline.hook_c_max_rounds`）
 
-| #   | 檢查項                 | MCP Tool                                                  | 失敗行為                                               | 回溯層      | 閾值來源                                                 |
-| --- | ---------------------- | --------------------------------------------------------- | ------------------------------------------------------ | ----------- | -------------------------------------------------------- |
-| C1  | 稿件一致性             | `run_quality_checks(action="writing_hooks", hooks="C1")`  | `draft_action(action="patch")`                         | → B4        | —                                                        |
-| C2  | 投稿清單               | `run_quality_checks(action="writing_hooks", hooks="C2")`  | 定點修正                                               | —           | `required_documents.*`                                   |
-| C3  | N 值跨 section 一致    | `draft_action(action="read")` × N + 數字比對              | `draft_action(action="patch")` 統一                    | → A         | —                                                        |
-| C4  | 縮寫首次定義           | `draft_action(action="read")` + 全文掃描                  | `draft_action(action="patch")` 補定義                  | → A         | —                                                        |
-| C5  | Wikilinks 可解析       | `scan_draft_citations`                                    | `save_reference_mcp` 補存                              | → A4        | —                                                        |
-| C6  | 總字數合規             | `draft_action(action="count_words")`                      | 精簡超長 section                                       | → A1        | `word_limits.total_manuscript`                           |
-| C7  | 數量與交叉引用合規 🆕  | 見下方 C7 子項                                            | 依子項處理                                             | 依子項      | `assets.*`, `word_limits.*`, `references.max_references` |
-| C8  | 時間一致性             | `draft_action(action="read")` × N + Agent 掃描            | `draft_action(action="patch")` 更新過時描述            | → B         | —                                                        |
-| C9  | 補充材料交叉引用       | `run_quality_checks(action="writing_hooks", hooks="C9")`  | `draft_action(action="patch")` 補引用                  | —           | —                                                        |
-| C10 | 文獻全文+分析驗證      | `run_quality_checks(action="writing_hooks", hooks="C10")` | 補 fulltext/analysis                                   | —           | —                                                        |
-| C11 | 引用分布均衡 🆕        | `run_quality_checks(action="writing_hooks", hooks="C11")` | 重分配引用到缺引用 section                             | → A2        | —                                                        |
-| C12 | 引用適切性審計 🆕      | `run_quality_checks(action="writing_hooks", hooks="C12")` | 補決策紀錄到 citation_decisions.json                   | —           | —                                                        |
-| C13 | 圖表品質與排序 🆕      | `run_quality_checks(action="writing_hooks", hooks="C13")` | 修正排序/補 caption                                    | → C7d       | —                                                        |
-| C14 | Claim-Evidence 對齊 🆕 | `run_quality_checks(action="writing_hooks", hooks="C14")` | 為強 claim 補引用/source-material/圖表證據，或弱化措辭 | → Phase 5/8 | 強 claim 不歸類為 A3 語體問題                            |
+| #   | 檢查項                   | MCP Tool                                                  | 失敗行為                                               | 回溯層      | 閾值來源                           |
+| --- | ------------------------ | --------------------------------------------------------- | ------------------------------------------------------ | ----------- | ---------------------------------- |
+| C1  | 稿件一致性               | `run_quality_checks(action="writing_hooks", hooks="C1")`  | `draft_action(action="patch")`                         | → B4        | —                                  |
+| C2  | 投稿清單                 | `run_quality_checks(action="writing_hooks", hooks="C2")`  | 定點修正                                               | —           | `required_documents.*`             |
+| C3  | N 值跨 section 一致      | `draft_action(action="read")` × N + 數字比對              | `draft_action(action="patch")` 統一                    | → A         | —                                  |
+| C4  | 縮寫首次定義             | `draft_action(action="read")` + 全文掃描                  | `draft_action(action="patch")` 補定義                  | → A         | —                                  |
+| C5  | Wikilinks 可解析         | `scan_draft_citations`                                    | `save_reference_mcp` 補存                              | → A4        | —                                  |
+| C6  | 總字數合規               | `draft_action(action="count_words")`                      | 精簡超長 section                                       | → A1        | `word_limits.total_manuscript`     |
+| C7  | 資產數量、計畫與交叉引用 | 見下方 C7a/C7b/C7d                                        | 依子項處理                                             | 依子項      | `assets.*`, `manuscript-plan.yaml` |
+| C8  | 時間一致性               | `draft_action(action="read")` × N + Agent 掃描            | `draft_action(action="patch")` 更新過時描述            | → B         | —                                  |
+| C9  | 補充材料交叉引用         | `run_quality_checks(action="writing_hooks", hooks="C9")`  | `draft_action(action="patch")` 補引用                  | —           | —                                  |
+| C10 | 文獻全文+分析驗證        | `run_quality_checks(action="writing_hooks", hooks="C10")` | 補 fulltext/analysis                                   | —           | —                                  |
+| C11 | 引用分布均衡 🆕          | `run_quality_checks(action="writing_hooks", hooks="C11")` | 重分配引用到缺引用 section                             | → A2        | —                                  |
+| C12 | 引用適切性審計 🆕        | `run_quality_checks(action="writing_hooks", hooks="C12")` | 補決策紀錄到 citation_decisions.json                   | —           | —                                  |
+| C13 | 圖表品質與排序 🆕        | `run_quality_checks(action="writing_hooks", hooks="C13")` | 修正排序/補 caption                                    | → C7d       | —                                  |
+| C14 | Claim-Evidence 對齊 🆕   | `run_quality_checks(action="writing_hooks", hooks="C14")` | 為強 claim 補引用/source-material/圖表證據，或弱化措辭 | → Phase 5/8 | 強 claim 不歸類為 A3 語體問題      |
 
 #### Hook C Cascading Protocol
 
@@ -1837,23 +1836,20 @@ Hook C 修正策略：
 
 #### C7 數量與交叉引用合規（D5 擴展）🆕
 
-原 C7 僅查圖表數量，擴展為五個子項的綜合數量/引用合規檢查。
+目前 code-enforced 的 C7 family 有三項。字數由 C6、Wikilink 由 C5 處理；引用預算由 Phase 7 R6 處理，不另虛構 C7c/C7e code hook。
 
-| 子項 | 檢查內容                       | MCP Tool                                                             | 失敗行為                         | 回溯層 | 閾值來源                                                            |
-| ---- | ------------------------------ | -------------------------------------------------------------------- | -------------------------------- | ------ | ------------------------------------------------------------------- |
-| C7a  | 圖表總數 ≤ 上限                | `draft_action(action="list_assets")`                                 | 合併或移至 supplementary         | —      | `assets.figures_max/tables_max`                                     |
-| C7b  | 引用總數合理範圍               | `scan_draft_citations`                                               | 標記低引用 refs → 用戶決定       | —      | `references.reference_limits[paper.type]` fallback `max_references` |
-| C7c  | 總字數 vs journal-profile      | `draft_action(action="count_words")`                                 | 精簡超長 section                 | → A1   | `word_limits.total_manuscript`                                      |
-| C7d  | 圖表交叉引用（orphan/phantom） | `draft_action(action="list_assets")` + `draft_action(action="read")` | orphan=WARNING, phantom=CRITICAL | —      | —                                                                   |
-| C7e  | Wikilink 引用一致性            | `validate_wikilinks`                                                 | `save_reference_mcp` 補存        | → A4   | —                                                                   |
+| 子項 | 檢查內容                                             | 失敗行為                               | 閾值／來源                        |
+| ---- | ---------------------------------------------------- | -------------------------------------- | --------------------------------- |
+| C7a  | 文字與 manifest 中的圖表總數是否超過期刊上限         | 合併或移至 supplementary               | `assets.figures_max/tables_max`   |
+| C7b  | required asset 是否已登記、放入指定 section 且可匯出 | 補 insert／placement／renderable asset | `manuscript-plan.yaml` + manifest |
+| C7d  | 圖表交叉引用（orphan/phantom）                       | orphan=WARNING；phantom=CRITICAL       | manuscript + manifest             |
 
 ```
 orphan = manifest 中有但 draft 沒引用 → WARNING（有圖沒用）
 phantom = draft 引用但 manifest 沒有 → CRITICAL（有引用沒圖）
 ```
 
-> **NOTE**: C6（總字數）與 C7c 功能重疊。C6 做快速 word count 檢查，C7c 做 journal-profile 驅動的精確比對。
-> 實作時可選：C6 保留做 Phase 6 快速預檢（只看總數），C7c 做精確 section 級比對。
+> **分工**：C6 檢查總字數；C5 檢查 citation wikilinks；R6 檢查引用預算。這些都不是 C7 子項。
 
 #### C8 時間一致性檢查（Temporal Consistency Pass）
 

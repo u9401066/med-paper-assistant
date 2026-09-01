@@ -2284,7 +2284,7 @@ class PipelineGateValidator:
         checks.append(
             GateCheck(
                 name="analysis_coverage",
-                description="References with subagent analysis completed",
+                description="Every saved reference has a completed analysis bound to its source evidence",
                 passed=total_refs > 0 and not analysis_failures and not_analyzed_count == 0,
                 details=(
                     f"{analyzed_count}/{total_refs} analysis artifacts verified"
@@ -2637,7 +2637,7 @@ class PipelineGateValidator:
                 checks.append(
                     GateCheck(
                         name="section_approval",
-                        description="All sections must be user-approved",
+                        description="All required sections must have a recorded approval",
                         passed=False,
                         details="MISSING checkpoint.json — call approve_section() for each required section",
                     )
@@ -2670,7 +2670,7 @@ class PipelineGateValidator:
                     checks.append(
                         GateCheck(
                             name="section_approval",
-                            description="All sections must be user-approved",
+                            description="All required sections must have a recorded approval",
                             passed=passed,
                             details=details,
                         )
@@ -2679,7 +2679,7 @@ class PipelineGateValidator:
                     checks.append(
                         GateCheck(
                             name="section_approval",
-                            description="All sections must be user-approved",
+                            description="All required sections must have a recorded approval",
                             passed=False,
                             details="checkpoint.json unreadable — call approve_section() again to rebuild approval state",
                         )
@@ -2854,7 +2854,7 @@ class PipelineGateValidator:
         - equator-compliance-{N}.md (or equator-na-{N}.md for N/A cases)
 
         Additionally:
-        - At least 1 round must be completed
+        - The configured minimum number of rounds must be completed (hard floor: 2)
         - evolution-log.jsonl must contain review_round events
         - audit-loop-review.json must exist (state machine state)
         """
@@ -3491,9 +3491,9 @@ class PipelineGateValidator:
 
     def _validate_phase_11(self) -> GateResult:
         """
-        Phase 11: Final Delivery — code-level enforced paper delivery.
+        Phase 11 requires valid exports and Phase 10; no separate completion marker exists.
 
-        Checks:
+        Advisory Git provenance checks run here:
         - Optional Git repository/provenance status, when available
         - Optional latest commit project coverage, when available
         - Optional remote sync status, when an upstream is configured
