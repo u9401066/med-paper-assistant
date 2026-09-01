@@ -20,6 +20,11 @@
 - C7 family 固定為 C7a 圖表數量、C7b asset-plan coverage、C7d cross-reference；C6/C5/R6 分別承擔字數、Wikilink、引用預算。
 - 現有功能沒有為了文件一致性而擴張；未 code-enforced 的設計目標被如實揭露，而不是用新抽象或低價值 tests 掩蓋。
 
+### 發布結果
+
+- 五筆分段 release commits 已推送；annotated `v1.0.3` 指向 `c2c944d68855a5ace18ccdaabef81a0f893fb01c`，exact-SHA CI `33489369223` 與 Pages `33489369227` 全綠。
+- PyPI 1.0.3、GitHub Release 與公開 artifacts/provenance 已驗證。Release workflow `33490110941` 除 VS Marketplace 外皆成功；Marketplace OIDC endpoint 在一次安全重試後仍回 404，維持 fail-closed 並提供已驗證 VSIX。
+
 ## [2026-09-01] SDK2 Audit Without Surface or Architecture Expansion
 
 ### 背景

@@ -6,7 +6,7 @@
 
 ## 當前焦點 (2026-09-01)
 
-v1.0.3 Phase gate 說明對齊修正已完成本機 release preflight：程式的 hard-gate 行為沒有擴張，而是將 validator 訊息、Auto-Paper skill/design 與公開網站統一成 14 個 code phases 的真實契約。Python fast 1691 tests、contract 36、MCP 43、Node 24 VSIX 174、Dashboard production build、strict docs、security/authority、compact/full greedy、watermark、五套 immutable archives、wheel 與真實 VSIX 安裝 smoke 全綠。版本權威與本機 artifacts 已同步為 1.0.3，尚待分段 commit、exact-SHA CI、tag 與公開發布。
+v1.0.3 Phase gate 說明對齊修正版已正式發布：程式的 hard-gate 行為沒有擴張，而是將 validator 訊息、Auto-Paper skill/design 與公開網站統一成 14 個 code phases 的真實契約。五筆分段 release commits 已推送，annotated `v1.0.3` 指向 `c2c944d68855a5ace18ccdaabef81a0f893fb01c`；exact-SHA CI `33489369223`、Pages `33489369227`、PyPI、GitHub Release、公開 provenance 與 artifacts 均驗證通過。Marketplace OIDC 唯一失敗於 Microsoft token endpoint 404，已做一次安全重試後停止，Release 提供通過隔離安裝 smoke 的同版 VSIX。
 
 v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的實際 MCP initialize/list/call 均成功，compact/full greedy smoke 無 broken/error；Python、VSIX、Dashboard、文件、security、build、bundle 與 exact-SHA CI gates 全綠。依賴更新至目前相容的 stable 版本（MCP 2.1.1、C2PA 0.37.8、remove-ai-watermarks 0.36.0），source-build 基線統一為 Node 24。測試移除 fake、print-only、吞例外與永久 skip 案例，改以 `contract`、`mcp`、`smoke`、`integration` 分層；完整 suite coverage 66.43% 如實記錄，不以低價值 tests 灌高。PyPI 與 GitHub Release 已公開且 provenance/digests 相符；VS Marketplace OIDC 兩次遭 Microsoft 503，保留 fail-closed 狀態並提供已驗證 VSIX。
 
@@ -24,7 +24,7 @@ v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                                                                                                                                         |
 | Validation Gate       | tool/count/code-quality authorities + Ruff/mypy/Bandit/vulture + `npm run validate`                                                                                                                                                                                         |
 | Latest Validation     | Python fast **1691 passed / 7 skipped / 25 deselected**；contract **36/36**；MCP **43/43**；VSIX **174/174**；compact MCP **11 ok / 1 designed skip**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；五套 immutable archive **5/5** |
-| Packaging             | **v1.0.3 local wheel/sdist/VSIX + isolated install smoke ✅**；尚待 exact-SHA CI/tag/publication；**v1.0.2 PyPI + GitHub Release ✅**                                                                                                                                       |
+| Packaging             | **v1.0.3 PyPI + GitHub Release + provenance ✅**；VSIX build/install/公開 digest ✅；VS Marketplace 因 Microsoft OIDC 404 降級並提供 Release asset                                                                                                                          |
 | Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**36 pages / 52 Mermaid / 8 accessible SVG**；Phase gate design/code/human contract tests                                                                                                                     |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
@@ -46,6 +46,9 @@ v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的
 - 修正 Auto-Paper guide/skill 與歷史 multi-stage design 的錯誤宣稱：C7b 是 asset-plan coverage；C6/C5/R6 分別負責字數、Wikilink、引用預算。
 - 修正 Phase 5 gate 的人類用語，recorded approval 可由 manual 或有 audit 的 autopilot 產生，不再錯寫成一律 user-approved。
 - 新增 code phase 對 design + human docs 的 contract test；targeted pipeline/docs tests、site validator、Prettier 與 strict MkDocs build 全綠。
+- 分五段提交 code、docs、contract test、release metadata 與 preflight memory；annotated `v1.0.3` 的 exact-SHA CI 與 Pages 全綠。
+- PyPI 1.0.3 與 GitHub Release 已公開；wheel `147bfe36…3091f`、sdist `b465e5ca…5a0a9`、VSIX `fd885343…5ef7` 經公開下載重算相符，PyPI attestations 指向本 repo 的 `release.yml`。
+- Release workflow `33490110941` 除 VS Marketplace 外均成功；Marketplace OIDC 在公開 PyPI smoke 通過後回 404，維持 fail-closed 並提供同一份已驗證 VSIX。
 
 #### v1.0.2 SDK2 Dependency, Smoke, Test, and Docs Release Prep (2026-09-01)
 

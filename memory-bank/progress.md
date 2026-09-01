@@ -2,13 +2,16 @@
 
 ## Done
 
-- **v1.0.3 Phase gate alignment release preflight (2026-09-01)**:
+- **v1.0.3 Phase gate alignment release (2026-09-01)**:
 
   - Synchronized all public version surfaces to 1.0.3 and updated CHANGELOG, README EN/zh-TW, ROADMAP, website navigation, technical design, human guidance, and bundled VSIX mirrors.
   - Passed Python fast 1691/1691, contract 36/36, MCP 43/43, targeted pipeline/docs 209/209, basic smoke 14/14, watermark 3/3, and all five immutable SDK2 archive smokes.
   - Passed tool-surface/code-quality/consistency authorities, Ruff, format, mypy, Bandit, vulture, strict 36-page MkDocs, and scoped Markdown/diff checks without increasing the existing code-size debt ratchet.
   - Under Node 24, passed VSIX lint, 174/174 tests, bundle parity, 92/92 validate, package build, zero production audit findings, and a real isolated install into the pinned VS Code 1.101.2 CLI; Dashboard lint/build/audit also passed.
-  - Built and isolated-smoked the 1.0.3 wheel plus sdist/VSIX. Local SHA-256: wheel `147bfe36…3091f`, sdist `b465e5ca‣5a0a9`, VSIX `63e6c5bf‣935ea`. Public digests will be recorded only after the tag workflow publishes its own artifacts.
+  - Published five segmented release commits and annotated `v1.0.3` at exact source `c2c944d68855a5ace18ccdaabef81a0f893fb01c`; exact-SHA CI `33489369223` and Pages `33489369227` passed.
+  - Published PyPI 1.0.3 and the GitHub Release. Independently downloaded public SHA-256: wheel `147bfe361eca570c47bb012e026e9991eeb92367943b957863c636fc3483091f`, sdist `b465e5cadf83be7f6ad5a9145bcae9b46257dffed6e6639644b4935ca235a0a9`, VSIX `fd8853436da9ad3f2657e4bb8b87eaae9188d552c3cfd8d69379589c6a325ef7`.
+  - Verified both PyPI publish-v1 attestation subjects and their GitHub `u9401066/med-paper-assistant` / `release.yml` publisher identity. The public pipeline page returns HTTP 200.
+  - Release workflow `33490110941` passed authority, three-platform smoke, external archives, Python, lint/security, bundle, build, isolated wheel/VSIX install, PyPI, and GitHub Release. VS Marketplace alone failed after one safe retry because Microsoft's `/_apis/gallery/token` returned 404; the verified VSIX remains attached as the fail-closed fallback.
 
 - **Phase gate design/code/website truth alignment (2026-09-01)**:
 
@@ -216,13 +219,13 @@
 
 ## Doing
 
-- **VS Marketplace recovery**：v1.0.1 的 PyPI、GitHub Release 與 attached VSIX 已完成；Marketplace OIDC backend 目前不可用。Recovery workflow 已具 tag/version/SHA/install/PAT/gallery fail-closed checks，但需 owner 輪替有效 `VSCE_PAT` 或以 portal 上傳同一份已驗證 VSIX。
+- **VS Marketplace recovery**：v1.0.3 的 PyPI、GitHub Release 與 attached VSIX 已完成；Marketplace OIDC token endpoint 目前回 404。Recovery workflow 已具 tag/version/SHA/install/PAT/gallery fail-closed checks，但需 Microsoft 恢復 OIDC endpoint、owner 使用有效短期 `VSCE_PAT`，或由 portal 上傳同一份已驗證 VSIX。
 
 ## Next
 
 - Implement ranked evidence-context ledger, perspective question map, and bounded branch audit artifacts
 - 依 `code-quality-authority.json` 逐步拆分 391 項 legacy size exceptions；每次只允許縮減，不允許新增或成長
-- Configure a Marketplace-supported workload identity/trusted-publishing policy, rotate a short-lived authorized PAT for the guarded recovery workflow, or use the publisher portal to upload the already verified v1.0.1 VSIX; do not reuse the unauthorized legacy PAT.
+- Configure a Marketplace-supported workload identity/trusted-publishing policy, rotate a short-lived authorized PAT for the guarded recovery workflow, or use the publisher portal to upload the already verified v1.0.3 VSIX; do not reuse the unauthorized legacy PAT.
 - Build a code-level autopaper orchestrator (reduce reliance on SKILL-only sequencing)
 - Add semantic repair loop after hook failures (patch -> rerun hooks -> converge/regress/escalate)
 - Phase 5c TreeView/CodeLens/Diagnostics features
