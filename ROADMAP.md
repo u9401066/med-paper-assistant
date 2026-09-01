@@ -103,7 +103,7 @@ Later               │  Bounded Automation Enhancement                         
 | **118-tool greedy smoke** ✅            | 116 正常、2 個按設計跳過、0 broken/error；包含 legacy reference migration                                                        |
 | **GitHub Pages Wiki + visual atlas** ✅ | MkDocs Material、35 頁、native Mermaid、8 個 accessible SVG、strict Pages deploy 與文件契約測試                                  |
 | **Portable JSONC / skill discovery** ✅ | URL-safe parser、comments/trailing commas、38 skills frontmatter 與跨平台入口測試                                                |
-| **Extension production gates** ✅       | ESLint 10、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke                                            |
+| **Extension production gates** ✅       | 相容的 ESLint 9、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke                                      |
 
 下一階段：把 ranked evidence-context ledger、perspective question map、bounded branch exploration 與 publishing adapter 納入 frozen fixtures、獨立 scorer、來源支配與跨平台 smoke gate。
 

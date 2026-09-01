@@ -102,12 +102,13 @@ The platform-neutral [academic-writing workflow](docs/harness/academic-writing-w
 
 ### Prerequisites
 
-| Requirement        | Version    | Check               |
-| ------------------ | ---------- | ------------------- |
-| **Python**         | 3.12+      | `python3 --version` |
-| **Git**            | Any recent | `git --version`     |
-| **VS Code**        | Latest     | Help → About        |
-| **GitHub Copilot** | Extension  | Extensions panel    |
+| Requirement        | Version    | Check                                                    |
+| ------------------ | ---------- | -------------------------------------------------------- |
+| **Python**         | 3.12+      | `python3 --version`                                      |
+| **Node.js**        | 24+        | `node --version` (maintainer VSIX/dashboard builds only) |
+| **Git**            | Any recent | `git --version`                                          |
+| **VS Code**        | Latest     | Help → About                                             |
+| **GitHub Copilot** | Extension  | Extensions panel                                         |
 
 ### Install
 
@@ -135,6 +136,7 @@ Important installation notes:
 - If you intentionally want newer submodule code, run `git submodule update --remote --merge` yourself and test before committing.
 - The Draw.io MCP server is the pinned Python SDK 2 package in the submodule (or its immutable commit archive). Node.js/npm is needed only for the optional interactive Draw.io web UI, not as an MCP 1 fallback.
 - Repository mode launches pinned submodules. Marketplace mode installs exact SDK 2 commit archives for PubMed, CGU, Zotero Keeper, and Draw.io; it never floats to an unverified latest package.
+- The frozen Python lock currently resolves the stable MCP SDK 2.1.1 runtime. Source builds of the VSIX and dashboard use the same Node.js 24 baseline as CI; Marketplace users do not need Node.js to run the packaged extension.
 
 **Verify**: In Copilot Chat, type `/mcp` — you should see `mdpaper` listed 🎉
 
@@ -675,7 +677,7 @@ If you use Medical Paper Assistant, cite the software release described in [`CIT
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.0.1},
+  version = {1.0.2},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

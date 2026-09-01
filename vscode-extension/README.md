@@ -43,6 +43,7 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 - VS Code 1.101.0 or higher (the first stable API surface used by the MCP server provider)
 - GitHub Copilot (for Agent Mode)
 - Python 3.12+ for a full repository development checkout. Marketplace installs manage a checksum-pinned `uv`/`uvx` 0.12.5 runtime automatically; CGU itself supports Python 3.11+.
+- Node.js 24+ only when building or testing the extension from source; packaged Marketplace/VSIX use does not require a local Node.js runtime.
 
 ## MCP Installation Behavior
 

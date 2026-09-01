@@ -1,5 +1,25 @@
 # Decision Log
 
+## [2026-09-01] SDK2 Audit Without Surface or Architecture Expansion
+
+### 背景
+
+使用者要求確認既有 MCP SDK2.0 翻新是否完整、排除 smoke/edge/bug、更新文件與 stable dependencies，並整理測試但避免測試自建定義或過度設計。
+
+### 本次決定
+
+1. **以實際 protocol execution 判定 SDK2 完整性**：除靜態 authority 外，root compact/full server 與五套 immutable archives 都必須完成 initialize、discovery、代表性 call 與 shutdown；只有明確外部服務、互動或 workflow precondition 可分類為 designed skip/precondition。
+2. **保持 12 compact / 118 full 與 DDD 邊界**：本輪是 hardening，不新增 façade、抽象層或工具；0 broken/error 後不為理論風險重寫既有架構。
+3. **stable 更新仍受 runtime compatibility 約束**：Python 直接依賴與可相容 transitive locks 更新；Node source-build 統一 Node 24。Dashboard 暫留 ESLint 9.39.5，因 ESLint 10 與現行 Next plugin stack 的真實 lint 執行不相容。
+4. **測試證明邊界與行為，不測 fake implementation**：刪除 print-only、local fake、吞例外、手動與永久 skip tests；保留或補強 contract、MCP transport、integration、regression 和 packaging gates，並以 marker/README 管理分層。
+5. **文件與可執行權威同步更新**：版本、Node baseline、test commands、MCP counts、content-integrity package 與外部 integration revision 必須在 lock、workflow assertion、README、Wiki、VSIX mirror 和 changelog 一致。
+6. **Coverage 報告不等於虛構 gate**：完整 suite 目前 66.43%，而 `pyproject.toml` 與 CI 未宣告 80% threshold。發布保留報告並要求變更路徑的直接 behavior/integration coverage；不新增只為灌百分比的常數、fake 或 implementation-detail tests。
+
+### 結果
+
+- Root basic/compact/full MCP 及五套 external SDK2 archive smokes 均通過，0 broken / 0 unexpected error。
+- Python、Node、security、docs、package、bundle 與 authority gates 全綠；僅保留有清楚原因的外部或 workflow preconditions。
+
 ## [2026-08-17] v1.0.1 Fail-Closed Artifact Trust and Reproducible Local Runtime
 
 ### 背景

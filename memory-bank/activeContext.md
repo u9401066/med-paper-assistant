@@ -4,24 +4,24 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-08-18)
+## 當前焦點 (2026-09-01)
 
-v1.0.1 hardening 與公開發布已完成：在 v1.0.0 SDK2-only 基線上，Phase 2/2.1/3/7 改為重算 evidence/hash/review gate，外部人類核准採 host-trusted Ed25519 receipt；watermark package 僅執行離線 registered-visible/open-DWT 檢測並以 current-byte reinspection 防 receipt 竄改。VSIX 改用 SHA-256 allowlist 的 uv/uvx 0.12.5、精確 integration archives 與真實安裝 smoke。PyPI 1.0.1 與 GitHub Release 的 wheel/sdist/VSIX 已發布並完成公開 SHA-256 與 PyPI attestation 核驗；Marketplace OIDC 仍因 Microsoft `/_apis/gallery/token` endpoint 404 停在公開 0.7.10，release notes 已明示 degraded status，且 fail-closed PAT recovery workflow 必須等 owner 輪替有效憑證後才能執行。
+v1.0.2 SDK2 hardening release candidate 已完成本機複查：root 與五個 immutable integration 的實際 MCP initialize/list/call 均成功，compact/full greedy smoke 無 broken/error；Python、VSIX、Dashboard、文件、security、build 與 bundle gates 全綠。依賴更新至目前相容的 stable 版本（MCP 2.1.1、C2PA 0.37.8、remove-ai-watermarks 0.36.0），source-build 基線統一為 Node 24。測試移除 fake、print-only、吞例外與永久 skip 案例，改以 `contract`、`mcp`、`smoke`、`integration` 分層；完整 suite coverage 66.43% 如實記錄，不以低價值 tests 灌高。未擴張架構或 MCP surface，等待分段 commits、master CI、annotated tag 與遠端 release 驗證。
 
 ### 當前狀態
 
-| 項目                  | 數量/狀態                                                                                                                                                                                                                                                                         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                                                                                                                                                                                     |
-| External MCP Surface  | PubMed **45** + CGU **24** + Asset-Aware **30** + Draw.io Python **23** + Zotero Keeper **32**（immutable SDK2 pins）                                                                                                                                                             |
-| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                                                                                                                                                                                        |
-| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 9 palette / 10 chat**                                                                                                                                                                                       |
-| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                                                                                                                                                                                |
-| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                                                                                                                                               |
-| Validation Gate       | tool/count/code-quality authorities + Ruff/mypy/Bandit/vulture + `npm run validate`                                                                                                                                                                                               |
-| Latest Validation     | Python **1698 passed / 8 skipped / 34 deselected**（remote）及 **1697 passed / 8 skipped / 34 deselected**（release source）；VSIX **174/174**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；五套 immutable archive **5/5**；CI/Pages ✅ |
-| Packaging             | **v1.0.1 PyPI/GitHub Release ✅**；公開 artifacts/attestations/SHA-256 已核驗；Marketplace OIDC endpoint 404，PAT recovery 待 owner credential                                                                                                                                    |
-| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**                                                                                                                                                                        |
+| 項目                  | 數量/狀態                                                                                                                                                                                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                                                                                                                                                                               |
+| External MCP Surface  | PubMed **45** + CGU **24** + Asset-Aware **30** + Draw.io Python **23** + Zotero Keeper **32**（immutable SDK2 pins）                                                                                                                                                       |
+| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                                                                                                                                                                                  |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 9 palette / 10 chat**                                                                                                                                                                                 |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                                                                                                                                                                          |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                                                                                                                                         |
+| Validation Gate       | tool/count/code-quality authorities + Ruff/mypy/Bandit/vulture + `npm run validate`                                                                                                                                                                                         |
+| Latest Validation     | Python fast **1690 passed / 7 skipped / 25 deselected**；contract **35/35**；MCP **43/43**；VSIX **174/174**；compact MCP **11 ok / 1 designed skip**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；五套 immutable archive **5/5** |
+| Packaging             | **v1.0.2 local wheel/sdist/VSIX ✅；remote release pending**；Marketplace OIDC endpoint 404 的既有外部邊界仍明示 degraded，不作假綠                                                                                                                                      |
+| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**35 pages / 53 Mermaid / 8 accessible SVG**                                                                                                                                                                  |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 
@@ -34,6 +34,15 @@ v1.0.1 hardening 與公開發布已完成：在 v1.0.0 SDK2-only 基線上，Pha
 | L3 Autonomous Self-Evolution | ⚠️ 大部分完成          | EvolutionVerifier + weekly health 已上線；缺 git post-commit / Auto-PR |
 
 ### 最近變更
+
+#### v1.0.2 SDK2 Dependency, Smoke, Test, and Docs Release Prep (2026-09-01)
+
+- 實際啟動 root MCP stdio server：基本 smoke 14/14，compact 12 tools 與 full 118 tools 均完成 discovery/call/shutdown；僅 live PubMed、互動 elicitation 與缺 Pandoc/Phase 7 前置條件按契約分類，0 broken / 0 unexpected error。
+- 以 exact archive 啟動 PubMed、CGU、Asset-Aware、Draw.io 與 Zotero Keeper，五套 SDK2 initialize/list/representative call 全部通過。
+- 更新 Python 與 Node stable dependencies、lockfiles及版本權威；ESLint 保留 9.39.5，因 Next.js 現行 plugin 在 ESLint 10 實測崩潰，待 upstream 相容後再升級。
+- 移除只測自建 fake、print-only、吞例外與永久 skip 的低價值 tests；新增 test layer markers 與 `tests/README.md`，保留真實邊界、contract、transport、integration 與 regression coverage。
+- README、zh-TW、VSIX/Dashboard 開發說明、MCP2 content-integrity、workflow、CHANGELOG 與 35-page strict MkDocs site 已同步。
+- 版本權威同步至 1.0.2，local wheel/sdist 與 1.98 MB VSIX 已建立；release-prep 指引已與實際 CI authority 對齊，不以 repo 未設定的 coverage 門檻誘發無意義 unit tests。
 
 #### v1.0.1 Trust + Reproducibility Hardening (2026-08-17)
 

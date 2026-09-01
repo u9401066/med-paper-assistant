@@ -24,9 +24,11 @@ A lightweight project management dashboard for Medical Paper Assistant, designed
 
 ## Quick Start
 
+Source development uses Node.js 24 or newer, matching the repository CI baseline.
+
 ```bash
 # Install dependencies
-npm install
+npm ci
 
 # Start development server (port 3002)
 npm run dev -- -p 3002

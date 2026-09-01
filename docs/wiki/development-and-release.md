@@ -20,6 +20,8 @@ flowchart LR
 
 `development` 模式才允許修改 `src/`、`tests/`、`.github/` 與其他受保護路徑。操作前先確認 `.copilot-mode.json`，Python 指令一律透過 `uv` 與專案虛擬環境執行。
 
+本機維護基線為 Python 3.12 與 Node.js 24；Node 24 與 GitHub Actions runner 一致，也符合目前 VSIX build dependencies 的 engine 要求。一般 Marketplace 使用者不需要安裝 Node.js。
+
 ## 測試金字塔
 
 ```mermaid
@@ -52,6 +54,9 @@ uv sync --frozen --all-groups
 uv run ruff check .
 uv run mypy src
 uv run pytest
+uv run pytest tests/ -q -m contract
+uv run pytest tests/ -q -m mcp
+uv run pytest tests/ -q -m smoke
 uv run python scripts/check_tool_surface_authority.py
 uv run python scripts/check_code_quality_authority.py
 uv run vulture src --min-confidence 80
@@ -62,6 +67,8 @@ uv run mkdocs build --strict
 ```
 
 實際 CI 指令以 `.github/workflows/` 為準；上列命令是最常用的對應入口。
+
+測試分層與反模式詳見 `tests/README.md`。測試必須呼叫 production code 或可執行 artifact 並驗證 observable outcome；只測測試內自建 dict、Python 標準函式庫 round-trip、只印 PASS/FAIL 或吞例外的案例不納入 suite。
 
 ## Bundle 是發布產物
 

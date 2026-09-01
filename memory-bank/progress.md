@@ -1,6 +1,17 @@
-# Progress (Updated: 2026-08-18)
+# Progress (Updated: 2026-09-01)
 
 ## Done
+
+- **v1.0.2 SDK2 migration audit and release preflight (2026-09-01)**:
+
+  - Confirmed the root remains SDK2-only with 118 full / 12 compact tools and no FastMCP/SDK1 fallback; initialized all submodules and preserved their immutable authority revisions.
+  - Upgraded compatible stable dependencies and lockfiles, including MCP 2.1.1, C2PA 0.37.8, remove-ai-watermarks 0.36.0, Node 24 build baselines, Next.js 16.3.4, and current compatible VSIX tooling. Kept ESLint 9.39.5 because the current Next plugin stack crashes under ESLint 10.
+  - Removed low-value fake, print-only, exception-swallowing, manual, and permanently skipped tests. Added contract/MCP/smoke markers plus `tests/README.md` so release-relevant layers are independently runnable.
+  - Actual root MCP runs passed: basic smoke 14/14; compact 11 ok + 1 designed external skip; full 113 ok + 3 expected preconditions + 2 designed skips; 0 broken / 0 unexpected errors. Exact archive SDK2 smokes passed for all five external MCPs.
+  - Final local gates passed: Python fast 1690 passed / 7 skipped / 25 deselected; contract 35/35; MCP 43/43; watermark integration 3/3; external archive 5/5; Ruff, format, mypy, Bandit, vulture, authority/consistency, strict MkDocs, wheel/sdist build, VSIX Node 24 lint + 174 tests + bundle/package, Dashboard Node 24 lint/build, npm audit, and `git diff --check`.
+  - Synchronized README EN/zh-TW, VSIX/Dashboard development requirements, MCP2 content-integrity documentation, workflow references, CHANGELOG, lock/version assertions, and bundled Python parity without overwriting unrelated user work.
+  - Synchronized all public version surfaces to 1.0.2 and built the local release artifacts. Full-suite coverage is reported honestly at 66.43%; the release guidance now follows the executable CI gates and forbids inflating coverage with tests that do not exercise production behavior.
+  - Pending: segmented commits, exact-SHA master CI, annotated `v1.0.2` tag, and public artifact/attestation verification.
 
 - **v1.0.1 trust, reproducibility, and public release (2026-08-18)**:
 

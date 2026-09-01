@@ -45,22 +45,22 @@ flowchart TD
     Gate --> Receipt[(CI-* receipt in data-artifacts audit)]
 ```
 
-檢查器使用標準函式庫計算 SHA-256，並以 magic bytes 覆核 PNG/JPEG/WebP 的副檔名 MIME；原檔在三個 adapter 執行前後的 hash 必須相同。可選的 `c2pa-python` adapter 只讀 manifest、關閉遠端 manifest fetching，且不簽署、不重寫資產。`remove-ai-watermarks[visible,detect]==0.26.3` 只呼叫套件的 registered-mark catalog 與公開 DWT-DCT decoder：每個已註冊可見 detector 都必須成功執行，DWT 必須回傳完整 48/136-bit decode，才能記錄陰性結果。它刻意不呼叫 aggregate `identify`，因為其共用 invisible flag 也可能進入可下載權重的 TrustMark 支線；因此本路徑不會走 C2PA reader、TrustMark、diffusion、GPU、模型下載、metadata stripping 或任何 output/removal API。一般 PyPI 安裝可選擇 `[provenance,watermark]` extras；Marketplace VSIX 固定安裝同版本的兩個 extras。PNG/JPEG/WebP 若 MIME 衝突、必要 capability 缺席、版本漂移、無法 decode、尺寸不足以完成兩種 DWT probe、超過 5,000 萬像素或任一 detector 執行失敗會 fail closed。
+檢查器使用標準函式庫計算 SHA-256，並以 magic bytes 覆核 PNG/JPEG/WebP 的副檔名 MIME；原檔在三個 adapter 執行前後的 hash 必須相同。可選的 `c2pa-python` adapter 只讀 manifest、關閉遠端 manifest fetching，且不簽署、不重寫資產。`remove-ai-watermarks[visible,detect]==0.36.0` 只呼叫套件的 registered-mark catalog 與公開 DWT-DCT decoder：每個已註冊可見 detector 都必須成功執行，DWT 必須回傳完整 48/136-bit decode，才能記錄陰性結果。它刻意不呼叫 aggregate `identify`，因為其共用 invisible flag 也可能進入可下載權重的 TrustMark 支線；因此本路徑不會走 C2PA reader、TrustMark、diffusion、GPU、模型下載、metadata stripping 或任何 output/removal API。一般 PyPI 安裝可選擇 `[provenance,watermark]` extras；Marketplace VSIX 固定安裝同版本的兩個 extras。PNG/JPEG/WebP 若 MIME 衝突、必要 capability 缺席、版本漂移、無法 decode、尺寸不足以完成兩種 DWT probe、超過 5,000 萬像素或任一 detector 執行失敗會 fail closed。
 
 ### 套件與 API 選擇
 
 | 類別                         | 選擇                                           | API／理由                                                                                                 |
 | ---------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | File identity                | Python stdlib `hashlib`、`mimetypes`           | streaming SHA-256、檢查前後重算、保存 MIME 與 bytes                                                       |
-| C2PA provenance              | `c2pa-python==0.37.7`                          | 關閉 remote fetch 的 `Reader.try_create` + validation；未安裝即 `UNSUPPORTED`                             |
+| C2PA provenance              | `c2pa-python==0.37.8`                          | 關閉 remote fetch 的 `Reader.try_create` + validation；未安裝即 `UNSUPPORTED`                             |
 | Conservative signal          | 本地 filename/SVG heuristic                    | 僅提出 `UNCERTAIN`／`HUMAN_REVIEW`，不宣稱 clean                                                          |
-| Removal-package check        | `remove-ai-watermarks[visible,detect]==0.26.3` | Apache-2.0、exact pin、逐一 strict visible + open DWT；不呼叫 aggregate identify/removal、不寫 derivative |
+| Removal-package check        | `remove-ai-watermarks[visible,detect]==0.36.0` | Apache-2.0、exact pin、逐一 strict visible + open DWT；不呼叫 aggregate identify/removal、不寫 derivative |
 | Open invisible watermark     | 同一 package 的 torch-free DWT-DCT decoder     | 只涵蓋公開 scheme；陰性不能外推 SynthID、TrustMark 或未公開 vendor scheme                                 |
 | Proprietary/model watermark  | 不設通用陰性結果                               | 需 scheme-specific oracle、授權 fixture 與校準；不下載 GPU 模型                                           |
 | LLM text watermark/detection | 不作 release gate                              | detector 分數不能證明作者或研究誠信；以 disclosure、evidence、版本與人工責任取代                          |
 | Removal/output               | 不暴露 MCP tool、不自動執行                    | 若未來合法製作衍生資產，必須另建 artifact/receipt，保存授權、原件、命令、hash、disclosure 與明確人工核准  |
 
-`remove-ai-watermarks` 仍是單一維護者的 0.x Beta 套件；v0.26.3 的 PyPI artifacts 在本次審計時沒有 PEP 740 provenance bundle。因此它只存在於 optional extra，版本與 wheel/sdist hash 由 lock 精確固定，並以本地 capability、offline、mutation 與正負 fixture 做契約測試。這個依賴風險不能被「目前無已知 CVE」取代，升版時必須重新審查 API、artifact provenance 與 detector 行為。
+`remove-ai-watermarks` 仍是單一維護者的 0.x Beta 套件。v0.36.0 的 wheel 與 sdist 由 PyPI Trusted Publishing 上傳，但供應鏈訊號不能取代本地行為驗證；因此它只存在於 optional extra，版本與 artifact hash 由 lock 精確固定，並以 capability、offline、mutation 與正負 fixture 做契約測試。這個依賴風險不能被「目前無已知 CVE」取代，升版時必須重新審查 API、artifact provenance 與 detector 行為。
 
 Adapter 的 read-only 呼叫形狀如下；application 層只保存 bounded validation summary，不把完整 manifest 或憑證內容複製進 audit log：
 
@@ -133,7 +133,7 @@ visible_watermark:
   signals: []
 removal_package_check:
   provider: remove-ai-watermarks
-  provider_version: 0.26.3
+  provider_version: 0.36.0
   status: NOT_DETECTED
   inspection_mode: strict_registered_visible_open_dwt_v1
   checks_requested: [registered_visible, open_dwt_dct]
@@ -166,4 +166,4 @@ automated_removal_performed: false
 | 任一 inspector 改動 asset bytes               | hash mismatch 且 `BLOCK`                                           |
 | forged schema/version/output/removal receipt  | tracker 拒絕，要求重新檢查                                         |
 
-Fixtures 應固定 byte/hash、license 與預期狀態；測試輸出需保存 package/SDK 版本、命令與失敗項目。技術與政策來源包括 [C2PA 2.4 specification](https://spec.c2pa.org/specifications/specifications/2.4/specs/ContentCredentials.html)、[C2PA Python bindings](https://github.com/contentauth/c2pa-python)、[`remove-ai-watermarks` v0.26.3](https://pypi.org/project/remove-ai-watermarks/0.26.3/)、其[支援訊號](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.26.3/docs/supported-signals.md)、[已知限制](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.26.3/docs/known-limitations.md)與[法律／安全範圍](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.26.3/docs/legal-and-safety.md)。其 Apache-2.0 code、OpenCV headless、PyWavelets 與 C2PA transitive dependencies 由 `uv.lock` 固定；release 仍需跑 dependency/license audit。
+Fixtures 應固定 byte/hash、license 與預期狀態；測試輸出需保存 package/SDK 版本、命令與失敗項目。技術與政策來源包括 [C2PA 2.4 specification](https://spec.c2pa.org/specifications/specifications/2.4/specs/ContentCredentials.html)、[C2PA Python bindings](https://github.com/contentauth/c2pa-python)、[`remove-ai-watermarks` v0.36.0](https://pypi.org/project/remove-ai-watermarks/0.36.0/)、其[支援訊號](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.36.0/docs/supported-signals.md)、[已知限制](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.36.0/docs/known-limitations.md)與[法律／安全範圍](https://github.com/wiltodelta/remove-ai-watermarks/blob/v0.36.0/docs/legal-and-safety.md)。其 Apache-2.0 code、OpenCV headless、PyWavelets 與 C2PA transitive dependencies 由 `uv.lock` 固定；release 仍需跑 dependency/license audit。

@@ -103,12 +103,13 @@
 
 ### 系統需求
 
-| 需求               | 版本         | 檢查方式            |
-| ------------------ | ------------ | ------------------- |
-| **Python**         | 3.12+        | `python3 --version` |
-| **Git**            | 任何近期版本 | `git --version`     |
-| **VS Code**        | 最新版       | 說明 → 關於         |
-| **GitHub Copilot** | 擴充功能     | 擴充功能面板        |
+| 需求               | 版本         | 檢查方式                                               |
+| ------------------ | ------------ | ------------------------------------------------------ |
+| **Python**         | 3.12+        | `python3 --version`                                    |
+| **Node.js**        | 24+          | `node --version`（僅維護者建置 VSIX/dashboard 時需要） |
+| **Git**            | 任何近期版本 | `git --version`                                        |
+| **VS Code**        | 最新版       | 說明 → 關於                                            |
+| **GitHub Copilot** | 擴充功能     | 擴充功能面板                                           |
 
 ### 安裝
 
@@ -136,6 +137,7 @@ cd med-paper-assistant
 - 如果你要刻意升級 submodule，請自行執行 `git submodule update --remote --merge`，並在提交前完成測試。
 - Draw.io MCP server 使用 submodule 內釘選的 Python SDK 2 套件（或對應不可變 commit archive）。只有選用的互動式 Draw.io web UI 需要 Node.js/npm，不再把 Node MCP 1 當 fallback。
 - Repository mode 啟動釘選 submodule；Marketplace mode 對 PubMed、CGU、Zotero Keeper 與 Draw.io 安裝精確的 SDK 2 commit archive，不會漂移到未驗證的 latest package。
+- Python frozen lock 目前解析到 stable MCP SDK 2.1.1。VSIX 與 dashboard 的 source build 採用與 CI 相同的 Node.js 24 基線；Marketplace 使用者執行已打包擴充功能時不需要 Node.js。
 
 **驗證**：在 Copilot Chat 輸入 `/mcp`，應該看到 `mdpaper` 🎉
 
@@ -675,7 +677,7 @@ med-paper-assistant/
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.0.1},
+  version = {1.0.2},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

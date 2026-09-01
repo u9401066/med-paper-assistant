@@ -9,9 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-09-01
+
+### Changed
+
+- Upgraded the frozen Python environment to stable MCP SDK 2.1.1 and current compatible dependencies, including `c2pa-python` 0.37.8 and the revalidated detection-only `remove-ai-watermarks` 0.36.0 adapter; refreshed compatible VSIX/dashboard dependencies and aligned source builds with the CI Node.js 24 baseline. The dashboard stays on ESLint 9.39.5 until the current Next.js plugin stack supports ESLint 10 without runtime failures.
+- Grouped tests with contract, MCP, smoke, integration, and slow markers plus a concise execution guide.
+
+### Removed
+
+- Removed obsolete print-only/manual tests, standard-library round-trip tests, and a synthetic dictionary shape check that could pass without exercising production behavior.
+
 ### Fixed
 
 - Made release archive verification reuse a successful canonical CI job only when its workflow path, branch, commit SHA, job name, status, and conclusion all match; the release still runs the five exact-archive smokes locally when that fail-closed evidence is unavailable, avoiding redundant GitHub codeload throttling without weakening the gate.
+- Moved the Vitest config to native ESM and kept that source-only config out of the packaged VSIX.
+- Aligned release-prep guidance with the executable CI authority: coverage remains reported, while release gates prioritize behavioral, protocol, security, packaging, and integration evidence instead of encouraging artificial unit-test inflation.
 
 ## [1.0.1] - 2026-08-17
 

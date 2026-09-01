@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2 - 2026-09-01
+
+- See the repository CHANGELOG for the complete release notes.
+
 ## 1.0.1 - 2026-08-17
 
 - Hardened the bundled content-integrity gate with deterministic offline visible/open-DWT checks, live receipt reinspection, and fail-closed detector coverage.
