@@ -48,7 +48,7 @@ Meta-Learning (Phase 10)      ← 更新 Skill / Hook / Instructions
 1. **啟動**：在 Copilot Chat 輸入 `/mdpaper.write-paper`
 2. **登記素材與設定期刊**：先執行 `project_action(action="source_materials")` 掃描用戶提供的 DOCX/XLSX/PDF/CSV，再提供目標期刊名稱（Agent 會自動產生 `journal-profile.yaml`）
 3. **通過計畫 gate**：Agent 搜尋文獻 → 發展概念 → 產出 `manuscript-plan.yaml`；manual mode 由你確認，autopilot 留下自審與核准紀錄
-4. **等待寫作**：Agent 自動撰寫各 section，Hook A-D 即時修正品質
+4. **等待寫作**：Agent 撰寫各 section，先跑 A/B checks，再以 C/F、R1-R6 與 D1-D9 完成全稿、審稿和回顧
 5. **匯出**：Agent 產出 Word 檔 + 必要投稿文件
 
 > 💡 Manual mode 在 Phase 4 等待研究者核准；autopilot 可在 Phase 4 完成可稽核自審。高風險決策、連續退步、超出預算或用戶指定的 checkpoint 仍會升級人工介入。
@@ -94,7 +94,7 @@ Agent 按優先順序取得資訊：
 4. 儲存足以覆蓋 evidence map 的候選文獻 → `save_reference_mcp(pmid)`（MCP-to-MCP verified metadata）
 5. 可選：從 Zotero 匯入
 
-**Gate**：依 paper type 達到最低文獻數；PubMed Search MCP 0.6.3 提供 45 個搜尋/檢索工具。
+**Code hard gate**：依 paper type 達到最低文獻數，而且每筆 reference 有穩定 identity 與誠實 trust provenance。搜尋策略與 selection artifacts 缺失只警告。PubMed Search MCP 0.6.3 提供 45 個搜尋/檢索工具。
 
 ### Phase 2.1: Fulltext & Source-Material Ingestion
 
@@ -104,7 +104,7 @@ Agent 按優先順序取得資訊：
 2. 對 Phase 0 標記為 `pending_asset_aware` 的 DOCX/XLSX/PDF/PPTX/CSV 原始素材執行 asset-aware ingestion。
 3. 將 ingestion receipt 寫回 `.audit/source-materials.yaml` / fulltext status artifact。
 
-**Gate**：需要 ingestion 的 primary source materials 皆有 receipt；可取得全文的 references 已標記 `analysis_completed` 或有明確 fallback。
+**Code hard gate**：status file 非空；每筆 reference 都有可驗證的 ingestion evidence 或明確 fallback，且 source-bound analysis 完成；需要 asset-aware 的 primary source materials 皆有 receipt。
 
 ### Phase 3: Concept Development
 
@@ -133,9 +133,9 @@ Agent 按優先順序取得資訊：
 - **Asset Plan**：圖表、統計檢定的生成計畫（含工具、參數、caption）
 - **投稿清單**：依 journal-profile 列出需準備文件
 
-Manual mode：Agent 呈現摘要 → 你確認或調整。Autopilot：Agent 以獨立 plan review 檢查 evidence coverage、預算、寫作順序與 asset plan，並記錄核准理由。兩者都存入 `projects/{slug}/manuscript-plan.yaml` 與 audit artifact。
+Manual mode：Agent 呈現摘要 → 你確認或調整。Autopilot：Agent 應以獨立 plan review 檢查 evidence coverage、預算、寫作順序與 asset plan，並留下自審紀錄。
 
-**Gate**：plan 有明確 approver/mode/reason + evidence 與 budget coverage + 圖表數量不超限
+**Code hard gate**：Phase 3 concept review 仍可採用，而且 `manuscript-plan.yaml` 或 legacy `drafts/manuscript-plan.md` 存在。approver、reason、coverage 與圖表上限目前是 workflow contract，Phase 4 validator 尚未逐欄重算；完整邊界見[Phase gate 契約](design/phase-gate-contract.md)。
 
 ### Phase 5: Section Writing
 
@@ -156,15 +156,17 @@ FOR section IN writing_order:
 
 圖像或表格在插入前經 `review_asset_for_insertion` 建立 SHA-256/MIME、可選 C2PA 與版本鎖定的 removal-package receipt。`remove-ai-watermarks` 只以離線、逐 detector 的唯讀路徑檢查已知可見標記與公開 DWT-DCT signal，不呼叫 aggregate `identify` 或 removal API、不改原檔、不寫衍生檔；invalid provenance、hash 變更、影像尺寸不受 detector 支援或必要 detector 缺席都會阻擋，任何 signal／不確定結果仍需有紀錄的 reviewer 判斷。詳見 [MCP 2 與內容完整性](wiki/mcp2-content-integrity.md)。
 
+**Code hard gate**：稿件與五個核心 sections 存在；必要的 data provenance 和 planned assets 可驗證；required assets 已登記、放置、可匯出且有 review receipt；所有必需 sections 有 recorded approval。
+
 ### Phase 6: Cross-Section Audit
 
 三階段審計：
 
 1. **全稿掃描**：Hook C（C1-C14）檢查全稿一致性、數值合規、時間一致性、claim-evidence 對齊
 2. **分層回溯修正**（Cascading Fix）：CRITICAL issues → 回溯到對應 section 的 Hook A/B 修正 → 最多 3 rounds
-3. **最終驗證**：確認 0 CRITICAL issues → 生成 quality-scorecard
+3. **流程收斂目標**：處理 C/F CRITICAL findings → 生成 quality-scorecard；Phase 6 code gate 另驗稽核資料是否有效
 
-**Gate**：0 critical issues
+**Code hard gate**：品質與 hook-effectiveness 報告存在、scorecard 至少四個有效維度、至少一個 hook 有真實事件；若有 data artifacts，也必須有 validation report。處理完 C/F critical findings 是 workflow contract；目前 Phase 6 validator 不會在 gate 內重跑全部 A/B/C checks，也沒有單獨解析「0 unresolved critical」。
 
 ### Phase 6.5: Evolution Gate
 
@@ -201,6 +203,8 @@ FOR section IN writing_order:
 - Phase 7 的安全下限固定為 `min_rounds >= 2`、`quality_threshold >= 7.0`、`max_rounds <= 10`；設定或序列化狀態不能調低
 - 人類若接受低於門檻的版本 → 可信 host/UI 簽發 `mdpaper.review_completion_override.v3` Ed25519 receipt，綁定 project、目前 manuscript 與 loop SHA-256；`pipeline_action(action="approve_review_completion", decision="status")` 只驗證 receipt，原分數與非 `quality_met` verdict 保持不變
 
+**Code hard gate**：至少兩輪、state 可重算、每輪 artifacts/EQUATOR/hash chain 完整、R1–R6 對目前 artifacts 重跑通過、evolution events 相符、最後 hash 等於目前稿件，並以 `quality_met` 或有效的外部 acceptance receipt 結束。
+
 ### Phase 8: Reference Sync
 
 1. `sync_references()` → 生成 References section
@@ -208,12 +212,14 @@ FOR section IN writing_order:
 3. 格式化引用（依 journal-profile.references.style）
 4. 驗證引用數量 ≤ 上限
 
+**Code hard gate**：Phase 7 已完成、References section 存在、所有 citation wikilinks 都能解析。引用格式、分布與預算由 reference workflow、C-series 與 Phase 7 R6 處理，不是 Phase 8 validator 額外重算的 hard checks。
+
 ### Phase 9: Export
 
 **技能**：`word-export`
 
 1. 選擇 Word 模板（匹配期刊）
-2. 匯出 Word 文件
+2. 匯出 Word 與 PDF 文件
 3. 產生必要投稿文件（cover letter、author contributions 等）
 4. 執行 `inspect_export(action="docx_smoke")` 檢查 DOCX zip/XML 結構、段落與可見文字
 5. 驗證投稿清單完成
@@ -232,39 +238,45 @@ FOR section IN writing_order:
 6. D8: EQUATOR Retrospective — 回顧報告指引缺口
 7. D9: Tool Telemetry — 回顧工具誤用與描述改善建議
 
+**Code hard gate**：正確命名的 pipeline run 含 D7/D8；hook-effectiveness report 存在；meta-learning audit 的 v2 schema、source tool、D1–D9、counts/lists 與 evolution event 可以互相核對。Project Memory 缺失只警告。
+
 ### Phase 11: Final Delivery
 
 **目的**：確認最終交付物完整；Git provenance 是可用時的加分資訊，不是阻擋所有 paper delivery 的必要條件。
 
-1. 確認 DOCX/PDF 與 submission checklist。
-2. 寫入 final delivery / pipeline-completed artifact。
-3. 如在 git workspace 中，記錄 clean status、commit、push/tag 等 provenance。
+1. 再次確認 DOCX/PDF 都存在且通過結構 smoke。
+2. 確認 Phase 10 retrospective gate 仍通過。
+3. 如在 git workspace 中，回報 clean status、commit 與 remote sync 等 provenance。
 
-**Gate**：最終交付物存在且 export smoke 通過；Git provenance 缺失時回報 warning。
+**Code hard gate**：有效 DOCX/PDF + 通過 Phase 10。Git provenance 只警告；目前 validator 不要求額外的 `pipeline-completed` 或 final-delivery marker。
 
 ---
 
 ## Hook 品質保證系統
 
-79 項品質檢查（56 Code-Enforced / 23 Agent-Driven）分層觸發：
+79 項品質檢查包含 56 項 deterministic code checks 和 23 項需要語義判斷的 Agent checks。編號不是連續功能數量；例如 A3b、A3c、C7a 都是獨立 code checks。
 
-| 層級       | 觸發時機                     | 檢查數 | 關注點                                                        |
-| ---------- | ---------------------------- | ------ | ------------------------------------------------------------- |
-| **Hook A** | 每次寫完（post-write）       | A1-A4  | 字數、引用密度、語體／作者責任訊號、Wikilink                  |
-| **Hook B** | section 完成（post-section） | B1-B7  | 概念一致、🔒 保護、方法學、Brief 合規                         |
-| **Hook C** | 全稿完成（post-manuscript）  | C1-C14 | 整體一致性、投稿清單、數量合規、時間一致性、強 claim 證據對齊 |
-| **Hook D** | Phase 10 回顧                | D1-D9  | Hook 效能、閾值調整、review/EQUATOR/tool telemetry 自我改進   |
+| 發生時機            | 程式實際執行的 checks           | Agent／流程補充                    |
+| ------------------- | ------------------------------- | ---------------------------------- |
+| 寫完一段或 section  | A1–A7、A3b、A3c；B2、B8–B16     | B1、B3–B7 的概念／方法／Brief 判讀 |
+| 全稿完成            | C2–C6、C7a、C7b、C7d、C9–C14、F | C1 全稿語義一致、C8 時間一致       |
+| Phase 7 每輪 review | R1–R6                           | 四種 reviewer 與 EQUATOR 逐條判讀  |
+| commit／一般維護    | P1、P2、P4–P7、G9               | P3、P8、G1–G8                      |
+| Phase 10            | D1–D9 `MetaLearningEngine`      | 對建議是否採納的治理判斷           |
 
 ### Hook A: post-write
 
-每次寫完立即執行，最多 N rounds cascading：
+每次寫完立即執行，失敗時定點修正後重跑同一 check：
 
-| #   | 檢查                 | 失敗行為                            |
-| --- | -------------------- | ----------------------------------- |
-| A1  | 字數在 target ±20%   | `patch_draft` 精簡/擴充             |
-| A2  | 引用密度達標         | `suggest_citations` + `patch_draft` |
-| A3  | 無空泛或模板化慣用語 | `patch_draft` 改成具體、可驗證內容  |
-| A4  | Wikilink 格式正確    | 自動修復                            |
+| #          | 程式檢查                                         | 常見修正                                     |
+| ---------- | ------------------------------------------------ | -------------------------------------------- |
+| A1         | section 字數與 profile 目標                      | 精簡贅文或補必要內容                         |
+| A2         | 引用密度                                         | 補真正支持 claim 的 citation，或刪弱 claim   |
+| A3/A3b/A3c | 空泛模板語、結構訊號、跨段語體一致與作者責任訊號 | 改成具體可驗證內容；不以規避 detector 為目標 |
+| A4         | Wikilink 格式                                    | 修正括號與 citekey                           |
+| A5         | 語言一致                                         | 統一成 project 指定語言                      |
+| A6         | 段落重複                                         | 合併或刪除重複論述                           |
+| A7         | paper-type-aware 文獻數量                        | 補可信 references；不足時不得硬寫            |
 
 **語體完整性**：`In recent years`, `It is worth noting`, `plays a crucial role`, `has garnered significant attention` 等空泛模板語應替換成具體內容。這個 legacy A3 hook 不用來通過 AI authorship detector、不隱匿 AI 協助，也不能判定作者身份。
 
@@ -272,38 +284,34 @@ FOR section IN writing_order:
 
 ### Hook B: post-section
 
-| #   | 檢查                            | 失敗行為                                       |
-| --- | ------------------------------- | ---------------------------------------------- |
-| B1  | 與 concept.md 一致              | 重寫不一致段落                                 |
-| B2  | 🔒 NOVELTY 在 Intro 體現        | `patch_draft` 加入                             |
-| B3  | 🔒 SELLING POINTS 在 Discussion | `patch_draft` 補充                             |
-| B4  | 與已寫 sections 不矛盾          | 修正矛盾處                                     |
-| B5  | 方法學可再現性                  | 依 paper type checklist 補細節                 |
-| B6  | 寫作順序驗證                    | ⚠️ Advisory（不阻擋）                          |
-| B7  | Section Brief 合規              | 逐段比對 manuscript-plan 的 claims + must_cite |
+| 類型       | Checks    | 看什麼                                                             |
+| ---------- | --------- | ------------------------------------------------------------------ |
+| Code       | B2        | 🔒 protected content 未被未授權修改                                |
+| Code       | B8–B10    | 數據與 claim 對齊、section 時態、段落品質                          |
+| Code       | B11–B13   | Results 不偷渡解釋、Introduction 與 Discussion 結構                |
+| Code       | B14–B16   | 倫理聲明、hedging 密度、效果量報告                                 |
+| Agent 語義 | B1、B3–B7 | concept／selling points／跨節一致、方法學、寫作順序、Section Brief |
+
+修正時優先回到 evidence、concept 或 Section Brief；不要只為了讓句子看起來通順而掩蓋資料矛盾。
 
 ### Hook C: post-manuscript
 
-| #   | 檢查                         | 失敗行為                                |
-| --- | ---------------------------- | --------------------------------------- |
-| C1  | 稿件一致性                   | 回溯到弱 section                        |
-| C2  | 投稿清單                     | 定點修正                                |
-| C3  | N 值跨 section 一致          | 以 Methods 為準統一                     |
-| C4  | 縮寫首次定義                 | 補全稱定義                              |
-| C5  | Wikilinks 可解析             | `save_reference_mcp` 補存               |
-| C6  | 總字數合規                   | 精簡超長 section                        |
-| C7  | 數量與交叉引用合規（5 子項） | 圖表超限、引用超限、orphan/phantom 偵測 |
-| C8  | 時間一致性                   | 逆向掃描修正過時引用                    |
+| 類型       | Checks        | 看什麼                                                        |
+| ---------- | ------------- | ------------------------------------------------------------- |
+| Code       | C2–C6         | 投稿清單、N 值、縮寫、可解析 wikilinks、總字數                |
+| Code       | C7a、C7b、C7d | 圖表數量、asset-plan coverage、圖表交叉引用                   |
+| Code       | C9–C11        | 補充材料交叉引用、全文狀態、引用分布                          |
+| Code       | C12–C14       | 引用決策稽核、圖表品質、強 claim 與 evidence 對齊             |
+| Agent 語義 | C1、C8        | 全稿概念一致與因寫作順序產生的時間／狀態矛盾                  |
+| Code       | F             | data artifacts、provenance、data anchors 與 validation report |
 
-**C7 子項**：
+常見修正包括統一 N 值與縮寫、補存可信 reference、移除 phantom cross-reference、補 asset review、重新驗證全文狀態，以及為強 claim 補證據或降低措辭強度。
 
-- C7a：圖表總數 ≤ 上限
-- C7b：引用總數合理
-- C7c：字數 vs journal-profile 精確比對
-- C7d：圖表交叉引用（orphan = 有圖沒引用, phantom = 有引用沒圖）
-- C7e：Wikilink 引用一致性
+### Review、commit 與一般維護 checks
 
-**C8 時間一致性**：寫作順序（如 Methods → Results → Introduction）會造成先寫的 section 引用「尚未寫」的 section 狀態。C8 在全稿完成後逆向掃描，修正這些過時描述。
+- **R1–R6**：Phase 7 每輪重算 review 深度、author response 完整性、EQUATOR、修正追蹤、修後語體／作者責任訊號與引用預算。
+- **P1/P2/P4–P7**：提交前重查引用、語體、字數、protected content、Memory 與 reference integrity。
+- **G9**：回報 Git 狀態；G1–G8 的 README、CHANGELOG、ROADMAP、架構與文件同步仍屬 Agent-driven 維護責任。
 
 ### Hook D: meta-learning
 
@@ -415,18 +423,19 @@ metadata:
 
 Phase 0 產出的期刊約束文件，驅動所有後續 Phase：
 
-| YAML 欄位                         | 影響                                |
-| --------------------------------- | ----------------------------------- |
-| `paper.type`                      | Phase 1 設定 / Phase 4 寫作順序     |
-| `paper.sections`                  | Phase 4 大綱結構                    |
-| `word_limits.*`                   | Hook A1 / C6 / C7c 字數檢查         |
-| `assets.figures_max / tables_max` | Phase 4 Asset Plan / C7a 數量檢查   |
-| `references.max_references`       | Phase 2 文獻數 / Phase 8 引用上限   |
-| `references.style`                | Phase 8 引用格式                    |
-| `reporting_guidelines.checklist`  | Hook B5 方法學 / C2 投稿清單        |
-| `pipeline.hook_*_max_rounds`      | Hook A/B/C cascading 上限           |
-| `pipeline.review_max_rounds`      | Phase 7 Review 輪數                 |
-| `pipeline.writing.anti_ai_*`      | Legacy 欄位：Hook A3 語體訊號嚴格度 |
+| YAML 欄位                           | 影響                                    |
+| ----------------------------------- | --------------------------------------- |
+| `paper.type`                        | Phase 1 設定 / Phase 4 寫作順序         |
+| `paper.sections`                    | Phase 4 大綱結構                        |
+| `word_limits.*`                     | Hook A1 / C6 字數檢查                   |
+| `assets.figures_max / tables_max`   | Phase 4 Asset Plan / C7a 數量檢查       |
+| `references.max_references`         | Phase 7 R6 / Phase 8 reference workflow |
+| `references.style`                  | Phase 8 reference workflow              |
+| `pipeline.writing.citation_density` | Hook A2 引用密度                        |
+| `reporting_guidelines.checklist`    | Hook B5 方法學 / C2 投稿清單            |
+| `pipeline.hook_*_max_rounds`        | Hook A/B/C cascading 上限               |
+| `pipeline.review_max_rounds`        | Phase 7 Review 輪數                     |
+| `pipeline.writing.anti_ai_*`        | Legacy 欄位：Hook A3 語體訊號嚴格度     |
 
 ## source-materials.yaml 規格
 
@@ -440,7 +449,6 @@ Phase 0 產出的原始素材清單，驅動後續資料、圖表、Methods/Resu
 | `agent_next_steps.asset_aware_file_paths` | agent 應交給 asset-aware 的具體檔案           |
 
 `data-artifacts.yaml` 的 `data_anchors` 必須引用 ready/ingested source material、asset-aware doc、tracked data artifact，或可信 data file。若 anchor 來源是 `concept.md`、agent summary、inferred/estimated 值，或指向仍是 `pending_asset_aware` 的 DOCX/PDF，Hook F4 會以 CRITICAL 阻擋。
-| `pipeline.writing.citation_density` | Hook A2 引用密度 |
 
 完整模板見：[templates/journal-profile.template.yaml](https://github.com/u9401066/med-paper-assistant/blob/master/templates/journal-profile.template.yaml)
 
@@ -524,7 +532,7 @@ Pipeline 編排 5 個 MCP Server + 外部工具：
 | 6     | mdpaper  | —                          | 全稿審計                             |
 | 7     | mdpaper  | CGU                        | Review + 論點補強                    |
 | 8     | mdpaper  | —                          | 引用同步                             |
-| 9     | mdpaper  | —                          | Word 匯出                            |
+| 9     | mdpaper  | —                          | DOCX / PDF 匯出                      |
 | 10    | mdpaper  | —                          | Retrospective + Meta-learning        |
 | 11    | mdpaper  | —                          | Final delivery                       |
 
@@ -556,14 +564,14 @@ Pipeline 編排 5 個 MCP Server + 外部工具：
 
 ### 必須停下
 
-| 情境                                      | 行為               |
-| ----------------------------------------- | ------------------ |
-| Concept < 60（兩次）                      | 硬停止，回報用戶   |
-| Phase 4 manual mode 大綱                  | 必須用戶確認       |
-| Phase 4 autopilot 缺少自審／核准 artifact | 硬停止，補齊 gate  |
-| Phase 6 N 輪 cascading 仍 CRITICAL        | 呈現問題讓用戶決定 |
-| Review 連續 2 輪無分數改善                | 詢問用戶           |
-| 需修改 AGENTS.md 核心原則                 | 永遠需確認         |
+| 情境                               | 行為                                              |
+| ---------------------------------- | ------------------------------------------------- |
+| Concept < 60（兩次）               | 硬停止，回報用戶                                  |
+| Phase 4 manual mode 大綱           | 必須用戶確認                                      |
+| Phase 4 autopilot 缺少自審紀錄     | Workflow 暫停，補齊紀錄；不是 validator hard gate |
+| Phase 6 N 輪 cascading 仍 CRITICAL | 呈現問題讓用戶決定                                |
+| Review 連續 2 輪無分數改善         | 詢問用戶                                          |
+| 需修改 AGENTS.md 核心原則          | 永遠需確認                                        |
 
 ---
 

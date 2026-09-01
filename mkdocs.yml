@@ -106,7 +106,7 @@ nav:
       - 跨平台相容性: harness/platform-compatibility.md
       - 視覺圖譜: wiki/visual-atlas.md
   - 學術寫作流程:
-      - 研究管線總覽: wiki/research-pipeline.md
+      - 每階段檢查與修正: wiki/research-pipeline.md
       - 共用寫作契約: harness/academic-writing-workflow.md
       - 評估契約: harness/evaluation-contract.md
       - Auto-Paper 完整指南: auto-paper-guide.md
@@ -127,6 +127,7 @@ nav:
       - Citation tools architecture: design/citation-tools-architecture.md
   - 品質與治理:
       - 品質系統總覽: wiki/quality-and-audit.md
+      - Phase gate 設計與程式契約: design/phase-gate-contract.md
       - Article-type-aware harness: design/article-type-aware-harness.md
       - Adversarial verification: design/adversarial-verification-harness.md
       - Governance review stack: design/autopaper-governance-review-stack.md

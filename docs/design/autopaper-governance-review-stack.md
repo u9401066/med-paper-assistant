@@ -191,13 +191,13 @@ Concept Review 至少要回答：
 
 ## 9. 目前狀態判定
 
-截至目前，repo 的真實狀態應判定為：
+截至 v1.0.2，repo 的真實狀態應判定為：
 
 - `Review Hooks`: 已有相當完整的 code-enforced 基礎
 - `Tool Health`: 已有 TOON 輸出與 telemetry 支撐
-- `Concept Review`: 尚未正式落地為獨立 artifact
+- `Concept Review`: `.audit/concept-review.yaml`、actionable decision 與外部簽署 override 已由 Phase 3 gate 強制
 - `Reuse Review`: 尚未成為硬 gate
 - `Hook Portfolio Review`: 有資料來源，但尚未形成正式盤點流程
 - `Failure Review`: 有零散 failure records，但尚未形成 taxonomy artifact
 
-因此接下來的重點不是再加更多 hook，而是把 L1、L2、L4、L5 變成真正可執行的治理層。
+因此接下來的重點不是再加更多 hook，而是補強 L2、L4、L5；Concept Review 已落地，不應再列為未實作。

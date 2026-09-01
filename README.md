@@ -16,7 +16,8 @@ Core research surfaces: mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · Ma
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Autonomous + Human-Guided Writing Guide](docs/auto-paper-guide.md)** — 13 main gate checkpoints + Phase 2.1 sub-gate, 79 Quality Hooks, Structured Review Loop
-> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 35 topic pages with Mermaid workflows, SVG architecture maps, full-text search, and dark mode
+> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 36 topic pages with Mermaid workflows, SVG architecture maps, full-text search, and dark mode
+> 🚦 **[Stage-by-stage checks and fixes](https://u9401066.github.io/med-paper-assistant/wiki/research-pipeline/)** — plain-language blockers, workflow duties, warnings, repair paths, and human decisions for every code phase
 
 The goal is not one-shot text generation. MedPaper Assistant supports bounded autonomous runs and researcher-led writing through the same observable checkpoints, evidence locators, quality gates, review receipts, and reproducible exports. A solver produces artifacts; independent checks score those artifacts without granting unsupported claims evidence credit.
 
@@ -677,7 +678,7 @@ If you use Medical Paper Assistant, cite the software release described in [`CIT
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.0.2},
+  version = {1.0.3},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

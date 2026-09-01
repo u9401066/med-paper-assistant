@@ -4,19 +4,23 @@
 > **日期**: 2026-02-25
 > **影響**: auto-paper SKILL.md, write-paper.prompt.md, 新增 prompt + agent mode
 
+!!! warning "歷史設計與現行實作的分界"
+
+    本頁保留當時的設計決策與舊編號提案，不是現行 hard-gate authority。現在 code-enforced 的 C7 family 是 C7a（圖表數量）、C7b（asset-plan coverage）、C7d（交叉引用）；字數由 C6、Wikilink 由 C5、引用預算由 R6 處理。Phase 4 approval／coverage 與 Phase 6「0 unresolved critical」目前仍是 workflow exit targets，不是 phase validator 逐欄重算的 hard checks。現況以[Phase gate：設計與程式契約](phase-gate-contract.md)為準。
+
 ---
 
 ## 0. 設計決定摘要
 
-| #      | 議題                      | 決定                                                           | 影響                    |
-| ------ | ------------------------- | -------------------------------------------------------------- | ----------------------- |
-| **D1** | Hook A 粒度               | Section 級觸發，B7 做 paragraph 級 brief 比對                  | Hook A 不變             |
-| **D2** | manuscript-plan.yaml 彈性 | Agent 可修改，需 audit trail，不可刪 `protected: true`         | Phase 5 邏輯            |
-| **D3** | Agent Mode                | VS Code 已支援，直接實作                                       | P7 升級 🟡              |
-| **D4** | journal-profile.yaml      | 有預設值，Agent 參照但盡量不變更，用戶可改需有紀錄             | 加 changelog            |
-| **D5** | C7 擴展                   | 引用數量 + 圖表數量 + 交叉引用 **全併 C7**                     | C7 → 數量與交叉引用合規 |
-| **D6** | caption_requirements      | B7 順帶檢查 asset_plan 的 caption_requirements                 | B7 範圍含圖說           |
-| **D7** | Review Report 結構化      | YAML front matter + 每個 issue 結構化 + Hook D 可演化 Reviewer | Phase 7 + D 擴展        |
+| #      | 議題                      | 決定                                                           | 影響             |
+| ------ | ------------------------- | -------------------------------------------------------------- | ---------------- |
+| **D1** | Hook A 粒度               | Section 級觸發，B7 做 paragraph 級 brief 比對                  | Hook A 不變      |
+| **D2** | manuscript-plan.yaml 彈性 | Agent 可修改，需 audit trail，不可刪 `protected: true`         | Phase 5 邏輯     |
+| **D3** | Agent Mode                | VS Code 已支援，直接實作                                       | P7 升級 🟡       |
+| **D4** | journal-profile.yaml      | 有預設值，Agent 參照但盡量不變更，用戶可改需有紀錄             | 加 changelog     |
+| **D5** | C7 擴展                   | 圖表數量 + asset-plan coverage + 交叉引用                      | C7a / C7b / C7d  |
+| **D6** | caption_requirements      | B7 順帶檢查 asset_plan 的 caption_requirements                 | B7 範圍含圖說    |
+| **D7** | Review Report 結構化      | YAML front matter + 每個 issue 結構化 + Hook D 可演化 Reviewer | Phase 7 + D 擴展 |
 
 ---
 
@@ -260,7 +264,9 @@ FOR section IN writing_order:
 | A1      | 字數                                 | `paper.sections[name].word_limit` ± `pipeline.tolerance.word_percent` |
 | A2      | 引用密度                             | `pipeline.writing.citation_density.*`                                 |
 | A3      | Style integrity (legacy config name) | `pipeline.writing.anti_ai_strictness`                                 |
-| C7      | 數量合規                             | `assets.*_max` + `word_limits.*`                                      |
+| C7a     | 圖表數量                             | `assets.*_max`                                                        |
+| C7b     | Required asset coverage              | `manuscript-plan.yaml` + manifest                                     |
+| C7d     | 圖表交叉引用                         | manuscript + manifest                                                 |
 | B5      | 方法學                               | `reporting_guidelines.checklist`                                      |
 | Phase 7 | 閾值/輪數                            | `pipeline.autonomous_review.*`                                        |
 
@@ -316,25 +322,22 @@ IF 欄位缺失 → 用 template 預設值
 
 ---
 
-### 2.5 Hook C7 擴展：數量與交叉引用合規（D5）
+### 2.5 Hook C7 擴展：數量、計畫與交叉引用（D5）
 
-**原 C7**：只查圖表數量
-**擴展後**：三合一數量 + 交叉引用
+現行實作的 C7 family 為：
 
-| 子項 | 檢查內容                       | MCP Tool                     |
-| ---- | ------------------------------ | ---------------------------- |
-| C7a  | 圖表總數 ≤ 上限                | `list_assets`                |
-| C7b  | 引用總數合理範圍               | `scan_draft_citations`       |
-| C7c  | 總字數 vs journal-profile      | `count_words`                |
-| C7d  | 圖表交叉引用（orphan/phantom） | `list_assets` + `read_draft` |
-| C7e  | Wikilink 引用一致性            | `validate_wikilinks`         |
+| 子項 | 檢查內容                                         | 實作來源                |
+| ---- | ------------------------------------------------ | ----------------------- |
+| C7a  | 圖表總數 ≤ 上限                                  | manuscript + manifest   |
+| C7b  | Required asset 已登記、放入指定 section 且可匯出 | plan + manifest + files |
+| C7d  | 圖表交叉引用（orphan/phantom）                   | manuscript + manifest   |
 
 ```
 orphan = manifest - draft_refs → WARNING（有圖沒引用）
 phantom = draft_refs - manifest → CRITICAL（有引用沒圖）
 ```
 
-> **NOTE**: C6（總字數）功能與 C7c 部分重疊。實作時決定是否 deprecated C6 或保留做快速檢查。
+> **已解決的編號分工**：總字數由 C6、Wikilink 由 C5、引用預算由 R6 處理，不再使用 C7c/C7e 作為 code hook ID。
 
 ---
 
@@ -343,7 +346,7 @@ phantom = draft_refs - manifest → CRITICAL（有引用沒圖）
 #### 2.6.1 循環架構（3 rounds）
 
 ```
-Phase 7 入口：Phase 6 通過（0 CRITICAL）
+Phase 7 入口：Phase 6 workflow 已處理 critical findings，且 Phase 6/6.5 code gates 通過
 
 FOR round = 1 TO 3:
 
@@ -496,22 +499,22 @@ Tools: `read_draft`, `list_drafts`, `count_words`, `check_formatting`, `scan_dra
 
 ## 3. Pipeline Phase 對齊：13 Main Checkpoints + Phase 2.1 Sub-Gate
 
-| Phase | 名稱           | Skill                                 | Gate                              |
-| ----- | -------------- | ------------------------------------- | --------------------------------- |
-| 0     | 前置規劃       | —                                     | journal-profile.yaml 用戶確認     |
-| 1     | 專案設置       | project-management                    | 專案 + paper_type                 |
-| 2     | 文獻搜尋       | literature-review                     | paper-type-aware 最低文獻數       |
-| 2.1   | 全文/素材解析  | asset-aware + fulltext                | ingestion receipts / fallback     |
-| 3     | 概念發展       | concept-development                   | novelty ≥ 75                      |
-| 4     | 大綱規劃       | draft-writing                         | 🗣️ 用戶確認 manuscript-plan.yaml  |
-| 5     | 章節撰寫       | draft-writing + Hook A/B/B7           | 通過                              |
-| 6     | 全稿審計       | Hook C（C7 含數量+交叉引用）          | 0 critical                        |
-| 6.5   | 演化閘門       | evolution baseline                    | baseline + scorecard              |
-| 7     | 自主審稿       | Review→Response loop (×3)             | quality ≥ threshold               |
-| 8     | 引用同步       | reference-management                  | 0 broken                          |
-| 9     | 匯出           | word-export                           | 已匯出                            |
-| 10    | 回顧改進       | Hook D（含 D7 Reviewer 演化）         | SKILL 更新                        |
-| 11    | Final Delivery | word-export + optional git provenance | final artifacts + delivery marker |
+| Phase | 名稱           | Skill                       | Gate                                      |
+| ----- | -------------- | --------------------------- | ----------------------------------------- |
+| 0     | 前置規劃       | —                           | profile + source-material manifest        |
+| 1     | 專案設置       | project-management          | 六個必要目錄                              |
+| 2     | 文獻搜尋       | literature-review           | 最低文獻數 + reference integrity          |
+| 2.1   | 全文/素材解析  | asset-aware + fulltext      | receipts/fallback + source-bound analysis |
+| 3     | 概念發展       | concept-development         | structured actionable review              |
+| 4     | 大綱規劃       | draft-writing               | actionable concept + plan 存在            |
+| 5     | 章節撰寫       | draft-writing + Hook A/B/B7 | sections/assets/provenance/approval       |
+| 6     | 全稿審計       | Hook C/F                    | 有效 scorecard + hook/data evidence       |
+| 6.5   | 演化閘門       | evolution baseline          | baseline event + scorecard                |
+| 7     | 自主審稿       | Review→Response loop        | ≥2 rounds + R1-R6 + current hash          |
+| 8     | 引用同步       | reference-management        | References + 0 broken wikilinks           |
+| 9     | 匯出           | word-export                 | valid DOCX + PDF                          |
+| 10    | 回顧改進       | Hook D                      | D1-D9 + matching provenance               |
+| 11    | Final Delivery | export check + optional Git | valid exports + Phase 10                  |
 
 ---
 
@@ -623,12 +626,11 @@ Phase 10: Hook D + D7 (Reviewer 演化)
 
 ---
 
-## 9. 開放問題（實作中決定）
+## 9. 開放問題與已解決項目
 
-### OQ1: C6 與 C7c 重疊
+### OQ1（已解決）: C6 與舊 C7c 提案
 
-C7c 新增字數 vs journal-profile，與 C6 總字數功能重疊。
-選項：A) C6 deprecated B) C6 保留快速檢查 + C7c 詳細比對
+保留 C6 作為總字數 code check，移除 C7c code-hook 提案；C7 family 只使用 C7a/C7b/C7d，避免重複與編號漂移。
 
 ### OQ2: D7 演化範圍
 

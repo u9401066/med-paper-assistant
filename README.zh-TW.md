@@ -17,7 +17,9 @@
 
 > 🤖 **[Auto-Paper：自主＋人類協作寫作指南](docs/auto-paper-guide.md)** — 13 個主線 gate checkpoint + Phase 2.1 sub-gate、79 項品質檢查、結構化 Review Loop
 >
-> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 35 個主題頁、Mermaid 流程圖、SVG 架構圖、全文搜尋與深色模式
+> 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 36 個主題頁、Mermaid 流程圖、SVG 架構圖、全文搜尋與深色模式
+>
+> 🚦 **[每階段檢查與修正](https://u9401066.github.io/med-paper-assistant/wiki/research-pipeline/)** — 以人類看得懂的方式說明每個 code phase 的擋關、流程要求、提醒、修正路徑與人工判斷
 
 核心目標不是一次生成整篇文字，而是讓受邊界約束的自主流程與研究者主導的寫作共用可觀察 checkpoint、evidence locator、quality gate、審閱 receipt 與可重現匯出。Solver 負責產生 artifacts，獨立檢查負責評分，未被證據支持的內容不會因文字流暢而取得 evidence credit。
 
@@ -677,7 +679,7 @@ med-paper-assistant/
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.0.2},
+  version = {1.0.3},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

@@ -2,6 +2,8 @@
 
 品質不是最後才跑一次 spell check，而是分布在寫作、全稿、review、commit 與跨對話演進的控制系統。
 
+如果你要查「每一個 Phase 到底擋什麼、失敗後怎麼修」，先看[每階段檢查與修正](research-pipeline.md)；技術權威見[Phase gate 設計與程式契約](../design/phase-gate-contract.md)。本頁說明的是跨 Phase 的品質層次。
+
 ![Three-layer quality system](../assets/wiki-quality-layers.svg){ loading=lazy }
 
 ## 79 checks 在哪裡發生

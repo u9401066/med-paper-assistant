@@ -4,6 +4,11 @@ This design describes the provider-neutral production surface shared by Claude
 Code, Codex, and OpenClaw. Runtime discovery differs, but scientific evidence,
 output-profile constraints, phase gates, review, and audit artifacts do not.
 
+The exact distinction between code hard gates, workflow obligations, and
+advisories is maintained in the [phase-gate design/code contract](phase-gate-contract.md).
+Design intent is not described as implemented enforcement until the validator
+and behavioral tests support it.
+
 ## System flow
 
 ```mermaid

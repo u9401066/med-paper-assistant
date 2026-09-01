@@ -101,7 +101,8 @@ Later               │  Bounded Automation Enhancement                         
 | **Domain constraints** ✅               | 13 種正式產出、110 個 base constraints，並有 registry parity 與 boundary tests                                                   |
 | **DDD / orphan ratchet** ✅             | Application-owned ports、靜態依賴邊界、移除 5 個孤兒符號、vulture 80%+ 零發現；391 項既有大小例外由 authority 禁止成長並逐步收斂 |
 | **118-tool greedy smoke** ✅            | 116 正常、2 個按設計跳過、0 broken/error；包含 legacy reference migration                                                        |
-| **GitHub Pages Wiki + visual atlas** ✅ | MkDocs Material、35 頁、native Mermaid、8 個 accessible SVG、strict Pages deploy 與文件契約測試                                  |
+| **GitHub Pages Wiki + visual atlas** ✅ | MkDocs Material、36 頁、native Mermaid、8 個 accessible SVG、strict Pages deploy 與文件契約測試                                  |
+| **Phase gate 三方契約** ✅              | 14 個 code phases 的設計、validator 與人類版網站說明對齊，逐階段區分 hard gate、workflow obligation、advisory 與修正路徑         |
 | **Portable JSONC / skill discovery** ✅ | URL-safe parser、comments/trailing commas、38 skills frontmatter 與跨平台入口測試                                                |
 | **Extension production gates** ✅       | 相容的 ESLint 9、Vitest 4、bundle drift、92-point validate、npm audit 0、VSIX install smoke                                      |
 
