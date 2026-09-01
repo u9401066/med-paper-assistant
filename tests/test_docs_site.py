@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
+
+from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator import (
+    _PIPELINE_PHASES,
+)
 
 pytestmark = pytest.mark.contract
 
@@ -84,3 +89,24 @@ def test_pages_workflow_builds_strictly_and_deploys_only_after_build() -> None:
         deploy["steps"][0]["uses"]
         == "actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128"
     )
+
+
+def test_every_code_phase_has_design_and_human_repair_documentation() -> None:
+    expected = {str(phase) for phase in _PIPELINE_PHASES}
+    paths = [
+        REPO_ROOT / "docs" / "design" / "phase-gate-contract.md",
+        REPO_ROOT / "docs" / "wiki" / "research-pipeline.md",
+    ]
+
+    for path in paths:
+        content = path.read_text(encoding="utf-8")
+        markers = re.findall(r"<!-- phase-gate:(\d+) -->", content)
+        assert set(markers) == expected, path
+        assert len(markers) == len(expected), f"duplicate phase marker in {path}"
+
+    human_page = paths[1].read_text(encoding="utf-8")
+    sections = re.split(r"<!-- phase-gate:(\d+) -->", human_page)
+    phase_sections = dict(zip(sections[1::2], sections[2::2], strict=True))
+    for phase in expected:
+        assert "**真正擋關**" in phase_sections[phase]
+        assert "**沒通過怎麼修**" in phase_sections[phase]
