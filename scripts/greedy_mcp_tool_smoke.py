@@ -5,6 +5,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import sys
 import tempfile
 from collections.abc import AsyncIterator
@@ -76,6 +77,7 @@ PRECONDITION_MARKERS = (
     "use `/mdpaper",
     "valid project",
 )
+_TOOL_ERROR_PREFIX = re.compile(r"^error executing tool [^:]+:\s*", re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -580,9 +582,25 @@ def render_call_result(result: Any) -> str:
     return "\n".join(part for part in parts if part).strip()
 
 
+def _tool_reported_failure(rendered_text: str) -> str | None:
+    """Return the tool's own "❌ ..." report when an ``isError`` result carries one.
+
+    Tools raise ``ToolError`` for their "❌" failure strings, which the SDK renders as
+    ``Error executing tool <name>: ❌ ...``. Those are application-level outcomes, not
+    transport/runtime breakage, so they keep the precondition/error classification.
+    """
+    body = _TOOL_ERROR_PREFIX.sub("", rendered_text.strip(), count=1)
+    return body if body.startswith("❌") else None
+
+
 def classify_call_outcome(result: Any, rendered_text: str) -> tuple[str, str]:
     if getattr(result, "is_error", False):
-        return "broken", rendered_text or "MCP call marked as error"
+        reported = _tool_reported_failure(rendered_text)
+        if reported is None:
+            return "broken", rendered_text or "MCP call marked as error"
+        if any(marker in reported.casefold() for marker in PRECONDITION_MARKERS):
+            return "precondition", rendered_text
+        return "error", rendered_text
 
     structured = getattr(result, "structured_content", None)
     if isinstance(structured, dict):

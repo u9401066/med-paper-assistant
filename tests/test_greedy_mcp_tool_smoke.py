@@ -257,6 +257,22 @@ def test_classify_call_outcome_distinguishes_precondition_from_broken() -> None:
 
 
 @pytest.mark.parametrize(
+    ("rendered", "expected"),
+    [
+        ("Error executing tool export_docx: ❌ **Pandoc not available**", "precondition"),
+        ("Error executing tool draft_action: ❌ Unsupported action", "error"),
+        ("Error executing tool draft_action: KeyError: 'slug'", "broken"),
+    ],
+)
+def test_classify_call_outcome_keeps_tool_reported_failures_out_of_broken(
+    rendered: str, expected: str
+) -> None:
+    status, _ = classify_call_outcome(_FakeResult(is_error=True), rendered)
+
+    assert status == expected
+
+
+@pytest.mark.parametrize(
     "structured_content",
     [
         {"ok": False, "message": "validation failed"},
