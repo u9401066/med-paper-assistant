@@ -73,7 +73,7 @@ TOOL_GUIDE = """## TOOL SELECTION GUIDE (facade-first; 118 full / 12 compact def
 |------|-------------|
 | `unified_search` | Primary entrypoint for PubMed / multi-source paper search |
 | `generate_search_queries` | Expand MeSH terms / synonyms / search materials |
-| `parse_pico` | Break clinical questions into PICO elements |
+| `validate_pico_plan` | Validate agent-provided P/I/C/O and return a runnable PICO pipeline |
 | `find_related_articles` | Find similar papers (by PMID) |
 | `find_citing_articles` | Find papers citing a PMID |
 

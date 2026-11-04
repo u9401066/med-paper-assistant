@@ -6,16 +6,13 @@ description: "Pipeline persistence — save, load, and reuse structured search p
 # Pipeline 持久化 — 結構化搜尋計畫管理
 
 ## 描述
-
 將複雜的搜尋流程保存為可重複使用的 Pipeline YAML 配置。支援：
-
-- 從模板快速建立（PICO、comprehensive、exploration、gene_drug）
+- 從模板快速建立（pico、comprehensive、exploration、gene_drug、snowball）
 - 自訂 DAG（有向無環圖）多步驟管道
 - 雙層儲存（workspace + global）
-- 自動驗證 + 激進式自動修正（21 條規則）
+- Schema-exact 驗證 + 有限度的安全 normalization
 
 ## 觸發條件
-
 - 「把這個搜尋存起來」、「建立搜尋計畫」
 - 「每週跑一次這個搜尋」、「保存這個 pipeline」
 - 「列出我的管道」、「上次的搜尋可以再跑嗎」
@@ -33,13 +30,13 @@ save_pipeline(
     name="icu_remimazolam_vs_propofol",
     config="""
 template: pico
-params:
+template_params:
   P: ICU patients requiring sedation
   I: remimazolam
   C: propofol
   O: delirium incidence, sedation quality
 """,
-    tags="anesthesia,sedation,ICU",
+    tags=["anesthesia", "sedation", "ICU"],
     description="Weekly monitoring: remimazolam vs propofol ICU sedation"
 )
 
@@ -62,14 +59,14 @@ steps:
     action: search
     params:
       query: BRCA1 breast cancer
-      sources: pubmed
+      sources: [pubmed]
       limit: 50
   - id: expanded
     action: search
     inputs: [expand]
     params:
       strategy: mesh
-      sources: pubmed,openalex
+      sources: [pubmed, openalex]
       limit: 50
   - id: merged
     action: merge
@@ -84,14 +81,14 @@ output:
   limit: 30
   ranking: quality
 """,
-    tags="genetics,oncology",
+    tags=["genetics", "oncology"],
     description="BRCA1 breast cancer comprehensive search with MeSH expansion"
 )
 ```
 
 ---
 
-## 6 個 MCP 工具
+## 7 個 MCP 工具
 
 ### save_pipeline — 保存管道
 
@@ -99,19 +96,17 @@ output:
 save_pipeline(
     name="weekly_remimazolam",     # 唯一名稱 (英數 + _ -, max 64)
     config="<YAML or JSON>",       # Pipeline 配置
-    tags="tag1,tag2",              # 逗號分隔標籤
+    tags=["tag1", "tag2"],        # 最多 20 個 canonical 字串標籤
     description="...",             # 人類可讀描述
     scope="auto"                   # "workspace" | "global" | "auto"
 )
 ```
 
-**自動修正範例：**
-
-- `action: "find"` → 自動修正為 `action: "search"`（別名解析）
-- `action: "serach"` → 自動修正為 `action: "search"`（模糊匹配）
-- 缺少 step ID → 自動生成 `step_1`, `step_2`...
-- 重複 step ID → 自動重命名 `s1` → `s1_2`
-- 循環依賴 → 自動移除問題引用
+**Fail-closed contract：**
+- action/template 只接受下列 canonical 值；alias 與拼字錯誤直接拒絕
+- template 參數只使用頂層 `template_params`；已退役的頂層 `params` 直接拒絕
+- step ID 必須明確且唯一；dependency ID 必須精確引用前面的 step
+- 未知 `on_error`、output format 或 ranking 不會被猜測或改寫
 
 ### list_pipelines — 列出管道
 
@@ -141,32 +136,39 @@ get_pipeline_history(name="weekly_remimazolam", limit=5)
 # 顯示：日期、文章數、新增/移除文章、狀態
 ```
 
-### schedule_pipeline — 排程（Phase 4 尚未實作）
+### schedule_pipeline — 建立或更新排程
 
 ```python
 schedule_pipeline(name="weekly_remimazolam", cron="0 9 * * 1")
-# ⚠️ 目前返回使用說明，建議手動執行或使用 OS 排程
+```
+
+`diff_mode=True` 會在排程報告附上與前次成功執行的差異：新增文章與移除 PMID 各最多 20 筆，首次執行標示 baseline。Partial/error 不據以推論移除。
+`notify=True` 保存最後 run ID 與新增／移除數量；`list_pipelines` 顯示新增文章數並引導至 `get_pipeline_history`，不是外部推播。停用通知會清除舊摘要。
+
+### unschedule_pipeline — 移除排程
+
+```python
+unschedule_pipeline(name="weekly_remimazolam")
 ```
 
 ---
 
-## 4 個內建模板
+## 5 個內建模板
 
 ### pico — PICO 臨床問題
 
 ```yaml
 template: pico
-params:
+template_params:
   P: ICU patients requiring sedation
   I: remimazolam
   C: propofol
   O: delirium incidence
-  sources: pubmed # 可選，預設 pubmed
-  limit: 20 # 可選
+  sources: [pubmed]        # 可選，預設 pubmed
+  limit: 20              # 可選
 ```
 
 **自動產生的 DAG：**
-
 ```
 pico → search_p  ──┐
      → search_i  ──┤
@@ -177,15 +179,14 @@ pico → search_p  ──┐
 
 ```yaml
 template: comprehensive
-params:
+template_params:
   query: CRISPR gene therapy safety
-  sources: pubmed,openalex,europe_pmc # 可選
-  limit: 30 # 可選
-  min_year: 2020 # 可選
+  sources: [pubmed, openalex, europe_pmc]  # 可選
+  limit: 30                             # 可選
+  min_year: 2020                        # 可選
 ```
 
 **自動產生的 DAG：**
-
 ```
 expand → search_expanded  ──┐
          search_original  ──┼→ merged → enriched
@@ -195,13 +196,12 @@ expand → search_expanded  ──┐
 
 ```yaml
 template: exploration
-params:
+template_params:
   pmid: "33475315"
-  limit: 20 # 每個方向的限制
+  limit: 20        # 每個方向的限制
 ```
 
 **自動產生的 DAG：**
-
 ```
 related  ──┐
 citing   ──┼→ merged → enriched
@@ -212,29 +212,43 @@ refs     ──┘
 
 ```yaml
 template: gene_drug
-params:
+template_params:
   term: BRCA1
-  sources: pubmed,openalex # 可選
-  limit: 20 # 可選
-  min_year: 2020 # 可選
+  sources: [pubmed, openalex]  # 可選
+  limit: 20                  # 可選
+  min_year: 2020             # 可選
 ```
 
 ---
 
+### snowball — 多種子引用擴展
+
+```yaml
+template: snowball
+template_params:
+  query: remimazolam ICU sedation
+  seed_limit: 5  # 可選，1–10，預設 5
+  limit: 20      # 可選，預設 20
+```
+
+流程：search → citing + references → union merge（含原始搜尋結果）。
+`related`／`citing`／`references` 也可透過 `inputs` 搭配 `seed_limit`，但不可同時給 `pmid`。
+依輸入順序取前幾個不重複 PMID，每個 seed 消耗一次外部呼叫預算；合併去重後排除 seeds，並以 `limit` 截斷該 action 的結果。
+
 ## 10 個可用 Action
 
-| Action       | 說明                               | 主要參數                                                                 |
-| ------------ | ---------------------------------- | ------------------------------------------------------------------------ |
-| `search`     | 文獻搜尋                           | `query`, `sources`, `limit`, `min_year`, `max_year`                      |
-| `pico`       | Agent-provided PICO handoff search | `P`, `I`, optional `C`, recommended `O`                                  |
-| `expand`     | MeSH/同義詞擴展                    | `topic`                                                                  |
-| `details`    | 取得文章詳情                       | `pmids`                                                                  |
-| `related`    | 相關文章                           | `pmid`, `limit`                                                          |
-| `citing`     | 引用文章                           | `pmid`, `limit`                                                          |
-| `references` | 參考文獻                           | `pmid`, `limit`                                                          |
-| `metrics`    | iCite 引用指標                     | （從 inputs 取得）                                                       |
-| `merge`      | 合併結果                           | `method`: `union` / `intersection` / `rrf`                               |
-| `filter`     | 過濾結果                           | `min_year`, `max_year`, `article_types`, `min_citations`, `has_abstract` |
+| Action | 說明 | 主要參數 |
+|--------|------|----------|
+| `search` | 文獻搜尋 | `query`, `sources`, `limit`, `min_year`, `max_year` |
+| `pico` | Agent-provided PICO handoff search | `P`, `I`, optional `C`, recommended `O` |
+| `expand` | MeSH/同義詞擴展 | `topic` |
+| `details` | 取得文章詳情 | `pmids` |
+| `related` | 相關文章 | `pmid` 或 `inputs` + `seed_limit`，`limit` |
+| `citing` | 引用文章 | `pmid` 或 `inputs` + `seed_limit`，`limit` |
+| `references` | 參考文獻 | `pmid` 或 `inputs` + `seed_limit`，`limit` |
+| `metrics` | iCite 引用指標 | （從 inputs 取得） |
+| `merge` | 合併結果 | `method`: `union` / `intersection` / `rrf` |
+| `filter` | 過濾結果 | `min_year`, `max_year`, `article_types`, `min_citations`, `has_abstract` |
 
 ---
 
@@ -267,14 +281,14 @@ steps:
     action: search
     params:
       query: remimazolam
-      sources: pubmed,europe_pmc
+      sources: [pubmed, europe_pmc]
       limit: 50
       min_year: 2024
   - id: search_dex
     action: search
     params:
       query: dexmedetomidine ICU sedation
-      sources: pubmed
+      sources: [pubmed]
       limit: 50
       min_year: 2024
   - id: merged
@@ -287,7 +301,7 @@ steps:
     inputs: [merged]
     params:
       has_abstract: true
-      article_types: "Journal Article,Clinical Trial,Randomized Controlled Trial"
+      article_types: [journal-article, clinical-trial, randomized-controlled-trial]
   - id: enriched
     action: metrics
     inputs: [filtered]
@@ -305,7 +319,7 @@ steps:
   - id: seed_details
     action: details
     params:
-      pmids: "33475315"
+      pmids: ["33475315"]
   - id: related
     action: related
     params:
@@ -356,21 +370,21 @@ steps:
     inputs: [pico]
     params:
       element: P
-      sources: pubmed,europe_pmc
+      sources: [pubmed, europe_pmc]
       limit: 100
   - id: search_pico_i
     action: search
     inputs: [pico]
     params:
       element: I
-      sources: pubmed,europe_pmc
+      sources: [pubmed, europe_pmc]
       limit: 100
   - id: search_expanded
     action: search
     inputs: [mesh_expand]
     params:
       strategy: mesh
-      sources: pubmed,openalex
+      sources: [pubmed, openalex]
       limit: 100
   - id: merged
     action: merge
@@ -396,6 +410,20 @@ output:
 
 ## Agent 產生 Pipeline 的最佳實踐
 
+### 從中斷的搜尋回復
+
+先讀 server-side durable state，不要依賴對話記憶或 `.github/hooks/_state`：
+
+```python
+read_session(request={"action":"search_runs"})
+read_session(request={"action":"search_run","run_id":"<selected-run-id>"})
+read_session(request={"action":"replay_search","run_id":"<selected-run-id>"})
+```
+
+`replay_search` 只回傳 credential-free `unified_search` arguments，不會自動執行或消耗
+provider quota。Agent 檢查 source status、artifact audit 與使用者意圖後，再明確呼叫
+`unified_search`。如果原 run 已有 artifact，優先讀 artifact，只有需要最新結果時才 replay。
+
 ### 將對話搜尋轉為 Pipeline
 
 Agent 在完成一次成功搜尋後，可以：
@@ -411,7 +439,7 @@ steps:
     action: search
     params:
       query: "<剛才的查詢>"
-      sources: pubmed,openalex
+      sources: [pubmed, openalex]
       limit: 50
   - id: enriched
     action: metrics
@@ -429,10 +457,10 @@ output:
 
 ### 常見模式
 
-| 場景            | 推薦模板        | 說明                                                      |
-| --------------- | --------------- | --------------------------------------------------------- |
-| 臨床問題 A vs B | `pico`          | Agent 提供 P/I/C/O；後端執行含 O 的 precision/recall 搜尋 |
-| 主題綜合搜尋    | `comprehensive` | 多源 + MeSH 擴展                                          |
-| 已知重要論文    | `exploration`   | 三方向探索（related/citing/refs）                         |
-| 基因/藥物研究   | `gene_drug`     | 詞彙擴展 + 多源                                           |
-| 複雜工作流      | 自訂 DAG        | 完全控制每個步驟                                          |
+| 場景 | 推薦模板 | 說明 |
+|------|----------|------|
+| 臨床問題 A vs B | `pico` | Agent 提供 P/I/C/O；後端執行含 O 的 precision/recall 搜尋 |
+| 主題綜合搜尋 | `comprehensive` | 多源 + MeSH 擴展 |
+| 已知重要論文 | `exploration` | 三方向探索（related/citing/refs） |
+| 基因/藥物研究 | `gene_drug` | 詞彙擴展 + 多源 |
+| 複雜工作流 | 自訂 DAG | 完全控制每個步驟 |

@@ -16,7 +16,7 @@
 
 2. **Hook A4 False Positive**: Example text `[[author_year_pmid]]` in the System Architecture section was flagged as invalid wikilink. **Action**: Detection criteria should exclude placeholder/example patterns. Recommended regex exclusion: patterns matching `author_year_pmid` or similar template-style tokens. FP rate 100% (1/1).
 
-3. **CGU Engine Dependency**: CGU in "simple" mode returns empty results for `deep_think` and `spark_collision`. Pipeline must handle graceful degradation — log the limitation and proceed. Full meta-learning assessment requires CGU engine upgrade.
+3. **CGU Work-Order Dependency**: CGU 0.9 does not generate or judge by itself — `cgu_diverge` / `cgu_judge` return a `work_order` that the calling agent must fulfil with its own model and hand back (`cgu_ideas`, `cgu_judge(action="record")`). If the agent skips the work order, the CGU session stays empty and measurements remain null. Pipeline must handle graceful degradation — log the limitation and proceed. Full meta-learning assessment requires completed CGU work orders.
 
 4. **Template Path Bug**: `start_document_session` resolves template path via `__file__` traversal to `src/templates/` but workspace templates live in root `templates/`. Workaround: direct python-docx export. Fix needed in `template_reader.py` initialization.
 

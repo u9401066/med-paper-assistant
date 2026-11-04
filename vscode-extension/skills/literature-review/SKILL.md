@@ -14,18 +14,18 @@ description: 系統性文獻搜尋、篩選、下載、整理。觸發：文獻�
 
 ### pubmed-search MCP
 
-| 類別    | 工具                                                                        | 說明               |
-| ------- | --------------------------------------------------------------------------- | ------------------ |
-| 搜尋    | `unified_search`                                                            | 主要文獻搜尋入口   |
-|         | `generate_search_queries`                                                   | MeSH + 同義詞材料  |
-|         | `parse_pico`                                                                | 解析 PICO 臨床問題 |
-|         | `read_session(action="pmids")`                                              | 取回 PMID + 去重   |
-| 探索    | `find_related_articles` / `find_citing_articles` / `get_article_references` | 引用網路           |
-|         | `get_citation_metrics`                                                      | iCite RCR 排序     |
-| 全文    | `get_fulltext(pmcid)`                                                       | 取得 OA 全文       |
-|         | `analyze_fulltext_access(pmids)`                                            | 確認 OA 狀態       |
-| Session | `read_session(action="pmids")` / `get_session_log`                          | 取回搜尋結果       |
-| 匯出    | `prepare_export`                                                            | RIS/BibTeX         |
+| 類別    | 工具                                                                                          | 說明                      |
+| ------- | --------------------------------------------------------------------------------------------- | ------------------------- |
+| 搜尋    | `unified_search`                                                                              | 主要文獻搜尋入口          |
+|         | `generate_search_queries`                                                                     | MeSH + 同義詞材料         |
+|         | `validate_pico_plan`                                                                          | 驗證 Agent 拆解的 P/I/C/O |
+|         | `read_session(request={"action":"pmids"})`                                                    | 取回 PMID + 去重          |
+| 探索    | `find_related_articles` / `find_citing_articles` / `get_article_references`                   | 引用網路                  |
+|         | `get_citation_metrics`                                                                        | iCite RCR 排序            |
+| 全文    | `get_fulltext(pmcid)`                                                                         | 取得 OA 全文              |
+|         | `analyze_fulltext_access(pmids)`                                                              | 確認 OA 狀態              |
+| Session | `read_session(request={"action":"pmids"})` / `read_session(request={"action":"search_runs"})` | 取回搜尋結果              |
+| 匯出    | `prepare_export`                                                                              | RIS/BibTeX                |
 
 ### asset-aware-mcp（全文解析）
 
@@ -52,8 +52,8 @@ description: 系統性文獻搜尋、篩選、下載、整理。觸發：文獻�
 ## 工作流
 
 1. **環境準備** — `project_action(action="current")` + 讀 `.memory/activeContext.md`
-2. **搜尋策略** — 一般主題：`generate_search_queries(topic)` → PICO 問題：`parse_pico()` → 並行 `generate_search_queries()` 各元素
-3. **並行搜尋** — 多組 `unified_search()` 同時呼叫 → `read_session(action="pmids")` → PMID/DOI 去重
+2. **搜尋策略** — 一般主題：`generate_search_queries(topic)` → PICO 問題：Agent 先拆 P/I/C/O → `validate_pico_plan(description, p, i, c, o)` → `unified_search(query, pipeline=pico.pipeline)`
+3. **並行搜尋** — 多組 `unified_search()` 同時呼叫 → `read_session(request={"action":"pmids"})` → PMID/DOI 去重
 4. **評估擴展** — <20 篇 `expand_search_queries()` | 引用網路 `find_citing/related/references` | `get_citation_metrics(sort_by="relative_citation_ratio")`
 5. **篩選儲存** — 呈現清單（標題/年份/期刊/RCR）→ `save_reference_mcp(pmid)`
 6. **全文閱讀** ⭐ — 對每篇已儲存文獻：

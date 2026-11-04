@@ -48,9 +48,14 @@ def build_server(name):
             mode="local",
         )
     if name == "cgu":
-        from cgu.server import mcp
+        from cgu.infrastructure.config import Settings
+        from cgu.interfaces.mcp.server import create_server
 
-        return mcp
+        return create_server(
+            Settings.from_env(
+                {"CGU_DATA_DIR": str(workspace / "cgu-data"), "CGU_NETWORK": "off"}
+            )
+        )
     if name == "drawio":
         from drawio_mcp_server.server import mcp
 

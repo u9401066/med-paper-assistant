@@ -9,3 +9,10 @@ build/
 
 # Project data (user content, not tracked)
 projects/
+
+# Vendored companion skills: verbatim copies of the pinned upstream plugin,
+# refreshed by scripts/sync_companion_skills.py (do not reformat).
+.claude/skills/pubmed-*/
+.claude/skills/pipeline-persistence/
+plugins/med-paper-assistant/skills/pubmed-*/
+plugins/med-paper-assistant/skills/pipeline-persistence/

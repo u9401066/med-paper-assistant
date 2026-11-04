@@ -6,11 +6,9 @@ description: "Quick literature search using unified_search. Triggers: 搜尋, �
 # 快速文獻搜尋
 
 ## 描述
-
 用 unified_search 做第一輪文獻探索。它會自動分析查詢、選擇來源、合併去重，適合快速確認某個主題是否有研究、有哪些代表性文章，以及是否值得進一步做系統性搜尋。
 
 ## 觸發條件
-
 - 「幫我找...的論文」
 - 「有沒有關於...的文章」
 - 「先快速搜尋一下...」
@@ -58,7 +56,7 @@ unified_search(
     query="diabetes treatment",
     limit=20,
     ranking="quality",
-    filters="year:2020-2025, species:humans, clinical:therapy"
+    filters="year:2020-2025,species:humans,clinical_query:therapy"
 )
 ```
 
@@ -107,35 +105,40 @@ unified_search(
 ## `filters` 速查
 
 ```python
-filters="year:2020-2025, age:aged, sex:female, species:humans, lang:english, clinical:therapy"
+filters="year:2020-2025,age_group:aged,sex:female,species:humans,language:english,clinical_query:therapy"
 ```
 
 ### 可用欄位
 
 - `year`: `2020-2025`, `2020-`, `-2025`, `2024`
-- `age`: `newborn`, `infant`, `preschool`, `child`, `adolescent`, `young_adult`, `adult`, `middle_aged`, `aged`, `aged_80`
+- `age_group`: `newborn`, `infant`, `preschool`, `child`, `adolescent`, `young_adult`, `adult`, `middle_aged`, `aged`, `aged_80`
 - `sex`: `male`, `female`
 - `species`: `humans`, `animals`
-- `lang`: `english`, `chinese` 等
-- `clinical`: `therapy`, `therapy_narrow`, `diagnosis`, `diagnosis_narrow`, `prognosis`, `etiology` 等
+- `language`: `english`, `chinese` 等
+- `clinical_query`: `therapy`, `therapy_narrow`, `diagnosis`, `diagnosis_narrow`, `prognosis`, `etiology` 等
 
 ---
 
 ## `options` 速查
 
 ```python
-options="preprints, shallow"
+options="preprints,shallow"
 ```
 
 ### 常用旗標
 
 - `preprints`: 納入 arXiv、medRxiv、bioRxiv
-- `all_types`: 放寬 peer-reviewed 限制
+- `include_detected_preprints`: 保留 heuristic 偵測到的 preprints；檢測結果不能證明 peer-review 狀態
 - `no_oa`: 不做 OA 連結補強
 - `no_analysis`: 不顯示查詢分析
 - `no_scores`: 不顯示分數
 - `no_relax`: 關閉零結果時的自動放寬
 - `shallow`: 關閉深搜，速度較快
+- `exclude_seen`: 排除本 session 先前 completed／partial 搜尋已回傳的 PMID 或正規化 DOI；在 `limit` 截斷前過濾，回報排除數量或無歷史／歷史不可用提示。不可搭配 `pipeline=`。
+
+```python
+unified_search(query="remimazolam ICU sedation", options="exclude_seen", limit=10)
+```
 
 ---
 
@@ -160,8 +163,15 @@ generate_search_queries(topic="remimazolam ICU sedation")
 1. 讀細節：`fetch_article_details(pmids="12345678")`
 2. 找相似研究：`find_related_articles(pmid="12345678")`
 3. 看誰引用它：`find_citing_articles(pmid="12345678")`
-4. 抓全文：`get_fulltext(pmid="12345678")`
+4. 抓全文：`get_fulltext(source={"kind":"pmid","value":"12345678"})`
 5. 匯出引用：`prepare_export(pmids="last", format="ris")`
+
+若 structured output 同時有文章與 `source_errors`，這是 partial success，不是整次失敗：
+
+1. 先保留已回傳的文章。
+2. 用 `artifact_summary.artifact_uri` 讀取 `audit.json` 與 `query_strategy.json`。
+3. 只有在 coverage 仍不足時，才針對 failed/retryable sources 補查。
+4. 需要重現或中斷續接時，透過 `read_session(request={"action":"search_runs"})` 找 run，再用 `read_session(request={"action":"replay_search","run_id":"..."})` 讀取 arguments；不要從 agent hook state 重建原始 query。
 
 ---
 

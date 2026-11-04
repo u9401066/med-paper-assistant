@@ -204,7 +204,7 @@ Later               │  Bounded Automation Enhancement                         
 | -------- | ----------------------------------------------------------------------- | --------- |
 | **現象** | ~~`validate_concept` 評分不穩定~~                                       | ✅ 已改善 |
 | **改善** | **三位審稿人模型** - Skeptic / Methodologist / Clinical Expert 獨立評分 | ✅        |
-| **改善** | 強化 CGU 整合，建議使用 `deep_think` 進行壓力測試                       | ✅        |
+| **改善** | 強化 CGU 整合，建議使用 `cgu_judge` 進行壓力測試                        | ✅        |
 
 ### Issue #3: AI 建議無法達到學術標準 ✅ 已改善
 
@@ -830,11 +830,11 @@ EMPTY → EXPLORATION → PROJECT
 
 ### 8.3 Argument Tracker（Phase 3）
 
-| 工具                        | 功能                            |
-| --------------------------- | ------------------------------- |
-| `create_argument_map`       | 論點地圖（整合 CGU deep_think） |
-| `generate_structured_draft` | 結構化生成                      |
-| `track_logic_chain`         | 邏輯鏈追蹤                      |
+| 工具                        | 功能                           |
+| --------------------------- | ------------------------------ |
+| `create_argument_map`       | 論點地圖（整合 CGU cgu_frame） |
+| `generate_structured_draft` | 結構化生成                     |
+| `track_logic_chain`         | 邏輯鏈追蹤                     |
 
 ---
 

@@ -139,7 +139,7 @@ def test_setup_and_vsix_sources_do_not_launch_known_mcp1_fallbacks() -> None:
 
 def test_setup_summaries_list_all_managed_mcp_surfaces() -> None:
     expected = (
-        "mdpaper 118/12, pubmed-search 45, CGU 24, asset-aware 30, drawio 23, zotero-keeper 32"
+        "mdpaper 118/12, pubmed-search 41, CGU 11, asset-aware 30, drawio 23, zotero-keeper 50"
     )
 
     for relative_path in ("scripts/setup.sh", "scripts/setup.ps1"):

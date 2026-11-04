@@ -8,7 +8,7 @@ description: |
 
 # 學術辯論與觀點比較技能
 
-純指令技能。LLM 結構化思考 + `read_draft`, `search_local_references`, `mcp_cgu_deep_think`, `mcp_cgu_spark_collision`。
+純指令技能。LLM 結構化思考 + `read_draft`, `search_local_references`, `cgu_diverge`（`collide`）, `cgu_judge`（選用）。
 
 觸發：辯論、pro/con、devil's advocate、挑戰假設、compare viewpoints
 

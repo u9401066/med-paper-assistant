@@ -13,12 +13,12 @@ description: Run multiple complementary literature searches and merge results fo
 
 ## 工具
 
-| 階段    | Tool                           | 說明                 |
-| ------- | ------------------------------ | -------------------- |
-| 搜尋    | `unified_search(query, limit)` | 每組關鍵字獨立搜尋   |
-| 結果    | `read_session(action="pmids")` | 取回 PMID + 去重     |
-| Session | `get_session_log()`            | 列出搜尋歷史         |
-| 儲存    | `save_reference_mcp(pmid)`     | 存入專案（永遠優先） |
+| 階段    | Tool                                             | 說明                 |
+| ------- | ------------------------------------------------ | -------------------- |
+| 搜尋    | `unified_search(query, limit)`                   | 每組關鍵字獨立搜尋   |
+| 結果    | `read_session(request={"action":"pmids"})`       | 取回 PMID + 去重     |
+| Session | `read_session(request={"action":"search_runs"})` | 列出搜尋歷史         |
+| 儲存    | `save_reference_mcp(pmid)`                       | 存入專案（永遠優先） |
 
 ---
 
@@ -26,7 +26,7 @@ description: Run multiple complementary literature searches and merge results fo
 
 1. **拆分關鍵字**：同一主題拆 3-5 組變體（同義詞、MeSH、縮寫）
 2. **並行搜尋**：每組 `unified_search()` 各取 20-30 篇
-3. **合併去重**：`read_session(action="pmids")` 取回 PMID 後，以 PMID/DOI 手動比對去重
+3. **合併去重**：`read_session(request={"action":"pmids"})` 取回 PMID 後，以 PMID/DOI 手動比對去重
 4. **篩選**：review title/abstract，標記 relevant
 5. **儲存**：`save_reference_mcp(pmid)` 存入專案
 6. **不足時擴展**：選擇下方擴展策略

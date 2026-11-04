@@ -45,7 +45,7 @@ FOR section IN plan.writing_order:
       → 撰寫時整合 Step 2 產出的 asset references
       → ✅ 成功後自動 checkpoint 至 .mdpaper-state.json（無需手動）
   3d. IF Discussion + 論點弱:
-      → cgu.deep_think → 強化邏輯鏈
+      → cgu_frame + cgu_diverge(action="anti_typical") → cgu_judge → 強化邏輯鏈
 
   ── Step 4: Cascading Audit Loop（最多 3 rounds） ──
   4a. 🔔 HOOK A: post-write audit

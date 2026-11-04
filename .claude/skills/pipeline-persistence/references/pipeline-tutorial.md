@@ -1,9 +1,9 @@
-<!-- Synced from docs/PIPELINE_MODE_TUTORIAL.en.md by scripts/build_docs_site.py -->
+<!-- Synced from docs/guides/PIPELINE_MODE_TUTORIAL.en.md by scripts/build_docs_site.py -->
 
 # Pipeline Mode Tutorial
 
 > Status: current API tutorial
-> Last updated: 2026-04-29
+> Last updated: 2026-08-09
 > Language: **English** | [繁體中文](pipeline-tutorial.zh-TW.md)
 
 This document only describes pipeline mode behavior that is currently implemented and supported. It does not repeat older RFC or design-draft material. The focus is what you can execute now, save now, schedule now, and inspect through history now.
@@ -15,8 +15,15 @@ This document only describes pipeline mode behavior that is currently implemente
 Pipeline mode currently has 3 practical entry points:
 
 1. Pass YAML or JSON directly into `unified_search(..., pipeline="...")`
-2. Save the config first with `manage_pipeline` or `save_pipeline`, then run it with `saved:<name>`
-3. Save it first, then schedule recurring runs with `schedule_pipeline` or `manage_pipeline(action="schedule")`
+2. Save the config with `save_pipeline`, then run it with `saved:<name>`
+3. Save it first, then schedule recurring runs with `schedule_pipeline`
+
+> **Choose the runtime first.** Trusted local stdio/loopback callers can use
+> project workspace scope, `file:` sources, and the in-process scheduler.
+> Authenticated service callers use only their principal-scoped saved-pipeline
+> store: no process-wide workspace scope or `file:` reads. The service Compose
+> profile disables the scheduler until an operator supplies a single external
+> leader/lease.
 
 ### Smallest usable example: inline template
 
@@ -25,7 +32,7 @@ unified_search(
     query="",
     pipeline="""
 template: pico
-params:
+template_params:
   P: ICU patients requiring mechanical ventilation
   I: remimazolam
   C: propofol
@@ -47,12 +54,11 @@ Notes:
 ### Smallest usable example: save first, then execute
 
 ```python
-manage_pipeline(
-    action="save",
+save_pipeline(
     name="icu_remi_vs_propofol",
     config="""
 template: pico
-params:
+template_params:
   P: ICU patients requiring mechanical ventilation
   I: remimazolam
   C: propofol
@@ -61,7 +67,7 @@ output:
   limit: 25
   ranking: quality
 """,
-    tags="icu,sedation,remimazolam",
+    tags=["icu", "sedation", "remimazolam"],
     description="ICU sedation comparison",
 )
 
@@ -72,7 +78,7 @@ unified_search(query="", pipeline="saved:icu_remi_vs_propofol")
 
 Pipeline reports now include filter diagnostics and next-step handoffs. At the bottom of a Markdown report, the recommended continuation tools are:
 
-- `get_session_pmids()` for the run PMID set
+- `read_session(request={"action":"pmids"})` for the run PMID set
 - `prepare_export(pmids="last", format="ris")` for Zotero/EndNote/Mendeley-style citation handoff
 - `save_literature_notes(pmids="last", note_format="wiki")` for local wiki/Foam-compatible Markdown notes
 
@@ -89,42 +95,39 @@ The JSON response contains `summary`, `steps`, per-step `metadata`, and structur
 
 ### Which entry point to use
 
-| Situation                                        | Recommended entry point                                    |
-| ------------------------------------------------ | ---------------------------------------------------------- |
-| You only want to run it once quickly             | inline `unified_search(..., pipeline="...")`               |
-| You want to reuse the same search strategy       | `manage_pipeline(action="save")`                           |
-| You want history diffs or scheduling             | save first, then use `saved:<name>` or `schedule_pipeline` |
-| You want to load a local YAML file and adjust it | `load_pipeline(source="file:path/to/pipeline.yaml")`       |
+| Situation | Recommended entry point |
+| ---- | -------- |
+| You only want to run it once quickly | inline `unified_search(..., pipeline="...")` |
+| You want to reuse the same search strategy | `save_pipeline(...)` |
+| You want history diffs or local scheduling | save first, then use `saved:<name>` or `schedule_pipeline` |
+| A trusted local caller wants to load a YAML file | `load_pipeline(source="file:path/to/pipeline.yaml")` |
+| An authenticated service caller wants reuse | save in the tenant store, then use `saved:<name>` |
 
 ## Template Pipeline Tutorial
 
 Template pipelines cover roughly 80% of normal use cases. The YAML is not sent directly into the executor as-is. It is first expanded into a real step DAG.
 
-### 4 templates currently available
+### 5 templates currently available
 
-| Template        | Required parameters | Common optional parameters                 | Purpose                             |
-| --------------- | ------------------- | ------------------------------------------ | ----------------------------------- |
-| `pico`          | `P`, `I`            | `C`, `O`, `sources`, `limit`               | Clinical comparison question        |
-| `comprehensive` | `query`             | `sources`, `limit`, `min_year`, `max_year` | Broad multi-source search           |
-| `exploration`   | `pmid`              | `limit`                                    | Explore outward from one seed paper |
-| `gene_drug`     | `term`              | `sources`, `limit`, `min_year`, `max_year` | Gene- or drug-focused search        |
+| Template | Required parameters | Common optional parameters | Purpose |
+| -------- | -------- | ------------ | ---- |
+| `pico` | `P`, `I` | `C`, `O`, `sources`, `limit` | Clinical comparison question |
+| `comprehensive` | `query` | `sources`, `limit`, `min_year`, `max_year` | Broad multi-source search |
+| `exploration` | `pmid` | `limit` | Explore outward from one seed paper |
+| `gene_drug` | `term` | `sources`, `limit`, `min_year`, `max_year` | Gene- or drug-focused search |
+| `snowball` | `query` | `seed_limit`, `limit` | Multi-seed citing/reference expansion |
 
-### `params` vs `template_params`
+### Canonical `template_params`
 
-- The shortest inline YAML usually uses `params`
-- `save_pipeline`, `manage_pipeline(save)`, and `load_pipeline` also accept `template_params`
-- When a saved pipeline is loaded, the system will often output it as `template_params`
-
-Recommendation:
-
-- Use `params` for handwritten inline pipelines
-- Use `template_params` for YAML that you want to save long term or review more formally
+Template pipelines accept exactly one parameter field: `template_params`.
+The retired top-level `params` spelling is rejected instead of being rewritten.
+Step-based DAGs continue to use `params` inside each individual step.
 
 ### `pico`
 
 ```yaml
 template: pico
-params:
+template_params:
   P: ICU patients requiring sedation
   I: remimazolam
   C: propofol
@@ -165,7 +168,7 @@ This runs `expand` first, then launches the original query and expanded query in
 
 ```yaml
 template: exploration
-params:
+template_params:
   pmid: "37076210"
   limit: 25
 output:
@@ -188,6 +191,19 @@ output:
 ```
 
 The correct field today is `term`, not `topic`.
+
+### `snowball`
+
+```yaml
+template: snowball
+template_params:
+  query: remimazolam ICU sedation
+  seed_limit: 5
+  limit: 20
+```
+
+Search → citing + references → union merge (including original search results).
+`seed_limit` defaults to 5 (1–10); `limit` defaults to 20.
 
 ### Example files
 
@@ -256,28 +272,33 @@ output:
 
 ### Step fields to remember
 
-| Field      | Required?         | Meaning                                                           |
-| ---------- | ----------------- | ----------------------------------------------------------------- |
-| `id`       | Recommended       | It will be auto-fixed if missing, but you should name it yourself |
-| `action`   | Required          | Only a fixed action set is currently accepted                     |
-| `params`   | Depends on action | Each action expects different parameters                          |
-| `inputs`   | Depends on action | Can only reference steps defined earlier                          |
-| `on_error` | Optional          | `skip` or `abort`, default is `skip`                              |
+| Field | Required? | Meaning |
+| ---- | ------ | ---- |
+| `id` | Required | Exact unique step ID; it is never generated or repaired |
+| `action` | Required | Only a fixed action set is currently accepted |
+| `params` | Depends on action | Each action expects different parameters |
+| `inputs` | Depends on action | Can only reference steps defined earlier |
+| `on_error` | Optional | `skip` or `abort`, default is `skip` |
 
 ### Actions currently available
 
-| Action       | Common params                                                            | Meaning                                                 |
-| ------------ | ------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `search`     | `query`, `sources`, `limit`, `min_year`, `max_year`                      | General literature search                               |
-| `pico`       | `P`, `I`, `C`, `O`                                                       | Build PICO elements and a combined query                |
-| `expand`     | `topic`                                                                  | Perform semantic expansion and MeSH strategy generation |
-| `details`    | `pmids`                                                                  | Fetch detailed article metadata                         |
-| `related`    | `pmid`, `limit`                                                          | Find related articles                                   |
-| `citing`     | `pmid`, `limit`                                                          | Find citing articles                                    |
-| `references` | `pmid`, `limit`                                                          | Find references                                         |
-| `metrics`    | none                                                                     | Add iCite metrics                                       |
-| `merge`      | `method=union / intersection / rrf`                                      | Merge multiple result streams                           |
-| `filter`     | `min_year`, `max_year`, `article_types`, `min_citations`, `has_abstract` | Post-processing filters with diagnostics                |
+| Action | Common params | Meaning |
+| ------ | ----------- | ---- |
+| `search` | `query`, `sources`, `limit`, `min_year`, `max_year` | General literature search |
+| `pico` | `P`, `I`, `C`, `O` | Build PICO elements and a combined query |
+| `expand` | `topic` | Perform semantic expansion and MeSH strategy generation |
+| `details` | `pmids` | Fetch detailed article metadata |
+| `related` | `pmid`, `limit` | Find related articles |
+| `citing` | `pmid`, `limit` | Find citing articles |
+| `references` | `pmid`, `limit` | Find references |
+| `metrics` | none | Add iCite metrics |
+| `merge` | `method=union / intersection / rrf` | Merge multiple result streams |
+| `filter` | `min_year`, `max_year`, `article_types`, `min_citations`, `has_abstract` | Post-processing filters with diagnostics |
+
+`related`, `citing`, and `references` also accept `inputs` with `seed_limit`
+(1–10), mutually exclusive with `pmid`. The first unique input PMIDs are seeds;
+each consumes one budgeted external call. Each action dedupes the union, removes
+seeds, and caps its output at `limit`.
 
 ### Shared globals and variables
 
@@ -341,24 +362,24 @@ For a longer multi-step example, see:
 
 - `data/pipeline_examples/ai_in_anesthesiology.yaml`
 
-## `manage_pipeline` usage
+## Single-purpose pipeline tools
 
-`manage_pipeline` is the recommended facade today. Legacy tools still exist, but new tutorials should prefer the facade.
+Pipeline management deliberately uses seven schema-exact tools. Each operation
+exposes only its own valid arguments, so misspelled or irrelevant fields fail
+closed under the v3 MCP contract.
 
-### `action="list"`
+### List
 
 ```python
-manage_pipeline()
-manage_pipeline(action="list")
-manage_pipeline(action="list", tag="sedation")
-manage_pipeline(action="list", scope="workspace")
+list_pipelines()
+list_pipelines(tag="sedation")
+list_pipelines(scope="workspace")
 ```
 
-### `action="save"`
+### Save
 
 ```python
-manage_pipeline(
-    action="save",
+save_pipeline(
     name="weekly_remimazolam",
     config="""
 template: comprehensive
@@ -367,53 +388,58 @@ template_params:
   sources: pubmed,openalex,europe_pmc
   limit: 30
 """,
-    tags="sedation,icu",
+    tags=["sedation", "icu"],
     description="Weekly remimazolam surveillance",
     scope="workspace",
 )
 ```
 
-`config` must parse to a YAML/JSON mapping, not a list or scalar. If a client has trouble quoting multi-line YAML through `manage_pipeline(action="save")`, call `save_pipeline(name=..., config=...)` with the same YAML string; both tools use the same validator.
+`config` must parse to a YAML/JSON mapping, not a list or scalar. `tags` is a
+JSON array of at most 20 strict strings; CSV text is rejected.
 
 `scope` behavior:
 
-- `workspace`: saved under `.pubmed-search/pipelines/` inside the project
-- `global`: saved under the user data directory `~/.pubmed-search-mcp/pipelines/`
-- `auto`: save to workspace when available, otherwise global
+- local `workspace`: saved under `.pubmed-search/pipelines/` inside the project
+- local `global`: saved under the user data directory `~/.pubmed-search-mcp/pipelines/`
+- local `auto`: save to workspace when available, otherwise global
+- authenticated service: the tenant-derived store deliberately has no
+  process-wide workspace root; `auto` resolves to that principal's isolated
+  data root and `workspace` is unavailable
 
-### `action="load"`
+### Load
 
 ```python
-manage_pipeline(action="load", source="weekly_remimazolam")
-manage_pipeline(action="load", source="saved:weekly_remimazolam")
-manage_pipeline(action="load", source="file:data/pipeline_examples/pico_remimazolam_vs_propofol.yaml")
+load_pipeline(source="weekly_remimazolam")
+load_pipeline(source="saved:weekly_remimazolam")
+load_pipeline(source="file:data/pipeline_examples/pico_remimazolam_vs_propofol.yaml")
 ```
 
-`load_pipeline` and `manage_pipeline(load)` currently support:
+`load_pipeline` currently supports:
 
 - saved names
 - `saved:<name>`
-- `file:path/to/pipeline.yaml`
+- local-only `file:path/to/pipeline.yaml`
 
-Direct URL loading is not currently part of the supported contract.
+Authenticated service callers cannot read `file:` paths from the server host;
+save the YAML by name first. Direct URL loading is not currently part of the
+supported contract.
 
-### `action="delete"`
+### Delete
 
 ```python
-manage_pipeline(action="delete", name="weekly_remimazolam")
+delete_pipeline(name="weekly_remimazolam")
 ```
 
-### `action="history"`
+### History
 
 ```python
-manage_pipeline(action="history", name="weekly_remimazolam", limit=10)
+get_pipeline_history(name="weekly_remimazolam", limit=10)
 ```
 
-### `action="schedule"`
+### Schedule
 
 ```python
-manage_pipeline(
-    action="schedule",
+schedule_pipeline(
     name="weekly_remimazolam",
     cron="0 9 * * 1",
     diff_mode=True,
@@ -421,16 +447,11 @@ manage_pipeline(
 )
 ```
 
-### Legacy tool mapping
+### Unschedule
 
-| Facade                                    | Legacy tool                 |
-| ----------------------------------------- | --------------------------- |
-| `manage_pipeline(action="save", ...)`     | `save_pipeline(...)`        |
-| `manage_pipeline(action="list", ...)`     | `list_pipelines(...)`       |
-| `manage_pipeline(action="load", ...)`     | `load_pipeline(...)`        |
-| `manage_pipeline(action="delete", ...)`   | `delete_pipeline(...)`      |
-| `manage_pipeline(action="history", ...)`  | `get_pipeline_history(...)` |
-| `manage_pipeline(action="schedule", ...)` | `schedule_pipeline(...)`    |
+```python
+unschedule_pipeline(name="weekly_remimazolam")
+```
 
 ## Schedule and History
 
@@ -438,16 +459,29 @@ manage_pipeline(
 
 1. Save the pipeline first
 2. Use `unified_search(query="", pipeline="saved:<name>")` for manual execution
-3. Use `schedule_pipeline(...)` or `manage_pipeline(action="schedule", ...)` for recurring runs
-4. Use `get_pipeline_history(name="...")` or facade `history` to inspect run history
+3. Use `schedule_pipeline(...)` for recurring runs
+4. Use `get_pipeline_history(name="...")` to inspect run history
 
 ### Scheduling
+
+The examples below require a trusted local process with the scheduler enabled.
+`docker-compose.service.yml` disables the in-process scheduler. Storing schedule
+metadata in a service does not make it execute; use manual runs or provide one
+external leader/lease before enabling recurring execution.
 
 ```python
 schedule_pipeline(name="weekly_remimazolam", cron="0 9 * * 1")
 schedule_pipeline(name="monthly_crispr_review", cron="0 8 1 * *")
 schedule_pipeline(name="watch_icu_sedation", cron="0 */6 * * *")
 ```
+
+`diff_mode=True` (default) appends changes since the previous successful run,
+with up to 20 new articles and 20 removed PMIDs; the first run is a baseline.
+Partial/error runs do not imply removals. `notify=True` (default) retains the last
+run ID and new/removed counts. `list_pipelines` shows "N new articles in the last
+scheduled run" with a `get_pipeline_history` hint. Notification is a local
+summary and log, not external push; disabling it clears the old summary.
+Manual execution keeps its existing report format.
 
 Cron format is the standard 5-field form:
 
@@ -458,14 +492,13 @@ minute hour day month weekday
 To remove a schedule:
 
 ```python
-schedule_pipeline(name="weekly_remimazolam", cron="")
+unschedule_pipeline(name="weekly_remimazolam")
 ```
 
 ### History
 
 ```python
 get_pipeline_history(name="weekly_remimazolam", limit=5)
-manage_pipeline(action="history", name="weekly_remimazolam", limit=5)
 ```
 
 History shows:
@@ -480,41 +513,33 @@ History shows:
 
 - There is no standalone `list_schedules()` MCP tool yet
 - If you want stable history and diffs, prefer saved pipelines over one-off inline pipelines
+- Service mode stays single-process/single-replica, and its Compose profile does
+  not run scheduled pipelines
 
-## Common errors and auto-fix behavior
+## Validation and exact bounds
 
-Auto-fix currently happens mainly during schema parsing and semantic validation. In practice, the system first repairs data shape and then repairs meaning when possible.
+Pipeline identifiers, types, and enum-like values are schema-exact. The
+validator does not coerce scalar types, clip explicit values, or guess caller
+intent from aliases, spelling similarity, or nearby step IDs. Published safety
+bounds are validation constraints, not normalization rules.
 
-### Cases that are auto-fixed
+`output.format: json` is a canonical valid format and remains unchanged.
 
-| Problem                   | Input                  | Auto-fixed result                   |
-| ------------------------- | ---------------------- | ----------------------------------- |
-| action alias              | `find`                 | `search`                            |
-| action typo               | `searc`                | `search`                            |
-| template alias            | `clinical`             | `pico`                              |
-| template typo             | `comprehensiv`         | `comprehensive`                     |
-| single-string inputs      | `inputs: s1`           | `inputs: [s1]`                      |
-| non-dict params           | `params: "oops"`       | `params: {}`                        |
-| missing step id           | `id: ""`               | auto-filled as `step_1` and similar |
-| duplicate step id         | `search`, `search`     | second one becomes `search_2`       |
-| reference to missing step | `inputs: [missing]`    | that reference is removed           |
-| reference to future step  | `inputs: [later_step]` | that reference is removed           |
-| invalid `on_error`        | `retry`                | `skip`                              |
-| invalid output format     | `xml`                  | `markdown`                          |
-| mistyped output ranking   | `impac`                | `impact`                            |
-| invalid output limit      | `0` or negative        | `20`                                |
+### Cases that fail without repair
 
-`output.format: json` is valid and is no longer auto-fixed to Markdown.
-
-### Cases that are not auto-fixed and will fail
-
-| Problem                                    | Why it fails                           |
-| ------------------------------------------ | -------------------------------------- |
-| template name is completely unrecognizable | no alias or fuzzy match applies        |
-| action name is completely unrecognizable   | no alias or fuzzy match applies        |
-| template is missing required parameters    | for example, `pico` without `P` or `I` |
-| there are no `steps` and no `template`     | nothing executable remains             |
-| more than 20 steps                         | exceeds the system limit               |
+| Problem | Why it fails |
+| ---- | ---- |
+| retired template field `params` | use canonical `template_params` |
+| unknown or misspelled template | only the four canonical template names are accepted |
+| unknown or misspelled action | only the ten canonical action names are accepted |
+| missing or duplicate step ID | step identity is never generated or rewritten |
+| unknown or future dependency ID | dependency references are never guessed or removed |
+| invalid `on_error`, output format, or ranking | enum-like values are never substituted |
+| output/action/template limit below or above its published range | explicit limits are never defaulted or clipped |
+| wrong types or explicit `null` | values are never coerced to strings, lists, mappings, or integers |
+| template is missing required parameters | for example, `pico` without `P` or `I` |
+| there are no `steps` and no `template` | nothing executable remains |
+| more than 20 steps | exceeds the system limit |
 
 ### One intentionally broken example
 
@@ -529,7 +554,7 @@ output:
   ranking: impac
 ```
 
-The system currently auto-fixes it to the equivalent of:
+This config is rejected. Write the intended canonical values explicitly:
 
 ```yaml
 template: pico
@@ -544,9 +569,10 @@ output:
 
 ### Practical recommendations
 
-1. If you want auto-fix, history, and scheduling, save first and run second.
+1. Validate with `dry_run=True` before saving or scheduling a long pipeline.
 2. Use inline template pipelines only for small parameter sets. For review and versioning, save YAML files.
 3. Start custom DAGs from the smallest runnable graph, then add `merge`, `metrics`, and `filter` incrementally.
-4. Use `scope="workspace"` when the pipeline should be shared within a team or repo.
-5. Use `scope="global"` when you only want your own reusable search habits across projects.
-6. Keep Zotero Keeper integration outside PubMed MCP core. PubMed MCP should produce RIS/CSL/JSON/wiki notes; Zotero Keeper or another external client should handle Zotero import, duplicate policy, and library-specific behavior.
+4. In local mode, use `scope="workspace"` when the pipeline should be shared in a trusted repo.
+5. In local mode, use `scope="global"` for your own reusable search habits across projects.
+6. In authenticated service mode, omit workspace/file paths and reuse named pipelines from the current tenant store.
+7. Keep Zotero Keeper integration outside PubMed MCP core. PubMed MCP should produce RIS/CSL/JSON/wiki notes; Zotero Keeper or another external client should handle Zotero import, duplicate policy, and library-specific behavior.

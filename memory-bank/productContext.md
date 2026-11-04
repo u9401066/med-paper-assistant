@@ -3,7 +3,7 @@
 ## Goals
 
 - Provide a dual-workflow research workspace: `library-wiki` for exploration / knowledge-base building and `manuscript` for formal drafting / review / export.
-- Keep PubMed discovery aligned on `unified_search` as the primary search entrypoint, with `generate_search_queries` and `parse_pico` as strategy helpers.
+- Keep PubMed discovery aligned on `unified_search` as the primary search entrypoint, with `generate_search_queries` and `validate_pico_plan` as strategy helpers.
 - Preserve verified reference persistence via `save_reference_mcp`, fulltext / analysis enrichment, and Foam-friendly note materialization.
 - Support Library Wiki operations: inbox / concepts / review / daily capture, dashboards, publish-safe wikilink packs, and project-specific graph views.
 - Support manuscript operations: concept validation, section drafting, citation-aware editing, asset review gates, and Word / PDF export workflows.

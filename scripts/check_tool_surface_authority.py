@@ -83,11 +83,18 @@ async def _get_runtime_surface_counts() -> dict[str, dict[str, int]]:
 
 async def _get_external_mcp_counts() -> dict[str, int]:
     """List locally importable MCP surfaces through the SDK 2 client API."""
-    import cgu.server as cgu_server
+    from cgu.infrastructure.config import Settings as CguSettings
+    from cgu.interfaces.mcp.server import create_server as create_cgu_server
     from mcp import Client
     from pubmed_search.presentation.mcp_server import create_server as create_pubmed_server
 
     counts: dict[str, int] = {}
+    with tempfile.TemporaryDirectory(
+        prefix="medpaper-cgu-authority-", ignore_cleanup_errors=True
+    ) as cgu_dir:
+        cgu_settings = CguSettings.from_env({"CGU_DATA_DIR": cgu_dir, "CGU_NETWORK": "off"})
+        async with Client(create_cgu_server(cgu_settings), mode="2026-07-28") as client:
+            counts["cgu"] = len((await client.list_tools()).tools)
     with tempfile.TemporaryDirectory(prefix="medpaper-pubmed-authority-") as data_dir:
         pubmed = create_pubmed_server(
             email="release-authority@example.org",
@@ -97,8 +104,6 @@ async def _get_external_mcp_counts() -> dict[str, int]:
         )
         async with Client(pubmed, mode="2026-07-28") as client:
             counts["pubmed-search"] = len((await client.list_tools()).tools)
-    async with Client(cgu_server.mcp, mode="2026-07-28") as client:
-        counts["cgu"] = len((await client.list_tools()).tools)
     return counts
 
 

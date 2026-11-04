@@ -6,11 +6,9 @@ description: "Gene, compound, and variant research using search_gene, search_com
 # 基因與藥物研究
 
 ## 描述
-
 這個 workflow 用在基因、化合物、藥物與臨床變異查詢。公開 MCP 工具已經收斂成一組新的 NCBI extended 介面：基因用 `search_gene` / `get_gene_details` / `get_gene_literature`，化合物用 `search_compound` / `get_compound_details` / `get_compound_literature`，變異則用 `search_clinvar`。
 
 ## 觸發條件
-
 - 「這個基因的功能是什麼？」
 - 「這個藥物的結構或機轉？」
 - 「這個變異的臨床意義？」
@@ -20,12 +18,12 @@ description: "Gene, compound, and variant research using search_gene, search_com
 
 ## 工具對照
 
-| 主題              | 工具                                                                 |
-| ----------------- | -------------------------------------------------------------------- |
-| Gene 搜尋         | `search_gene`, `get_gene_details`, `get_gene_literature`             |
-| Compound 搜尋     | `search_compound`, `get_compound_details`, `get_compound_literature` |
-| Variant / ClinVar | `search_clinvar`                                                     |
-| 後續文獻追蹤      | `fetch_article_details`, `unified_search`                            |
+| 主題 | 工具 |
+|------|------|
+| Gene 搜尋 | `search_gene`, `get_gene_details`, `get_gene_literature` |
+| Compound 搜尋 | `search_compound`, `get_compound_details`, `get_compound_literature` |
+| Variant / ClinVar | `search_clinvar` |
+| 後續文獻追蹤 | `fetch_article_details`, `unified_search` |
 
 ---
 

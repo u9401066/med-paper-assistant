@@ -26,11 +26,11 @@ tools:
 
 ### 搜尋
 
-| 工具                                      | 用途                                                                                   |
-| ----------------------------------------- | -------------------------------------------------------------------------------------- |
-| `unified_search(query, sources, options)` | **唯一搜尋入口** — 支援 PubMed, Europe PMC, OpenAlex, Semantic Scholar, CrossRef, CORE |
-| `generate_search_queries(topic)`          | 取得 MeSH 詞彙 + 同義詞材料                                                            |
-| `parse_pico(description)`                 | 解析 PICO 臨床問題                                                                     |
+| 工具                                          | 用途                                                                                   |
+| --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `unified_search(query, sources, options)`     | **唯一搜尋入口** — 支援 PubMed, Europe PMC, OpenAlex, Semantic Scholar, CrossRef, CORE |
+| `generate_search_queries(topic)`              | 取得 MeSH 詞彙 + 同義詞材料                                                            |
+| `validate_pico_plan(description, p, i, c, o)` | 驗證 Agent 拆解的 P/I/C/O，回傳可執行 PICO pipeline                                    |
 
 ### 探索
 
@@ -76,7 +76,7 @@ list_saved_references() → 了解已有文獻（避免重複儲存）
 ### Step 2: 搜尋策略制定
 
 - **一般主題** → `generate_search_queries(topic)` → 取得 MeSH + 同義詞
-- **比較性臨床問題**（A vs B） → `parse_pico(description)` → 對每個 PICO 元素做 `generate_search_queries()`
+- **比較性臨床問題**（A vs B） → Agent 先拆 P/I/C/O → `validate_pico_plan(description, p, i, c, o)` → `unified_search(query, pipeline=pico.pipeline)`
 - **已知 ICD 代碼** → 直接 `unified_search(query="ICD_CODE")`，自動轉 MeSH
 
 ### Step 3: 並行搜尋

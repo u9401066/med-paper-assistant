@@ -298,7 +298,7 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
                 if (isDevWorkspace || cguInWorkspace) {
                     const pythonPath = getPythonPath(context);
                     cguCommand = pythonPath;
-                    cguArgs = getPythonArgs(pythonPath, 'cgu.server');
+                    cguArgs = getPythonArgs(pythonPath, 'cgu.interfaces.mcp.server');
                 } else {
                     const pin = MCP_INTEGRATION_PACKAGES.cgu;
                     const [cmd, args] = buildPinnedUvxCommand(uvPath, pin.packageSource, pin.entrypoint, pin.pythonVersion);
@@ -619,7 +619,7 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
                     stream.markdown('- `manuscript`：`/mdpaper.search` → `/mdpaper.concept` → `/mdpaper.draft` → `/mdpaper.analysis` → `/mdpaper.format`\n\n');
                     stream.markdown('### 📏 核心規則\n\n');
                     stream.markdown('- 儲存文獻優先 `save_reference_mcp(pmid)`\n');
-                    stream.markdown('- PubMed 搜尋優先 `unified_search(query)`；PICO / MeSH 再配 `parse_pico()` / `generate_search_queries()`\n');
+                    stream.markdown('- PubMed 搜尋優先 `unified_search(query)`；PICO / MeSH 再配 `validate_pico_plan()` / `generate_search_queries()`\n');
                     stream.markdown('- manuscript 草稿前先做 `validation_action(action="concept", filename="concept.md")`，Novelty 需 ≥ 75\n\n');
                     stream.markdown('### 🗂️ Command Palette 快捷功能\n\n');
                     stream.markdown('- `MedPaper: Setup Workspace` → 複製 bundled skills、prompts、docs、agents、templates 到 workspace\n');

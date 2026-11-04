@@ -10,7 +10,7 @@
 
 <p align="center">
   <b>🔬 可稽核的 MCP 自主與人機協作學術寫作工作區</b><br>
-  <i>核心研究面：mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · 6 個受管 MCP（加上 Asset-Aware 30 + Draw.io 23 + Zotero Keeper 32）· 38 個技能 · 15 個 Prompt 工作流</i>
+  <i>核心研究面：mdpaper 118 full / 12 compact + PubMed 41 + CGU 11 · 6 個受管 MCP（加上 Asset-Aware 30 + Draw.io 23 + Zotero Keeper 50）· 38 個技能 · 15 個 Prompt 工作流</i>
 </p>
 
 > 📖 [English Version](README.md)
@@ -34,8 +34,8 @@
 | 元件                                                               | 類型                 | 工具數                          | 說明                                                                                                   |
 | ------------------------------------------------------------------ | -------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | **mdpaper**                                                        | 核心 MCP Server      | 118（full）/ 12（compact 預設） | manuscript 與 library-wiki 雙工作流，另含 3 個 MCP prompts 與 3 個 MCP resources                       |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 45                              | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                                              |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 24                              | 創意發想：腦力激盪、深度思考、火花碰撞                                                                 |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server（子模組） | 41                              | PubMed/Europe PMC/CORE 搜尋、PICO、引用指標、session 管理                                              |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server（子模組） | 11                              | 創意鷹架：框架審視、反典型發散、新穎度測量、盲評（交由你的模型執行 work order）                        |
 | **[VS Code Extension](vscode-extension/)**                         | 擴充功能             | 9 指令 + 10 chat                | MCP 自動註冊、compact-first 打包面、workspace 設定、LLM wiki 指南、Foam graph views、`@mdpaper` 參與者 |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App      | —                               | 專案管理 UI、圖表編輯器                                                                                |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code 擴充功能     | —                               | `[[wikilink]]` 引用連結、懸停預覽、圖譜視圖                                                            |
@@ -46,17 +46,17 @@
 
 - **asset-aware（30 工具）** — 寫作前解析用戶提供的 DOCX/XLSX/PDF/PPTX 原始素材與文獻全文
 - **drawio（23 工具）** — CONSORT/PRISMA 流程圖生成
-- **zotero-keeper（32 工具）** — 從 Zotero 匯入參考文獻
+- **zotero-keeper（50 工具）** — 從 Zotero 匯入參考文獻
 
 上表與 MCP tool surface 的計數以 `tool-surface-authority.json` 與 `vscode-extension/bundle-manifest.json` 為單一來源，release / validate gate 會自動驗證。
 
 ### 如何選擇安裝面
 
-| 安裝面              | 適合誰                            | 你會拿到什麼                                                                                                                                                                                 |
-| ------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、38 個 skills、15 個 prompt workflows、跨 Agent harness、repo scripts、tests 與作者文件                                                         |
-| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者      | `@mdpaper`、9 個 palette commands、compact-first `mdpaper` runtime（預設 12 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
-| **Agent Plugin**    | Copilot CLI / VS Code、Claude Code、Codex | 可攜式 [Agent Plugins](https://agent-plugins.org/) 套件：compact `mdpaper` 與五個協作 MCP（透過 `uvx`）、25 個研究 skills、9 個 Copilot agents |
+| 安裝面              | 適合誰                                    | 你會拿到什麼                                                                                                                                                                                 |
+| ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **完整 repository** | 維護者、進階使用者、workflow 作者         | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、38 個 skills、15 個 prompt workflows、跨 Agent harness、repo scripts、tests 與作者文件                                                         |
+| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者              | `@mdpaper`、9 個 palette commands、compact-first `mdpaper` runtime（預設 12 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
+| **Agent Plugin**    | Copilot CLI / VS Code、Claude Code、Codex | 可攜式 [Agent Plugins](https://agent-plugins.org/) 套件：compact `mdpaper` 與五個協作 MCP（透過 `uvx`）、25 個研究 skills、9 個 Copilot agents                                               |
 
 也就是說：repository 是較寬的工程面；VSIX 是較收斂的終端使用者面。
 
@@ -87,13 +87,13 @@ claude plugin install med-paper-assistant@medpaper
 
 各 agent runtime 共用相同的證據與品質 gate：
 
-| Runtime                      | 專案指引                                                                       | 學術寫作 skill / plugin                                                                                  |
-| ---------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Claude Code                  | [`CLAUDE.md`](CLAUDE.md) 與 [`AGENTS.md`](AGENTS.md)                           | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) 或 Agent Plugin |
-| Codex                        | [`AGENTS.md`](AGENTS.md)                                                       | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) 或 Agent Plugin |
-| GitHub Copilot（VS Code/CLI）| [`.github/copilot-instructions.md`](.github/copilot-instructions.md) 與 `AGENTS.md` | `.claude/skills/`（自動探索）、[`.github/agents/`](.github/agents/) 或 Agent Plugin                    |
-| Cline                        | [`AGENTS.md`](AGENTS.md)                                                       | 將 `plugins/med-paper-assistant/mcp.json` 的 MCP servers 登錄到 Cline 的 MCP 設定                       |
-| OpenClaw                     | [`AGENTS.md`](AGENTS.md) 加 workspace policy                                   | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                 |
+| Runtime                       | 專案指引                                                                            | 學術寫作 skill / plugin                                                                                |
+| ----------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Claude Code                   | [`CLAUDE.md`](CLAUDE.md) 與 [`AGENTS.md`](AGENTS.md)                                | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) 或 Agent Plugin |
+| Codex                         | [`AGENTS.md`](AGENTS.md)                                                            | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) 或 Agent Plugin |
+| GitHub Copilot（VS Code/CLI） | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) 與 `AGENTS.md` | `.claude/skills/`（自動探索）、[`.github/agents/`](.github/agents/) 或 Agent Plugin                    |
+| Cline                         | [`AGENTS.md`](AGENTS.md)                                                            | 將 `plugins/med-paper-assistant/mcp.json` 的 MCP servers 登錄到 Cline 的 MCP 設定                      |
+| OpenClaw                      | [`AGENTS.md`](AGENTS.md) 加 workspace policy                                        | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                 |
 
 平台中立的[學術寫作 workflow](docs/harness/academic-writing-workflow.md)涵蓋正式論文、計畫書、結案報告、小論文、preprint、審計 gate 與安全的範本文獻使用方式。
 
@@ -114,7 +114,7 @@ claude plugin install med-paper-assistant@medpaper
 | 傳統工具                   | Medical Paper Assistant                                          |
 | -------------------------- | ---------------------------------------------------------------- |
 | 固定模板、僵化流程         | 彈性、探索式方法                                                 |
-| 搜尋/寫作/引用分開多個 App | 同一工作區：118/12 mdpaper + 45 PubMed + 24 CGU 工具與打包工作流 |
+| 搜尋/寫作/引用分開多個 App | 同一工作區：118/12 mdpaper + 41 PubMed + 11 CGU 工具與打包工作流 |
 | 手動管理參考文獻           | 自動儲存 + PubMed 驗證資料                                       |
 | 匯出後再排版               | 直接匯出符合期刊格式的 Word                                      |
 | 學習複雜介面               | 自然語言對話                                                     |
@@ -291,7 +291,7 @@ projects/{slug}/
 
 ### 文獻搜尋與管理
 
-- **PubMed + Europe PMC + CORE** 搜尋（45 個搜尋工具）
+- **PubMed + Europe PMC + CORE** 搜尋（41 個搜尋工具）
 - **PICO 解析** 處理臨床問題
 - **MCP-to-MCP 驗證 metadata** — PMID 查詢保留來源回應與信任層；後續詮釋仍須通過 evidence checks
 - 分層信任：🔒 VERIFIED（PubMed）· 🤖 AGENT（AI 筆記）· ✏️ USER（你的筆記）
@@ -356,12 +356,12 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 外部 MCPs   │
-│ 118/12 工具   │  │  search       │  │  24 工具      │  │   (uvx)       │
-│               │  │  45 工具      │  │               │  │               │
-│ • 專案管理    │  │ • PubMed      │  │ • 腦力激盪    │  │ 🎨 drawio     │
-│ • 參考文獻    │  │ • Europe PMC  │  │ • 深度思考    │  │ • 流程圖      │
-│ • 草稿        │  │ • CORE        │  │ • 火花碰撞    │  │               │
-│ • 驗證        │  │ • PICO        │  │ • 創意方法    │  │ 📖 zotero     │
+│ 118/12 工具   │  │  search       │  │  11 工具      │  │   (uvx)       │
+│               │  │  41 工具      │  │               │  │               │
+│ • 專案管理    │  │ • PubMed      │  │ • 框架審視    │  │ 🎨 drawio     │
+│ • 參考文獻    │  │ • Europe PMC  │  │ • 反典型發散  │  │ • 流程圖      │
+│ • 草稿        │  │ • CORE        │  │ • 新穎度測量  │  │               │
+│ • 驗證        │  │ • PICO        │  │ • 盲評排序    │  │ 📖 zotero     │
 │ • 資料分析    │  │ • 基因/化合物 │  │               │  │ • 匯入文獻    │
 │ • 匯出        │  │ • Session     │  │               │  │ 📥 asset-aware│
 │               │  │               │  │               │  │ • docx/xlsx   │
@@ -511,31 +511,35 @@ compact 模式只暴露以下 12 個穩定入口，隱藏多數細粒度 public 
 | **Prompts**   | `project_bootstrap`、`draft_section_plan`、`word_export_checklist`                            | 透過官方 MCP prompt API 生成引導式工作流內容          |
 | **Resources** | `medpaper://workspace/state`、`medpaper://workspace/projects`、`medpaper://templates/catalog` | 透過 MCP resources 暴露工作區狀態、專案列表與模板資訊 |
 
-### 🔍 pubmed-search MCP 工具（45 工具）
+### 🔍 pubmed-search MCP 工具（41 工具）
 
-| 分類            | 關鍵工具                                                                  |
-| --------------- | ------------------------------------------------------------------------- |
-| **搜尋**        | `unified_search`、`generate_search_queries`、`parse_pico`                 |
-| **資料庫**      | PubMed、Europe PMC（全文 + 文本挖掘）、CORE（2 億+ 開放取用）             |
-| **基因/化合物** | `search_gene`、`get_gene_details`、`search_compound`、`search_clinvar`    |
-| **探索**        | `find_related_articles`、`find_citing_articles`、`get_article_references` |
-| **匯出**        | `prepare_export`（RIS/BibTeX/CSV）、`get_citation_metrics`（iCite RCR）   |
-| **Session**     | `read_session(action="pmids")`、`get_session_log`（不受 AI 記憶限制）     |
+| 分類            | 關鍵工具                                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **搜尋**        | `unified_search`、`generate_search_queries`、`validate_pico_plan`                                                |
+| **資料庫**      | PubMed、Europe PMC（全文 + 文本挖掘）、CORE（2 億+ 開放取用）                                                    |
+| **基因/化合物** | `search_gene`、`get_gene_details`、`search_compound`、`search_clinvar`                                           |
+| **探索**        | `find_related_articles`、`find_citing_articles`、`get_article_references`                                        |
+| **匯出**        | `prepare_export`（RIS/BibTeX/CSV）、`get_citation_metrics`（iCite RCR）                                          |
+| **Session**     | `read_session(request={"action":"pmids"})`、`read_session(request={"action":"search_runs"})`（不受 AI 記憶限制） |
 
-### 💡 CGU 創意工具（24 工具）
+### 💡 CGU 創意工具（11 工具）
 
-| 分類     | 關鍵工具                                                    |
-| -------- | ----------------------------------------------------------- |
-| **發想** | `generate_ideas`、`spark_collision`、`spark_collision_deep` |
-| **分析** | `deep_think`、`multi_agent_brainstorm`                      |
-| **方法** | `list_methods`、`select_method`、`apply_method`             |
+| 分類           | 關鍵工具                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| **工作階段**   | `cgu_status`、`cgu_session`（open / get / list / export / delete）                                    |
+| **框架**       | `cgu_frame`（create / operate / commit / doubt）、`cgu_question_gate`（check / record）               |
+| **發散**       | `cgu_diverge`（typical_set / anti_typical / fanout / collide）、`cgu_material`（search / add / list） |
+| **測量與評審** | `cgu_ideas`（add / list / measure）、`cgu_judge`（plan / record / rank）                              |
+| **演化與回饋** | `cgu_evolve`（map / next / submit / resolve）、`cgu_feedback`（record / summary）                     |
+| **記憶**       | `cgu_inquiry`（選擇性啟用的跨 session 提問記憶）                                                      |
 
 CGU 執行說明：
 
-- 在 repository 工作流中，CGU 透過釘選子模組啟動：`uv run --directory integrations/cgu python -m cgu.server`
+- CGU 不替 agent 思考：生成與判斷步驟會回傳 `work_order`，由呼叫端 agent 以自己的模型完成後回交；CGU 負責狀態、測量（未校準時為 `null`）、去重與持久化。典型流程：`cgu_status` → `cgu_session(open)` → `cgu_frame` → `cgu_diverge(typical_set)` → `cgu_diverge(anti_typical)` → `cgu_ideas(add / measure)` → `cgu_judge` → `cgu_feedback`
+- 在 repository 工作流中，CGU 透過釘選子模組啟動：`uv run --directory integrations/cgu cgu-server`
 - 在 VSX 工作流中，MedPaper 只有在 bundled code 或 workspace submodule 可用時才會註冊 CGU；否則會安全略過，不會阻塞其他功能
 - CGU 自身支援 Python `>=3.11`，但本 repository 目前要求 Python `>=3.12`，因此 macOS、Linux、Windows 的 repo 安裝都應以 Python 3.12 為基線
-- 預設 `.vscode/mcp.json` 使用 `CGU_THINKING_ENGINE=simple`，這是低摩擦模式；較進階的 LLM 模式仍需要 CGU 端模型與 provider 設定
+- 預設 `.vscode/mcp.json` 使用 `CGU_PROVIDER=passthrough`，不呼叫任何模型，也不需要本地 LLM。其他設定包含 `CGU_EMBEDDING`（預設 `ngram`）、`CGU_NETWORK` 與 `CGU_DATA_DIR`（預設 `~/.cgu`）；0.6 時代的 LLM／thinking engine 環境變數已不再適用
 
 ---
 
@@ -622,8 +626,8 @@ med-paper-assistant/
 │   └── interfaces/mcp/            #   MCP Server，118 full / 12 compact 工具 + 3 prompts + 3 resources
 │
 ├── integrations/                  # 內建 MCP Server
-│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（45 工具）
-│   └── cgu/                       #   創意發想（24 工具）
+│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE 搜尋（41 工具）
+│   └── cgu/                       #   創意鷹架（11 工具）
 │
 ├── vscode-extension/              # 打包後的 VSIX surface
 │   ├── src/                       #   擴充功能原始碼
@@ -660,7 +664,7 @@ med-paper-assistant/
 
 | 狀態 | 功能                        | 說明                                                                                       |
 | ---- | --------------------------- | ------------------------------------------------------------------------------------------ |
-| ✅   | **6 個受管 MCP Server**     | mdpaper（118/12）、PubMed（45）、CGU（24）、Asset-Aware（30）、Draw.io（23）、Zotero（32） |
+| ✅   | **6 個受管 MCP Server**     | mdpaper（118/12）、PubMed（41）、CGU（11）、Asset-Aware（30）、Draw.io（23）、Zotero（50） |
 | ✅   | **Foam 整合**               | Wikilinks、懸停預覽、反向連結、命名 graph views、專案隔離                                  |
 | ✅   | **Project Memory**          | `.memory/` 跨 session AI 記憶                                                              |
 | ✅   | **Table 1 生成器**          | 自動生成基線特徵表                                                                         |

@@ -28,7 +28,7 @@
 
 1. `generate_search_queries(topic, strategy="comprehensive")`
 2. 並行 `unified_search()` × 3-5 組
-3. 以 `read_session(action="pmids")` 取回 PMID，並以 PMID/DOI 去重
+3. 以 `read_session(request={"action":"pmids"})` 取回 PMID，並以 PMID/DOI 去重
 4. `get_citation_metrics(sort_by="relative_citation_ratio")`
 5. 選前 15-20 篇 → `save_reference_mcp(pmid, agent_notes)`
 6. [Optional] Zotero: `search_items(query)` → 取 PMID → `save_reference_mcp()`

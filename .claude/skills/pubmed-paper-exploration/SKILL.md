@@ -6,11 +6,9 @@ description: "Deep exploration from a key paper using related, citing, reference
 # 論文深度探索
 
 ## 描述
-
 這個 workflow 用在「已經有一篇關鍵論文」之後的深挖。你可以沿三個方向展開：相似文獻、這篇引用了誰、誰又引用了它，再進一步建立 citation tree 或研究時間軸。
 
 ## 觸發條件
-
 - 「這篇論文的相關研究」
 - 「誰引用這篇？」
 - 「這篇建立在誰的研究上？」
@@ -37,15 +35,15 @@ unified_search(
 
 ## 核心探索方向
 
-| 工具                      | 作用             | 方向       |
-| ------------------------- | ---------------- | ---------- |
-| `fetch_article_details`   | 取得文章完整資訊 | 當前論文   |
-| `find_related_articles`   | 找主題相近文章   | 橫向       |
-| `get_article_references`  | 找這篇引用了誰   | 往過去     |
-| `find_citing_articles`    | 找誰引用這篇     | 往未來     |
-| `get_citation_metrics`    | 看引用影響力     | 評估重要性 |
-| `build_citation_tree`     | 建立引用網路     | 視覺化     |
-| `build_research_timeline` | 建立時間軸       | 演化脈絡   |
+| 工具 | 作用 | 方向 |
+|------|------|------|
+| `fetch_article_details` | 取得文章完整資訊 | 當前論文 |
+| `find_related_articles` | 找主題相近文章 | 橫向 |
+| `get_article_references` | 找這篇引用了誰 | 往過去 |
+| `find_citing_articles` | 找誰引用這篇 | 往未來 |
+| `get_citation_metrics` | 看引用影響力 | 評估重要性 |
+| `build_citation_tree` | 建立引用網路 | 視覺化 |
+| `build_research_chronicle` | 建立研究編年史 | 演化脈絡 |
 
 ---
 
@@ -127,25 +125,42 @@ build_citation_tree(
 
 ---
 
-## 如果想看時間演化
+## 多種子替代方案
 
-### 以單篇或一組 PMID 建時間軸
+從主題搜尋的多篇種子向外擴展，可使用既有 pipeline，不必逐篇手動呼叫：
 
 ```python
-build_research_timeline(
+unified_search(pipeline="""
+template: snowball
+template_params:
+    query: remimazolam ICU sedation
+    seed_limit: 5
+    limit: 20
+""")
+```
+
+`snowball` 執行 search → citing + references → union merge（含原始結果）；`seed_limit` 為 1–10、預設 5，`limit` 預設 20。
+自訂 DAG 的 `related`／`citing`／`references` 可用 `inputs` + `seed_limit` 取前幾個不重複 PMID，不能同時指定 `pmid`。每個種子消耗一次外部呼叫預算；各 action 合併去重、排除 seeds 後以 `limit` 截斷。
+
+## 如果想看時間演化
+
+### 以單篇或一組 PMID 建編年史
+
+```python
+build_research_chronicle(
     pmids="30217674,35678901,34567890",
     topic="Remimazolam Clinical Development",
-    output_format="mermaid"
+    output="mermaid"
 )
 ```
 
-### 以主題建時間軸
+### 以主題建編年史
 
 ```python
-build_research_timeline(
+build_research_chronicle(
     topic="remimazolam",
     max_events=20,
-    output_format="text"
+    output="summary"
 )
 ```
 
@@ -156,13 +171,13 @@ build_research_timeline(
 ### 全文
 
 ```python
-get_fulltext(pmid="30217674", extended_sources=True)
+get_fulltext(source={"kind":"pmid","value":"30217674"}, extended_sources=True)
 ```
 
 ### 圖表
 
 ```python
-get_article_figures(pmid="30217674")
+get_article_figures(source={"kind":"pmid","value":"30217674"})
 ```
 
 ---
@@ -182,7 +197,7 @@ get_article_figures(pmid="30217674")
 優先看：
 
 - `find_citing_articles` 的最近年份文章
-- `build_research_timeline` 中最近幾個 milestone
+- `build_research_chronicle` 中最近幾個 milestone
 
 ### 找基礎文獻
 

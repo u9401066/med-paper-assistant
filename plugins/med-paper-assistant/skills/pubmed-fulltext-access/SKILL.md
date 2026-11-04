@@ -6,11 +6,9 @@ description: "Full text access using get_fulltext, figure extraction, and instit
 # 全文取得指南
 
 ## 描述
-
 目前的全文 workflow 以 `get_fulltext` 為核心。它會自動嘗試 Europe PMC、Unpaywall、CORE，必要時可擴展到更多來源。若需要圖表、文字探勘或機構訂閱連結，則搭配其他專用工具。
 
 ## 觸發條件
-
 - 「我要看全文」
 - 「有 PDF 嗎？」
 - 「這篇有 open access 嗎？」
@@ -24,15 +22,14 @@ description: "Full text access using get_fulltext, figure extraction, and instit
 ### 1. `get_fulltext`
 
 ```python
-get_fulltext(identifier="PMC7096777")
-get_fulltext(pmid="12345678")
-get_fulltext(doi="10.1038/s41586-021-03819-2")
+get_fulltext(source={"kind":"pmcid","value":"PMC7096777"})
+get_fulltext(source={"kind":"pmid","value":"12345678"})
+get_fulltext(source={"kind":"doi","value":"10.1038/s41586-021-03819-2"})
 ```
 
 ### 參數重點
 
-- `identifier`: 自動判斷 PMID、PMCID、DOI
-- `pmcid` / `pmid` / `doi`: 也可分開傳
+- `source`: 必填的 discriminated object；`kind` 明確指定 `pmid`、`pmcid` 或 `doi`，`value` 放對應識別碼
 - `sections`: 只抓特定段落，例如 `"introduction,methods,results"`
 - `include_pdf_links`: 是否回傳 PDF 連結
 - `include_figures`: 是否一起帶 figure metadata
@@ -45,14 +42,14 @@ get_fulltext(doi="10.1038/s41586-021-03819-2")
 ### 1. 直接抓 PMC 全文
 
 ```python
-get_fulltext(identifier="PMC7096777")
+get_fulltext(source={"kind":"pmcid","value":"PMC7096777"})
 ```
 
 ### 2. 只看方法與結果
 
 ```python
 get_fulltext(
-    pmid="12345678",
+    source={"kind":"pmid","value":"12345678"},
     sections="methods,results"
 )
 ```
@@ -61,7 +58,7 @@ get_fulltext(
 
 ```python
 get_fulltext(
-    doi="10.1038/s41586-021-03819-2",
+    source={"kind":"doi","value":"10.1038/s41586-021-03819-2"},
     extended_sources=True
 )
 ```
@@ -70,7 +67,7 @@ get_fulltext(
 
 ```python
 get_fulltext(
-    pmcid="PMC7096777",
+    source={"kind":"pmcid","value":"PMC7096777"},
     include_figures=True
 )
 ```
@@ -82,8 +79,8 @@ get_fulltext(
 ### 取得文章圖表
 
 ```python
-get_article_figures(identifier="PMC12086443")
-get_article_figures(pmid="40384072")
+get_article_figures(source={"kind":"pmcid","value":"PMC12086443"})
+get_article_figures(source={"kind":"pmid","value":"40384072"})
 ```
 
 適合用在：
@@ -99,8 +96,8 @@ get_article_figures(pmid="40384072")
 ### 取得 text-mined terms
 
 ```python
-get_text_mined_terms(pmcid="PMC7096777")
-get_text_mined_terms(pmid="12345678", semantic_type="CHEMICAL")
+get_text_mined_terms(source={"kind":"pmcid","value":"PMC7096777"})
+get_text_mined_terms(source={"kind":"pmid","value":"12345678"}, semantic_type="CHEMICAL")
 ```
 
 常用 `semantic_type`:
@@ -137,28 +134,44 @@ get_institutional_link(pmid="12345678")
 
 ```python
 fetch_article_details(pmids="12345678")
-get_fulltext(pmid="12345678", sections="abstract,results")
+get_fulltext(source={"kind":"pmid","value":"12345678"}, sections="methods,results")
 ```
 
 ### 情境 2：搜尋後挑代表性文章讀全文
+
+搜尋回應每列的 `read_request` 可直接呼叫文字全文；有需要才補 `sections`。
+若 `section_selection` 列出未找到的章節，依 `available` 改名或省略篩選後讀取；
+不要將摘要當成缺失正文，也不用輪詢背景狀態或重跑搜尋。
+
+若預計深入閱讀，可在 `unified_search` 加上 `fulltext="prefetch"`；只對排名前三篇中已有
+PMCID 的候選背景預取 XML。選定後用回應列出的 PMCID 呼叫 `get_fulltext`，會共用快取與
+進行中的請求，不必輪詢。只讀文字可加 `include_pdf_links=False`。一般探索保持預設關閉，
+避免下載未讀文章；完整限制見 `docs/guides/TOOLS_USAGE_GUIDE.md`。
 
 ```python
 unified_search(
     query="remimazolam ICU sedation",
     limit=10,
-    ranking="quality"
+    ranking="quality",
+    fulltext="prefetch",
+    output_format="json"
 )
 
-# 對選中的 PMID 再做全文抓取
-get_fulltext(pmid="12345678", extended_sources=True)
+# 使用所選文章的 read_request.arguments；此 PMCID 僅為格式示例。
+get_fulltext(
+    source={"kind":"pmcid","value":"PMC7096777"},
+    sections="methods,results",
+    include_pdf_links=False,
+    output_format="json"
+)
 ```
 
 ### 情境 3：先抓全文，再抽圖表與實體
 
 ```python
-get_fulltext(pmcid="PMC7096777", include_figures=True)
-get_article_figures(pmcid="PMC7096777")
-get_text_mined_terms(pmcid="PMC7096777", semantic_type="CHEMICAL")
+get_fulltext(source={"kind":"pmcid","value":"PMC7096777"}, include_figures=True)
+get_article_figures(source={"kind":"pmcid","value":"PMC7096777"})
+get_text_mined_terms(source={"kind":"pmcid","value":"PMC7096777"}, semantic_type="CHEMICAL")
 ```
 
 ---

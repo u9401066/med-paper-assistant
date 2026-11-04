@@ -83,8 +83,47 @@ def test_zotero_server_uses_exact_sdk2_archive() -> None:
         lock["package_source"],
         "zotero-keeper",
     ]
-    assert lock["version"] == "2.1.0"
+    assert lock["version"] == "2.4.0"
     assert lock["mcp_sdk_major"] == 2
+
+
+def test_cgu_server_uses_cgu_server_entrypoint() -> None:
+    server = REQUIRED_SERVERS["cgu"]
+
+    assert server["args"][-1] == "cgu-server"
+    assert "cgu.server" not in server["args"]
+    assert server["env"] == {"CGU_PROVIDER": "passthrough"}
+
+
+def test_legacy_cgu_module_and_previous_zotero_pin_are_outdated() -> None:
+    existing = {
+        "servers": {
+            "cgu": {
+                "command": "uv",
+                "args": [
+                    "run",
+                    "--directory",
+                    "${workspaceFolder}/integrations/cgu",
+                    "python",
+                    "-m",
+                    "cgu.server",
+                ],
+            },
+            "zotero-keeper": {
+                "command": "uvx",
+                "args": [
+                    "--python",
+                    "3.12",
+                    "--from",
+                    "https://github.com/u9401066/zotero-keeper/archive/"
+                    "1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5.tar.gz#subdirectory=mcp-server",
+                    "zotero-keeper",
+                ],
+            },
+        }
+    }
+    assert find_outdated_managed_servers(existing) == ["cgu", "zotero-keeper"]
+    assert find_outdated_managed_servers({"servers": dict(REQUIRED_SERVERS)}) == []
 
 
 def test_only_known_legacy_launchers_are_marked_outdated() -> None:
@@ -184,6 +223,29 @@ class TestMigrate:
         assert migrated["pubmed-search"]["env"]["NCBI_EMAIL"] == "researcher@example.org"
         assert "ENTREZ_EMAIL" not in migrated["pubmed-search"]["env"]
         assert migrated["drawio"] == REQUIRED_SERVERS["drawio"]
+
+    def test_migrates_legacy_cgu_launcher_and_drops_obsolete_env(self, tmp_mcp):
+        servers = {name: {"type": "stdio"} for name in REQUIRED_SERVERS}
+        servers["cgu"] = {
+            "type": "stdio",
+            "command": "uv",
+            "args": [
+                "run",
+                "--directory",
+                "${workspaceFolder}/integrations/cgu",
+                "python",
+                "-m",
+                "cgu.server",
+            ],
+            "env": {"CGU_THINKING_ENGINE": "simple", "CGU_DATA_DIR": "/data/cgu"},
+        }
+        p = tmp_mcp(servers)
+
+        assert migrate(p) == 0
+
+        migrated = json.loads(p.read_text(encoding="utf-8"))["servers"]["cgu"]
+        assert migrated["args"] == REQUIRED_SERVERS["cgu"]["args"]
+        assert migrated["env"] == {"CGU_PROVIDER": "passthrough", "CGU_DATA_DIR": "/data/cgu"}
 
     def test_creates_new_contract_file_when_requested(self, tmp_path):
         p = tmp_path / ".vscode" / "mcp.json"

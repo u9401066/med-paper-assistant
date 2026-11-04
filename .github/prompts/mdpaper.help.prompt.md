@@ -67,7 +67,7 @@ Manuscript Path: project → search → concept → draft / write-paper → anal
 ## 核心規則
 
 - 儲存文獻：`save_reference_mcp(pmid)` 優先
-- PubMed 搜尋：快速/多源搜尋優先 `unified_search(query)`；PICO / MeSH 再配 `parse_pico()` / `generate_search_queries()`
+- PubMed 搜尋：快速/多源搜尋優先 `unified_search(query)`；PICO / MeSH 再配 `validate_pico_plan()` / `generate_search_queries()`
 - 只有 Manuscript Path 的草稿前：`validation_action(action="concept", filename="concept.md")` 必須 Novelty ≥ 75
 - 路徑切換：`project_action(action="update", workflow_mode="manuscript|library-wiki", paper_type="...")`
 - 🔒 內容：NOVELTY + SELLING POINTS 不可刪改

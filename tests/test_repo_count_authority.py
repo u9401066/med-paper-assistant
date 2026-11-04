@@ -20,13 +20,13 @@ def test_external_counts_come_from_tool_surface_authority() -> None:
     assert sync_repo_counts.EXTERNAL_MCP == authority["externalMcp"]
     counts = sync_repo_counts.gather_counts()
     assert counts.asset_aware_tools == 30
-    assert counts.pubmed_tools == 45
-    assert counts.cgu_tools == 24
+    assert counts.pubmed_tools == 41
+    assert counts.cgu_tools == 11
     assert counts.drawio_tools == 23
-    assert counts.zotero_tools == 32
+    assert counts.zotero_tools == 50
     assert counts.mcp_servers == 3
     assert counts.managed_mcp_servers == 6
-    assert counts.managed_total_tools == 272
+    assert counts.managed_total_tools == 273
 
 
 def test_repo_count_check_is_clean() -> None:

@@ -6,7 +6,7 @@
 
 ### 步驟 1: 了解研究問題
 
-使用 `parse_pico` 將研究問題拆解為 PICO 結構：
+由 Agent 將研究問題拆解為 PICO 結構，再用 `validate_pico_plan` 驗證並取得可執行 pipeline：
 
 - **P**opulation: 研究對象
 - **I**ntervention: 介入措施
@@ -158,7 +158,7 @@
 用戶: 幫我找最近的 AI 麻醉研究
 
 Copilot 動作:
-1. parse_pico: 分析研究問題
+1. validate_pico_plan: 驗證 Agent 拆解的 PICO
 2. generate_search_queries: 產生搜尋策略
 3. unified_search: 執行多來源搜尋
 4. [回報結果，詢問是否要存入 Zotero]

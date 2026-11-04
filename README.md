@@ -12,7 +12,7 @@
 
 ## 🔬 An Auditable MCP Research Workspace for Autonomous and Human-Guided Academic Writing
 
-Core research surfaces: mdpaper 118 full / 12 compact + PubMed 45 + CGU 24 · Managed MCP integrations: 6 (adds Asset-Aware 30 + Draw.io 23 + Zotero Keeper 32) · 38 Skills · 15 Prompt Workflows
+Core research surfaces: mdpaper 118 full / 12 compact + PubMed 41 + CGU 11 · Managed MCP integrations: 6 (adds Asset-Aware 30 + Draw.io 23 + Zotero Keeper 50) · 38 Skills · 15 Prompt Workflows
 
 > 📖 [繁體中文版](README.zh-TW.md)
 > 🤖 **[Auto-Paper: Autonomous + Human-Guided Writing Guide](docs/auto-paper-guide.md)** — 13 main gate checkpoints + Phase 2.1 sub-gate, 79 Quality Hooks, Structured Review Loop
@@ -32,8 +32,8 @@ This repository is the **full authoring and integration workspace** behind MedPa
 | Component                                                          | Type                   | Tools                             | Description                                                                                                                           |
 | ------------------------------------------------------------------ | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **mdpaper**                                                        | Core MCP Server        | 118 (full) / 12 (compact default) | Dual workflow server for manuscript and library-wiki paths, plus 3 MCP prompts and 3 MCP resources                                    |
-| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 45                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
-| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 24                                | Creative generation: brainstorm, deep think, spark collision                                                                          |
+| **[pubmed-search](https://github.com/u9401066/pubmed-search-mcp)** | MCP Server (submodule) | 41                                | PubMed/Europe PMC/CORE search, PICO, citation metrics, session mgmt                                                                   |
+| **[CGU](https://github.com/u9401066/creativity-generation-unit)**  | MCP Server (submodule) | 11                                | Creativity scaffold: frame audit, anti-typical divergence, novelty measurement, blinded judging (work orders for your model)          |
 | **[VS Code Extension](vscode-extension/)**                         | Extension              | 9 cmds + 10 chat                  | MCP auto-registration, compact-first packaged surface, workspace setup, LLM wiki guide, Foam graph views, `@mdpaper` chat participant |
 | **[Dashboard](dashboard/)**                                        | Next.js Web App        | —                                 | Project management UI, diagram editor                                                                                                 |
 | **[Foam](https://foambubble.github.io/foam/)**                     | VS Code Extension      | —                                 | `[[wikilink]]` citation linking, hover preview, graph view                                                                            |
@@ -44,7 +44,7 @@ The table above shows the three core research servers. These optional servers co
 
 - **asset-aware (30 tools)** — Ingest user-provided DOCX/XLSX/PDF/PPTX source materials and reference full text before drafting
 - **drawio (23 tools)** — CONSORT/PRISMA flowchart generation
-- **zotero-keeper (32 tools)** — Import references from Zotero library
+- **zotero-keeper (50 tools)** — Import references from Zotero library
 
 Counts in these tables are release-gated via `tool-surface-authority.json` and `vscode-extension/bundle-manifest.json`.
 
@@ -54,7 +54,7 @@ Counts in these tables are release-gated via `tool-surface-authority.json` and `
 | ------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 38 skills, 15 prompt workflows, cross-agent harness, repo scripts, tests, and authoring docs                                          |
 | **VSIX extension**  | End users who want the packaged experience     | `@mdpaper`, 9 palette commands, compact-first `mdpaper` runtime (12 tools by default / 118 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
-| **Agent Plugin**    | Copilot CLI / VS Code, Claude Code, and Codex  | Portable [Agent Plugins](https://agent-plugins.org/) package: compact `mdpaper` plus the five companion MCPs (via `uvx`), 25 research skills, and 9 Copilot agents                                 |
+| **Agent Plugin**    | Copilot CLI / VS Code, Claude Code, and Codex  | Portable [Agent Plugins](https://agent-plugins.org/) package: compact `mdpaper` plus the five companion MCPs (via `uvx`), 25 research skills, and 9 Copilot agents                                |
 
 The repository is the broader engineering surface. The VSIX is the curated end-user surface.
 
@@ -85,13 +85,13 @@ Run the agent from your research folder. Projects are written to `MEDPAPER_BASE_
 
 The same evidence and quality gates are available across agent runtimes:
 
-| Runtime                    | Project instructions                                                                    | Academic-writing skill / plugin                                                                         |
-| -------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Claude Code                | [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md)                                   | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) or Agent Plugin |
-| Codex                      | [`AGENTS.md`](AGENTS.md)                                                                | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) or Agent Plugin |
-| GitHub Copilot (VS Code/CLI) | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) and `AGENTS.md`  | `.claude/skills/` (auto-discovered), [`.github/agents/`](.github/agents/), or Agent Plugin             |
-| Cline                      | [`AGENTS.md`](AGENTS.md)                                                                | Register the MCP servers from `plugins/med-paper-assistant/mcp.json` in Cline's MCP settings           |
-| OpenClaw                   | [`AGENTS.md`](AGENTS.md) plus workspace policy                                          | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                 |
+| Runtime                      | Project instructions                                                                 | Academic-writing skill / plugin                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Claude Code                  | [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md)                                | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) or Agent Plugin |
+| Codex                        | [`AGENTS.md`](AGENTS.md)                                                             | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) or Agent Plugin |
+| GitHub Copilot (VS Code/CLI) | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) and `AGENTS.md` | `.claude/skills/` (auto-discovered), [`.github/agents/`](.github/agents/), or Agent Plugin             |
+| Cline                        | [`AGENTS.md`](AGENTS.md)                                                             | Register the MCP servers from `plugins/med-paper-assistant/mcp.json` in Cline's MCP settings           |
+| OpenClaw                     | [`AGENTS.md`](AGENTS.md) plus workspace policy                                       | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                 |
 
 The platform-neutral [academic-writing workflow](docs/harness/academic-writing-workflow.md) covers manuscripts, proposals, project closeout reports, student papers, preprints, audit gates, and safe exemplar use.
 
@@ -112,7 +112,7 @@ The platform-neutral [academic-writing workflow](docs/harness/academic-writing-w
 | Traditional Tools                   | Medical Paper Assistant                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------- |
 | Fixed templates, rigid workflow     | Flexible, exploratory approach                                                  |
-| Separate apps for search/write/cite | One workspace: 118/12 mdpaper + 45 PubMed + 24 CGU tools and packaged workflows |
+| Separate apps for search/write/cite | One workspace: 118/12 mdpaper + 41 PubMed + 11 CGU tools and packaged workflows |
 | Manual reference management         | Auto-save with verified PubMed data                                             |
 | Export then format                  | Direct Word export with journal styles                                          |
 | Learn complex UI                    | Natural language conversation                                                   |
@@ -289,7 +289,7 @@ projects/{slug}/
 
 ### Literature & References
 
-- **PubMed + Europe PMC + CORE** search (45 search tools)
+- **PubMed + Europe PMC + CORE** search (41 search tools)
 - **PICO parsing** for clinical questions
 - **MCP-to-MCP verified metadata** — PMID-based retrieval preserves the source response and trust layer; downstream interpretation still requires evidence checks
 - Layered trust: 🔒 VERIFIED (PubMed) · 🤖 AGENT (AI notes) · ✏️ USER (your notes)
@@ -354,12 +354,12 @@ projects/{slug}/
         ▼                  ▼                  ▼                  ▼
 ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
 │ 📝 mdpaper    │  │🔍 pubmed-     │  │💡 cgu         │  │🔌 External    │
-│ 118/12 tools  │  │  search       │  │  24 tools     │  │   MCPs (uvx)  │
-│               │  │  45 tools     │  │               │  │               │
-│ • projects    │  │ • PubMed      │  │ • brainstorm  │  │ 🎨 drawio     │
-│ • references  │  │ • Europe PMC  │  │ • deep_think  │  │ • diagrams    │
-│ • drafts      │  │ • CORE        │  │ • spark       │  │               │
-│ • validation  │  │ • PICO        │  │ • methods     │  │ 📖 zotero     │
+│ 118/12 tools  │  │  search       │  │  11 tools     │  │   MCPs (uvx)  │
+│               │  │  41 tools     │  │               │  │               │
+│ • projects    │  │ • PubMed      │  │ • frames      │  │ 🎨 drawio     │
+│ • references  │  │ • Europe PMC  │  │ • diverge     │  │ • diagrams    │
+│ • drafts      │  │ • CORE        │  │ • novelty     │  │               │
+│ • validation  │  │ • PICO        │  │ • judge       │  │ 📖 zotero     │
 │ • analysis    │  │ • Gene/Chem   │  │               │  │ • import refs │
 │ • export      │  │ • Session     │  │               │  │ 📥 asset-aware│
 │               │  │               │  │               │  │ • docx/xlsx   │
@@ -510,31 +510,35 @@ Write, edit, cite — with built-in validation.
 | **Prompts**   | `project_bootstrap`, `draft_section_plan`, `word_export_checklist`                            | Materialize guided prompt workflows through the official MCP prompt API              |
 | **Resources** | `medpaper://workspace/state`, `medpaper://workspace/projects`, `medpaper://templates/catalog` | Surface live workspace state, project lists, and template metadata via MCP resources |
 
-### 🔍 pubmed-search MCP Tools (45 tools)
+### 🔍 pubmed-search MCP Tools (41 tools)
 
-| Category        | Key Tools                                                                     |
-| --------------- | ----------------------------------------------------------------------------- |
-| **Search**      | `unified_search`, `generate_search_queries`, `parse_pico`                     |
-| **Databases**   | PubMed, Europe PMC (fulltext + text mining), CORE (200M+ open access)         |
-| **Gene/Chem**   | `search_gene`, `get_gene_details`, `search_compound`, `search_clinvar`        |
-| **Exploration** | `find_related_articles`, `find_citing_articles`, `get_article_references`     |
-| **Export**      | `prepare_export` (RIS/BibTeX/CSV), `get_citation_metrics` (iCite RCR)         |
-| **Session**     | `read_session(action="pmids")`, `get_session_log` (survives AI memory limits) |
+| Category        | Key Tools                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Search**      | `unified_search`, `generate_search_queries`, `validate_pico_plan`                                                        |
+| **Databases**   | PubMed, Europe PMC (fulltext + text mining), CORE (200M+ open access)                                                    |
+| **Gene/Chem**   | `search_gene`, `get_gene_details`, `search_compound`, `search_clinvar`                                                   |
+| **Exploration** | `find_related_articles`, `find_citing_articles`, `get_article_references`                                                |
+| **Export**      | `prepare_export` (RIS/BibTeX/CSV), `get_citation_metrics` (iCite RCR)                                                    |
+| **Session**     | `read_session(request={"action":"pmids"})`, `read_session(request={"action":"search_runs"})` (survives AI memory limits) |
 
-### 💡 CGU Creative Tools (24 tools)
+### 💡 CGU Creative Tools (11 tools)
 
-| Category     | Key Tools                                                   |
-| ------------ | ----------------------------------------------------------- |
-| **Ideation** | `generate_ideas`, `spark_collision`, `spark_collision_deep` |
-| **Analysis** | `deep_think`, `multi_agent_brainstorm`                      |
-| **Methods**  | `list_methods`, `select_method`, `apply_method`             |
+| Category              | Key Tools                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| **Session**           | `cgu_status`, `cgu_session` (open / get / list / export / delete)                                   |
+| **Framing**           | `cgu_frame` (create / operate / commit / doubt), `cgu_question_gate` (check / record)               |
+| **Divergence**        | `cgu_diverge` (typical_set / anti_typical / fanout / collide), `cgu_material` (search / add / list) |
+| **Measure & judge**   | `cgu_ideas` (add / list / measure), `cgu_judge` (plan / record / rank)                              |
+| **Evolve & feedback** | `cgu_evolve` (map / next / submit / resolve), `cgu_feedback` (record / summary)                     |
+| **Memory**            | `cgu_inquiry` (opt-in cross-session inquiry memory)                                                 |
 
 CGU runtime notes:
 
-- In the repository workflow, CGU is started from the pinned submodule with `uv run --directory integrations/cgu python -m cgu.server`.
+- CGU does not think for the agent: generation and judgement steps return a `work_order` that the calling agent fulfils with its own model and hands back, while CGU keeps state, measurement (`null` when uncalibrated), dedupe and persistence. Typical flow: `cgu_status` → `cgu_session(open)` → `cgu_frame` → `cgu_diverge(typical_set)` → `cgu_diverge(anti_typical)` → `cgu_ideas(add / measure)` → `cgu_judge` → `cgu_feedback`.
+- In the repository workflow, CGU is started from the pinned submodule with `uv run --directory integrations/cgu cgu-server`.
 - In the VSX workflow, MedPaper registers CGU when bundled code or the workspace submodule is available; otherwise CGU is simply skipped.
 - CGU itself supports Python `>=3.11`, but this repository currently requires Python `>=3.12`, so cross-platform repo setup should be treated as Python 3.12 baseline on macOS, Linux, and Windows.
-- The default repo MCP example uses `CGU_THINKING_ENGINE=simple`, which is the low-friction mode. Advanced LLM-backed modes still depend on CGU-side model/provider configuration.
+- The default repo MCP example uses `CGU_PROVIDER=passthrough`, which never calls a model and needs no local LLM. Other settings are `CGU_EMBEDDING` (default `ngram`), `CGU_NETWORK` and `CGU_DATA_DIR` (default `~/.cgu`). The 0.6-era LLM/thinking-engine environment variables no longer apply.
 
 ---
 
@@ -621,8 +625,8 @@ med-paper-assistant/
 │   └── interfaces/mcp/            #   MCP server, 118 full / 12 compact tools + 3 prompts + 3 resources
 │
 ├── integrations/                  # Bundled MCP servers
-│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (45 tools)
-│   └── cgu/                       #   Creative generation (24 tools)
+│   ├── pubmed-search-mcp/         #   PubMed/PMC/CORE search (41 tools)
+│   └── cgu/                       #   Creativity scaffold (11 tools)
 │
 ├── vscode-extension/              # Packaged VSIX surface
 │   ├── src/                       #   Extension source
@@ -659,7 +663,7 @@ med-paper-assistant/
 
 | Status | Feature                     | Description                                                                          |
 | ------ | --------------------------- | ------------------------------------------------------------------------------------ |
-| ✅     | **6 managed MCP servers**   | mdpaper (118/12), PubMed (45), CGU (24), Asset-Aware (30), Draw.io (23), Zotero (32) |
+| ✅     | **6 managed MCP servers**   | mdpaper (118/12), PubMed (41), CGU (11), Asset-Aware (30), Draw.io (23), Zotero (50) |
 | ✅     | **Foam Integration**        | Wikilinks, hover preview, backlinks, named graph views, project isolation            |
 | ✅     | **Project Memory**          | `.memory/` for cross-session AI context                                              |
 | ✅     | **Table 1 Generator**       | Auto-generate baseline characteristics                                               |

@@ -31,7 +31,7 @@ description: 發展研究概念並驗證創新性。觸發：concept、發展概
 | `list_saved_references`      | 檢視文獻                    |
 | `save_reference_mcp`         | 儲存文獻（**永遠優先**）    |
 | `sync_references`            | 同步 wikilinks → References |
-| `mcp_cgu_deep_think`         | CGU 深度分析弱點            |
+| `cgu_frame` / `cgu_diverge`  | CGU 框架審視、反典型發散    |
 
 ---
 
@@ -95,13 +95,13 @@ Agent 修改前必須問用戶確認。
 
 ## CGU 使用指南
 
-| 情境       | 工具              | 用法                     |
-| ---------- | ----------------- | ------------------------ |
-| 找弱點     | `deep_think`      | 從 reviewer 角度找攻擊點 |
-| 找強化論點 | `spark_collision` | 碰撞限制 vs 優勢         |
-| 廣泛發想   | `generate_ideas`  | 讓 novelty 無可辯駁      |
+| 情境       | 工具                                             | 用法                                                          |
+| ---------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| 找弱點     | `cgu_frame` + `cgu_diverge(action=anti_typical)` | 從 reviewer 角度找攻擊點，再以 `cgu_judge` 比較               |
+| 找強化論點 | `cgu_diverge(action=collide)`                    | 碰撞限制 vs 優勢                                              |
+| 廣泛發想   | `cgu_diverge` + `cgu_ideas`                      | 讓 novelty 無可辯駁（`cgu_ideas(action=measure)` 檢查新穎度） |
 
-流程：CGU 工具 → 整理 2-3 建議 → 問用戶選哪個 → 只改那一個
+流程：CGU 工具回傳 `work_order` → 以自己的模型完成並回交 → 整理 2-3 建議 → 問用戶選哪個 → 只改那一個
 
 ---
 

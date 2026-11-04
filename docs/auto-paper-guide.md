@@ -114,7 +114,7 @@ Agent 按優先順序取得資訊：
 1. 分析文獻 → 識別 Gap
 2. 撰寫 `concept.md`（含 🔒 NOVELTY STATEMENT + 🔒 KEY SELLING POINTS）
 3. `validate_concept()` → 三輪獨立評分
-4. 分數 < 75 → 自動修正 1 次 → 仍不足 → CGU `deep_think` / `spark_collision` → 再修正
+4. 分數 < 75 → 自動修正 1 次 → 仍不足 → CGU `cgu_frame` + `cgu_diverge(action=anti_typical / collide)` + `cgu_judge` → 再修正
 5. 分數 < 60（兩次）→ **硬停止**，回報用戶
 
 **Gate**：concept score ≥ 75（`readiness=ready`），或可信 host/UI 依用戶明確決定簽發 `mdpaper.concept_review_override.v3` Ed25519 receipt。MCP/Agent 只能查詢或撤銷，不能把自己的輸入標成 `human` 來放行。

@@ -110,7 +110,7 @@
 
 ### 🔸 CGU MCP
 
-- **用途**: `deep_think`, `spark_collision`, `generate_ideas`, `multi_agent_brainstorm`
+- **用途**: `cgu_frame`, `cgu_diverge`（`typical_set` / `anti_typical` / `collide`）, `cgu_ideas`, `cgu_judge`（共 11 個工具；generation / judgement 以 `work_order` 交由 agent 自己的模型完成）
 - **Phase**: 3 Concept, 7 Review（論點強化）
 - **候選**: `integrations/cgu/` 目錄已存在
 - **Priority**: ⭐ MEDIUM

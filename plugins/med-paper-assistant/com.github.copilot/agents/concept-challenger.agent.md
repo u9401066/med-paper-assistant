@@ -23,7 +23,7 @@ tools:
 
 ## 限制
 
-- ✅ 可使用 CGU MCP: `deep_think`, `spark_collision`, `generate_ideas`, `multi_agent_brainstorm`
+- ✅ 可使用 CGU MCP（共 11 工具；CGU 不替你思考，生成/判斷步驟回傳 `work_order`，由你以自己的模型完成後再回交）: `cgu_status`, `cgu_session`, `cgu_frame`, `cgu_diverge`, `cgu_ideas`, `cgu_judge`, `cgu_question_gate`
 - ✅ 可使用 pubmed-search MCP: `unified_search`, `find_related_articles`
 - ✅ 可使用 mdpaper MCP: `search_local_references`, `list_saved_references`, `get_current_project`
 - ❌ 不可修改 concept.md 或任何草稿
@@ -33,12 +33,16 @@ tools:
 
 ### CGU 創意思考
 
-| 工具                              | 用途                 |
-| --------------------------------- | -------------------- |
-| `deep_think(topic, depth)`        | 深度思考找出概念弱點 |
-| `spark_collision(idea_a, idea_b)` | 碰撞兩個對立觀點     |
-| `generate_ideas(topic, n)`        | 廣泛發想替代方案     |
-| `multi_agent_brainstorm(topic)`   | 多角色辯論           |
+先 `cgu_status` 確認可用能力（`semantic=false` 時新穎度只是詞面相似），再 `cgu_session(action="open", topic=...)` 取得 `session_id`；其餘工具都需要 `session_id`。
+
+| 工具                                                    | 用途                                                                    |
+| ------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `cgu_frame(action="create" / "operate" / "commit")`     | 建立概念框架、列出隱含假設，用算子（如 `negate`、`bracket`）找出弱點    |
+| `cgu_diverge(action="typical_set" / "anti_typical")`    | 先列典型答案，再產生遠離典型的替代方案（回傳 `work_order`）             |
+| `cgu_diverge(action="collide", a=..., b=..., mode=...)` | 碰撞兩個對立觀點（`mode` 為 `analogy` 或 `bridge`）                     |
+| `cgu_ideas(action="add" / "measure")`                   | 登錄想法（`kind` 為 `typical` / `candidate` / `prior_art`）並測量新穎度 |
+| `cgu_judge(action="plan" / "record" / "rank")`          | 配對盲評（AB／BA 雙順序），比較替代方案                                 |
+| `cgu_question_gate(action="check" / "record")`          | 檢查研究問題是否決策相關、可操作、承重                                  |
 
 ### 文獻驗證
 
@@ -69,14 +73,17 @@ tools:
 
 ### Step 2: Novelty 挑戰
 
-使用 `deep_think` 進行深度分析：
+使用 `cgu_frame` 與 `cgu_diverge(action="typical_set")` 進行深度分析：
 
 ```
-deep_think(
-  topic="[研究主題] 的 novelty 是否成立？",
-  depth="deep"
-)
+cgu_session(action="open", topic="[研究主題] 的 novelty 是否成立？", domain="醫學研究")
+cgu_frame(action="create", session_id=..., problem="[研究問題]", assumptions=[...])
+cgu_diverge(action="typical_set", session_id=..., k=8)   # 依 work_order 先列出最直覺的做法
+cgu_ideas(action="add", session_id=..., ideas=[...])     # typical / prior_art / candidate（研究者的創新宣稱）
+cgu_ideas(action="measure", session_id=...)              # 新穎度以參照集計算；參照集為空時為 null
 ```
+
+`cgu_frame` 的算子（如 `negate`、`bracket`）可檢驗核心假說的隱含假設是否承重。
 
 檢查項目：
 
@@ -88,9 +95,12 @@ deep_think(
 ### Step 3: 方法學挑戰
 
 ```
-spark_collision(
-  idea_a="[研究者的方法學主張]",
-  idea_b="[最可能的反駁論點]"
+cgu_diverge(
+  action="collide",
+  session_id=...,
+  a="[研究者的方法學主張]",
+  b="[最可能的反駁論點]",
+  mode="bridge"
 )
 ```
 
@@ -119,11 +129,15 @@ unified_search(query="[核心假說的關鍵詞]")
 若 novelty < 70 或發現重大弱點：
 
 ```
-generate_ideas(
-  topic="如何強化 [研究主題] 的創新性和方法學",
+cgu_diverge(
+  action="anti_typical",
+  session_id=...,
+  frame_id=...,
   n=5
 )
 ```
+
+依 `work_order` 產生替代方案後以 `cgu_ideas(action="add")` 回交，再用 `cgu_ideas(action="measure")` 與 `cgu_judge` 比較。
 
 ### Step 6: 產出挑戰報告
 

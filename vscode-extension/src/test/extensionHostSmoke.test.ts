@@ -257,7 +257,7 @@ describe('extension host smoke', () => {
         const zoteroDefinition = definitions.find(definition => definition.label === 'Zotero Keeper');
         expect(zoteroDefinition?.command).toBe('uvx');
         expect(zoteroDefinition?.args).toEqual(
-            expect.arrayContaining(['--from', expect.stringContaining('1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5'), 'zotero-keeper']),
+            expect.arrayContaining(['--from', expect.stringContaining('68a9a1a914cbf3ca8737b8f467cb505e6e445092'), 'zotero-keeper']),
         );
 
         const drawioDefinition = definitions.find(definition => definition.label === 'Draw.io Diagrams');
@@ -271,7 +271,7 @@ describe('extension host smoke', () => {
             '--python',
             '3.12',
             '--from',
-            expect.stringContaining('da8c7b99cbe512b1d51d7ab47698c9154f801ed4'),
+            expect.stringContaining('fa0e3489f83ea5922f06cb6b26bf0726872690c1'),
             'asset-aware-mcp',
         ]);
 
@@ -324,7 +324,7 @@ describe('extension host smoke', () => {
             '--python',
             '3.12',
             '--from',
-            expect.stringContaining('da8c7b99cbe512b1d51d7ab47698c9154f801ed4'),
+            expect.stringContaining('fa0e3489f83ea5922f06cb6b26bf0726872690c1'),
             'asset-aware-mcp',
         ]);
     });

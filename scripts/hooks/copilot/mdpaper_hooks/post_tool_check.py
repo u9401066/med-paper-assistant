@@ -160,7 +160,7 @@ def _concept_validated_context(workflow: str) -> str:
         )
     return (
         "[CONCEPT VALIDATED] Check the novelty score. If < 75, concept needs improvement "
-        "before drafting. Consider CGU tools (deep_think, spark_collision) for enhancement."
+        "before drafting. Consider CGU tools (cgu_frame, cgu_diverge, cgu_judge) for enhancement."
     )
 
 

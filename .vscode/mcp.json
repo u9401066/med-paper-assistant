@@ -37,12 +37,10 @@
         "run",
         "--directory",
         "${workspaceFolder}/integrations/cgu",
-        "python",
-        "-m",
-        "cgu.server"
+        "cgu-server"
       ],
       "env": {
-        "CGU_THINKING_ENGINE": "simple"
+        "CGU_PROVIDER": "passthrough"
       }
     },
     "zotero-keeper": {
@@ -52,7 +50,7 @@
         "--python",
         "3.12",
         "--from",
-        "https://github.com/u9401066/zotero-keeper/archive/1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5.tar.gz#subdirectory=mcp-server",
+        "https://github.com/u9401066/zotero-keeper/archive/68a9a1a914cbf3ca8737b8f467cb505e6e445092.tar.gz#subdirectory=mcp-server",
         "zotero-keeper"
       ]
     },

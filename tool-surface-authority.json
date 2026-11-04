@@ -7,10 +7,10 @@
   },
   "externalMcp": {
     "asset-aware": 30,
-    "pubmed-search": 45,
-    "cgu": 24,
+    "pubmed-search": 41,
+    "cgu": 11,
     "drawio": 23,
-    "zotero-keeper": 32
+    "zotero-keeper": 50
   },
   "repository": {
     "skills": 38,
@@ -61,7 +61,7 @@
       "118 full / 12 compact",
       "immutable submodule；MCP Python SDK 2",
       "Python/Node 皆為 SDK 2",
-      "| 32"
+      "| 50"
     ],
     "docs/design/benchmark-evaluation-roadmap.md": [
       "registered-visible/open-DWT detection-only package smoke"

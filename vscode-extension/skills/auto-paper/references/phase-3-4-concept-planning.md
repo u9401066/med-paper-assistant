@@ -17,7 +17,7 @@
 4. `validation_action(action="concept")(project=...)`
 5. IF score < 75:
    - 自動修正 1 次 → 再驗證
-   - 仍 < 75 → CGU: `deep_think` / `spark_collision` / `generate_ideas` → 修正 → 再驗證
+   - 仍 < 75 → CGU: `cgu_frame` / `cgu_diverge` / `cgu_ideas` / `cgu_judge` → 修正 → 再驗證
    - 仍 < 75 → STOP，回報用戶（附 CGU 建議）
 
 **Code hard gate**: `concept.md` 含 NOVELTY / KEY SELLING POINTS、structured concept review 完整，且 decision 可採用（通常為 `readiness=ready`），或可信 host/UI 依用戶明確決定簽發
@@ -26,12 +26,12 @@
 
 CGU 工具對應：
 
-| 問題     | CGU 工具                 | 產出                |
-| -------- | ------------------------ | ------------------- |
-| 找弱點   | `deep_think`             | Reviewer 攻擊角度   |
-| 找論點   | `spark_collision`        | 碰撞新穎角度        |
-| 廣泛發想 | `generate_ideas`         | 3-5 個 novelty 候選 |
-| 多觀點   | `multi_agent_brainstorm` | 多角色辯論          |
+| 問題     | CGU 工具                                         | 產出                                                          |
+| -------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| 找弱點   | `cgu_frame` + `cgu_diverge(action=anti_typical)` | Reviewer 攻擊角度（`work_order` 由 agent 自己的模型完成）     |
+| 找論點   | `cgu_diverge(action=collide)`                    | 碰撞新穎角度                                                  |
+| 廣泛發想 | `cgu_diverge` + `cgu_ideas`                      | 3-5 個 novelty 候選（`cgu_ideas(action=measure)` 測量新穎度） |
+| 多觀點   | `cgu_judge`（plan / record / rank）              | 配對盲評與排序（AB／BA 雙順序）                               |
 
 ---
 

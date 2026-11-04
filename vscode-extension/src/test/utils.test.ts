@@ -37,6 +37,7 @@ describe('getPythonArgs', () => {
 
     it('uvx → package name from map', () => {
         expect(getPythonArgs('uvx', MODULE)).toEqual(['med-paper-assistant']);
+        expect(getPythonArgs('uvx', 'cgu.interfaces.mcp.server')).toEqual(['creativity-generation-unit']);
         expect(getPythonArgs('uvx', 'cgu.server')).toEqual(['creativity-generation-unit']);
         expect(getPythonArgs('uvx', 'pubmed_search.mcp')).toEqual(['pubmed-search-mcp']);
     });

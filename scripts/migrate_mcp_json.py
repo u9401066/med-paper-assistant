@@ -79,11 +79,9 @@ REQUIRED_SERVERS: dict[str, dict] = {
             "run",
             "--directory",
             "${workspaceFolder}/integrations/cgu",
-            "python",
-            "-m",
-            "cgu.server",
+            "cgu-server",
         ],
-        "env": {"CGU_THINKING_ENGINE": "simple"},
+        "env": {"CGU_PROVIDER": "passthrough"},
     },
     "zotero-keeper": {
         "type": "stdio",
@@ -122,8 +120,39 @@ REQUIRED_SERVERS: dict[str, dict] = {
 # Any other existing definition is a user override and remains untouched.
 LEGACY_MANAGED_LAUNCHERS: dict[str, set[tuple[str, tuple[str, ...]]]] = {
     "pubmed-search": {("uvx", ("pubmed-search-mcp",))},
-    "zotero-keeper": {("uvx", ("zotero-keeper",))},
+    "cgu": {
+        (
+            "uv",
+            (
+                "run",
+                "--directory",
+                "${workspaceFolder}/integrations/cgu",
+                "python",
+                "-m",
+                "cgu.server",
+            ),
+        )
+    },
+    "zotero-keeper": {
+        ("uvx", ("zotero-keeper",)),
+        (
+            "uvx",
+            (
+                "--python",
+                "3.12",
+                "--from",
+                "https://github.com/u9401066/zotero-keeper/archive/"
+                "1faf5733dc7bbc05d0fac8ffe16c51f4585b5ce5.tar.gz#subdirectory=mcp-server",
+                "zotero-keeper",
+            ),
+        ),
+    },
     "drawio": {("npx", ("-y", "@drawio/mcp"))},
+}
+
+# Environment keys that only older managed launchers understood.
+OBSOLETE_MANAGED_ENV: dict[str, frozenset[str]] = {
+    "cgu": frozenset({"CGU_THINKING_ENGINE", "CGU_LLM_PROVIDER", "CGU_USE_LLM"}),
 }
 
 
@@ -213,7 +242,11 @@ def _updated_managed_definition(name: str, current: dict) -> dict:
     updated = deepcopy(REQUIRED_SERVERS[name])
     current_env = current.get("env")
     if isinstance(current_env, dict):
-        preserved_env = dict(current_env)
+        preserved_env = {
+            key: value
+            for key, value in current_env.items()
+            if key not in OBSOLETE_MANAGED_ENV.get(name, frozenset())
+        }
         if name == "pubmed-search" and "NCBI_EMAIL" not in preserved_env:
             legacy_email = preserved_env.pop("ENTREZ_EMAIL", None)
             if legacy_email:

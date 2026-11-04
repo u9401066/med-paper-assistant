@@ -463,7 +463,7 @@ src/med_paper_assistant/
 
 ### Phase 3: Argument Tracker
 
-- `create_argument_map` — 論點地圖（整合 CGU deep_think）
+- `create_argument_map` — 論點地圖（整合 CGU `cgu_diverge` / `cgu_judge`）
 - `generate_structured_draft` — 結構化生成
 - `track_logic_chain` — 邏輯鏈追蹤
 

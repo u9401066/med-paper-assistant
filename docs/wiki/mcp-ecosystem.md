@@ -10,7 +10,7 @@ flowchart TB
     MDP --> PubMed[PubMed Search MCP<br/>metadata + search]
     MDP --> Asset[Asset-Aware MCP<br/>PDF / DOCX parsing]
     MDP --> Zotero[Zotero Keeper<br/>library workflow]
-    MDP --> CGU[CGU<br/>deep think + idea collision]
+    MDP --> CGU[CGU<br/>frames + diverge + judge]
     MDP --> Draw[Draw.io / native Mermaid<br/>figures]
     MDP --> Files[(Project filesystem)]
 
@@ -45,7 +45,7 @@ sequenceDiagram
       Z-->>M: stable library identity
     end
     alt Novelty or argument is weak
-      P->>C: Phase 3 deep_think / collision
+      P->>C: Phase 3 cgu_frame / cgu_diverge / cgu_judge
       C-->>M: critique or idea candidates
     end
     P->>M: Phase 5–11 write, review, export, audit

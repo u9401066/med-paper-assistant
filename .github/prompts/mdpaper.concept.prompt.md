@@ -43,4 +43,4 @@ description: "📝 mdpaper.concept - 發展研究概念與文獻缺口分析"
 ✅ 直指問題、提 Reviewer 會問的、給具體修復、問「直接寫？修正？用 CGU？」
 ❌ 禁止：討好回饋、自動改 NOVELTY、反覆追分
 
-CGU：`deep_think`（找弱點）、`spark_collision`（碰撞）、`generate_ideas`（發想）
+CGU：`cgu_frame` / `cgu_diverge(action=anti_typical)` + `cgu_judge`（找弱點）、`cgu_diverge(action=collide)`（碰撞）、`cgu_diverge` + `cgu_ideas`（發想）。CGU 回傳 `work_order`，由你以自己的模型完成後回交。

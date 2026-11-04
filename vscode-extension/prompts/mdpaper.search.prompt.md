@@ -17,7 +17,7 @@ description: "🔍 mdpaper.search - 智能文獻搜尋與探索"
 ## 情境 A: 基於 Concept
 
 1. `project_action(action="current")` + `read_draft("concept.md")` → 提取 Research Question、PICO、Key terms
-2. 搜尋：快速 `unified_search(query)` / PICO `parse_pico() → generate_search_queries() → unified_search(query)` / MeSH `generate_search_queries() → unified_search(query)` / 擴展 `find_related_articles(pmid)` / 引用 `find_citing_articles(pmid)`
+2. 搜尋：快速 `unified_search(query)` / PICO `validate_pico_plan(description, p, i, c, o) → unified_search(query, pipeline=pico.pipeline)` / MeSH `generate_search_queries() → unified_search(query)` / 擴展 `find_related_articles(pmid)` / 引用 `find_citing_articles(pmid)`
 3. `save_reference_mcp(pmid, agent_notes)` ✅
 
 ## 情境 B: Library Wiki Loop (LLM Wiki Architecture)
@@ -42,7 +42,7 @@ description: "🔍 mdpaper.search - 智能文獻搜尋與探索"
 | -------- | ----------------------------------------------------------------- |
 | 快速找   | `unified_search()`                                                |
 | 精確找   | `generate_search_queries()` → `unified_search()`                  |
-| PICO     | `parse_pico()` → `generate_search_queries()` → `unified_search()` |
+| PICO     | `validate_pico_plan()` → `unified_search(pipeline=pico.pipeline)` |
 | 相關論文 | `find_related_articles()`                                         |
 | 誰引用   | `find_citing_articles()`                                          |
 
