@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   CI and the release workflow run `build_agent_plugin.py --check`, and `scripts/bump-version.sh` regenerates the manifests.
 
+- The VS Code extension contributes its 14 bundled skills, 9 agents and 13 prompt files natively through the `chatSkills`, `chatAgents` and `chatPromptFiles` contribution points (VS Code 1.109+), so they are available right after installation without copying files into the workspace.
+  - Each entry has a per-asset `when: "!mdpaper.workspaceAsset.<type>.<name>"` clause. The extension sets these context keys on activation, after Setup Workspace and on workspace-folder changes, so a workspace copy (`.claude/skills`, `.github/skills`, `.agents/skills`, `.github/agents`, `.claude/agents` or `.github/prompts`) always hides the bundled duplicate.
+  - `scripts/bundle-assets.cjs sync` generates the entries from `bundle-manifest.json`, and `bundle:check` fails when `package.json` drifts.
+  - On 1.109+ the activation reminder only counts missing support docs/files. Older VS Code (the engine floor stays `^1.101.0`) ignores the new contribution points and keeps the workspace-copy flow.
+  - The `MedPaper: Setup Workspace` command now returns its promise, so callers that execute the command wait for it to finish.
+
 ### Changed
 
 - The `auto-paper` skill now follows Agent Skills progressive disclosure. `SKILL.md` drops from 2218 to 287 lines and keeps the pipeline overview, hard gates, non-negotiable rules and a "read this when …" index. Per-phase procedures, hook catalogues, the cross-tool orchestration map, checklists and lessons learned move to 19 topic files under `.claude/skills/auto-paper/references/`, each at most 400 lines. The agent plugin and the VS Code extension now ship each skill's `references/` alongside its `SKILL.md`. Workspace setup copies missing reference files, and `/autopaper` loads `SKILL.md` together with its references.

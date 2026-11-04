@@ -435,4 +435,46 @@ describe('validate-build core', () => {
 
         fs.rmSync(tempDir, { recursive: true, force: true });
     });
+
+    it('bundle check flags and sync repairs stale native chat contributions', () => {
+        const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-chat-contrib-'));
+        const extensionDir = path.join(tempDir, 'repo', 'vscode-extension');
+        fs.mkdirSync(extensionDir, { recursive: true });
+        const packagePath = path.join(extensionDir, 'package.json');
+        fs.writeFileSync(packagePath, '{\r\n  "name": "demo",\r\n  "contributes": {\r\n    "commands": []\r\n  }\r\n}\r\n', 'utf-8');
+
+        const context = {
+            extensionDir,
+            repoRoot: path.join(tempDir, 'repo'),
+            manifest: {
+                skills: ['draft-writing'],
+                prompts: ['mdpaper.write-paper'],
+                agents: ['paper-reviewer'],
+                templates: [],
+                supportFiles: [],
+                pythonSources: [],
+            },
+        };
+        const errors: string[] = [];
+
+        expect(bundleAssets.evaluateChatContributions(context)).toEqual(['chatSkills', 'chatAgents', 'chatPromptFiles']);
+        expect(bundleAssets.runCheckCommand(context, { log: () => {}, error: (message: string) => errors.push(message) })).toBe(1);
+        expect(errors.join('\n')).toContain('chat contributions');
+
+        expect(bundleAssets.syncChatContributions(context)).toBe(true);
+        expect(bundleAssets.evaluateChatContributions(context)).toEqual([]);
+        expect(bundleAssets.syncChatContributions(context)).toBe(false);
+
+        const raw = fs.readFileSync(packagePath, 'utf-8');
+        expect(raw.replace(/\r\n/g, '')).not.toContain('\n');
+        const pkg = JSON.parse(raw);
+        expect(pkg.contributes.commands).toEqual([]);
+        expect(pkg.contributes.chatSkills).toEqual([{ path: './skills/draft-writing/SKILL.md', when: '!mdpaper.workspaceAsset.skill.draft_writing' }]);
+        expect(pkg.contributes.chatAgents).toEqual([{ path: './agents/paper-reviewer.agent.md', when: '!mdpaper.workspaceAsset.agent.paper_reviewer' }]);
+        expect(pkg.contributes.chatPromptFiles).toEqual([
+            { path: './prompts/mdpaper.write-paper.prompt.md', when: '!mdpaper.workspaceAsset.prompt.mdpaper_write_paper' },
+        ]);
+
+        fs.rmSync(tempDir, { recursive: true, force: true });
+    });
 });

@@ -176,7 +176,157 @@
           "description": "MedPaper MCP tool surface. Use full to expose advanced wiki/reference orchestration tools such as import_local_papers, ingest_web_source, ingest_markdown_source, resolve_reference_identity, and materialize_agent_wiki."
         }
       }
-    }
+    },
+    "chatSkills": [
+      {
+        "path": "./skills/literature-review/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.literature_review"
+      },
+      {
+        "path": "./skills/concept-development/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.concept_development"
+      },
+      {
+        "path": "./skills/concept-validation/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.concept_validation"
+      },
+      {
+        "path": "./skills/parallel-search/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.parallel_search"
+      },
+      {
+        "path": "./skills/project-management/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.project_management"
+      },
+      {
+        "path": "./skills/draft-writing/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.draft_writing"
+      },
+      {
+        "path": "./skills/reference-management/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.reference_management"
+      },
+      {
+        "path": "./skills/word-export/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.word_export"
+      },
+      {
+        "path": "./skills/auto-paper/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.auto_paper"
+      },
+      {
+        "path": "./skills/academic-debate/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.academic_debate"
+      },
+      {
+        "path": "./skills/idea-validation/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.idea_validation"
+      },
+      {
+        "path": "./skills/manuscript-review/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.manuscript_review"
+      },
+      {
+        "path": "./skills/submission-preparation/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.submission_preparation"
+      },
+      {
+        "path": "./skills/git-precommit/SKILL.md",
+        "when": "!mdpaper.workspaceAsset.skill.git_precommit"
+      }
+    ],
+    "chatAgents": [
+      {
+        "path": "./agents/concept-challenger.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.concept_challenger"
+      },
+      {
+        "path": "./agents/domain-reviewer.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.domain_reviewer"
+      },
+      {
+        "path": "./agents/literature-searcher.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.literature_searcher"
+      },
+      {
+        "path": "./agents/meta-learner.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.meta_learner"
+      },
+      {
+        "path": "./agents/methodology-reviewer.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.methodology_reviewer"
+      },
+      {
+        "path": "./agents/paper-reviewer.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.paper_reviewer"
+      },
+      {
+        "path": "./agents/reference-analyzer.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.reference_analyzer"
+      },
+      {
+        "path": "./agents/review-orchestrator.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.review_orchestrator"
+      },
+      {
+        "path": "./agents/statistics-reviewer.agent.md",
+        "when": "!mdpaper.workspaceAsset.agent.statistics_reviewer"
+      }
+    ],
+    "chatPromptFiles": [
+      {
+        "path": "./prompts/mdpaper.write-paper.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_write_paper"
+      },
+      {
+        "path": "./prompts/mdpaper.literature-survey.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_literature_survey"
+      },
+      {
+        "path": "./prompts/mdpaper.manuscript-revision.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_manuscript_revision"
+      },
+      {
+        "path": "./prompts/mdpaper.search.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_search"
+      },
+      {
+        "path": "./prompts/mdpaper.concept.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_concept"
+      },
+      {
+        "path": "./prompts/mdpaper.draft.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_draft"
+      },
+      {
+        "path": "./prompts/mdpaper.project.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_project"
+      },
+      {
+        "path": "./prompts/mdpaper.format.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_format"
+      },
+      {
+        "path": "./prompts/mdpaper.strategy.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_strategy"
+      },
+      {
+        "path": "./prompts/mdpaper.analysis.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_analysis"
+      },
+      {
+        "path": "./prompts/mdpaper.clarify.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_clarify"
+      },
+      {
+        "path": "./prompts/mdpaper.help.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_help"
+      },
+      {
+        "path": "./prompts/mdpaper.audit.prompt.md",
+        "when": "!mdpaper.workspaceAsset.prompt.mdpaper_audit"
+      }
+    ]
   },
   "extensionDependencies": [],
   "scripts": {

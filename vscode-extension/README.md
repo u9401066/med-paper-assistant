@@ -98,19 +98,27 @@ Or in VS Code: `Ctrl+Shift+P` → `Extensions: Install from VSIX...`
 
 ### Command Palette (Ctrl+Shift+P)
 
-| 指令                                  | 說明                                                        |
-| ------------------------------------- | ----------------------------------------------------------- |
-| `MedPaper: Start MedPaper MCP Server` | 顯示 MCP 啟動說明                                           |
-| `MedPaper: Stop MedPaper MCP Server`  | 顯示 MCP 停止說明                                           |
-| `MedPaper: Auto Paper`                | 全自動寫論文                                                |
-| `MedPaper: Show Status`               | 顯示擴充功能狀態                                            |
-| `MedPaper: Setup Workspace`           | 複製 skills、prompts、agents、support docs/files、templates |
-| `MedPaper: Open LLM Wiki Guide`       | 直接開啟 `docs/how-to/llm-wiki.md`                          |
-| `MedPaper: Show Foam Graph: Default`  | 開啟預設 Foam 圖譜切片                                      |
-| `MedPaper: Show Foam Graph: Evidence` | 開啟 evidence 導向圖譜切片                                  |
-| `MedPaper: Show Foam Graph: Writing`  | 開啟 writing 導向圖譜切片                                   |
-| `MedPaper: Show Foam Graph: Assets`   | 開啟 figure/table 資產圖譜切片                              |
-| `MedPaper: Show Foam Graph: Review`   | 開啟 review / pending 狀態圖譜切片                          |
+| 指令                                  | 說明                                                                                                |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `MedPaper: Start MedPaper MCP Server` | 顯示 MCP 啟動說明                                                                                   |
+| `MedPaper: Stop MedPaper MCP Server`  | 顯示 MCP 停止說明                                                                                   |
+| `MedPaper: Auto Paper`                | 全自動寫論文                                                                                        |
+| `MedPaper: Show Status`               | 顯示擴充功能狀態                                                                                    |
+| `MedPaper: Setup Workspace`           | 複製 skills、prompts、agents、support docs/files、templates 到 workspace（供其他 agent 共用或自訂） |
+| `MedPaper: Open LLM Wiki Guide`       | 直接開啟 `docs/how-to/llm-wiki.md`                                                                  |
+| `MedPaper: Show Foam Graph: Default`  | 開啟預設 Foam 圖譜切片                                                                              |
+| `MedPaper: Show Foam Graph: Evidence` | 開啟 evidence 導向圖譜切片                                                                          |
+| `MedPaper: Show Foam Graph: Writing`  | 開啟 writing 導向圖譜切片                                                                           |
+| `MedPaper: Show Foam Graph: Assets`   | 開啟 figure/table 資產圖譜切片                                                                      |
+| `MedPaper: Show Foam Graph: Review`   | 開啟 review / pending 狀態圖譜切片                                                                  |
+
+### Native Skills, Agents & Prompts (VS Code 1.109+)
+
+The extension registers its bundled skills, custom agents, and prompt files through the `chatSkills`, `chatAgents`, and `chatPromptFiles` contribution points, so they are available in Copilot Chat right after installation — no workspace copy required.
+
+- A workspace copy always wins: if `.claude/skills/<name>/`, `.github/skills/<name>/`, `.agents/skills/<name>/`, `.github/agents/<name>.agent.md`, `.claude/agents/<name>.md`, or `.github/prompts/<name>.prompt.md` exists, the extension hides its own copy of that asset (per-asset `mdpaper.workspaceAsset.*` context keys) to avoid duplicates.
+- `MedPaper: Setup Workspace` is still available to materialise the files for customisation or for other agents (Claude Code, Codex, Cline) that read the workspace directly. On 1.109+ the startup reminder only covers support docs/files.
+- On VS Code 1.101–1.108 the contribution points are ignored and the workspace-copy flow behaves as before.
 
 ### Agent Mode 自然語言
 

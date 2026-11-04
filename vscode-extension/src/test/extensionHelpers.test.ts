@@ -9,6 +9,10 @@ import {
     determinePythonPath,
     countMissingBundledItems,
     buildDevPythonPath,
+    detectWorkspaceChatAssets,
+    supportsNativeChatContributions,
+    workspaceAssetContextKey,
+    workspaceChatAssetCandidates,
 } from '../extensionHelpers';
 
 // ──────────────────────────────────────────────────────────
@@ -405,6 +409,76 @@ describe('countMissingBundledItems', () => {
         const result = countMissingBundledItems(wsDir, extDir, [], [], [], bundledSupportFiles);
         expect(result.missingSupportFiles).toBe(2);
         expect(result.total).toBe(2);
+    });
+});
+
+// ──────────────────────────────────────────────────────────
+// Native chat contribution helpers
+// ──────────────────────────────────────────────────────────
+
+describe('workspaceAssetContextKey', () => {
+    it('normalises asset names into context-key-safe identifiers', () => {
+        expect(workspaceAssetContextKey('skill', 'draft-writing')).toBe('mdpaper.workspaceAsset.skill.draft_writing');
+        expect(workspaceAssetContextKey('prompt', 'mdpaper.write-paper')).toBe('mdpaper.workspaceAsset.prompt.mdpaper_write_paper');
+        expect(workspaceAssetContextKey('agent', 'paper_reviewer')).toBe('mdpaper.workspaceAsset.agent.paper_reviewer');
+    });
+});
+
+describe('detectWorkspaceChatAssets', () => {
+    let wsDir: string;
+
+    beforeAll(() => {
+        wsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vsx-chat-assets-'));
+        const files = ['.github/skills/draft-writing/SKILL.md', '.claude/agents/paper-reviewer.md', '.github/prompts/mdpaper.write-paper.prompt.md'];
+        for (const relative of files) {
+            const target = path.join(wsDir, relative);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, '# copy');
+        }
+    });
+
+    afterAll(() => {
+        fs.rmSync(wsDir, { recursive: true, force: true });
+    });
+
+    it('marks assets present in any recognised workspace location', () => {
+        const result = detectWorkspaceChatAssets(wsDir, ['draft-writing', 'auto-paper'], ['paper-reviewer', 'research'], ['mdpaper.write-paper', 'mdpaper.search']);
+        expect(result).toEqual({
+            'mdpaper.workspaceAsset.skill.draft_writing': true,
+            'mdpaper.workspaceAsset.skill.auto_paper': false,
+            'mdpaper.workspaceAsset.agent.paper_reviewer': true,
+            'mdpaper.workspaceAsset.agent.research': false,
+            'mdpaper.workspaceAsset.prompt.mdpaper_write_paper': true,
+            'mdpaper.workspaceAsset.prompt.mdpaper_search': false,
+        });
+    });
+
+    it('reports every asset as absent without a workspace', () => {
+        expect(detectWorkspaceChatAssets(undefined, ['draft-writing'], [], ['mdpaper.search'])).toEqual({
+            'mdpaper.workspaceAsset.skill.draft_writing': false,
+            'mdpaper.workspaceAsset.prompt.mdpaper_search': false,
+        });
+    });
+
+    it('lists the expected candidate paths per asset type', () => {
+        expect(workspaceChatAssetCandidates('skill', 'x')).toContain('.claude/skills/x/SKILL.md');
+        expect(workspaceChatAssetCandidates('agent', 'x')).toEqual(['.github/agents/x.agent.md', '.claude/agents/x.md']);
+        expect(workspaceChatAssetCandidates('prompt', 'x')).toEqual(['.github/prompts/x.prompt.md']);
+    });
+});
+
+describe('supportsNativeChatContributions', () => {
+    it('requires VS Code 1.109 or newer', () => {
+        expect(supportsNativeChatContributions('1.109.0')).toBe(true);
+        expect(supportsNativeChatContributions('1.110.2-insider')).toBe(true);
+        expect(supportsNativeChatContributions('2.0.0')).toBe(true);
+        expect(supportsNativeChatContributions('1.108.9')).toBe(false);
+        expect(supportsNativeChatContributions('1.101.0')).toBe(false);
+    });
+
+    it('treats unknown versions as unsupported', () => {
+        expect(supportsNativeChatContributions(undefined)).toBe(false);
+        expect(supportsNativeChatContributions('dev')).toBe(false);
     });
 });
 

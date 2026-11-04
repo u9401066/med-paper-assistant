@@ -45,6 +45,7 @@ const mockOutputChannel = {
 };
 
 const mockVscode = {
+    version: '1.109.0',
     window: {
         createOutputChannel: vi.fn(() => mockOutputChannel),
         showInformationMessage: vi.fn(async () => undefined),
@@ -66,6 +67,7 @@ const mockVscode = {
         getConfiguration: vi.fn(() => ({
             get: vi.fn(() => ''),
         })),
+        onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
     },
     commands: {
         registerCommand: vi.fn((command: string, handler: CommandHandler) => {
@@ -152,6 +154,8 @@ vi.mock('../extensionHelpers', () => ({
         total: 0,
     })),
     buildDevPythonPath: vi.fn(() => path.join(os.tmpdir(), 'medpaper-dev-pythonpath')),
+    detectWorkspaceChatAssets: vi.fn(() => ({ 'mdpaper.workspaceAsset.skill.draft_writing': false })),
+    supportsNativeChatContributions: vi.fn(() => true),
 }));
 
 vi.mock('../utils', () => ({
@@ -245,6 +249,8 @@ describe('extension host smoke', () => {
         expect(registeredProviderId).toBe('mdpaper');
         expect(registeredProvider).toBeDefined();
         expect(commandHandlers.has('mdpaper.showStatus')).toBe(true);
+        expect(executedCommands).toContainEqual({ command: 'setContext', args: ['mdpaper.workspaceAsset.skill.draft_writing', false] });
+        expect(mockVscode.workspace.onDidChangeWorkspaceFolders).toHaveBeenCalledOnce();
 
         const definitions = registeredProvider?.provideMcpServerDefinitions({}) as TestMcpStdioServerDefinition[];
         expect(Array.isArray(definitions)).toBe(true);

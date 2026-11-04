@@ -93,6 +93,61 @@ function getCheckSpecs(context = createContext()) {
     return [...getBundleAssetSpecs(context), ...getPythonSourceSpecs(context)];
 }
 
+// Must stay in sync with workspaceAssetContextKey() in src/extensionHelpers.ts (enforced by packaging tests).
+const WORKSPACE_ASSET_CONTEXT_PREFIX = 'mdpaper.workspaceAsset';
+
+function workspaceAssetContextKey(type, name) {
+    return `${WORKSPACE_ASSET_CONTEXT_PREFIX}.${type}.${name.replace(/[^A-Za-z0-9_]/g, '_')}`;
+}
+
+// Native VS Code chat contributions (VS Code >= 1.109). Each entry is hidden when the
+// workspace already provides the same asset, so copied workspace files never duplicate it.
+function buildChatContributions(manifest) {
+    const entry = (type, assetPath, name) => ({
+        path: assetPath,
+        when: `!${workspaceAssetContextKey(type, name)}`,
+    });
+    return {
+        chatSkills: manifest.skills.map((skill) => entry('skill', `./skills/${skill}/SKILL.md`, skill)),
+        chatAgents: manifest.agents.map((agent) => entry('agent', `./agents/${agent}.agent.md`, agent)),
+        chatPromptFiles: manifest.prompts.map((prompt) => entry('prompt', `./prompts/${prompt}.prompt.md`, prompt)),
+    };
+}
+
+function readPackageJson(extensionDir) {
+    const packagePath = path.join(extensionDir, 'package.json');
+    const raw = fs.readFileSync(packagePath, 'utf-8');
+    return { packagePath, raw, pkg: JSON.parse(raw) };
+}
+
+function evaluateChatContributions(context = createContext()) {
+    if (!fs.existsSync(path.join(context.extensionDir, 'package.json'))) {
+        return [];
+    }
+    const expected = buildChatContributions(context.manifest);
+    const { pkg } = readPackageJson(context.extensionDir);
+    const contributes = pkg.contributes ?? {};
+    return Object.keys(expected).filter(
+        (key) => JSON.stringify(contributes[key] ?? null) !== JSON.stringify(expected[key]),
+    );
+}
+
+function syncChatContributions(context = createContext()) {
+    if (!fs.existsSync(path.join(context.extensionDir, 'package.json'))) {
+        return false;
+    }
+    const expected = buildChatContributions(context.manifest);
+    const { packagePath, raw, pkg } = readPackageJson(context.extensionDir);
+    pkg.contributes = { ...(pkg.contributes ?? {}), ...expected };
+    const eol = raw.includes('\r\n') ? '\r\n' : '\n';
+    const next = `${JSON.stringify(pkg, null, 2)}\n`.replace(/\n/g, eol);
+    if (next !== raw) {
+        fs.writeFileSync(packagePath, next, 'utf-8');
+        return true;
+    }
+    return false;
+}
+
 function compareFileContents(leftPath, rightPath) {
     return fs.readFileSync(leftPath).equals(fs.readFileSync(rightPath));
 }
@@ -267,21 +322,30 @@ function printProblemList(header, specs, log = console.error) {
 function runCheckCommand(context = createContext(), output = console) {
     const specs = getCheckSpecs(context);
     const report = evaluateAssetSync(specs);
-    const hasProblems = report.missingSources.length > 0 || report.missingDestinations.length > 0 || report.outdated.length > 0;
+    const staleContributions = evaluateChatContributions(context);
+    const hasProblems =
+        report.missingSources.length > 0 ||
+        report.missingDestinations.length > 0 ||
+        report.outdated.length > 0 ||
+        staleContributions.length > 0;
 
     if (!hasProblems) {
         output.log(`✅ Committed bundle is in sync (${report.synced.length} assets).`);
         return 0;
     }
 
-    printProblemList('❌ Missing source assets:', report.missingSources, output.error ?? console.error);
-    printProblemList('❌ Missing bundled assets:', report.missingDestinations, output.error ?? console.error);
-    printProblemList('❌ Outdated bundled assets:', report.outdated, output.error ?? console.error);
+    const error = output.error ?? console.error;
+    printProblemList('❌ Missing source assets:', report.missingSources, error);
+    printProblemList('❌ Missing bundled assets:', report.missingDestinations, error);
+    printProblemList('❌ Outdated bundled assets:', report.outdated, error);
+    if (staleContributions.length > 0) {
+        error(`❌ package.json chat contributions out of sync: ${staleContributions.join(', ')} (run npm run bundle:sync)`);
+    }
     return 1;
 }
 
-function runSyncCommand() {
-    const specs = getBundleAssetSpecs();
+function runSyncCommand(context = createContext()) {
+    const specs = getBundleAssetSpecs(context);
     const { copied, missingSources } = syncAssetSpecs(specs);
 
     if (missingSources.length > 0) {
@@ -289,7 +353,11 @@ function runSyncCommand() {
         return 1;
     }
 
+    const contributionsChanged = syncChatContributions(context);
     console.log(`✅ Synced ${copied.length} bundled assets from manifest.`);
+    if (contributionsChanged) {
+        console.log('✅ Updated package.json chat contributions (chatSkills/chatAgents/chatPromptFiles).');
+    }
     return 0;
 }
 
@@ -330,12 +398,14 @@ if (require.main === module) {
 }
 
 module.exports = {
+    buildChatContributions,
     collectDirectoryEntries,
     compareDirectoryContents,
     compareFileContents,
     compareSpecContents,
     createContext,
     evaluateAssetSync,
+    evaluateChatContributions,
     formatSpec,
     getBundleAssetSpecs,
     getCheckSpecs,
@@ -345,5 +415,7 @@ module.exports = {
     loadBundleManifest,
     runCheckCommand,
     syncAssetSpecs,
+    syncChatContributions,
     syncPythonSourceSpecs,
+    workspaceAssetContextKey,
 };

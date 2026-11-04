@@ -8,11 +8,13 @@
 import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import * as fs from 'fs';
-import { BUNDLED_CHAT_COMMANDS, BUNDLED_PALETTE_COMMANDS } from '../utils';
+import { BUNDLED_AGENTS, BUNDLED_CHAT_COMMANDS, BUNDLED_PALETTE_COMMANDS, BUNDLED_PROMPTS, BUNDLED_SKILLS } from '../utils';
+import { workspaceAssetContextKey, type ChatAssetType } from '../extensionHelpers';
 
 const extDir = path.resolve(__dirname, '..', '..');
 const pkgPath = path.join(extDir, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+const bundleAssets = require('../../scripts/bundle-assets.cjs');
 
 // ──────────────────────────────────────────────────────────
 // Manifest Schema
@@ -208,5 +210,47 @@ describe('version consistency', () => {
     it('pins the engine floor to the first stable MCP provider API', () => {
         expect(pkg.engines.vscode).toBe('^1.101.0');
         expect(pkg.devDependencies['@types/vscode']).toBe('1.101.0');
+    });
+});
+
+// ──────────────────────────────────────────────────────────
+// Native chat contributions (VS Code >= 1.109)
+// ──────────────────────────────────────────────────────────
+
+describe('native chat contributions', () => {
+    const groups: Array<{ key: string; type: ChatAssetType; names: readonly string[]; toPath: (name: string) => string }> = [
+        { key: 'chatSkills', type: 'skill', names: BUNDLED_SKILLS, toPath: name => `./skills/${name}/SKILL.md` },
+        { key: 'chatAgents', type: 'agent', names: BUNDLED_AGENTS, toPath: name => `./agents/${name}.agent.md` },
+        { key: 'chatPromptFiles', type: 'prompt', names: BUNDLED_PROMPTS, toPath: name => `./prompts/${name}.prompt.md` },
+    ];
+
+    for (const { key, type, names, toPath } of groups) {
+        it(`${key} mirrors the bundle manifest with workspace-copy guards`, () => {
+            const entries = pkg.contributes?.[key] as Array<{ path: string; when: string }>;
+            expect(entries).toEqual(names.map(name => ({ path: toPath(name), when: `!${workspaceAssetContextKey(type, name)}` })));
+            for (const entry of entries) {
+                expect(fs.existsSync(path.join(extDir, entry.path)), `Missing contributed file: ${entry.path}`).toBe(true);
+            }
+        });
+    }
+
+    it('contributed skills declare a name matching their directory', () => {
+        for (const skill of BUNDLED_SKILLS) {
+            const content = fs.readFileSync(path.join(extDir, 'skills', skill, 'SKILL.md'), 'utf-8');
+            const nameMatch = /^---\r?\n[\s\S]*?^name:\s*["']?([^"'\r\n]+)["']?\s*$/m.exec(content);
+            expect(nameMatch?.[1]?.trim(), `SKILL.md name for ${skill}`).toBe(skill);
+        }
+    });
+
+    it('contributed files are not excluded from the VSIX', () => {
+        const ignore = fs.readFileSync(path.join(extDir, '.vscodeignore'), 'utf-8').split(/\r?\n/).map(line => line.trim());
+        for (const pattern of ['skills/**', 'agents/**', 'prompts/**', 'skills', 'agents', 'prompts']) {
+            expect(ignore).not.toContain(pattern);
+        }
+    });
+
+    it('context keys match the bundle-assets generator', () => {
+        expect(bundleAssets.workspaceAssetContextKey('prompt', 'mdpaper.write-paper')).toBe(workspaceAssetContextKey('prompt', 'mdpaper.write-paper'));
+        expect(bundleAssets.evaluateChatContributions()).toEqual([]);
     });
 });

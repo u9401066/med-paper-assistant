@@ -16,7 +16,7 @@ description: "❓ mdpaper.help - 指令與工作流程參考"
 
 ## Prompt Workflows (`/mdpaper.*`)
 
-這些 prompt workflows 來自 workspace prompt files；若是 VSIX 安裝面，先執行 `MedPaper: Setup Workspace` 讓它們落地到工作區。
+這些 prompt workflows 來自 prompt files：VS Code 1.109+ 的 VSIX 安裝會直接由擴充功能提供（skills/agents/prompts 皆原生註冊）；較舊版本或需要在 Claude Code / Codex 等其他 agent 共用時，執行 `MedPaper: Setup Workspace` 讓它們落地到工作區。
 
 | 指令                           | 用途                           |
 | ------------------------------ | ------------------------------ |

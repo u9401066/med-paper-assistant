@@ -195,6 +195,87 @@ export function countMissingBundledItems(
     };
 }
 
+export type ChatAssetType = 'skill' | 'agent' | 'prompt';
+
+/** Context-key prefix shared with scripts/bundle-assets.cjs `when` clauses. */
+export const WORKSPACE_ASSET_CONTEXT_PREFIX = 'mdpaper.workspaceAsset';
+
+/** First VS Code release with chatSkills/chatAgents/chatPromptFiles contribution points. */
+export const NATIVE_CHAT_CONTRIBUTIONS_MIN_VERSION = '1.109.0';
+
+/**
+ * Context key that is true when the workspace already provides its own copy of
+ * a bundled chat asset. Must stay in sync with `workspaceAssetContextKey` in
+ * scripts/bundle-assets.cjs.
+ */
+export function workspaceAssetContextKey(type: ChatAssetType, name: string): string {
+    return `${WORKSPACE_ASSET_CONTEXT_PREFIX}.${type}.${name.replace(/[^A-Za-z0-9_]/g, '_')}`;
+}
+
+/** Workspace-relative locations where agent clients discover a copy of the asset. */
+export function workspaceChatAssetCandidates(type: ChatAssetType, name: string): string[] {
+    switch (type) {
+        case 'skill':
+            return [`.claude/skills/${name}/SKILL.md`, `.github/skills/${name}/SKILL.md`, `.agents/skills/${name}/SKILL.md`];
+        case 'agent':
+            return [`.github/agents/${name}.agent.md`, `.claude/agents/${name}.md`];
+        case 'prompt':
+            return [`.github/prompts/${name}.prompt.md`];
+    }
+}
+
+/**
+ * Map every bundled chat asset to whether the workspace already ships a copy,
+ * keyed by its `workspaceAssetContextKey`.
+ */
+export function detectWorkspaceChatAssets(
+    wsRoot: string | undefined,
+    bundledSkills: readonly string[],
+    bundledAgents: readonly string[],
+    bundledPrompts: readonly string[],
+): Record<string, boolean> {
+    const result: Record<string, boolean> = {};
+    const groups: Array<[ChatAssetType, readonly string[]]> = [
+        ['skill', bundledSkills],
+        ['agent', bundledAgents],
+        ['prompt', bundledPrompts],
+    ];
+    for (const [type, names] of groups) {
+        for (const name of names) {
+            result[workspaceAssetContextKey(type, name)] = Boolean(
+                wsRoot && workspaceChatAssetCandidates(type, name).some(candidate => fs.existsSync(path.join(wsRoot, candidate))),
+            );
+        }
+    }
+    return result;
+}
+
+function parseVersionTriple(version: string): [number, number, number] | null {
+    const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version.trim());
+    if (!match) {
+        return null;
+    }
+    return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+/**
+ * Whether this VS Code build loads skills/agents/prompts straight from the
+ * extension manifest, making workspace copies optional.
+ */
+export function supportsNativeChatContributions(vscodeVersion: string | undefined): boolean {
+    const current = vscodeVersion ? parseVersionTriple(vscodeVersion) : null;
+    const minimum = parseVersionTriple(NATIVE_CHAT_CONTRIBUTIONS_MIN_VERSION);
+    if (!current || !minimum) {
+        return false;
+    }
+    for (let index = 0; index < 3; index++) {
+        if (current[index] !== minimum[index]) {
+            return current[index] > minimum[index];
+        }
+    }
+    return true;
+}
+
 /**
  * Build the PYTHONPATH for development mode.
  * Combines workspace src, CGU integration, and bundled tool paths.
