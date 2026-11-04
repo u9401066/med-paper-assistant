@@ -9,15 +9,21 @@ def _read(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
 
 
+def _read_package(relative_dir: str) -> str:
+    return "\n".join(
+        path.read_text(encoding="utf-8") for path in sorted((ROOT / relative_dir).glob("*.py"))
+    )
+
+
 def test_project_legacy_public_verbs_point_to_facade_replacements() -> None:
-    content = _read("src/med_paper_assistant/interfaces/mcp/tools/project/crud.py")
+    content = _read("src/med_paper_assistant/interfaces/mcp/tools/project/crud/queries.py")
 
     assert 'DEPRECATED public verb. Prefer `project_action(action="list")`.' in content
     assert 'DEPRECATED public verb. Prefer `project_action(action="current")`.' in content
 
 
 def test_review_audit_legacy_public_verbs_point_to_facade_replacements() -> None:
-    content = _read("src/med_paper_assistant/interfaces/mcp/tools/review/audit_hooks.py")
+    content = _read_package("src/med_paper_assistant/interfaces/mcp/tools/review/audit_hooks")
 
     assert (
         'DEPRECATED public verb. Prefer `run_quality_checks(action="quality_audit", ...)`.'
@@ -30,7 +36,7 @@ def test_review_audit_legacy_public_verbs_point_to_facade_replacements() -> None
 
 
 def test_pipeline_legacy_public_verbs_point_to_facade_replacements() -> None:
-    content = _read("src/med_paper_assistant/interfaces/mcp/tools/review/pipeline_gate.py")
+    content = _read_package("src/med_paper_assistant/interfaces/mcp/tools/review/pipeline_gate")
 
     assert (
         'DEPRECATED public verb. Prefer `pipeline_action(action="validate_phase", phase=...)`.'

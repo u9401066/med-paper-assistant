@@ -84,7 +84,7 @@ def _mock_project_context(project_dir: Path):
         "success": True,
     }
     return patch(
-        "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.resolve_project_context",
+        "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks._common.resolve_project_context",
         return_value=(project_info, None),
     )
 
@@ -302,7 +302,7 @@ class TestRecordHookEventTool:
         """No project active → error message."""
         fn = tool_funcs["record_hook_event"]
         with patch(
-            "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.resolve_project_context",
+            "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks._common.resolve_project_context",
             return_value=(None, "❌ No project selected"),
         ):
             result = fn(hook_id="A1", event_type="trigger")
@@ -511,7 +511,7 @@ class TestRunMetaLearningTool:
         """No project active → error."""
         fn = tool_funcs["run_meta_learning"]
         with patch(
-            "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks.resolve_project_context",
+            "med_paper_assistant.interfaces.mcp.tools.review.audit_hooks._common.resolve_project_context",
             return_value=(None, "❌ No project selected"),
         ):
             result = fn()

@@ -10,11 +10,48 @@ from ._data_artifacts import DataArtifactsMixin
 from ._git import GitHooksMixin
 from ._journal_config import JournalConfigMixin
 from ._manuscript import ManuscriptHooksMixin
-from ._models import HookIssue, HookResult
+from ._models import HookResult
 from ._post_write import PostWriteHooksMixin
 from ._precommit import PreCommitMixin
 from ._section_quality import SectionQualityMixin
 from ._text_utils import TextUtilsMixin
+
+
+def _remap_hook_id(result: HookResult, hook_id: str) -> HookResult:
+    result.hook_id = hook_id
+    for issue in result.issues:
+        issue.hook_id = hook_id
+    return result
+
+
+def _merge_into_result(target: HookResult, source: HookResult, hook_id: str) -> None:
+    """Fold ``source`` issues into ``target`` under ``hook_id``; a failed source fails ``target``."""
+    source.hook_id = hook_id
+    for issue in source.issues:
+        issue.hook_id = hook_id
+        target.issues.append(issue)
+    if not source.passed:
+        target.passed = False
+
+
+def _precommit_anti_ai(engine: WritingHooksEngine, content: str) -> HookResult:
+    """P2 (A3 with P2 thresholds) merged with P2b (A3b) and P2c (A3c)."""
+    p2_result = _remap_hook_id(
+        engine.check_anti_ai_patterns(
+            content,
+            section="precommit",
+            warn_threshold=1,
+            critical_threshold=3,
+        ),
+        "P2",
+    )
+    _merge_into_result(
+        p2_result, engine.check_ai_writing_signals(content, section="precommit"), "P2"
+    )
+    _merge_into_result(
+        p2_result, engine.check_voice_consistency(content, section="precommit"), "P2"
+    )
+    return p2_result
 
 
 class WritingHooksEngine(
@@ -82,11 +119,7 @@ class WritingHooksEngine(
         not just at pre-commit. Catches weak models that accidentally overwrite
         protected content during drafting.
         """
-        result = self.check_protected_content()
-        result.hook_id = "B2"
-        for issue in result.issues:
-            issue.hook_id = "B2"
-        return result
+        return _remap_hook_id(self.check_protected_content(), "B2")
 
     # ── Batch Runner: Post-Section ─────────────────────────────────
 
@@ -206,46 +239,14 @@ class WritingHooksEngine(
             Dict mapping hook_id -> HookResult.
         """
         # P1: Citation integrity — delegate to C5 with hook_id remap
-        p1_result = self.check_wikilink_resolvable(content)
-        p1_result.hook_id = "P1"
-        for issue in p1_result.issues:
-            issue.hook_id = "P1"
+        p1_result = _remap_hook_id(self.check_wikilink_resolvable(content), "P1")
 
-        # P2: Anti-AI scan — delegate to A3 with P2 thresholds
-        p2_result = self.check_anti_ai_patterns(
-            content,
-            section="precommit",
-            warn_threshold=1,
-            critical_threshold=3,
-        )
-        p2_result.hook_id = "P2"
-        for issue in p2_result.issues:
-            issue.hook_id = "P2"
-
-        # P2b: Structural AI signals — delegate to A3b
-        p2b_result = self.check_ai_writing_signals(content, section="precommit")
-        p2b_result.hook_id = "P2"
-        # Merge A3b issues into P2 result
-        for issue in p2b_result.issues:
-            issue.hook_id = "P2"
-            p2_result.issues.append(issue)
-        if not p2b_result.passed:
-            p2_result.passed = False
-
-        # P2c: Voice consistency — delegate to A3c
-        p2c_result = self.check_voice_consistency(content, section="precommit")
-        p2c_result.hook_id = "P2"
-        for issue in p2c_result.issues:
-            issue.hook_id = "P2"
-            p2_result.issues.append(issue)
-        if not p2c_result.passed:
-            p2_result.passed = False
+        p2_result = _precommit_anti_ai(self, content)
 
         # P4: Word count — delegate to A1 with 50% critical threshold
-        p4_result = self.check_word_count_compliance(content, critical_threshold_pct=50)
-        p4_result.hook_id = "P4"
-        for issue in p4_result.issues:
-            issue.hook_id = "P4"
+        p4_result = _remap_hook_id(
+            self.check_word_count_compliance(content, critical_threshold_pct=50), "P4"
+        )
 
         return {
             "P1": p1_result,
@@ -255,70 +256,3 @@ class WritingHooksEngine(
             "P6": self.check_memory_sync(),
             "P7": self.check_reference_integrity(content),
         }
-
-    # ── Hook A7: Reference Sufficiency (pre-write gate) ───────────
-
-    def check_reference_sufficiency(self) -> HookResult:
-        """Hook A7: Check that saved references meet paper-type-specific minimum.
-
-        Code-Enforced pre-write check. Reads journal-profile.yaml for paper type,
-        counts saved references, and compares against minimum thresholds.
-
-        This is the WRITING-SIDE enforcement counterpart to Phase 2 Gate.
-        Phase 2 Gate blocks phase transitions; A7 blocks individual write operations
-        when the reference library is known to be insufficient.
-
-        Returns:
-            HookResult with CRITICAL severity if below minimum.
-        """
-        issues: list[HookIssue] = []
-        refs_dir = self._project_dir / "references"
-        paper_type = self._get_paper_type()
-        min_refs = self._get_min_references(paper_type)
-
-        # Count references
-        ref_count = 0
-        if refs_dir.is_dir():
-            ref_count = len(list(refs_dir.glob("*/metadata.json")))
-            if ref_count == 0:
-                ref_count = len(list(refs_dir.glob("*.md")))
-
-        passed = ref_count >= min_refs
-        if not passed:
-            deficit = min_refs - ref_count
-            issues.append(
-                HookIssue(
-                    hook_id="A7",
-                    severity="CRITICAL",
-                    section="references",
-                    message=(
-                        f"Insufficient references: {ref_count}/{min_refs} "
-                        f"(paper type: {paper_type}, need {deficit} more). "
-                        f"Expand literature search before writing."
-                    ),
-                    suggestion=(
-                        f"Run more searches with unified_search() and save at least "
-                        f"{deficit} additional references with save_reference_mcp(pmid)."
-                    ),
-                )
-            )
-        else:
-            max_refs = self._get_max_references(paper_type)
-            budget_note = f", max {max_refs}" if max_refs else ""
-            issues.append(
-                HookIssue(
-                    hook_id="A7",
-                    severity="INFO",
-                    section="references",
-                    message=(
-                        f"Reference library: {ref_count}/{min_refs} minimum met "
-                        f"(paper type: {paper_type}{budget_note})."
-                    ),
-                )
-            )
-
-        return HookResult(
-            hook_id="A7",
-            passed=passed,
-            issues=issues,
-        )

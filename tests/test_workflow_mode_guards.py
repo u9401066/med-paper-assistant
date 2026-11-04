@@ -16,6 +16,10 @@ from med_paper_assistant.interfaces.mcp.tools.review import audit_hooks as audit
 from med_paper_assistant.interfaces.mcp.tools.review import consistency as consistency_tools
 from med_paper_assistant.interfaces.mcp.tools.review import formatting as formatting_tools
 from med_paper_assistant.interfaces.mcp.tools.review import pipeline_gate as pipeline_tools
+from med_paper_assistant.interfaces.mcp.tools.review.audit_hooks import _common as audit_common
+from med_paper_assistant.interfaces.mcp.tools.review.formatting import _drafts as formatting_drafts
+from med_paper_assistant.interfaces.mcp.tools.review.formatting import _runner as formatting_runner
+from med_paper_assistant.interfaces.mcp.tools.review.pipeline_gate import _common as pipeline_common
 
 
 def _capture_tool_functions(register_callback):
@@ -176,7 +180,7 @@ def test_word_export_tools_guard_library_workflow(monkeypatch):
 
 def test_review_formatting_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
-        formatting_tools,
+        formatting_runner,
         "resolve_project_context",
         lambda project=None, required_mode="manuscript", project_manager=None: (
             None,
@@ -216,11 +220,11 @@ def test_review_formatting_rejects_unsafe_draft_filename(
     draft_filename,
 ):
     monkeypatch.setattr(
-        formatting_tools,
+        formatting_runner,
         "resolve_project_context",
         lambda project=None, required_mode="manuscript", project_manager=None: (None, None),
     )
-    monkeypatch.setattr(formatting_tools, "get_drafts_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(formatting_drafts, "get_drafts_dir", lambda: str(tmp_path))
 
     captured = _capture_tool_functions(
         lambda mcp: formatting_tools.register_formatting_tools(
@@ -260,7 +264,7 @@ def test_review_consistency_rejects_unsafe_manifest_filenames(tmp_path):
 
 def test_review_audit_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
-        audit_hook_tools,
+        audit_common,
         "resolve_project_context",
         lambda project=None, required_mode="manuscript", project_manager=None: (
             None,
@@ -306,7 +310,7 @@ def test_review_audit_tools_guard_library_workflow(monkeypatch):
 
 def test_review_pipeline_tools_guard_library_workflow(monkeypatch):
     monkeypatch.setattr(
-        pipeline_tools,
+        pipeline_common,
         "resolve_project_context",
         lambda project=None, required_mode="manuscript", project_manager=None: (
             None,
@@ -373,7 +377,7 @@ def test_pipeline_mcp_cannot_mint_human_override_receipts(monkeypatch, tmp_path)
         encoding="utf-8",
     )
     monkeypatch.setattr(
-        pipeline_tools,
+        pipeline_common,
         "resolve_project_context",
         lambda project=None, required_mode="manuscript", project_manager=None: (
             {"slug": "demo", "project_path": str(project_dir)},

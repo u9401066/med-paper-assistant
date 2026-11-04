@@ -4,9 +4,7 @@ Figure & Table Insertion Tools
 insert_figure, insert_table — register assets in manifest and insert references into drafts.
 """
 
-import json
 import os
-import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal, Optional, cast
@@ -19,13 +17,8 @@ from med_paper_assistant.infrastructure.external import (
     ConservativeVisibleWatermarkHeuristic,
     RemoveAiWatermarksInspectionAdapter,
 )
-from med_paper_assistant.infrastructure.persistence import (
-    DataArtifactTracker,
-    get_project_manager,
-)
+from med_paper_assistant.infrastructure.persistence import get_project_manager
 from med_paper_assistant.infrastructure.services import Drafter
-from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
-from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
 
 from .._shared import (
     ensure_project_context,
@@ -35,11 +28,30 @@ from .._shared import (
     log_tool_result,
     resolve_project_context,
 )
+from .figure_assets import (
+    _build_figure_insertion_markdown,
+    _get_tracker,
+    _load_manifest,
+    _relative_asset_path,
+    _to_markdown_asset_path,
+    _validate_review_inputs,
+)
+from .figure_flows import (
+    _asset_file_path,
+    _missing_file_error,
+    _normalize_insert_inputs,
+    _register_figure,
+    _register_table,
+    _render_asset_list,
+)
+from .figure_review import _locate_review_asset, _normalize_review_filename, _record_review
+from .figure_tools import register_asset_tools
 
-FIGURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".tiff", ".drawio"}
-TABLE_EXTENSIONS = {".csv", ".xlsx", ".md", ".html"}
-EXPORTABLE_FIGURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".tiff"}
-COMPANION_FIGURE_EXTENSIONS = [".png", ".svg", ".jpg", ".jpeg", ".tiff"]
+__all__ = [
+    "_build_figure_insertion_markdown",
+    "_to_markdown_asset_path",
+    "register_figure_tools",
+]
 
 
 def _get_project_path(project: Optional[str] = None) -> Optional[str]:
@@ -54,31 +66,6 @@ def _get_project_path(project: Optional[str] = None) -> Optional[str]:
     return None
 
 
-def _load_manifest(project_path: str) -> dict:
-    """Load manifest.json from results/, creating default if not found."""
-    manifest_path = os.path.join(project_path, "results", "manifest.json")
-    if os.path.isfile(manifest_path):
-        with open(manifest_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"figures": [], "tables": []}
-
-
-def _save_manifest(project_path: str, manifest: dict) -> str:
-    """Save manifest.json to results/."""
-    results_dir = os.path.join(project_path, "results")
-    os.makedirs(results_dir, exist_ok=True)
-    manifest_path = os.path.join(results_dir, "manifest.json")
-    with open(manifest_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2, ensure_ascii=False)
-    return manifest_path
-
-
-def _get_tracker(project_path: str) -> DataArtifactTracker:
-    """Build a DataArtifactTracker for the current project."""
-    project_dir = Path(project_path)
-    return DataArtifactTracker(project_dir / ".audit", project_dir)
-
-
 def _build_content_integrity_inspector() -> ContentIntegrityInspector:
     """Build the read-only C2PA and removal-package inspection pipeline."""
     return ContentIntegrityInspector(
@@ -88,109 +75,237 @@ def _build_content_integrity_inspector() -> ContentIntegrityInspector:
     )
 
 
-def _relative_asset_path(project_path: str, kind: str, filename: str) -> str:
-    """Return a stable project-relative asset path for review receipts."""
-    folder = "figures" if kind == "figure" else "tables"
-    return f"results/{folder}/{filename}"
-
-
-def _validate_review_inputs(
-    observations: str, rationale: str, proposed_caption: str
-) -> tuple[bool, str]:
-    observation_items = [o.strip() for o in observations.split("|") if o.strip()]
-    if len(observation_items) < 2:
-        return False, "❌ Provide at least 2 observations separated by `|` to prove asset review."
-    if not rationale.strip():
-        return False, "❌ Rationale is required. Explain why the caption fits the asset."
-    if not proposed_caption.strip():
-        return False, "❌ proposed_caption is required."
-    return True, ""
-
-
-def _resolve_exportable_figure_path(project_path: str, filename: str) -> Optional[str]:
-    """Resolve the file that should be embedded into the manuscript export.
-
-    Args:
-        project_path: Absolute project root path.
-        filename: Registered figure filename stored in ``results/figures``.
-
-    Returns:
-        Absolute path to an exportable figure asset, or ``None`` when only the
-        source ``.drawio`` file exists and no rendered companion asset is found.
-    """
-    filename = normalize_relative_filename(
-        filename,
-        field_name="Figure filename",
-        allowed_suffixes=FIGURE_EXTENSIONS,
+def _guard_project(project: Optional[str]) -> str:
+    """Apply the manuscript workflow guard and project check; return an error or ""."""
+    _, workflow_error = resolve_project_context(
+        project,
+        required_mode="manuscript",
     )
-    figures_dir = Path(project_path) / "results" / "figures"
-    figure_path = figures_dir / filename
+    if workflow_error:
+        return workflow_error
 
-    if figure_path.suffix.lower() in EXPORTABLE_FIGURE_EXTENSIONS and figure_path.is_file():
-        return str(figure_path)
-
-    stem = figure_path.stem
-    for extension in COMPANION_FIGURE_EXTENSIONS:
-        candidate = figures_dir / f"{stem}{extension}"
-        if candidate.is_file():
-            return str(candidate)
-
-    return None
+    is_valid, msg, _ = ensure_project_context(project)
+    if not is_valid:
+        return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
+    return ""
 
 
-def _to_markdown_asset_path(asset_path: str, drafts_dir: Path) -> str:
-    """Convert a filesystem path to a Markdown-safe relative asset path.
+def _guarded_project_path(project: Optional[str]) -> tuple[str, str]:
+    """Return (project_path, error); project_path is empty when error is set."""
+    guard_error = _guard_project(project)
+    if guard_error:
+        return "", guard_error
 
-    Markdown image links should always use forward slashes, even on Windows.
-    This helper preserves relative semantics while normalizing path separators.
-
-    Args:
-        asset_path: Absolute or relative filesystem path to the asset.
-        drafts_dir: Directory containing the draft markdown file.
-
-    Returns:
-        Relative path string using POSIX separators.
-    """
-    relative_path = os.path.relpath(asset_path, drafts_dir)
-    return relative_path.replace("\\", "/")
+    project_path = _get_project_path(project)
+    if not project_path:
+        return "", "❌ No active project."
+    return project_path, ""
 
 
-def _build_figure_insertion_markdown(
-    project_path: str,
+def _inspect_asset(
+    tracker: Any, asset_type: str, asset_path: str, asset_rel: str
+) -> tuple[Any, dict]:
+    """Run the integrity inspection and record its receipt."""
+    integrity = _build_content_integrity_inspector().inspect(
+        asset_path,
+        asset_path=asset_rel,
+    )
+    integrity_receipt = tracker.record_content_integrity_receipt(
+        asset_type=cast(Literal["figure", "table"], asset_type),
+        asset_path=asset_rel,
+        receipt=integrity.to_dict(),
+    )
+    return integrity, integrity_receipt
+
+
+def _review_asset(
+    asset_type: str,
+    filename: str,
+    observations: str,
+    rationale: str,
+    proposed_caption: str,
+    evidence_excerpt: str,
+    project: Optional[str],
+    visible_watermark_review: str,
+) -> str:
+    log_tool_call(
+        "review_asset_for_insertion",
+        {"asset_type": asset_type, "filename": filename, "project": project},
+    )
+
+    guard_error = _guard_project(project)
+    if guard_error:
+        return guard_error
+
+    filename, error = _normalize_review_filename(asset_type, filename)
+    if error:
+        return error
+
+    valid_inputs, error_msg = _validate_review_inputs(observations, rationale, proposed_caption)
+    if not valid_inputs:
+        return error_msg
+
+    project_path = _get_project_path(project)
+    if not project_path:
+        return "❌ No active project."
+
+    asset_path, error = _locate_review_asset(project_path, asset_type, filename)
+    if error:
+        return error
+
+    asset_rel = _relative_asset_path(project_path, asset_type, filename)
+    tracker = _get_tracker(project_path)
+    integrity, integrity_receipt = _inspect_asset(tracker, asset_type, asset_path, asset_rel)
+
+    review = {
+        "observations": observations,
+        "rationale": rationale,
+        "proposed_caption": proposed_caption,
+        "evidence_excerpt": evidence_excerpt,
+        "visible_watermark_review": visible_watermark_review,
+    }
+    return _record_review(
+        tracker, asset_type, filename, asset_rel, review, integrity, integrity_receipt
+    )
+
+
+def _insert_figure(
+    drafter: Drafter,
     filename: str,
     caption: str,
-    figure_number: int,
-) -> tuple[str, Optional[str]]:
-    """Build the draft snippet for a registered figure.
+    figure_number: Optional[int],
+    draft_filename: Optional[str],
+    after_section: Optional[str],
+    project: Optional[str],
+) -> str:
+    log_tool_call("insert_figure", {"filename": filename, "caption": caption})
 
-    Args:
-        project_path: Absolute project root path.
-        filename: Figure filename registered in the manifest.
-        caption: Figure caption.
-        figure_number: Sequential figure number.
+    project_path, error = _guarded_project_path(project)
+    if error:
+        return error
 
-    Returns:
-        Tuple of ``(markdown_block, exportable_asset_path)``.  The markdown block
-        contains an embedded image when a renderable asset is available; otherwise
-        it falls back to caption-only text.
-    """
-    caption_line = f"**Figure {figure_number}.** {caption}"
-    exportable_asset = _resolve_exportable_figure_path(project_path, filename)
+    filename, draft_filename, error = _normalize_insert_inputs("figure", filename, draft_filename)
+    if error:
+        return error
 
-    if not exportable_asset:
-        return f"\n\n{caption_line}\n\n", None
+    # Validate file exists
+    file_path = _asset_file_path("figure", project_path, filename)
+    error = _missing_file_error("figure", project_path, filename, file_path)
+    if error:
+        return error
 
-    drafts_dir = Path(project_path) / "drafts"
-    relative_path = _to_markdown_asset_path(exportable_asset, drafts_dir)
-    image_alt = f"Figure {figure_number}. {caption}"
-    markdown = f"\n\n![{image_alt}]({relative_path})\n\n{caption_line}\n\n"
-    return markdown, exportable_asset
+    return _register_figure(
+        drafter, project_path, filename, caption, figure_number, draft_filename, after_section
+    )
 
 
-def _next_number(entries: list, key: str = "number") -> int:
-    """Get next sequential number from manifest entries."""
-    existing = [e.get(key, 0) for e in entries if isinstance(e.get(key), int)]
-    return max(existing, default=0) + 1
+def _write_inline_table(
+    project_path: str, file_path: Any, filename: str, caption: str, table_content: str
+) -> str:
+    """Write inline table content and auto-record its review receipt; return an error or ""."""
+    tables_dir = Path(project_path) / "results" / "tables"
+    os.makedirs(tables_dir, exist_ok=True)
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(table_content)
+
+    tracker = _get_tracker(project_path)
+    asset_rel = _relative_asset_path(project_path, "table", filename)
+    lines = table_content.strip().split("\n")
+    n_rows = max(0, len(lines) - 2)  # header + delimiter
+    n_cols = len([c for c in (lines[0].split("|") if lines else []) if c.strip()])
+    integrity, integrity_receipt = _inspect_asset(tracker, "table", file_path, asset_rel)
+    if integrity.gate_status.value == "BLOCK":
+        return (
+            "❌ Table integrity gate blocked — "
+            + "; ".join(integrity.gate_reasons)
+            + f" (receipt {integrity_receipt['id']})."
+        )
+    tracker.record_asset_review(
+        asset_type="table",
+        asset_path=asset_rel,
+        observations=[
+            f"Table has {n_rows} data rows and {n_cols} columns",
+            f"Content provided inline ({len(table_content)} chars)",
+        ],
+        rationale="Content provided directly via table_content parameter; agent has full access.",
+        proposed_caption=caption,
+        evidence_excerpt=table_content[:500],
+        content_integrity_receipt_id=integrity_receipt["id"],
+    )
+    return ""
+
+
+def _insert_table(
+    drafter: Drafter,
+    filename: str,
+    caption: str,
+    table_number: Optional[int],
+    table_content: Optional[str],
+    draft_filename: Optional[str],
+    after_section: Optional[str],
+    project: Optional[str],
+) -> str:
+    log_tool_call("insert_table", {"filename": filename, "caption": caption})
+
+    project_path, error = _guarded_project_path(project)
+    if error:
+        return error
+
+    filename, draft_filename, error = _normalize_insert_inputs(
+        "table", filename, draft_filename, table_content
+    )
+    if error:
+        return error
+
+    file_path = _asset_file_path("table", project_path, filename)
+
+    # If content provided, write the file and auto-record review receipt.
+    # The agent has literal access to the content (passed as argument),
+    # so "reviewing" is implicit — no separate review_asset_for_insertion needed.
+    if table_content:
+        error = _write_inline_table(project_path, file_path, filename, caption, table_content)
+        if error:
+            return error
+
+    # Validate file exists
+    error = _missing_file_error("table", project_path, filename, file_path)
+    if error:
+        return error
+
+    # Every table path, including inline content, must pass receipt/hash validation.
+    return _register_table(
+        drafter,
+        project_path,
+        file_path,
+        filename,
+        caption,
+        table_number,
+        table_content,
+        draft_filename,
+        after_section,
+    )
+
+
+def _list_assets(project: Optional[str]) -> str:
+    log_tool_call("list_assets", {"project": project})
+
+    project_path, error = _guarded_project_path(project)
+    if error:
+        return error
+
+    manifest = _load_manifest(project_path)
+    figures = manifest.get("figures", [])
+    tables = manifest.get("tables", [])
+
+    if not figures and not tables:
+        return (
+            "📭 No figures or tables registered.\n\n"
+            "Use `insert_figure` or `insert_table` to register assets."
+        )
+
+    output = _render_asset_list(figures, tables)
+    log_tool_result("list_assets", f"{len(figures)} figs, {len(tables)} tbls", success=True)
+    return output
 
 
 def register_figure_tools(
@@ -203,638 +318,11 @@ def register_figure_tools(
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
-    @tool()
-    def review_asset_for_insertion(
-        asset_type: str,
-        filename: str,
-        observations: str,
-        rationale: str,
-        proposed_caption: str,
-        evidence_excerpt: str = "",
-        project: Optional[str] = None,
-        visible_watermark_review: str = "",
-    ) -> str:
-        """
-        Record an auditable asset review receipt before inserting a figure/table.
-
-        This is the hard-gated proof that the agent reviewed the asset before
-        writing a caption or legend. `insert_figure`/`insert_table` will refuse
-        to proceed unless a matching receipt exists.
-
-        Args:
-            asset_type: "figure" or "table"
-            filename: Asset filename inside results/figures or results/tables
-            observations: Pipe-separated observations, e.g. "2 groups|error bars shown"
-            rationale: Why the proposed caption accurately represents the asset
-            proposed_caption: The caption to be used later in insert_figure/table
-            evidence_excerpt: Optional verbatim excerpt from a table or source note
-            project: Project slug (uses current if omitted)
-            visible_watermark_review: Required documented human conclusion when the
-                conservative image heuristic returns HUMAN_REVIEW or UNCERTAIN
-        """
-        log_tool_call(
-            "review_asset_for_insertion",
-            {"asset_type": asset_type, "filename": filename, "project": project},
-        )
-
-        _, workflow_error = resolve_project_context(
-            project,
-            required_mode="manuscript",
-        )
-        if workflow_error:
-            return workflow_error
-
-        is_valid, msg, _ = ensure_project_context(project)
-        if not is_valid:
-            return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-
-        if asset_type not in {"figure", "table"}:
-            return "❌ asset_type must be `figure` or `table`."
-
-        try:
-            filename = normalize_relative_filename(
-                filename,
-                field_name=f"{asset_type.title()} filename",
-                allowed_suffixes=FIGURE_EXTENSIONS if asset_type == "figure" else TABLE_EXTENSIONS,
-            )
-        except ValueError as e:
-            return f"❌ Invalid {asset_type} filename: {e}"
-
-        valid_inputs, error_msg = _validate_review_inputs(observations, rationale, proposed_caption)
-        if not valid_inputs:
-            return error_msg
-
-        project_path = _get_project_path(project)
-        if not project_path:
-            return "❌ No active project."
-
-        folder = "figures" if asset_type == "figure" else "tables"
-        asset_path = str(
-            resolve_child_path(
-                Path(project_path) / "results" / folder,
-                filename,
-                field_name=f"{asset_type.title()} filename",
-                allowed_suffixes=FIGURE_EXTENSIONS if asset_type == "figure" else TABLE_EXTENSIONS,
-            )
-        )
-        if not os.path.isfile(asset_path):
-            return f"❌ File '{filename}' not found in results/{folder}/."
-
-        asset_rel = _relative_asset_path(project_path, asset_type, filename)
-        tracker = _get_tracker(project_path)
-        integrity = _build_content_integrity_inspector().inspect(
-            asset_path,
-            asset_path=asset_rel,
-        )
-        integrity_receipt = tracker.record_content_integrity_receipt(
-            asset_type=cast(Literal["figure", "table"], asset_type),
-            asset_path=asset_rel,
-            receipt=integrity.to_dict(),
-        )
-
-        if integrity.gate_status.value == "BLOCK":
-            reason = "; ".join(integrity.gate_reasons)
-            log_tool_result("review_asset_for_insertion", reason, success=False)
-            return (
-                "❌ **Asset Integrity Gate Blocked**\n\n"
-                f"- **Integrity Receipt:** {integrity_receipt['id']}\n"
-                f"- **C2PA:** {integrity.provenance.status.value}\n"
-                "- **Removal-package check:** "
-                f"{integrity.removal_package_check.status.value}\n"
-                f"- **Reason:** {reason}\n"
-                "- **Original preserved:** "
-                f"{'yes' if integrity.original_preserved else 'no'}\n"
-                "- **Automated removal:** disabled\n\n"
-                "Do not insert or alter this asset. If the removal-package check is unavailable, "
-                "install `med-paper-assistant[provenance,watermark]`; otherwise re-acquire the "
-                "asset from an authorized source or resolve the provenance failure first."
-            )
-
-        if integrity.gate_status.value == "HUMAN_REVIEW" and not visible_watermark_review.strip():
-            signals = list(integrity.visible_watermark.signals)
-            signals.extend(integrity.removal_package_check.signal_names)
-            signal_summary = ", ".join(signals) or "inconclusive screening"
-            log_tool_result(
-                "review_asset_for_insertion",
-                "visible-watermark human review required",
-                success=False,
-            )
-            return (
-                "⚠️ **Visible-Watermark Human Review Required**\n\n"
-                f"- **Integrity Receipt:** {integrity_receipt['id']}\n"
-                f"- **Signals:** {signal_summary}\n"
-                "- **Removal-package check:** "
-                f"{integrity.removal_package_check.status.value}\n"
-                "- **Automated removal:** disabled\n\n"
-                "Inspect the original asset and call this tool again with "
-                "`visible_watermark_review` documenting the reviewer conclusion. This field is "
-                "self-attested; it does not cryptographically verify reviewer identity or rights."
-            )
-
-        observation_items = [o.strip() for o in observations.split("|") if o.strip()]
-        receipt = tracker.record_asset_review(
-            asset_type=cast(Literal["figure", "table"], asset_type),
-            asset_path=asset_rel,
-            observations=observation_items,
-            rationale=rationale,
-            proposed_caption=proposed_caption,
-            evidence_excerpt=evidence_excerpt,
-            content_integrity_receipt_id=integrity_receipt["id"],
-            visible_watermark_review=visible_watermark_review,
-        )
-
-        result = (
-            f"✅ **Asset Review Recorded**\n\n"
-            f"- **Receipt:** {receipt['id']}\n"
-            f"- **Type:** {asset_type}\n"
-            f"- **File:** results/{folder}/{filename}\n"
-            f"- **Caption:** {proposed_caption}\n"
-            f"- **Observations:** {len(receipt['observations'])}\n\n"
-            f"- **Integrity Receipt:** {integrity_receipt['id']}\n"
-            f"- **SHA-256:** {integrity.sha256}\n"
-            f"- **MIME:** {integrity.mime_type}\n"
-            f"- **C2PA:** {integrity.provenance.status.value}\n"
-            f"- **Visible Watermark:** {integrity.visible_watermark.status.value}\n"
-            "- **Removal-package check:** "
-            f"{integrity.removal_package_check.status.value}\n"
-            f"- **Integrity Gate:** {integrity.gate_status.value}\n"
-            "- **Automated removal:** disabled\n\n"
-            "You can now call `insert_figure` or `insert_table` with the same caption."
-        )
-        log_tool_result("review_asset_for_insertion", receipt["id"], success=True)
-        return result
-
-    @tool()
-    def insert_figure(
-        filename: str,
-        caption: str,
-        figure_number: Optional[int] = None,
-        draft_filename: Optional[str] = None,
-        after_section: Optional[str] = None,
-        project: Optional[str] = None,
-    ) -> str:
-        """
-        Register a figure in the manifest and optionally insert a reference into a draft.
-
-        The figure file must already exist in results/figures/.
-        Use create_plot or save_diagram first to generate the file.
-
-        Args:
-            filename: Figure filename in results/figures/ (e.g., "boxplot_age.png")
-            caption: Figure caption text
-            figure_number: Figure number (auto-assigned if omitted)
-            draft_filename: Draft file to insert reference into (optional)
-            after_section: Insert after this heading (e.g., "Results"). Used with draft_filename.
-            project: Project slug (uses current if omitted)
-        """
-        log_tool_call("insert_figure", {"filename": filename, "caption": caption})
-
-        _, workflow_error = resolve_project_context(
-            project,
-            required_mode="manuscript",
-        )
-        if workflow_error:
-            return workflow_error
-
-        is_valid, msg, _ = ensure_project_context(project)
-        if not is_valid:
-            return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-
-        project_path = _get_project_path(project)
-        if not project_path:
-            return "❌ No active project."
-
-        try:
-            filename = normalize_relative_filename(
-                filename,
-                field_name="Figure filename",
-                allowed_suffixes=FIGURE_EXTENSIONS,
-            )
-            if draft_filename:
-                draft_filename = normalize_draft_filename(draft_filename)
-        except ValueError as e:
-            return f"❌ Invalid filename: {e}"
-
-        # Validate file exists
-        figures_dir = Path(project_path) / "results" / "figures"
-        file_path = resolve_child_path(
-            figures_dir,
-            filename,
-            field_name="Figure filename",
-            allowed_suffixes=FIGURE_EXTENSIONS,
-        )
-        if not os.path.isfile(file_path):
-            available = [
-                f
-                for f in (os.listdir(figures_dir) if os.path.isdir(figures_dir) else [])
-                if os.path.splitext(f)[1].lower() in FIGURE_EXTENSIONS
-            ]
-            avail_str = ", ".join(available[:10]) if available else "none"
-            return (
-                f"❌ File '{filename}' not found in results/figures/.\n"
-                f"Available: {avail_str}\n\n"
-                "💡 Use `create_plot` or `save_diagram` first to generate the figure."
-            )
-
-        tracker = _get_tracker(project_path)
-        review_ok, review_detail = tracker.review_satisfies_caption(
-            _relative_asset_path(project_path, "figure", filename),
-            caption,
-            asset_type="figure",
-        )
-        if not review_ok:
-            return (
-                f"❌ Figure caption blocked — {review_detail}.\n\n"
-                'Call `review_asset_for_insertion(asset_type="figure", ...)` first using the same caption.'
-            )
-
-        # Load manifest
-        manifest = _load_manifest(project_path)
-
-        # Check duplicate
-        for entry in manifest.get("figures", []):
-            if entry.get("filename") == filename:
-                return (
-                    f"⚠️ Figure '{filename}' already registered as Figure {entry.get('number')}.\n"
-                    f"Caption: {entry.get('caption')}"
-                )
-
-        # Assign number
-        num = figure_number if figure_number else _next_number(manifest.get("figures", []))
-
-        # Add to manifest
-        entry = {
-            "number": num,
-            "filename": filename,
-            "caption": caption,
-        }
-        manifest.setdefault("figures", []).append(entry)
-        manifest_path = _save_manifest(project_path, manifest)
-        output_rel = _relative_asset_path(project_path, "figure", filename)
-        if not tracker.get_artifact_by_output(output_rel):
-            tracker.record_artifact(
-                tool_name="insert_figure",
-                artifact_type="figure",
-                parameters={"filename": filename, "caption": caption, "figure_number": num},
-                output_path=output_rel,
-                data_source=filename,
-                provenance_code=(
-                    "# Manual figure registration via insert_figure\n"
-                    f"figure_path = '{output_rel}'\n"
-                    "# Preserve the registered source asset for reproducibility."
-                ),
-                result_summary=f"Registered Figure {num}: {caption}",
-            )
-        drafter.ref_manager.refresh_foam_graph()
-
-        output = (
-            f"✅ **Figure {num} Registered**\n\n"
-            f"- **File:** results/figures/{filename}\n"
-            f"- **Caption:** {caption}\n"
-            f"- **Manifest:** {manifest_path}\n"
-        )
-
-        # Insert reference into draft if requested
-        if draft_filename:
-            insert_text, exportable_asset = _build_figure_insertion_markdown(
-                project_path,
-                filename,
-                caption,
-                num,
-            )
-            insert_result = _insert_into_draft(drafter, draft_filename, insert_text, after_section)
-            output += f"\n{insert_result}"
-            if exportable_asset:
-                output += f"\n- **Embedded Asset:** {exportable_asset}\n"
-            else:
-                output += (
-                    "\n⚠️ No exportable image asset found. "
-                    "Save a companion PNG/SVG (for example via `save_diagram(rendered_content=...)`) "
-                    "to embed this figure in DOCX/PDF exports.\n"
-                )
-
-        output += (
-            "\n💡 **Next:** Reference as `Figure {num}` in your text. "
-            "The consistency checker will verify cross-references."
-        ).format(num=num)
-
-        log_tool_result("insert_figure", f"Figure {num} registered", success=True)
-        return output
-
-    @tool()
-    def insert_table(
-        filename: str,
-        caption: str,
-        table_number: Optional[int] = None,
-        table_content: Optional[str] = None,
-        draft_filename: Optional[str] = None,
-        after_section: Optional[str] = None,
-        project: Optional[str] = None,
-    ) -> str:
-        """
-        Register a table in the manifest and optionally insert into a draft.
-
-        For generated tables (generate_table_one), pass the markdown content directly.
-        For file-based tables, the file must exist in results/tables/.
-
-        Args:
-            filename: Table filename in results/tables/ (e.g., "table1.md")
-            caption: Table caption text
-            table_number: Table number (auto-assigned if omitted)
-            table_content: Markdown table content to save (optional, creates the file)
-            draft_filename: Draft file to insert into (optional)
-            after_section: Insert after this heading (e.g., "Results")
-            project: Project slug (uses current if omitted)
-        """
-        log_tool_call("insert_table", {"filename": filename, "caption": caption})
-
-        _, workflow_error = resolve_project_context(
-            project,
-            required_mode="manuscript",
-        )
-        if workflow_error:
-            return workflow_error
-
-        is_valid, msg, _ = ensure_project_context(project)
-        if not is_valid:
-            return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-
-        project_path = _get_project_path(project)
-        if not project_path:
-            return "❌ No active project."
-
-        try:
-            filename = normalize_relative_filename(
-                filename,
-                field_name="Table filename",
-                default_suffix=".md" if table_content else None,
-                allowed_suffixes=TABLE_EXTENSIONS,
-            )
-            if draft_filename:
-                draft_filename = normalize_draft_filename(draft_filename)
-        except ValueError as e:
-            return f"❌ Invalid filename: {e}"
-
-        tables_dir = Path(project_path) / "results" / "tables"
-        file_path = resolve_child_path(
-            tables_dir,
-            filename,
-            field_name="Table filename",
-            allowed_suffixes=TABLE_EXTENSIONS,
-        )
-
-        # If content provided, write the file and auto-record review receipt.
-        # The agent has literal access to the content (passed as argument),
-        # so "reviewing" is implicit — no separate review_asset_for_insertion needed.
-        if table_content:
-            os.makedirs(tables_dir, exist_ok=True)
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(table_content)
-
-            tracker = _get_tracker(project_path)
-            asset_rel = _relative_asset_path(project_path, "table", filename)
-            lines = table_content.strip().split("\n")
-            n_rows = max(0, len(lines) - 2)  # header + delimiter
-            n_cols = len([c for c in (lines[0].split("|") if lines else []) if c.strip()])
-            integrity = _build_content_integrity_inspector().inspect(
-                file_path,
-                asset_path=asset_rel,
-            )
-            integrity_receipt = tracker.record_content_integrity_receipt(
-                asset_type="table",
-                asset_path=asset_rel,
-                receipt=integrity.to_dict(),
-            )
-            if integrity.gate_status.value == "BLOCK":
-                return (
-                    "❌ Table integrity gate blocked — "
-                    + "; ".join(integrity.gate_reasons)
-                    + f" (receipt {integrity_receipt['id']})."
-                )
-            tracker.record_asset_review(
-                asset_type="table",
-                asset_path=asset_rel,
-                observations=[
-                    f"Table has {n_rows} data rows and {n_cols} columns",
-                    f"Content provided inline ({len(table_content)} chars)",
-                ],
-                rationale="Content provided directly via table_content parameter; agent has full access.",
-                proposed_caption=caption,
-                evidence_excerpt=table_content[:500],
-                content_integrity_receipt_id=integrity_receipt["id"],
-            )
-
-        # Validate file exists
-        if not os.path.isfile(file_path):
-            available = [
-                f
-                for f in (os.listdir(tables_dir) if os.path.isdir(tables_dir) else [])
-                if os.path.splitext(f)[1].lower() in TABLE_EXTENSIONS
-            ]
-            avail_str = ", ".join(available[:10]) if available else "none"
-            return (
-                f"❌ File '{filename}' not found in results/tables/.\n"
-                f"Available: {avail_str}\n\n"
-                "💡 Use `generate_table_one` first, or pass `table_content` to create the file."
-            )
-
-        # Every table path, including inline content, must pass receipt/hash validation.
-        tracker = _get_tracker(project_path)
-        review_ok, review_detail = tracker.review_satisfies_caption(
-            _relative_asset_path(project_path, "table", filename),
-            caption,
-            asset_type="table",
-        )
-        if not review_ok:
-            return (
-                f"❌ Table caption blocked — {review_detail}.\n\n"
-                'Call `review_asset_for_insertion(asset_type="table", ...)` first using the same caption.'
-            )
-
-        # Load manifest
-        manifest = _load_manifest(project_path)
-
-        # Check duplicate
-        for entry in manifest.get("tables", []):
-            if entry.get("filename") == filename:
-                return (
-                    f"⚠️ Table '{filename}' already registered as Table {entry.get('number')}.\n"
-                    f"Caption: {entry.get('caption')}"
-                )
-
-        # Assign number
-        num = table_number if table_number else _next_number(manifest.get("tables", []))
-
-        # Add to manifest
-        entry = {
-            "number": num,
-            "filename": filename,
-            "caption": caption,
-        }
-        manifest.setdefault("tables", []).append(entry)
-        manifest_path = _save_manifest(project_path, manifest)
-        tracker = _get_tracker(project_path)
-        output_rel = _relative_asset_path(project_path, "table", filename)
-        if not tracker.get_artifact_by_output(output_rel):
-            tracker.record_artifact(
-                tool_name="insert_table",
-                artifact_type="table",
-                parameters={"filename": filename, "caption": caption, "table_number": num},
-                output_path=output_rel,
-                data_source=filename,
-                provenance_code=(
-                    "# Manual table registration via insert_table\n"
-                    f"table_path = '{output_rel}'\n"
-                    "# Preserve the registered source asset for reproducibility."
-                ),
-                result_summary=f"Registered Table {num}: {caption}",
-            )
-        drafter.ref_manager.refresh_foam_graph()
-
-        output = (
-            f"✅ **Table {num} Registered**\n\n"
-            f"- **File:** results/tables/{filename}\n"
-            f"- **Caption:** {caption}\n"
-            f"- **Manifest:** {manifest_path}\n"
-        )
-
-        # Insert into draft if requested
-        if draft_filename:
-            # Read table content for inline insertion
-            if not table_content:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    table_content = f.read()
-
-            insert_text = f"\n\n**Table {num}.** {caption}\n\n{table_content}\n"
-            insert_result = _insert_into_draft(drafter, draft_filename, insert_text, after_section)
-            output += f"\n{insert_result}"
-
-        output += (
-            "\n💡 **Next:** Reference as `Table {num}` in your text. "
-            "The consistency checker will verify cross-references."
-        ).format(num=num)
-
-        log_tool_result("insert_table", f"Table {num} registered", success=True)
-        return output
-
-    @tool()
-    def list_assets(project: Optional[str] = None) -> str:
-        """
-        List all registered figures and tables from the manifest.
-
-        Args:
-            project: Project slug (uses current if omitted)
-        """
-        log_tool_call("list_assets", {"project": project})
-
-        _, workflow_error = resolve_project_context(
-            project,
-            required_mode="manuscript",
-        )
-        if workflow_error:
-            return workflow_error
-
-        is_valid, msg, _ = ensure_project_context(project)
-        if not is_valid:
-            return f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-
-        project_path = _get_project_path(project)
-        if not project_path:
-            return "❌ No active project."
-
-        manifest = _load_manifest(project_path)
-        figures = manifest.get("figures", [])
-        tables = manifest.get("tables", [])
-
-        if not figures and not tables:
-            return (
-                "📭 No figures or tables registered.\n\n"
-                "Use `insert_figure` or `insert_table` to register assets."
-            )
-
-        output = "# 📊 Project Assets\n\n"
-
-        if figures:
-            output += "## Figures\n\n"
-            output += "| # | Filename | Caption |\n"
-            output += "|---|----------|--------|\n"
-            for f in sorted(figures, key=lambda x: x.get("number", 0)):
-                output += (
-                    f"| Figure {f.get('number')} | {f.get('filename')} | {f.get('caption', '')} |\n"
-                )
-            output += "\n"
-
-        if tables:
-            output += "## Tables\n\n"
-            output += "| # | Filename | Caption |\n"
-            output += "|---|----------|--------|\n"
-            for t in sorted(tables, key=lambda x: x.get("number", 0)):
-                output += (
-                    f"| Table {t.get('number')} | {t.get('filename')} | {t.get('caption', '')} |\n"
-                )
-            output += "\n"
-
-        output += f"**Total:** {len(figures)} figures, {len(tables)} tables"
-        log_tool_result("list_assets", f"{len(figures)} figs, {len(tables)} tbls", success=True)
-        return output
-
-    return {
-        "review_asset_for_insertion": review_asset_for_insertion,
-        "insert_figure": insert_figure,
-        "insert_table": insert_table,
-        "list_assets": list_assets,
-    }
-
-
-def _insert_into_draft(
-    drafter: Drafter,
-    draft_filename: str,
-    insert_text: str,
-    after_section: Optional[str] = None,
-) -> str:
-    """Insert text into a draft after a specified section heading."""
-    try:
-        draft_filename = normalize_draft_filename(draft_filename)
-        filepath = str(
-            resolve_child_path(drafter.drafts_dir, draft_filename, field_name="Draft filename")
-        )
-    except ValueError as e:
-        return f"⚠️ Invalid draft filename — skipping insertion: {e}"
-    if not os.path.isfile(filepath):
-        return f"⚠️ Draft '{draft_filename}' not found — skipping insertion."
-
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-    except Exception as e:
-        return f"⚠️ Error reading draft: {e}"
-
-    if after_section:
-        # Find the section heading and insert after its content
-        # fmt: off
-        pattern = re.compile(
-            rf"^(#{{1,3}}\s+{re.escape(after_section)}.*?)(\n#{{1,3}}\s|\Z)",
-            re.MULTILINE | re.DOTALL | re.IGNORECASE,
-        )
-        # fmt: on
-        match = pattern.search(content)
-        if match:
-            insert_pos = match.end(1)
-            new_content = content[:insert_pos] + insert_text + content[insert_pos:]
-        else:
-            new_content = content + insert_text
-            drafter.create_draft(draft_filename, new_content)
-            return (
-                f"⚠️ Section '{after_section}' not found in {draft_filename}. "
-                "Appended to end of file."
-            )
-    else:
-        new_content = content + insert_text
-
-    try:
-        drafter.create_draft(draft_filename, new_content)
-        return f"✅ Inserted into {draft_filename}" + (
-            f" after '{after_section}'" if after_section else " (appended)"
-        )
-    except Exception as e:
-        return f"⚠️ Error writing draft: {e}"
+    return register_asset_tools(
+        tool,
+        drafter,
+        review_impl=_review_asset,
+        insert_figure_impl=_insert_figure,
+        insert_table_impl=_insert_table,
+        list_assets_impl=_list_assets,
+    )

@@ -18,6 +18,13 @@ _CJK = "\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff"
 _WORD_RE = re.compile(rf"[{_CJK}]|\d+(?:[,.]\d+)+|(?:(?![{_CJK}])\w)+")
 
 
+def strip_markdown_prose(content: str) -> str:
+    """Drop markdown headings and reference wikilinks, leaving prose for style analysis."""
+    prose = re.sub(r"^#+\s.*$", "", content, flags=re.MULTILINE)
+    prose = re.sub(r"\[\[[^\]]*\]\]", "", prose)
+    return prose.strip()
+
+
 class TextUtilsMixin:
     """Shared text processing utilities used by multiple hook series."""
 

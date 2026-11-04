@@ -1,0 +1,239 @@
+"""Interactive project setup: resolver, rendering and the setup tool factory."""
+
+from typing import Annotated, Any, Callable
+
+from mcp.server.mcpserver import Elicit, Resolve
+
+from med_paper_assistant.domain.paper_types import get_paper_type_dict
+from med_paper_assistant.infrastructure.persistence import ProjectManager
+from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
+
+from .schemas import ProjectSetupSchema
+
+
+def build_setup_input(
+    project_manager: ProjectManager,
+) -> ProjectSetupSchema | Elicit[ProjectSetupSchema]:
+    """Resolve setup input through the SDK 2 input-required protocol.
+
+    Modern MCP clients answer this resolver through ``input_responses`` and
+    ``request_state``.  Returning a concrete model avoids elicitation when the
+    tool only needs to report an existing project configuration.
+    """
+    current = project_manager.get_current_project()
+    if not current:
+        return ProjectSetupSchema(paper_type="other")
+
+    info = project_manager.get_project_info(current)
+    paper_type = str(info.get("paper_type", ""))
+    workflow_mode = str(info.get("workflow_mode", DEFAULT_WORKFLOW_MODE))
+    preferences = info.get("interaction_preferences", {})
+
+    if workflow_mode == "library-wiki" or paper_type:
+        return ProjectSetupSchema(
+            paper_type=paper_type or "other",
+            interaction_style=str(preferences.get("interaction_style", "")),
+            language_preference=str(preferences.get("language", "")),
+            writing_style=str(preferences.get("writing_style", "")),
+            memo=str(info.get("memo", "")),
+        )
+
+    project_name = str(info.get("name", current))
+    return Elicit(
+        message=(
+            f"Set up project **{project_name}**: choose a paper type and optionally "
+            "record interaction, language, writing-style, and project-note preferences."
+        ),
+        schema=ProjectSetupSchema,
+    )
+
+
+_NO_PROJECT_MESSAGE = """❌ No project selected!
+
+Please first select or create a project:
+- `list_projects()` - see available projects
+- `switch_project(slug)` - select a project
+- `create_project(name="...")` - create new project
+"""
+
+
+def apply_project_setup(project_manager: ProjectManager, setup: ProjectSetupSchema) -> str:
+    """Report the current project setup, or apply ``setup`` when it is not configured yet."""
+    current = project_manager.get_current_project()
+
+    if not current:
+        return _NO_PROJECT_MESSAGE
+
+    info = project_manager.get_project_info(current)
+    project_name = info.get("name", current)
+    workflow_mode = info.get("workflow_mode", DEFAULT_WORKFLOW_MODE)
+    workflow_name = WORKFLOW_MODES.get(workflow_mode, {}).get("name", workflow_mode)
+
+    if workflow_mode == "library-wiki":
+        return _library_overview(info, project_name, workflow_name)
+
+    # Check if project is already configured (has paper_type set)
+    if info.get("paper_type", ""):
+        return _configured_overview(info, project_name, workflow_name)
+
+    return _apply_setup(project_manager, setup, current, project_name, workflow_name)
+
+
+def _library_overview(info: dict[str, Any], project_name: str, workflow_name: str) -> str:
+    prefs = info.get("interaction_preferences", {})
+    stats = info.get("stats", {})
+    return f"""## 📚 專案: {project_name}
+
+| 設定 | 值 |
+|------|-----|
+| **Workflow Mode** | {workflow_name} |
+| **Status** | {info.get("status", "concept")} |
+| **Target Journal** | {info.get("target_journal", "Optional later")} |
+
+### 專案內容
+- 📚 References: {stats.get("references", 0)} saved
+- 📥 Inbox notes: {stats.get("inbox", 0)} files
+- 🧠 Concept notes: {stats.get("concepts", 0)} files
+- 🗂️ Synthesis projects: {stats.get("projects", 0)} files
+
+### 互動偏好
+- **Style:** {prefs.get("interaction_style", "Default")}
+
+### Memo
+{info.get("memo", "[No memo]")}
+
+---
+**Library Wiki Path 建議順序**
+1. `/mdpaper.search` 搜尋並保存文獻
+2. `save_reference_mcp` / 匯入 markdown 或 web source 到 inbox
+3. 整理成 `concepts/` 原子筆記，並補上 tags / wikilinks
+4. 如果要開始寫論文，再用 `update_project_settings(workflow_mode="manuscript", paper_type="...")`
+"""
+
+
+def _configured_overview(info: dict[str, Any], project_name: str, workflow_name: str) -> str:
+    paper_type = info.get("paper_type", "")
+    prefs = info.get("interaction_preferences", {})
+    stats = info.get("stats", {})
+    paper_type_info = get_paper_type_dict(paper_type)
+
+    return f"""## 📁 專案: {project_name}
+
+| 設定 | 值 |
+|------|-----|
+| **Workflow Mode** | {workflow_name} |
+| **Paper Type** | {paper_type_info.get("name", paper_type)} |
+| **Status** | {info.get("status", "concept")} |
+| **Target Journal** | {info.get("target_journal", "Not set")} |
+
+### 專案內容
+- 📝 Drafts: {stats.get("drafts", 0)} files
+- 📚 References: {stats.get("references", 0)} saved
+- 📊 Data files: {stats.get("data_files", 0)}
+
+### 互動偏好
+- **Style:** {prefs.get("interaction_style", "Default")}
+
+### Memo
+{info.get("memo", "[No memo]")}
+
+---
+**[AGENT: 請詢問用戶想要進行什麼操作]**
+
+建議選項:
+1. 📚 搜尋文獻 (`unified_search`)
+2. ✍️ 撰寫論文段落 (`/mdpaper.draft`)
+3. 📊 分析資料 (`/mdpaper.analysis`)
+4. 📄 匯出 Word (`/mdpaper.format`)
+5. ⚙️ 修改專案設定 (`update_project_settings`)
+
+💡 **Journal Profile 提示**: 系統內建麻醉學前 20 大期刊的投稿設定（`templates/journal-profiles/`），
+可直接請 Copilot 讀取期刊設定檔（如 `bja.yaml`、`anesthesiology.yaml`）來建立 `journal-profile.yaml`。
+"""
+
+
+def _apply_setup(
+    project_manager: ProjectManager,
+    setup: ProjectSetupSchema,
+    current: str,
+    project_name: str,
+    workflow_name: str,
+) -> str:
+    # Project not configured yet - apply the SDK 2 resolver response atomically.
+    paper_type = setup.paper_type
+    interaction_preferences = {
+        key: value
+        for key, value in {
+            "interaction_style": setup.interaction_style,
+            "language": setup.language_preference,
+            "writing_style": setup.writing_style,
+        }.items()
+        if value
+    }
+    project_manager.update_project_settings(
+        paper_type=paper_type,
+        interaction_preferences=interaction_preferences or None,
+        memo=setup.memo or None,
+    )
+
+    final_info = project_manager.get_project_info(current)
+    return _setup_complete_message(final_info, paper_type, project_name, workflow_name)
+
+
+def _setup_complete_message(
+    final_info: dict[str, Any], paper_type: str, project_name: str, workflow_name: str
+) -> str:
+    final_prefs = final_info.get("interaction_preferences", {})
+
+    paper_type_info = get_paper_type_dict(paper_type) if paper_type else {}
+
+    return f"""✅ Project Setup Complete!
+
+## {project_name}
+
+| Setting | Value |
+|---------|-------|
+| **Workflow Mode** | {workflow_name} |
+| **Paper Type** | {paper_type_info.get("name", paper_type)} |
+| **Typical Sections** | {paper_type_info.get("sections", "N/A")} |
+| **Target Journal** | {final_info.get("target_journal", "Not set")} |
+
+### Interaction Preferences
+- **Style:** {final_prefs.get("interaction_style", "Default")}
+- **Language:** {final_prefs.get("language", "Default")}
+- **Writing:** {final_prefs.get("writing_style", "Default")}
+
+### Memo
+{final_info.get("memo", "[No memo]")}
+
+---
+**Next Steps:**
+1. 📋 設定期刊 profile — 請 Copilot 讀取 `templates/journal-profiles/` 內建期刊設定，
+   或提供投稿指南 URL，自動產生 `journal-profile.yaml`
+2. Edit `concept.md` to define your research concept
+3. Use `unified_search` to find relevant papers
+4. Use `write_draft` to start writing sections
+
+💡 **Tip**: 系統內建麻醉學前 20 大期刊投稿設定，直接告訴 Copilot 目標期刊名稱即可自動套用。
+"""
+
+
+def make_setup_project_interactive(project_manager: ProjectManager) -> Callable[..., Any]:
+    """Build the setup tool for ``project_manager``.
+
+    The resolver runs before the tool body, so it cannot read a per-call dependency
+    binding and has to close over the manager.
+    """
+
+    def resolve_project_setup() -> ProjectSetupSchema | Elicit[ProjectSetupSchema]:
+        return build_setup_input(project_manager)
+
+    async def setup_project_interactive(
+        setup: Annotated[ProjectSetupSchema, Resolve(resolve_project_setup)],
+    ) -> str:
+        """
+        Interactive project setup using the MCP SDK 2 input-required resolver flow.
+        """
+        return apply_project_setup(project_manager, setup)
+
+    return setup_project_interactive

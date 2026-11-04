@@ -317,7 +317,9 @@ class TestScenario4DeprecatedSaveReference:
         """The save_reference tool source must contain the deprecation warning."""
         import inspect
 
-        from med_paper_assistant.interfaces.mcp.tools.reference import manager as ref_mgr_module
+        from med_paper_assistant.interfaces.mcp.tools.reference.manager import (
+            save as ref_mgr_module,
+        )
 
         source = inspect.getsource(ref_mgr_module)
 
@@ -332,7 +334,9 @@ class TestScenario4DeprecatedSaveReference:
         """The save_reference function definition must say DEPRECATED."""
         import inspect
 
-        from med_paper_assistant.interfaces.mcp.tools.reference import manager as ref_mgr_module
+        from med_paper_assistant.interfaces.mcp.tools.reference.manager import (
+            save as ref_mgr_module,
+        )
 
         source = inspect.getsource(ref_mgr_module)
 
@@ -342,7 +346,9 @@ class TestScenario4DeprecatedSaveReference:
 
     def test_deprecation_warning_variable_is_complete(self):
         """The deprecation_warning string must mention both the old and new tools."""
-        from med_paper_assistant.interfaces.mcp.tools.reference import manager as ref_mgr_module
+        from med_paper_assistant.interfaces.mcp.tools.reference.manager import (
+            save as ref_mgr_module,
+        )
 
         source_code = Path(ref_mgr_module.__file__).read_text(encoding="utf-8")
 

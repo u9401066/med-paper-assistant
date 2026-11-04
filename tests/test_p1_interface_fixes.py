@@ -30,8 +30,10 @@ from med_paper_assistant.interfaces.mcp.tools.export.export_inputs import (
     resolve_export_csl,
     resolve_export_reference_doc,
 )
-from med_paper_assistant.interfaces.mcp.tools.project import facade as project_facade
 from med_paper_assistant.interfaces.mcp.tools.project import vscode_launcher
+from med_paper_assistant.interfaces.mcp.tools.project.facade import (
+    project_inline as project_facade,
+)
 from med_paper_assistant.interfaces.mcp.tools.project.facade import register_project_facade_tools
 from med_paper_assistant.interfaces.mcp.tools.project.library_notes import (
     register_library_note_tools,

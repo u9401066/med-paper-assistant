@@ -9,57 +9,111 @@ partial edits (replace_string_in_file) instead of whole-file write_draft().
 """
 
 import os
-from typing import Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 from mcp.server import MCPServer
 
-from med_paper_assistant.domain.services.wikilink_validator import (
-    ALL_WIKILINK_PATTERN,
-    VALID_WIKILINK_PATTERN,
-    find_citation_key_for_pmid,
-    validate_wikilinks_in_content,
-)
-from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
-    DraftSnapshotManager,
-)
-from med_paper_assistant.infrastructure.persistence.git_auto_committer import GitAutoCommitter
+from med_paper_assistant.domain.services.wikilink_validator import find_citation_key_for_pmid
 from med_paper_assistant.infrastructure.services import Drafter
-from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
-from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .._shared import (
-    auto_checkpoint_writing,
-    ensure_project_context,
-    get_drafts_dir,
     get_optional_tool_decorator,
-    get_project_list_for_prompt,
-    get_project_path,
-    log_agent_misuse,
     log_tool_call,
-    log_tool_error,
     log_tool_result,
-    resolve_project_context,
+)
+from .editing_patch import (
+    _get_references_dir,
+    _guard_editing_tool,
+    _patch_draft,
 )
 
 
-def _get_references_dir() -> Optional[str]:
-    """Get the current project's references directory."""
-    project_path = get_project_path()
-    if project_path:
-        return os.path.join(project_path, "references")
-    return None
+def _first_author(meta: dict) -> str:
+    first_author = ""
+    authors_full = meta.get("authors_full", [])
+    authors = meta.get("authors", [])
+    if authors_full and isinstance(authors_full[0], dict):
+        first_author = authors_full[0].get("last_name", "")
+    elif authors:
+        first_author = authors[0].split()[0] if authors[0] else ""
+    return first_author
 
 
-def register_editing_tools(
-    mcp: MCPServer,
-    drafter: Drafter,
-    *,
-    register_public_verbs: bool = True,
-):
-    """Register citation-aware editing tools."""
+def _citation_row(pmid: str, meta: dict, refs_dir: str) -> str:
+    citation_key = meta.get("citation_key", "")
+    if not citation_key:
+        # Try to find from directory structure
+        citation_key = find_citation_key_for_pmid(pmid, refs_dir) or pmid
 
-    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+    title = meta.get("title", "Unknown")
+    if len(title) > 50:
+        title = title[:47] + "..."
 
+    year = meta.get("year", "")
+
+    return f"| `[[{citation_key}]]` | {pmid} | {_first_author(meta)} | {year} | {title} |\n"
+
+
+def _citations_table(ref_manager: Any, pmids: list[str], refs_dir: str) -> tuple[str, int]:
+    """Build the citation table; return (markdown, number of listed citations)."""
+    output = f"📚 **Available Citations ({len(pmids)} references)**\n\n"
+    output += "Use these exact `[[citation_key]]` wikilinks in drafts:\n\n"
+    output += "| Citation Key | PMID | First Author | Year | Title |\n"
+    output += "|-------------|------|--------------|------|-------|\n"
+
+    listed = 0
+    for pmid in sorted(pmids):
+        meta = ref_manager.get_metadata(pmid)
+        if not meta:
+            continue
+        output += _citation_row(pmid, meta, refs_dir)
+        listed += 1
+    return output, listed
+
+
+def _get_available_citations(drafter: Drafter, project: Optional[str]) -> str:
+    log_tool_call("get_available_citations", {"project": project})
+
+    guard_error = _guard_editing_tool("get_available_citations", project)
+    if guard_error:
+        return guard_error
+
+    refs_dir = _get_references_dir()
+    if not refs_dir or not os.path.exists(refs_dir):
+        result = (
+            "📚 **No references found.**\n\n"
+            'Save references first using `save_reference_mcp(pmid="...")` '
+            "before adding citations to drafts."
+        )
+        log_tool_result("get_available_citations", "no references dir", success=True)
+        return result
+
+    ref_manager = drafter.ref_manager
+    pmids = ref_manager.list_references()
+
+    if not pmids:
+        result = (
+            "📚 **No references saved yet.**\n\n"
+            'Save references first using `save_reference_mcp(pmid="...")` '
+            "before adding citations to drafts."
+        )
+        log_tool_result("get_available_citations", "empty", success=True)
+        return result
+
+    output, listed = _citations_table(ref_manager, pmids, refs_dir)
+
+    output += "\n---\n"
+    output += "💡 **Usage**: Insert `[[citation_key]]` in draft text.\n"
+    output += "💡 **Workflow**: Call `get_available_citations` → edit draft with `patch_draft` → `sync_references`\n"
+
+    log_tool_result("get_available_citations", f"listed {listed} citations", success=True)
+    return output
+
+
+def _register_citation_list_tool(
+    tool: Callable[..., Any], drafter: Drafter
+) -> dict[str, Callable[..., Any]]:
     @tool()
     def get_available_citations(project: Optional[str] = None) -> str:
         """
@@ -72,98 +126,14 @@ def register_editing_tools(
         Args:
             project: Project slug (uses current if omitted)
         """
-        log_tool_call("get_available_citations", {"project": project})
+        return _get_available_citations(drafter, project)
 
-        if project:
-            is_valid, msg, _ = ensure_project_context(project)
-            if not is_valid:
-                error_msg = f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-                log_agent_misuse(
-                    "get_available_citations",
-                    "valid project context",
-                    {"project": project},
-                    error_msg,
-                )
-                return error_msg
+    return {"get_available_citations": get_available_citations}
 
-        _, workflow_error = resolve_project_context(
-            project,
-            required_mode="manuscript",
-        )
-        if workflow_error:
-            log_agent_misuse(
-                "get_available_citations",
-                "manuscript workflow required",
-                {"project": project},
-                workflow_error,
-            )
-            return workflow_error
 
-        refs_dir = _get_references_dir()
-        if not refs_dir or not os.path.exists(refs_dir):
-            result = (
-                "📚 **No references found.**\n\n"
-                'Save references first using `save_reference_mcp(pmid="...")` '
-                "before adding citations to drafts."
-            )
-            log_tool_result("get_available_citations", "no references dir", success=True)
-            return result
-
-        ref_manager = drafter.ref_manager
-        pmids = ref_manager.list_references()
-
-        if not pmids:
-            result = (
-                "📚 **No references saved yet.**\n\n"
-                'Save references first using `save_reference_mcp(pmid="...")` '
-                "before adding citations to drafts."
-            )
-            log_tool_result("get_available_citations", "empty", success=True)
-            return result
-
-        output = f"📚 **Available Citations ({len(pmids)} references)**\n\n"
-        output += "Use these exact `[[citation_key]]` wikilinks in drafts:\n\n"
-        output += "| Citation Key | PMID | First Author | Year | Title |\n"
-        output += "|-------------|------|--------------|------|-------|\n"
-
-        valid_keys = []
-        for pmid in sorted(pmids):
-            meta = ref_manager.get_metadata(pmid)
-            if not meta:
-                continue
-
-            citation_key = meta.get("citation_key", "")
-            if not citation_key:
-                # Try to find from directory structure
-                citation_key = find_citation_key_for_pmid(pmid, refs_dir) or pmid
-
-            title = meta.get("title", "Unknown")
-            if len(title) > 50:
-                title = title[:47] + "..."
-
-            # Extract first author
-            first_author = ""
-            authors_full = meta.get("authors_full", [])
-            authors = meta.get("authors", [])
-            if authors_full and isinstance(authors_full[0], dict):
-                first_author = authors_full[0].get("last_name", "")
-            elif authors:
-                first_author = authors[0].split()[0] if authors[0] else ""
-
-            year = meta.get("year", "")
-
-            output += f"| `[[{citation_key}]]` | {pmid} | {first_author} | {year} | {title} |\n"
-            valid_keys.append(citation_key)
-
-        output += "\n---\n"
-        output += "💡 **Usage**: Insert `[[citation_key]]` in draft text.\n"
-        output += "💡 **Workflow**: Call `get_available_citations` → edit draft with `patch_draft` → `sync_references`\n"
-
-        log_tool_result(
-            "get_available_citations", f"listed {len(valid_keys)} citations", success=True
-        )
-        return output
-
+def _register_patch_tool(
+    tool: Callable[..., Any], drafter: Drafter
+) -> dict[str, Callable[..., Any]]:
     @tool()
     def patch_draft(
         filename: str,
@@ -183,221 +153,22 @@ def register_editing_tools(
             new_text: Replacement text (wikilinks will be validated/auto-fixed)
             project: Project slug (uses current if omitted)
         """
-        log_tool_call(
-            "patch_draft",
-            {
-                "filename": filename,
-                "old_text_len": len(old_text),
-                "new_text_len": len(new_text),
-                "project": project,
-            },
-        )
+        return _patch_draft(drafter, filename, old_text, new_text, project)
 
-        if project:
-            is_valid, msg, _ = ensure_project_context(project)
-            if not is_valid:
-                error_msg = f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-                log_agent_misuse(
-                    "patch_draft",
-                    "valid project context",
-                    {"project": project},
-                    error_msg,
-                )
-                return error_msg
+    return {"patch_draft": patch_draft}
 
-        _, workflow_error = resolve_project_context(
-            project,
-            required_mode="manuscript",
-        )
-        if workflow_error:
-            log_agent_misuse(
-                "patch_draft",
-                "manuscript workflow required",
-                {"project": project},
-                workflow_error,
-            )
-            return workflow_error
 
-        # 1. Resolve file path
-        drafts_dir = get_drafts_dir()
-        if not drafts_dir:
-            drafts_dir = "drafts"
+def register_editing_tools(
+    mcp: MCPServer,
+    drafter: Drafter,
+    *,
+    register_public_verbs: bool = True,
+):
+    """Register citation-aware editing tools."""
 
-        try:
-            safe_filename = normalize_draft_filename(filename)
-        except ValueError as e:
-            error_msg = f"❌ Invalid draft filename: {e}"
-            log_tool_result("patch_draft", "invalid filename", success=False)
-            return error_msg
-
-        filepath = str(
-            resolve_child_path(
-                drafts_dir,
-                safe_filename,
-                field_name="Draft filename",
-                allowed_suffixes={".md"},
-            )
-        )
-
-        if not os.path.exists(filepath):
-            error_msg = f"❌ Draft file not found: {filepath}"
-            log_tool_result("patch_draft", error_msg, success=False)
-            return error_msg
-
-        # 2. Read current content
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                content = f.read()
-        except Exception as e:
-            log_tool_error("patch_draft", e, {"filepath": filepath})
-            return f"❌ Error reading draft: {e}"
-
-        # 3. Verify old_text matches uniquely
-        match_count = content.count(old_text)
-        if match_count == 0:
-            error_msg = (
-                "❌ **old_text not found in draft.**\n\n"
-                f"File: `{filepath}`\n"
-                "Make sure the text matches exactly (including whitespace and newlines).\n"
-                "Use `read_draft` to check the current content."
-            )
-            log_tool_result("patch_draft", "old_text not found", success=False)
-            return error_msg
-
-        if match_count > 1:
-            error_msg = (
-                f"❌ **old_text matches {match_count} locations** — must be unique.\n\n"
-                "Include more surrounding context to make old_text unique."
-            )
-            log_tool_result("patch_draft", f"ambiguous: {match_count} matches", success=False)
-            return error_msg
-
-        # 3.5 B2 Protected Content Guard — block modification of 🔒-marked content
-        is_concept_file = "concept" in os.path.basename(filepath).lower()
-        if is_concept_file and "\U0001f512" in old_text:
-            error_msg = (
-                "❌ **BLOCKED: Cannot modify 🔒-protected content via patch_draft.**\n\n"
-                "The old_text contains 🔒-marked protected content (NOVELTY STATEMENT "
-                "or KEY SELLING POINTS). These sections require explicit user approval.\n\n"
-                "Ask the user before modifying protected sections in concept.md."
-            )
-            log_agent_misuse(
-                "patch_draft",
-                "attempted to modify 🔒-protected content",
-                {"filename": filename},
-                error_msg,
-            )
-            return error_msg
-
-        # 4. Validate wikilinks in new_text
-        references_dir = _get_references_dir()
-        new_wikilinks = ALL_WIKILINK_PATTERN.findall(new_text)
-
-        validation_report = []
-        fixed_new_text = new_text
-
-        if new_wikilinks:
-            # Validate and auto-fix wikilinks
-            result, fixed_new_text = validate_wikilinks_in_content(
-                new_text, references_dir=references_dir, auto_fix=True
-            )
-
-            if result.auto_fixed > 0:
-                validation_report.append(f"🔧 Auto-fixed {result.auto_fixed} wikilink format(s)")
-
-            # Check if all wikilinks reference existing citations
-            if references_dir and os.path.exists(references_dir):
-                ref_manager = drafter.ref_manager
-                remaining_wikilinks = ALL_WIKILINK_PATTERN.findall(fixed_new_text)
-
-                missing = []
-                for wl in remaining_wikilinks:
-                    # Extract PMID from wikilink
-                    pmid = None
-                    if wl.isdigit():
-                        pmid = wl
-                    elif "_" in wl:
-                        parts = wl.split("_")
-                        potential = parts[-1]
-                        if potential.isdigit():
-                            pmid = potential
-                    elif wl.upper().startswith("PMID:"):
-                        pmid = wl.split(":")[1].strip()
-
-                    if pmid and not ref_manager.check_reference_exists(pmid):
-                        missing.append(f"[[{wl}]]")
-
-                if missing:
-                    unique_missing = list(dict.fromkeys(missing))
-                    error_msg = (
-                        "❌ **Citation(s) not found in saved references:**\n\n"
-                        + "\n".join(f"- {m}" for m in unique_missing)
-                        + "\n\n"
-                        'Save these references first with `save_reference_mcp(pmid="...")`, '
-                        "or call `get_available_citations()` to see valid keys."
-                    )
-                    log_tool_result("patch_draft", "missing references", success=False)
-                    return error_msg
-
-        # 5. Apply the patch
-        new_content = content.replace(old_text, fixed_new_text, 1)
-
-        # Auto-snapshot before overwrite
-        if drafts_dir:
-            snap_mgr = DraftSnapshotManager(drafts_dir)
-            snap_mgr.snapshot_before_write(os.path.basename(filepath), reason="patch_draft")
-
-        try:
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(new_content)
-        except Exception as e:
-            log_tool_error("patch_draft", e, {"filepath": filepath})
-            return f"❌ Error writing draft: {e}"
-
-        # Auto-checkpoint writing session for compaction recovery
-        auto_checkpoint_writing(os.path.basename(filepath), new_content, "patch")
-
-        # Auto-commit after successful write
-        if drafts_dir:
-            project_root = os.path.dirname(drafts_dir)
-            git_committer = GitAutoCommitter(project_root)
-            git_committer.commit_draft(os.path.basename(filepath), reason="patch_draft")
-
-        # 6. Build result report
-        output = "✅ **Draft patched successfully**\n\n"
-        output += f"📄 File: `{filepath}`\n"
-        output += f"📝 Replaced {len(old_text)} chars → {len(fixed_new_text)} chars\n"
-
-        if new_wikilinks:
-            valid_wl = [
-                wl
-                for wl in ALL_WIKILINK_PATTERN.findall(fixed_new_text)
-                if VALID_WIKILINK_PATTERN.match(f"[[{wl}]]")
-            ]
-            output += f"📚 Citations in patch: {len(valid_wl)} wikilinks validated\n"
-
-        if validation_report:
-            output += "\n" + "\n".join(validation_report) + "\n"
-
-        output += "\n💡 Run `sync_references` to update the References section."
-
-        # 🔒 Embedded post-write hooks (auto-run, agent cannot skip)
-        if not is_concept_file:
-            from .writing import _run_embedded_post_write_hooks
-
-            section_for_hooks = (
-                os.path.splitext(os.path.basename(filepath))[0]
-                .replace("_", " ")
-                .replace("-", " ")
-                .title()
-            )
-            hook_report = _run_embedded_post_write_hooks(new_content, section_for_hooks)
-            output += hook_report
-
-        log_tool_result("patch_draft", f"patched {filepath}", success=True)
-        return output
+    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
     return {
-        "get_available_citations": get_available_citations,
-        "patch_draft": patch_draft,
+        **_register_citation_list_tool(tool, drafter),
+        **_register_patch_tool(tool, drafter),
     }

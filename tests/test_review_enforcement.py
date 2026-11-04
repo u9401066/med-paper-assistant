@@ -512,7 +512,9 @@ class TestRunReviewHooksWithSectionDrafts:
     async def test_r6_uses_section_files_when_manuscript_missing(self, project_dir, monkeypatch):
         from mcp.server.mcpserver import MCPServer
 
-        from med_paper_assistant.interfaces.mcp.tools.review import audit_hooks
+        from med_paper_assistant.interfaces.mcp.tools.review.audit_hooks import (
+            _common as audit_hooks_common,
+        )
         from med_paper_assistant.interfaces.mcp.tools.review.audit_hooks import (
             register_audit_hook_tools,
         )
@@ -533,7 +535,7 @@ class TestRunReviewHooksWithSectionDrafts:
         )
 
         monkeypatch.setattr(
-            audit_hooks,
+            audit_hooks_common,
             "resolve_project_context",
             lambda *args, **kwargs: (
                 {

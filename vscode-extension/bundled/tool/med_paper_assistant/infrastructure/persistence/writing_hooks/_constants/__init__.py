@@ -1,0 +1,42 @@
+"""
+Writing Hooks — Module-level constants.
+
+Constants shared across all hook series (A, B, C, F, P, G).
+"""
+
+from __future__ import annotations
+
+from ._anti_ai import (
+    AI_COPULA_AVOIDANCE_VERBS,
+    AI_EM_DASH_PATTERN,
+    AI_FALSE_RANGE_PATTERN,
+    AI_NEGATIVE_PARALLELISM_PATTERNS,
+    AI_TRANSITION_WORDS,
+    ANTI_AI_PARAGRAPH_START_ONLY,
+    ANTI_AI_PHRASES,
+)
+from ._limits import (
+    BODY_SECTIONS,
+    COMMON_ABBREVIATIONS,
+    DEFAULT_CITATION_DENSITY,
+    DEFAULT_MIN_REFERENCES,
+    DEFAULT_MINIMUM_REFERENCES,
+)
+from ._spelling import AMER_VS_BRIT, BRIT_VS_AMER
+
+__all__ = [
+    "AI_COPULA_AVOIDANCE_VERBS",
+    "AI_EM_DASH_PATTERN",
+    "AI_FALSE_RANGE_PATTERN",
+    "AI_NEGATIVE_PARALLELISM_PATTERNS",
+    "AI_TRANSITION_WORDS",
+    "AMER_VS_BRIT",
+    "ANTI_AI_PARAGRAPH_START_ONLY",
+    "ANTI_AI_PHRASES",
+    "BODY_SECTIONS",
+    "BRIT_VS_AMER",
+    "COMMON_ABBREVIATIONS",
+    "DEFAULT_CITATION_DENSITY",
+    "DEFAULT_MINIMUM_REFERENCES",
+    "DEFAULT_MIN_REFERENCES",
+]

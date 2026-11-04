@@ -424,7 +424,7 @@ class AutonomousAuditLoop:
             "completed": self._completed,
             "quality_threshold": self._config.quality_threshold,
             "latest_score": latest,
-            "latest_weighted_score": latest,  # alias used by pipeline_gate.py
+            "latest_weighted_score": latest,  # alias used by tools/review/pipeline_gate/
             "latest_verdict": self._rounds[-1].verdict if self._rounds else None,
             "score_trend": [r.weighted_avg for r in self._rounds],
         }

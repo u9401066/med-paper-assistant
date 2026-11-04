@@ -128,7 +128,6 @@ def test_pipeline_phase_docs_match_gate_heartbeat():
         "scripts/hooks/copilot/prompt-analyzer.sh",
         "scripts/sync_repo_counts.py",
         "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
-        "src/med_paper_assistant/interfaces/mcp/tools/review/pipeline_gate.py",
         "tests/test_integration_pipeline.py",
         "vscode-extension/README.md",
         "vscode-extension/package.json",
@@ -150,6 +149,13 @@ def test_pipeline_phase_docs_match_gate_heartbeat():
     )
     docs_to_scan.extend(
         path.relative_to(repo_root).as_posix() for path in sorted(gate_package.glob("*.py"))
+    )
+    pipeline_tools_package = (
+        repo_root / "src/med_paper_assistant/interfaces/mcp/tools/review/pipeline_gate"
+    )
+    docs_to_scan.extend(
+        path.relative_to(repo_root).as_posix()
+        for path in sorted(pipeline_tools_package.glob("*.py"))
     )
 
     stale_locations = {

@@ -275,7 +275,7 @@ async def test_project_action_routes_update_settings() -> None:
 
 @pytest.mark.asyncio
 async def test_project_action_writes_journal_profile(tmp_path, monkeypatch) -> None:
-    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+    import med_paper_assistant.interfaces.mcp.tools.project.facade.project_inline as project_facade
 
     project_dir = tmp_path / "demo-project"
     project_dir.mkdir()
@@ -321,7 +321,7 @@ async def test_project_action_writes_journal_profile(tmp_path, monkeypatch) -> N
 
 @pytest.mark.asyncio
 async def test_project_action_scans_source_materials(tmp_path, monkeypatch) -> None:
-    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+    import med_paper_assistant.interfaces.mcp.tools.project.facade.project_inline as project_facade
 
     workspace = tmp_path / "workspace"
     project_dir = workspace / "projects" / "demo-project"
@@ -369,7 +369,7 @@ async def test_project_action_scans_source_materials(tmp_path, monkeypatch) -> N
 
 @pytest.mark.asyncio
 async def test_project_action_records_asset_ingestion_receipt(tmp_path, monkeypatch) -> None:
-    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+    import med_paper_assistant.interfaces.mcp.tools.project.facade.project_inline as project_facade
 
     project_dir = tmp_path / "projects" / "demo-project"
     project_dir.mkdir(parents=True)
@@ -437,7 +437,7 @@ async def test_project_action_records_asset_ingestion_receipt(tmp_path, monkeypa
 
 @pytest.mark.asyncio
 async def test_project_action_records_safe_exemplar_usage(tmp_path, monkeypatch) -> None:
-    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+    import med_paper_assistant.interfaces.mcp.tools.project.facade.project_inline as project_facade
 
     project_dir = tmp_path / "projects" / "demo-project"
     project_dir.mkdir(parents=True)
@@ -480,7 +480,7 @@ async def test_project_action_records_safe_exemplar_usage(tmp_path, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_project_action_rejects_unsafe_exemplar_role(tmp_path, monkeypatch) -> None:
-    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+    import med_paper_assistant.interfaces.mcp.tools.project.facade.project_inline as project_facade
 
     project_dir = tmp_path / "projects" / "demo-project"
     project_dir.mkdir(parents=True)

@@ -27,7 +27,7 @@ async def test_golden_mini_project_source_ingestion_claim_and_anchor_flow(
     Phase 2.1 pending-source enforcement, C14 claim evidence, and F4 data-anchor
     provenance without depending on real external MCP processes.
     """
-    import med_paper_assistant.interfaces.mcp.tools.project.facade as project_facade
+    import med_paper_assistant.interfaces.mcp.tools.project.facade.project_inline as project_facade
 
     workspace = tmp_path / "workspace"
     project_dir = workspace / "projects" / "golden"
