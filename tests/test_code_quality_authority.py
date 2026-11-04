@@ -167,3 +167,52 @@ def test_write_is_deterministic_and_cannot_bless_more_debt(tmp_path: Path) -> No
     loaded, errors = quality._load_authority(invalid_authority)
     assert loaded is None
     assert any("cannot parse authority" in item for item in errors)
+
+
+def _metric_at(kind: str, path: str, symbol: str, lines: int) -> quality.Metric:
+    return quality.Metric(
+        kind=kind, path=f"src/med_paper_assistant/{path}", qualified_symbol=symbol, lines=lines
+    )
+
+
+def test_accept_moves_pairs_relocated_definitions_one_to_one() -> None:
+    baseline = _scan(
+        _metric_at("function", "old.py", "Manager.save", 80),
+        _metric_at("function", "old.py", "register_tools.run_hooks", 120),
+    )
+    authority = quality.build_authority(baseline)
+    moved = _scan(
+        _metric_at("function", "hooks_tool.py", "run_hooks", 110),
+        _metric_at("function", "store.py", "Store.save", 80),
+    )
+
+    assert quality._refresh_blockers(authority, moved)
+    assert quality._refresh_blockers(authority, moved, accept_moves=True) == []
+    pairs = quality.match_moves(quality._parse_exceptions(authority)[0], moved)
+    assert {key[2] for key in pairs} == {"run_hooks", "Store.save"}
+
+
+def test_accept_moves_rejects_growth_renames_duplicates_and_files() -> None:
+    authority = quality.build_authority(
+        _scan(_metric_at("function", "old.py", "register_tools.run_hooks", 120))
+    )
+    grown = _scan(_metric_at("function", "new.py", "run_hooks", 121))
+    renamed = _scan(_metric_at("function", "new.py", "execute_hooks", 90))
+    duplicated = _scan(
+        _metric_at("function", "a.py", "run_hooks", 60),
+        _metric_at("function", "b.py", "run_hooks", 60),
+    )
+    still_present = _scan(
+        _metric_at("function", "old.py", "register_tools.run_hooks", 120),
+        _metric_at("function", "new.py", "run_hooks", 60),
+    )
+    new_file = _scan(_metric_at("file", "split.py", "<module>", 401))
+
+    for scan in (grown, renamed, duplicated, still_present, new_file):
+        assert quality._refresh_blockers(authority, scan, accept_moves=True), scan
+
+
+def test_accept_moves_without_write_is_a_read_only_preview() -> None:
+    before = quality.AUTHORITY_PATH.read_bytes()
+    assert quality.main(["--accept-moves"]) == 0
+    assert quality.AUTHORITY_PATH.read_bytes() == before

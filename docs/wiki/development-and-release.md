@@ -68,6 +68,13 @@ uv run mkdocs build --strict
 
 實際 CI 指令以 `.github/workflows/` 為準；上列命令是最常用的對應入口。
 
+重構拆檔時，只把超過門檻的 class/function 原封不動搬到新模組（同名、不變長），code-quality ratchet 仍會把它視為新債務。這時可以用 `--accept-moves`，把搬移後的定義與「已消失的同名例外」一對一配對：
+
+- `uv run python scripts/check_code_quality_authority.py --accept-moves`：只預覽，不寫檔。
+- `uv run python scripts/check_code_quality_authority.py --write --accept-moves`：確認後寫入 authority。
+
+新拆出的檔案仍必須低於 400 行，不會配對 file 例外。
+
 測試分層與反模式詳見 `tests/README.md`。測試必須呼叫 production code 或可執行 artifact 並驗證 observable outcome；只測測試內自建 dict、Python 標準函式庫 round-trip、只印 PASS/FAIL 或吞例外的案例不納入 suite。
 
 ## Bundle 是發布產物

@@ -305,7 +305,57 @@ def validate_authority(authority: dict[str, Any], scan: ScanResult) -> list[str]
     return errors
 
 
-def _refresh_blockers(authority: dict[str, Any], scan: ScanResult) -> list[str]:
+def _leaf(symbol: str) -> str:
+    return symbol.rsplit(".", 1)[-1]
+
+
+def match_moves(baseline: list[Metric], scan: ScanResult) -> dict[tuple[str, str, str], Metric]:
+    """Pair new definition violations with resolved exceptions they were moved from.
+
+    A move is accepted only for classes and functions. It pairs one-to-one with a
+    baseline exception whose key disappeared from the scan, has the same kind and
+    the same leaf name, and is at least as large as the moved definition. Files are
+    never matched, so a split must bring every new module under the file limit.
+    """
+    current_keys = {item.key for item in scan.violations}
+    resolved = sorted(
+        (
+            item
+            for item in baseline
+            if item.key not in current_keys and item.kind in ("class", "function")
+        ),
+        key=lambda item: (item.lines, item.path, item.qualified_symbol),
+    )
+    baseline_keys = {item.key for item in baseline}
+    unmatched = sorted(
+        (item for item in scan.violations if item.key not in baseline_keys),
+        key=lambda item: (-item.lines, item.path, item.qualified_symbol),
+    )
+    used: set[tuple[str, str, str]] = set()
+    moves: dict[tuple[str, str, str], Metric] = {}
+    for current in unmatched:
+        if current.kind == "file":
+            continue
+        candidates = [
+            item
+            for item in resolved
+            if item.key not in used
+            and item.kind == current.kind
+            and _leaf(item.qualified_symbol) == _leaf(current.qualified_symbol)
+            and item.lines >= current.lines
+        ]
+        if not candidates:
+            continue
+        exact = [c for c in candidates if c.qualified_symbol == current.qualified_symbol]
+        chosen = (exact or candidates)[0]
+        used.add(chosen.key)
+        moves[current.key] = chosen
+    return moves
+
+
+def _refresh_blockers(
+    authority: dict[str, Any], scan: ScanResult, *, accept_moves: bool = False
+) -> list[str]:
     """Reject ``--write`` when it would bless added or enlarged debt."""
     errors = _validate_header(authority)
     baseline, exception_errors = _parse_exceptions(authority)
@@ -314,8 +364,11 @@ def _refresh_blockers(authority: dict[str, Any], scan: ScanResult) -> list[str]:
         return errors
 
     baseline_by_key = {item.key: item for item in baseline}
+    moves = match_moves(baseline, scan) if accept_moves else {}
     for current in scan.violations:
         allowed = baseline_by_key.get(current.key)
+        if allowed is None and current.key in moves:
+            continue
         if allowed is None:
             errors.append(
                 f"refusing --write for new {current.kind} violation: "
@@ -346,10 +399,44 @@ def _print_summary(scan: ScanResult) -> None:
             )
 
 
+def _print_moves(authority: dict[str, Any], scan: ScanResult) -> None:
+    baseline, _ = _parse_exceptions(authority)
+    for new_key, old in sorted(match_moves(baseline, scan).items()):
+        print(
+            f"↪ moved {new_key[0]}: {old.path}::{old.qualified_symbol} -> "
+            f"{new_key[1]}::{new_key[2]}"
+        )
+
+
+def _preview_moves(scan: ScanResult) -> int:
+    """Report what ``--write --accept-moves`` would do without touching the authority."""
+    authority, load_errors = _load_authority(AUTHORITY_PATH)
+    if authority is None:
+        for item in load_errors:
+            print(f"❌ {item}")
+        return 1
+    blockers = _refresh_blockers(authority, scan, accept_moves=True)
+    for item in blockers:
+        print(f"❌ {item}")
+    _print_moves(authority, scan)
+    if blockers:
+        return 1
+    print("✅ No new or grown debt (moves accepted); --write --accept-moves would succeed.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--write", action="store_true", help="create or deterministically tighten the baseline"
+    )
+    parser.add_argument(
+        "--accept-moves",
+        action="store_true",
+        help=(
+            "keep the allowance of a class or function that moved to a new module or scope "
+            "under the same name without growing; without --write, only preview the result"
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -359,14 +446,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"❌ Source parse failure: {item}")
         return 1
 
+    if args.accept_moves and not args.write:
+        return _preview_moves(scan)
+
     if args.write:
         existing, load_errors = _load_authority(AUTHORITY_PATH)
         if existing is not None:
-            blockers = _refresh_blockers(existing, scan)
+            blockers = _refresh_blockers(existing, scan, accept_moves=args.accept_moves)
             if blockers:
                 for item in blockers:
                     print(f"❌ {item}")
                 return 1
+            if args.accept_moves:
+                _print_moves(existing, scan)
         elif load_errors and AUTHORITY_PATH.exists():
             for item in load_errors:
                 print(f"❌ {item}")
