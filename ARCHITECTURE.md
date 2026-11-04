@@ -63,18 +63,20 @@ src/med_paper_assistant/
 │
 ├── application/                     # 應用層：Use Case 編排
 │   ├── content_integrity.py       # 只讀內容來源/原檔完整性編排
+│   ├── export_pipeline/           # DOCX/PDF/HTML 匯出管線（ports + exporters）
 │   └── use_cases/
 │       ├── save_reference.py       #   儲存文獻（MCP-to-MCP 驗證流程）
 │       └── create_project.py       #   建立專案
 │
 ├── infrastructure/                  # 基礎設施層：外部世界的實作
 │   ├── persistence/                 # 持久化
-│   │   ├── project_manager.py      #   專案 CRUD + Exploration
+│   │   ├── project_manager/        #   專案 CRUD + Exploration（mixin 套件）
+│   │   ├── checkpoint_manager/     #   Pipeline checkpoint + 回退/暫停 + Section Approval
 │   │   ├── reference_manager/      #   文獻存儲（mixin 套件，_manager.py 組合）
 │   │   ├── project_repository.py   #   專案 Repository
 │   │   ├── reference_repository.py #   文獻 Repository
 │   │   ├── file_storage.py         #   檔案儲存抽象
-│   │   ├── workspace_state_manager.py  # 跨 Session 狀態
+│   │   ├── workspace_state_manager/    # 跨 Session 狀態
 │   │   ├── project_memory_manager.py   # AI 記憶管理
 │   │   ├── pipeline_gate_validator/    # Phase Gate 驗證器（每 phase 一個模組）
 │   │   ├── quality_scorecard.py        # 品質計分卡（8 維度）
@@ -93,10 +95,11 @@ src/med_paper_assistant/
 │   │   │   ├── _precommit/             #   P 系列 Hooks (P5-P7)
 │   │   │   ├── _git.py                 #   G 系列 Hooks (G9)
 │   │   │   └── _engine.py              #   WritingHooksEngine 組合類
-│   │   ├── data_artifact_tracker.py    # 資料 receipt + injected current-byte reinspection
+│   │   ├── data_artifact_tracker/      # 資料 receipt + injected current-byte reinspection
+│   │   ├── autonomous_audit_loop/      # 結構化自主審計迴圈
 │   │   └── review_hooks/               # R1-R6 審查品質 Hook（Phase 7 HARD GATE）
 │   ├── services/                    # 外部服務
-│   │   ├── drafter.py              #   草稿撰寫 + wikilink 引用
+│   │   ├── drafter/                #   草稿撰寫 + wikilink 引用
 │   │   ├── formatter.py            #   引用格式化（Vancouver/APA/...）
 │   │   ├── analyzer.py             #   統計分析 + Table 1
 │   │   ├── concept_validator/      #   概念驗證（Three Reviewers Model）
@@ -105,7 +108,7 @@ src/med_paper_assistant/
 │   │   ├── exporter.py             #   Legacy Word 匯出
 │   │   ├── foam_settings.py        #   Foam 設定動態更新
 │   │   ├── pubmed_api_client.py    #   MCP-to-MCP HTTP client
-│   │   ├── citation_assistant.py   #   引用助手
+│   │   ├── citation_assistant/     #   引用助手
 │   │   ├── concept_template_reader.py
 │   │   └── prompts.py              #   Section 寫作指引
 │   ├── external/                    # read-only C2PA + visible/open-DWT adapters
@@ -154,7 +157,7 @@ interfaces → application → domain ← infrastructure
 
 ### Code-quality debt ratchet
 
-新程式碼受 `.github/bylaws/ddd-architecture.md` 的 400 行/file、300 行/class、50 行/function 門檻約束。v1.1.0 已將 reference manager、phase gates、writing/review hooks、constraint/meta-learning engines、concept validator 與 project/reference/review/draft/analysis/export MCP tools 拆成套件（例外由 388 項降至 144 項）；`code-quality-authority.json` 明列當前 14 個 file、14 個 class、116 個 function 例外，`scripts/check_code_quality_authority.py` 會拒絕新增例外、既有例外成長或門檻漂移，並要求每次縮減後同步收緊 authority。CI 另以 `vulture --min-confidence 80` 阻擋高信心孤兒程式碼。這是一個不可倒退的移除路徑，不代表剩餘 144 項債務（最大者為 `data_artifact_tracker.py`）已被合理化或完成重構。
+新程式碼受 `.github/bylaws/ddd-architecture.md` 的 400 行/file、300 行/class、50 行/function 門檻約束。v1.1.0 已將 reference manager、phase gates、writing/review hooks、constraint/meta-learning engines、concept validator、project/checkpoint/workspace-state managers、data artifact tracker、autonomous audit loop、drafter、citation assistant、export pipeline 與 project/reference/review/draft/analysis/export MCP tools 拆成套件（例外由 388 項降至 108 項）；`code-quality-authority.json` 明列當前 6 個 file、6 個 class、96 個 function 例外，`scripts/check_code_quality_authority.py` 會拒絕新增例外、既有例外成長或門檻漂移，並要求每次縮減後同步收緊 authority。CI 另以 `vulture --min-confidence 80` 阻擋高信心孤兒程式碼。這是一個不可倒退的移除路徑，不代表剩餘 108 項債務（最大檔案為 `domain/paper_types.py`，最大函式為 `register_concept_validation_tools`）已被合理化或完成重構。
 
 ---
 
@@ -208,7 +211,7 @@ verify_evolution() → 跨專案演化驗證
 | **EvolutionVerifier**        | `evolution_verifier.py`         | 跨專案演化驗證：收集所有專案 `.audit/` 數據，產生演化證據報告                                           |
 | **DomainConstraintEngine**   | `domain_constraint_engine/`     | Triad-inspired JSON 約束系統：per paper type 結構化約束、Sand Spreader 驗證、約束演化                   |
 | **PipelineGateValidator**    | `pipeline_gate_validator/`      | Phase Gate 驗證器：以 unique evidence、artifact hash、current manuscript 與 review receipt 驗證階段轉移 |
-| **WorkspaceStateManager**    | `workspace_state_manager.py`    | 跨 Session 狀態管理：writing_session 自動存檔、recovery summary、checkpoint_writing_context             |
+| **WorkspaceStateManager**    | `workspace_state_manager/`      | 跨 Session 狀態管理：writing_session 自動存檔、recovery summary、checkpoint_writing_context             |
 
 ### 自我改進邊界（CONSTITUTION §23）
 

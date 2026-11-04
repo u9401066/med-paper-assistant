@@ -127,7 +127,6 @@ def test_pipeline_phase_docs_match_gate_heartbeat():
         ".github/prompts/mdpaper.write-paper.prompt.md",
         "scripts/hooks/copilot/prompt-analyzer.sh",
         "scripts/sync_repo_counts.py",
-        "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
         "tests/test_integration_pipeline.py",
         "vscode-extension/README.md",
         "vscode-extension/package.json",
@@ -143,6 +142,12 @@ def test_pipeline_phase_docs_match_gate_heartbeat():
     docs_to_scan.extend(
         path.relative_to(repo_root).as_posix()
         for path in sorted((repo_root / ".claude/skills/auto-paper/references").glob("*.md"))
+    )
+    checkpoint_package = (
+        repo_root / "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager"
+    )
+    docs_to_scan.extend(
+        path.relative_to(repo_root).as_posix() for path in sorted(checkpoint_package.glob("*.py"))
     )
     gate_package = (
         repo_root / "src/med_paper_assistant/infrastructure/persistence/pipeline_gate_validator"

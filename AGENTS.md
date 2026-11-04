@@ -92,7 +92,7 @@ CGU 整合：`cgu_frame` / `cgu_diverge(action=anti_typical)` + `cgu_judge`（�
 | PendingEvolutionStore  | `persistence/pending_evolution_store.py` | ✅   | 跨對話演化項目持久化至 `.audit/pending-evolutions.yaml`                                  |
 | guidance.py            | `tools/_shared/guidance.py`              | ✅   | `build_guidance_hint` + `build_startup_guidance`（啟動時檢查 pending evolutions）        |
 | tool_health.py         | `tools/review/tool_health.py`            | ✅   | `diagnose_tool_health` + `_flush_health_alerts` 寫入 PendingEvolutionStore               |
-| CheckpointManager      | `persistence/checkpoint_manager.py`      | ✅   | Pipeline 狀態持久化 + 回退 + 暫停/恢復 + Section Approval                                |
+| CheckpointManager      | `persistence/checkpoint_manager/`        | ✅   | Pipeline 狀態持久化 + 回退 + 暫停/恢復 + Section Approval                                |
 | ReviewHooksEngine      | `persistence/review_hooks/`              | ✅   | R1-R6 審查品質 Hook — Phase 7 HARD GATE，整合 submit_review_round()                      |
 
 禁止自動修改：CONSTITUTION 原則、🔒 保護內容規則、save_reference_mcp 優先規則。

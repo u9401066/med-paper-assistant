@@ -141,7 +141,7 @@ Phase 完成 → 更新以下檔案：
 
 ## Checkpoint 恢復機制
 
-**實作**：`CheckpointManager`（`infrastructure/persistence/checkpoint_manager.py`）
+**實作**：`CheckpointManager`（`infrastructure/persistence/checkpoint_manager/`）
 
 ```
 Pipeline 啟動時：

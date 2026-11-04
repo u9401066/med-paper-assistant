@@ -28,7 +28,7 @@ med-paper-assistant/
 │   │   └── value_objects/     # Enums, configs
 │   ├── application/
 │   │   ├── use_cases/         # SaveReference, etc.
-│   │   └── export_pipeline.py # ExportPipeline
+│   │   └── export_pipeline/   # ExportPipeline (ports + exporters)
 │   ├── infrastructure/
 │   │   ├── persistence/       # DraftSnapshotManager, CheckpointManager,
 │   │   │                      # GitAutoCommitter, HookEffectivenessTracker,

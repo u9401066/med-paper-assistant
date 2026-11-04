@@ -12,32 +12,32 @@
     "function": 50
   },
   "summary": {
-    "filesScanned": 393,
+    "filesScanned": 460,
     "definitionsScanned": {
-      "class": 275,
-      "function": 2294
+      "class": 323,
+      "function": 2403
     },
     "violations": {
-      "file": 14,
-      "class": 14,
-      "function": 116,
-      "total": 144
+      "file": 6,
+      "class": 6,
+      "function": 96,
+      "total": 108
     },
     "maximum": {
       "file": {
-        "path": "src/med_paper_assistant/infrastructure/persistence/data_artifact_tracker.py",
+        "path": "src/med_paper_assistant/domain/paper_types.py",
         "qualifiedSymbol": "<module>",
-        "lines": 1437
+        "lines": 609
       },
       "class": {
-        "path": "src/med_paper_assistant/infrastructure/persistence/data_artifact_tracker.py",
-        "qualifiedSymbol": "DataArtifactTracker",
-        "lines": 1361
+        "path": "src/med_paper_assistant/infrastructure/services/foam_settings.py",
+        "qualifiedSymbol": "FoamSettingsManager",
+        "lines": 420
       },
       "function": {
-        "path": "src/med_paper_assistant/infrastructure/persistence/autonomous_audit_loop.py",
-        "qualifiedSymbol": "AutonomousAuditLoop.validate_serialized_state",
-        "lines": 306
+        "path": "src/med_paper_assistant/interfaces/mcp/tools/validation/concept.py",
+        "qualifiedSymbol": "register_concept_validation_tools",
+        "lines": 296
       }
     }
   },
@@ -47,36 +47,6 @@
       "path": "src/med_paper_assistant/application/content_integrity.py",
       "qualifiedSymbol": "ContentIntegrityInspector.inspect",
       "allowedLines": 78
-    },
-    {
-      "kind": "file",
-      "path": "src/med_paper_assistant/application/export_pipeline.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 678
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/application/export_pipeline.py",
-      "qualifiedSymbol": "ExportPipeline",
-      "allowedLines": 614
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/application/export_pipeline.py",
-      "qualifiedSymbol": "ExportPipeline.export_docx",
-      "allowedLines": 104
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/application/export_pipeline.py",
-      "qualifiedSymbol": "ExportPipeline.export_pdf",
-      "allowedLines": 130
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/application/export_pipeline.py",
-      "qualifiedSymbol": "ExportPipeline.prepare_for_pandoc",
-      "allowedLines": 63
     },
     {
       "kind": "file",
@@ -187,100 +157,28 @@
       "allowedLines": 68
     },
     {
-      "kind": "file",
-      "path": "src/med_paper_assistant/infrastructure/persistence/autonomous_audit_loop.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 1019
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/infrastructure/persistence/autonomous_audit_loop.py",
-      "qualifiedSymbol": "AutonomousAuditLoop",
-      "allowedLines": 826
-    },
-    {
       "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/autonomous_audit_loop.py",
-      "qualifiedSymbol": "AutonomousAuditLoop.generate_report",
-      "allowedLines": 79
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/autonomous_audit_loop.py",
-      "qualifiedSymbol": "AutonomousAuditLoop.validate_serialized_state",
-      "allowedLines": 306
-    },
-    {
-      "kind": "file",
-      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 748
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
-      "qualifiedSymbol": "CheckpointManager",
-      "allowedLines": 713
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
-      "qualifiedSymbol": "CheckpointManager._continuity_decision",
+      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager/_continuity.py",
+      "qualifiedSymbol": "ContinuityMixin._continuity_decision",
       "allowedLines": 55
     },
     {
       "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
-      "qualifiedSymbol": "CheckpointManager.get_recovery_summary",
-      "allowedLines": 82
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
-      "qualifiedSymbol": "CheckpointManager.resume_from_pause",
+      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager/_pause_resume.py",
+      "qualifiedSymbol": "PauseResumeMixin.resume_from_pause",
       "allowedLines": 68
     },
     {
       "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
-      "qualifiedSymbol": "CheckpointManager.save_phase_regression",
+      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager/_recovery.py",
+      "qualifiedSymbol": "RecoverySummaryMixin.get_recovery_summary",
+      "allowedLines": 82
+    },
+    {
+      "kind": "function",
+      "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager/_regression.py",
+      "qualifiedSymbol": "RegressionMixin.save_phase_regression",
       "allowedLines": 69
-    },
-    {
-      "kind": "file",
-      "path": "src/med_paper_assistant/infrastructure/persistence/data_artifact_tracker.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 1437
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/infrastructure/persistence/data_artifact_tracker.py",
-      "qualifiedSymbol": "DataArtifactTracker",
-      "allowedLines": 1361
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/data_artifact_tracker.py",
-      "qualifiedSymbol": "DataArtifactTracker._integrity_receipt_satisfies_review",
-      "allowedLines": 292
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/data_artifact_tracker.py",
-      "qualifiedSymbol": "DataArtifactTracker._validate_data_anchor_provenance",
-      "allowedLines": 139
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/data_artifact_tracker.py",
-      "qualifiedSymbol": "DataArtifactTracker.generate_report",
-      "allowedLines": 101
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/data_artifact_tracker.py",
-      "qualifiedSymbol": "DataArtifactTracker.validate_cross_references",
-      "allowedLines": 292
     },
     {
       "kind": "function",
@@ -325,42 +223,6 @@
       "allowedLines": 58
     },
     {
-      "kind": "file",
-      "path": "src/med_paper_assistant/infrastructure/persistence/project_manager.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 1173
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/infrastructure/persistence/project_manager.py",
-      "qualifiedSymbol": "ProjectManager",
-      "allowedLines": 1106
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/project_manager.py",
-      "qualifiedSymbol": "ProjectManager.convert_temp_to_project",
-      "allowedLines": 129
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/project_manager.py",
-      "qualifiedSymbol": "ProjectManager.create_project",
-      "allowedLines": 96
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/project_manager.py",
-      "qualifiedSymbol": "ProjectManager.get_or_create_temp_project",
-      "allowedLines": 80
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/project_manager.py",
-      "qualifiedSymbol": "ProjectManager.update_project_settings",
-      "allowedLines": 131
-    },
-    {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/project_memory_manager.py",
       "qualifiedSymbol": "ProjectMemoryManager",
@@ -385,39 +247,27 @@
       "allowedLines": 74
     },
     {
-      "kind": "file",
-      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 576
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager.py",
-      "qualifiedSymbol": "WorkspaceStateManager",
-      "allowedLines": 520
-    },
-    {
       "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager.py",
-      "qualifiedSymbol": "WorkspaceStateManager._maybe_migrate_v1",
-      "allowedLines": 54
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager.py",
-      "qualifiedSymbol": "WorkspaceStateManager.get_recovery_summary",
-      "allowedLines": 96
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager.py",
-      "qualifiedSymbol": "WorkspaceStateManager.sync_pipeline_state",
+      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager/_activity.py",
+      "qualifiedSymbol": "ActivityMixin.sync_pipeline_state",
       "allowedLines": 61
     },
     {
       "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager.py",
-      "qualifiedSymbol": "WorkspaceStateManager.sync_writing_session",
+      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager/_io.py",
+      "qualifiedSymbol": "StateIOMixin._maybe_migrate_v1",
+      "allowedLines": 54
+    },
+    {
+      "kind": "function",
+      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager/_recovery.py",
+      "qualifiedSymbol": "RecoveryMixin.get_recovery_summary",
+      "allowedLines": 96
+    },
+    {
+      "kind": "function",
+      "path": "src/med_paper_assistant/infrastructure/persistence/workspace_state_manager/_writing_session.py",
+      "qualifiedSymbol": "WritingSessionMixin.sync_writing_session",
       "allowedLines": 54
     },
     {
@@ -451,42 +301,6 @@
       "allowedLines": 112
     },
     {
-      "kind": "file",
-      "path": "src/med_paper_assistant/infrastructure/services/citation_assistant.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 591
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/infrastructure/services/citation_assistant.py",
-      "qualifiedSymbol": "CitationAssistant",
-      "allowedLines": 458
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/services/citation_assistant.py",
-      "qualifiedSymbol": "CitationAssistant._classify_sentence",
-      "allowedLines": 84
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/services/citation_assistant.py",
-      "qualifiedSymbol": "CitationAssistant._extract_key_terms",
-      "allowedLines": 85
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/services/citation_assistant.py",
-      "qualifiedSymbol": "CitationAssistant._search_local_for_claims",
-      "allowedLines": 52
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/services/citation_assistant.py",
-      "qualifiedSymbol": "CitationAssistant.scan_draft_for_citations",
-      "allowedLines": 52
-    },
-    {
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/services/concept_template_reader.py",
       "qualifiedSymbol": "ConceptTemplateReader._get_fallback_template",
@@ -497,36 +311,6 @@
       "path": "src/med_paper_assistant/infrastructure/services/csl_formatter.py",
       "qualifiedSymbol": "reference_to_csl_json",
       "allowedLines": 57
-    },
-    {
-      "kind": "file",
-      "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 650
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
-      "qualifiedSymbol": "Drafter",
-      "allowedLines": 542
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
-      "qualifiedSymbol": "Drafter._format_bibliography_entry",
-      "allowedLines": 57
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
-      "qualifiedSymbol": "Drafter.insert_citation",
-      "allowedLines": 92
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
-      "qualifiedSymbol": "Drafter.sync_references_from_wikilinks",
-      "allowedLines": 155
     },
     {
       "kind": "function",

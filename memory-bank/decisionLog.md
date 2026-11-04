@@ -16,7 +16,8 @@
 ### 結果
 
 - Ratchet 例外 388 → 144（14 file / 14 class / 116 function），surface 118 full / 12 compact 不變，full pytest 2046 passed。
-- 第二波候選：`data_artifact_tracker.py`（1437 行）、`autonomous_audit_loop.py`、`checkpoint_manager`、`project_manager`、`workspace_state_manager`、`citation_assistant`、`analysis/facade.py`、`draft/templates.py`、`review/consistency.py`。
+- 第二波完成：`data_artifact_tracker`、`autonomous_audit_loop`、`checkpoint_manager`、`project_manager`、`workspace_state_manager`、`drafter`、`citation_assistant`、`export_pipeline` 拆為套件；以舊/新並行差分測試驗證零差異。Ratchet 144 → 108（6 file / 6 class / 96 function），surface 與 2046 passed 不變。
+- 後續候選：`domain/paper_types.py`（609 行）、`foam_settings.FoamSettingsManager`（420 行 class）、`validation/concept.py::register_concept_validation_tools`（296 行）、`analysis/facade.py`、`draft/templates.py`、`review/consistency.py`。
 
 ## [2026-09-02] Agent Hooks Must Fail Open And Never Resolve Dependencies
 
