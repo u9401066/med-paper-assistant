@@ -299,6 +299,20 @@ def test_install_smoke_required_bundle_paths_exist_in_committed_bundle() -> None
     assert not missing, f"install-smoke.cjs expects bundle paths that do not exist: {missing}"
 
 
+def test_release_vsce_publisher_is_sha_pinned_and_audited_after_dependency_pins() -> None:
+    steps = _workflow("release.yml")["jobs"]["publish-vsx"]["steps"]
+    checkout = next(step for step in steps if step.get("name") == "Check out OIDC-capable VSCE")
+    assert checkout["with"]["repository"] == "microsoft/vscode-vsce"
+    assert re.fullmatch(r"[0-9a-f]{40}", checkout["with"]["ref"])
+    build = next(step for step in steps if step.get("name") == "Build pinned VSCE publisher")
+    commands = [line.strip() for line in build["run"].splitlines() if line.strip()]
+    assert commands[0] == "npm ci"
+    audit = commands.index("npm audit --omit=dev --audit-level=high")
+    assert not any(command.startswith("npm install") for command in commands[audit:])
+    assert not any("audit fix" in command or "--force" in command for command in commands)
+    assert commands[-1] == "npm run compile"
+
+
 def test_release_bundle_checks_have_recursive_submodules() -> None:
     release = _workflow("release.yml")
     for job_name in ("validate", "vsx-bundle-drift", "build-artifacts"):

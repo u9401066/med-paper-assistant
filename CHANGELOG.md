@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Release workflow: the VS Marketplace publisher is built from the vsce v4.1.0 release commit (stable OIDC publishing, Marketplace CI-provider header), with `@azure/identity` pinned to 4.14.1 inside vsce's `^4.13.2` range so the `npm audit --audit-level=high` gate passes without weakening it (GHSA-xcx6-jx8p-x3h5 in `@azure/msal-node` 6.0.1). A contract test keeps the publisher SHA-pinned and audited after every dependency pin. The v1.1.0 VS Marketplace listing is still pending: PyPI and the GitHub Release (with the VSIX) are published, while the Marketplace publish needs either a renewed `VSCE_PAT` for `marketplace-recovery.yml` or a Marketplace trusted-publishing policy for `release.yml`.
+
 ## [1.1.0] - 2026-11-04
 
 ### Added
