@@ -63,6 +63,7 @@ from med_paper_assistant.interfaces.mcp.tools import (
     register_validation_tools,
 )
 from med_paper_assistant.interfaces.mcp.tools._shared import initialize_tool_tracking
+from med_paper_assistant.interfaces.mcp.tools._shared.tool_errors import enable_failure_errors
 
 
 def create_server(tool_surface: str | None = None) -> MCPServer:
@@ -103,7 +104,7 @@ def create_server(tool_surface: str | None = None) -> MCPServer:
     initialize_tool_tracking(project_manager.projects_dir.parent)
 
     # Create MCP server
-    mcp = MCPServer("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS)
+    mcp = enable_failure_errors(MCPServer("MedPaperAssistant", instructions=SERVER_INSTRUCTIONS))
 
     # Register all tools
     logger.info("Registering project tools (incl. diagrams)...")

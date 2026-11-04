@@ -6,6 +6,16 @@ import re
 from typing import Any
 
 from ._constants import BODY_SECTIONS
+from ._section_tree import (
+    SectionNode,
+    has_selected_ancestor,
+    parse_section_nodes,
+    select_outermost,
+)
+
+# CJK scripts have no word separators, so each character counts as one word.
+_CJK = "\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff"
+_WORD_RE = re.compile(rf"[{_CJK}]|\d+(?:[,.]\d+)+|(?:(?![{_CJK}])\w)+")
 
 
 class TextUtilsMixin:
@@ -33,7 +43,7 @@ class TextUtilsMixin:
         cleaned = re.sub(r"[*_]{1,3}", "", cleaned)
         # Strip headings markers
         cleaned = re.sub(r"^#{1,6}\s+", "", cleaned, flags=re.MULTILINE)
-        return len(re.findall(r"\b\w+\b", cleaned))
+        return len(_WORD_RE.findall(cleaned))
 
     @staticmethod
     def _strip_markdown_tables(text: str) -> str:
@@ -54,7 +64,7 @@ class TextUtilsMixin:
 
         Returns dict with body_words, section_breakdown, excluded_sections.
         """
-        sections = self._parse_sections(content)
+        nodes = self._section_nodes(content)
         body_words = 0
         breakdown: list[dict[str, Any]] = []
         excluded: list[str] = []
@@ -70,14 +80,17 @@ class TextUtilsMixin:
 
         body_set = custom_body if custom_body else BODY_SECTIONS
 
-        for sec_name, sec_text in sections.items():
-            if sec_name.lower() in body_set:
-                cleaned = self._strip_markdown_tables(sec_text)
-                wc = self._count_words(cleaned)
-                body_words += wc
-                breakdown.append({"section": sec_name, "words": wc})
-            else:
-                excluded.append(sec_name)
+        # Subsections count toward their body parent, never twice.
+        selected_nodes = select_outermost(nodes, lambda name: name.lower() in body_set)
+        selected = {n.index for n in selected_nodes}
+        for node in selected_nodes:
+            cleaned = self._strip_markdown_tables(node.full_text)
+            wc = self._count_words(cleaned)
+            body_words += wc
+            breakdown.append({"section": node.name, "words": wc})
+        for node in nodes:
+            if node.index not in selected and not has_selected_ancestor(node, nodes, selected):
+                excluded.append(node.name)
 
         return {
             "body_words": body_words,
@@ -86,27 +99,35 @@ class TextUtilsMixin:
         }
 
     @staticmethod
+    def _section_nodes(content: str) -> list[SectionNode]:
+        """Parse content (frontmatter stripped) into hierarchical section nodes."""
+        return parse_section_nodes(TextUtilsMixin._strip_frontmatter(content))
+
+    def _sections_with_word_limits(self, content: str) -> dict[str, str]:
+        """Outermost sections that have a configured word limit, with nested text included."""
+        limit = getattr(self, "_get_section_word_limit")
+        nodes = select_outermost(self._section_nodes(content), lambda n: limit(n) is not None)
+        return {node.name: node.full_text for node in nodes}
+
+    @staticmethod
+    def _merge_by_name(pairs: list[tuple[str, str]]) -> dict[str, str]:
+        merged: dict[str, str] = {}
+        for name, text in pairs:
+            merged[name] = f"{merged[name]}\n{text}".strip() if name in merged else text
+        return merged
+
+    @staticmethod
     def _parse_sections(content: str) -> dict[str, str]:
-        """Parse markdown content into {section_name: section_text} dict.
+        """Parse markdown content into {section_name: own_text} (flat, no nested text).
 
-        Strips YAML frontmatter before parsing.
+        Strips YAML frontmatter before parsing. Duplicate heading names are
+        merged instead of overwritten.
         """
-        content = TextUtilsMixin._strip_frontmatter(content)
-        sections: dict[str, str] = {}
-        current_name: str | None = None
-        current_lines: list[str] = []
+        nodes = TextUtilsMixin._section_nodes(content)
+        return TextUtilsMixin._merge_by_name([(n.name, n.own_text) for n in nodes])
 
-        for line in content.split("\n"):
-            heading_match = re.match(r"^#{1,3}\s+(.+)", line)
-            if heading_match:
-                if current_name is not None:
-                    sections[current_name] = "\n".join(current_lines).strip()
-                current_name = heading_match.group(1).strip()
-                current_lines = []
-            elif current_name is not None:
-                current_lines.append(line)
-
-        if current_name is not None:
-            sections[current_name] = "\n".join(current_lines).strip()
-
-        return sections
+    @staticmethod
+    def _parse_sections_full(content: str) -> dict[str, str]:
+        """Like ``_parse_sections`` but each section includes its nested subsections."""
+        nodes = TextUtilsMixin._section_nodes(content)
+        return TextUtilsMixin._merge_by_name([(n.name, n.full_text) for n in nodes])

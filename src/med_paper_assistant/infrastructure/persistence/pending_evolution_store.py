@@ -27,6 +27,8 @@ from typing import Any
 import structlog
 import yaml
 
+from .state_io import atomic_write_text, quarantine_corrupt_file
+
 logger = structlog.get_logger()
 
 # Auto-incrementing ID counter key in the YAML data
@@ -133,8 +135,12 @@ class PendingEvolutionStore:
                     loaded.setdefault(_COUNTER_KEY, 1)
                     self._data = loaded
                     return self._data
-            except (yaml.YAMLError, OSError) as e:
+            except (yaml.YAMLError, UnicodeError) as e:
+                quarantine_corrupt_file(self._path, e)
+            except OSError as e:
                 logger.warning("pending_evolution_store.load_failed", error=str(e))
+            else:
+                quarantine_corrupt_file(self._path, "root is not a mapping")
 
         self._data = {
             "version": 1,
@@ -149,9 +155,9 @@ class PendingEvolutionStore:
         self._dir.mkdir(parents=True, exist_ok=True)
         data = self._load()
         data["updated_at"] = datetime.now(tz=timezone.utc).isoformat()
-        self._path.write_text(
+        atomic_write_text(
+            self._path,
             yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False),
-            encoding="utf-8",
         )
 
     def _next_id(self) -> str:

@@ -39,7 +39,17 @@ from typing import Any
 import structlog
 import yaml
 
+from med_paper_assistant.infrastructure.persistence.state_io import (
+    atomic_write_text,
+    quarantine_corrupt_file,
+)
+
 logger = structlog.get_logger()
+
+
+class LedgerCorruptError(RuntimeError):
+    """Raised when mutating a ledger whose file could not be parsed."""
+
 
 # Allowed constraint lifecycle states.
 STATUS_OPEN = "open"
@@ -125,32 +135,67 @@ class ConstraintLedger:
         self._path = self._audit_dir / self.LEDGER_FILE
         self._constraints: dict[str, Constraint] = {}
         self._loaded = False
+        self._corrupt: str | None = None
 
     # ── persistence ────────────────────────────────────────────────
     def _load(self) -> None:
         if self._loaded:
             return
-        if self._path.is_file():
-            try:
-                data = yaml.safe_load(self._path.read_text(encoding="utf-8")) or {}
-                for entry in data.get("constraints", []):
-                    c = Constraint.from_dict(entry)
-                    self._constraints[c.key] = c
-            except (yaml.YAMLError, OSError, KeyError) as exc:
-                logger.warning("Failed to load constraint ledger: %s", exc)
         self._loaded = True
+        if not self._path.is_file():
+            return
+        try:
+            data = yaml.safe_load(self._path.read_text(encoding="utf-8"))
+            if data is None:
+                data = {}
+            if not isinstance(data, dict) or not isinstance(data.get("constraints") or [], list):
+                raise ValueError("ledger root must be a mapping with a 'constraints' list")
+            parsed = [Constraint.from_dict(e) for e in data.get("constraints") or []]
+        except (
+            yaml.YAMLError,
+            UnicodeError,
+            KeyError,
+            TypeError,
+            ValueError,
+            AttributeError,
+        ) as exc:
+            # Fail closed: an unreadable ledger must never look converged.
+            self._corrupt = str(exc)
+            logger.warning("constraint_ledger_corrupt", path=str(self._path), error=str(exc))
+            return
+        except OSError as exc:
+            self._corrupt = str(exc)
+            logger.warning("constraint_ledger_unreadable", path=str(self._path), error=str(exc))
+            return
+        self._constraints = {c.key: c for c in parsed}
+
+    def _ensure_healthy(self) -> None:
+        self._load()
+        if self._corrupt is not None:
+            raise LedgerCorruptError(
+                f"constraint ledger {self._path} is corrupt ({self._corrupt}); "
+                "call quarantine_and_reset() after reviewing the file"
+            )
+
+    def is_corrupt(self) -> bool:
+        self._load()
+        return self._corrupt is not None
+
+    def quarantine_and_reset(self) -> Path | None:
+        """Explicitly move a corrupt ledger aside (kept as ``.corrupt-<ts>``) and start empty."""
+        self._load()
+        quarantined = quarantine_corrupt_file(self._path, self._corrupt) if self._corrupt else None
+        self._constraints = {}
+        self._corrupt = None
+        return quarantined
 
     def _save(self) -> None:
-        self._audit_dir.mkdir(parents=True, exist_ok=True)
         payload = {
             "version": 1,
             "updated_at": _now(),
             "constraints": [c.to_dict() for c in self._constraints.values()],
         }
-        self._path.write_text(
-            yaml.safe_dump(payload, sort_keys=False, allow_unicode=True),
-            encoding="utf-8",
-        )
+        atomic_write_text(self._path, yaml.safe_dump(payload, sort_keys=False, allow_unicode=True))
 
     # ── mutations (the ratchet) ────────────────────────────────────
     def add(
@@ -165,13 +210,21 @@ class ConstraintLedger:
 
         If the same logical constraint already exists and was previously
         satisfied/waived, re-opening requires going through ``reopen`` — a
-        plain ``add`` of an existing key is a no-op that returns the existing
-        record (so re-running a hook does not silently reset resolutions).
+        plain ``add`` of an existing key never resets a resolution (so
+        re-running a hook does not silently reset resolutions). Severity is
+        monotonic: re-adding with a higher severity escalates the record.
         """
-        self._load()
+        self._ensure_healthy()
         key = _derive_key(source, description, section)
         existing = self._constraints.get(key)
         if existing is not None:
+            if SEVERITY_ORDER.get(severity, 0) > SEVERITY_ORDER.get(existing.severity, 0):
+                existing.history.append(
+                    {"at": _now(), "action": f"severity {existing.severity}->{severity}"}
+                )
+                existing.severity = severity
+                existing.updated_at = _now()
+                self._save()
             return existing
 
         constraint = Constraint(
@@ -188,7 +241,7 @@ class ConstraintLedger:
         return constraint
 
     def _transition(self, key: str, new_status: str, reason: str, actor: str) -> bool:
-        self._load()
+        self._ensure_healthy()
         if new_status not in _VALID_STATUSES:
             raise ValueError(f"invalid status: {new_status}")
         constraint = self._constraints.get(key)
@@ -197,6 +250,11 @@ class ConstraintLedger:
         if new_status == STATUS_WAIVED and not reason.strip():
             raise ValueError("waiving a constraint requires a reason")
         prev = constraint.status
+        if prev == new_status or STATUS_OPEN not in (prev, new_status):
+            raise ValueError(
+                f"invalid constraint transition {prev}->{new_status}: "
+                "only open->satisfied/waived and a reasoned reopen are allowed"
+            )
         constraint.status = new_status
         constraint.resolution_reason = reason
         constraint.updated_at = _now()
@@ -246,8 +304,11 @@ class ConstraintLedger:
         return [c for c in self.open_constraints() if c.severity == "CRITICAL"]
 
     def is_converged(self) -> bool:
-        """Converged == zero OPEN constraints (all satisfied or waived)."""
-        return len(self.open_constraints()) == 0
+        """Converged == zero OPEN constraints (all satisfied or waived).
+
+        A corrupt/unreadable ledger is never converged (fail closed).
+        """
+        return not self.is_corrupt() and len(self.open_constraints()) == 0
 
     def summary(self) -> dict[str, int]:
         self._load()

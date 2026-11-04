@@ -17,6 +17,7 @@ from med_paper_assistant.domain.entities.reference import has_verified_pubmed_pr
 from med_paper_assistant.domain.services.reference_converter import (
     ReferenceConverter,
 )
+from med_paper_assistant.infrastructure.persistence.reference_dirs import list_reference_ids
 from med_paper_assistant.shared.path_guard import (
     PathGuardError,
     normalize_relative_filename,
@@ -4065,11 +4066,7 @@ class ReferenceManager:
         Returns:
             List of PMIDs.
         """
-        if not os.path.exists(self.base_dir):
-            return []
-        return [
-            d for d in os.listdir(self.base_dir) if os.path.isdir(os.path.join(self.base_dir, d))
-        ]
+        return list_reference_ids(str(self.base_dir))
 
     def get_metadata(self, pmid: str) -> Dict[str, Any]:
         """
@@ -4092,7 +4089,7 @@ class ReferenceManager:
                 with open(metadata_path, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
-                print(f"Error reading metadata for {pmid}: {e}")
+                logger.warning("reference_metadata_unreadable", pmid=pmid, error=str(e))
                 return {}
 
         # Reference not found locally

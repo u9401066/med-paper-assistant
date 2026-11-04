@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Literal, cast
 
 ToolSurface = Literal["full", "compact"]
 
+logger = logging.getLogger(__name__)
 _SURFACE_ENV_VAR = "MEDPAPER_TOOL_SURFACE"
 EXPECTED_TOOL_COUNTS: dict[ToolSurface, int] = {
     "full": 118,
@@ -19,6 +21,12 @@ def resolve_tool_surface(explicit: str | None = None) -> ToolSurface:
     candidate = (explicit or os.environ.get(_SURFACE_ENV_VAR, "compact")).strip().lower()
     if candidate == "full":
         return cast(ToolSurface, "full")
+    if candidate not in ("compact", ""):
+        logger.warning(
+            "Unknown MEDPAPER_TOOL_SURFACE value %r; falling back to 'compact' "
+            "(valid values: 'full', 'compact').",
+            candidate,
+        )
     return cast(ToolSurface, "compact")
 
 

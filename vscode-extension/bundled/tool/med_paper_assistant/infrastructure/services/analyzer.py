@@ -5,6 +5,12 @@ from typing import List, Optional
 import pandas as pd
 import structlog
 
+from med_paper_assistant.infrastructure.services.analyzer_helpers import (
+    correlation_report,
+    create_markdown_table,
+    format_pvalue,
+    paired_ttest_report,
+)
 from med_paper_assistant.shared.path_guard import normalize_relative_filename, resolve_child_path
 
 logger = structlog.get_logger()
@@ -120,9 +126,7 @@ class Analyzer:
         elif test_type == "paired_ttest":
             if len(variables) < 2:
                 return "Error: paired t-test requires two variables."
-            var1, var2 = variables[0], variables[1]
-            t_stat, p_val = stats.ttest_rel(df[var1].dropna(), df[var2].dropna())
-            return f"### Paired T-Test Results\n\nComparing {var1} vs {var2}\n- T-statistic: {t_stat:.4f}\n- P-value: {p_val:.4f}\n- Significant: {'Yes' if p_val < 0.05 else 'No'}"
+            return paired_ttest_report(df, variables[0], variables[1])
 
         elif test_type == "anova":
             if not group_var:
@@ -145,9 +149,7 @@ class Analyzer:
         elif test_type == "correlation":
             if len(variables) < 2:
                 return "Error: correlation requires two numerical variables."
-            var1, var2 = variables[0], variables[1]
-            corr, p_val = stats.pearsonr(df[var1].dropna(), df[var2].dropna())
-            return f"### Correlation Results\n\nPearson correlation between {var1} and {var2}\n- Coefficient: {corr:.4f}\n- P-value: {p_val:.4f}"
+            return correlation_report(df, variables[0], variables[1])
 
         elif test_type == "mann_whitney":
             if not group_var:
@@ -305,7 +307,7 @@ class Analyzer:
         from scipy import stats
 
         # Get groups
-        groups = df[group_col].unique()
+        groups = df[group_col].dropna().unique()
         n_groups = len(groups)
 
         # Initialize results list
@@ -432,34 +434,8 @@ class Analyzer:
 
     def _format_pvalue(self, p: float) -> str:
         """Format p-value according to medical conventions."""
-        if p < 0.001:
-            return "<0.001"
-        elif p < 0.01:
-            return f"{p:.3f}"
-        elif p < 0.05:
-            return f"{p:.3f}*"
-        else:
-            return f"{p:.3f}"
+        return format_pvalue(p)
 
     def _create_markdown_table(self, header: List[str], rows: List[List[str]]) -> str:
         """Create a markdown table from header and rows."""
-        # Calculate column widths
-        all_rows = [header] + rows
-        col_widths = [max(len(str(row[i])) for row in all_rows) for i in range(len(header))]
-
-        # Create header
-        header_str = "| " + " | ".join(str(h).ljust(w) for h, w in zip(header, col_widths)) + " |"
-        separator = "|-" + "-|-".join("-" * w for w in col_widths) + "-|"
-
-        # Create rows
-        row_strs = []
-        for row in rows:
-            # Ensure row has correct number of columns
-            while len(row) < len(header):
-                row.append("")
-            row_str = (
-                "| " + " | ".join(str(cell).ljust(w) for cell, w in zip(row, col_widths)) + " |"
-            )
-            row_strs.append(row_str)
-
-        return header_str + "\n" + separator + "\n" + "\n".join(row_strs)
+        return create_markdown_table(header, rows)

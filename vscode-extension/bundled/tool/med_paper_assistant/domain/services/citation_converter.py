@@ -42,8 +42,10 @@ _FOAM_EMBED_RE = re.compile(r"!\[\[([^\]\[]+?)\]\]")
 #   (Author et al., 2024)<!-- [[citation_key]] -->
 #   (Author et al. 2024) [[citation_key]]
 #   (Author et al. 2024)<!-- [[citation_key]] -->
+# Author-date markers must start with a non-lowercase letter and contain no
+# digits or ``= ; :`` so statistics such as ``(n = 1500) [[key]]`` are not eaten.
 _REVERSIBLE_RE = re.compile(
-    r"(?:\[\d+\]|\^\d+\^|\([^)]+,\s*\d{4}\)|\([^)]+\s\d{4}\))"
+    r"(?:\[\d+\]|\^\d+\^|\([^\W\d_a-z][^()=;:\d]*?(?:,\s*|\s)\d{4}\))"
     r"(?:<!--\s*|[ \t]+)\[\[([^\]]+)\]\](?:\s*-->)?"
 )
 

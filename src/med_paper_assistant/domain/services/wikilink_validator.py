@@ -167,6 +167,22 @@ def find_citation_key_for_pmid(pmid: str, references_dir: str) -> Optional[str]:
     return None
 
 
+def _suggest_for_messy_match(match: "re.Match[str]", references_dir: Optional[str]) -> str:
+    """Suggest a citation key for ``Author 2024 [[12345678]]`` (saved key preferred)."""
+    author, year, pmid = match.group(1).lower(), match.group(2), match.group(3)
+    suggested = find_citation_key_for_pmid(pmid, references_dir) if references_dir else None
+    return suggested or f"{author}{year}_{pmid}"
+
+
+def _suggest_for_missing_prefix(wikilink: str, references_dir: Optional[str]) -> Optional[str]:
+    """Suggest ``[[citation_key]]`` for a bare-PMID wikilink when the reference is saved."""
+    pmid_match = PMID_ONLY_PATTERN.match(wikilink)
+    if not pmid_match or not references_dir:
+        return None
+    suggested = find_citation_key_for_pmid(pmid_match.group(2), references_dir)
+    return f"[[{suggested}]]" if suggested else None
+
+
 def validate_wikilinks_in_content(
     content: str, references_dir: Optional[str] = None, auto_fix: bool = False
 ) -> Tuple[WikilinkValidationResult, str]:
@@ -191,19 +207,11 @@ def validate_wikilinks_in_content(
 
     for line_num, line in enumerate(lines, 1):
         # 先檢查混亂格式: Author 2024 [[12345678]]
+        messy_spans: list[tuple[int, int]] = []
         for match in MESSY_FORMAT_PATTERN.finditer(line):
-            author = match.group(1).lower()
-            year = match.group(2)
-            pmid = match.group(3)
+            messy_spans.append(match.span())
             original = match.group(0)
-
-            # 嘗試查找正確的 citation_key
-            suggested = None
-            if references_dir:
-                suggested = find_citation_key_for_pmid(pmid, references_dir)
-
-            if not suggested:
-                suggested = f"{author}{year}_{pmid}"
+            suggested = _suggest_for_messy_match(match, references_dir)
 
             issue = WikilinkIssue(
                 line_number=line_num,
@@ -223,8 +231,8 @@ def validate_wikilinks_in_content(
         for match in ALL_WIKILINK_PATTERN.finditer(line):
             wikilink = match.group(0)
 
-            # 跳過已處理的混亂格式
-            if any(wikilink in issue.original for issue in issues):
+            # 跳過已被混亂格式處理的同一位置（只看當前行的 span，避免誤吞其他行的相同 wikilink）
+            if any(start <= match.start() and match.end() <= end for start, end in messy_spans):
                 continue
 
             all_wikilinks.append(wikilink)
@@ -236,29 +244,21 @@ def validate_wikilinks_in_content(
                 continue
 
             # 處理錯誤格式
-            suggested = None
-
+            fix: Optional[str] = None
             if issue_type == "missing_prefix":
-                # 提取 PMID
-                pmid_match = PMID_ONLY_PATTERN.match(wikilink)
-                if pmid_match:
-                    pmid = pmid_match.group(2)
-                    if references_dir:
-                        suggested = find_citation_key_for_pmid(pmid, references_dir)
-                    if suggested:
-                        suggested = f"[[{suggested}]]"
+                fix = _suggest_for_missing_prefix(wikilink, references_dir)
 
             issue = WikilinkIssue(
                 line_number=line_num,
                 original=wikilink,
                 issue_type=issue_type,
-                suggestion=suggested,
+                suggestion=fix,
                 context=line.strip()[:50],
             )
             issues.append(issue)
 
-            if auto_fix and suggested:
-                fixed_content = fixed_content.replace(wikilink, suggested, 1)
+            if auto_fix and fix:
+                fixed_content = fixed_content.replace(wikilink, fix, 1)
                 auto_fixed_count += 1
 
     result = WikilinkValidationResult(

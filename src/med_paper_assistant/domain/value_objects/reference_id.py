@@ -6,6 +6,7 @@ Foam 需要唯一識別符來支援 [[wikilink]] 功能。
 """
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
@@ -77,7 +78,7 @@ class ReferenceId:
             - jones2023_doi_10-1016-j-bja-2023-01-001
         """
         author_clean = self._normalize_author(self.author)
-        year_clean = str(self.year) if self.year else ""
+        year_clean = self._clean_year(self.year) or "nd"
 
         return f"{author_clean}{year_clean}_{self.storage_id}"
 
@@ -90,9 +91,16 @@ class ReferenceId:
             return f"https://doi.org/{self.source_id}"
         return None
 
-    def _normalize_author(self, author: str) -> str:
-        """Normalize author name: lowercase, alphanumeric only."""
-        return re.sub(r"[^a-z0-9]", "", author.lower())
+    def _normalize_author(self, author: str | None) -> str:
+        """Normalize author name: ASCII-folded, lowercase, alphanumeric only ("anon" if empty)."""
+        folded = unicodedata.normalize("NFKD", author or "").encode("ascii", "ignore").decode()
+        return re.sub(r"[^a-z0-9]", "", folded.lower()) or "anon"
+
+    @staticmethod
+    def _clean_year(year: object) -> str:
+        """Return the year as text; missing values (None, "None", "") become empty."""
+        text = "" if year is None else str(year).strip()
+        return "" if text.lower() == "none" else text
 
     def _normalize_doi(self, doi: str) -> str:
         """Normalize DOI for use in filenames."""
@@ -102,18 +110,28 @@ class ReferenceId:
     def from_pubmed(cls, pmid: str, author: str = "", year: str = "") -> "ReferenceId":
         """Create from PubMed ID."""
         return cls(
-            source=ReferenceSource.PUBMED, source_id=str(pmid), author=author, year=str(year)
+            source=ReferenceSource.PUBMED,
+            source_id=str(pmid),
+            author=author,
+            year=cls._clean_year(year),
         )
 
     @classmethod
     def from_zotero(cls, item_key: str, author: str = "", year: str = "") -> "ReferenceId":
         """Create from Zotero item key."""
-        return cls(source=ReferenceSource.ZOTERO, source_id=item_key, author=author, year=str(year))
+        return cls(
+            source=ReferenceSource.ZOTERO,
+            source_id=item_key,
+            author=author,
+            year=cls._clean_year(year),
+        )
 
     @classmethod
     def from_doi(cls, doi: str, author: str = "", year: str = "") -> "ReferenceId":
         """Create from DOI."""
-        return cls(source=ReferenceSource.DOI, source_id=doi, author=author, year=str(year))
+        return cls(
+            source=ReferenceSource.DOI, source_id=doi, author=author, year=cls._clean_year(year)
+        )
 
     @classmethod
     def from_article(cls, article: dict) -> "ReferenceId":
@@ -136,7 +154,7 @@ class ReferenceId:
         """
         # Extract author and year
         author = cls._extract_author(article)
-        year = str(article.get("year", ""))
+        year = cls._clean_year(article.get("year"))
 
         # Priority: PMID > Zotero key > DOI
         if article.get("pmid"):
@@ -154,12 +172,12 @@ class ReferenceId:
         # Try authors_full (structured)
         authors_full = article.get("authors_full", [])
         if authors_full and isinstance(authors_full[0], dict):
-            return authors_full[0].get("last_name", "")
+            return authors_full[0].get("last_name") or ""
 
         # Try creators (Zotero format)
         creators = article.get("creators", [])
         if creators and isinstance(creators[0], dict):
-            return creators[0].get("lastName", "")
+            return creators[0].get("lastName") or ""
 
         # Try authors list (string format)
         authors = article.get("authors", [])

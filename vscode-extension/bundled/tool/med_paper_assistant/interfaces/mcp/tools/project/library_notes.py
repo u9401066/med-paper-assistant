@@ -22,6 +22,9 @@ from .._shared import (
     log_tool_result,
     resolve_project_context,
 )
+from .._shared.path_errors import catch_path_errors
+from .library_note_support import default_queue_bucket as _default_queue_bucket
+from .library_note_support import default_status as _default_status
 
 ALLOWED_LIBRARY_SECTIONS = ("inbox", "concepts", "projects", "review", "daily")
 SECTION_ALIASES = {
@@ -164,28 +167,25 @@ def _resolve_note_path(section_dir: Path, filename: str) -> Path:
     )
 
 
+def _resolve_section_dir(
+    info: dict[str, Any], section: str, *, create: bool = True
+) -> tuple[Optional[Path], str]:
+    """Resolve a library section directory; read-only callers pass ``create=False``."""
+    normalized = _normalize_section(section)
+    if normalized not in ALLOWED_LIBRARY_SECTIONS:
+        allowed = ", ".join(ALLOWED_LIBRARY_SECTIONS)
+        return None, f"❌ Invalid section '{section}'. Use one of: {allowed}."
+    raw_path = info.get("paths", {}).get(normalized)
+    if not raw_path:
+        return None, f"❌ Project is missing the '{normalized}' directory."
+    section_dir = Path(raw_path)
+    if create:
+        section_dir.mkdir(parents=True, exist_ok=True)
+    return section_dir, ""
+
+
 def _default_title_from_filename(filename: str) -> str:
     return Path(filename).stem.replace("-", " ").replace("_", " ").strip().title() or "Untitled"
-
-
-def _default_status(section: str) -> str:
-    return {
-        "inbox": "captured",
-        "concepts": "curated",
-        "projects": "synthesized",
-        "review": "reviewing",
-        "daily": "logged",
-    }.get(section, "active")
-
-
-def _default_queue_bucket(section: str) -> str:
-    return {
-        "inbox": "capture",
-        "concepts": "concept-build",
-        "projects": "synthesis",
-        "review": "review",
-        "daily": "daily",
-    }.get(section, "capture")
 
 
 def _normalize_template_name(template: str, section: str = "") -> str:
@@ -788,7 +788,9 @@ def register_library_note_tools(
 ) -> dict[str, Any]:
     """Register markdown note tools for library-wiki projects."""
 
-    tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+    tool = catch_path_errors(
+        get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
+    )
 
     def _resolve_library_project(project: Optional[str]) -> tuple[Optional[dict[str, Any]], str]:
         info, error_msg = resolve_project_context(
@@ -797,20 +799,6 @@ def register_library_note_tools(
             project_manager=project_manager,
         )
         return info, error_msg or ""
-
-    def _resolve_section_dir(info: dict[str, Any], section: str) -> tuple[Optional[Path], str]:
-        normalized = _normalize_section(section)
-        if normalized not in ALLOWED_LIBRARY_SECTIONS:
-            allowed = ", ".join(ALLOWED_LIBRARY_SECTIONS)
-            return None, f"❌ Invalid section '{section}'. Use one of: {allowed}."
-
-        raw_path = info.get("paths", {}).get(normalized)
-        if not raw_path:
-            return None, f"❌ Project is missing the '{normalized}' directory."
-
-        section_dir = Path(raw_path)
-        section_dir.mkdir(parents=True, exist_ok=True)
-        return section_dir, ""
 
     @tool()
     def list_library_notes(section: str = "all", project: Optional[str] = None) -> str:
@@ -836,7 +824,7 @@ def register_library_note_tools(
         total_notes = 0
 
         for current_section in sections:
-            section_dir, error_msg = _resolve_section_dir(info, current_section)
+            section_dir, error_msg = _resolve_section_dir(info, current_section, create=False)
             if section_dir is None:
                 return error_msg
 
@@ -879,7 +867,7 @@ def register_library_note_tools(
             )
             return error_msg
 
-        section_dir, error_msg = _resolve_section_dir(info, section)
+        section_dir, error_msg = _resolve_section_dir(info, section, create=False)
         if section_dir is None:
             return error_msg
 
@@ -1349,7 +1337,7 @@ def register_library_note_tools(
         results: list[tuple[str, str, str, str]] = []
 
         for current_section in sections:
-            section_dir, error_msg = _resolve_section_dir(info, current_section)
+            section_dir, error_msg = _resolve_section_dir(info, current_section, create=False)
             if section_dir is None:
                 return error_msg
 

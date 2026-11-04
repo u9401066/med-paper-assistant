@@ -45,6 +45,7 @@ from med_paper_assistant.infrastructure.external.approval_signatures import (
     verify_external_approval_signature,
 )
 from med_paper_assistant.infrastructure.persistence.data_artifact_tracker import DataArtifactTracker
+from med_paper_assistant.infrastructure.persistence.state_io import load_json_object
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
 from med_paper_assistant.shared.export_integrity import (
     inspect_docx_xml_smoke,
@@ -562,13 +563,10 @@ class PipelineGateValidator:
         if not manifest_path.is_file():
             return []
 
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return []
+        manifest = load_json_object(manifest_path) or {}
 
         entries: list[dict[str, Any]] = []
-        for entry in manifest.get("figures", []):
+        for entry in manifest.get("figures") or []:
             if isinstance(entry, dict):
                 entries.append(
                     {
@@ -578,7 +576,7 @@ class PipelineGateValidator:
                         "caption": str(entry.get("caption", "")).strip(),
                     }
                 )
-        for entry in manifest.get("tables", []):
+        for entry in manifest.get("tables") or []:
             if isinstance(entry, dict):
                 entries.append(
                     {
@@ -588,7 +586,7 @@ class PipelineGateValidator:
                         "caption": str(entry.get("caption", "")).strip(),
                     }
                 )
-        for entry in manifest.get("assets", []):
+        for entry in manifest.get("assets") or []:
             if isinstance(entry, dict) and entry.get("type") in {"figure", "table"}:
                 entries.append(
                     {
@@ -618,7 +616,7 @@ class PipelineGateValidator:
         if caption:
             for entry in same_kind:
                 entry_caption = entry.get("caption", "").strip().lower()
-                if entry_caption == caption or caption in entry_caption or entry_caption in caption:
+                if entry_caption and (caption in entry_caption or entry_caption in caption):
                     return entry
 
         asset_id = str(planned_asset.get("id", ""))
@@ -745,7 +743,7 @@ class PipelineGateValidator:
             )
 
         workflow_mode = self._get_workflow_mode()
-        if workflow_mode == "library-wiki" and phase >= 3:
+        if workflow_mode == "library-wiki" and self._phase_rank(phase) >= self._phase_rank(3):
             result = GateResult(
                 phase=phase,
                 phase_name=f"Phase {phase} (Library Wiki Path)",
@@ -1644,13 +1642,14 @@ class PipelineGateValidator:
         if jp_path.is_file():
             try:
                 with open(jp_path, encoding="utf-8") as f:
-                    profile = yaml.safe_load(f) or {}
-                min_limits = profile.get("references", {}).get("minimum_reference_limits", {})
-                if isinstance(min_limits, dict):
-                    val = min_limits.get(paper_type)
+                    profile = yaml.safe_load(f)
+                refs = profile.get("references") if isinstance(profile, dict) else None
+                limits = refs.get("minimum_reference_limits") if isinstance(refs, dict) else None
+                if isinstance(limits, dict):
+                    val = limits.get(paper_type)
                     if val is not None:
                         return int(val)
-            except (OSError, ValueError, yaml.YAMLError):
+            except (OSError, TypeError, ValueError, yaml.YAMLError):
                 pass
 
         # 2. Built-in defaults per paper type

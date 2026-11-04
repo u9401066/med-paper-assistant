@@ -408,11 +408,11 @@ Remimazolam is a novel benzodiazepine [@tang2024].
 
         from med_paper_assistant.infrastructure.services import pandoc_exporter
 
-        def fake_convert_text(source, to, format, outputfile, extra_args):
+        def fake_run_pandoc(source, to, *, source_format, output_file, extra_args):
             captured["extra_args"] = extra_args
-            return outputfile or ""
+            return output_file or ""
 
-        monkeypatch.setattr(pandoc_exporter.pypandoc, "convert_text", fake_convert_text)
+        monkeypatch.setattr(pandoc_exporter, "run_pandoc", fake_run_pandoc)
 
         exporter.convert(
             "Text [@tang2023_38049909].",

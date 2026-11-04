@@ -35,10 +35,17 @@ async def test_open_project_files_resolves_current_slug_to_project_info(
                 "project_path": str(project_dir),
             }
 
+    from med_paper_assistant.interfaces.mcp.tools.project.vscode_launcher import LaunchResult
+
     opened: list[list[str]] = []
+
+    def fake_open(paths):
+        opened.append(list(paths))
+        return LaunchResult(cli="code", opened=list(paths))
+
     monkeypatch.setattr(
-        "med_paper_assistant.interfaces.mcp.tools.project.workspace.subprocess.run",
-        lambda command, **_kwargs: opened.append(command),
+        "med_paper_assistant.interfaces.mcp.tools.project.workspace.open_files_in_vscode",
+        fake_open,
     )
     tools = register_workspace_tools(MCPServer("workspace-test"), FakeProjectManager())
 
@@ -47,4 +54,4 @@ async def test_open_project_files_resolves_current_slug_to_project_info(
     assert "Demo Project" in result
     assert "concept.md" in result
     assert "draft.md" in result
-    assert len(opened) == 2
+    assert len(opened) == 1 and len(opened[0]) == 2

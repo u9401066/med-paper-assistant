@@ -28,7 +28,11 @@ import structlog
 
 from med_paper_assistant.shared.template_paths import get_templates_dir
 
+from .pandoc_runner import PandocTimeoutError, build_pandoc_args, run_pandoc
+
 logger = structlog.get_logger()
+
+__all__ = ["PandocExporter", "PandocTimeoutError"]
 
 _CSL_ALIASES = {
     "vancouver-superscript": "vancouver-superscript.csl",
@@ -110,39 +114,20 @@ class PandocExporter:
         if not self._pandoc_available:
             raise RuntimeError("Pandoc binary not available")
 
-        args = list(extra_args or [])
+        args = build_pandoc_args(
+            reference_doc=reference_doc,
+            csl=csl,
+            bibliography=bibliography,
+            extra_args=extra_args,
+            filters=filters,
+            resolve_csl=self.resolve_csl,
+        )
 
-        # --reference-doc for Word templates
-        if reference_doc and os.path.isfile(reference_doc):
-            args.extend(["--reference-doc", reference_doc])
-
-        # --csl for citation styles
-        csl_path = self.resolve_csl(csl) if csl else None
-        if csl_path:
-            args.extend(["--csl", csl_path])
-        elif csl:
-            logger.warning("CSL style '%s' not found; Pandoc citeproc will use defaults", csl)
-
-        # --bibliography for Pandoc's built-in citeproc
-        if bibliography and os.path.isfile(bibliography):
-            args.extend(["--bibliography", bibliography])
-            if "--citeproc" not in args:
-                args.append("--citeproc")
-
-        # Apply filters
-        if filters:
-            for f in filters:
-                args.extend(["--filter", f])
-
-        # Standalone for complete documents
-        if "--standalone" not in args and "-s" not in args:
-            args.append("--standalone")
-
-        result = pypandoc.convert_text(
+        result = run_pandoc(
             source,
             to,
-            format=source_format,
-            outputfile=output_file,
+            source_format=source_format,
+            output_file=output_file,
             extra_args=args,
         )
 
@@ -338,7 +323,10 @@ class PandocExporter:
         if not csl:
             return None
 
-        # Direct file path
+        if csl.startswith(("\\\\", "//")):
+            logger.warning("CSL style path rejected (UNC/network path)")
+            return None
+
         if os.path.isfile(csl):
             return csl
 

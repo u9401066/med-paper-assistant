@@ -19,13 +19,18 @@ from med_paper_assistant.infrastructure.persistence.exemplar_usage_store import 
     ExemplarUsageStore,
 )
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
-from med_paper_assistant.shared.workspace_root import resolve_workspace_root
 
 from .._shared import (
     facade_schema_json,
     invoke_tool_handler,
     normalize_facade_action,
     resolve_project_context,
+)
+from .facade_guards import (
+    JOURNAL_PROFILE_FILENAME,
+    resolve_source_scan_root,
+    source_dir_error,
+    write_journal_profile,
 )
 
 ToolMap = Mapping[str, Callable[..., Any]]
@@ -152,24 +157,6 @@ def _safe_relative_path(path: Path, base: Path) -> str:
         return str(path)
 
 
-def _infer_workspace_root(project_dir: Path) -> Path:
-    """Infer the workspace root from a project path."""
-    if project_dir.parent.name == "projects" and not os.environ.get("MEDPAPER_BASE_DIR"):
-        return project_dir.parent.parent.resolve()
-    return resolve_workspace_root()
-
-
-def _resolve_source_scan_root(source_dir: str, project_dir: Path) -> tuple[Path, Path]:
-    """Resolve the requested source-material scan root."""
-    workspace_root = _infer_workspace_root(project_dir)
-    if source_dir.strip():
-        candidate = Path(source_dir).expanduser()
-        if not candidate.is_absolute():
-            candidate = workspace_root / candidate
-        return candidate.resolve(), workspace_root
-    return workspace_root, workspace_root
-
-
 def _iter_source_material_files(
     *,
     scan_root: Path,
@@ -271,7 +258,7 @@ def _write_source_materials_manifest(
     include_project_files: bool,
 ) -> tuple[Path, Path, dict[str, Any]]:
     """Scan workspace inputs and write Phase 0 source-material artifacts."""
-    scan_root, workspace_root = _resolve_source_scan_root(source_dir, project_dir)
+    scan_root, workspace_root = resolve_source_scan_root(source_dir, project_dir)
     audit_dir = project_dir / ".audit"
     audit_dir.mkdir(parents=True, exist_ok=True)
 
@@ -847,11 +834,9 @@ def register_project_facade_tools(
                 language_preference=language_preference,
                 writing_style=writing_style,
             )
-            profile_path = project_dir / "journal-profile.yaml"
-            profile_path.write_text(
-                yaml.dump(profile, default_flow_style=False, allow_unicode=True, sort_keys=False),
-                encoding="utf-8",
-            )
+            profile_path = project_dir / JOURNAL_PROFILE_FILENAME
+            if blocked := write_journal_profile(profile_path, profile, overwrite=confirm):
+                return blocked
             return (
                 "status: ok\n"
                 "action: journal_profile\n"
@@ -867,6 +852,8 @@ def register_project_facade_tools(
             if workflow_error or project_info is None:
                 return workflow_error or "❌ Project context could not be resolved."
             project_dir = Path(project_info["project_path"])
+            if scan_error := source_dir_error(source_dir, project_dir):
+                return scan_error
             manifest_path, report_path, manifest = _write_source_materials_manifest(
                 project_dir=project_dir,
                 project_slug=str(project_info.get("slug", slug or project_dir.name)),
@@ -1132,7 +1119,7 @@ def register_project_facade_tools(
                     "filename": filename,
                     "title": title,
                     "summary": content,
-                    "source_notes_csv": query or source_note or filename,
+                    "source_notes_csv": source_notes_csv or query or source_note,
                     "tags_csv": tags_csv,
                     "open_questions": status,
                     "project": project,

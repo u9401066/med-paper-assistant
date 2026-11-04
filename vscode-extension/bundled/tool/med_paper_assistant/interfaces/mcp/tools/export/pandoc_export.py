@@ -23,6 +23,7 @@ from .._shared import (
     log_tool_result,
     resolve_project_context,
 )
+from .export_inputs import entry_title, require_drafts_dir, resolve_export_inputs
 
 
 def register_pandoc_export_tools(
@@ -202,19 +203,20 @@ def register_pandoc_export_tools(
                     "- Python: `import pypandoc; pypandoc.download_pandoc()`"
                 )
 
-            # Resolve paths
-            paths = pm.get_project_paths()
-            drafts_dir = paths.get("drafts", "drafts")
+            drafts_dir = require_drafts_dir(pm.get_project_paths())
             safe_draft_filename, draft_path = _resolve_draft_path(drafts_dir, draft_filename)
 
             if not os.path.exists(draft_path):
                 return f"❌ Draft file not found: `{safe_draft_filename}`"
 
+            project_dir, csl_file, reference_doc_file = resolve_export_inputs(
+                drafts_dir, pipeline, csl_style, reference_doc
+            )
+
             # ── HARD GATE: C5 Wikilink Resolvable ──
             with open(draft_path, "r", encoding="utf-8") as f:
                 draft_content = f.read()
 
-            project_dir = str(Path(drafts_dir).parent)
             gate_error = _run_pre_export_citation_gate(draft_content, project_dir)
             if gate_error:
                 log_tool_error(
@@ -232,8 +234,7 @@ def register_pandoc_export_tools(
 
             # Determine output path
             if not output_filename:
-                base = os.path.splitext(safe_draft_filename)[0]
-                output_filename = f"{base}.docx"
+                output_filename = f"{os.path.splitext(safe_draft_filename)[0]}.docx"
 
             exports_dir = os.path.join(os.path.dirname(drafts_dir), "exports")
             os.makedirs(exports_dir, exist_ok=True)
@@ -254,8 +255,8 @@ def register_pandoc_export_tools(
             result = pipeline.export_docx(
                 draft_path=draft_path,
                 output_path=output_path,
-                csl_style=csl_style,
-                reference_doc=reference_doc,
+                csl_style=csl_file,
+                reference_doc=reference_doc_file,
                 metadata=metadata,
             )
 
@@ -331,18 +332,18 @@ def register_pandoc_export_tools(
                     "- macOS: `brew install pandoc basictex`"
                 )
 
-            paths = pm.get_project_paths()
-            drafts_dir = paths.get("drafts", "drafts")
+            drafts_dir = require_drafts_dir(pm.get_project_paths())
             safe_draft_filename, draft_path = _resolve_draft_path(drafts_dir, draft_filename)
 
             if not os.path.exists(draft_path):
                 return f"❌ Draft file not found: `{safe_draft_filename}`"
 
+            project_dir, csl_file, _ = resolve_export_inputs(drafts_dir, pipeline, csl_style)
+
             # ── HARD GATE: C5 Wikilink Resolvable ──
             with open(draft_path, "r", encoding="utf-8") as f:
                 draft_content = f.read()
 
-            project_dir = str(Path(drafts_dir).parent)
             gate_error = _run_pre_export_citation_gate(draft_content, project_dir)
             if gate_error:
                 log_tool_error("export_pdf", Exception("C5 gate failed"), {"draft": draft_filename})
@@ -377,7 +378,7 @@ def register_pandoc_export_tools(
             result = pipeline.export_pdf(
                 draft_path=draft_path,
                 output_path=output_path,
-                csl_style=csl_style,
+                csl_style=csl_file,
                 metadata=metadata,
             )
 
@@ -436,8 +437,7 @@ def register_pandoc_export_tools(
             pipeline, pm = _get_pipeline()
 
             # Resolve paths
-            paths = pm.get_project_paths()
-            drafts_dir = paths.get("drafts", "drafts")
+            drafts_dir = require_drafts_dir(pm.get_project_paths())
             safe_draft_filename, draft_path = _resolve_draft_path(drafts_dir, draft_filename)
 
             if not os.path.exists(draft_path):
@@ -462,7 +462,7 @@ def register_pandoc_export_tools(
                 if prepared["bibliography"]:
                     output += "\n**CSL-JSON preview:**\n"
                     for entry in prepared["bibliography"][:5]:
-                        title = entry.get("title", "Unknown")[:80]
+                        title = entry_title(entry)
                         output += f"- `{entry.get('id', '?')}`: {title}\n"
                     if len(prepared["bibliography"]) > 5:
                         output += f"  ... and {len(prepared['bibliography']) - 5} more\n"
@@ -517,8 +517,7 @@ def register_pandoc_export_tools(
         try:
             pipeline, pm = _get_pipeline()
 
-            paths = pm.get_project_paths()
-            drafts_dir = paths.get("drafts", "drafts")
+            drafts_dir = require_drafts_dir(pm.get_project_paths())
             safe_draft_filename, draft_path = _resolve_draft_path(drafts_dir, draft_filename)
 
             if not os.path.exists(draft_path):
@@ -548,7 +547,7 @@ def register_pandoc_export_tools(
             if entries:
                 output += "**References:**\n"
                 for entry in entries:
-                    title = entry.get("title", "Unknown")[:80]
+                    title = entry_title(entry)
                     authors = entry.get("author", [])
                     first_author = authors[0].get("family", "?") if authors else "?"
                     year = entry.get("issued", {}).get("date-parts", [[None]])[0][0] or "?"
@@ -581,8 +580,7 @@ def register_pandoc_export_tools(
 
         try:
             pipeline, pm = _get_pipeline()
-            paths = pm.get_project_paths()
-            drafts_dir = paths.get("drafts", "drafts")
+            drafts_dir = require_drafts_dir(pm.get_project_paths())
             exports_dir = os.path.join(os.path.dirname(drafts_dir), "exports")
             _, docx_path = _resolve_output_path(
                 exports_dir,

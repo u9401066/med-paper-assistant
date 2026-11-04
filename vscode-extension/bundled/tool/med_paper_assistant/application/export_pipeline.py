@@ -30,6 +30,10 @@ from med_paper_assistant.domain.services.citation_converter import (
     extract_citation_keys,
     wikilinks_to_pandoc,
 )
+from med_paper_assistant.domain.services.reference_key_resolution import (
+    extract_pmid_from_key,
+    resolve_reference_metadata,
+)
 from med_paper_assistant.shared import export_integrity
 
 logger = structlog.get_logger()
@@ -628,19 +632,21 @@ class ExportPipeline:
         Returns:
             CSL-JSON dict or None if not found.
         """
-        pmid = self._extract_pmid(key)
-        if not pmid:
+        resolved = resolve_reference_metadata(
+            key,
+            self._ref_manager.get_metadata,
+            getattr(self._ref_manager, "list_references", None),
+        )
+        if not resolved:
             return None
-
-        metadata = self._ref_manager.get_metadata(pmid)
-        if not metadata:
-            return None
+        ref_id, metadata = resolved
+        pmid = extract_pmid_from_key(key) or str(metadata.get("pmid") or "")
 
         # Build a domain Reference entity for CSL conversion.
         from med_paper_assistant.domain.entities.reference import Reference
 
         ref = Reference(
-            unique_id=pmid,
+            unique_id=ref_id,
             title=metadata.get("title", ""),
             pmid=pmid,
             doi=metadata.get("doi", ""),
@@ -667,20 +673,6 @@ class ExportPipeline:
           tang2023_38049909  → 38049909
           PMID:38049909      → 38049909
           38049909           → 38049909
+        Zotero/DOI keys (``author2024_zot_ID``) never yield a PMID.
         """
-        # author2024_PMID format
-        if "_" in key:
-            parts = key.split("_")
-            candidate = parts[-1]
-            if candidate.isdigit():
-                return candidate
-
-        # PMID:xxx
-        if key.upper().startswith("PMID:"):
-            return key.split(":")[1].strip()
-
-        # Pure PMID
-        if key.isdigit():
-            return key
-
-        return None
+        return extract_pmid_from_key(key)

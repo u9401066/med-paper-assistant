@@ -33,6 +33,8 @@ from typing import Any
 import structlog
 import yaml
 
+from .state_io import atomic_write_text, quarantine_corrupt_file
+
 logger = structlog.get_logger()
 
 
@@ -67,8 +69,12 @@ class ToolInvocationStore:
                     loaded.setdefault("tools", {})
                     self._data = loaded
                     return self._data
-            except (yaml.YAMLError, OSError) as e:
+            except (yaml.YAMLError, UnicodeError) as e:
+                quarantine_corrupt_file(self._path, e)
+            except OSError as e:
                 logger.warning("tool_invocation_store.load_failed", error=str(e))
+            else:
+                quarantine_corrupt_file(self._path, "root is not a mapping")
 
         self._data = {
             "version": 1,
@@ -82,9 +88,9 @@ class ToolInvocationStore:
         self._dir.mkdir(parents=True, exist_ok=True)
         data = self._load()
         data["updated_at"] = datetime.now().isoformat()
-        self._path.write_text(
+        atomic_write_text(
+            self._path,
             yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False),
-            encoding="utf-8",
         )
 
     def _ensure_tool(self, tool_name: str) -> None:

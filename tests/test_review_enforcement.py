@@ -20,6 +20,12 @@ from med_paper_assistant.infrastructure.persistence.autonomous_audit_loop import
     Severity,
 )
 
+
+def _full_scores(value: float) -> dict[str, float]:
+    """Uniform score for every configured dimension (complete_round requires them all)."""
+    return dict.fromkeys(AuditLoopConfig().dimension_weights, value)
+
+
 # ── Fixtures ───────────────────────────────────────────────────────────
 
 
@@ -68,7 +74,7 @@ class TestAuditLoopHashTracking:
         loop.record_issue("R1", Severity.MAJOR, "test issue", "fix it")
         loop.record_fix(0, "manual", True)
         verdict = loop.complete_round(
-            {"text_quality": 8, "citation_quality": 8},
+            _full_scores(8),
             artifact_hash="hash_after",
         )
         assert verdict == RoundVerdict.QUALITY_MET
@@ -81,7 +87,7 @@ class TestAuditLoopHashTracking:
         """Hash fields should persist through save/load."""
         loop.start_round(artifact_hash="start_hash_123")
         loop.complete_round(
-            {"text_quality": 8, "citation_quality": 8},
+            _full_scores(8),
             artifact_hash="end_hash_456",
         )
         loop.save()
@@ -96,7 +102,7 @@ class TestAuditLoopHashTracking:
     def test_round_record_loads_hashes(self, loop, audit_dir):
         """Hashes should survive save/load cycle."""
         loop.start_round(artifact_hash="h1")
-        loop.complete_round({"text_quality": 9}, artifact_hash="h2")
+        loop.complete_round(_full_scores(9), artifact_hash="h2")
         loop.save()
 
         # Create a new loop and load
@@ -111,7 +117,7 @@ class TestAuditLoopHashTracking:
     def test_empty_hash_when_not_provided(self, loop, audit_dir):
         """Hashes default to empty string when not provided."""
         loop.start_round()  # No hash
-        loop.complete_round({"text_quality": 8})  # No hash
+        loop.complete_round(_full_scores(8))  # No hash
         loop.save()
 
         data_path = audit_dir / "audit-loop-review.json"
@@ -266,7 +272,7 @@ class TestMultiRoundHashTracking:
         loop.record_issue("R1", Severity.MAJOR, "issue1", "fix1")
         loop.record_fix(0, "fix", True)
         v1 = loop.complete_round(
-            {"text_quality": 6, "citation_quality": 6},
+            _full_scores(6),
             artifact_hash="v1_modified_hash",
         )
         assert v1 == RoundVerdict.CONTINUE
@@ -276,7 +282,7 @@ class TestMultiRoundHashTracking:
         loop.record_issue("R2", Severity.MINOR, "issue2", "fix2")
         loop.record_fix(0, "fix", True)
         v2 = loop.complete_round(
-            {"text_quality": 8, "citation_quality": 8},
+            _full_scores(8),
             artifact_hash="v2_modified_hash",
         )
         assert v2 == RoundVerdict.QUALITY_MET
@@ -312,7 +318,7 @@ class TestMinRoundsEnforcement:
         loop = AutonomousAuditLoop(str(audit_dir), config=config)
         loop.start_round(artifact_hash="h1")
         verdict = loop.complete_round(
-            {"text_quality": 10, "citation_quality": 10},
+            _full_scores(10),
             artifact_hash="h2",
         )
         assert verdict == RoundVerdict.CONTINUE
@@ -329,12 +335,12 @@ class TestMinRoundsEnforcement:
 
         # Round 1: forced CONTINUE
         loop.start_round(artifact_hash="h1")
-        v1 = loop.complete_round({"text_quality": 9}, artifact_hash="h2")
+        v1 = loop.complete_round(_full_scores(9), artifact_hash="h2")
         assert v1 == RoundVerdict.CONTINUE
 
         # Round 2: now QUALITY_MET allowed
         loop.start_round(artifact_hash="h3")
-        v2 = loop.complete_round({"text_quality": 9}, artifact_hash="h4")
+        v2 = loop.complete_round(_full_scores(9), artifact_hash="h4")
         assert v2 == RoundVerdict.QUALITY_MET
 
     def test_min_rounds_persists_through_save_load(self, audit_dir):
@@ -342,7 +348,7 @@ class TestMinRoundsEnforcement:
         config = AuditLoopConfig(min_rounds=3, context="review")
         loop = AutonomousAuditLoop(str(audit_dir), config=config)
         loop.start_round()
-        loop.complete_round({"text_quality": 5})
+        loop.complete_round(_full_scores(5))
         loop.save()
 
         data_path = audit_dir / "audit-loop-review.json"
@@ -404,7 +410,7 @@ class TestCrossSessionHashPersistence:
         config = AuditLoopConfig(context="review", min_rounds=1)
         loop = AutonomousAuditLoop(str(audit_dir), config=config)
         loop.start_round(artifact_hash="start_h")
-        loop.complete_round({"text_quality": 9}, artifact_hash="end_h")
+        loop.complete_round(_full_scores(9), artifact_hash="end_h")
         loop.save()
 
         loop2 = AutonomousAuditLoop(str(audit_dir), config=config)
@@ -556,7 +562,7 @@ class TestGetStatusKey:
         config = AuditLoopConfig(context="review", min_rounds=1)
         loop = AutonomousAuditLoop(str(audit_dir), config=config)
         loop.start_round(artifact_hash="k1")
-        loop.complete_round({"text_quality": 8}, artifact_hash="k2")
+        loop.complete_round(_full_scores(8), artifact_hash="k2")
         status = loop.get_status()
         assert "latest_weighted_score" in status
         assert status["latest_weighted_score"] == status["latest_score"]
@@ -573,7 +579,7 @@ class TestAuditLoopReset:
         config = AuditLoopConfig(context="review", min_rounds=1)
         loop = AutonomousAuditLoop(str(audit_dir), config=config)
         loop.start_round(artifact_hash="r1")
-        loop.complete_round({"text_quality": 7}, artifact_hash="r2")
+        loop.complete_round(_full_scores(7), artifact_hash="r2")
         loop.save()
 
         # Verify state file exists
@@ -590,7 +596,7 @@ class TestAuditLoopReset:
         config = AuditLoopConfig(context="review", min_rounds=1)
         loop = AutonomousAuditLoop(str(audit_dir), config=config)
         loop.start_round(artifact_hash="old")
-        loop.complete_round({"text_quality": 5}, artifact_hash="old2")
+        loop.complete_round(_full_scores(5), artifact_hash="old2")
 
         loop.reset()
 

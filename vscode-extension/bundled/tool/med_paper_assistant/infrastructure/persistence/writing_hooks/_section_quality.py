@@ -321,7 +321,7 @@ class SectionQualityMixin:
         issues: list[HookIssue] = []
         stats: dict[str, Any] = {"interpretive_count": 0}
 
-        sections = self._parse_sections(content)
+        sections = self._parse_sections_full(content)
         results_text = ""
         for name, text in sections.items():
             if name.lower().startswith("result"):
@@ -405,7 +405,7 @@ class SectionQualityMixin:
         issues: list[HookIssue] = []
         stats: dict[str, Any] = {}
 
-        sections = self._parse_sections(content)
+        sections = self._parse_sections_full(content)
         intro_text = ""
         for name, text in sections.items():
             if name.lower().startswith("introduction"):
@@ -519,7 +519,7 @@ class SectionQualityMixin:
         issues: list[HookIssue] = []
         stats: dict[str, Any] = {}
 
-        sections = self._parse_sections(content)
+        sections = self._parse_sections_full(content)
         discussion_text = ""
         for name, text in sections.items():
             if name.lower().startswith("discussion"):
@@ -799,7 +799,7 @@ class SectionQualityMixin:
         issues: list[HookIssue] = []
         stats: dict[str, Any] = {}
 
-        sections = self._parse_sections(content)
+        sections = self._parse_sections_full(content)
         results_text = ""
         for name, text in sections.items():
             if name.lower().startswith("result"):

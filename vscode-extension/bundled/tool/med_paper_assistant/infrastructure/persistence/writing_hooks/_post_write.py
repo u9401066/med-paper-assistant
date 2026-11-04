@@ -19,6 +19,7 @@ from ._constants import (
     BRIT_VS_AMER,
 )
 from ._models import HookIssue, HookResult
+from ._section_tree import citation_key_from_target
 
 logger = structlog.get_logger()
 
@@ -51,7 +52,7 @@ class PostWriteHooksMixin:
         if section_name:
             sections_to_check = {section_name: content}
         else:
-            sections_to_check = self._parse_sections(content)
+            sections_to_check = self._sections_with_word_limits(content)
 
         checked: list[dict[str, Any]] = []
 
@@ -667,11 +668,10 @@ class PostWriteHooksMixin:
                 stats={"total_wikilinks": 0, "valid_count": 0, "issue_count": 0},
             )
 
-        valid_pattern = re.compile(r"^[a-z]+\d{4}_\d{7,8}$")
         valid_count = 0
 
         for wl in all_wikilinks:
-            if valid_pattern.match(wl):
+            if citation_key_from_target(wl) is not None:
                 valid_count += 1
             else:
                 if re.match(r"^\d{7,8}$", wl):

@@ -12,27 +12,27 @@
     "function": 50
   },
   "summary": {
-    "filesScanned": 158,
+    "filesScanned": 175,
     "definitionsScanned": {
-      "class": 150,
-      "function": 1332
+      "class": 156,
+      "function": 1410
     },
     "violations": {
       "file": 39,
       "class": 24,
-      "function": 328,
-      "total": 391
+      "function": 325,
+      "total": 388
     },
     "maximum": {
       "file": {
         "path": "src/med_paper_assistant/infrastructure/persistence/reference_manager.py",
         "qualifiedSymbol": "<module>",
-        "lines": 4389
+        "lines": 4386
       },
       "class": {
         "path": "src/med_paper_assistant/infrastructure/persistence/reference_manager.py",
         "qualifiedSymbol": "ReferenceManager",
-        "lines": 4359
+        "lines": 4355
       },
       "function": {
         "path": "src/med_paper_assistant/interfaces/mcp/tools/review/audit_hooks.py",
@@ -52,13 +52,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/application/export_pipeline.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 686
+      "allowedLines": 678
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/application/export_pipeline.py",
       "qualifiedSymbol": "ExportPipeline",
-      "allowedLines": 626
+      "allowedLines": 614
     },
     {
       "kind": "function",
@@ -130,7 +130,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/domain/services/wikilink_validator.py",
       "qualifiedSymbol": "validate_wikilinks_in_content",
-      "allowedLines": 103
+      "allowedLines": 87
     },
     {
       "kind": "function",
@@ -190,13 +190,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/persistence/autonomous_audit_loop.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 1020
+      "allowedLines": 1019
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/autonomous_audit_loop.py",
       "qualifiedSymbol": "AutonomousAuditLoop",
-      "allowedLines": 833
+      "allowedLines": 826
     },
     {
       "kind": "function",
@@ -214,13 +214,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 755
+      "allowedLines": 748
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/checkpoint_manager.py",
       "qualifiedSymbol": "CheckpointManager",
-      "allowedLines": 725
+      "allowedLines": 713
     },
     {
       "kind": "function",
@@ -430,13 +430,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/persistence/pipeline_gate_validator.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 3669
+      "allowedLines": 3668
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/pipeline_gate_validator.py",
       "qualifiedSymbol": "PipelineGateValidator",
-      "allowedLines": 3219
+      "allowedLines": 3217
     },
     {
       "kind": "function",
@@ -562,13 +562,13 @@
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/project_manager.py",
       "qualifiedSymbol": "ProjectManager",
-      "allowedLines": 1108
+      "allowedLines": 1106
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/project_manager.py",
       "qualifiedSymbol": "ProjectManager.convert_temp_to_project",
-      "allowedLines": 131
+      "allowedLines": 129
     },
     {
       "kind": "function",
@@ -616,13 +616,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/persistence/reference_manager.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 4389
+      "allowedLines": 4386
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/reference_manager.py",
       "qualifiedSymbol": "ReferenceManager",
-      "allowedLines": 4359
+      "allowedLines": 4355
     },
     {
       "kind": "function",
@@ -886,19 +886,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_manuscript.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 1520
+      "allowedLines": 1298
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_manuscript.py",
       "qualifiedSymbol": "ManuscriptHooksMixin",
-      "allowedLines": 1498
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_manuscript.py",
-      "qualifiedSymbol": "ManuscriptHooksMixin._load_required_visual_assets",
-      "allowedLines": 76
+      "allowedLines": 1267
     },
     {
       "kind": "function",
@@ -910,7 +904,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_manuscript.py",
       "qualifiedSymbol": "ManuscriptHooksMixin.check_asset_plan_coverage",
-      "allowedLines": 93
+      "allowedLines": 89
     },
     {
       "kind": "function",
@@ -922,7 +916,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_manuscript.py",
       "qualifiedSymbol": "ManuscriptHooksMixin.check_citation_relevance_audit",
-      "allowedLines": 116
+      "allowedLines": 115
     },
     {
       "kind": "function",
@@ -934,13 +928,13 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_manuscript.py",
       "qualifiedSymbol": "ManuscriptHooksMixin.check_cross_references",
-      "allowedLines": 95
+      "allowedLines": 62
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_manuscript.py",
       "qualifiedSymbol": "ManuscriptHooksMixin.check_figure_table_counts",
-      "allowedLines": 64
+      "allowedLines": 62
     },
     {
       "kind": "function",
@@ -952,7 +946,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_manuscript.py",
       "qualifiedSymbol": "ManuscriptHooksMixin.check_n_value_consistency",
-      "allowedLines": 85
+      "allowedLines": 57
     },
     {
       "kind": "function",
@@ -994,7 +988,7 @@
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_post_write.py",
       "qualifiedSymbol": "PostWriteHooksMixin",
-      "allowedLines": 871
+      "allowedLines": 870
     },
     {
       "kind": "function",
@@ -1036,7 +1030,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_post_write.py",
       "qualifiedSymbol": "PostWriteHooksMixin.check_wikilink_format",
-      "allowedLines": 57
+      "allowedLines": 56
     },
     {
       "kind": "function",
@@ -1132,13 +1126,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/services/analyzer.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 465
+      "allowedLines": 441
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/services/analyzer.py",
       "qualifiedSymbol": "Analyzer",
-      "allowedLines": 449
+      "allowedLines": 419
     },
     {
       "kind": "function",
@@ -1156,7 +1150,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/services/analyzer.py",
       "qualifiedSymbol": "Analyzer.run_statistical_test",
-      "allowedLines": 116
+      "allowedLines": 112
     },
     {
       "kind": "file",
@@ -1270,13 +1264,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 655
+      "allowedLines": 650
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
       "qualifiedSymbol": "Drafter",
-      "allowedLines": 553
+      "allowedLines": 542
     },
     {
       "kind": "function",
@@ -1288,13 +1282,13 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
       "qualifiedSymbol": "Drafter.insert_citation",
-      "allowedLines": 93
+      "allowedLines": 92
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/services/drafter.py",
       "qualifiedSymbol": "Drafter.sync_references_from_wikilinks",
-      "allowedLines": 168
+      "allowedLines": 155
     },
     {
       "kind": "function",
@@ -1324,13 +1318,13 @@
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/services/pandoc_exporter.py",
       "qualifiedSymbol": "PandocExporter",
-      "allowedLines": 329
+      "allowedLines": 313
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/services/pandoc_exporter.py",
       "qualifiedSymbol": "PandocExporter.convert",
-      "allowedLines": 72
+      "allowedLines": 53
     },
     {
       "kind": "function",
@@ -1630,19 +1624,19 @@
       "kind": "file",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/export/pandoc_export.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 606
+      "allowedLines": 604
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/export/pandoc_export.py",
       "qualifiedSymbol": "register_pandoc_export_tools",
-      "allowedLines": 579
+      "allowedLines": 576
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/export/pandoc_export.py",
       "qualifiedSymbol": "register_pandoc_export_tools.build_bibliography",
-      "allowedLines": 77
+      "allowedLines": 76
     },
     {
       "kind": "function",
@@ -1660,7 +1654,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/export/pandoc_export.py",
       "qualifiedSymbol": "register_pandoc_export_tools.preview_citations",
-      "allowedLines": 78
+      "allowedLines": 77
     },
     {
       "kind": "function",
@@ -1762,7 +1756,7 @@
       "kind": "file",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/project/facade.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 1262
+      "allowedLines": 1249
     },
     {
       "kind": "function",
@@ -1816,7 +1810,7 @@
       "kind": "file",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/project/library_notes.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 2245
+      "allowedLines": 2233
     },
     {
       "kind": "function",
@@ -1834,7 +1828,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/project/library_notes.py",
       "qualifiedSymbol": "register_library_note_tools",
-      "allowedLines": 1463
+      "allowedLines": 1451
     },
     {
       "kind": "function",
@@ -1919,18 +1913,6 @@
       "path": "src/med_paper_assistant/interfaces/mcp/tools/project/settings.py",
       "qualifiedSymbol": "register_settings_tools.update_project_settings",
       "allowedLines": 122
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/interfaces/mcp/tools/project/workspace.py",
-      "qualifiedSymbol": "register_workspace_tools",
-      "allowedLines": 75
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/interfaces/mcp/tools/project/workspace.py",
-      "qualifiedSymbol": "register_workspace_tools.open_project_files",
-      "allowedLines": 63
     },
     {
       "kind": "function",

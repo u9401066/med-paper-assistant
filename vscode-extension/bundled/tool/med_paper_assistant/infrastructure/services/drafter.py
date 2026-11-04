@@ -2,13 +2,19 @@ import os
 import re
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import structlog
 
 from med_paper_assistant.domain.services.citation_converter import (
     restore_reversible_citations_to_wikilinks,
 )
+from med_paper_assistant.domain.services.reference_key_resolution import (
+    extract_pmid_from_key,
+    is_non_pmid_key,
+    resolve_reference_metadata,
+)
+from med_paper_assistant.domain.services.references_section import split_references_section
 from med_paper_assistant.infrastructure.persistence.draft_snapshot_manager import (
     DraftSnapshotManager,
 )
@@ -228,13 +234,12 @@ class Drafter:
             content = f.read()
 
         # 1. Extract and Parse Bibliography to map [n] -> PMID
-        body_content = content
+        split = split_references_section(content)
+        body_content = split.body.strip()
         existing_refs = {}
 
-        if "## References" in content:
-            parts = content.split("## References")
-            body_content = parts[0].strip()
-            references_content = parts[1]
+        if split.has_references:
+            references_content = split.references
 
             # Guard against mixing incompatible citation workflows.
             # insert_citation expects PMID-based bibliography entries, while
@@ -256,7 +261,7 @@ class Drafter:
             # But if we use Author-Date, order doesn't matter as much (alphabetical usually).
 
             bib_pattern = r"\[(\d+)\] .*? PMID:(\d+)"
-            found_refs = re.findall(bib_pattern, content)
+            found_refs = re.findall(bib_pattern, references_content)
             for ref_num, ref_pmid in found_refs:
                 existing_refs[ref_num] = ref_pmid
 
@@ -283,8 +288,8 @@ class Drafter:
         insertion = f" [PMID:{pmid}]"
         new_content = body_content.replace(target_text, target_text + insertion, 1)
 
-        # 4. Re-compile
-        final_content = self._compile_draft(new_content)
+        # 4. Re-compile (trailing sections such as Figure Legends are preserved)
+        final_content = split.with_tail(self._compile_draft(new_content))
 
         # Auto-snapshot before overwrite
         self.snapshot_manager.snapshot_before_write(filename, reason="insert_citation")
@@ -466,24 +471,27 @@ class Drafter:
 
         formatted_content = re.sub(pattern, replace_match, content)
 
-        # 3. Generate Bibliography
-        bibliography = "\n\n## References\n\n"
+        # No citations: leave the content (including any existing References) untouched.
+        if not pmids:
+            return formatted_content
 
-        # For Author-Date styles, usually bibliography is alphabetical.
-        # For Numbered styles, it's by appearance.
-        # We will stick to appearance order for now unless strictly required otherwise.
-        # (APA/Harvard usually alphabetical, but for simplicity we keep appearance order or we'd need to re-sort pmids)
+        # Replace an existing References block instead of appending a duplicate heading.
+        split = split_references_section(formatted_content)
+        bibliography = self._build_bibliography(pmids, citation_map)
+        return split.with_tail(split.body + "\n\n" + bibliography)
 
-        # If APA/Harvard, we should sort pmids alphabetically by author?
-        # Let's keep it simple for Phase 1: Order by appearance for all, but format differently.
-
+    def _build_bibliography(self, pmids: List[str], citation_map: Dict[str, int]) -> str:
+        """Build a References block in order of first appearance for every style."""
+        bibliography = "## References\n\n"
         for pmid in pmids:
             number = citation_map[pmid]
-            metadata = self.ref_manager.get_metadata(pmid) or {}
-            entry = self._format_bibliography_entry(number, metadata, pmid)
-            bibliography += entry
-
-        return formatted_content + bibliography
+            metadata = self.ref_manager.get_metadata(pmid)
+            if not metadata:
+                logger.warning("Reference metadata unavailable for PMID", pmid=pmid)
+                bibliography += f"[{number}] Reference metadata unavailable. PMID:{pmid}\n"
+                continue
+            bibliography += self._format_bibliography_entry(number, metadata, pmid)
+        return bibliography
 
     def sync_references_from_wikilinks(self, filename: str) -> Dict[str, Any]:
         """
@@ -531,11 +539,9 @@ class Drafter:
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # 1. Extract body (everything before ## References)
-        if "## References" in content:
-            body_content = content.split("## References")[0].rstrip()
-        else:
-            body_content = content.rstrip()
+        # 1. Extract body (everything before ## References); keep trailing sections
+        split = split_references_section(content)
+        body_content = split.body
 
         # 2. Restore any previously synced reversible citations back to raw
         #    wikilinks so re-syncing never duplicates the in-text prefix.
@@ -553,44 +559,33 @@ class Drafter:
                 "filepath": filepath,
             }
 
-        # 3. Map wikilinks to PMIDs
-        citations = []  # List of (wikilink, pmid, metadata) in order of appearance
+        # 3. Map wikilinks to saved references
+        citations = []  # List of (wikilink, ref_id, metadata) in order of appearance
         seen_pmids = set()
         not_found = []
 
         for wikilink in wikilinks:
-            # Skip non-citation wikilinks (e.g., internal links)
-            # Citation wikilinks typically match: author_year_pmid or PMID:xxx or just pmid
+            # Skip non-citation wikilinks (e.g., internal links).
+            # Citation wikilinks match: author2024_pmid, PMID:xxx, a bare PMID,
+            # or Zotero/DOI keys (author2024_zot_ID / author2024_doi_ID).
+            if extract_pmid_from_key(wikilink) is None and not is_non_pmid_key(wikilink):
+                continue
 
-            pmid = None
+            resolved = resolve_reference_metadata(
+                wikilink,
+                self.ref_manager.get_metadata,
+                getattr(self.ref_manager, "list_references", None),
+            )
+            if resolved is None:
+                if wikilink not in not_found:
+                    not_found.append(wikilink)
+                continue
 
-            # Try PMID:xxx format
-            if wikilink.upper().startswith("PMID:"):
-                pmid = wikilink.split(":")[1].strip()
-            # Try pure numeric (PMID)
-            elif wikilink.isdigit():
-                pmid = wikilink
-            # Try citation_key format (e.g., pachecolopez2014_24891204)
-            elif "_" in wikilink:
-                # Extract PMID from citation_key (last part after _)
-                parts = wikilink.split("_")
-                potential_pmid = parts[-1]
-                if potential_pmid.isdigit():
-                    pmid = potential_pmid
-
-            if not pmid:
-                continue  # Not a citation wikilink
-
+            pmid, metadata = resolved
             if pmid in seen_pmids:
                 continue  # Already processed
-
-            # Get metadata from reference manager
-            metadata = self.ref_manager.get_metadata(pmid)
-            if metadata:
-                citations.append((wikilink, pmid, metadata))
-                seen_pmids.add(pmid)
-            else:
-                not_found.append(wikilink)
+            citations.append((wikilink, pmid, metadata))
+            seen_pmids.add(pmid)
 
         if not citations:
             return {
@@ -624,8 +619,8 @@ class Drafter:
             # Blank line between entries for readability
             references_section += f"{entry.rstrip()} [[{wikilink}]]\n\n"
 
-        # 6. Assemble final content
-        final_content = new_body + references_section
+        # 6. Assemble final content (re-append sections that followed References)
+        final_content = split.with_tail(new_body + references_section)
 
         # 7. Write back
         with open(filepath, "w", encoding="utf-8") as f:

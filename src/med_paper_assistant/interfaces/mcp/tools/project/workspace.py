@@ -4,11 +4,12 @@ Workspace management tools for VS Code integration.
 These tools help manage VS Code editor tabs when switching projects.
 """
 
+import asyncio
 import os
-import subprocess  # nosec B404 - intentional VS Code integration
 from typing import Any, Optional
 
 from .._shared import get_optional_tool_decorator
+from .vscode_launcher import open_files_in_vscode, render_launch_report
 
 
 def register_workspace_tools(
@@ -48,39 +49,13 @@ def register_workspace_tools(
                 os.path.join(project_path, "drafts", "draft.md"),
             ]
 
-            opened = []
-            not_found = []
+            existing = [p for p in files_to_open if os.path.exists(p)]
+            not_found = [p for p in files_to_open if not os.path.exists(p)]
 
-            for file_path in files_to_open:
-                if os.path.exists(file_path):
-                    # 嘗試用 code 命令開啟
-                    try:
-                        subprocess.run(  # nosec B603 B607 - trusted VS Code CLI
-                            ["code", "--goto", file_path],
-                            check=False,
-                            stdin=subprocess.DEVNULL,
-                            capture_output=True,
-                        )
-                        opened.append(file_path)
-                    except FileNotFoundError:
-                        # code 命令不在 PATH 中
-                        opened.append(f"{file_path} (use vscode:// URI)")
-                else:
-                    not_found.append(file_path)
-
-            result = f"📂 專案: {project.get('name', resolved_slug)}\n\n"
-
-            if opened:
-                result += "✅ 開啟的文件:\n"
-                for f in opened:
-                    result += f"  - {os.path.basename(f)}\n"
-
-            if not_found:
-                result += "\n⚠️ 未找到的文件:\n"
-                for f in not_found:
-                    result += f"  - {os.path.basename(f)}\n"
-
-            return result.strip()
+            launch = await asyncio.to_thread(open_files_in_vscode, existing) if existing else None
+            return render_launch_report(
+                project.get("name", resolved_slug), existing, not_found, launch
+            )
 
         except Exception as e:
             return f"❌ Error: {str(e)}"

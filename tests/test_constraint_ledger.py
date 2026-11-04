@@ -129,9 +129,9 @@ class TestPersistence:
             "{not: valid: yaml: [", encoding="utf-8"
         )
         led = ConstraintLedger(audit_dir)
-        # Should not raise; just starts empty.
+        # Should not raise on read, but must fail closed: never converged.
         assert led.all_constraints() == []
-        assert led.is_converged()
+        assert not led.is_converged()
 
 
 class TestIngestHookIssues:

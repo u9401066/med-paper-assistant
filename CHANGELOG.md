@@ -33,6 +33,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chat hooks no longer steal VS Code window focus on Windows. `.github/hooks/mdpaper-lifecycle.json` ran `./scripts/hooks/copilot/*.sh` directly. Windows resolved those through the `.sh` file association (`git-bash.exe`), which opened a mintty window on every prompt and tool call. Every hook entry now has an explicit `windows` command that runs `scripts/hooks/copilot/hook_dispatch.py` under `pythonw.exe`, which never creates a console window. The dispatcher calls Git's console `bash.exe` with `CREATE_NO_WINDOW` and fails open. POSIX commands now call `bash` explicitly. `tests/test_hook_dispatch.py` guards against regressions.
 - Copilot agent-host hooks (Copilot CLI semantics, used by VS Code's Copilot harness) no longer open VS Code tabs or block tool calls on Windows. In repository hook files that runtime ignores the `windows` key and copies `command` into PowerShell. There a bare `*.sh` path went through the `.sh` file association, which opened editor tabs. `bash` also resolved to WSL's `System32\bash.exe`, which exited with code 1, so the fail-closed `preToolUse` hook denied tool calls. Every entry now has an explicit `powershell` command that runs `hook_dispatch.py` under the repository `.venv` `pythonw.exe` and always ends with `exit 0`. Every entry also has a `bash` command for POSIX and the cloud agent, and `timeoutSec`. `mode-guard.json` now declares `version: 1`. The dispatcher always exits 0 and expresses decisions only through stdout JSON.
 - The workspace root is now resolved in one place (`shared/workspace_root.py`), in this order: `MEDPAPER_BASE_DIR`, then `CLAUDE_PROJECT_DIR`, then the current directory. When an Agent Plugins client starts the server inside the plugin package, it uses `${PLUGIN_DATA}/workspace` instead, so user projects are never written into a plugin package that may be replaced on update.
+- Citation and reference integrity (audit DOM-1/2/3/12/15):
+  - Statistical parentheticals such as `(95% CI ...)` are no longer mistaken for reversible citation markers.
+  - `insert_citation`, `sync_references`, `create_draft` and draft compilation keep content after the References section (appendices, supplementary notes) and no longer duplicate headings or rules. The split logic lives in `domain/services/references_section.py`.
+  - Zotero and other non-PMID citation keys are resolved through `domain/services/reference_key_resolution.py`. Unresolved PMIDs are flagged instead of becoming "Unknown title".
+  - `ReferenceId` folds non-ASCII author names and handles a missing year or last name.
+- Writing hooks no longer pass by accident (audit DOM-4 to DOM-13):
+  - Section word counts include subsections and merge duplicate headings (`writing_hooks/_section_tree.py`).
+  - C3 treats Methods values as the source of truth and ignores thousands separators and subgroup counts (`_n_values.py`).
+  - C7b no longer counts an empty filename or caption, or a bare "Figure" mention, as a placement (`_asset_manifest.py`).
+  - C7a, C7b and C7d report corrupt manifests and plans instead of passing.
+  - A4 and C12 accept hyphenated and Zotero citation keys.
+  - C9 treats only labelled appendices as references.
+  - The word counter counts CJK characters individually and numbers with separators as one token.
+- Persistence safety (audit PERS-1 to PERS-15):
+  - JSON and YAML state is written atomically. Corrupt or non-object files are quarantined instead of being silently replaced with empty state (`persistence/state_io.py`).
+  - A corrupt constraint ledger is no longer reported as converged. Severity only escalates, and invalid status transitions are rejected.
+  - The library-wiki mode no longer auto-passes Phase 2.1.
+  - Pipeline gates tolerate null or non-dict journal profiles and manifests.
+  - `complete_round` rejects invalid scores.
+  - Re-pausing keeps the original draft hashes, and resuming without a pause state no longer raises.
+  - Exploration conversion rejects unsafe slugs and never leaves a partial target.
+  - The reference manager logs corrupt metadata instead of printing to stdout, and skips non-reference directories.
+- MCP tool interfaces (audit IFACE-1 to IFACE-15, DOM-8/14):
+  - Failure strings become proper MCP tool errors (`isError`) at the server boundary (`_shared/tool_errors.py`, `_shared/path_errors.py`).
+  - Opening VS Code no longer blocks the server and reports a missing `code` CLI.
+  - CSL and reference-doc paths must stay inside the workspace. Unknown CSL names, Pandoc timeouts and non-zero exits produce explicit errors (`services/pandoc_runner.py`).
+  - `source_dir` is confined to the workspace.
+  - An existing `journal_profile` is not overwritten without confirmation.
+  - `materialize_concept` keeps the caller's source notes.
+  - Library-note tools return clean errors for case conflicts and path traversal, and read-only tools no longer create directories.
+  - YAML escaping prevents key injection.
+  - An unknown tool surface logs a warning.
+  - The analyzer handles NaN pairs, NaN groups and non-finite p-values.
 
 ## [1.0.3] - 2026-09-01
 

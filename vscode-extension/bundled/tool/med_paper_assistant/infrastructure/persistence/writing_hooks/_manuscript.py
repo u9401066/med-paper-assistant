@@ -14,13 +14,22 @@ from med_paper_assistant.domain.services.citation_converter import (
     extract_reference_wikilink_keys,
 )
 
+from ._asset_manifest import (
+    AssetManifestMixin,
+    asset_issue,
+    cross_reference_issues,
+    is_asset_placed,
+    manifest_numbers,
+)
 from ._constants import COMMON_ABBREVIATIONS
 from ._models import HookIssue, HookResult
+from ._n_values import methods_n_values, n_value_issues
+from ._section_tree import extract_wikilink_citation_keys, has_selected_ancestor
 
 logger = structlog.get_logger()
 
 
-class ManuscriptHooksMixin:
+class ManuscriptHooksMixin(AssetManifestMixin):
     """C-series hooks: post-manuscript quality checks."""
 
     # Declared by JournalConfigMixin / _engine.py
@@ -113,169 +122,6 @@ class ManuscriptHooksMixin:
             stats={"strong_claims_without_evidence": flagged, "by_claim_type": by_type},
         )
 
-    def _load_manifest_entries(self) -> list[dict[str, str]]:
-        """Normalize manifest.json across legacy and current schemas."""
-        manifest_path = self._project_dir / "results" / "manifest.json"
-        if not manifest_path.is_file():
-            return []
-
-        try:
-            with open(manifest_path, encoding="utf-8") as f:
-                manifest = json.load(f)
-        except Exception:
-            return []
-
-        entries: list[dict[str, str]] = []
-        for entry in manifest.get("figures", []):
-            if isinstance(entry, dict):
-                entries.append(
-                    {
-                        "kind": "figure",
-                        "number": str(entry.get("number", "")).strip(),
-                        "filename": str(entry.get("filename", "")).strip(),
-                        "caption": str(entry.get("caption", "")).strip(),
-                    }
-                )
-        for entry in manifest.get("tables", []):
-            if isinstance(entry, dict):
-                entries.append(
-                    {
-                        "kind": "table",
-                        "number": str(entry.get("number", "")).strip(),
-                        "filename": str(entry.get("filename", "")).strip(),
-                        "caption": str(entry.get("caption", "")).strip(),
-                    }
-                )
-        for entry in manifest.get("assets", []):
-            if isinstance(entry, dict) and entry.get("type") in {"figure", "table"}:
-                entries.append(
-                    {
-                        "kind": str(entry.get("type", "")).strip(),
-                        "number": str(entry.get("number", entry.get("id", ""))).strip(),
-                        "filename": str(entry.get("filename", "")).strip(),
-                        "caption": str(entry.get("caption", "")).strip(),
-                    }
-                )
-        return entries
-
-    def _load_required_visual_assets(self) -> list[dict[str, str]]:
-        """Read manuscript-plan.yaml and normalize required figure/table obligations."""
-        plan_path = self._project_dir / "manuscript-plan.yaml"
-        if not plan_path.is_file():
-            return []
-
-        try:
-            import yaml
-
-            plan = yaml.safe_load(plan_path.read_text(encoding="utf-8")) or {}
-        except Exception:
-            return []
-
-        raw_assets = plan.get("asset_plan")
-        if not raw_assets:
-            return []
-
-        result: list[dict[str, str]] = []
-
-        def _asset_kind(asset_type: str) -> str | None:
-            normalized = asset_type.strip().lower()
-            if normalized in {
-                "table",
-                "table_one",
-                "literature_summary_table",
-                "comparison_table",
-                "characteristics_table",
-                "summary_table",
-            }:
-                return "table"
-            if normalized in {
-                "plot",
-                "flow_diagram",
-                "custom_figure",
-                "forest_plot",
-                "funnel_plot",
-                "prisma_diagram",
-                "concept_diagram",
-                "figure",
-            }:
-                return "figure"
-            return None
-
-        def _append(asset: Any, section_hint: str | None = None) -> None:
-            if not isinstance(asset, dict):
-                return
-
-            kind = _asset_kind(str(asset.get("type", "")))
-            section = str(asset.get("section") or section_hint or "").strip()
-            if kind is None or not section:
-                return
-            if asset.get("required") is False or asset.get("optional") is True:
-                return
-
-            result.append(
-                {
-                    "id": str(asset.get("id") or f"{section}-{kind}"),
-                    "kind": kind,
-                    "section": section,
-                    "caption": str(asset.get("caption") or "").strip(),
-                    "type": str(asset.get("type") or "").strip(),
-                }
-            )
-
-        if isinstance(raw_assets, list):
-            for asset in raw_assets:
-                _append(asset)
-        elif isinstance(raw_assets, dict):
-            for section_name, assets in raw_assets.items():
-                if isinstance(assets, list):
-                    for asset in assets:
-                        _append(asset, str(section_name))
-                elif isinstance(assets, dict):
-                    _append(assets, str(section_name))
-
-        return result
-
-    def _match_planned_asset_to_manifest(
-        self,
-        planned_asset: dict[str, str],
-        manifest_entries: list[dict[str, str]],
-    ) -> dict[str, str] | None:
-        """Match a planned asset to its manifest entry using caption or numeric id."""
-        same_kind = [e for e in manifest_entries if e.get("kind") == planned_asset.get("kind")]
-        if not same_kind:
-            return None
-
-        caption = planned_asset.get("caption", "").strip().lower()
-        if caption:
-            for entry in same_kind:
-                entry_caption = entry.get("caption", "").strip().lower()
-                if entry_caption == caption or caption in entry_caption or entry_caption in caption:
-                    return entry
-
-        asset_id = planned_asset.get("id", "")
-        numeric_parts = [part for part in asset_id.replace("_", "-").split("-") if part.isdigit()]
-        if numeric_parts:
-            target_number = numeric_parts[-1]
-            for entry in same_kind:
-                if entry.get("number") == target_number:
-                    return entry
-
-        return same_kind[0] if len(same_kind) == 1 else None
-
-    def _has_exportable_figure_asset(self, filename: str) -> bool:
-        """Check whether a figure filename is directly exportable or has a rendered companion."""
-        if not filename:
-            return False
-
-        figure_path = self._project_dir / "results" / "figures" / filename
-        if figure_path.suffix.lower() in {".png", ".jpg", ".jpeg", ".svg", ".tiff"}:
-            return figure_path.is_file()
-
-        for extension in [".png", ".svg", ".jpg", ".jpeg", ".tiff"]:
-            if (figure_path.parent / f"{figure_path.stem}{extension}").is_file():
-                return True
-        return False
-
     # ── Hook C3: N-value Cross-Section Consistency ─────────────────
 
     def check_n_value_consistency(
@@ -289,41 +135,25 @@ class ManuscriptHooksMixin:
         other sections that differs from Methods is flagged.
         """
         issues: list[HookIssue] = []
-        sections = self._parse_sections(content)
+        nodes = self._section_nodes(content)
 
-        n_patterns = [
-            (r"\b[Nn]\s*=\s*(\d+)\b", "N="),
+        methods_node = next(
             (
-                r"(\d+)\s+(?:patients|subjects|participants|individuals|cases|controls|samples|enrolled)",
-                "count of",
+                n
+                for n in nodes
+                if re.match(r"(?:materials?\s+and\s+)?methods", n.name, re.IGNORECASE)
             ),
-        ]
+            None,
+        )
 
-        def _extract_n_values(text: str) -> dict[str, set[str]]:
-            result: dict[str, set[str]] = {}
-            for pattern, label in n_patterns:
-                values = set(re.findall(pattern, text, re.IGNORECASE))
-                if values:
-                    result[label] = values
-            return result
-
-        methods_key = None
-        for key in sections:
-            if re.match(r"(?:materials?\s+and\s+)?methods", key, re.IGNORECASE):
-                methods_key = key
-                break
-
-        if methods_key is None:
+        if methods_node is None:
             return HookResult(
                 hook_id="C3",
                 passed=True,
                 stats={"note": "No Methods section found, skipping N-value check"},
             )
 
-        methods_n = _extract_n_values(sections[methods_key])
-        all_methods_values: set[str] = set()
-        for vals in methods_n.values():
-            all_methods_values |= vals
+        all_methods_values = methods_n_values(methods_node.full_text)
 
         if not all_methods_values:
             return HookResult(
@@ -332,32 +162,20 @@ class ManuscriptHooksMixin:
                 stats={"note": "No N-values found in Methods"},
             )
 
-        inconsistencies = 0
-        for sec_name, sec_text in sections.items():
-            if sec_name == methods_key:
+        sections_checked = 0
+        for node in nodes:
+            if node.index == methods_node.index or has_selected_ancestor(
+                node, nodes, {methods_node.index}
+            ):
                 continue
-            sec_n = _extract_n_values(sec_text)
-            for label, values in sec_n.items():
-                for val in values:
-                    if val not in all_methods_values and int(val) > 1:
-                        inconsistencies += 1
-                        issues.append(
-                            HookIssue(
-                                hook_id="C3",
-                                severity="CRITICAL",
-                                section=sec_name,
-                                message=(
-                                    f"N-value {label}{val} in {sec_name} "
-                                    f"not found in Methods (Methods has: {sorted(all_methods_values)})"
-                                ),
-                                suggestion=f"Verify {label}{val} is correct or add to Methods",
-                            )
-                        )
+            sections_checked += 1
+            issues.extend(n_value_issues(node.name, node.own_text, all_methods_values))
 
-        passed = not any(i.severity == "CRITICAL" for i in issues)
+        inconsistencies = sum(1 for i in issues if i.severity == "CRITICAL")
+        passed = inconsistencies == 0
         stats = {
             "methods_n_values": sorted(all_methods_values),
-            "sections_checked": len(sections) - 1,
+            "sections_checked": sections_checked,
             "inconsistencies": inconsistencies,
         }
 
@@ -572,14 +390,12 @@ class ManuscriptHooksMixin:
         fig_refs = set(re.findall(r"Figure\s+(\d+)", content, re.IGNORECASE))
         tbl_refs = set(re.findall(r"Table\s+(\d+)", content, re.IGNORECASE))
 
-        manifest_entries = self._load_manifest_entries()
+        manifest_entries, manifest_error = self._load_manifest_entries_checked()
+        if manifest_error:
+            issues.append(self._parse_error_issue("C7a", "results/manifest.json", manifest_error))
         if manifest_entries:
-            manifest_figs = {
-                a.get("number", "") for a in manifest_entries if a.get("kind") == "figure"
-            }
-            manifest_tbls = {
-                a.get("number", "") for a in manifest_entries if a.get("kind") == "table"
-            }
+            manifest_figs = manifest_numbers(manifest_entries, "figure")
+            manifest_tbls = manifest_numbers(manifest_entries, "table")
             fig_count = max(len(fig_refs), len({n for n in manifest_figs if n}))
             tbl_count = max(len(tbl_refs), len({n for n in manifest_tbls if n}))
         else:
@@ -636,7 +452,18 @@ class ManuscriptHooksMixin:
         fig_refs = set(re.findall(r"Figure\s+(\d+)", content, re.IGNORECASE))
         tbl_refs = set(re.findall(r"Table\s+(\d+)", content, re.IGNORECASE))
 
-        manifest_entries = self._load_manifest_entries()
+        manifest_entries, manifest_error = self._load_manifest_entries_checked()
+        if manifest_error:
+            return HookResult(
+                hook_id="C7d",
+                passed=False,
+                issues=[self._parse_error_issue("C7d", "results/manifest.json", manifest_error)],
+                stats={
+                    "note": "manifest.json could not be parsed",
+                    "text_figure_refs": sorted(fig_refs),
+                    "text_table_refs": sorted(tbl_refs),
+                },
+            )
         if not manifest_entries:
             return HookResult(
                 hook_id="C7d",
@@ -648,56 +475,12 @@ class ManuscriptHooksMixin:
                 },
             )
 
-        manifest_figs = {a.get("number", "") for a in manifest_entries if a.get("kind") == "figure"}
-        manifest_tbls = {a.get("number", "") for a in manifest_entries if a.get("kind") == "table"}
+        manifest_figs = manifest_numbers(manifest_entries, "figure")
+        manifest_tbls = manifest_numbers(manifest_entries, "table")
 
-        phantom_figs = fig_refs - manifest_figs
-        phantom_tbls = tbl_refs - manifest_tbls
-
-        for f_num in phantom_figs:
-            issues.append(
-                HookIssue(
-                    hook_id="C7d",
-                    severity="CRITICAL",
-                    section="manuscript",
-                    message=f"Phantom: Figure {f_num} referenced in text but not in manifest",
-                    suggestion=f"Add Figure {f_num} to manifest or remove from text",
-                )
-            )
-        for t_num in phantom_tbls:
-            issues.append(
-                HookIssue(
-                    hook_id="C7d",
-                    severity="CRITICAL",
-                    section="manuscript",
-                    message=f"Phantom: Table {t_num} referenced in text but not in manifest",
-                    suggestion=f"Add Table {t_num} to manifest or remove from text",
-                )
-            )
-
-        orphan_figs = manifest_figs - fig_refs
-        orphan_tbls = manifest_tbls - tbl_refs
-
-        for fig in orphan_figs:
-            issues.append(
-                HookIssue(
-                    hook_id="C7d",
-                    severity="WARNING",
-                    section="manifest",
-                    message=f"Orphan: Figure {fig} in manifest but not referenced in text",
-                    suggestion=f"Add Figure {fig} reference to text or remove from manifest",
-                )
-            )
-        for t_num in orphan_tbls:
-            issues.append(
-                HookIssue(
-                    hook_id="C7d",
-                    severity="WARNING",
-                    section="manifest",
-                    message=f"Orphan: Table {t_num} in manifest but not referenced in text",
-                    suggestion=f"Add Table {t_num} reference to text or remove from manifest",
-                )
-            )
+        phantom_figs, orphan_figs = cross_reference_issues("Figure", fig_refs, manifest_figs)
+        phantom_tbls, orphan_tbls = cross_reference_issues("Table", tbl_refs, manifest_tbls)
+        issues.extend(phantom_figs + phantom_tbls + orphan_figs + orphan_tbls)
 
         passed = not any(i.severity == "CRITICAL" for i in issues)
         stats = {
@@ -724,7 +507,14 @@ class ManuscriptHooksMixin:
         """Hook C7b: verify required planned assets are registered, placed, and exportable."""
         issues: list[HookIssue] = []
 
-        planned_assets = self._load_required_visual_assets()
+        planned_assets, plan_error = self._load_required_visual_assets_checked()
+        if plan_error:
+            return HookResult(
+                hook_id="C7b",
+                passed=False,
+                issues=[self._parse_error_issue("C7b", "manuscript-plan.yaml", plan_error)],
+                stats={"required_assets": 0, "note": "manuscript-plan.yaml could not be parsed"},
+            )
         if not planned_assets:
             return HookResult(
                 hook_id="C7b",
@@ -735,8 +525,10 @@ class ManuscriptHooksMixin:
                 },
             )
 
-        manifest_entries = self._load_manifest_entries()
-        sections = self._parse_sections(content)
+        manifest_entries, manifest_error = self._load_manifest_entries_checked()
+        if manifest_error:
+            issues.append(self._parse_error_issue("C7b", "results/manifest.json", manifest_error))
+        sections = {name.lower(): text for name, text in self._parse_sections_full(content).items()}
 
         matched_count = 0
         placed_count = 0
@@ -746,54 +538,41 @@ class ManuscriptHooksMixin:
             entry = self._match_planned_asset_to_manifest(asset, manifest_entries)
             if entry is None:
                 issues.append(
-                    HookIssue(
-                        hook_id="C7b",
-                        severity="CRITICAL",
-                        section=asset["section"],
-                        message=f"Planned {asset['kind']} '{asset['id']}' is missing from manifest.json",
-                        suggestion="Run insert_figure/insert_table for this planned asset",
+                    asset_issue(
+                        asset,
+                        f"Planned {asset['kind']} '{asset['id']}' is missing from manifest.json",
+                        "Run insert_figure/insert_table for this planned asset",
                     )
                 )
                 continue
 
             matched_count += 1
-            section_content = sections.get(asset["section"], "")
-            number = entry.get("number", "")
-            label = f"{asset['kind'].title()} {number}" if number else asset["kind"].title()
-            placed = bool(section_content) and (
-                label.lower() in section_content.lower()
-                or entry.get("filename", "").lower() in section_content.lower()
-                or entry.get("caption", "").lower() in section_content.lower()
-            )
-            if not placed:
+            section_content = sections.get(asset["section"].strip().lower(), "").lower()
+            if is_asset_placed(asset["kind"], entry, section_content):
+                placed_count += 1
+            else:
+                number = entry.get("number", "")
+                label = f"{asset['kind'].title()} {number}" if number else asset["kind"].title()
                 issues.append(
-                    HookIssue(
-                        hook_id="C7b",
-                        severity="CRITICAL",
-                        section=asset["section"],
-                        message=(
-                            f"Planned {asset['kind']} '{asset['id']}' is not referenced or embedded in {asset['section']}"
-                        ),
-                        suggestion=f"Insert or cite {label} inside the {asset['section']} section",
+                    asset_issue(
+                        asset,
+                        f"Planned {asset['kind']} '{asset['id']}' is not referenced or embedded in {asset['section']}",
+                        f"Insert or cite {label} inside the {asset['section']} section",
                     )
                 )
-            else:
-                placed_count += 1
 
-            if asset["kind"] == "figure":
-                exportable = self._has_exportable_figure_asset(entry.get("filename", ""))
-                if not exportable:
-                    issues.append(
-                        HookIssue(
-                            hook_id="C7b",
-                            severity="CRITICAL",
-                            section=asset["section"],
-                            message=f"Planned figure '{asset['id']}' lacks an exportable rendered asset",
-                            suggestion="Save a PNG/SVG/JPG/TIFF companion before export",
-                        )
+            if asset["kind"] != "figure":
+                continue
+            if self._has_exportable_figure_asset(entry.get("filename", "")):
+                exportable_count += 1
+            else:
+                issues.append(
+                    asset_issue(
+                        asset,
+                        f"Planned figure '{asset['id']}' lacks an exportable rendered asset",
+                        "Save a PNG/SVG/JPG/TIFF companion before export",
                     )
-                else:
-                    exportable_count += 1
+                )
 
         passed = not any(issue.severity == "CRITICAL" for issue in issues)
         stats = {
@@ -828,7 +607,7 @@ class ManuscriptHooksMixin:
                 "Supplementary Material",
             ),
             (r"[Ss]\d+\s+(?:Table|Fig)", "S-prefix reference"),
-            (r"[Aa]ppendix\s+(\w+)", "Appendix"),
+            (r"\bAppendix\s+([A-Z]\d*|S\d+|\d+)\b", "Appendix"),
             (r"[Oo]nline\s+[Ss]upplement(?:ary)?\s+(\w+)", "Online Supplement"),
             (r"e(?:Table|Figure|Appendix)\s*(\d+)", "e-prefix reference"),
         ]
@@ -1010,7 +789,7 @@ class ManuscriptHooksMixin:
         """
         issues: list[HookIssue] = []
 
-        sections = self._parse_sections(content)
+        sections = self._parse_sections_full(content)
         if not sections:
             return HookResult(
                 hook_id="C11",
@@ -1124,8 +903,7 @@ class ManuscriptHooksMixin:
 
         ref_to_sections: dict[str, set[str]] = {}
         for sec_name, sec_text in sections.items():
-            wikilinks = re.findall(r"\[\[(\w+\d{4}_\d+)\]\]", sec_text)
-            for ref_key in wikilinks:
+            for ref_key in extract_wikilink_citation_keys(sec_text):
                 if ref_key not in ref_to_sections:
                     ref_to_sections[ref_key] = set()
                 ref_to_sections[ref_key].add(sec_name)

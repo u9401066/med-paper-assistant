@@ -41,6 +41,12 @@ from typing import Any
 
 import structlog
 
+from med_paper_assistant.infrastructure.persistence.audit_scores import validate_round_scores
+from med_paper_assistant.infrastructure.persistence.state_io import (
+    atomic_write_text,
+    load_json_state,
+)
+
 logger = structlog.get_logger()
 
 
@@ -328,6 +334,7 @@ class AutonomousAuditLoop:
         if not self._in_round:
             raise RuntimeError("No active round — call start_round() first")
 
+        validate_round_scores(scores, self._config.dimension_weights)
         weighted_avg = self._compute_weighted_avg(scores)
 
         record = RoundRecord(
@@ -870,8 +877,6 @@ class AutonomousAuditLoop:
 
     def save(self) -> None:
         """Save loop state to disk."""
-        self._audit_dir.mkdir(parents=True, exist_ok=True)
-
         data = {
             "version": 1,
             "config": asdict(self._config),
@@ -885,19 +890,13 @@ class AutonomousAuditLoop:
             "rewrite_reason": self._rewrite_reason,
             "saved_at": datetime.now().astimezone().isoformat(),
         }
-        self._data_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        atomic_write_text(self._data_path, json.dumps(data, indent=2, ensure_ascii=False))
 
     def load(self) -> bool:
         """Load loop state from disk. Returns True if state was loaded."""
-        if not self._data_path.is_file():
+        data = load_json_state(self._data_path)
+        if data is None:
             return False
-
-        try:
-            data = json.loads(self._data_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning("Failed to load audit loop state: %s", e)
-            return False
-
         self._current_round = data.get("current_round", 0)
         self._completed = data.get("completed", False)
         self._in_round = data.get("in_round", False)

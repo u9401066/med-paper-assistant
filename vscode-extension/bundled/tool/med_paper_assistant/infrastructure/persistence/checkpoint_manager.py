@@ -25,6 +25,11 @@ from typing import Any
 
 import structlog
 
+from med_paper_assistant.infrastructure.persistence.state_io import (
+    atomic_write_text,
+    load_json_state,
+)
+
 logger = structlog.get_logger()
 
 
@@ -72,26 +77,15 @@ class CheckpointManager:
         return self._checkpoint_path.is_file()
 
     def load(self) -> dict[str, Any] | None:
-        """
-        Load checkpoint state.
-
-        Returns:
-            Checkpoint dict or None if no checkpoint exists.
-        """
-        if not self._checkpoint_path.is_file():
-            return None
-
-        try:
-            data = json.loads(self._checkpoint_path.read_text(encoding="utf-8"))
+        """Load checkpoint state (None if missing; corrupt files are quarantined)."""
+        data = load_json_state(self._checkpoint_path)
+        if data is not None:
             logger.info(
                 "Checkpoint loaded: Phase %d (%s)",
                 data.get("last_completed_phase", -1),
                 data.get("last_phase_name", "unknown"),
             )
-            return data
-        except (json.JSONDecodeError, OSError) as e:
-            logger.error("Failed to load checkpoint: %s", e)
-            return None
+        return data
 
     def save_phase_completion(
         self,
@@ -397,6 +391,8 @@ class CheckpointManager:
         The draft hashes are used to detect user edits during the pause.
         """
         state = self.load() or self._empty_state()
+        if state.get("status") == "paused" and state.get("pause_state"):
+            return  # keep the original snapshot so edits made since the first pause stay detectable
 
         state["pause_state"] = {
             "paused_at": datetime.now().isoformat(),
@@ -617,7 +613,7 @@ class CheckpointManager:
                 "reason": "No paused pipeline state is available",
             }
 
-        pause_state = state.get("pause_state", {})
+        pause_state = state.get("pause_state") or {}
         changed_files = self._detect_changed_files(pause_state.get("draft_hashes", {}))
         phase_at_pause = pause_state.get("phase_at_pause", -1)
         decision = self._continuity_decision(
@@ -640,7 +636,7 @@ class CheckpointManager:
         )
 
         # Keep pause_state for reference but mark as resumed
-        state["pause_state"]["resumed_at"] = datetime.now().isoformat()
+        state["pause_state"] = {**pause_state, "resumed_at": datetime.now().isoformat()}
 
         self._write(state)
         logger.info(
@@ -749,7 +745,4 @@ class CheckpointManager:
     def _write(self, state: dict[str, Any]) -> None:
         """Write state to disk."""
         self._audit_dir.mkdir(parents=True, exist_ok=True)
-        self._checkpoint_path.write_text(
-            json.dumps(state, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        atomic_write_text(self._checkpoint_path, json.dumps(state, indent=2, ensure_ascii=False))

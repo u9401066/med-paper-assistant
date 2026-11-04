@@ -33,6 +33,8 @@ from ...shared.slug import slugify_name
 from ...shared.workspace_root import resolve_workspace_root
 from ..services.concept_template_reader import ConceptTemplateReader
 from .project_memory_manager import ProjectMemoryManager
+from .project_transfer import transfer_project_tree
+from .state_io import atomic_write_text
 
 logger = structlog.get_logger()
 
@@ -680,7 +682,7 @@ class ProjectManager:
 
     def _save_current_project(self, slug: str) -> None:
         """Save current project to .current_project file."""
-        self.state_file.write_text(slug, encoding="utf-8")
+        atomic_write_text(self.state_file, slug)
 
     def _create_project_config(
         self,
@@ -857,9 +859,9 @@ class ProjectManager:
 
     def _save_config(self, project_path: Path, config: Dict[str, Any]) -> None:
         """Save project config to JSON file."""
-        config_path = project_path / "project.json"
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2, ensure_ascii=False)
+        atomic_write_text(
+            project_path / "project.json", json.dumps(config, indent=2, ensure_ascii=False)
+        )
 
     def _load_config(self, project_path: Path) -> Optional[Dict[str, Any]]:
         """Load project config from JSON file."""
@@ -1032,8 +1034,10 @@ class ProjectManager:
         temp_stats = self._get_project_stats(temp_path)
 
         # Create the new project
-        new_slug = self._slugify(name)
-        new_path = self.projects_dir / new_slug
+        try:
+            new_slug, new_path = self._project_path_for_slug(self._slugify(name))
+        except ValueError as exc:
+            return {"success": False, "error": f"Invalid project name: {exc}"}
 
         if new_path.exists():
             return {
@@ -1055,14 +1059,10 @@ class ProjectManager:
                 "error": f"Invalid workflow mode '{resolved_workflow_mode}'. Valid modes: {list(WORKFLOW_MODES)}",
             }
 
-        import shutil
-
-        if keep_temp:
-            # Copy everything
-            shutil.copytree(temp_path, new_path)
-        else:
-            # Move (rename)
-            shutil.move(str(temp_path), str(new_path))
+        try:
+            transfer_project_tree(temp_path, new_path, keep_temp=keep_temp)
+        except OSError as exc:
+            return {"success": False, "error": f"Conversion failed: {exc}"}
 
         # Update the config for the new project
         config = self._create_project_config(
