@@ -4,7 +4,7 @@
       {
         "type": "command",
         "command": "bash ./scripts/hooks/copilot/mode-guard.sh",
-        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\hooks\\copilot\\mode-guard.ps1",
+        "windows": ".venv\\Scripts\\pythonw.exe scripts\\hooks\\copilot\\hook_dispatch.py mode-guard",
         "cwd": ".",
         "timeout": 10
       }

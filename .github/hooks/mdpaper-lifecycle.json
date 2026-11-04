@@ -4,50 +4,64 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "./scripts/hooks/copilot/session-init.sh",
-        "timeout": 10
+        "command": "bash ./scripts/hooks/copilot/session-init.sh",
+        "timeout": 10,
+        "windows": ".venv\\Scripts\\pythonw.exe scripts\\hooks\\copilot\\hook_dispatch.py session-init",
+        "cwd": "."
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "./scripts/hooks/copilot/prompt-analyzer.sh",
-        "timeout": 5
+        "command": "bash ./scripts/hooks/copilot/prompt-analyzer.sh",
+        "timeout": 5,
+        "windows": ".venv\\Scripts\\pythonw.exe scripts\\hooks\\copilot\\hook_dispatch.py prompt-analyzer",
+        "cwd": "."
       }
     ],
     "PreToolUse": [
       {
         "type": "command",
-        "command": "./scripts/hooks/copilot/pre-tool-guard.sh",
-        "timeout": 5
+        "command": "bash ./scripts/hooks/copilot/pre-tool-guard.sh",
+        "timeout": 5,
+        "windows": ".venv\\Scripts\\pythonw.exe scripts\\hooks\\copilot\\hook_dispatch.py pre-tool-guard",
+        "cwd": "."
       }
     ],
     "PostToolUse": [
       {
         "type": "command",
-        "command": "./scripts/hooks/copilot/post-tool-check.sh",
-        "timeout": 15
+        "command": "bash ./scripts/hooks/copilot/post-tool-check.sh",
+        "timeout": 15,
+        "windows": ".venv\\Scripts\\pythonw.exe scripts\\hooks\\copilot\\hook_dispatch.py post-tool-check",
+        "cwd": "."
       }
     ],
     "PreCompact": [
       {
         "type": "command",
-        "command": "./scripts/hooks/copilot/pre-compact-save.sh",
-        "timeout": 10
+        "command": "bash ./scripts/hooks/copilot/pre-compact-save.sh",
+        "timeout": 10,
+        "windows": ".venv\\Scripts\\pythonw.exe scripts\\hooks\\copilot\\hook_dispatch.py pre-compact-save",
+        "cwd": "."
       }
     ],
     "SubagentStart": [
       {
         "type": "command",
-        "command": "./scripts/hooks/copilot/subagent-init.sh",
-        "timeout": 5
+        "command": "bash ./scripts/hooks/copilot/subagent-init.sh",
+        "timeout": 5,
+        "windows": ".venv\\Scripts\\pythonw.exe scripts\\hooks\\copilot\\hook_dispatch.py subagent-init",
+        "cwd": "."
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "./scripts/hooks/copilot/session-stop.sh",
-        "timeout": 10
+        "command": "bash ./scripts/hooks/copilot/session-stop.sh",
+        "timeout": 10,
+        "windows": ".venv\\Scripts\\pythonw.exe scripts\\hooks\\copilot\\hook_dispatch.py session-stop",
+        "cwd": "."
       }
     ]
   }
