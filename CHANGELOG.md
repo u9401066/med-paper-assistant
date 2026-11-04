@@ -110,10 +110,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Exploration conversion rejects unsafe slugs and never leaves a partial target.
   - The reference manager logs corrupt metadata instead of printing to stdout, and skips non-reference directories.
 - MCP tool interfaces (audit IFACE-1 to IFACE-15, DOM-8/14):
-  - Failure strings become proper MCP tool errors (`isError`) at the server boundary (`_shared/tool_errors.py`, `_shared/path_errors.py`).
+  - Failure strings become proper MCP tool errors (`isError`) at the server boundary (`_shared/tool_errors.py`, `_shared/path_errors.py`). The greedy MCP smoke classifies these tool-reported `❌` errors as precondition or error. Only unhandled exceptions count as broken.
   - Opening VS Code no longer blocks the server and reports a missing `code` CLI.
   - CSL and reference-doc paths must stay inside the workspace. Unknown CSL names, Pandoc timeouts and non-zero exits produce explicit errors (`services/pandoc_runner.py`).
-  - `source_dir` is confined to the workspace.
+  - `source_dir` is confined to the workspace. Backslashes count as path separators on every OS, so `..\outside` is rejected on Linux and macOS as well as on Windows.
   - An existing `journal_profile` is not overwritten without confirmation.
   - `materialize_concept` keeps the caller's source notes.
   - Library-note tools return clean errors for case conflicts and path traversal, and read-only tools no longer create directories.
