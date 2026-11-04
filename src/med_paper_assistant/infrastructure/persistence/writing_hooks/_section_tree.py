@@ -101,6 +101,14 @@ def select_outermost(
     return result
 
 
+def first_section_text(sections: dict[str, str], prefix: str) -> str:
+    """Text of the first section whose lowercased name starts with ``prefix`` ("" if none)."""
+    for name, text in sections.items():
+        if name.lower().startswith(prefix):
+            return text
+    return ""
+
+
 def citation_key_from_target(target: str) -> str | None:
     """Return the saved-reference key for a wikilink target, or None if not a key.
 

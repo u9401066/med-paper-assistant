@@ -210,3 +210,19 @@ class TestConceptReviewArtifacts:
         review_path = project_dir / ".audit" / "concept-review.yaml"
         assert review_path.is_file()
         assert "canonical_question" in review_path.read_text(encoding="utf-8")
+
+
+class TestCguRecommendationRendering:
+    def test_null_recommendation_does_not_crash(self):
+        from med_paper_assistant.infrastructure.services.concept_validator._report import (
+            _cgu_lines,
+        )
+
+        assert _cgu_lines({"cgu_recommendation": None}, avg_score=40.0) == []
+
+    def test_low_novelty_recommends_cgu_0_9_tools(self, validator, weak_novelty_content):
+        feedback = validator._generate_novelty_feedback(weak_novelty_content, [40, 40, 40])
+
+        recommendation = feedback["cgu_recommendation"]
+        assert recommendation["tool"].startswith("cgu_")
+        assert "deep_think" not in recommendation["tool"]

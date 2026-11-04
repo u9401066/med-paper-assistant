@@ -2,11 +2,39 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import structlog
 
 from ._models import HookIssue, HookResult
 
 logger = structlog.get_logger()
+
+_SUB_HOOK_IDS: dict[str, str] = {
+    "provenance_missing": "F1",
+    "no_provenance_code": "F1",
+    "asset_review_missing": "F1",
+    "asset_review_incomplete": "F1",
+    "caption_unreviewed": "F1",
+    "manifest_missing": "F2",
+    "phantom_file": "F2",
+    "phantom_reference": "F3",
+    "orphan_asset": "F3",
+    "unverified_stats": "F4",
+    "data_anchor_unverified": "F4",
+    "data_anchor_untrusted_source": "F4",
+    "data_anchor_uningested_source": "F4",
+}
+
+
+def _to_hook_issue(raw_issue: dict[str, Any]) -> HookIssue:
+    category = raw_issue.get("category", "")
+    return HookIssue(
+        hook_id=_SUB_HOOK_IDS.get(category, "F"),
+        severity=raw_issue.get("severity", "WARNING"),
+        section="Data Artifacts",
+        message=raw_issue.get("message", ""),
+    )
 
 
 class DataArtifactsMixin:
@@ -39,40 +67,7 @@ class DataArtifactsMixin:
         tracker = DataArtifactTracker(audit_dir, self._project_dir)
         validation = tracker.validate_cross_references(draft_content)
 
-        issues: list[HookIssue] = []
-        for raw_issue in validation.get("issues", []):
-            category = raw_issue.get("category", "")
-            # Map categories to hook sub-IDs
-            if category in ("provenance_missing", "no_provenance_code"):
-                hook_sub = "F1"
-            elif category in (
-                "asset_review_missing",
-                "asset_review_incomplete",
-                "caption_unreviewed",
-            ):
-                hook_sub = "F1"
-            elif category in ("manifest_missing", "phantom_file"):
-                hook_sub = "F2"
-            elif category in ("phantom_reference", "orphan_asset"):
-                hook_sub = "F3"
-            elif category in (
-                "unverified_stats",
-                "data_anchor_unverified",
-                "data_anchor_untrusted_source",
-                "data_anchor_uningested_source",
-            ):
-                hook_sub = "F4"
-            else:
-                hook_sub = "F"
-
-            issues.append(
-                HookIssue(
-                    hook_id=hook_sub,
-                    severity=raw_issue.get("severity", "WARNING"),
-                    section="Data Artifacts",
-                    message=raw_issue.get("message", ""),
-                )
-            )
+        issues = [_to_hook_issue(raw_issue) for raw_issue in validation.get("issues", [])]
 
         passed = validation.get("passed", True)
         stats = validation.get("summary", {})

@@ -132,13 +132,13 @@ def check_hook_counts() -> CheckResult:
 
 def check_expected_hooks() -> CheckResult:
     """Verify MetaLearningEngine.EXPECTED_HOOKS covers all declared hooks."""
-    engine_path = SRC / "infrastructure" / "persistence" / "meta_learning_engine.py"
+    engine_path = SRC / "infrastructure" / "persistence" / "meta_learning_engine" / "engine.py"
     content = engine_path.read_text(encoding="utf-8")
 
     m = re.search(r"EXPECTED_HOOKS\s*=\s*\[(.*?)\]", content, re.DOTALL)
     if not m:
         return CheckResult(
-            "EXPECTED_HOOKS", False, "Cannot find EXPECTED_HOOKS in meta_learning_engine.py"
+            "EXPECTED_HOOKS", False, "Cannot find EXPECTED_HOOKS in meta_learning_engine/engine.py"
         )
 
     code_hooks = set(re.findall(r'"(\w+)"', m.group(1)))
