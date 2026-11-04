@@ -1,14 +1,25 @@
-"""Window-free, fail-open Windows dispatcher for Copilot/VS Code chat hooks.
+"""Window-free, fail-open dispatcher for Copilot/VS Code chat hooks.
 
 Run with ``pythonw.exe`` (GUI subsystem) so no console window is ever created.
-Never launch ``*.sh`` hook scripts through the Windows file association: ``.sh``
-may be bound to ``git-bash.exe`` (mintty) or an editor such as VS Code, which
-opens a window/tab and steals focus on every hook event. Never rely on ``bash``
-from ``PATH`` either: on Windows it is usually WSL's ``System32\\bash.exe``.
+The lifecycle hooks are implemented in-process by the ``mdpaper_hooks`` package
+(stdlib only); ``mode-guard`` calls ``scripts/copilot_hook_guard.py`` in-process.
+There is no bash dependency and no subprocess for the hook logic. The only
+child process is a read-only ``git diff`` in ``pre-tool-guard`` for release/push
+checks (see ``mdpaper_hooks/pre_tool_guard.py``).
+
+The ``*.sh`` files next to this file are thin POSIX shims that exec this script,
+so Claude Code / Copilot on Linux or macOS share the single implementation.
+Never launch those shims through the Windows file association (``.sh`` may be
+bound to ``git-bash.exe`` or an editor, which steals focus on every hook event)
+and never rely on ``bash`` from ``PATH`` (usually WSL's ``System32\\bash.exe``).
+There is deliberately no bash fallback: the shims call back into this
+dispatcher, so a fallback would recurse.
 
 The process always exits 0. The Copilot agent host treats a failing
 ``preToolUse`` command as fail-closed (the tool call is denied), so decisions
-must be expressed only through the JSON written to stdout.
+must be expressed only through the JSON written to stdout. Any exception is
+logged to ``.github/hooks/_state/hook_errors.jsonl`` and answered with the
+neutral ``{"continue": true}``; nothing is ever written to stderr.
 
 Usage: ``pythonw.exe scripts/hooks/copilot/hook_dispatch.py <hook-name>``
 where ``<hook-name>`` is ``mode-guard`` or a ``scripts/hooks/copilot/*.sh`` stem.
@@ -17,72 +28,72 @@ where ``<hook-name>`` is ``mode-guard`` or a ``scripts/hooks/copilot/*.sh`` stem
 from __future__ import annotations
 
 import json
-import os
-import shutil
-import subprocess
 import sys
+import traceback
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 HOOK_DIR = Path(__file__).resolve().parent
+SCRIPTS_DIR = HOOK_DIR.parents[1]
 REPO_ROOT = HOOK_DIR.parents[2]
 FAIL_OPEN = b'{"continue": true}\n'
-BASH_TIMEOUT_SECONDS = 4.0
-CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+ERROR_LOG = Path(".github") / "hooks" / "_state" / "hook_errors.jsonl"
+ERROR_LOG_MAX_BYTES = 256 * 1024
+MODE_GUARD = "mode-guard"
 
 
-def find_console_bash() -> Path | None:
-    """Return Git for Windows' console ``bash.exe`` (never WSL or git-bash.exe)."""
-    candidates: list[Path] = []
-    git = shutil.which("git")
-    if git:
-        git_root = Path(git).resolve().parent.parent
-        candidates += [git_root / "bin" / "bash.exe", git_root / "usr" / "bin" / "bash.exe"]
-    for env_name in ("ProgramFiles", "ProgramW6432", "LOCALAPPDATA"):
-        base = os.environ.get(env_name)
-        if base:
-            candidates.append(Path(base) / "Git" / "bin" / "bash.exe")
-            candidates.append(Path(base) / "Programs" / "Git" / "bin" / "bash.exe")
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
-    return None
+def _encode(result: Any) -> bytes:
+    if not result:
+        return FAIL_OPEN
+    return (json.dumps(result, ensure_ascii=False) + "\n").encode("utf-8")
 
 
-def run_mode_guard(payload: bytes) -> tuple[bytes, int]:
-    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+def log_error(name: str, exc: BaseException) -> None:
+    """Best-effort error log; never raises."""
+    try:
+        path = REPO_ROOT / ERROR_LOG
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists() and path.stat().st_size > ERROR_LOG_MAX_BYTES:
+            path.unlink()
+        record = {
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "hook": name,
+            "error": f"{type(exc).__name__}: {exc}",
+            "traceback": "".join(traceback.format_exception(exc))[-2000:],
+        }
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception:  # noqa: BLE001 - logging must not break the hook
+        pass
+
+
+def run_mode_guard(payload: str) -> Any:
+    if str(SCRIPTS_DIR) not in sys.path:
+        sys.path.insert(0, str(SCRIPTS_DIR))
     import copilot_hook_guard
 
-    result = copilot_hook_guard.run_hook(payload.decode("utf-8", errors="replace"))
-    return (json.dumps(result, ensure_ascii=False) + "\n").encode("utf-8"), 0
+    return copilot_hook_guard.run_hook(payload)
 
 
-def run_shell_hook(name: str, payload: bytes) -> tuple[bytes, int]:
-    script = HOOK_DIR / f"{name}.sh"
-    bash = find_console_bash()
-    if not script.is_file() or bash is None:
-        return FAIL_OPEN, 0
-    completed = subprocess.run(  # noqa: S603 - fixed interpreter and repo-local script
-        [str(bash), script.relative_to(REPO_ROOT).as_posix()],
-        input=payload,
-        capture_output=True,
-        cwd=REPO_ROOT,
-        timeout=BASH_TIMEOUT_SECONDS,
-        creationflags=CREATE_NO_WINDOW,
-        check=False,
-    )
-    if completed.returncode == 0 and completed.stdout.strip():
-        return completed.stdout, 0
-    return FAIL_OPEN, 0
+def run_lifecycle_hook(name: str, payload: str) -> Any:
+    if str(HOOK_DIR) not in sys.path:
+        sys.path.insert(0, str(HOOK_DIR))
+    import mdpaper_hooks
+
+    return mdpaper_hooks.run_hook(name, payload, REPO_ROOT)
 
 
 def dispatch(name: str, payload: bytes) -> tuple[bytes, int]:
+    """Run hook ``name`` on the raw stdin ``payload``; always ``(json bytes, 0)``."""
     try:
-        if name == "mode-guard":
-            return run_mode_guard(payload)
-        if not name.replace("-", "").isalnum():
-            return FAIL_OPEN, 0
-        return run_shell_hook(name, payload)
-    except Exception:  # noqa: BLE001 - hooks must never block the agent
+        text = payload.decode("utf-8-sig", errors="replace")
+        hook = name.strip().lower().replace("_", "-")
+        if hook == MODE_GUARD:
+            return _encode(run_mode_guard(text)), 0
+        return _encode(run_lifecycle_hook(hook, text)), 0
+    except Exception as exc:  # noqa: BLE001 - hooks must never block the agent
+        log_error(name, exc)
         return FAIL_OPEN, 0
 
 

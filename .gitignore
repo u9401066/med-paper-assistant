@@ -66,5 +66,34 @@ pandoc-*.msi
 # Copilot hooks runtime state (ephemeral, per-session)
 .github/hooks/_state/
 
+# Companion MCP harness assets installed into the workspace by companion
+# VS Code extensions (asset-aware / pubmed-search / zotero-keeper). They are
+# managed by those extensions and must not be committed to this repository.
+.asset-aware-mcp/
+.cline/
+.clinerules/
+.codex/
+.github/hooks/copilot-tool-policy.json
+.github/hooks/pipeline-enforcer.json
+scripts/hooks/copilot/analyze-prompt.*
+scripts/hooks/copilot/enforce-pipeline.*
+scripts/hooks/copilot/evaluate-results.*
+scripts/hooks/copilot/session-cleanup.*
+scripts/hooks/copilot/session-init.ps1
+.github/agents/architect.agent.md
+.github/agents/ask.agent.md
+.github/agents/asset-aware-document.agent.md
+.github/agents/audit.agent.md
+.github/agents/code.agent.md
+.github/agents/context-loader.agent.md
+.github/agents/debug.agent.md
+.github/agents/deep-thinker.agent.md
+.github/agents/orchestrator.agent.md
+.github/agents/research.agent.md
+.github/agents/researcher.agent.md
+.github/agents/review-panel.agent.md
+.github/agents/reviewer-*.agent.md
+.github/agents/test-runner.agent.md
+
 # Migration backup files
 .vscode/mcp.json.bak.*

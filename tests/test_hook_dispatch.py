@@ -14,6 +14,8 @@ Both must route through ``pythonw.exe hook_dispatch.py`` and always exit 0.
 
 from __future__ import annotations
 
+import ast
+import importlib
 import importlib.util
 import json
 import subprocess
@@ -84,12 +86,13 @@ def test_posix_commands_invoke_bash_explicitly() -> None:
                 )
 
 
-def test_pre_tool_use_timeouts_leave_room_for_dispatch() -> None:
-    dispatch = _load_dispatch()
+def test_pre_tool_use_timeouts_leave_room_for_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.syspath_prepend(str(HOOK_DIR))
+    guard = importlib.import_module("mdpaper_hooks.pre_tool_guard")
     for name, event, entry in _hook_entries():
         assert entry.get("timeoutSec", 0) >= 5, f"{name}:{event} needs an explicit timeoutSec"
         if event == "PreToolUse":
-            assert entry["timeoutSec"] > dispatch.BASH_TIMEOUT_SECONDS + 2
+            assert entry["timeoutSec"] > guard.GIT_BUDGET_SECONDS + 2
 
 
 def test_mode_guard_dispatch_returns_json() -> None:
@@ -107,20 +110,45 @@ def test_unknown_or_unsafe_hook_name_fails_open() -> None:
     assert dispatch.dispatch("does-not-exist", b"{}") == (dispatch.FAIL_OPEN, 0)
 
 
-def test_missing_bash_fails_open(monkeypatch: pytest.MonkeyPatch) -> None:
-    dispatch = _load_dispatch()
-    monkeypatch.setattr(dispatch, "find_console_bash", lambda: None)
-    assert dispatch.dispatch("session-init", b"{}") == (dispatch.FAIL_OPEN, 0)
-
-
-def test_shell_hook_nonzero_exit_fails_open(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_lifecycle_hook_exception_fails_open_and_logs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     dispatch = _load_dispatch()
 
-    def fake_run(*_args, **_kwargs):
-        return subprocess.CompletedProcess(args=[], returncode=2, stdout=b'{"x": 1}', stderr=b"")
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("hook bug")
 
-    monkeypatch.setattr(dispatch.subprocess, "run", fake_run)
+    monkeypatch.setattr(dispatch, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(dispatch, "run_lifecycle_hook", boom)
     assert dispatch.dispatch("session-init", b"{}") == (dispatch.FAIL_OPEN, 0)
+    record = json.loads((tmp_path / dispatch.ERROR_LOG).read_text(encoding="utf-8").splitlines()[0])
+    assert record["hook"] == "session-init"
+    assert "RuntimeError: hook bug" in record["error"]
+
+
+def test_dispatcher_has_no_bash_or_subprocess_dependency() -> None:
+    dispatch = _load_dispatch()
+    assert not hasattr(dispatch, "find_console_bash")
+    assert not hasattr(dispatch, "subprocess")
+    source = (HOOK_DIR / "hook_dispatch.py").read_text(encoding="utf-8")
+    imported = {
+        alias.name.split(".")[0]
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+    assert not imported & {"subprocess", "shutil", "os"}
+
+
+def test_posix_shims_delegate_to_the_dispatcher() -> None:
+    for name in ("session-init", "prompt-analyzer", "pre-tool-guard", "post-tool-check"):
+        shim = (HOOK_DIR / f"{name}.sh").read_text(encoding="utf-8")
+        assert f'hook_dispatch.py" {name}' in shim
+        assert "jq" not in shim
+    for name in ("pre-compact-save", "subagent-init", "session-stop"):
+        shim = (HOOK_DIR / f"{name}.sh").read_text(encoding="utf-8")
+        assert f'hook_dispatch.py" {name}' in shim
+        assert len(shim.splitlines()) < 15
 
 
 def test_main_always_exits_zero(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -131,14 +159,6 @@ def test_main_always_exits_zero(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(dispatch, "dispatch", boom)
     assert dispatch.main(["hook_dispatch.py", "session-init"]) == 0
-
-
-def test_console_bash_is_never_mintty_or_wsl() -> None:
-    bash = _load_dispatch().find_console_bash()
-    if bash is not None:
-        lowered = str(bash).lower()
-        assert not lowered.endswith("git-bash.exe")
-        assert "system32" not in lowered
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows PowerShell hook path")
