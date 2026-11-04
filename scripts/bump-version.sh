@@ -121,5 +121,8 @@ PY
 # The root package version is embedded in uv.lock and must match the source tree.
 uv lock --offline
 
+# The portable Agent Plugin manifests embed the package version.
+uv run --frozen python scripts/build_agent_plugin.py
+
 echo "✅ Version surfaces synchronized. Review CHANGELOG.md and vscode-extension/CHANGELOG.md."
 echo "   No files were staged, committed, tagged, or pushed."

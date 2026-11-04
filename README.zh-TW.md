@@ -56,8 +56,26 @@
 | ------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **完整 repository** | 維護者、進階使用者、workflow 作者 | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、38 個 skills、15 個 prompt workflows、跨 Agent harness、repo scripts、tests 與作者文件                                                         |
 | **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者      | `@mdpaper`、9 個 palette commands、compact-first `mdpaper` runtime（預設 12 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
+| **Agent Plugin**    | Copilot CLI / VS Code、Claude Code、Codex | 可攜式 [Agent Plugins](https://agent-plugins.org/) 套件：compact `mdpaper` 與五個協作 MCP（透過 `uvx`）、25 個研究 skills、9 個 Copilot agents |
 
 也就是說：repository 是較寬的工程面；VSIX 是較收斂的終端使用者面。
+
+**Agent Plugin 安裝**（需要 [`uv`](https://docs.astral.sh/uv/)）。套件位於 [`plugins/med-paper-assistant/`](plugins/med-paper-assistant/)，由 `scripts/build_agent_plugin.py` 產生：
+
+```bash
+# GitHub Copilot CLI
+copilot plugin marketplace add u9401066/med-paper-assistant
+copilot plugin install med-paper-assistant@medpaper
+
+# Claude Code
+claude plugin marketplace add u9401066/med-paper-assistant
+claude plugin install med-paper-assistant@medpaper
+
+# Codex：開啟本 repository（repo marketplace 為 .agents/plugins/marketplace.json），
+# 再從 /plugins 選單安裝 "med-paper-assistant"。
+```
+
+請在你的研究資料夾中啟動 agent。若有設定 `MEDPAPER_BASE_DIR`，專案會寫到那裡；否則寫到 client 的專案目錄，絕不寫進 plugin 套件內。
 
 **VSX 說明**：擴充功能會驗證或安裝具 SHA-256 allowlist 的 `uv`/`uvx` 0.12.5，再以隔離且精確釘選的 SDK 2 來源啟動同版核心套件與所有受管外部 MCP。若 workspace 已在 `.vscode/mcp.json` 明確定義 `mdpaper`，該設定仍具最高權威並停用擴充功能自動註冊。CI smoke 覆蓋 `ubuntu-latest`、`windows-latest`、`macos-14`，以及五套 exact-archive integration。
 

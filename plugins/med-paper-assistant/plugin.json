@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "med-paper-assistant",
+  "version": "1.0.3",
+  "description": "An MCP-orchestrated research workspace for manuscript and library-wiki workflows",
+  "author": {
+    "name": "Eric",
+    "url": "https://github.com/u9401066"
+  },
+  "homepage": "https://github.com/u9401066/med-paper-assistant",
+  "repository": "https://github.com/u9401066/med-paper-assistant",
+  "license": "Apache-2.0",
+  "keywords": [
+    "academic-writing",
+    "agent-skills",
+    "assistant",
+    "manuscript",
+    "mcp",
+    "medical",
+    "paper",
+    "pubmed"
+  ]
+}

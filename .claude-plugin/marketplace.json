@@ -1,0 +1,18 @@
+{
+  "name": "medpaper",
+  "owner": {
+    "name": "u9401066",
+    "url": "https://github.com/u9401066"
+  },
+  "metadata": {
+    "description": "MedPaper Assistant agent plugins"
+  },
+  "plugins": [
+    {
+      "name": "med-paper-assistant",
+      "source": "./plugins/med-paper-assistant",
+      "description": "An MCP-orchestrated research workspace for manuscript and library-wiki workflows",
+      "version": "1.0.3"
+    }
+  ]
+}

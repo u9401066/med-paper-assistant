@@ -1,0 +1,20 @@
+{
+  "name": "medpaper",
+  "interface": {
+    "displayName": "MedPaper Assistant"
+  },
+  "plugins": [
+    {
+      "name": "med-paper-assistant",
+      "source": {
+        "source": "local",
+        "path": "./plugins/med-paper-assistant"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

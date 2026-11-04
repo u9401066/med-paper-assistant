@@ -221,6 +221,9 @@ jobs:
       - name: Validate tool-surface authority
         run: uv run python scripts/check_tool_surface_authority.py
 
+      - name: Validate generated Agent Plugin
+        run: uv run python scripts/build_agent_plugin.py --check
+
       - name: Enforce code-quality debt ratchet
         run: uv run python scripts/check_code_quality_authority.py
 
