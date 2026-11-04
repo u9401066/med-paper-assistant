@@ -19,6 +19,7 @@ from med_paper_assistant.infrastructure.persistence.exemplar_usage_store import 
     ExemplarUsageStore,
 )
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE
+from med_paper_assistant.shared.workspace_root import resolve_workspace_root
 
 from .._shared import (
     facade_schema_json,
@@ -153,12 +154,9 @@ def _safe_relative_path(path: Path, base: Path) -> str:
 
 def _infer_workspace_root(project_dir: Path) -> Path:
     """Infer the workspace root from a project path."""
-    configured = os.environ.get("MEDPAPER_BASE_DIR")
-    if configured:
-        return Path(configured).expanduser().resolve()
-    if project_dir.parent.name == "projects":
+    if project_dir.parent.name == "projects" and not os.environ.get("MEDPAPER_BASE_DIR"):
         return project_dir.parent.parent.resolve()
-    return project_dir.parent.resolve()
+    return resolve_workspace_root()
 
 
 def _resolve_source_scan_root(source_dir: str, project_dir: Path) -> tuple[Path, Path]:

@@ -19,6 +19,8 @@ from typing import Optional
 
 import structlog
 
+from med_paper_assistant.shared.workspace_root import resolve_workspace_root
+
 
 def _get_project_log_dir() -> Path:
     """
@@ -37,9 +39,8 @@ def _get_project_log_dir() -> Path:
             log_dir.mkdir(exist_ok=True)
             return log_dir
 
-    # Fallback: 使用 MEDPAPER_BASE_DIR 環境變數或當前工作目錄
-    base = Path(os.environ.get("MEDPAPER_BASE_DIR", Path.cwd()))
-    log_dir = base / "logs"
+    # Fallback: 安裝版（uvx / Agent Plugin）使用統一的 workspace root
+    log_dir = resolve_workspace_root() / "logs"
     log_dir.mkdir(exist_ok=True)
     return log_dir
 

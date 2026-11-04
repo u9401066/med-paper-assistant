@@ -13,7 +13,6 @@ Current project tracking is handled by ProjectManager (.current_project file).
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -21,6 +20,7 @@ from typing import Any, Optional
 import structlog
 
 from med_paper_assistant.shared.path_guard import resolve_child_path
+from med_paper_assistant.shared.workspace_root import resolve_workspace_root
 
 logger = structlog.get_logger()
 
@@ -49,9 +49,9 @@ class WorkspaceStateManager:
         Args:
             base_path: Base directory for the med-paper-assistant workspace.
         """
-        if base_path is None:
-            base_path = os.environ.get("MEDPAPER_BASE_DIR", ".")
-        self.base_path = Path(base_path).resolve()
+        self.base_path = (
+            Path(base_path).resolve() if base_path is not None else resolve_workspace_root()
+        )
         self.projects_dir = self.base_path / "projects"
 
     def _project_dir(self, slug: str) -> Path:

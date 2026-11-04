@@ -6,6 +6,8 @@ import os
 from pathlib import Path, PureWindowsPath
 from typing import Iterable
 
+from med_paper_assistant.shared.workspace_root import resolve_workspace_root
+
 
 class PathGuardError(ValueError):
     """Raised when a user-supplied filename/path is unsafe."""
@@ -222,7 +224,7 @@ def resolve_local_import_path(file_path: str) -> Path:
     if ".." in Path(raw).parts:
         raise PathGuardError("local import path must not contain traversal segments.")
 
-    workspace_root = Path(os.environ.get("MEDPAPER_BASE_DIR") or Path.cwd()).resolve()
+    workspace_root = resolve_workspace_root()
     candidate = Path(raw)
     if not candidate.is_absolute():
         candidate = workspace_root / candidate

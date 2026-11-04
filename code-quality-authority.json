@@ -12,10 +12,10 @@
     "function": 50
   },
   "summary": {
-    "filesScanned": 157,
+    "filesScanned": 158,
     "definitionsScanned": {
       "class": 150,
-      "function": 1327
+      "function": 1332
     },
     "violations": {
       "file": 39,
@@ -1762,7 +1762,7 @@
       "kind": "file",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/project/facade.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 1264
+      "allowedLines": 1262
     },
     {
       "kind": "function",

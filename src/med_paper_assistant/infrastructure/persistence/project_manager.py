@@ -10,7 +10,6 @@ Manages separate workspaces for different research papers, each with its own:
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -31,6 +30,7 @@ from ...shared.constants import (
 )
 from ...shared.path_guard import normalize_relative_filename, resolve_child_path
 from ...shared.slug import slugify_name
+from ...shared.workspace_root import resolve_workspace_root
 from ..services.concept_template_reader import ConceptTemplateReader
 from .project_memory_manager import ProjectMemoryManager
 
@@ -74,11 +74,11 @@ class ProjectManager:
 
         Args:
             base_path: Base directory for the med-paper-assistant workspace.
-                       Falls back to MEDPAPER_BASE_DIR env var, then CWD.
+                       Falls back to ``resolve_workspace_root()``.
         """
-        if base_path is None:
-            base_path = os.environ.get("MEDPAPER_BASE_DIR", ".")
-        self.base_path = Path(base_path).resolve()
+        self.base_path = (
+            Path(base_path).resolve() if base_path is not None else resolve_workspace_root()
+        )
         self.projects_dir = self.base_path / "projects"
         self.state_file = self.base_path / self.STATE_FILE
 
