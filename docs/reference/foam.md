@@ -149,6 +149,6 @@ project switches or settings updates.
 
 - `ARCHITECTURE.md`
 - `docs/design/citation-tools-architecture.md`
-- `src/med_paper_assistant/infrastructure/persistence/reference_manager.py`
+- `src/med_paper_assistant/infrastructure/persistence/reference_manager/`
 - `src/med_paper_assistant/infrastructure/services/foam_settings.py`
 - `.vscode/settings.json`

@@ -209,11 +209,15 @@ PostToolUse (draft edited)
   "version": 1,
   "hooks": {
     "SessionStart": [{ "type": "command", "command": "...", "timeoutSec": 15 }],
-    "UserPromptSubmit": [{ "type": "command", "command": "...", "timeoutSec": 10 }],
+    "UserPromptSubmit": [
+      { "type": "command", "command": "...", "timeoutSec": 10 }
+    ],
     "PreToolUse": [{ "type": "command", "command": "...", "timeoutSec": 10 }],
     "PostToolUse": [{ "type": "command", "command": "...", "timeoutSec": 15 }],
     "PreCompact": [{ "type": "command", "command": "...", "timeoutSec": 15 }],
-    "SubagentStart": [{ "type": "command", "command": "...", "timeoutSec": 10 }],
+    "SubagentStart": [
+      { "type": "command", "command": "...", "timeoutSec": 10 }
+    ],
     "Stop": [{ "type": "command", "command": "...", "timeoutSec": 15 }]
   }
 }
@@ -231,12 +235,12 @@ PostToolUse (draft edited)
 
 ## 與 pubmed-search-mcp 的 Hooks 比較
 
-| 特性   | pubmed-search-mcp                                  | mdpaper (本專案)                   |
-| ------ | -------------------------------------------------- | ---------------------------------- |
-| 範圍   | 單一 MCP 服務的 pipeline 控管                      | 整個 workspace 生命週期            |
-| Events | 5 (session, prompt, preTool, postTool, sessionEnd) | 7 (+ PreCompact, SubagentStart)    |
-| 策略   | Pipeline 強制、結果評估                            | 模式保護、品質 Hook 觸發、記憶管理 |
-| State  | workflow tracker + session context                 | session context + audit trail      |
+| 特性   | pubmed-search-mcp                                  | mdpaper (本專案)                                         |
+| ------ | -------------------------------------------------- | -------------------------------------------------------- |
+| 範圍   | 單一 MCP 服務的 pipeline 控管                      | 整個 workspace 生命週期                                  |
+| Events | 5 (session, prompt, preTool, postTool, sessionEnd) | 7 (+ PreCompact, SubagentStart)                          |
+| 策略   | Pipeline 強制、結果評估                            | 模式保護、品質 Hook 觸發、記憶管理                       |
+| State  | workflow tracker + session context                 | session context + audit trail                            |
 | 跨平台 | sh + ps1                                           | Python dispatcher（Windows `pythonw`）+ POSIX `.sh` shim |
 
 ---

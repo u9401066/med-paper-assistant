@@ -1,5 +1,23 @@
 # Decision Log
 
+## [2026-11-04] Modular Packages Must Preserve Import Paths And Tool Docstrings
+
+### 背景
+
+`reference_manager.py`、writing/review hooks、phase gates、constraint/meta-learning engines、concept validator 與多個 MCP tool 模組各自數百到三千多行，code-quality ratchet 累積 388 項例外，且多數新式 agent client 透過 Agent Plugins/skills 而非單一 MCP 使用本 repo。
+
+### 決定
+
+1. 大模組改為同名套件（mixins 或 per-family 子模組），`__init__.py` re-export 原有 public names，所有舊 import 路徑保持可用。
+2. MCP 以 handler 原始 `__doc__` 作為 tool description；由巢狀函式抽出的 handler 必須用 `nested_doc`/`nested_tool_doc` 保留原縮排，禁止 `functools.partial` 包裝。`@tool()` 殼保留在原目錄，讓 `sync_repo_counts.py` 的 per-directory 計數不變。
+3. 每次重構以 MCP surface dump（名稱、schema、description、順序）與差分測試驗證零行為差異；僅修正被拆分暴露的崩潰（C12 `null`、`cgu_recommendation=None`）。
+4. Companion skills 以 pinned submodule 為唯一來源，`scripts/sync_companion_skills.py --check` 在 CI/release 擋 drift，不再手改 vendored PubMed skills。
+
+### 結果
+
+- Ratchet 例外 388 → 144（14 file / 14 class / 116 function），surface 118 full / 12 compact 不變，full pytest 2046 passed。
+- 第二波候選：`data_artifact_tracker.py`（1437 行）、`autonomous_audit_loop.py`、`checkpoint_manager`、`project_manager`、`workspace_state_manager`、`citation_assistant`、`analysis/facade.py`、`draft/templates.py`、`review/consistency.py`。
+
 ## [2026-09-02] Agent Hooks Must Fail Open And Never Resolve Dependencies
 
 ### 背景

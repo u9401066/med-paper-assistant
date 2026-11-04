@@ -16,7 +16,7 @@ Hook D 不只改進 SKILL — 它改進 Hook 自身（CONSTITUTION §23）。
 | -------------------------- | ------------------------------- | ----------------------------------------------------------- |
 | `HookEffectivenessTracker` | `hook_effectiveness_tracker.py` | 記錄 hook 事件、計算觸發率/修正率/誤報率、產出推薦          |
 | `QualityScorecard`         | `quality_scorecard.py`          | 6 維品質評分 (0-10)、閾值檢查、弱項偵測                     |
-| `MetaLearningEngine`       | `meta_learning_engine.py`       | D1-D9 編排器、`ThresholdAdjustment` (±20%)、`LessonLearned` |
+| `MetaLearningEngine`       | `meta_learning_engine/`         | D1-D9 編排器、`ThresholdAdjustment` (±20%)、`LessonLearned` |
 
 **使用方式**：
 

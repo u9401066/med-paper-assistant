@@ -6,6 +6,8 @@
 
 ## 當前焦點 (2026-09-01)
 
+> **2026-11-04 revamp（branch `revamp/p2-plugin`，v1.1.0 準備中）**：分階段翻修為新式 agent 介面。已完成 P0 sync/hook fail-open、P1 audit 缺陷修正、P2 Agent Plugins 套件（`plugins/med-paper-assistant/`，Copilot/Claude Code/Codex marketplaces）、P3a dev agents/README 多 client、Copilot lifecycle hooks 改為 in-process Python（`hook_dispatch.py` + `pythonw`，不再搶 VS Code 焦點）、auto-paper skill progressive disclosure、P5 companion pins（asset-aware 1.4.1、pubmed-search 0.8.0、CGU 0.9.0、zotero 2.4.0；CGU 與 pubmed 皆有 breaking tool rename），以及模組化重構（ratchet 例外 388 → 144，MCP surface 不變，full pytest 2046 passed）。待辦：P4 VSIX bump、P6 merge → `bump-version.sh 1.1.0` → tag/push → 驗證 PyPI/Marketplace；第二波重構候選見 decisionLog 2026-11-04。
+
 v1.0.3 Phase gate 說明對齊修正版已正式發布：程式的 hard-gate 行為沒有擴張，而是將 validator 訊息、Auto-Paper skill/design 與公開網站統一成 14 個 code phases 的真實契約。五筆分段 release commits 已推送，annotated `v1.0.3` 指向 `c2c944d68855a5ace18ccdaabef81a0f893fb01c`；exact-SHA CI `33489369223`、Pages `33489369227`、PyPI、GitHub Release、公開 provenance 與 artifacts 均驗證通過。Marketplace OIDC 唯一失敗於 Microsoft token endpoint 404，已做一次安全重試後停止，Release 提供通過隔離安裝 smoke 的同版 VSIX。
 
 v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的實際 MCP initialize/list/call 均成功，compact/full greedy smoke 無 broken/error；Python、VSIX、Dashboard、文件、security、build、bundle 與 exact-SHA CI gates 全綠。依賴更新至目前相容的 stable 版本（MCP 2.1.1、C2PA 0.37.8、remove-ai-watermarks 0.36.0），source-build 基線統一為 Node 24。測試移除 fake、print-only、吞例外與永久 skip 案例，改以 `contract`、`mcp`、`smoke`、`integration` 分層；完整 suite coverage 66.43% 如實記錄，不以低價值 tests 灌高。PyPI 與 GitHub Release 已公開且 provenance/digests 相符；VS Marketplace OIDC 兩次遭 Microsoft 503，保留 fail-closed 狀態並提供已驗證 VSIX。

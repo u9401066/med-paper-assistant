@@ -66,5 +66,5 @@ These are relevant when applying the LLM wiki pattern in this repository:
 - `docs/how-to/llm-wiki.md`
 - `docs/reference/foam.md`
 - `ARCHITECTURE.md`
-- `src/med_paper_assistant/infrastructure/persistence/reference_manager.py`
+- `src/med_paper_assistant/infrastructure/persistence/reference_manager/`
 - `memory-bank/kb-integration-blueprint.md`
