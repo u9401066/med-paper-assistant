@@ -109,7 +109,7 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | SubagentStart    | subagent-init.sh    | 注入專案/模式/workflow mode 至 subagent            |
 | Stop             | session-stop.sh     | 審計 + 清理 + memory sync 提醒                     |
 
-補強層：`.github/hooks/mode-guard.json` 會在 `PreToolUse` 階段額外執行 `scripts/copilot_hook_guard.py`。它負責 Python/Windows-safe 的工具路徑解析，特別是 `apply_patch` 這類 shell hook 不易精準判斷的編輯入口。
+補強層：`.github/hooks/mode-guard.json` 會在 `PreToolUse` 階段透過 fail-open launcher（`scripts/hooks/copilot/mode-guard.{ps1,sh}`，直接用 `.venv` Python、絕不 `uv run`）執行 `scripts/copilot_hook_guard.py`。它負責 Python/Windows-safe 的工具路徑解析，特別是 `apply_patch` 這類 shell hook 不易精準判斷的編輯入口。
 
 ## 回應風格
 

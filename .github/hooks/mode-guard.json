@@ -3,10 +3,10 @@
     "PreToolUse": [
       {
         "type": "command",
-        "command": "uv run python scripts/copilot_hook_guard.py",
-        "windows": "uv run python scripts\\copilot_hook_guard.py",
+        "command": "bash ./scripts/hooks/copilot/mode-guard.sh",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\hooks\\copilot\\mode-guard.ps1",
         "cwd": ".",
-        "timeout": 15
+        "timeout": 10
       }
     ]
   }

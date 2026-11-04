@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -55,6 +56,23 @@ def test_import_local_papers_rejects_unsafe_paths(tmp_path, monkeypatch, path):
     funcs = _capture_reference_tools(ref_manager)
 
     result = funcs["import_local_papers"](paths=path)
+
+    assert "Invalid local import path" in result
+    ref_manager.import_local_file.assert_not_called()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="native Windows path semantics")
+@pytest.mark.parametrize("suffix", ["C:paper.pdf", "paper.pdf:stream"])
+def test_import_local_papers_rejects_windows_drive_relative_and_streams(
+    tmp_path, monkeypatch, suffix
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MEDPAPER_BASE_DIR", str(tmp_path))
+    ref_manager = MagicMock()
+    ref_manager._project_manager = None
+    funcs = _capture_reference_tools(ref_manager)
+
+    result = funcs["import_local_papers"](paths=suffix)
 
     assert "Invalid local import path" in result
     ref_manager.import_local_file.assert_not_called()

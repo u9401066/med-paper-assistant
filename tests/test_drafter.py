@@ -214,7 +214,7 @@ class TestSyncReferencesBlankLines:
             "year": year,
             "citation_key": key,
         }
-        (ref_dir / "metadata.json").write_text(json.dumps(meta))
+        (ref_dir / "metadata.json").write_text(json.dumps(meta), encoding="utf-8")
 
     def test_references_separated_by_blank_lines(self, tmp_path):
         """References section should have blank lines between entries."""
@@ -231,7 +231,7 @@ class TestSyncReferencesBlankLines:
 
         # Create draft with wikilinks
         draft = "# Test\n\nSome text [[smith2024_11111111]] and [[doe2024_22222222]].\n"
-        (drafts_dir / "test.md").write_text(draft)
+        (drafts_dir / "test.md").write_text(draft, encoding="utf-8")
 
         ref = ReferenceManager(base_dir=str(refs_dir))
         drafter = Drafter(ref, drafts_dir=str(drafts_dir))
@@ -241,7 +241,7 @@ class TestSyncReferencesBlankLines:
         assert result["citations_found"] == 2
 
         # Read output and check blank lines
-        content = (drafts_dir / "test.md").read_text()
+        content = (drafts_dir / "test.md").read_text(encoding="utf-8")
         # Between [1] entry end and [2] entry start, there should be a blank line
         ref_section = content.split("## References")[1]
         lines = ref_section.strip().split("\n")
@@ -267,7 +267,7 @@ class TestSyncReferencesBlankLines:
         self._write_reference(refs_dir, "11111111", "smith2024_11111111", "Paper One")
 
         draft = "# Test\n\nSome text [1] [[smith2024_11111111]].\n"
-        (drafts_dir / "test.md").write_text(draft)
+        (drafts_dir / "test.md").write_text(draft, encoding="utf-8")
 
         ref = ReferenceManager(base_dir=str(refs_dir))
         drafter = Drafter(ref, drafts_dir=str(drafts_dir))
@@ -275,7 +275,7 @@ class TestSyncReferencesBlankLines:
         result = drafter.sync_references_from_wikilinks("test.md")
         assert result["success"]
 
-        content = (drafts_dir / "test.md").read_text()
+        content = (drafts_dir / "test.md").read_text(encoding="utf-8")
         body_content = content.split("## References")[0]
         assert "[1] [1] [[smith2024_11111111]]" not in body_content
         assert body_content.count("[1] [[smith2024_11111111]]") == 1
@@ -291,7 +291,7 @@ class TestSyncReferencesBlankLines:
         self._write_reference(refs_dir, "11111111", "smith2024_11111111", "Paper One")
 
         draft = "# Test\n\nSome text [1]<!-- [[smith2024_11111111]] -->.\n"
-        (drafts_dir / "test.md").write_text(draft)
+        (drafts_dir / "test.md").write_text(draft, encoding="utf-8")
 
         ref = ReferenceManager(base_dir=str(refs_dir))
         drafter = Drafter(ref, drafts_dir=str(drafts_dir))
@@ -299,7 +299,7 @@ class TestSyncReferencesBlankLines:
         result = drafter.sync_references_from_wikilinks("test.md")
         assert result["success"]
 
-        content = (drafts_dir / "test.md").read_text()
+        content = (drafts_dir / "test.md").read_text(encoding="utf-8")
         body_content = content.split("## References")[0]
         assert "<!-- [[smith2024_11111111]] -->" not in body_content
         assert body_content.count("[1] [[smith2024_11111111]]") == 1
@@ -318,7 +318,7 @@ class TestSyncReferencesBlankLines:
         )
 
         draft = "# Test\n\nSome text (Smith et al., 2024) [[smith2024_11111111]].\n"
-        (drafts_dir / "test.md").write_text(draft)
+        (drafts_dir / "test.md").write_text(draft, encoding="utf-8")
 
         ref = ReferenceManager(base_dir=str(refs_dir))
         drafter = Drafter(
@@ -330,7 +330,7 @@ class TestSyncReferencesBlankLines:
         result = drafter.sync_references_from_wikilinks("test.md")
         assert result["success"]
 
-        content = (drafts_dir / "test.md").read_text()
+        content = (drafts_dir / "test.md").read_text(encoding="utf-8")
         body_content = content.split("## References")[0]
         assert (
             "(Smith et al., 2024) (Smith et al., 2024) [[smith2024_11111111]]" not in body_content
@@ -353,7 +353,7 @@ class TestSyncReferencesBlankLines:
         )
 
         draft = "# Test\n\nSome text (Smith et al. 2024) [[smith2024_11111111]].\n"
-        (drafts_dir / "test.md").write_text(draft)
+        (drafts_dir / "test.md").write_text(draft, encoding="utf-8")
 
         ref = ReferenceManager(base_dir=str(refs_dir))
         drafter = Drafter(
@@ -365,7 +365,7 @@ class TestSyncReferencesBlankLines:
         result = drafter.sync_references_from_wikilinks("test.md")
         assert result["success"]
 
-        content = (drafts_dir / "test.md").read_text()
+        content = (drafts_dir / "test.md").read_text(encoding="utf-8")
         body_content = content.split("## References")[0]
         assert "(Smith et al. 2024) (Smith et al. 2024) [[smith2024_11111111]]" not in body_content
         assert body_content.count("(Smith et al. 2024) [[smith2024_11111111]]") == 1
@@ -378,7 +378,7 @@ class TestSyncReferencesBlankLines:
         self._write_reference(refs_dir, "11111111", "smith2024_11111111", "Paper One")
 
         draft = "# Test\n\nSome text ^1^ [[smith2024_11111111]].\n"
-        (drafts_dir / "test.md").write_text(draft)
+        (drafts_dir / "test.md").write_text(draft, encoding="utf-8")
 
         ref = ReferenceManager(base_dir=str(refs_dir))
         drafter = Drafter(
@@ -390,7 +390,7 @@ class TestSyncReferencesBlankLines:
         result = drafter.sync_references_from_wikilinks("test.md")
         assert result["success"]
 
-        content = (drafts_dir / "test.md").read_text()
+        content = (drafts_dir / "test.md").read_text(encoding="utf-8")
         body_content = content.split("## References")[0]
         assert "^1^ ^1^ [[smith2024_11111111]]" not in body_content
         assert body_content.count("^1^ [[smith2024_11111111]]") == 1
@@ -403,7 +403,7 @@ class TestSyncReferencesBlankLines:
         draft = (
             "# Test\n\nBody sentence.\n\n## References\n\n[1] Example ref. [[smith2024_11111111]]\n"
         )
-        (drafts_dir / "test.md").write_text(draft)
+        (drafts_dir / "test.md").write_text(draft, encoding="utf-8")
 
         ref = ReferenceManager(base_dir=str(refs_dir))
         drafter = Drafter(ref, drafts_dir=str(drafts_dir))

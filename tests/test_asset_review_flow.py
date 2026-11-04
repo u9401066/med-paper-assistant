@@ -67,7 +67,9 @@ def figure_tool_funcs(tmp_path: Path, monkeypatch):
     (project_dir / ".audit").mkdir(parents=True)
     (project_dir / "drafts").mkdir(parents=True)
     _write_test_png(project_dir / "results" / "figures" / "consort.png")
-    (project_dir / "results" / "tables" / "baseline.md").write_text("|A|B|\n|---|---|\n|1|2|")
+    (project_dir / "results" / "tables" / "baseline.md").write_text(
+        "|A|B|\n|---|---|\n|1|2|", encoding="utf-8"
+    )
 
     _reset_project_manager()
     pm = ProjectManager(base_path=str(tmp_path))
@@ -140,7 +142,9 @@ def test_review_then_insert_figure_passes(figure_tool_funcs):
     assert "Asset Review Recorded" in review_result
     assert "Automated removal:** disabled" in review_result
 
-    audit = yaml.safe_load((project_dir / ".audit" / "data-artifacts.yaml").read_text())
+    audit = yaml.safe_load(
+        (project_dir / ".audit" / "data-artifacts.yaml").read_text(encoding="utf-8")
+    )
     integrity_receipt = audit["content_integrity_receipts"][0]
     assert (
         integrity_receipt["file"]["sha256"] == integrity_receipt["file"]["sha256_after_inspection"]

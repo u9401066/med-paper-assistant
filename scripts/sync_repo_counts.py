@@ -180,6 +180,8 @@ def _repository_files(directory: Path, fallback_pattern: str) -> list[Path]:
         cwd=ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if result.returncode == 0:
@@ -1030,4 +1032,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(errors="replace")
     sys.exit(main())

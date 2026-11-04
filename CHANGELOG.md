@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Made the `PreToolUse` mode guard fail-open and fast: `.github/hooks/mode-guard.json` now runs `scripts/hooks/copilot/mode-guard.{ps1,sh}`, which calls the project `.venv` Python directly instead of `uv run`. Before this fix, a `uv.lock` re-resolve or a locked `.venv` made every hook invocation time out, which denied **all** agent tools. Malformed hook payloads and guard exceptions now always return `{"continue": true}`.
+- The mode guard now understands Copilot CLI payloads (`toolName`/`toolArgs`, including JSON-string args) and checks the `powershell`/`bash`/`shell` terminal tools as well as `run_in_terminal`.
+- Fixed locale-dependent text I/O that crashed on Windows hosts with CJK code pages (cp950/cp936/cp932). Every `read_text`/`write_text`/`open`/`subprocess(text=True)` call in `src`, `scripts`, and `tests` now passes an explicit UTF-8 encoding, and `tests/test_text_encoding_guard.py` keeps it that way. CLI scripts that print emoji no longer crash on legacy consoles.
+- `import_local_papers` now accepts native Windows absolute paths that are inside the workspace. It still rejects UNC, drive-relative, and alternate-data-stream paths, and anything outside the workspace. The path resolver moved to `shared/path_guard.resolve_local_import_path`.
+- The MCP round-trip tests now spawn `sys.executable` instead of whichever `python` is on `PATH`.
+
 ## [1.0.3] - 2026-09-01
 
 ### Added

@@ -8,7 +8,7 @@ import hashlib
 import json
 import os
 from collections.abc import Callable
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from typing import Any, Optional, Union
 
 from mcp.server import MCPServer
@@ -19,7 +19,7 @@ from med_paper_assistant.infrastructure.persistence.pipeline_gate_validator impo
     derive_reference_source_revision,
 )
 from med_paper_assistant.infrastructure.services import Drafter
-from med_paper_assistant.shared.path_guard import PathGuardError
+from med_paper_assistant.shared.path_guard import PathGuardError, resolve_local_import_path
 
 from .._shared import (
     ensure_project_context,
@@ -84,38 +84,6 @@ def register_reference_manager_tools(
             for item in line.split(",")
             if item.strip()
         ]
-
-    def _resolve_local_import_path(file_path: str) -> Path:
-        """Resolve a local import path under the workspace root."""
-        raw = str(file_path or "").strip()
-        if not raw:
-            raise PathGuardError("local import path is required.")
-        if any(ord(ch) < 32 for ch in raw):
-            raise PathGuardError("local import path contains invalid control character(s).")
-        windows_path = PureWindowsPath(raw)
-        if windows_path.is_absolute() or windows_path.drive or "\\" in raw or ":" in raw:
-            raise PathGuardError("local import path must not use Windows absolute/drive syntax.")
-        if ".." in Path(raw).parts:
-            raise PathGuardError("local import path must not contain traversal segments.")
-
-        workspace_root = Path(os.environ.get("MEDPAPER_BASE_DIR") or Path.cwd()).resolve()
-        candidate = Path(raw)
-        if not candidate.is_absolute():
-            candidate = workspace_root / candidate
-        resolved = candidate.resolve()
-        try:
-            relative = resolved.relative_to(workspace_root)
-        except ValueError as exc:
-            raise PathGuardError("local import path must stay within the workspace root.") from exc
-
-        for segment in relative.parts:
-            if segment in {"", "."}:
-                continue
-            stem = Path(segment).stem.rstrip(" .").upper()
-            if not stem:
-                raise PathGuardError("local import path contains an invalid segment.")
-
-        return resolved
 
     @tool()
     def save_reference(article: Union[dict, str], project: Optional[str] = None) -> str:
@@ -297,7 +265,7 @@ def register_reference_manager_tools(
             results = []
             for file_path, metadata in zip(parsed_paths, metadata_items):
                 try:
-                    resolved_path = _resolve_local_import_path(file_path)
+                    resolved_path = resolve_local_import_path(file_path)
                 except PathGuardError as exc:
                     results.append(f"- {Path(file_path).name}: ❌ Invalid local import path: {exc}")
                     continue

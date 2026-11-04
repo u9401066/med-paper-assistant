@@ -179,7 +179,8 @@ class TestConceptReviewArtifacts:
         concept_path.write_text(
             "# RESEARCH QUESTION\n\nDoes intervention X improve outcome Y?\n\n"
             "# NOVELTY\n\nThis is the first structured comparison of X and Y.\n\n"
-            "# KEY SELLING POINTS\n\n- Better framing\n- Stronger synthesis\n"
+            "# KEY SELLING POINTS\n\n- Better framing\n- Stronger synthesis\n",
+            encoding="utf-8",
         )
 
         result = validator.validate_structure_only(str(concept_path))
@@ -197,7 +198,8 @@ class TestConceptReviewArtifacts:
         concept_path.write_text(
             "# RESEARCH QUESTION\n\nDoes intervention X improve outcome Y?\n\n"
             "# NOVELTY\n\nThis is the first structured comparison of X and Y.\n\n"
-            "# KEY SELLING POINTS\n\n- Better framing\n"
+            "# KEY SELLING POINTS\n\n- Better framing\n",
+            encoding="utf-8",
         )
 
         result = validator.validate_structure_only(str(concept_path))

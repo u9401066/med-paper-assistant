@@ -3527,17 +3527,16 @@ class PipelineGateValidator:
         if has_git:
             workspace_root = git_dir.parent
             try:
-                env = os.environ.copy()
-                env["GIT_OPTIONAL_LOCKS"] = "0"
 
                 def _run_git(args: list[str]) -> subprocess.CompletedProcess[str]:
                     result = subprocess.run(  # nosec B603 B607
                         ["git", *args],
                         capture_output=True,
-                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
                         cwd=str(workspace_root),
                         timeout=_GIT_GATE_TIMEOUT_SECONDS,
-                        env=env,
+                        env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
                     )
                     if result.returncode != 0:
                         detail = (

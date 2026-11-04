@@ -12,6 +12,7 @@ Data sources:
 - Others: compiled from known author guidelines (verify via guidelines_url)
 """
 
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -1870,6 +1871,9 @@ cp templates/journal-profiles/bja.yaml projects/my-project/journal-profile.yaml
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(errors="replace")
     workspace = Path(__file__).resolve().parent.parent
     output = workspace / "templates" / "journal-profiles"
     print(f"Generating journal profiles to: {output}\n")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -37,7 +38,7 @@ async def open_mcp_session(base_dir: Path) -> AsyncIterator[ClientSession]:
     env["MEDPAPER_TOOL_SURFACE"] = "full"
 
     params = StdioServerParameters(
-        command=os.environ.get("PYTHON", "python"),
+        command=sys.executable,
         args=["-m", "med_paper_assistant.interfaces.mcp"],
         cwd=str(base_dir),
         env=env,

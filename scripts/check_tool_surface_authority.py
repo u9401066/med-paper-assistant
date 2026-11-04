@@ -48,6 +48,8 @@ def _repository_files(pathspec: str, fallback_glob: str) -> list[Path]:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if result.returncode == 0:
@@ -321,6 +323,10 @@ def validate_authority() -> tuple[list[str], list[str]]:
 
 
 def main() -> int:
+    # Emoji status markers crash legacy Windows consoles (e.g. cp950/cp1252).
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     passes, errors = validate_authority()
 
     for item in passes:

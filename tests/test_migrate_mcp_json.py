@@ -204,10 +204,10 @@ class TestMigrate:
 
     def test_dry_run_does_not_modify(self, tmp_mcp):
         p = tmp_mcp({"mdpaper": {}})
-        original_text = p.read_text()
+        original_text = p.read_text(encoding="utf-8")
         rc = migrate(p, dry_run=True)
         assert rc == 0
-        assert p.read_text() == original_text
+        assert p.read_text(encoding="utf-8") == original_text
         backups = list(p.parent.glob("mcp.json.bak.*"))
         assert len(backups) == 0
 
@@ -217,7 +217,7 @@ class TestMigrate:
 
     def test_invalid_json(self, tmp_path):
         p = tmp_path / "mcp.json"
-        p.write_text("not json {{{")
+        p.write_text("not json {{{", encoding="utf-8")
         rc = migrate(p)
         assert rc == 2
 

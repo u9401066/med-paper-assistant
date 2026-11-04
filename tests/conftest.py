@@ -11,8 +11,10 @@ def tmp_project(tmp_path):
     (project_dir / "references").mkdir()
     (project_dir / "drafts").mkdir()
     (project_dir / ".memory").mkdir()
-    (project_dir / ".memory" / "activeContext.md").write_text("# Active Context\n")
-    (project_dir / ".memory" / "progress.md").write_text("# Progress\n")
+    (project_dir / ".memory" / "activeContext.md").write_text(
+        "# Active Context\n", encoding="utf-8"
+    )
+    (project_dir / ".memory" / "progress.md").write_text("# Progress\n", encoding="utf-8")
     return project_dir
 
 

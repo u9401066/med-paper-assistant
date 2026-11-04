@@ -35,7 +35,7 @@ def project_structure(tmp_path):
             "in_text": "Greer & Lee, 2017",
         },
     }
-    with open(ref_dir / "metadata.json", "w") as f:
+    with open(ref_dir / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f)
 
     # Create reference: smith2020_12345678
@@ -54,7 +54,7 @@ def project_structure(tmp_path):
             "in_text": "Smith, 2020",
         },
     }
-    with open(ref_dir2 / "metadata.json", "w") as f:
+    with open(ref_dir2 / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata2, f)
 
     # Create a draft
@@ -64,7 +64,7 @@ def project_structure(tmp_path):
         "Prior studies have shown promising results [[greer2017_27345583]].\n\n"
         "However, more evidence is needed for ICU settings.\n"
     )
-    with open(drafts_dir / "introduction.md", "w") as f:
+    with open(drafts_dir / "introduction.md", "w", encoding="utf-8") as f:
         f.write(draft_content)
 
     return tmp_path
@@ -137,7 +137,7 @@ class TestPatchDraft:
         """Should replace text in draft file."""
         draft_path = project_structure / "drafts" / "introduction.md"
 
-        with open(draft_path) as f:
+        with open(draft_path, encoding="utf-8") as f:
             content = f.read()
 
         old_text = "However, more evidence is needed for ICU settings."
@@ -146,10 +146,10 @@ class TestPatchDraft:
         assert old_text in content
         new_content = content.replace(old_text, new_text, 1)
 
-        with open(draft_path, "w") as f:
+        with open(draft_path, "w", encoding="utf-8") as f:
             f.write(new_content)
 
-        with open(draft_path) as f:
+        with open(draft_path, encoding="utf-8") as f:
             result = f.read()
 
         assert new_text in result
@@ -161,10 +161,10 @@ class TestPatchDraft:
 
         # Write content with duplicate text
         content = "Hello world.\n\nHello world.\n"
-        with open(draft_path, "w") as f:
+        with open(draft_path, "w", encoding="utf-8") as f:
             f.write(content)
 
-        with open(draft_path) as f:
+        with open(draft_path, encoding="utf-8") as f:
             content = f.read()
 
         match_count = content.count("Hello world.")
@@ -174,7 +174,7 @@ class TestPatchDraft:
         """Should detect when old_text doesn't exist."""
         draft_path = project_structure / "drafts" / "introduction.md"
 
-        with open(draft_path) as f:
+        with open(draft_path, encoding="utf-8") as f:
             content = f.read()
 
         assert "NONEXISTENT TEXT 12345" not in content
@@ -222,17 +222,17 @@ class TestPatchDraft:
         """Replacement should not alter other parts of the draft."""
         draft_path = project_structure / "drafts" / "introduction.md"
 
-        with open(draft_path) as f:
+        with open(draft_path, encoding="utf-8") as f:
             original = f.read()
 
         old_text = "Remimazolam is a novel benzodiazepine sedative."
         new_text = "Remimazolam is a novel ultra-short-acting benzodiazepine."
 
         new_content = original.replace(old_text, new_text, 1)
-        with open(draft_path, "w") as f:
+        with open(draft_path, "w", encoding="utf-8") as f:
             f.write(new_content)
 
-        with open(draft_path) as f:
+        with open(draft_path, encoding="utf-8") as f:
             result = f.read()
 
         # Changed text
@@ -289,7 +289,7 @@ class TestEditingIntegration:
         assert "greer2017_27345583" in citation_keys
 
         # Step 2: Read draft
-        with open(draft_path) as f:
+        with open(draft_path, encoding="utf-8") as f:
             content = f.read()
 
         # Step 3: Patch with new citation
@@ -309,11 +309,11 @@ class TestEditingIntegration:
         # Apply patch
         assert content.count(old_text) == 1  # unique match
         new_content = content.replace(old_text, fixed_new, 1)
-        with open(draft_path, "w") as f:
+        with open(draft_path, "w", encoding="utf-8") as f:
             f.write(new_content)
 
         # Step 4: Verify
-        with open(draft_path) as f:
+        with open(draft_path, encoding="utf-8") as f:
             final = f.read()
         assert "[[smith2020_12345678]]" in final
         assert "[[greer2017_27345583]]" in final  # untouched

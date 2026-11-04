@@ -388,6 +388,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(errors="replace")
     import io
 
     if sys.stdout.encoding and sys.stdout.encoding.lower().replace("-", "") != "utf8":

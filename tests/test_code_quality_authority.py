@@ -47,6 +47,8 @@ def test_real_code_quality_authority_check_passes() -> None:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
 

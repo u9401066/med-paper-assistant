@@ -94,7 +94,7 @@ def project_with_profile(tmp_path: Path) -> Path:
         },
         "assets": {"figures_max": 6, "tables_max": 5},
     }
-    with open(d / "journal-profile.yaml", "w") as f:
+    with open(d / "journal-profile.yaml", "w", encoding="utf-8") as f:
         yaml.dump(profile, f)
     return d
 
@@ -183,7 +183,7 @@ class TestBodyWordCountHelpers:
                 ],
             },
         }
-        with open(d / "journal-profile.yaml", "w") as f:
+        with open(d / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         eng = WritingHooksEngine(d)
         text = (
@@ -593,7 +593,8 @@ class TestHookF:
                     ],
                     "tables": [],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         tracker = DataArtifactTracker(project_dir / ".audit", project_dir)
@@ -1390,7 +1391,8 @@ class TestHookC7b:
                         }
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         text = "## Methods\n\nSee Figure 1.\n\n## Results\n\ntext"
@@ -1405,7 +1407,7 @@ class TestHookC7b:
     ):
         results_dir = project_dir / "results"
         (results_dir / "figures").mkdir(parents=True)
-        (results_dir / "figures" / "study-flow.drawio").write_text("xml")
+        (results_dir / "figures" / "study-flow.drawio").write_text("xml", encoding="utf-8")
         (results_dir / "manifest.json").write_text(
             json.dumps(
                 {
@@ -1417,7 +1419,8 @@ class TestHookC7b:
                         }
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "manuscript-plan.yaml").write_text(
             yaml.dump(
@@ -1431,7 +1434,8 @@ class TestHookC7b:
                         }
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         text = (
@@ -1449,9 +1453,9 @@ class TestHookC7b:
         results_dir = project_dir / "results"
         (results_dir / "figures").mkdir(parents=True)
         (results_dir / "tables").mkdir(parents=True)
-        (results_dir / "figures" / "study-flow.drawio").write_text("xml")
+        (results_dir / "figures" / "study-flow.drawio").write_text("xml", encoding="utf-8")
         (results_dir / "figures" / "study-flow.png").write_bytes(b"png")
-        (results_dir / "tables" / "baseline.md").write_text("| a | b |")
+        (results_dir / "tables" / "baseline.md").write_text("| a | b |", encoding="utf-8")
         (results_dir / "manifest.json").write_text(
             json.dumps(
                 {
@@ -1470,7 +1474,8 @@ class TestHookC7b:
                         }
                     ],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "manuscript-plan.yaml").write_text(
             yaml.dump(
@@ -1490,7 +1495,8 @@ class TestHookC7b:
                         },
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         text = (
@@ -1523,7 +1529,7 @@ class TestHookC7d:
                 {"id": "tbl1", "type": "table", "number": "1"},
             ]
         }
-        with open(results_dir / "manifest.json", "w") as f:
+        with open(results_dir / "manifest.json", "w", encoding="utf-8") as f:
             json.dump(manifest, f)
         text = "See Figure 1 and Table 1 for details."
         r = engine.check_cross_references(text)
@@ -1534,7 +1540,7 @@ class TestHookC7d:
         results_dir = project_dir / "results"
         results_dir.mkdir()
         manifest = {"assets": [{"id": "fig1", "type": "figure", "number": "1"}]}
-        with open(results_dir / "manifest.json", "w") as f:
+        with open(results_dir / "manifest.json", "w", encoding="utf-8") as f:
             json.dump(manifest, f)
         r = engine.check_cross_references("See Figure 1 and Figure 3.")
         assert r.passed is False
@@ -1551,7 +1557,7 @@ class TestHookC7d:
                 {"id": "fig2", "type": "figure", "number": "2"},
             ]
         }
-        with open(results_dir / "manifest.json", "w") as f:
+        with open(results_dir / "manifest.json", "w", encoding="utf-8") as f:
             json.dump(manifest, f)
         r = engine.check_cross_references("See Figure 1 for details.")
         orphan = [i for i in r.issues if "Orphan" in i.message]
@@ -1604,7 +1610,7 @@ class TestHookP5:
 
     def test_no_protected_blocks_passes(self, engine: WritingHooksEngine, project_dir: Path):
         concept = "# Concept\n\n## Background\n\nSome background text.\n"
-        (project_dir / "concept.md").write_text(concept)
+        (project_dir / "concept.md").write_text(concept, encoding="utf-8")
         r = engine.check_protected_content()
         assert r.passed is True
         assert r.stats["protected_blocks_found"] == 0
@@ -1622,7 +1628,7 @@ class TestHookP7:
         ref1 = refs_dir / "smith2024_12345678"
         ref1.mkdir()
         meta = {"_data_source": "pubmed_api", "title": "Test"}
-        with open(ref1 / "metadata.json", "w") as f:
+        with open(ref1 / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(meta, f)
         r = engine.check_reference_integrity()
         assert r.passed is True
@@ -1635,7 +1641,7 @@ class TestHookP7:
         ref1 = refs_dir / "smith2024_12345678"
         ref1.mkdir()
         meta = {"_data_source": "agent_input", "title": "Test"}
-        with open(ref1 / "metadata.json", "w") as f:
+        with open(ref1 / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(meta, f)
         r = engine.check_reference_integrity()
         assert r.passed is False
@@ -1666,7 +1672,7 @@ class TestHookP7:
             "title": "Test",
             "doi": "10.1001/jama.2020.1585",
         }
-        with open(ref1 / "metadata.json", "w") as f:
+        with open(ref1 / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(meta, f)
         r = engine.check_reference_integrity()
         assert r.passed is True
@@ -1684,7 +1690,7 @@ class TestHookP7:
             "title": "Test",
             "doi": "not-a-real-doi",
         }
-        with open(ref1 / "metadata.json", "w") as f:
+        with open(ref1 / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(meta, f)
         r = engine.check_reference_integrity()
         assert r.passed is False
@@ -1702,7 +1708,7 @@ class TestHookP7:
             "title": "Test",
             "doi": "https://doi.org/10.1038/nature12373",
         }
-        with open(ref1 / "metadata.json", "w") as f:
+        with open(ref1 / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(meta, f)
         r = engine.check_reference_integrity()
         assert r.passed is True
@@ -1715,7 +1721,7 @@ class TestHookP7:
         ref1 = refs_dir / "smith2024_12345678"
         ref1.mkdir()
         meta = {"_data_source": "pubmed_api", "title": "Test"}
-        with open(ref1 / "metadata.json", "w") as f:
+        with open(ref1 / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(meta, f)
         r = engine.check_reference_integrity()
         assert r.passed is True
@@ -1818,7 +1824,7 @@ class TestGitStatusCheck:
             ["git", "config", "user.email", "test@test.com"], cwd=str(repo), capture_output=True
         )
         subprocess.run(["git", "config", "user.name", "Test"], cwd=str(repo), capture_output=True)
-        (repo / "README.md").write_text("# Test")
+        (repo / "README.md").write_text("# Test", encoding="utf-8")
         subprocess.run(["git", "add", "-A"], cwd=str(repo), capture_output=True)
         subprocess.run(["git", "commit", "-m", "init"], cwd=str(repo), capture_output=True)
 
@@ -1840,12 +1846,12 @@ class TestGitStatusCheck:
             ["git", "config", "user.email", "test@test.com"], cwd=str(repo), capture_output=True
         )
         subprocess.run(["git", "config", "user.name", "Test"], cwd=str(repo), capture_output=True)
-        (repo / "README.md").write_text("# Test")
+        (repo / "README.md").write_text("# Test", encoding="utf-8")
         subprocess.run(["git", "add", "-A"], cwd=str(repo), capture_output=True)
         subprocess.run(["git", "commit", "-m", "init"], cwd=str(repo), capture_output=True)
 
         # Create dirty file
-        (repo / "dirty.txt").write_text("uncommitted")
+        (repo / "dirty.txt").write_text("uncommitted", encoding="utf-8")
 
         e = WritingHooksEngine(repo)
         r = e.check_git_status()
@@ -2234,7 +2240,7 @@ class TestA7ReferenceSufficiency:
         for i in range(20):
             rd = refs / f"ref_{i}"
             rd.mkdir()
-            (rd / "metadata.json").write_text("{}")
+            (rd / "metadata.json").write_text("{}", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_reference_sufficiency()
         assert r.passed is True
@@ -2248,7 +2254,7 @@ class TestA7ReferenceSufficiency:
         for i in range(5):
             rd = refs / f"ref_{i}"
             rd.mkdir()
-            (rd / "metadata.json").write_text("{}")
+            (rd / "metadata.json").write_text("{}", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_reference_sufficiency()
         assert r.passed is False
@@ -2266,14 +2272,14 @@ class TestA7ReferenceSufficiency:
     def test_paper_type_original_research(self, project_dir: Path):
         """A7 uses paper-type-specific minimum (original-research = 20)."""
         profile = {"paper": {"type": "original-research"}}
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         refs = project_dir / "references"
         refs.mkdir()
         for i in range(15):
             rd = refs / f"ref_{i}"
             rd.mkdir()
-            (rd / "metadata.json").write_text("{}")
+            (rd / "metadata.json").write_text("{}", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_reference_sufficiency()
         assert r.passed is False  # 15 < 20
@@ -2282,14 +2288,14 @@ class TestA7ReferenceSufficiency:
     def test_paper_type_case_report(self, project_dir: Path):
         """A7 passes for case-report with lower minimum (8)."""
         profile = {"paper": {"type": "case-report"}}
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         refs = project_dir / "references"
         refs.mkdir()
         for i in range(8):
             rd = refs / f"ref_{i}"
             rd.mkdir()
-            (rd / "metadata.json").write_text("{}")
+            (rd / "metadata.json").write_text("{}", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_reference_sufficiency()
         assert r.passed is True  # 8 >= 8
@@ -2298,14 +2304,14 @@ class TestA7ReferenceSufficiency:
     def test_paper_type_systematic_review(self, project_dir: Path):
         """A7 systematic-review needs 40 references."""
         profile = {"paper": {"type": "systematic-review"}}
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         refs = project_dir / "references"
         refs.mkdir()
         for i in range(30):
             rd = refs / f"ref_{i}"
             rd.mkdir()
-            (rd / "metadata.json").write_text("{}")
+            (rd / "metadata.json").write_text("{}", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_reference_sufficiency()
         assert r.passed is False  # 30 < 40
@@ -2315,12 +2321,12 @@ class TestA7ReferenceSufficiency:
         """A7 counts flat .md files as fallback when no metadata.json found."""
         # Set paper type to letter (min 5) to test with fewer files
         profile = {"paper": {"type": "letter"}}
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         refs = project_dir / "references"
         refs.mkdir()
         for i in range(6):
-            (refs / f"ref_{i}.md").write_text("# Ref")
+            (refs / f"ref_{i}.md").write_text("# Ref", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_reference_sufficiency()
         assert r.passed is True  # 6 >= 5 (letter)
@@ -2407,7 +2413,7 @@ class TestHookC2:
     def test_no_required_documents_passes(self, project_dir: Path):
         """Profile exists but no required_documents → PASS."""
         profile = {"word_limits": {"total_manuscript": 5000}}
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         engine = WritingHooksEngine(project_dir)
         r = engine.check_submission_checklist("Some content.")
@@ -2423,7 +2429,7 @@ class TestHookC2:
                 "ethics_statement": True,
             }
         }
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         engine = WritingHooksEngine(project_dir)
         content = (
@@ -2445,7 +2451,7 @@ class TestHookC2:
                 "highlights": True,
             }
         }
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         engine = WritingHooksEngine(project_dir)
         r = engine.check_submission_checklist("No relevant content here.")
@@ -2459,9 +2465,9 @@ class TestHookC2:
     def test_file_existence_satisfies(self, project_dir: Path):
         """File found in project dir → satisfies the requirement."""
         profile = {"required_documents": {"cover_letter": True}}
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
-        (project_dir / "cover-letter.md").write_text("Dear Editor,\n")
+        (project_dir / "cover-letter.md").write_text("Dear Editor,\n", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_submission_checklist("No content match here.")
         assert r.passed is True
@@ -2475,9 +2481,9 @@ class TestHookC2:
                 "highlights": False,
             }
         }
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
-        (project_dir / "cover-letter.md").write_text("Dear Editor,\n")
+        (project_dir / "cover-letter.md").write_text("Dear Editor,\n", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_submission_checklist("")
         assert r.passed is True
@@ -2497,7 +2503,7 @@ class TestHookC2:
                 "highlights": {"required": False},
             }
         }
-        with open(project_dir / "journal-profile.yaml", "w") as f:
+        with open(project_dir / "journal-profile.yaml", "w", encoding="utf-8") as f:
             yaml.dump(profile, f)
         engine = WritingHooksEngine(project_dir)
         r = engine.check_submission_checklist("")
@@ -2525,7 +2531,7 @@ class TestHookP6:
         """Recently updated memory files → PASS."""
         mem = project_dir / ".memory"
         mem.mkdir()
-        (mem / "activeContext.md").write_text("# Active Context\nUpdated now.")
+        (mem / "activeContext.md").write_text("# Active Context\nUpdated now.", encoding="utf-8")
         engine = WritingHooksEngine(project_dir)
         r = engine.check_memory_sync()
         assert r.hook_id == "P6"
@@ -2541,7 +2547,7 @@ class TestHookP6:
         mem = project_dir / ".memory"
         mem.mkdir()
         fpath = mem / "activeContext.md"
-        fpath.write_text("# Active Context\nOld content.")
+        fpath.write_text("# Active Context\nOld content.", encoding="utf-8")
         # Set mtime to 3 hours ago
         old_time = time.time() - 10800
         os.utime(fpath, (old_time, old_time))
@@ -2563,7 +2569,7 @@ class TestHookP6:
         mem.mkdir()
         # Stale file
         stale = mem / "activeContext.md"
-        stale.write_text("Old content.")
+        stale.write_text("Old content.", encoding="utf-8")
         old_time = time.time() - 10800
         os.utime(stale, (old_time, old_time))
         # Fresh file — create a workspace-level memory-bank for this
@@ -2571,7 +2577,7 @@ class TestHookP6:
         (project_dir / ".git").mkdir(exist_ok=True)
         mb = project_dir / "memory-bank"
         mb.mkdir()
-        (mb / "activeContext.md").write_text("Fresh content.")
+        (mb / "activeContext.md").write_text("Fresh content.", encoding="utf-8")
 
         engine = WritingHooksEngine(project_dir)
         r = engine.check_memory_sync()

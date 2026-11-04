@@ -13,6 +13,8 @@ def test_tool_surface_authority_check_passes() -> None:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
 

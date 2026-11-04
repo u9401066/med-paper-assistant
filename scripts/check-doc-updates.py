@@ -172,6 +172,8 @@ def get_staged_files() -> list[str]:
         ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     return [f.strip() for f in result.stdout.splitlines() if f.strip()]
 
@@ -261,4 +263,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(errors="replace")
     sys.exit(main())

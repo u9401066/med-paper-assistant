@@ -145,7 +145,10 @@ def test_readme_authority_counts_have_no_stale_contradictions() -> None:
 
 
 def _workflow(name: str) -> dict[str, Any]:
-    return yaml.safe_load((REPO_ROOT / ".github" / "workflows" / name).read_text()) or {}
+    return (
+        yaml.safe_load((REPO_ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8"))
+        or {}
+    )
 
 
 def _iter_steps(workflow: dict[str, Any]):

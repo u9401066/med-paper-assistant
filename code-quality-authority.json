@@ -15,7 +15,7 @@
     "filesScanned": 157,
     "definitionsScanned": {
       "class": 150,
-      "function": 1326
+      "function": 1327
     },
     "violations": {
       "file": 39,
@@ -430,13 +430,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/persistence/pipeline_gate_validator.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 3670
+      "allowedLines": 3669
     },
     {
       "kind": "class",
       "path": "src/med_paper_assistant/infrastructure/persistence/pipeline_gate_validator.py",
       "qualifiedSymbol": "PipelineGateValidator",
-      "allowedLines": 3220
+      "allowedLines": 3219
     },
     {
       "kind": "function",
@@ -478,7 +478,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/pipeline_gate_validator.py",
       "qualifiedSymbol": "PipelineGateValidator._validate_phase_11",
-      "allowedLines": 157
+      "allowedLines": 156
     },
     {
       "kind": "function",
@@ -880,7 +880,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/infrastructure/persistence/writing_hooks/_git.py",
       "qualifiedSymbol": "GitHooksMixin.check_git_status",
-      "allowedLines": 120
+      "allowedLines": 110
     },
     {
       "kind": "file",
@@ -1960,13 +1960,13 @@
       "kind": "file",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/reference/manager.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 1204
+      "allowedLines": 1172
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/reference/manager.py",
       "qualifiedSymbol": "register_reference_manager_tools",
-      "allowedLines": 1171
+      "allowedLines": 1139
     },
     {
       "kind": "function",

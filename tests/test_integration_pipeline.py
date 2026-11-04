@@ -74,7 +74,8 @@ def project_dir(tmp_path: Path) -> Path:
                 "paper_type": "original_research",
                 "status": "in_progress",
             }
-        )
+        ),
+        encoding="utf-8",
     )
 
     # concept.md
@@ -93,7 +94,7 @@ def project_dir(tmp_path: Path) -> Path:
             "journal": f"Journal {i}",
             "year": 2024,
         }
-        (p / "references" / f"ref_{i}.yaml").write_text(yaml.dump(ref))
+        (p / "references" / f"ref_{i}.yaml").write_text(yaml.dump(ref), encoding="utf-8")
 
     # Sample draft sections
     methods = (
@@ -115,13 +116,17 @@ def project_dir(tmp_path: Path) -> Path:
         "See Supplementary Table S1 for details.\n"
         "[[ref_0]] [[ref_1]] [[ref_2]]\n"
     )
-    (p / "drafts" / "methods.md").write_text(methods)
-    (p / "drafts" / "results.md").write_text(results)
-    (p / "drafts" / "discussion.md").write_text(discussion)
+    (p / "drafts" / "methods.md").write_text(methods, encoding="utf-8")
+    (p / "drafts" / "results.md").write_text(results, encoding="utf-8")
+    (p / "drafts" / "discussion.md").write_text(discussion, encoding="utf-8")
 
     # Memory files
-    (p / ".memory" / "activeContext.md").write_text("# Active Context\nIntegration test")
-    (p / ".memory" / "progress.md").write_text("# Progress\nRunning integration test")
+    (p / ".memory" / "activeContext.md").write_text(
+        "# Active Context\nIntegration test", encoding="utf-8"
+    )
+    (p / ".memory" / "progress.md").write_text(
+        "# Progress\nRunning integration test", encoding="utf-8"
+    )
 
     return p
 
@@ -174,7 +179,7 @@ class TestWritingHooksEngineIntegration:
 
     def test_hook_a5_language_consistency(self, project_dir: Path) -> None:
         engine = WritingHooksEngine(project_dir)
-        content = (project_dir / "drafts" / "methods.md").read_text()
+        content = (project_dir / "drafts" / "methods.md").read_text(encoding="utf-8")
         result = engine.check_language_consistency(content, prefer="american")
         assert result.hook_id == "A5"
         # "analysed", "randomised", "anaesthesia" are British → should flag
@@ -197,21 +202,21 @@ class TestWritingHooksEngineIntegration:
 
     def test_hook_b8_data_claim_alignment(self, project_dir: Path) -> None:
         engine = WritingHooksEngine(project_dir)
-        methods = (project_dir / "drafts" / "methods.md").read_text()
-        results = (project_dir / "drafts" / "results.md").read_text()
+        methods = (project_dir / "drafts" / "methods.md").read_text(encoding="utf-8")
+        results = (project_dir / "drafts" / "results.md").read_text(encoding="utf-8")
         result = engine.check_data_claim_alignment(methods, results)
         assert result.hook_id == "B8"
         assert isinstance(result.stats, dict)
 
     def test_hook_c9_supplementary_crossref(self, project_dir: Path) -> None:
         engine = WritingHooksEngine(project_dir)
-        discussion = (project_dir / "drafts" / "discussion.md").read_text()
+        discussion = (project_dir / "drafts" / "discussion.md").read_text(encoding="utf-8")
         result = engine.check_supplementary_crossref(discussion)
         assert result.hook_id == "C9"
 
     def test_hook_f_data_artifacts(self, project_dir: Path) -> None:
         engine = WritingHooksEngine(project_dir)
-        content = (project_dir / "drafts" / "results.md").read_text()
+        content = (project_dir / "drafts" / "results.md").read_text(encoding="utf-8")
         result = engine.validate_data_artifacts(content)
         assert result.hook_id == "F"
 
@@ -306,7 +311,7 @@ class TestEvolutionVerifierIntegration:
             p = projects_dir / name
             for d in ["drafts", "references", ".audit", ".memory"]:
                 (p / d).mkdir(parents=True)
-            (p / "project.json").write_text(json.dumps({"slug": name}))
+            (p / "project.json").write_text(json.dumps({"slug": name}), encoding="utf-8")
 
             tracker = HookEffectivenessTracker(p / ".audit")
             tracker.record_event("A1", "trigger")
@@ -325,13 +330,13 @@ class TestDomainConstraintEngineIntegration:
 
     def test_validate_methods(self, project_dir: Path) -> None:
         engine = DomainConstraintEngine(project_dir)
-        methods = (project_dir / "drafts" / "methods.md").read_text()
+        methods = (project_dir / "drafts" / "methods.md").read_text(encoding="utf-8")
         result = engine.validate_against_constraints(methods, section="methods")
         assert isinstance(result, dict)
 
     def test_validate_results(self, project_dir: Path) -> None:
         engine = DomainConstraintEngine(project_dir)
-        results = (project_dir / "drafts" / "results.md").read_text()
+        results = (project_dir / "drafts" / "results.md").read_text(encoding="utf-8")
         result = engine.validate_against_constraints(results, section="results")
         assert isinstance(result, dict)
 
@@ -410,8 +415,8 @@ class TestCrossComponentSmoke:
 
         # 2. Run writing hooks
         hooks = WritingHooksEngine(project_dir)
-        methods_content = (project_dir / "drafts" / "methods.md").read_text()
-        results_content = (project_dir / "drafts" / "results.md").read_text()
+        methods_content = (project_dir / "drafts" / "methods.md").read_text(encoding="utf-8")
+        results_content = (project_dir / "drafts" / "results.md").read_text(encoding="utf-8")
 
         a5 = hooks.check_language_consistency(methods_content, prefer="american")
         a6 = hooks.check_overlap(methods_content)

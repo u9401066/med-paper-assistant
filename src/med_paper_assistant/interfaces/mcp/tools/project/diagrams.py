@@ -303,7 +303,7 @@ To associate with a project, use `save_diagram` with a project parameter."""
             meta_path = figures_dir / f"{diagram.name}.meta.txt"
             description = ""
             if meta_path.exists():
-                description = f" - {meta_path.read_text()[:50]}..."
+                description = f" - {meta_path.read_text(encoding='utf-8')[:50]}..."
 
             output.append(f"{i}. **{diagram.name}** ({size_kb:.1f} KB){description}")
 

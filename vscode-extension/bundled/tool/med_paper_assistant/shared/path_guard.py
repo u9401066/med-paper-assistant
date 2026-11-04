@@ -199,3 +199,44 @@ __all__ = [
     "resolve_child_directory",
     "resolve_child_path",
 ]
+
+
+def resolve_local_import_path(file_path: str) -> Path:
+    """Resolve a local import path under the workspace root."""
+    raw = str(file_path or "").strip()
+    if not raw:
+        raise PathGuardError("local import path is required.")
+    if any(ord(ch) < 32 for ch in raw):
+        raise PathGuardError("local import path contains invalid control character(s).")
+    windows_path = PureWindowsPath(raw)
+    if raw.startswith(("\\\\", "//")) or windows_path.drive.startswith("\\\\"):
+        raise PathGuardError("local import path must not use UNC/network syntax.")
+    if os.name == "nt":
+        # Native drive-absolute paths are fine; containment is enforced below.
+        if windows_path.drive and not windows_path.root:
+            raise PathGuardError("local import path must not use drive-relative syntax.")
+        if ":" in raw[len(windows_path.drive) :]:
+            raise PathGuardError("local import path must not contain ':' (alternate streams).")
+    elif windows_path.is_absolute() or windows_path.drive or "\\" in raw or ":" in raw:
+        raise PathGuardError("local import path must not use Windows absolute/drive syntax.")
+    if ".." in Path(raw).parts:
+        raise PathGuardError("local import path must not contain traversal segments.")
+
+    workspace_root = Path(os.environ.get("MEDPAPER_BASE_DIR") or Path.cwd()).resolve()
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        candidate = workspace_root / candidate
+    resolved = candidate.resolve()
+    try:
+        relative = resolved.relative_to(workspace_root)
+    except ValueError as exc:
+        raise PathGuardError("local import path must stay within the workspace root.") from exc
+
+    for segment in relative.parts:
+        if segment in {"", "."}:
+            continue
+        stem = Path(segment).stem.rstrip(" .").upper()
+        if not stem:
+            raise PathGuardError("local import path contains an invalid segment.")
+
+    return resolved

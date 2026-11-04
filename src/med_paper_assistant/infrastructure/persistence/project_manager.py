@@ -374,7 +374,7 @@ class ProjectManager:
             return None
 
         try:
-            return self.state_file.read_text().strip() or None
+            return self.state_file.read_text(encoding="utf-8").strip() or None
         except Exception:
             logger.debug("Failed to read current project state", exc_info=True)
             return None
@@ -680,7 +680,7 @@ class ProjectManager:
 
     def _save_current_project(self, slug: str) -> None:
         """Save current project to .current_project file."""
-        self.state_file.write_text(slug)
+        self.state_file.write_text(slug, encoding="utf-8")
 
     def _create_project_config(
         self,

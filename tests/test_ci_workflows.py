@@ -140,8 +140,12 @@ def test_setup_uv_version_policy_is_reproducible_across_workflows() -> None:
 
 
 def test_vscode_types_match_the_first_stable_mcp_provider_engine() -> None:
-    package = json.loads((REPO_ROOT / "vscode-extension" / "package.json").read_text())
-    lock = json.loads((REPO_ROOT / "vscode-extension" / "package-lock.json").read_text())
+    package = json.loads(
+        (REPO_ROOT / "vscode-extension" / "package.json").read_text(encoding="utf-8")
+    )
+    lock = json.loads(
+        (REPO_ROOT / "vscode-extension" / "package-lock.json").read_text(encoding="utf-8")
+    )
 
     assert package["engines"]["vscode"] == "^1.101.0"
     assert package["devDependencies"]["@types/vscode"] == "1.101.0"

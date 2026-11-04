@@ -91,7 +91,7 @@ def _add_prerequisites(project_dir, up_to_phase: int):
     if up_to_phase >= 2:
         pj = project_dir / "project.json"
         if not pj.is_file():
-            pj.write_text('{"slug": "test"}')
+            pj.write_text('{"slug": "test"}', encoding="utf-8")
     if up_to_phase >= 3:
         # Must meet paper-type minimum (default original-research = 20)
         refs = project_dir / "references"
@@ -100,11 +100,15 @@ def _add_prerequisites(project_dir, up_to_phase: int):
             ref_dir.mkdir(parents=True, exist_ok=True)
             meta = ref_dir / "metadata.json"
             if not meta.is_file():
-                meta.write_text(json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}))
+                meta.write_text(
+                    json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
+                )
     if up_to_phase >= 4:
         concept = project_dir / "concept.md"
         if not concept.is_file():
-            concept.write_text("# NOVELTY\n\nNew idea\n\n# KEY SELLING POINTS\n\n- Point A")
+            concept.write_text(
+                "# NOVELTY\n\nNew idea\n\n# KEY SELLING POINTS\n\n- Point A", encoding="utf-8"
+            )
         concept_review = project_dir / ".audit" / "concept-review.yaml"
         if not concept_review.is_file():
             concept_review.write_text(
@@ -121,23 +125,26 @@ def _add_prerequisites(project_dir, up_to_phase: int):
                 "  novelty_statement_locked:\n"
                 "    present: true\n"
                 "  selling_points_locked:\n"
-                "    present: true\n"
+                "    present: true\n",
+                encoding="utf-8",
             )
         concept_validation = project_dir / ".audit" / "concept-validation.md"
         if not concept_validation.is_file():
-            concept_validation.write_text("# Concept Validation")
+            concept_validation.write_text("# Concept Validation", encoding="utf-8")
     if up_to_phase >= 5:
         concept = project_dir / "concept.md"
         if not concept.is_file():
-            concept.write_text("# NOVELTY\n\nNew idea\n\n# KEY SELLING POINTS\n\n- Point A")
+            concept.write_text(
+                "# NOVELTY\n\nNew idea\n\n# KEY SELLING POINTS\n\n- Point A", encoding="utf-8"
+            )
     if up_to_phase >= 7:
         ms = project_dir / "drafts" / "manuscript.md"
         if not ms.is_file():
-            ms.write_text("# Manuscript\n\nBody text.\n\n## References\n\n")
+            ms.write_text("# Manuscript\n\nBody text.\n\n## References\n\n", encoding="utf-8")
     if up_to_phase >= 9:
         sc = project_dir / ".audit" / "quality-scorecard.md"
         if not sc.is_file():
-            sc.write_text("# Scorecard")
+            sc.write_text("# Scorecard", encoding="utf-8")
     # Phase 8+ needs completed review loop (Phase 7 prerequisite)
     if up_to_phase >= 8:
         if not (project_dir / ".audit" / "audit-loop-review.json").is_file():
@@ -152,9 +159,10 @@ def _add_prerequisites(project_dir, up_to_phase: int):
         (audit / "pipeline-run-20260101.md").write_text(
             "# Pipeline Run\n"
             "## D7 retrospective: Review Retrospective\nReview retro\n"
-            "## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro\n"
+            "## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro\n",
+            encoding="utf-8",
         )
-        (audit / "hook-effectiveness.md").write_text("# Hook Effectiveness\n")
+        (audit / "hook-effectiveness.md").write_text("# Hook Effectiveness\n", encoding="utf-8")
         existing = (audit / "evolution-log.jsonl").read_text(encoding="utf-8")
         if "meta_learning" not in existing:
             (audit / "evolution-log.jsonl").write_text(
@@ -467,7 +475,8 @@ def _approve_required_sections(project_dir):
                     "Discussion": {"approval_status": "approved"},
                 }
             }
-        )
+        ),
+        encoding="utf-8",
     )
 
 
@@ -533,15 +542,16 @@ class TestPhase0:
         assert not r.passed
 
     def test_fail_no_source_material_scan(self, validator, project_dir):
-        (project_dir / "journal-profile.yaml").write_text("type: original")
+        (project_dir / "journal-profile.yaml").write_text("type: original", encoding="utf-8")
         r = validator.validate_phase(0)
         assert not r.passed
         assert ".audit/source-materials.yaml" in r.missing
 
     def test_pass_with_journal_profile(self, validator, project_dir):
-        (project_dir / "journal-profile.yaml").write_text("type: original")
+        (project_dir / "journal-profile.yaml").write_text("type: original", encoding="utf-8")
         (project_dir / ".audit" / "source-materials.yaml").write_text(
-            "schema: mdpaper.source_materials.v1\nsummary:\n  total_candidates: 0\n"
+            "schema: mdpaper.source_materials.v1\nsummary:\n  total_candidates: 0\n",
+            encoding="utf-8",
         )
         r = validator.validate_phase(0)
         assert r.passed
@@ -570,24 +580,24 @@ class TestPhase2:
 
     def test_pass_with_refs_default_paper_type(self, validator, project_dir):
         """Default paper type is original-research, minimum 20 refs."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
         r = validator.validate_phase(2)
         assert r.passed
 
     def test_fail_below_paper_type_minimum(self, validator, project_dir):
         """10 refs is below the 20 minimum for original-research."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(10):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
         r = validator.validate_phase(2)
         assert not r.passed
@@ -598,15 +608,15 @@ class TestPhase2:
         """Case reports only need 8 refs (from journal-profile.yaml)."""
         import yaml
 
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         (project_dir / "journal-profile.yaml").write_text(
-            yaml.dump({"paper": {"type": "case-report"}})
+            yaml.dump({"paper": {"type": "case-report"}}), encoding="utf-8"
         )
         for i in range(8):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(2)
@@ -616,15 +626,15 @@ class TestPhase2:
         """Systematic reviews need 40 refs — 20 is insufficient."""
         import yaml
 
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         (project_dir / "journal-profile.yaml").write_text(
-            yaml.dump({"paper": {"type": "systematic-review"}})
+            yaml.dump({"paper": {"type": "systematic-review"}}), encoding="utf-8"
         )
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(2)
@@ -636,17 +646,17 @@ class TestPhase2:
         """journal-profile.yaml minimum_reference_limits overrides defaults."""
         import yaml
 
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         profile = {
             "paper": {"type": "original-research"},
             "references": {"minimum_reference_limits": {"original-research": 25}},
         }
-        (project_dir / "journal-profile.yaml").write_text(yaml.dump(profile))
+        (project_dir / "journal-profile.yaml").write_text(yaml.dump(profile), encoding="utf-8")
         for i in range(22):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(2)
@@ -654,13 +664,15 @@ class TestPhase2:
 
     def test_legacy_flat_md_refs_require_structured_migration(self, validator, project_dir):
         """Arbitrary Markdown cannot satisfy bibliographic integrity."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         # Use letter type with low minimum (5) for easy testing
         import yaml
 
-        (project_dir / "journal-profile.yaml").write_text(yaml.dump({"paper": {"type": "letter"}}))
+        (project_dir / "journal-profile.yaml").write_text(
+            yaml.dump({"paper": {"type": "letter"}}), encoding="utf-8"
+        )
         for i in range(5):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(2)
         assert not r.passed
@@ -669,7 +681,7 @@ class TestPhase2:
 
     def test_forged_verified_reference_is_not_counted(self, validator, project_dir):
         """A verified label without immutable PubMed provenance must fail closed."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True)
@@ -682,7 +694,7 @@ class TestPhase2:
                         "data_source": "pubmed_mcp_api",
                     }
                 )
-            (ref_dir / "metadata.json").write_text(json.dumps(metadata))
+            (ref_dir / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
 
         result = validator.validate_phase(2)
 
@@ -692,9 +704,9 @@ class TestPhase2:
 
     def test_duplicate_pmid_cannot_inflate_reference_count(self, validator, project_dir):
         """Directory count and citation aliases cannot turn one paper into five."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         (project_dir / "journal-profile.yaml").write_text(
-            yaml.safe_dump({"paper": {"type": "letter"}})
+            yaml.safe_dump({"paper": {"type": "letter"}}), encoding="utf-8"
         )
         for i in range(5):
             ref_dir = project_dir / "references" / f"copy-{i}"
@@ -706,7 +718,8 @@ class TestPhase2:
                         "title": "The same paper in every directory",
                         "citation_key": f"alias-{i}",
                     }
-                )
+                ),
+                encoding="utf-8",
             )
 
         result = validator.validate_phase(2)
@@ -721,7 +734,8 @@ class TestPhase2:
         ref_dir = project_dir / "references" / "alias-only"
         ref_dir.mkdir(parents=True)
         (ref_dir / "metadata.json").write_text(
-            json.dumps({"citation_key": "invented2026", "title": "Invented reference"})
+            json.dumps({"citation_key": "invented2026", "title": "Invented reference"}),
+            encoding="utf-8",
         )
 
         _, invalid, _ = validator._reference_records(project_dir / "references")
@@ -760,7 +774,8 @@ class TestPhase2:
                         }
                     ],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         records, invalid, _ = validator._reference_records(project_dir / "references")
@@ -799,7 +814,7 @@ class TestPhase2:
 class TestWorkflowModeShortCircuit:
     def test_library_wiki_skips_manuscript_phase_gates(self, project_dir):
         (project_dir / "project.json").write_text(
-            json.dumps({"slug": "test", "workflow_mode": "library-wiki"})
+            json.dumps({"slug": "test", "workflow_mode": "library-wiki"}), encoding="utf-8"
         )
 
         validator = PipelineGateValidator(project_dir)
@@ -819,7 +834,7 @@ class TestPhase3And4:
     def test_phase3_fails_without_concept_review_artifact(self, validator, project_dir):
         _add_prerequisites(project_dir, up_to_phase=3)
         (project_dir / "concept.md").write_text(
-            "# NOVELTY\n\nQuestion\n\n# KEY SELLING POINTS\n\n- Point A"
+            "# NOVELTY\n\nQuestion\n\n# KEY SELLING POINTS\n\n- Point A", encoding="utf-8"
         )
 
         r = validator.validate_phase(3)
@@ -831,9 +846,9 @@ class TestPhase3And4:
     def test_phase4_fails_without_complete_concept_review(self, validator, project_dir):
         _add_prerequisites(project_dir, up_to_phase=3)
         (project_dir / ".audit" / "concept-review.yaml").write_text(
-            "review:\n  readiness: ready\nclaims_required: []\n"
+            "review:\n  readiness: ready\nclaims_required: []\n", encoding="utf-8"
         )
-        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n")
+        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n", encoding="utf-8")
 
         r = validator.validate_phase(4)
 
@@ -843,7 +858,7 @@ class TestPhase3And4:
 
     def test_phase4_passes_with_complete_concept_review(self, validator, project_dir):
         _add_prerequisites(project_dir, up_to_phase=4)
-        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n")
+        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n", encoding="utf-8")
 
         r = validator.validate_phase(4)
 
@@ -865,7 +880,8 @@ class TestPhase3And4:
             "  novelty_statement_locked:\n"
             "    present: true\n"
             "  selling_points_locked:\n"
-            "    present: true\n"
+            "    present: true\n",
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(3)
@@ -894,7 +910,8 @@ class TestPhase3And4:
             "  novelty_statement_locked:\n"
             "    present: true\n"
             "  selling_points_locked:\n"
-            "    present: true\n"
+            "    present: true\n",
+            encoding="utf-8",
         )
         receipt = _sign_approval_receipt(
             {
@@ -917,9 +934,9 @@ class TestPhase3And4:
             _configure_approval_signer(monkeypatch),
         )
         (project_dir / ".audit" / "concept-review-override.yaml").write_text(
-            yaml.safe_dump(receipt, sort_keys=False)
+            yaml.safe_dump(receipt, sort_keys=False), encoding="utf-8"
         )
-        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n")
+        (project_dir / "manuscript-plan.yaml").write_text("title: draft\n", encoding="utf-8")
 
         r = validator.validate_phase(4)
 
@@ -1017,7 +1034,9 @@ class TestPhase5:
         assert not r.passed
 
     def test_fail_missing_sections(self, validator, project_dir):
-        (project_dir / "drafts" / "manuscript.md").write_text("# Abstract\n\n## Introduction\n")
+        (project_dir / "drafts" / "manuscript.md").write_text(
+            "# Abstract\n\n## Introduction\n", encoding="utf-8"
+        )
         r = validator.validate_phase(5)
         assert not r.passed  # missing Methods, Results, Discussion
 
@@ -1038,7 +1057,7 @@ class TestPhase5:
                 "text",
             ]
         )
-        (project_dir / "drafts" / "manuscript.md").write_text(content)
+        (project_dir / "drafts" / "manuscript.md").write_text(content, encoding="utf-8")
         _approve_required_sections(project_dir)
         r = validator.validate_phase(5)
         assert r.passed
@@ -1060,7 +1079,8 @@ class TestPhase5:
                     "## Discussion",
                     "text",
                 ]
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(5)
@@ -1086,7 +1106,8 @@ class TestPhase5:
                     "## Discussion",
                     "text",
                 ]
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / ".audit" / "checkpoint.json").write_text(
             json.dumps(
@@ -1098,7 +1119,8 @@ class TestPhase5:
                         "Results": {"approval_status": "pending"},
                     }
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(5)
@@ -1123,7 +1145,8 @@ class TestPhase5:
                         }
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "drafts" / "manuscript.md").write_text(
             "\n".join(
@@ -1140,7 +1163,8 @@ class TestPhase5:
                     "## Discussion",
                     "text",
                 ]
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(5)
@@ -1153,7 +1177,9 @@ class TestPhase5:
 
         _add_prerequisites(project_dir, up_to_phase=5)
         (project_dir / "results" / "figures").mkdir(parents=True)
-        (project_dir / "results" / "figures" / "study-flow.drawio").write_text("xml")
+        (project_dir / "results" / "figures" / "study-flow.drawio").write_text(
+            "xml", encoding="utf-8"
+        )
         (project_dir / "results" / "manifest.json").write_text(
             json.dumps(
                 {
@@ -1165,7 +1191,8 @@ class TestPhase5:
                         }
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "manuscript-plan.yaml").write_text(
             yaml.dump(
@@ -1179,7 +1206,8 @@ class TestPhase5:
                         }
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "drafts" / "manuscript.md").write_text(
             "\n".join(
@@ -1198,7 +1226,8 @@ class TestPhase5:
                     "## Discussion",
                     "text",
                 ]
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(5)
@@ -1212,9 +1241,13 @@ class TestPhase5:
         _add_prerequisites(project_dir, up_to_phase=5)
         (project_dir / "results" / "figures").mkdir(parents=True)
         (project_dir / "results" / "tables").mkdir(parents=True)
-        (project_dir / "results" / "figures" / "study-flow.drawio").write_text("xml")
+        (project_dir / "results" / "figures" / "study-flow.drawio").write_text(
+            "xml", encoding="utf-8"
+        )
         (project_dir / "results" / "figures" / "study-flow.png").write_bytes(b"png")
-        (project_dir / "results" / "tables" / "baseline.md").write_text("| a | b |")
+        (project_dir / "results" / "tables" / "baseline.md").write_text(
+            "| a | b |", encoding="utf-8"
+        )
         (project_dir / ".audit" / "data-artifacts.yaml").write_text(
             yaml.dump(
                 {
@@ -1223,7 +1256,8 @@ class TestPhase5:
                         {"id": "table-1", "kind": "table"},
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "results" / "manifest.json").write_text(
             json.dumps(
@@ -1243,7 +1277,8 @@ class TestPhase5:
                         }
                     ],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "manuscript-plan.yaml").write_text(
             yaml.dump(
@@ -1263,7 +1298,8 @@ class TestPhase5:
                         },
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "drafts" / "manuscript.md").write_text(
             "\n".join(
@@ -1283,7 +1319,8 @@ class TestPhase5:
                     "## Discussion",
                     "text",
                 ]
-            )
+            ),
+            encoding="utf-8",
         )
         _record_asset_review(
             project_dir,
@@ -1320,7 +1357,8 @@ class TestPhase5:
                         }
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "results" / "manifest.json").write_text(
             json.dumps(
@@ -1334,7 +1372,8 @@ class TestPhase5:
                     ],
                     "tables": [],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "manuscript-plan.yaml").write_text(
             yaml.dump(
@@ -1348,7 +1387,8 @@ class TestPhase5:
                         }
                     ]
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         (project_dir / "drafts" / "manuscript.md").write_text(
             "\n".join(
@@ -1366,7 +1406,8 @@ class TestPhase5:
                     "## Discussion",
                     "text",
                 ]
-            )
+            ),
+            encoding="utf-8",
         )
         _approve_required_sections(project_dir)
 
@@ -1395,7 +1436,7 @@ class TestPhase7:
             "config": {"max_rounds": 3},
             "rounds": [{"round": 1, "verdict": "continue"}],
         }
-        (audit / "audit-loop-review.json").write_text(json.dumps(state))
+        (audit / "audit-loop-review.json").write_text(json.dumps(state), encoding="utf-8")
         # Missing review-report-1.md, author-response-1.md, equator
         r = validator.validate_phase(7)
         assert not r.passed
@@ -1516,8 +1557,8 @@ class TestPhase65:
         _add_prerequisites(project_dir, up_to_phase=65)
         audit = project_dir / ".audit"
         entries = [json.dumps({"event": "baseline", "round": 0})]
-        (audit / "evolution-log.jsonl").write_text("\n".join(entries) + "\n")
-        (audit / "quality-scorecard.md").write_text("# Scorecard")
+        (audit / "evolution-log.jsonl").write_text("\n".join(entries) + "\n", encoding="utf-8")
+        (audit / "quality-scorecard.md").write_text("# Scorecard", encoding="utf-8")
         r = validator.validate_phase(65)
         assert r.passed
 
@@ -1678,15 +1719,17 @@ class TestPhase11:
 
 class TestPhase21SourceMaterials:
     def test_pending_primary_source_material_blocks_phase21(self, validator, project_dir):
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
             _write_reference_analysis_receipt(ref_dir, f"0000{i}")
-        (project_dir / "references" / "fulltext-ingestion-status.md").write_text("ok")
+        (project_dir / "references" / "fulltext-ingestion-status.md").write_text(
+            "ok", encoding="utf-8"
+        )
         (project_dir / ".audit" / "source-materials.yaml").write_text(
             yaml.dump(
                 {
@@ -1703,7 +1746,8 @@ class TestPhase21SourceMaterials:
                         }
                     ],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(21)
@@ -1712,15 +1756,17 @@ class TestPhase21SourceMaterials:
         assert "source-materials:asset-aware" in r.missing
 
     def test_ingested_primary_source_material_passes_phase21(self, validator, project_dir):
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
             _write_reference_analysis_receipt(ref_dir, f"0000{i}")
-        (project_dir / "references" / "fulltext-ingestion-status.md").write_text("ok")
+        (project_dir / "references" / "fulltext-ingestion-status.md").write_text(
+            "ok", encoding="utf-8"
+        )
         (project_dir / ".audit" / "source-materials.yaml").write_text(
             yaml.dump(
                 {
@@ -1738,7 +1784,8 @@ class TestPhase21SourceMaterials:
                         }
                     ],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(21)
@@ -1751,13 +1798,13 @@ class TestPhase21Ordering:
         self, validator, project_dir
     ):
         """Phase 2.1 is encoded as 21 but must not inherit Phase 7/9 prerequisites."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         refs = project_dir / "references"
         for i in range(20):
             ref_dir = refs / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
             _write_reference_analysis_receipt(ref_dir, f"0000{i}")
 
@@ -1771,7 +1818,7 @@ class TestPhase21Ordering:
 
     def test_boolean_only_analysis_claim_fails_closed(self, validator, project_dir):
         """analysis_completed=true is not evidence without a hashed producer artifact."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
@@ -1784,9 +1831,12 @@ class TestPhase21Ordering:
                         "fulltext_ingested": False,
                         "fulltext_unavailable_reason": "not_open_access",
                     }
-                )
+                ),
+                encoding="utf-8",
             )
-        (project_dir / "references" / "fulltext-ingestion-status.md").write_text("recorded")
+        (project_dir / "references" / "fulltext-ingestion-status.md").write_text(
+            "recorded", encoding="utf-8"
+        )
 
         result = validator.validate_phase(21)
 
@@ -1796,19 +1846,21 @@ class TestPhase21Ordering:
 
     def test_fulltext_metadata_without_physical_artifact_fails_closed(self, validator, project_dir):
         """Asset-Aware ids/section labels alone cannot prove fulltext ingestion."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
             ref_dir = project_dir / "references" / f"ref-{i}"
             ref_dir.mkdir(parents=True, exist_ok=True)
             (ref_dir / "metadata.json").write_text(
-                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"})
+                json.dumps({"pmid": f"0000{i}", "title": f"Reference {i}"}), encoding="utf-8"
             )
             _write_reference_analysis_receipt(
                 ref_dir,
                 f"0000{i}",
                 fulltext_ingested=True,
             )
-        (project_dir / "references" / "fulltext-ingestion-status.md").write_text("recorded")
+        (project_dir / "references" / "fulltext-ingestion-status.md").write_text(
+            "recorded", encoding="utf-8"
+        )
 
         result = validator.validate_phase(21)
 
@@ -1821,7 +1873,7 @@ class TestPhase21Ordering:
         ref_dir.mkdir(parents=True)
         metadata_path = ref_dir / "metadata.json"
         metadata_path.write_text(
-            json.dumps({"pmid": "12345678", "title": "Receipt-bound extraction"})
+            json.dumps({"pmid": "12345678", "title": "Receipt-bound extraction"}), encoding="utf-8"
         )
         _write_asset_aware_reference_receipt(ref_dir, "12345678")
         receipt_path = ref_dir / "artifacts" / "asset-aware" / "receipt.json"
@@ -1841,7 +1893,9 @@ class TestPhase21Ordering:
         ref_dir = project_dir / "references" / "12345678"
         ref_dir.mkdir(parents=True)
         metadata_path = ref_dir / "metadata.json"
-        metadata_path.write_text(json.dumps({"pmid": "12345678", "title": "Tiny fake extraction"}))
+        metadata_path.write_text(
+            json.dumps({"pmid": "12345678", "title": "Tiny fake extraction"}), encoding="utf-8"
+        )
         _write_asset_aware_reference_receipt(ref_dir, "12345678")
         (ref_dir / "artifacts" / "asset-aware" / "sections.md").write_bytes(b"x")
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -1858,7 +1912,7 @@ class TestPhase21Ordering:
         ref_dir.mkdir(parents=True)
         metadata_path = ref_dir / "metadata.json"
         metadata_path.write_text(
-            json.dumps({"pmid": "12345678", "title": "Metadata-only analysis"})
+            json.dumps({"pmid": "12345678", "title": "Metadata-only analysis"}), encoding="utf-8"
         )
         _write_reference_analysis_receipt(ref_dir, "12345678")
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -1883,7 +1937,9 @@ class TestPhase21Ordering:
         ref_dir = project_dir / "references" / "12345678"
         ref_dir.mkdir(parents=True)
         metadata_path = ref_dir / "metadata.json"
-        metadata_path.write_text(json.dumps({"pmid": "12345678", "title": "Shallow analysis"}))
+        metadata_path.write_text(
+            json.dumps({"pmid": "12345678", "title": "Shallow analysis"}), encoding="utf-8"
+        )
         _write_reference_analysis_receipt(ref_dir, "12345678")
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         analysis_path = ref_dir / "analysis.json"
@@ -1919,9 +1975,10 @@ class TestHeartbeat:
 
     def test_heartbeat_reflects_progress(self, validator, project_dir):
         # Add Phase 0 artifacts → Phase 0 passes
-        (project_dir / "journal-profile.yaml").write_text("type: original")
+        (project_dir / "journal-profile.yaml").write_text("type: original", encoding="utf-8")
         (project_dir / ".audit" / "source-materials.yaml").write_text(
-            "schema: mdpaper.source_materials.v1\nsummary:\n  total_candidates: 0\n"
+            "schema: mdpaper.source_materials.v1\nsummary:\n  total_candidates: 0\n",
+            encoding="utf-8",
         )
         status = validator.get_pipeline_status()
         phase_0 = [p for p in status["phases"] if p["phase"] == 0][0]
@@ -1961,7 +2018,7 @@ class TestHeartbeat:
 class TestAgentActionableGateErrors:
     def test_phase10_pipeline_run_reports_wrong_name_candidates(self, validator, project_dir):
         _add_prerequisites(project_dir, up_to_phase=10)
-        (project_dir / ".audit" / "pipeline-run.md").write_text("# Run\n")
+        (project_dir / ".audit" / "pipeline-run.md").write_text("# Run\n", encoding="utf-8")
 
         r = validator.validate_phase(10)
         check = next(c for c in r.checks if c.name == "pipeline-run.md")
@@ -1974,7 +2031,7 @@ class TestAgentActionableGateErrors:
     def test_phase10_d7_d8_reports_expected_heading_pattern(self, validator, project_dir):
         _add_prerequisites(project_dir, up_to_phase=10)
         (project_dir / ".audit" / "pipeline-run-20260101-1200.md").write_text(
-            "# Run\n## D7 Review Retrospective\n## D8 Retrospective\n"
+            "# Run\n## D7 Review Retrospective\n## D8 Retrospective\n", encoding="utf-8"
         )
 
         r = validator.validate_phase(10)
@@ -2017,7 +2074,7 @@ class TestGateLogging:
         validator.validate_phase(0)
         log_file = project_dir / ".audit" / "gate-validations.jsonl"
         assert log_file.is_file()
-        entry = json.loads(log_file.read_text().strip().split("\n")[0])
+        entry = json.loads(log_file.read_text(encoding="utf-8").strip().split("\n")[0])
         assert entry["phase"] == 0
         assert "passed" in entry
 
@@ -2047,17 +2104,17 @@ class TestProjectStructure:
 
     def test_complete_project_passes(self, validator, project_dir):
         """Project with all required dirs + project.json passes."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
-        (project_dir / "concept.md").write_text("# Concept")
-        (project_dir / ".memory" / "activeContext.md").write_text("# Active")
-        (project_dir / ".memory" / "progress.md").write_text("# Progress")
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
+        (project_dir / ".memory" / "activeContext.md").write_text("# Active", encoding="utf-8")
+        (project_dir / ".memory" / "progress.md").write_text("# Progress", encoding="utf-8")
         r = validator.validate_project_structure()
         assert r.passed
 
     def test_concept_in_drafts_accepted(self, validator, project_dir):
         """concept.md in drafts/ should also pass."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
-        (project_dir / "drafts" / "concept.md").write_text("# Concept")
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
+        (project_dir / "drafts" / "concept.md").write_text("# Concept", encoding="utf-8")
         r = validator.validate_project_structure()
         concept_check = next(c for c in r.checks if c.name == "concept.md")
         assert concept_check.passed
@@ -2141,7 +2198,8 @@ class TestReviewPrerequisite:
         """A References heading alone is not enough for Phase 8 reference sync."""
         _add_prerequisites(project_dir, up_to_phase=8)
         (project_dir / "drafts" / "manuscript.md").write_text(
-            "# Manuscript\n\nClaim with [[missing2026_99999999]].\n\n## References\n\n"
+            "# Manuscript\n\nClaim with [[missing2026_99999999]].\n\n## References\n\n",
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(8)
@@ -2153,9 +2211,9 @@ class TestReviewPrerequisite:
         """Legacy flat references/key.md files should resolve manuscript wikilinks."""
         _add_prerequisites(project_dir, up_to_phase=8)
         key = "smith2026_12345678"
-        (project_dir / "references" / f"{key}.md").write_text("# Smith 2026\n")
+        (project_dir / "references" / f"{key}.md").write_text("# Smith 2026\n", encoding="utf-8")
         (project_dir / "drafts" / "manuscript.md").write_text(
-            f"# Manuscript\n\nClaim with [[{key}]].\n\n## References\n\n"
+            f"# Manuscript\n\nClaim with [[{key}]].\n\n## References\n\n", encoding="utf-8"
         )
 
         r = validator.validate_phase(8)
@@ -2204,7 +2262,8 @@ class TestReviewPrerequisite:
                         {"round": 2, "verdict": "in_progress"},
                     ],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         r = validator.validate_phase(8)
         review_check = next(c for c in r.checks if c.name == "prereq:review_completed")
@@ -2223,7 +2282,9 @@ class TestCheckReviewCompleted:
 
     def test_corrupt_json(self, validator, project_dir):
         """Should fail gracefully on corrupt JSON."""
-        (project_dir / ".audit" / "audit-loop-review.json").write_text("{not valid")
+        (project_dir / ".audit" / "audit-loop-review.json").write_text(
+            "{not valid", encoding="utf-8"
+        )
         passed, details = validator._check_review_completed()
         assert not passed
         assert "corrupt" in details
@@ -2251,7 +2312,7 @@ class TestCheckReviewCompleted:
         self, validator, project_dir, monkeypatch
     ):
         """A round limit is an escalation, not autonomous evidence of quality."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         _complete_review_loop(project_dir, rounds=3, terminal="max_rounds")
         passed, details = validator._check_review_completed()
         assert not passed
@@ -2316,7 +2377,7 @@ class TestCheckReviewCompleted:
     def test_signed_review_override_becomes_stale_after_manuscript_change(
         self, validator, project_dir, monkeypatch
     ):
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         _complete_review_loop(project_dir, rounds=3, terminal="max_rounds")
         state_path = project_dir / ".audit" / "audit-loop-review.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -2364,7 +2425,8 @@ class TestCheckReviewCompleted:
                     "config": {"min_rounds": 1, "max_rounds": 3},
                     "rounds": [{"round": 1, "verdict": "rewrite_needed"}],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         passed, details = validator._check_review_completed()
         assert not passed

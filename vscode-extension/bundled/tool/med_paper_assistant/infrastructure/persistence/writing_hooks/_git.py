@@ -15,6 +15,20 @@ from ._models import HookIssue, HookResult
 logger = structlog.get_logger()
 
 
+def _run_git(args: list[str], cwd: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    """Run a fixed git command with UTF-8 decoding (independent of the OS locale)."""
+    return subprocess.run(  # nosec B603 B607
+        ["git", *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=str(cwd),
+        timeout=3,
+        env=env,
+    )
+
+
 class GitHooksMixin:
     """G-series hooks: git repository status checks."""
 
@@ -34,14 +48,7 @@ class GitHooksMixin:
         env = os.environ.copy()
         env["GIT_OPTIONAL_LOCKS"] = "0"
         try:
-            root_result = subprocess.run(  # nosec B603 B607
-                ["git", "rev-parse", "--show-toplevel"],
-                capture_output=True,
-                text=True,
-                cwd=str(self._project_dir),
-                timeout=3,
-                env=env,
-            )
+            root_result = _run_git(["rev-parse", "--show-toplevel"], self._project_dir, env)
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             root_result = None
 
@@ -60,13 +67,10 @@ class GitHooksMixin:
         workspace_root = Path(root_result.stdout.strip()).resolve()
 
         try:
-            result = subprocess.run(  # nosec B603 B607
-                ["git", "status", "--branch", "--porcelain=v2", "--untracked-files=normal"],
-                capture_output=True,
-                text=True,
-                cwd=str(workspace_root),
-                timeout=3,
-                env=env,
+            result = _run_git(
+                ["status", "--branch", "--porcelain=v2", "--untracked-files=normal"],
+                workspace_root,
+                env,
             )
             if result.returncode != 0:
                 message = result.stderr.strip() or "unknown git status failure"

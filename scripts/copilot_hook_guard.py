@@ -14,6 +14,16 @@ DESTRUCTIVE_TERMINAL_PATTERNS = {
     "del /f /s /q": "Forced recursive deletion requires explicit human approval.",
 }
 
+TERMINAL_TOOL_NAMES = {
+    "run_in_terminal",
+    "runinterminal",
+    "powershell",
+    "bash",
+    "shell",
+    "terminal",
+    "execute_command",
+}
+
 PATCH_FILE_PATTERN = re.compile(r"^\*\*\* (?:Add|Update|Delete) File: (?P<path>.+?)\s*$")
 WINDOWS_ABSOLUTE_PATH_PATTERN = re.compile(r"^[A-Za-z]:[\\/]")
 MUTATING_TOOL_KEYWORDS = (
@@ -181,9 +191,28 @@ def iter_explicit_tool_paths(tool_input: dict[str, Any]) -> list[str]:
     return paths
 
 
+def get_tool_name(payload: dict[str, Any]) -> str:
+    """Return the tool name across VS Code (tool_name) and Copilot CLI (toolName) payloads."""
+    value = payload.get("tool_name") or payload.get("toolName") or ""
+    return value if isinstance(value, str) else ""
+
+
+def get_tool_input(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return tool arguments; Copilot CLI may send ``toolArgs`` as a JSON string."""
+    value = payload.get("tool_input")
+    if value is None:
+        value = payload.get("toolArgs")
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            return {"command": value}
+    return value if isinstance(value, dict) else {}
+
+
 def get_tool_target_paths(payload: dict[str, Any], workspace_root: Path) -> list[Path]:
-    tool_name = payload.get("tool_name", "")
-    tool_input = payload.get("tool_input") or {}
+    tool_name = get_tool_name(payload)
+    tool_input = get_tool_input(payload)
 
     if tool_name == "apply_patch":
         patch_text = tool_input.get("input", "")
@@ -260,12 +289,11 @@ def evaluate_pre_tool_use(
     protected_paths: list[str],
     workspace_root: Path,
 ) -> dict[str, Any]:
-    tool_name = payload.get("tool_name", "")
+    tool_name = get_tool_name(payload)
 
-    if tool_name == "run_in_terminal":
-        tool_input = payload.get("tool_input") or {}
-        command = tool_input.get("command", "")
-        reason = detect_dangerous_terminal_command(command)
+    if tool_name.casefold() in TERMINAL_TOOL_NAMES:
+        command = get_tool_input(payload).get("command", "")
+        reason = detect_dangerous_terminal_command(command if isinstance(command, str) else "")
         if reason:
             return build_pretool_response(
                 "ask",
@@ -292,22 +320,38 @@ def evaluate_pre_tool_use(
     return {"continue": True}
 
 
+FAIL_OPEN_RESPONSE: dict[str, Any] = {"continue": True}
+
+
+def run_hook(raw_payload: str) -> dict[str, Any]:
+    """Evaluate a raw hook payload. Never raises: malformed input fails open."""
+    try:
+        payload = json.loads(raw_payload) if raw_payload.strip() else {}
+        if not isinstance(payload, dict):
+            return dict(FAIL_OPEN_RESPONSE)
+
+        event = payload.get("hookEventName") or payload.get("hook_event_name")
+        if event not in (None, "PreToolUse", "preToolUse"):
+            return dict(FAIL_OPEN_RESPONSE)
+
+        workspace_root = Path(payload.get("cwd") or ".").resolve()
+        mode, protected_paths = load_mode_settings(workspace_root)
+        return evaluate_pre_tool_use(
+            payload,
+            mode=mode,
+            protected_paths=protected_paths,
+            workspace_root=workspace_root,
+        )
+    except Exception:  # noqa: BLE001 - a guard bug must never lock the agent out of every tool
+        return dict(FAIL_OPEN_RESPONSE)
+
+
 def main() -> int:
-    payload = json.load(sys.stdin)
-    workspace_root = Path(payload.get("cwd") or ".").resolve()
-    mode, protected_paths = load_mode_settings(workspace_root)
-
-    if payload.get("hookEventName") != "PreToolUse":
-        print(json.dumps({"continue": True}))
-        return 0
-
-    result = evaluate_pre_tool_use(
-        payload,
-        mode=mode,
-        protected_paths=protected_paths,
-        workspace_root=workspace_root,
-    )
-    print(json.dumps(result, ensure_ascii=False))
+    try:
+        raw_payload = sys.stdin.read()
+    except Exception:  # noqa: BLE001
+        raw_payload = ""
+    print(json.dumps(run_hook(raw_payload), ensure_ascii=False))
     return 0
 
 

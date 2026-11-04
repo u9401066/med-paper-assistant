@@ -60,6 +60,8 @@ def check_environment() -> None:
             ["uv", "--version"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         )
         if result.returncode == 0:
@@ -181,6 +183,8 @@ def check_submodules() -> None:
             ["git", "submodule", "status"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
             cwd=str(WORKSPACE),
         )
@@ -263,5 +267,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(errors="replace")
     os.chdir(WORKSPACE)
     main()

@@ -1,5 +1,22 @@
 # Decision Log
 
+## [2026-09-02] Agent Hooks Must Fail Open And Never Resolve Dependencies
+
+### 背景
+
+`.github/hooks/mode-guard.json` 以 `uv run python scripts/copilot_hook_guard.py` 執行 PreToolUse guard。當 `integrations/` submodule 未初始化或 `.venv` 被 Ruff language server 鎖住時，`uv run` 會重解析 `uv.lock`（甚至改寫），遠超 15 秒 timeout；Copilot 對 hook error 採 fail-closed，導致**所有**工具被拒、agent 完全無法自救。
+
+### 決定
+
+1. Hook 只透過 `scripts/hooks/copilot/mode-guard.{ps1,sh}` launcher 執行，直接呼叫 `.venv` Python（fallback 系統 Python），絕不呼叫 `uv run`/`uv sync`。
+2. Guard 本身任何例外或 malformed payload 一律輸出 `{"continue": true}`；安全決策（ask/deny）只在成功評估時輸出。
+3. Guard 同時支援 VS Code（`tool_name`/`tool_input`）與 Copilot CLI（`toolName`/`toolArgs`）payload。
+
+### 結果
+
+- Hook 延遲 ~0.3s，環境壞掉時降級為「不保護」而非「全鎖死」。
+- Fail-open 行為有 regression tests（`tests/test_copilot_hook_guard.py`）。
+
 ## [2026-09-01] Phase Gate Truth Has Three Explicit Levels
 
 ### 背景

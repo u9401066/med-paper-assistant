@@ -105,7 +105,8 @@ def _write_concept_review(audit_dir: Path) -> None:
         "  novelty_statement_locked:\n"
         "    present: true\n"
         "  selling_points_locked:\n"
-        "    present: true\n"
+        "    present: true\n",
+        encoding="utf-8",
     )
 
 
@@ -265,7 +266,7 @@ class TestRecordHookEventTool:
         # Verify persistence (YAML format)
         he_yaml = audit_dir / "hook-effectiveness.yaml"
         assert he_yaml.exists()
-        data = yaml.safe_load(he_yaml.read_text())
+        data = yaml.safe_load(he_yaml.read_text(encoding="utf-8"))
         assert data["hooks"]["A1"]["trigger"] == 1
 
     def test_record_multiple_events(self, tool_funcs, project_dir, audit_dir):
@@ -489,7 +490,7 @@ class TestRunMetaLearningTool:
         assert (audit_dir / "evolution-log.jsonl").exists()
 
         # Verify evolution-log has meta_learning event
-        elog = (audit_dir / "evolution-log.jsonl").read_text()
+        elog = (audit_dir / "evolution-log.jsonl").read_text(encoding="utf-8")
         events = [json.loads(line) for line in elog.strip().splitlines()]
         ml_events = [e for e in events if e.get("event") == "meta_learning"]
         assert len(ml_events) >= 1
@@ -531,11 +532,12 @@ class TestRunMetaLearningTool:
 
         # Setup remaining Phase 10 requirements
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n",
+            encoding="utf-8",
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
-        (project_dir / ".memory" / "activeContext.md").write_text("# Active")
-        (project_dir / ".memory" / "progress.md").write_text("# Progress")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
+        (project_dir / ".memory" / "activeContext.md").write_text("# Active", encoding="utf-8")
+        (project_dir / ".memory" / "progress.md").write_text("# Progress", encoding="utf-8")
 
         r = validator.validate_phase(10)
         mla_check = next(c for c in r.checks if c.name == "meta-learning-audit:data")
@@ -556,12 +558,12 @@ class TestEndToEndAuditPipeline:
         3. validate_phase_gate(6) → PASS
         """
         # Prerequisites for Phase 6 (CRITICAL since pipeline enforcement)
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         (project_dir / "drafts" / "manuscript.md").write_text(
-            "# Manuscript\n\nBody.\n\n## References\n\n"
+            "# Manuscript\n\nBody.\n\n## References\n\n", encoding="utf-8"
         )
         _write_concept_review(audit_dir)
 
@@ -603,14 +605,14 @@ class TestEndToEndAuditPipeline:
         4. validate_phase_gate(10) → PASS
         """
         # Prerequisites for Phase 10 (CRITICAL since pipeline enforcement)
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         (project_dir / "drafts" / "manuscript.md").write_text(
-            "# Manuscript\n\nBody.\n\n## References\n\n"
+            "# Manuscript\n\nBody.\n\n## References\n\n", encoding="utf-8"
         )
-        (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard", encoding="utf-8")
         _write_concept_review(audit_dir)
         _write_review_loop(audit_dir)
 
@@ -635,10 +637,11 @@ class TestEndToEndAuditPipeline:
 
         # Setup remaining Phase 10 requirements (non-MCP artifacts)
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Pipeline Run\n## D7 retrospective: Review Retrospective\nReview retro\n## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro\n"
+            "# Pipeline Run\n## D7 retrospective: Review Retrospective\nReview retro\n## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro\n",
+            encoding="utf-8",
         )
-        (project_dir / ".memory" / "activeContext.md").write_text("# Active")
-        (project_dir / ".memory" / "progress.md").write_text("# Progress")
+        (project_dir / ".memory" / "activeContext.md").write_text("# Active", encoding="utf-8")
+        (project_dir / ".memory" / "progress.md").write_text("# Progress", encoding="utf-8")
 
         r = validator.validate_phase(10)
         assert r.passed, (
@@ -648,8 +651,8 @@ class TestEndToEndAuditPipeline:
     def test_phase6_fails_without_tool_calls(self, validator, audit_dir):
         """Phase 6 MUST fail if agent never called audit MCP tools."""
         # Only put .md files (agent could theoretically fake those)
-        (audit_dir / "quality-scorecard.md").write_text("# Fake scorecard\n")
-        (audit_dir / "hook-effectiveness.md").write_text("# Fake\n")
+        (audit_dir / "quality-scorecard.md").write_text("# Fake scorecard\n", encoding="utf-8")
+        (audit_dir / "hook-effectiveness.md").write_text("# Fake\n", encoding="utf-8")
 
         r = validator.validate_phase(6)
         assert not r.passed
@@ -670,12 +673,13 @@ class TestEndToEndAuditPipeline:
             # Deliberately skip run_meta_learning!
 
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\neq\n"
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\neq\n",
+            encoding="utf-8",
         )
         with (audit_dir / "evolution-log.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps({"event": "meta_learning"}) + "\n")
-        (project_dir / ".memory" / "activeContext.md").write_text("#")
-        (project_dir / ".memory" / "progress.md").write_text("#")
+        (project_dir / ".memory" / "activeContext.md").write_text("#", encoding="utf-8")
+        (project_dir / ".memory" / "progress.md").write_text("#", encoding="utf-8")
 
         r = validator.validate_phase(10)
         assert not r.passed
@@ -701,8 +705,8 @@ class TestPhase6Enhanced:
 
     def test_fail_empty_files_only(self, validator, audit_dir):
         """Files exist but with no data → still FAIL."""
-        (audit_dir / "quality-scorecard.md").write_text("# Empty Scorecard\n")
-        (audit_dir / "hook-effectiveness.md").write_text("# Empty\n")
+        (audit_dir / "quality-scorecard.md").write_text("# Empty Scorecard\n", encoding="utf-8")
+        (audit_dir / "hook-effectiveness.md").write_text("# Empty\n", encoding="utf-8")
         (audit_dir / "quality-scorecard.yaml").write_text(
             yaml.dump(
                 {
@@ -711,7 +715,8 @@ class TestPhase6Enhanced:
                     "history": [],
                 },
                 default_flow_style=False,
-            )
+            ),
+            encoding="utf-8",
         )
         (audit_dir / "hook-effectiveness.yaml").write_text(
             yaml.dump(
@@ -721,7 +726,8 @@ class TestPhase6Enhanced:
                     "runs": [],
                 },
                 default_flow_style=False,
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(6)
@@ -746,9 +752,11 @@ class TestPhase6Enhanced:
             },
             "history": [],
         }
-        (audit_dir / "quality-scorecard.yaml").write_text(yaml.dump(data, default_flow_style=False))
-        (audit_dir / "quality-scorecard.md").write_text("# Scorecard\n")
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
+        (audit_dir / "quality-scorecard.yaml").write_text(
+            yaml.dump(data, default_flow_style=False), encoding="utf-8"
+        )
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard\n", encoding="utf-8")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
         (audit_dir / "hook-effectiveness.yaml").write_text(
             yaml.dump(
                 {
@@ -756,7 +764,8 @@ class TestPhase6Enhanced:
                     "hooks": {"A1": {"trigger": 1, "pass": 2, "fix": 0, "false_positive": 0}},
                 },
                 default_flow_style=False,
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(6)
@@ -768,10 +777,10 @@ class TestPhase6Enhanced:
     def test_pass_full_data(self, validator, audit_dir, project_dir):
         """All dimensions scored + hook events → PASS."""
         # Prerequisites for Phase 6 (CRITICAL)
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         _write_concept_review(audit_dir)
 
         scores_data = {
@@ -783,9 +792,11 @@ class TestPhase6Enhanced:
             "history": [],
         }
         (audit_dir / "quality-scorecard.yaml").write_text(
-            yaml.dump(scores_data, default_flow_style=False)
+            yaml.dump(scores_data, default_flow_style=False), encoding="utf-8"
         )
-        (audit_dir / "quality-scorecard.md").write_text("# Scorecard\n## Scores\n")
+        (audit_dir / "quality-scorecard.md").write_text(
+            "# Scorecard\n## Scores\n", encoding="utf-8"
+        )
 
         he_data = {
             "version": 1,
@@ -796,9 +807,9 @@ class TestPhase6Enhanced:
             "runs": [],
         }
         (audit_dir / "hook-effectiveness.yaml").write_text(
-            yaml.dump(he_data, default_flow_style=False)
+            yaml.dump(he_data, default_flow_style=False), encoding="utf-8"
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n## Summary\n")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n## Summary\n", encoding="utf-8")
 
         r = validator.validate_phase(6)
         assert r.passed
@@ -813,10 +824,10 @@ class TestPhase6Enhanced:
     def test_pass_with_4_dimensions(self, validator, audit_dir, project_dir):
         """Exactly 4 dimensions scored → PASS (minimum threshold)."""
         # Prerequisites for Phase 6 (CRITICAL)
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         _write_concept_review(audit_dir)
 
         scores_data = {
@@ -827,9 +838,9 @@ class TestPhase6Enhanced:
             "history": [],
         }
         (audit_dir / "quality-scorecard.yaml").write_text(
-            yaml.dump(scores_data, default_flow_style=False)
+            yaml.dump(scores_data, default_flow_style=False), encoding="utf-8"
         )
-        (audit_dir / "quality-scorecard.md").write_text("# Scorecard\n")
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard\n", encoding="utf-8")
 
         he_data = {
             "version": 1,
@@ -837,19 +848,19 @@ class TestPhase6Enhanced:
             "runs": [],
         }
         (audit_dir / "hook-effectiveness.yaml").write_text(
-            yaml.dump(he_data, default_flow_style=False)
+            yaml.dump(he_data, default_flow_style=False), encoding="utf-8"
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
 
         r = validator.validate_phase(6)
         assert r.passed
 
     def test_corrupt_yaml_fails_gracefully(self, validator, audit_dir):
         """Corrupt YAML files → FAIL with descriptive error."""
-        (audit_dir / "quality-scorecard.yaml").write_text("{invalid yaml: [")
-        (audit_dir / "quality-scorecard.md").write_text("# Scorecard\n")
-        (audit_dir / "hook-effectiveness.yaml").write_text("{invalid: [")
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
+        (audit_dir / "quality-scorecard.yaml").write_text("{invalid yaml: [", encoding="utf-8")
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard\n", encoding="utf-8")
+        (audit_dir / "hook-effectiveness.yaml").write_text("{invalid: [", encoding="utf-8")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
 
         r = validator.validate_phase(6)
         assert not r.passed
@@ -885,9 +896,10 @@ class TestPhase10Enhanced:
     def test_fail_no_meta_learning_audit(self, validator, audit_dir):
         """Phase 10 without meta-learning-audit.json must FAIL on data check."""
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n",
+            encoding="utf-8",
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
         with (audit_dir / "evolution-log.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps(_meta_learning_event()) + "\n")
 
@@ -900,11 +912,14 @@ class TestPhase10Enhanced:
     def test_fail_empty_meta_learning_audit(self, validator, audit_dir):
         """Empty meta-learning-audit.json → FAIL."""
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n"
+            "# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n",
+            encoding="utf-8",
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
-        (audit_dir / "evolution-log.jsonl").write_text(json.dumps(_meta_learning_event()) + "\n")
-        (audit_dir / "meta-learning-audit.yaml").write_text("[]")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
+        (audit_dir / "evolution-log.jsonl").write_text(
+            json.dumps(_meta_learning_event()) + "\n", encoding="utf-8"
+        )
+        (audit_dir / "meta-learning-audit.yaml").write_text("[]", encoding="utf-8")
 
         r = validator.validate_phase(10)
         assert not r.passed
@@ -915,12 +930,18 @@ class TestPhase10Enhanced:
     def test_fail_audit_missing_counts(self, validator, audit_dir):
         """Audit entry without required count fields → FAIL."""
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n"
+            "# Run\n## D7 retrospective: Review Retrospective\n\n## D8 retrospective: EQUATOR Retrospective\n",
+            encoding="utf-8",
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
-        (audit_dir / "evolution-log.jsonl").write_text(json.dumps(_meta_learning_event()) + "\n")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
+        (audit_dir / "evolution-log.jsonl").write_text(
+            json.dumps(_meta_learning_event()) + "\n", encoding="utf-8"
+        )
         (audit_dir / "meta-learning-audit.yaml").write_text(
-            yaml.dump([{"timestamp": "2026-01-01", "data": "incomplete"}], default_flow_style=False)
+            yaml.dump(
+                [{"timestamp": "2026-01-01", "data": "incomplete"}], default_flow_style=False
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(10)
@@ -931,21 +952,24 @@ class TestPhase10Enhanced:
 
     def test_fail_count_only_meta_learning_audit(self, validator, project_dir, audit_dir):
         """Phase 10 requires run_meta_learning provenance, not hand-authored count fields."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         (project_dir / "drafts" / "manuscript.md").write_text(
-            "# Manuscript\n\nBody.\n\n## References\n\n"
+            "# Manuscript\n\nBody.\n\n## References\n\n", encoding="utf-8"
         )
         _write_concept_review(audit_dir)
         _write_review_loop(audit_dir)
-        (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard", encoding="utf-8")
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n",
+            encoding="utf-8",
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
-        (audit_dir / "evolution-log.jsonl").write_text(json.dumps(_meta_learning_event()) + "\n")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
+        (audit_dir / "evolution-log.jsonl").write_text(
+            json.dumps(_meta_learning_event()) + "\n", encoding="utf-8"
+        )
         (audit_dir / "meta-learning-audit.yaml").write_text(
             yaml.dump(
                 [
@@ -960,7 +984,8 @@ class TestPhase10Enhanced:
                     }
                 ],
                 default_flow_style=False,
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(10)
@@ -974,22 +999,24 @@ class TestPhase10Enhanced:
         self, validator, project_dir, audit_dir
     ):
         """Phase 10 ties the latest audit entry to the run_meta_learning event."""
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         (project_dir / "drafts" / "manuscript.md").write_text(
-            "# Manuscript\n\nBody.\n\n## References\n\n"
+            "# Manuscript\n\nBody.\n\n## References\n\n", encoding="utf-8"
         )
         _write_concept_review(audit_dir)
         _write_review_loop(audit_dir)
-        (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard", encoding="utf-8")
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n"
+            "# Run\n## D7 retrospective: Review Retrospective\nretro\n## D8 retrospective: EQUATOR Retrospective\nequator\n",
+            encoding="utf-8",
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
         (audit_dir / "evolution-log.jsonl").write_text(
-            json.dumps(_meta_learning_event(audit_timestamp="2026-01-01T00:00:00")) + "\n"
+            json.dumps(_meta_learning_event(audit_timestamp="2026-01-01T00:00:00")) + "\n",
+            encoding="utf-8",
         )
         (audit_dir / "meta-learning-audit.yaml").write_text(
             yaml.dump(
@@ -1009,7 +1036,8 @@ class TestPhase10Enhanced:
                     }
                 ],
                 default_flow_style=False,
-            )
+            ),
+            encoding="utf-8",
         )
 
         r = validator.validate_phase(10)
@@ -1022,21 +1050,22 @@ class TestPhase10Enhanced:
     def test_pass_full_phase_10(self, validator, project_dir, audit_dir):
         """Complete Phase 10 with valid meta-learning data → PASS."""
         # Prerequisites for Phase 10 (CRITICAL)
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         (project_dir / "drafts" / "manuscript.md").write_text(
-            "# Manuscript\n\nBody.\n\n## References\n\n"
+            "# Manuscript\n\nBody.\n\n## References\n\n", encoding="utf-8"
         )
-        (audit_dir / "quality-scorecard.md").write_text("# Scorecard")
+        (audit_dir / "quality-scorecard.md").write_text("# Scorecard", encoding="utf-8")
         _write_concept_review(audit_dir)
         _write_review_loop(audit_dir)
 
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Pipeline Run\n## D7 retrospective: Review Retrospective\nReview retro\n## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro\n"
+            "# Pipeline Run\n## D7 retrospective: Review Retrospective\nReview retro\n## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro\n",
+            encoding="utf-8",
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# Hook Effectiveness\n")
+        (audit_dir / "hook-effectiveness.md").write_text("# Hook Effectiveness\n", encoding="utf-8")
         with (audit_dir / "evolution-log.jsonl").open("a", encoding="utf-8") as f:
             f.write(
                 json.dumps(
@@ -1062,11 +1091,11 @@ class TestPhase10Enhanced:
             "suggestions": [{"type": "x"}],
         }
         (audit_dir / "meta-learning-audit.yaml").write_text(
-            yaml.dump([audit_entry], default_flow_style=False)
+            yaml.dump([audit_entry], default_flow_style=False), encoding="utf-8"
         )
 
-        (project_dir / ".memory" / "activeContext.md").write_text("# Active")
-        (project_dir / ".memory" / "progress.md").write_text("# Progress")
+        (project_dir / ".memory" / "activeContext.md").write_text("# Active", encoding="utf-8")
+        (project_dir / ".memory" / "progress.md").write_text("# Progress", encoding="utf-8")
 
         r = validator.validate_phase(10)
         assert r.passed
@@ -1117,12 +1146,12 @@ class TestMetaLearningEngineIntegration:
     ):
         """End-to-end: engine analyze → evolution log → Phase 10 passes."""
         # Prerequisites for Phase 10 (CRITICAL since pipeline enforcement)
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         (project_dir / "drafts" / "manuscript.md").write_text(
-            "# Manuscript\n\nBody.\n\n## References\n\n"
+            "# Manuscript\n\nBody.\n\n## References\n\n", encoding="utf-8"
         )
         _write_concept_review(audit_dir)
         _write_review_loop(audit_dir)
@@ -1154,13 +1183,14 @@ class TestMetaLearningEngineIntegration:
             )
 
         (audit_dir / "pipeline-run-20260101.md").write_text(
-            "# Pipeline Run\n## D7 retrospective: Review Retrospective\nReview retro content\n## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro content\n"
+            "# Pipeline Run\n## D7 retrospective: Review Retrospective\nReview retro content\n## D8 retrospective: EQUATOR Retrospective\nEQUATOR retro content\n",
+            encoding="utf-8",
         )
 
         mem_dir = project_dir / ".memory"
         mem_dir.mkdir(exist_ok=True)
-        (mem_dir / "activeContext.md").write_text("# Active Context")
-        (mem_dir / "progress.md").write_text("# Progress")
+        (mem_dir / "activeContext.md").write_text("# Active Context", encoding="utf-8")
+        (mem_dir / "progress.md").write_text("# Progress", encoding="utf-8")
 
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(10)
@@ -1175,10 +1205,10 @@ class TestQualityScorecardIntegration:
     def test_scorecard_set_scores_passes_phase6(self, scorecard, tracker, audit_dir, project_dir):
         """Setting ≥4 scores + recording hook events → Phase 6 passes."""
         # Prerequisites for Phase 6 (CRITICAL)
-        (project_dir / "project.json").write_text('{"slug": "test"}')
+        (project_dir / "project.json").write_text('{"slug": "test"}', encoding="utf-8")
         for i in range(20):
-            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}")
-        (project_dir / "concept.md").write_text("# Concept")
+            (project_dir / "references" / f"ref-{i}.md").write_text(f"# Ref {i}", encoding="utf-8")
+        (project_dir / "concept.md").write_text("# Concept", encoding="utf-8")
         _write_concept_review(audit_dir)
 
         for dim in DIMENSIONS:
@@ -1222,10 +1252,10 @@ class TestHookEffectivenessTrackerEvents:
             "runs": [],
         }
         (audit_dir / "hook-effectiveness.yaml").write_text(
-            yaml.dump(he_data, default_flow_style=False)
+            yaml.dump(he_data, default_flow_style=False), encoding="utf-8"
         )
-        (audit_dir / "hook-effectiveness.md").write_text("# HE\n")
-        (audit_dir / "quality-scorecard.md").write_text("# QS\n")
+        (audit_dir / "hook-effectiveness.md").write_text("# HE\n", encoding="utf-8")
+        (audit_dir / "quality-scorecard.md").write_text("# QS\n", encoding="utf-8")
 
         v = PipelineGateValidator(project_dir)
         r = v.validate_phase(6)

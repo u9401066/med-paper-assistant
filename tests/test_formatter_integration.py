@@ -17,7 +17,7 @@ def test_formatter_real_template(tmp_path):
     output_path = str(tmp_path / "test_integration_output.docx")
 
     # Create a test draft
-    with open(draft_path, "w") as f:
+    with open(draft_path, "w", encoding="utf-8") as f:
         f.write("# Introduction\nThis is a test introduction.\n")
 
     # Check if template exists

@@ -157,7 +157,7 @@ class TestCreateProject:
         pm.create_project(name="New", paper_type="review-article")
         info = pm.get_project_info()
         config_path = info["paths"]["config"]
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = json.load(f)
         assert config["name"] == "New"
         assert config["paper_type"] == "review-article"
@@ -175,7 +175,7 @@ class TestCreateProject:
         assert "drafts" not in info["paths"]
 
         config_path = info["paths"]["config"]
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = json.load(f)
 
         assert config["workflow_mode"] == "library-wiki"

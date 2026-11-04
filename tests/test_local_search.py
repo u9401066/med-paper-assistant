@@ -12,7 +12,7 @@ def test_local_search(tmp_path):
     pmid1 = "11111"
     dir1 = ref_dir / pmid1
     dir1.mkdir()
-    with open(dir1 / "metadata.json", "w") as f:
+    with open(dir1 / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(
             {
                 "pmid": pmid1,
@@ -29,7 +29,7 @@ def test_local_search(tmp_path):
     pmid2 = "22222"
     dir2 = ref_dir / pmid2
     dir2.mkdir()
-    with open(dir2 / "metadata.json", "w") as f:
+    with open(dir2 / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(
             {
                 "pmid": pmid2,

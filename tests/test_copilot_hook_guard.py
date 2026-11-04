@@ -285,3 +285,59 @@ def test_load_mode_settings_handles_missing_or_invalid_mode_fields(tmp_path: Pat
     )
 
     assert load_mode_settings(tmp_path) == ("normal", [])
+
+
+run_hook = HOOK_GUARD.run_hook
+
+
+def test_run_hook_fails_open_on_malformed_payload() -> None:
+    assert run_hook("not json") == {"continue": True}
+    assert run_hook("") == {"continue": True}
+    assert run_hook("[1, 2]") == {"continue": True}
+
+
+def test_run_hook_ignores_non_pretool_events() -> None:
+    assert run_hook('{"hookEventName": "PostToolUse", "tool_name": "run_in_terminal"}') == {
+        "continue": True
+    }
+
+
+def test_run_hook_fails_open_when_evaluation_raises(monkeypatch) -> None:
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("guard bug")
+
+    monkeypatch.setattr(HOOK_GUARD, "load_mode_settings", _boom)
+
+    assert run_hook('{"hookEventName": "PreToolUse", "tool_name": "x"}') == {"continue": True}
+
+
+def test_copilot_cli_powershell_tool_with_string_args_requires_confirmation() -> None:
+    payload = {
+        "toolName": "powershell",
+        "toolArgs": '{"command": "git reset --hard HEAD~1"}',
+    }
+
+    result = evaluate_pre_tool_use(
+        payload,
+        mode="development",
+        protected_paths=PROTECTED_PATHS,
+        workspace_root=WORKSPACE_ROOT,
+    )
+
+    assert result["hookSpecificOutput"]["permissionDecision"] == "ask"
+
+
+def test_copilot_cli_edit_tool_is_denied_on_protected_path() -> None:
+    payload = {
+        "toolName": "edit",
+        "toolArgs": {"path": str(WORKSPACE_ROOT / "src" / "x.py")},
+    }
+
+    result = evaluate_pre_tool_use(
+        payload,
+        mode="normal",
+        protected_paths=PROTECTED_PATHS,
+        workspace_root=WORKSPACE_ROOT,
+    )
+
+    assert result["hookSpecificOutput"]["permissionDecision"] == "deny"

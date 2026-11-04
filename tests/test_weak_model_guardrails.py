@@ -70,7 +70,7 @@ def project_with_journal_profile(tmp_path: Path) -> Path:
             "tolerance": {"word_percent": 20},
         },
     }
-    with open(d / "journal-profile.yaml", "w") as f:
+    with open(d / "journal-profile.yaml", "w", encoding="utf-8") as f:
         yaml.dump(profile, f)
     return d
 
@@ -223,7 +223,7 @@ class TestScenario2SubmissionChecklist:
         )
         # Also create cover letter file
         (project_with_journal_profile / "cover-letter.md").write_text(
-            "Dear Editor,\n\nPlease consider...\n"
+            "Dear Editor,\n\nPlease consider...\n", encoding="utf-8"
         )
 
         result = engine_with_profile.check_submission_checklist(manuscript)
@@ -263,7 +263,7 @@ class TestScenario3MemorySync:
         memory_dir = project_dir / ".memory"
         memory_dir.mkdir()
         active_ctx = memory_dir / "activeContext.md"
-        active_ctx.write_text("# Active Context\n\nSome old context.\n")
+        active_ctx.write_text("# Active Context\n\nSome old context.\n", encoding="utf-8")
 
         # Set modification time to 4 hours ago
         four_hours_ago = time.time() - (4 * 3600)
@@ -284,7 +284,7 @@ class TestScenario3MemorySync:
         memory_dir = project_dir / ".memory"
         memory_dir.mkdir()
         active_ctx = memory_dir / "activeContext.md"
-        active_ctx.write_text("# Active Context\n\nJust updated.\n")
+        active_ctx.write_text("# Active Context\n\nJust updated.\n", encoding="utf-8")
         # Default mtime is now (just created) → should be fresh
 
         result = engine.check_memory_sync()

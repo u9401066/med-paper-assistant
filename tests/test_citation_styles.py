@@ -26,7 +26,7 @@ def test_citation_styles(mock_ref_manager, tmp_path):
     # 1. Test Vancouver (Default)
     drafter.set_citation_style("vancouver")
     path = drafter.create_draft("test_vancouver", content)
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         text = f.read()
     assert "This is a claim [1]." in text
     assert "[1] Smith J, Doe A. Test Paper. J Test. 2023." in text
@@ -34,7 +34,7 @@ def test_citation_styles(mock_ref_manager, tmp_path):
     # 2. Test APA
     drafter.set_citation_style("apa")
     path = drafter.create_draft("test_apa", content)
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         text = f.read()
     assert "This is a claim (Smith & Doe, 2023)." in text
     assert "Smith J, Doe A (2023). Test Paper. J Test." in text
@@ -42,7 +42,7 @@ def test_citation_styles(mock_ref_manager, tmp_path):
     # 3. Test Harvard
     drafter.set_citation_style("harvard")
     path = drafter.create_draft("test_harvard", content)
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         text = f.read()
     assert "This is a claim (Smith and Doe 2023)." in text
     assert "Smith J, Doe A (2023) 'Test Paper', J Test." in text
@@ -50,7 +50,7 @@ def test_citation_styles(mock_ref_manager, tmp_path):
     # 4. Test Nature
     drafter.set_citation_style("nature")
     path = drafter.create_draft("test_nature", content)
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         text = f.read()
     assert "This is a claim ^1^." in text
     assert "1. Smith J, Doe A. Test Paper. J Test 2023." in text

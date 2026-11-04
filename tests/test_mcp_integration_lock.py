@@ -76,6 +76,8 @@ def test_locked_submodule_commits_versions_and_requirements_match_checkout() -> 
             check=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         ).stdout.strip()
         assert checked_out_commit == integration["commit"], name
 
