@@ -96,7 +96,7 @@ hook_spec:
   name: 時間一致性
   description: 逆向掃描修正因寫作順序造成的過時引用
   files_to_update:
-    - path: .claude/skills/auto-paper/SKILL.md
+    - path: .claude/skills/auto-paper/references/hooks-c-post-manuscript.md # 依 category：A/B → hooks-a-b-post-write-section.md、C → hooks-c-post-manuscript.md、D → hooks-d-meta-learning.md
       action: insert_hook_definition
     - path: AGENTS.md
       action: update_hook_count_and_table
@@ -104,7 +104,7 @@ hook_spec:
       action: update_hook_count_and_table
     - path: vscode-extension/copilot-instructions.md
       action: update_hook_count_and_table
-    - path: vscode-extension/skills/auto-paper/SKILL.md
+    - path: vscode-extension/skills/auto-paper/references/hooks-c-post-manuscript.md # 同 .claude 鏡像
       action: insert_hook_definition
   requires_user_confirmation: true
 ```

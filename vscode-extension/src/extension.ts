@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getPythonArgs, loadSkillContent, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS, BUNDLED_SUPPORT_FILES } from './utils';
+import { getPythonArgs, BUNDLED_SKILLS, BUNDLED_PROMPTS, BUNDLED_TEMPLATES, BUNDLED_AGENTS, BUNDLED_SUPPORT_FILES } from './utils';
+import { copyMissingSkillReferences, loadSkillWithReferences } from './skillReferences';
 import { REQUIRED_UV_VERSION, findUvPath, installUvHeadless, getUvxPath, buildPinnedUvxCommand, buildMcpEnv } from './uvManager';
 import {
     shouldSkipMcpRegistration,
@@ -570,7 +571,7 @@ function registerChatParticipant(context: vscode.ExtensionContext): vscode.Dispo
             // Commands that stay static
             switch (request.command) {
                 case 'autopaper': {
-                    const autoPaperSkill = loadSkillContent(skillsPath, 'auto-paper');
+                    const autoPaperSkill = loadSkillWithReferences(skillsPath, 'auto-paper');
                     stream.markdown('🚀 **正在啟動 Auto Paper pipeline...**\n\n');
                     await runWithTools(request, stream, token, TOOL_FILTERS.autopaper, {
                         maxRounds: 12,
@@ -771,14 +772,19 @@ async function setupWorkspace(context: vscode.ExtensionContext): Promise<void> {
     let copied = 0;
     const copiedDocs: string[] = [];
 
-    // 1. Copy skills → .claude/skills/
+    // 1. Copy skills → .claude/skills/ (SKILL.md plus its progressive-disclosure references/)
     for (const skill of BUNDLED_SKILLS) {
-        const src = path.join(extPath, 'skills', skill, 'SKILL.md');
-        const dst = path.join(wsRoot, '.claude', 'skills', skill, 'SKILL.md');
+        const srcSkillDir = path.join(extPath, 'skills', skill);
+        const dstSkillDir = path.join(wsRoot, '.claude', 'skills', skill);
+        const src = path.join(srcSkillDir, 'SKILL.md');
+        const dst = path.join(dstSkillDir, 'SKILL.md');
         if (fs.existsSync(src) && !fs.existsSync(dst)) {
             fs.mkdirSync(path.dirname(dst), { recursive: true });
             fs.copyFileSync(src, dst);
             copied++;
+        }
+        if (fs.existsSync(src)) {
+            copied += copyMissingSkillReferences(srcSkillDir, dstSkillDir);
         }
     }
 

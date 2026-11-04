@@ -20,6 +20,7 @@ describe('autopaper execution flow', () => {
         const autopaperCase = extensionSource.slice(autopaperCaseStart, helpCaseStart);
         expect(autopaperCase).toContain('await runWithTools(');
         expect(autopaperCase).toContain('TOOL_FILTERS.autopaper');
+        expect(autopaperCase).toContain("loadSkillWithReferences(skillsPath, 'auto-paper')");
     });
 
     it('builds an execution prompt for autopaper instead of doc-only output', () => {

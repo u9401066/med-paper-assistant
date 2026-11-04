@@ -8,7 +8,7 @@ description: "write-paper - 完整論文撰寫（全自動 + 閉環審計）"
 
 ## 執行方式
 
-載入並遵循 `auto-paper/SKILL.md` 的 13 main gate checkpoint Pipeline，並在 Phase 2 後執行 Phase 2.1 全文素材 sub-gate。
+載入並遵循 `auto-paper/SKILL.md` 的 13 main gate checkpoint Pipeline（再依其 Reference 索引按需載入 `auto-paper/references/*.md` 的 Phase 詳細程序），並在 Phase 2 後執行 Phase 2.1 全文素材 sub-gate。
 
 | Phase        | Skill                         | 外部 MCP                | Gate                          |
 | ------------ | ----------------------------- | ----------------------- | ----------------------------- |
@@ -27,7 +27,7 @@ description: "write-paper - 完整論文撰寫（全自動 + 閉環審計）"
 | 10 回顧改進  | Hook D（含 D7 Reviewer 演化） | -                       | meta-learning audit           |
 | 11 最終交付  | word-export + audit           | -                       | export smoke + provenance     |
 
-🔸 = 條件觸發（見 auto-paper SKILL.md Cross-Tool Orchestration Map）
+🔸 = 條件觸發（見 auto-paper `references/cross-tool-orchestration.md` 的 Cross-Tool Orchestration Map）
 
 **人工介入**：僅 Phase 4 大綱確認。Concept < 60 兩次仍低、Hook 3 輪仍失敗時暫停。
 

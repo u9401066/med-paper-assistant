@@ -407,6 +407,7 @@ function main(overrides = {}) {
 
     validateCompilation(reporter, runtime);
     validateAssetGroup('📖 V2: Skills Sync', 'skill', reporter, runtime);
+    validateAssetGroup('📚 V2a: Skill References Sync', 'skill-references', reporter, runtime);
     validateAssetGroup('📋 V3: Prompts Sync', 'prompt', reporter, runtime);
     validateAssetGroup('📋 V3a: Support Files Sync', 'support-file', reporter, runtime);
     validateAssetGroup('📄 V3b: Templates Sync', 'template', reporter, runtime);

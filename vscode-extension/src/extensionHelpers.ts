@@ -7,6 +7,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { hasMissingSkillReferences } from './skillReferences';
 
 type BundledSupportFile = {
     destination: string;
@@ -149,9 +150,11 @@ export function countMissingBundledItems(
 
     let missingSkills = 0;
     for (const skill of bundledSkills) {
-        const src = path.join(extPath, 'skills', skill, 'SKILL.md');
-        const dst = path.join(skillsDir, skill, 'SKILL.md');
-        if (fs.existsSync(src) && !fs.existsSync(dst)) {
+        const srcSkillDir = path.join(extPath, 'skills', skill);
+        const dstSkillDir = path.join(skillsDir, skill);
+        const src = path.join(srcSkillDir, 'SKILL.md');
+        const dst = path.join(dstSkillDir, 'SKILL.md');
+        if (fs.existsSync(src) && (!fs.existsSync(dst) || hasMissingSkillReferences(srcSkillDir, dstSkillDir))) {
             missingSkills++;
         }
     }

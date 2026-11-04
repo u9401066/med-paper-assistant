@@ -592,12 +592,13 @@ Repo 內含一個由 Auto-Paper pipeline 產生的示範專案，可用來檢查
 
 ## 相關文件
 
-| 文件                                                                                                                                       | 說明                                           |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
-| [SKILL.md](https://github.com/u9401066/med-paper-assistant/blob/master/.claude/skills/auto-paper/SKILL.md)                                 | 完整技術定義（Hook 詳細規格 + cascading 流程） |
-| [multi-stage-review-architecture.md](design/multi-stage-review-architecture.md)                                                            | 設計文件（含所有設計決策）                     |
-| [journal-profile.template.yaml](https://github.com/u9401066/med-paper-assistant/blob/master/templates/journal-profile.template.yaml)       | journal-profile 模板                           |
-| [paper-reviewer.agent.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/agents/paper-reviewer.agent.md)              | 唯讀 Reviewer Agent 模式                       |
-| [mdpaper.write-paper.prompt.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/prompts/mdpaper.write-paper.prompt.md) | 觸發 Pipeline 的 Prompt                        |
-| [mdpaper.audit.prompt.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/prompts/mdpaper.audit.prompt.md)             | 獨立審計 Prompt（Phase 6+7）                   |
-| [evaluation-contract.md](harness/evaluation-contract.md)                                                                                   | solve→score、evidence locator 與 release gates |
+| 文件                                                                                                                                       | 說明                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| [SKILL.md](https://github.com/u9401066/med-paper-assistant/blob/master/.claude/skills/auto-paper/SKILL.md)                                 | Pipeline 入口（Phase 總覽 + hard gates；細節見 `references/`） |
+| [references/](https://github.com/u9401066/med-paper-assistant/tree/master/.claude/skills/auto-paper/references)                            | 完整技術定義（Hook 詳細規格 + cascading 流程 + 各 Phase 程序） |
+| [multi-stage-review-architecture.md](design/multi-stage-review-architecture.md)                                                            | 設計文件（含所有設計決策）                                     |
+| [journal-profile.template.yaml](https://github.com/u9401066/med-paper-assistant/blob/master/templates/journal-profile.template.yaml)       | journal-profile 模板                                           |
+| [paper-reviewer.agent.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/agents/paper-reviewer.agent.md)              | 唯讀 Reviewer Agent 模式                                       |
+| [mdpaper.write-paper.prompt.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/prompts/mdpaper.write-paper.prompt.md) | 觸發 Pipeline 的 Prompt                                        |
+| [mdpaper.audit.prompt.md](https://github.com/u9401066/med-paper-assistant/blob/master/.github/prompts/mdpaper.audit.prompt.md)             | 獨立審計 Prompt（Phase 6+7）                                   |
+| [evaluation-contract.md](harness/evaluation-contract.md)                                                                                   | solve→score、evidence locator 與 release gates                 |

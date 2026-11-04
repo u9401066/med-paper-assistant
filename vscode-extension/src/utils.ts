@@ -6,6 +6,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import bundleManifest from '../bundle-manifest.json';
+import { listSkillReferenceFiles } from './skillReferences';
 
 type SupportFile = {
     name: string;
@@ -179,6 +180,17 @@ export function validateBundledSkills(
                 missing.push(skill + ' (outdated)');
             } else {
                 synced.push(skill);
+            }
+        }
+
+        // Progressive-disclosure references/ travel with their SKILL.md
+        for (const name of listSkillReferenceFiles(path.join(sourceSkillsDir, skill))) {
+            const srcRef = path.join(sourceSkillsDir, skill, 'references', name);
+            const dstRef = path.join(bundledSkillsDir, skill, 'references', name);
+            if (!fs.existsSync(dstRef)) {
+                missing.push(`${skill}/references/${name}`);
+            } else if (fs.readFileSync(srcRef, 'utf-8') !== fs.readFileSync(dstRef, 'utf-8')) {
+                missing.push(`${skill}/references/${name} (outdated)`);
             }
         }
     }

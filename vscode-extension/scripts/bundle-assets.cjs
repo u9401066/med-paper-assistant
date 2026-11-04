@@ -37,6 +37,16 @@ function getBundleAssetSpecs(context = createContext()) {
         path.join(extensionDir, 'skills', skill, 'SKILL.md'),
     ));
 
+    // Progressive-disclosure references/ directories ship alongside their SKILL.md.
+    const skillReferences = manifest.skills
+        .filter((skill) => fs.existsSync(path.join(repoRoot, '.claude', 'skills', skill, 'references')))
+        .map((skill) => createAssetSpec(
+            'skill-references',
+            `${skill}/references`,
+            path.join(repoRoot, '.claude', 'skills', skill, 'references'),
+            path.join(extensionDir, 'skills', skill, 'references'),
+        ));
+
     const prompts = manifest.prompts.map((prompt) => createAssetSpec(
         'prompt',
         prompt,
@@ -65,7 +75,7 @@ function getBundleAssetSpecs(context = createContext()) {
         path.join(extensionDir, file.destination),
     ));
 
-    return [...skills, ...prompts, ...agents, ...templates, ...supportFiles];
+    return [...skills, ...skillReferences, ...prompts, ...agents, ...templates, ...supportFiles];
 }
 
 function getPythonSourceSpecs(context = createContext()) {
@@ -207,7 +217,12 @@ function syncAssetSpecs(specs) {
         }
 
         ensureParentDirectory(spec.destination);
-        fs.copyFileSync(spec.source, spec.destination);
+        if (fs.statSync(spec.source).isDirectory()) {
+            fs.rmSync(spec.destination, { recursive: true, force: true });
+            fs.cpSync(spec.source, spec.destination, { recursive: true });
+        } else {
+            fs.copyFileSync(spec.source, spec.destination);
+        }
         copied.push(spec);
     }
 

@@ -108,7 +108,7 @@ CGU 整合：`deep_think`（找弱點）、`spark_collision`（碰撞論點）�
 
 ### Hook 架構（79 checks — 56 Code-Enforced / 23 Agent-Driven）
 
-Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md`）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
+Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md` 入口 + `auto-paper/references/hooks-*.md` 詳細規格）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
 
 **Code-Enforced**（`run_writing_hooks` / `run_review_hooks` / `run_meta_learning` 有確定性程式碼邏輯）：
 
@@ -213,7 +213,7 @@ uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/
 | SubagentStart    | subagent-init.sh    | 注入專案/模式至 subagent               |
 | Stop             | session-stop.sh     | 審計 + 清理 + memory sync 提醒         |
 
-腳本位於 `scripts/hooks/copilot/`。依賴 jq（腳本無 jq 時 graceful degradation）。
+腳本位於 `scripts/hooks/copilot/`：hook 邏輯為純 stdlib Python（`mdpaper_hooks/`），由 `hook_dispatch.py <name>` 行程內呼叫（Windows 以 `pythonw.exe` 無視窗執行，任何例外皆 fail-open 並記錄至 `.github/hooks/_state/hook_errors.jsonl`）；`*.sh` 僅為 POSIX shim。不再需要 jq 或 bash。
 
 另有補強型 `PreToolUse` runtime guard：`.github/hooks/mode-guard.json` 會在工具執行前透過 fail-open launcher（`scripts/hooks/copilot/mode-guard.{ps1,sh}`，直接用 `.venv` Python、絕不 `uv run`）呼叫 `scripts/copilot_hook_guard.py`，補上 Python / `apply_patch` / Windows PowerShell 路徑解析，專門攔截受保護路徑修改與破壞性 terminal 指令。它是 lifecycle hooks 的補充層，不取代 `mdpaper-lifecycle.json`。
 
@@ -309,7 +309,7 @@ Pipeline（auto-paper SKILL.md）定義「何時」→ Skill 定義「如何」�
 | drawio        | 5 Methods             | 需 flow diagram                     |
 | data tools    | 5 Results             | 需表格/圖                           |
 
-詳見 `.claude/skills/auto-paper/SKILL.md`「Cross-Tool Orchestration Map」。
+詳見 `.claude/skills/auto-paper/references/cross-tool-orchestration.md`「Cross-Tool Orchestration Map」（入口：`.claude/skills/auto-paper/SKILL.md`）。
 
 ---
 

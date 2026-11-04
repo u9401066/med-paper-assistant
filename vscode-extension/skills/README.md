@@ -7,6 +7,7 @@ This directory contains the Agent knowledge base (Skills) that are embedded into
 Each skill is a directory containing:
 
 - `SKILL.md` - The skill definition and workflow
+- `references/*.md` (optional) - Progressive-disclosure detail files linked from `SKILL.md` (for example `auto-paper/references/`); mirrored from `.claude/skills/<skill>/references/` by `bundle-assets.cjs` and packaged with the VSIX
 
 ## Available Skills
 

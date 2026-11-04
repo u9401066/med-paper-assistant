@@ -4,7 +4,7 @@ description: "audit - 獨立審計 + 自主審稿（Phase 6+7）"
 
 # 獨立審計流程
 
-**核心 Skill**：`.claude/skills/auto-paper/SKILL.md`（Phase 6 + Phase 7）
+**核心 Skill**：`.claude/skills/auto-paper/SKILL.md`（Phase 6 + Phase 7；詳細程序見 `references/phase-6-6.5-audit-evolution.md`、`references/phase-7-review-loop.md`）
 
 ## 適用情境
 

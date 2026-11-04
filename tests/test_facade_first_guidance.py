@@ -9,6 +9,18 @@ def _read(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
 
 
+def _read_skill_bundle(relative_skill_path: str) -> str:
+    """Read a skill entry point together with its progressive-disclosure references."""
+    skill_path = ROOT / relative_skill_path
+    parts = [skill_path.read_text(encoding="utf-8")]
+    references_dir = skill_path.parent / "references"
+    if references_dir.is_dir():
+        parts.extend(
+            path.read_text(encoding="utf-8") for path in sorted(references_dir.glob("*.md"))
+        )
+    return "\n".join(parts)
+
+
 def test_project_management_guidance_prefers_facade_verbs() -> None:
     expected = 'project_action(action="list")'
     forbidden = "list_projects()"
@@ -64,7 +76,7 @@ def test_auto_paper_guidance_prefers_review_and_workspace_facades() -> None:
         ".claude/skills/auto-paper/SKILL.md",
         "vscode-extension/skills/auto-paper/SKILL.md",
     ]:
-        content = _read(relative_path)
+        content = _read_skill_bundle(relative_path)
         for fragment in required_fragments:
             assert fragment in content
         for fragment in forbidden_fragments:
@@ -126,7 +138,7 @@ def test_auto_paper_guidance_uses_only_runtime_numbered_phases() -> None:
         ".claude/skills/auto-paper/SKILL.md",
         "vscode-extension/skills/auto-paper/SKILL.md",
     ]:
-        content = _read(relative_path)
+        content = _read_skill_bundle(relative_path)
         for unsupported in ("Phase 2.5", "Phase 4.5", "Phase 4.9", "Phase 9.5"):
             assert unsupported not in content
         assert "#### D9:" in content

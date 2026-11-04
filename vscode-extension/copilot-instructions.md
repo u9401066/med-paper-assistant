@@ -44,7 +44,7 @@ Normal/Research 下 `.claude/` `.github/` `src/` `tests/` `integrations/` `AGENT
 
 CONSTITUTION.md > `.github/bylaws/*.md` > `.claude/skills/*/SKILL.md`
 
-## 跨 MCP 編排（詳見 auto-paper SKILL.md）
+## 跨 MCP 編排（詳見 auto-paper SKILL.md 與 `references/cross-tool-orchestration.md`）
 
 Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」。
 

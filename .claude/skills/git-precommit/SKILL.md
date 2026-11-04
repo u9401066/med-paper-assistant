@@ -8,7 +8,7 @@ description: |
 
 # Git 提交前工作流（編排器 + Pre-Commit Hooks）
 
-Copilot Hooks（寫作時即時修正）定義於 `auto-paper/SKILL.md`。
+Copilot Hooks（寫作時即時修正）定義於 `auto-paper/SKILL.md` 與其 `auto-paper/references/hooks-*.md`。
 Pre-Commit Hooks（本檔，git commit 前最終把關）只報告不自動修改。
 
 觸發：「commit」「推送」「做完了」「收工」「快速 commit」

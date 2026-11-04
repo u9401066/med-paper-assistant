@@ -47,6 +47,23 @@ def test_all_repository_skills_have_valid_unique_frontmatter() -> None:
         names[name] = path
 
 
+def test_auto_paper_skill_uses_progressive_disclosure_references() -> None:
+    skill_dir = ROOT / ".claude" / "skills" / "auto-paper"
+    skill_text = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+    reference_paths = sorted((skill_dir / "references").glob("*.md"))
+
+    assert len(skill_text.splitlines()) <= 500
+    assert reference_paths
+    for path in reference_paths:
+        assert len(path.read_text(encoding="utf-8").splitlines()) <= 400, path.name
+        assert f"references/{path.name}" in skill_text, f"{path.name} missing from SKILL.md index"
+
+    linked = set(re.findall(r"\]\((references/[^)#\s]+\.md)", skill_text))
+    assert linked
+    for link in linked:
+        assert (skill_dir / link).is_file(), f"broken reference link: {link}"
+
+
 def test_shared_workflow_covers_extended_outputs_and_exemplar_boundaries() -> None:
     content = SHARED_WORKFLOW.read_text(encoding="utf-8")
 

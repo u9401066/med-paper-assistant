@@ -28,6 +28,8 @@ test_*/**
 scripts/dev.sh
 *.log
 
+# Skill references (skills/<skill>/references/*.md) are intentionally packaged with their SKILL.md.
+
 # Extra authoring-only skills are kept in the repo but excluded from the packaged VSIX.
 skills/memory-checkpoint/**
 skills/memory-updater/**
