@@ -83,15 +83,17 @@ claude plugin install med-paper-assistant@medpaper
 
 ![MedPaper Assistant 架構圖](docs/assets/medpaper-architecture.svg)
 
-### Claude Code、Codex 與 OpenClaw
+### Claude Code、Codex、Copilot CLI、Cline 與 OpenClaw
 
-三種 runtime 共用相同的證據與品質 gate：
+各 agent runtime 共用相同的證據與品質 gate：
 
-| Runtime     | 專案指引                                             | 學術寫作 skill                                                                         |
-| ----------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Claude Code | [`CLAUDE.md`](CLAUDE.md) 與 [`AGENTS.md`](AGENTS.md) | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) |
-| Codex       | [`AGENTS.md`](AGENTS.md)                             | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) |
-| OpenClaw    | [`AGENTS.md`](AGENTS.md) 加 workspace policy         | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) |
+| Runtime                      | 專案指引                                                                       | 學術寫作 skill / plugin                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Claude Code                  | [`CLAUDE.md`](CLAUDE.md) 與 [`AGENTS.md`](AGENTS.md)                           | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) 或 Agent Plugin |
+| Codex                        | [`AGENTS.md`](AGENTS.md)                                                       | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) 或 Agent Plugin |
+| GitHub Copilot（VS Code/CLI）| [`.github/copilot-instructions.md`](.github/copilot-instructions.md) 與 `AGENTS.md` | `.claude/skills/`（自動探索）、[`.github/agents/`](.github/agents/) 或 Agent Plugin                    |
+| Cline                        | [`AGENTS.md`](AGENTS.md)                                                       | 將 `plugins/med-paper-assistant/mcp.json` 的 MCP servers 登錄到 Cline 的 MCP 設定                       |
+| OpenClaw                     | [`AGENTS.md`](AGENTS.md) 加 workspace policy                                   | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                 |
 
 平台中立的[學術寫作 workflow](docs/harness/academic-writing-workflow.md)涵蓋正式論文、計畫書、結案報告、小論文、preprint、審計 gate 與安全的範本文獻使用方式。
 

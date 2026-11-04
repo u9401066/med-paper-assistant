@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   CI and the release workflow run `build_agent_plugin.py --check`, and `scripts/bump-version.sh` regenerates the manifests.
 
+### Changed
+
+- Converted the legacy `.github/{architect,ask,code,debug}.chatmode.md` files, which VS Code never loaded from that location, into custom agents named `.github/agents/dev-*.agent.md`. Their deprecated tool lists were removed.
+- The README now covers GitHub Copilot (VS Code/CLI) and Cline setup alongside Claude Code, Codex and OpenClaw.
+
 ### Fixed
 
 - Made the `PreToolUse` mode guard fail-open and fast: `.github/hooks/mode-guard.json` now runs `scripts/hooks/copilot/mode-guard.{ps1,sh}`, which calls the project `.venv` Python directly instead of `uv run`. Before this fix, a `uv.lock` re-resolve or a locked `.venv` made every hook invocation time out, which denied **all** agent tools. Malformed hook payloads and guard exceptions now always return `{"continue": true}`.

@@ -81,15 +81,17 @@ Run the agent from your research folder. Projects are written to `MEDPAPER_BASE_
 
 ![MedPaper Assistant architecture](docs/assets/medpaper-architecture.svg)
 
-### Claude Code, Codex, and OpenClaw
+### Claude Code, Codex, Copilot CLI, Cline, and OpenClaw
 
 The same evidence and quality gates are available across agent runtimes:
 
-| Runtime     | Project instructions                                  | Academic-writing skill                                                                 |
-| ----------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Claude Code | [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md) | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) |
-| Codex       | [`AGENTS.md`](AGENTS.md)                              | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) |
-| OpenClaw    | [`AGENTS.md`](AGENTS.md) plus workspace policy        | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) |
+| Runtime                    | Project instructions                                                                    | Academic-writing skill / plugin                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Claude Code                | [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md)                                   | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) or Agent Plugin |
+| Codex                      | [`AGENTS.md`](AGENTS.md)                                                                | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) or Agent Plugin |
+| GitHub Copilot (VS Code/CLI) | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) and `AGENTS.md`  | `.claude/skills/` (auto-discovered), [`.github/agents/`](.github/agents/), or Agent Plugin             |
+| Cline                      | [`AGENTS.md`](AGENTS.md)                                                                | Register the MCP servers from `plugins/med-paper-assistant/mcp.json` in Cline's MCP settings           |
+| OpenClaw                   | [`AGENTS.md`](AGENTS.md) plus workspace policy                                          | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                 |
 
 The platform-neutral [academic-writing workflow](docs/harness/academic-writing-workflow.md) covers manuscripts, proposals, project closeout reports, student papers, preprints, audit gates, and safe exemplar use.
 
