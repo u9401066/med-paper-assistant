@@ -83,7 +83,7 @@ def resolve_reference_metadata(
             try:
                 metadata = get_metadata(ref_id)
             except Exception:
-                continue
+                metadata = None
             if metadata and metadata.get("citation_key") == key.strip():
                 return ref_id, metadata
     return None
