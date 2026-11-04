@@ -285,6 +285,20 @@ def test_release_artifacts_are_installed_and_published_together() -> None:
     assert "needs.publish-vsx.result" in content
 
 
+def test_install_smoke_required_bundle_paths_exist_in_committed_bundle() -> None:
+    install_smoke = (REPO_ROOT / "vscode-extension" / "scripts" / "install-smoke.cjs").read_text(
+        encoding="utf-8"
+    )
+    required = re.findall(r"'(bundled/[^']+)'", install_smoke)
+    assert required, "install-smoke.cjs must assert at least one bundled runtime path"
+    missing = [
+        relative
+        for relative in required
+        if not (REPO_ROOT / "vscode-extension" / relative).is_file()
+    ]
+    assert not missing, f"install-smoke.cjs expects bundle paths that do not exist: {missing}"
+
+
 def test_release_bundle_checks_have_recursive_submodules() -> None:
     release = _workflow("release.yml")
     for job_name in ("validate", "vsx-bundle-drift", "build-artifacts"):

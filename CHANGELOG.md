@@ -120,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - YAML escaping prevents key injection.
   - An unknown tool surface logs a warning.
   - The analyzer handles NaN pairs, NaN groups and non-finite p-values.
+- The VSIX install smoke now looks for CGU 0.9's `cgu/interfaces/mcp/server.py` entry point instead of the removed `cgu/server.py`. A regression test checks every bundled path the smoke requires against the committed bundle on each CI run, not only at release time.
 
 ## [1.0.3] - 2026-09-01
 

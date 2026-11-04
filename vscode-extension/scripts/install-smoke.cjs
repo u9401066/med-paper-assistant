@@ -115,7 +115,7 @@ try {
   for (const relative of [
     'out/extension.js',
     'bundled/tool/med_paper_assistant/__init__.py',
-    'bundled/tool/cgu/server.py',
+    'bundled/tool/cgu/interfaces/mcp/server.py',
   ]) {
     if (!fs.existsSync(path.join(installedRoot, relative))) {
       throw new Error(`Installed VSIX is missing ${relative}`);
