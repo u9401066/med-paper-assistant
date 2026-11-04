@@ -35,6 +35,7 @@ from med_paper_assistant.interfaces.mcp.tools.project.facade import (
     project_inline as project_facade,
 )
 from med_paper_assistant.interfaces.mcp.tools.project.facade import register_project_facade_tools
+from med_paper_assistant.interfaces.mcp.tools.project.facade_guards import resolve_source_scan_root
 from med_paper_assistant.interfaces.mcp.tools.project.library_notes import (
     register_library_note_tools,
 )
@@ -380,6 +381,14 @@ async def test_iface5_source_dir_inside_workspace_accepted(
     result = await funcs["project_action"](action="source_materials", source_dir="raw")
     assert "status: ok" in result
     assert "pending_asset_aware: 1" in result
+
+
+def test_iface5_backslash_separators_resolve_identically_on_every_os(workspace: Path) -> None:
+    project_dir = workspace / "projects" / "demo"
+    scan_root, _ = resolve_source_scan_root("raw\\nested", project_dir)
+    assert scan_root == (workspace / "raw" / "nested").resolve()
+    with pytest.raises(PathGuardError):
+        resolve_source_scan_root("raw\\..\\..\\outside", project_dir)
 
 
 @pytest.mark.asyncio

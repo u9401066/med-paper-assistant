@@ -36,7 +36,9 @@ def resolve_source_scan_root(source_dir: str, project_dir: Path) -> tuple[Path, 
         raise PathGuardError("source_dir contains invalid control character(s).")
     if raw.startswith(("\\\\", "//")):
         raise PathGuardError("source_dir must not use UNC/network paths.")
-    candidate = Path(raw).expanduser()
+    # Agents frequently send Windows-style separators; treat them as separators on every
+    # OS so ``..\\outside`` cannot slip through as a literal POSIX filename.
+    candidate = Path(raw.replace("\\", "/")).expanduser()
     if not candidate.is_absolute():
         candidate = workspace_root / candidate
     resolved = candidate.resolve()
