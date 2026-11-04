@@ -703,7 +703,7 @@ med-paper-assistant/
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.0.3},
+  version = {1.1.0},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

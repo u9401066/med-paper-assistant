@@ -8,7 +8,7 @@
         "--python",
         "3.12",
         "--from",
-        "med-paper-assistant[provenance,watermark]==1.0.3",
+        "med-paper-assistant[provenance,watermark]==1.1.0",
         "med-paper-assistant"
       ],
       "env": {

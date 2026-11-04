@@ -12,7 +12,7 @@
       "name": "med-paper-assistant",
       "source": "./plugins/med-paper-assistant",
       "description": "An MCP-orchestrated research workspace for manuscript and library-wiki workflows",
-      "version": "1.0.3"
+      "version": "1.1.0"
     }
   ]
 }

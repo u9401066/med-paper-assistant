@@ -78,6 +78,19 @@ Later               │  Bounded Automation Enhancement                         
 
 ## ✅ 已完成 (Completed)
 
+### Agent Plugins + Modular Revamp v1.1 (2026-11)
+
+| Feature                           | Description                                                                                                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Agent Plugins package** ✅      | `plugins/med-paper-assistant/` 由 `build_agent_plugin.py` 產生：compact `mdpaper` + 五個協作 MCP、25 skills、9 agents，Copilot/Claude Code/Codex marketplaces |
+| **Explicit workspace binding** ✅ | MCP roots 已 deprecated（SEP-2577），改由 `workspace_state_action(bind)` 綁定研究資料夾，回應附 root/source/binding hint                                      |
+| **VSIX native chat assets** ✅    | `chatSkills`/`chatAgents`/`chatPromptFiles`（VS Code 1.109+），workspace 同名資產自動覆蓋 bundled 版本                                                        |
+| **In-process lifecycle hooks** ✅ | Copilot hooks 改為 stdlib Python + `pythonw`，fail-open 且不再搶 VS Code 焦點                                                                                 |
+| **Companion pins** ✅             | Asset-Aware 1.4.1、PubMed Search 0.8.0、CGU 0.9.0、Zotero Keeper 2.4.0；vendored skills 有 drift check                                                        |
+| **Modular refactor** ✅           | 大型 persistence/services/MCP tool 模組拆成套件並保留 import 路徑；ratchet 例外 388 → 108，118/12 surface 不變                                                |
+
+下一階段：繼續收斂 `domain/paper_types.py`、`FoamSettingsManager` 與 `register_concept_validation_tools` 等剩餘大小例外，並更新 agent model pins。
+
 ### MCP SDK2 + Auditable Integrity v1.0 (2026-08)
 
 | Feature                            | Description                                                                                              |

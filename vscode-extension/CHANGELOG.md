@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 - 2026-11-04
+
+- Contributed the bundled skills, agents and prompt files natively through `chatSkills`, `chatAgents` and `chatPromptFiles` (VS Code 1.109+), so they work right after installation; a workspace copy of the same asset hides the bundled one. Older VS Code keeps the Setup Workspace copy flow.
+- Bundled the explicit workspace binding (`workspace_state_action(action="bind", workspace_dir=...)`) and the `workspace` root/source report in `get_workspace_state`.
+- Refreshed companion pins (Asset-Aware 1.4.1, PubMed Search 0.8.0, CGU 0.9.0, Zotero Keeper 2.4.0) and shipped each skill's `references/` alongside its `SKILL.md`.
+- See the repository CHANGELOG for the complete release notes.
+
 ## 1.0.3 - 2026-09-01
 
 - See the repository CHANGELOG for the complete release notes.
