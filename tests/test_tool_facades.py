@@ -640,6 +640,48 @@ async def test_library_action_routes_new_library_workflow_handlers() -> None:
 
 
 @pytest.mark.asyncio
+async def test_workspace_state_action_bind_requires_workspace_dir() -> None:
+    funcs = register_project_facade_tools(
+        MCPServer("workspace-bind-missing"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={"get_workspace_state": lambda **_: {}},
+    )
+
+    result = await funcs["workspace_state_action"](action="bind")
+
+    assert result["status"] == "error"
+    assert "workspace_dir is required" in result["message"]
+
+
+@pytest.mark.asyncio
+async def test_workspace_state_action_bind_routes_workspace_dir() -> None:
+    captured: dict[str, object] = {}
+
+    def get_workspace_state(**kwargs):
+        captured.update(kwargs)
+        return {"workspace": {"root": "/ws", "source": "bound", "binding_hint": ""}}
+
+    funcs = register_project_facade_tools(
+        MCPServer("workspace-bind-test"),
+        crud_tools={},
+        settings_tools={},
+        exploration_tools={},
+        workspace_state_tools={"get_workspace_state": get_workspace_state},
+    )
+
+    result = await funcs["workspace_state_action"](action="set_workspace", workspace_dir="/ws")
+
+    assert captured == {"workspace_dir": "/ws"}
+    assert result["status"] == "ok"
+    assert result["action"] == "bind"
+    assert result["workspace"]["source"] == "bound"
+    listed = await funcs["workspace_state_action"](action="list")
+    assert listed["actions"]["bind"]["params"] == ["workspace_dir"]
+
+
+@pytest.mark.asyncio
 async def test_workspace_state_action_preserves_structured_get_result() -> None:
     def get_workspace_state():
         return {

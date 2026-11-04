@@ -7,6 +7,12 @@ Separated from config.py for better maintainability.
 
 TOOL_GUIDE = """## TOOL SELECTION GUIDE (facade-first; 118 full / 12 compact default)
 
+### 📂 WORKSPACE BINDING
+At conversation start call `workspace_state_action(action="get")`. If the result has a
+non-empty `workspace.binding_hint` (for example the server fell back to the plugin's
+private data folder), call `workspace_state_action(action="bind", workspace_dir="<absolute
+path of the user's open workspace folder>")` once before creating or editing projects.
+
 ### ⚠️ CRITICAL: PROJECT CONTEXT RULE
 **Before ANY operation that modifies project content, you MUST:**
 1. Call `project_action(action="current")` to confirm active project

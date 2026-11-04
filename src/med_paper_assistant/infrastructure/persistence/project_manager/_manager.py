@@ -61,14 +61,14 @@ class ProjectManager(
             base_path: Base directory for the med-paper-assistant workspace.
                        Falls back to ``resolve_workspace_root()``.
         """
-        self.base_path = (
+        self.template_reader = ConceptTemplateReader()
+        self.rebind_base_path(
             Path(base_path).resolve() if base_path is not None else resolve_workspace_root()
         )
+
+    def rebind_base_path(self, base_path: Path) -> None:
+        """Point this manager at another workspace root and ensure ``projects/`` exists."""
+        self.base_path = Path(base_path)
         self.projects_dir = self.base_path / "projects"
         self.state_file = self.base_path / self.STATE_FILE
-
-        # Initialize helpers
-        self.template_reader = ConceptTemplateReader()
-
-        # Ensure projects directory exists
         self.projects_dir.mkdir(parents=True, exist_ok=True)

@@ -11,7 +11,10 @@ Solves the state inconsistency problem:
 Solution: Single source of truth in .mdpaper-state.json
 """
 
-from typing import Any, Optional
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Optional
 
 from mcp.server import MCPServer
 
@@ -20,45 +23,73 @@ from med_paper_assistant.infrastructure.persistence import (
 )
 
 from .._shared import get_optional_tool_decorator
+from .._shared.workspace_binding import bind_server_workspace, workspace_binding_info
+
+if TYPE_CHECKING:
+    from med_paper_assistant.infrastructure.persistence import ProjectManager
+
+
+def _workspace_state_payload(
+    workspace_dir: Optional[str], project_manager: ProjectManager | None
+) -> dict[str, Any]:
+    if workspace_dir:
+        try:
+            bind_server_workspace(workspace_dir, project_manager)
+        except ValueError as exc:
+            return {
+                "status": "error",
+                "message": f"Cannot bind workspace: {exc}",
+                "workspace": workspace_binding_info(),
+            }
+
+    state_manager = get_workspace_state_manager()
+    summary = state_manager.get_recovery_summary()
+    state = state_manager.get_state()
+
+    # Lazy import keeps guidance (and its persistence deps) off the module import path.
+    from med_paper_assistant.interfaces.mcp.tools._shared.guidance import (
+        build_startup_guidance,
+    )
+
+    evolution_guidance = build_startup_guidance(Path(state_manager.base_path))
+    if evolution_guidance:
+        summary += "\n" + evolution_guidance
+
+    workspace = workspace_binding_info()
+    if workspace["binding_hint"]:
+        summary += "\n\n⚠️ " + workspace["binding_hint"]
+
+    return {
+        "recovery_summary": summary,
+        "workspace_state": state,
+        "startup_guidance": evolution_guidance or "",
+        "workspace": workspace,
+    }
 
 
 def register_workspace_state_tools(
     mcp: MCPServer,
     *,
     register_public_verbs: bool = True,
+    project_manager: ProjectManager | None = None,
 ):
     """Register workspace state management tools."""
 
     tool = get_optional_tool_decorator(mcp, register_public_verbs=register_public_verbs)
 
     @tool(structured_output=True)
-    def get_workspace_state() -> dict[str, Any]:
+    def get_workspace_state(workspace_dir: Optional[str] = None) -> dict[str, Any]:
         """
         Get workspace state for context recovery. Call at conversation START.
-        Returns: current project, last activity, suggested next action.
+        Returns: current project, last activity, suggested next action, and the
+        active workspace root with its source.
         Also surfaces any pending evolution items from previous conversations.
+
+        Args:
+            workspace_dir: Absolute path of the user's workspace folder. When given,
+                the server binds to it first (use when `workspace.binding_hint` says so).
         """
-        state_manager = get_workspace_state_manager()
-        summary = state_manager.get_recovery_summary()
-        state = state_manager.get_state()
-
-        # Append pending evolutions guidance if any exist
-        from pathlib import Path
-
-        from med_paper_assistant.interfaces.mcp.tools._shared.guidance import (
-            build_startup_guidance,
-        )
-
-        workspace_root = Path(state_manager.base_path)
-        evolution_guidance = build_startup_guidance(workspace_root)
-        if evolution_guidance:
-            summary += "\n" + evolution_guidance
-
-        return {
-            "recovery_summary": summary,
-            "workspace_state": state,
-            "startup_guidance": evolution_guidance or "",
-        }
+        return _workspace_state_payload(workspace_dir, project_manager)
 
     @tool()
     def sync_workspace_state(

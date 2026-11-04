@@ -257,6 +257,10 @@ Projects are stored under `MEDPAPER_BASE_DIR` when set, otherwise the client's
 project directory. If the client starts the server inside the plugin folder,
 data goes to the client-managed plugin data directory instead.
 
+To point a running server at your research folder, call
+`workspace_state_action(action="bind", workspace_dir="/absolute/path")`.
+`workspace_state_action(action="get")` reports the active root and its source.
+
 ## MCP servers
 
 {server_lines}

@@ -54,7 +54,7 @@ def register_project_tools(
         mcp, project_manager, register_public_verbs=register_public_verbs
     )
     workspace_state_tools = register_workspace_state_tools(
-        mcp, register_public_verbs=register_public_verbs
+        mcp, register_public_verbs=register_public_verbs, project_manager=project_manager
     )
     register_project_facade_tools(
         mcp,

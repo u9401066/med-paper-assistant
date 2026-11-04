@@ -73,7 +73,7 @@ claude plugin install med-paper-assistant@medpaper
 # and install "med-paper-assistant" from the /plugins menu.
 ```
 
-Run the agent from your research folder. Projects are written to `MEDPAPER_BASE_DIR` if it is set; otherwise to the client's project directory, and never into the plugin package.
+Run the agent from your research folder. Projects are written to `MEDPAPER_BASE_DIR` if it is set; otherwise to the client's project directory, and never into the plugin package. If the client starts the server elsewhere, call `workspace_state_action(action="bind", workspace_dir="/absolute/path")` to point it at your research folder; `workspace_state_action(action="get")` reports the active root and its source.
 
 **VSX note**: The extension verifies or installs checksum-pinned `uv`/`uvx` 0.12.5, then launches the matching core package and all managed external MCPs through isolated, exact SDK 2 sources. A workspace that explicitly defines `mdpaper` in `.vscode/mcp.json` remains authoritative and suppresses extension auto-registration. CI smoke covers `ubuntu-latest`, `windows-latest`, and `macos-14`, plus all five exact-archive integrations.
 

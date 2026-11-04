@@ -75,7 +75,7 @@ claude plugin install med-paper-assistant@medpaper
 # 再從 /plugins 選單安裝 "med-paper-assistant"。
 ```
 
-請在你的研究資料夾中啟動 agent。若有設定 `MEDPAPER_BASE_DIR`，專案會寫到那裡；否則寫到 client 的專案目錄，絕不寫進 plugin 套件內。
+請在你的研究資料夾中啟動 agent。若有設定 `MEDPAPER_BASE_DIR`，專案會寫到那裡；否則寫到 client 的專案目錄，絕不寫進 plugin 套件內。若 client 在其他位置啟動 server，可呼叫 `workspace_state_action(action="bind", workspace_dir="/absolute/path")` 指向研究資料夾；`workspace_state_action(action="get")` 會回報目前根目錄及其來源。
 
 **VSX 說明**：擴充功能會驗證或安裝具 SHA-256 allowlist 的 `uv`/`uvx` 0.12.5，再以隔離且精確釘選的 SDK 2 來源啟動同版核心套件與所有受管外部 MCP。若 workspace 已在 `.vscode/mcp.json` 明確定義 `mdpaper`，該設定仍具最高權威並停用擴充功能自動註冊。CI smoke 覆蓋 `ubuntu-latest`、`windows-latest`、`macos-14`，以及五套 exact-archive integration。
 

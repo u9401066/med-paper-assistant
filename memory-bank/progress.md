@@ -9,7 +9,8 @@
   - P5 companion pins refreshed (asset-aware 1.4.1, pubmed-search 0.8.0, CGU 0.9.0, zotero-keeper 2.4.0); CGU/pubmed breaking renames propagated to skills, agents, prompts, docs, server instructions, concept validator and extension help. Vendored PubMed skills now sync verbatim via `scripts/sync_companion_skills.py --check` (CI + release).
   - Modular refactor of persistence engines/managers, drafter, citation assistant, export pipeline, concept validator and project/reference/review/draft/analysis/export MCP tools into packages; code-quality ratchet 388 → 144 → 108 exceptions with an unchanged 118/12 tool surface.
   - P4: the VSIX contributes bundled skills/agents/prompts natively (`chatSkills`/`chatAgents`/`chatPromptFiles`, VS Code 1.109+) with per-asset workspace-override `when` clauses.
-  - Validation: full pytest 2046 passed; Ruff, format, mypy (393 files), vulture, tool-surface/count authorities, bundle parity and agent-plugin check all green.
+  - P3: explicit workspace binding — `workspace_state_action(action="bind", workspace_dir=...)` / `get_workspace_state(workspace_dir=...)` rebinds ProjectManager, WorkspaceStateManager and tool telemetry; responses report `workspace.root`/`source` (`bound`/`env:*`/`plugin_data`/`cwd`) plus a `binding_hint` when the root looks like the plugin install.
+  - Validation: full pytest 2061 passed; Ruff, format, mypy (461 files), vulture, tool-surface/count authorities, bundle parity and agent-plugin check all green.
 
 - **v1.0.3 Phase gate alignment release (2026-09-01)**:
 

@@ -12,10 +12,10 @@
     "function": 50
   },
   "summary": {
-    "filesScanned": 460,
+    "filesScanned": 461,
     "definitionsScanned": {
-      "class": 323,
-      "function": 2403
+      "class": 324,
+      "function": 2412
     },
     "violations": {
       "file": 6,
@@ -532,7 +532,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/project/workspace_state.py",
       "qualifiedSymbol": "register_workspace_state_tools",
-      "allowedLines": 144
+      "allowedLines": 130
     },
     {
       "kind": "function",

@@ -12,6 +12,7 @@ WORKSPACE_STATE_ALIASES = {
     "help": "list",
     "recover": "get",
     "save": "sync",
+    "set_workspace": "bind",
     "supported": "list",
 }
 
@@ -23,7 +24,8 @@ def _list_actions() -> dict[str, Any]:
         "schema": "mdpaper.facade_actions.v1",
         "tool": "workspace_state_action",
         "actions": {
-            "get": {"handler": "get_workspace_state", "params": []},
+            "get": {"handler": "get_workspace_state", "params": ["workspace_dir"]},
+            "bind": {"handler": "get_workspace_state", "params": ["workspace_dir"]},
             "sync": {
                 "handler": "sync_workspace_state",
                 "params": ["doing", "next_action", "context", "clear"],
@@ -41,12 +43,28 @@ def _missing_handler(name: str) -> dict[str, Any]:
     return {"status": "error", "message": f"Missing handler '{name}'"}
 
 
-async def _get_state(tools: ToolMap) -> dict[str, Any]:
+async def _get_state(
+    tools: ToolMap, *, action: str = "get", workspace_dir: Optional[str] = None
+) -> dict[str, Any]:
     handler = tools.get("get_workspace_state")
     if handler is None:
         return _missing_handler("get_workspace_state")
-    result = await invoke_tool_handler(handler)
-    return {"status": "ok", "action": "get", **result}
+    if workspace_dir:
+        result = await invoke_tool_handler(handler, workspace_dir=workspace_dir)
+    else:
+        result = await invoke_tool_handler(handler)
+    return {"status": "ok", "action": action, **result}
+
+
+async def _bind_state(tools: ToolMap, workspace_dir: Optional[str]) -> dict[str, Any]:
+    if not workspace_dir:
+        return {
+            "status": "error",
+            "action": "bind",
+            "message": "workspace_dir is required: pass the absolute path of the "
+            "user's workspace folder.",
+        }
+    return await _get_state(tools, action="bind", workspace_dir=workspace_dir)
 
 
 async def _sync_state(
@@ -88,6 +106,7 @@ async def _checkpoint_state(
 
 async def workspace_state_action(
     action: str,
+    workspace_dir: Optional[str] = None,
     doing: Optional[str] = None,
     next_action: Optional[str] = None,
     context: Optional[str] = None,
@@ -101,7 +120,10 @@ async def workspace_state_action(
     Manage workspace recovery state through one stable entrypoint.
 
     Actions:
-    - get
+    - get: recovery summary plus the active workspace root and its source
+    - bind: bind the server to workspace_dir (absolute path of the user's
+      workspace folder), then return the same payload as get. Use it when
+      get reports a workspace.binding_hint.
     - sync
     - checkpoint
     """
@@ -111,7 +133,9 @@ async def workspace_state_action(
     if normalized == "list":
         return _list_actions()
     if normalized == "get":
-        return await _get_state(tools)
+        return await _get_state(tools, workspace_dir=workspace_dir)
+    if normalized == "bind":
+        return await _bind_state(tools, workspace_dir)
     if normalized == "sync":
         return await _sync_state(
             tools, doing=doing, next_action=next_action, context=context, clear=clear
@@ -124,6 +148,6 @@ async def workspace_state_action(
     return {
         "status": "error",
         "message": (
-            f"Unsupported action '{action}'. Supported actions: checkpoint, get, list, sync"
+            f"Unsupported action '{action}'. Supported actions: bind, checkpoint, get, list, sync"
         ),
     }

@@ -18,6 +18,7 @@ description: |
 | 改設定            | `project_action(action="update", paper_type/target_journal/status/citation_style)` |
 | 查目前專案        | `project_action(action="current", include_files=True)`                             |
 | 查 workspace 狀態 | `workspace_state_action(action="get")`                                             |
+| 指定研究資料夾    | `workspace_state_action(action="bind", workspace_dir="<absolute path>")`           |
 
 > Legacy verbs `create_project`, `list_projects`, `switch_project`, `get_current_project`,
 > `setup_project_interactive`, `start_exploration`, `convert_exploration_to_project`,

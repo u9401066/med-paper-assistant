@@ -1,5 +1,22 @@
 # Decision Log
 
+## [2026-11-04] Workspace Root Is Bound Explicitly Through A Tool Parameter
+
+### 背景
+
+Agent Plugins client（Copilot CLI、Claude Code、Codex）以 plugin 安裝目錄為 cwd 啟動 MCP server，原本以 cwd 推斷 workspace root 會把專案寫進 plugin 目錄。MCP `roots` capability 已在 SEP-2577 標記 deprecated，不宜作為唯一來源。
+
+### 決定
+
+1. 解析順序：明確綁定（`bound`）→ `MEDPAPER_BASE_DIR`/`CLAUDE_PROJECT_DIR`（`env:*`）→ `PLUGIN_DATA`/`CLAUDE_PLUGIN_DATA`/`COPILOT_PLUGIN_DATA` 下的 workspace（`plugin_data`，僅當 cwd 位於 plugin root 內）→ cwd，回傳值附 `source`。
+2. 綁定入口是工具參數：`workspace_state_action(action="bind", workspace_dir=...)`（alias `set_workspace`）與 `get_workspace_state(workspace_dir=...)`；路徑必須為存在的絕對目錄且不在 plugin root 內。
+3. 綁定時就地 `rebind_base_path` 共享 ProjectManager（ReferenceManager/Drafter 經由它解析路徑）、重置 WorkspaceStateManager singleton、重新初始化 tool telemetry；`path_guard`/export 每次呼叫重新解析 root。
+4. 回應永遠帶 `workspace` 區塊，root 疑似 plugin 安裝目錄時附 `binding_hint`，server instructions 首段指示 agent 先綁定。
+
+### 結果
+
+- 不依賴 client 是否支援 roots；surface 只變更 `get_workspace_state` 與 `workspace_state_action` 的 schema/description，計數維持 118/12。
+
 ## [2026-11-04] Modular Packages Must Preserve Import Paths And Tool Docstrings
 
 ### 背景

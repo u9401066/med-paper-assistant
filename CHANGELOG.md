@@ -20,10 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CI and the release workflow run `build_agent_plugin.py --check`, and `scripts/bump-version.sh` regenerates the manifests.
 
 - The VS Code extension contributes its 14 bundled skills, 9 agents and 13 prompt files natively through the `chatSkills`, `chatAgents` and `chatPromptFiles` contribution points (VS Code 1.109+), so they are available right after installation without copying files into the workspace.
+
   - Each entry has a per-asset `when: "!mdpaper.workspaceAsset.<type>.<name>"` clause. The extension sets these context keys on activation, after Setup Workspace and on workspace-folder changes, so a workspace copy (`.claude/skills`, `.github/skills`, `.agents/skills`, `.github/agents`, `.claude/agents` or `.github/prompts`) always hides the bundled duplicate.
   - `scripts/bundle-assets.cjs sync` generates the entries from `bundle-manifest.json`, and `bundle:check` fails when `package.json` drifts.
   - On 1.109+ the activation reminder only counts missing support docs/files. Older VS Code (the engine floor stays `^1.101.0`) ignores the new contribution points and keeps the workspace-copy flow.
   - The `MedPaper: Setup Workspace` command now returns its promise, so callers that execute the command wait for it to finish.
+
+- Explicit workspace binding, because MCP roots are deprecated (SEP-2577) and Agent Plugins clients start servers inside the plugin package:
+  - `workspace_state_action(action="bind", workspace_dir=...)` (alias `set_workspace`) and `get_workspace_state(workspace_dir=...)` point the running server at an absolute research folder.
+  - The bound root takes precedence over `MEDPAPER_BASE_DIR` and `CLAUDE_PROJECT_DIR` for the rest of the session. It rebinds the shared `ProjectManager` in place, resets the workspace-state manager and moves tool telemetry to the new `.audit/`.
+  - Relative, missing, non-directory and plugin-package paths are rejected without changing the current root.
+  - Every `get` response now includes `workspace: {root, source, binding_hint}`. The source is `bound`, `env:<NAME>`, `plugin_data` or `cwd`, and the hint suggests binding when the server fell back to plugin data or a cwd without `projects/`.
+  - No tool was added, so the surface stays at 118 full / 12 compact tools.
 
 ### Changed
 
