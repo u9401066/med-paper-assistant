@@ -2,8 +2,13 @@
 
 Run with ``pythonw.exe`` (GUI subsystem) so no console window is ever created.
 Never launch ``*.sh`` hook scripts through the Windows file association: ``.sh``
-is usually bound to ``git-bash.exe`` (mintty), a GUI program that opens a new
-window and steals focus on every hook event.
+may be bound to ``git-bash.exe`` (mintty) or an editor such as VS Code, which
+opens a window/tab and steals focus on every hook event. Never rely on ``bash``
+from ``PATH`` either: on Windows it is usually WSL's ``System32\\bash.exe``.
+
+The process always exits 0. The Copilot agent host treats a failing
+``preToolUse`` command as fail-closed (the tool call is denied), so decisions
+must be expressed only through the JSON written to stdout.
 
 Usage: ``pythonw.exe scripts/hooks/copilot/hook_dispatch.py <hook-name>``
 where ``<hook-name>`` is ``mode-guard`` or a ``scripts/hooks/copilot/*.sh`` stem.
@@ -65,8 +70,8 @@ def run_shell_hook(name: str, payload: bytes) -> tuple[bytes, int]:
         creationflags=CREATE_NO_WINDOW,
         check=False,
     )
-    if completed.returncode in (0, 2) and completed.stdout.strip():
-        return completed.stdout, completed.returncode
+    if completed.returncode == 0 and completed.stdout.strip():
+        return completed.stdout, 0
     return FAIL_OPEN, 0
 
 
@@ -82,13 +87,16 @@ def dispatch(name: str, payload: bytes) -> tuple[bytes, int]:
 
 
 def main(argv: list[str]) -> int:
-    stdin = sys.stdin.buffer if sys.stdin is not None else None
-    payload = stdin.read() if stdin is not None else b""
-    output, code = dispatch(argv[1] if len(argv) > 1 else "", payload)
-    if sys.stdout is not None:
-        sys.stdout.buffer.write(output)
-        sys.stdout.flush()
-    return code
+    try:
+        stdin = sys.stdin.buffer if sys.stdin is not None else None
+        payload = stdin.read() if stdin is not None else b""
+        output, _ = dispatch(argv[1] if len(argv) > 1 else "", payload)
+        if sys.stdout is not None:
+            sys.stdout.buffer.write(output)
+            sys.stdout.flush()
+    except Exception:  # noqa: BLE001 - a broken pipe must not deny tool calls
+        pass
+    return 0
 
 
 if __name__ == "__main__":
