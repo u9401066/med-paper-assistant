@@ -1,8 +1,17 @@
-# Pre-commit hooks configuration
-# Install: uv run pre-commit install
-# Run all: uv run pre-commit run --all-files
-# Update:  uv run pre-commit autoupdate
+# Pre-commit hooks — the local, shift-left mirror of .github/workflows/ci.yml.
+#
+# Install once (installs BOTH the pre-commit and pre-push git hooks):
+#   uv run pre-commit install
+# Run everything:          uv run pre-commit run --all-files
+# Run the pre-push tier:   uv run pre-commit run --hook-stage pre-push --all-files
+#
+# Python tools run via `uv run --frozen` so their versions come from uv.lock — the
+# exact versions CI installs. tests/test_ci_workflows.py enforces that every CI
+# Python lint/test command has an identical (or auto-fixing) local hook here.
+# Tiering: fast lint/drift checks (<20 s) on commit; tests and smokes on push.
 
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
 default_language_version:
   python: python3.12
 
@@ -26,76 +35,163 @@ repos:
       - id: debug-statements
         exclude: ^vscode-extension/bundled/
 
-  # ── Prettier (Markdown format) ────────────────────
+  # ── Prettier (Markdown format; same 3.1.0 as CI "Markdown Format") ──
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
         types_or: [markdown]
-        args: ['--prose-wrap', 'preserve']
-        exclude: ^integrations/
+        args: ["--prose-wrap", "preserve"]
+        exclude: ^(integrations|projects)/
 
-  # ── Ruff (lint + format) ─────────────────────────
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.11
-    hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-      - id: ruff-format
-
-  # ── MyPy (type check) ───────────────────────────
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
-    hooks:
-      - id: mypy
-        args: [--config-file=pyproject.toml, src/]
-        additional_dependencies:
-          - pydantic>=2.0.0
-          - types-requests
-          - types-tabulate
-          - types-PyYAML
-        pass_filenames: false
-
-  # ── Bandit (security) ───────────────────────────
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.9.2
-    hooks:
-      - id: bandit
-        args: [-c, pyproject.toml]
-        additional_dependencies: ["bandit[toml]"]
-        files: ^src/
-
-  # ── Pytest (unit tests) ─────────────────────────
+  # ── Commit tier: CI "Python Lint & Security" with uv.lock versions ──
   - repo: local
     hooks:
-      - id: pytest
-        name: pytest (fast tests only)
-        entry: uv run pytest -x -q --timeout=30 -m "not integration and not slow"
+      - id: ruff-check
+        name: ruff check --fix (uv.lock)
+        entry: uv run --frozen ruff check --fix --exit-non-zero-on-fix src/ tests/
         language: system
         pass_filenames: false
-        always_run: true
-        stages: [pre-commit]
+        files: ^(src|tests)/.*\.pyi?$|^pyproject\.toml$
+      - id: ruff-format
+        name: ruff format (uv.lock)
+        entry: uv run --frozen ruff format src/ tests/
+        language: system
+        pass_filenames: false
+        files: ^(src|tests)/.*\.pyi?$|^pyproject\.toml$
+      - id: mypy
+        name: mypy src/ (uv.lock)
+        entry: uv run --frozen mypy src/ --ignore-missing-imports
+        language: system
+        pass_filenames: false
+        files: ^src/.*\.pyi?$|^pyproject\.toml$|^uv\.lock$
+      - id: vulture
+        name: vulture orphan code (uv.lock)
+        entry: uv run --frozen vulture src/ --min-confidence 80
+        language: system
+        pass_filenames: false
+        files: ^src/.*\.py$|^pyproject\.toml$
+      # Authority/drift checks read docs, mirrors, and manifests across the repo, so
+      # they run for any commit that touches more than memory/dashboard/projects.
+      - id: agent-plugin-drift
+        name: generated Agent Plugin drift
+        entry: uv run --frozen python scripts/build_agent_plugin.py --check
+        language: system
+        pass_filenames: false
+        exclude: ^(memory-bank|dashboard|projects|\.vscode)/
+      - id: companion-skills-drift
+        name: vendored companion skills drift
+        entry: uv run --frozen python scripts/sync_companion_skills.py --check
+        language: system
+        pass_filenames: false
+        exclude: ^(memory-bank|dashboard|projects|\.vscode)/
+      - id: code-quality-ratchet
+        name: code-quality debt ratchet
+        entry: uv run --frozen python scripts/check_code_quality_authority.py
+        language: system
+        pass_filenames: false
+        exclude: ^(memory-bank|dashboard|projects|\.vscode)/
+      - id: structural-consistency
+        name: code/docs/test structural consistency
+        entry: uv run --frozen python scripts/check_consistency.py
+        language: system
+        pass_filenames: false
+        exclude: ^(memory-bank|dashboard|projects|\.vscode)/
 
-  # ── Doc Update Reminder (G8) ───────────────────
+  # ── Commit tier: CI "VS Code Extension" drift checks ──
+  - repo: local
+    hooks:
+      - id: vsx-bundle-drift
+        name: VSIX bundle mirror drift
+        entry: npm --prefix vscode-extension run bundle:check
+        language: system
+        pass_filenames: false
+        files: ^(vscode-extension/|src/med_paper_assistant/|integrations/cgu/|\.claude/skills/|\.github/(prompts|agents)/|\.github/copilot-instructions\.md$|\.copilot-mode\.json$|templates/|docs/(reference|how-to|assets)/)
+      - id: npm-lockfile-sync
+        name: npm package-lock in sync
+        entry: npm --prefix vscode-extension ci --ignore-scripts --dry-run --no-audit --no-fund
+        language: system
+        pass_filenames: false
+        files: ^vscode-extension/package(-lock)?\.json$
+
+  # ── Push tier: slower CI "Python Lint & Security" checks + CI "Python Tests" ──
+  - repo: local
+    hooks:
+      - id: bandit
+        name: bandit src/ (uv.lock)
+        entry: uv run --frozen bandit -c pyproject.toml -r src/
+        language: system
+        pass_filenames: false
+        files: ^src/|^pyproject\.toml$
+        stages: [pre-push]
+      - id: tool-surface-authority
+        name: tool-surface authority (boots the MCP server)
+        entry: uv run --frozen python scripts/check_tool_surface_authority.py
+        language: system
+        pass_filenames: false
+        exclude: ^(memory-bank|dashboard|projects|\.vscode)/
+        stages: [pre-push]
+      - id: pytest
+        name: pytest (fast tests, CI parity)
+        entry: uv run --frozen pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
+        language: system
+        pass_filenames: false
+        exclude: ^(memory-bank|dashboard|projects|\.vscode)/
+        stages: [pre-push]
+      - id: mcp-server-boot
+        name: MCP server boots
+        entry: uv run --frozen python scripts/verify_mcp_server_boot.py
+        language: system
+        pass_filenames: false
+        files: ^(src|scripts)/|^pyproject\.toml$|^uv\.lock$
+        stages: [pre-push]
+      - id: greedy-smoke-compact
+        name: greedy MCP smoke (compact surface)
+        entry: uv run --frozen python scripts/greedy_mcp_tool_smoke.py --surface compact --stop-on error --json
+        language: system
+        pass_filenames: false
+        files: ^(src|scripts)/|^pyproject\.toml$|^uv\.lock$
+        stages: [pre-push]
+      - id: greedy-smoke-full
+        name: greedy MCP smoke (full surface)
+        entry: uv run --frozen python scripts/greedy_mcp_tool_smoke.py --surface full --stop-on error --json
+        language: system
+        pass_filenames: false
+        files: ^(src|scripts)/|^pyproject\.toml$|^uv\.lock$
+        stages: [pre-push]
+
+  # ── Push tier: CI "VS Code Extension" lint + vitest ──
+  - repo: local
+    hooks:
+      - id: vsx-lint
+        name: VS Code extension eslint
+        entry: npm --prefix vscode-extension run lint
+        language: system
+        pass_filenames: false
+        files: ^vscode-extension/(src|scripts)/|^vscode-extension/(package\.json|tsconfig\.json|eslint\.config\.cjs)$
+        stages: [pre-push]
+      - id: vsx-test
+        name: VS Code extension compile + vitest
+        entry: npm --prefix vscode-extension test
+        language: system
+        pass_filenames: false
+        files: ^vscode-extension/|^src/med_paper_assistant/
+        stages: [pre-push]
+
+  # ── Advisory: doc reminder (G8) and paper quality (P1,P2,P4,P5,P7) ──
   - repo: local
     hooks:
       - id: doc-update-reminder
         name: doc-update-reminder
-        entry: uv run python scripts/check-doc-updates.py
+        entry: uv run --frozen python scripts/check-doc-updates.py
         language: system
         pass_filenames: false
         always_run: true
-        stages: [pre-commit]
         verbose: true
-
-  # ── Paper Quality Hooks (P1,P2,P4,P5,P7) ──────
-  - repo: local
-    hooks:
       - id: paper-precommit
         name: paper-precommit (P-series quality checks)
-        entry: uv run python scripts/hooks/paper_precommit.py
+        entry: uv run --frozen python scripts/hooks/paper_precommit.py
         language: system
         pass_filenames: false
         always_run: true
-        stages: [pre-commit]
         verbose: true

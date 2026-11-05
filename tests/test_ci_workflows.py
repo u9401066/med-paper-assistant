@@ -173,3 +173,71 @@ def test_release_install_smokes_use_the_verified_minimum_api_patch() -> None:
         )
         assert "update.code.visualstudio.com/${VSCODE_VERSION}/linux-x64/stable" in content
         assert "sha256sum --check --strict" in content
+
+
+# CI commands whose local hook auto-fixes instead of only checking.
+_PRECOMMIT_AUTOFIX_EQUIVALENTS = {
+    "ruff check src/ tests/": "ruff check --fix --exit-non-zero-on-fix src/ tests/",
+    "ruff format --check src/ tests/": "ruff format src/ tests/",
+}
+_PRE_PUSH_COMMANDS = {
+    'pytest tests/ -x -q --timeout=60 -m "not integration and not slow"',
+    "python scripts/verify_mcp_server_boot.py",
+    "python scripts/greedy_mcp_tool_smoke.py --surface compact --stop-on error --json",
+    "python scripts/greedy_mcp_tool_smoke.py --surface full --stop-on error --json",
+}
+
+
+def _precommit_local_hooks() -> dict[str, dict[str, Any]]:
+    config = yaml.safe_load((REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    assert set(config["default_install_hook_types"]) == {"pre-commit", "pre-push"}
+    return {
+        hook["entry"]: hook
+        for repo in config["repos"]
+        if repo["repo"] == "local"
+        for hook in repo["hooks"]
+    }
+
+
+def test_every_ci_python_gate_runs_locally_first_with_locked_tools() -> None:
+    """Pre-commit/pre-push replay each CI Python gate with uv.lock versions.
+
+    CI then only re-checks what a change touched; a gate missing locally would
+    surface for the first time on GitHub, which is what the tiering prevents.
+    """
+    hooks = _precommit_local_hooks()
+    jobs = _workflow_data()["ci.yml"]["jobs"]
+    ci_commands = [
+        str(step["run"]).removeprefix("uv run ")
+        for job_id in ("python-lint", "python-test")
+        for step in jobs[job_id]["steps"]
+        if str(step.get("run", "")).startswith("uv run ")
+    ]
+    assert len(ci_commands) >= 14
+
+    for command in ci_commands:
+        local = _PRECOMMIT_AUTOFIX_EQUIVALENTS.get(command, command)
+        hook = hooks.get(f"uv run --frozen {local}")
+        assert hook is not None, f"CI gate has no local hook: uv run {command}"
+        expected_stages = ["pre-push"] if command in _PRE_PUSH_COMMANDS else None
+        if expected_stages:
+            assert hook.get("stages") == expected_stages, command
+
+    assert all(
+        entry.startswith(("uv run --frozen ", "npm --prefix vscode-extension ")) for entry in hooks
+    ), "local hooks must use lockfile-pinned tool versions"
+
+
+def test_vsx_ci_drift_gates_run_at_commit_time() -> None:
+    hooks = _precommit_local_hooks()
+    vsx_steps = [
+        str(step.get("run", "")) for step in _workflow_data()["ci.yml"]["jobs"]["vsx"]["steps"]
+    ]
+    assert "npm run bundle:check" in vsx_steps
+    bundle = hooks["npm --prefix vscode-extension run bundle:check"]
+    assert "stages" not in bundle
+    assert re.search(bundle["files"], "src/med_paper_assistant/domain/x.py")
+    lockfile = hooks[
+        "npm --prefix vscode-extension ci --ignore-scripts --dry-run --no-audit --no-fund"
+    ]
+    assert re.search(lockfile["files"], "vscode-extension/package-lock.json")
