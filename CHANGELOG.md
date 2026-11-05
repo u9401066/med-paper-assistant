@@ -9,7 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- CI now runs only the jobs a change affects. A new `Detect Changed Areas` job runs `scripts/ci_changed_areas.py` (stdlib-only) to classify the push or PR diff into the `python`, `vsx`, `dashboard`, `markdown` and `sdk2` areas and to pick the cross-platform smoke OS matrix. Each job checks its area with a job-level `if:`, so the required-check names stay unchanged and a skipped required check still reports success. The classifier fails open: scheduled and manual runs, a missing or zero base SHA, compare-API errors, diffs at the 300-file cap, empty diffs, and any change to the CI wiring itself select every area. A weekly Monday cron runs the full matrix, a concurrency group cancels superseded runs on the same ref, and `release.yml` remains a self-contained full gate. For example, a Memory Bank-only commit now runs only `Markdown Format` instead of all nine jobs.
+- `.pre-commit-config.yaml` mirrors CI locally with uv-locked tools.
+  - Commit tier: ruff check/format, mypy, vulture, plugin and companion drift, the code-quality ratchet, `check_consistency.py`, VSX bundle drift and the npm lockfile check.
+  - Pre-push tier (`default_install_hook_types: [pre-commit, pre-push]`): Bandit, tool-surface authority, pytest, MCP boot, greedy compact/full smoke, and VSX lint/test.
+
+  `tests/test_ci_changed_areas.py` and new parity cases in `tests/test_ci_workflows.py` keep the classifier, `ci.yml` and the pre-commit tiers aligned. CONTRIBUTING and the development wiki now document `uv run pre-commit install` and the tiers.
+
+- Removed duplicated implementations without changing behaviour:
+  - The three per-module manuscript guards (`_guard_editing_tool`, `_guard_writing_tool` and the inline guard in `validate_concept`) and the citation guard now share `guard_manuscript_tool()` in `interfaces/mcp/tools/_shared/project_context.py`.
+  - The content-integrity inspection had parallel copies in the application and infrastructure layers. Both now delegate to `domain/services/content_integrity_inspection.py`, which removes about 210 lines.
+  - The DOCX and PDF export smoke checks now share a result builder.
+  - The Foam note indexers now share a markdown-page iterator.
+- Removed seven `test_base_has_*` tests that the set-equality check in `test_all_domain_paper_types_present` already covers.
+
 ### Fixed
+
+- `check_consistency.py` now runs in CI. Before this release it existed only as a local script, so drift between documented and actual repository counts could reach `master`.
+- `scripts/greedy_mcp_tool_smoke.py` no longer counts the export hard gate's `review loop not completed` response as a tool failure. A fresh smoke project has no completed review rounds, so the gate correctly refuses the export. The smoke now records this as an expected precondition, as it already did for `pandoc not available`. The false failure only appeared on machines with pandoc installed, which CI runners don't have, so it surfaced locally but never in CI.
+- README and README.zh-TW now list 29 pre-commit hooks, up from 16.
 
 - Release workflow: the VS Marketplace publisher is built from the vsce v4.1.0 release commit (stable OIDC publishing, Marketplace CI-provider header), with `@azure/identity` pinned to 4.14.1 inside vsce's `^4.13.2` range so the `npm audit --audit-level=high` gate passes without weakening it (GHSA-xcx6-jx8p-x3h5 in `@azure/msal-node` 6.0.1). A contract test keeps the publisher SHA-pinned and audited after every dependency pin. The v1.1.0 VS Marketplace listing is still pending: PyPI and the GitHub Release (with the VSIX) are published, while the Marketplace publish needs either a renewed `VSCE_PAT` for `marketplace-recovery.yml` or a Marketplace trusted-publishing policy for `release.yml`.
 

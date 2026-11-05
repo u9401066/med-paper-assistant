@@ -326,7 +326,7 @@ projects/{slug}/
 ### 基礎架構
 
 - **DDD 架構**（Domain-Driven Design）清晰的分層設計
-- **16 個 pre-commit hooks**（ruff、mypy、bandit、pytest、prettier、doc-update...）
+- **29 個 pre-commit hooks**（ruff、mypy、bandit、pytest、prettier、doc-update...）
 - **Workspace State** 跨 session 狀態恢復
 - **uv** 管理所有 Python 套件
 - **MCP SDK 2.x** — 不支援舊 1.x runtime；tools、prompts、resources、elicitation 與長任務 progress notifications 均走 v2 SDK surface
@@ -671,7 +671,7 @@ med-paper-assistant/
 | ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                                                                      |
 | ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                                                             |
 | ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                                                         |
-| ✅   | **Pre-commit Hooks**        | 16 hooks（ruff、mypy、bandit、pytest、prettier...）                                        |
+| ✅   | **Pre-commit Hooks**        | 29 hooks（ruff、mypy、bandit、pytest、prettier...）                                        |
 | 🔜   | **更完整的 VSX UX**         | TreeView、CodeLens、Diagnostics 與更深入的編輯器內表面（方向 C）                           |
 | 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                                                        |
 | 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                                                            |

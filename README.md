@@ -324,7 +324,7 @@ projects/{slug}/
 ### Infrastructure
 
 - **DDD Architecture** (Domain-Driven Design) with clean layer separation
-- **16 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
+- **29 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
 - **Workspace State** recovery for cross-session continuity
 - **uv** for all Python package management
 - **MCP SDK 2.x** — the legacy 1.x runtime is not supported; tools, prompts, resources, elicitation, and progress notifications use the v2 SDK surface
@@ -670,7 +670,7 @@ med-paper-assistant/
 | ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                                                |
 | ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                                               |
 | ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                                                 |
-| ✅     | **Pre-commit Hooks**        | 16 hooks (ruff, mypy, bandit, pytest, prettier...)                                   |
+| ✅     | **Pre-commit Hooks**        | 29 hooks (ruff, mypy, bandit, pytest, prettier...)                                   |
 | 🔜     | **Richer VSX UX**           | TreeView, CodeLens, Diagnostics, and deeper in-editor surfaces (Direction C)         |
 | 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations                                          |
 | 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis                                             |

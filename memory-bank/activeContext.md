@@ -4,7 +4,9 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-09-01)
+## 當前焦點 (2026-11-05)
+
+> **2026-11-05 CI 分層（未發布）**：CI 改為依變更區域執行，由 `scripts/ci_changed_areas.py` 判定，任何不確定都 fail-open 跑全量；required checks 名稱不變，每週一全量，`release.yml` 仍是完整 gate。`.pre-commit-config.yaml` 分為 commit（≈15 秒）與 pre-push（≈3 分鐘）兩層，與 CI 對齊；`check_consistency.py` 納入 CI。重複實作已合併：manuscript guard、跨層 content-integrity（−212 行）、export smoke 與 Foam iterator。另移除 7 個 trivial tests，並修正 greedy smoke 誤判 `review loop not completed`。本 repo 為 public，標準 runner 不計費，分層的目的是縮短回饋時間。Memory Bank extension 會重建 `.github/*.chatmode.md`，已加入 `.gitignore`。
 
 > **2026-11-04 revamp → v1.1.0（已發布：PyPI + GitHub Release；VS Marketplace 待補發）**：分階段翻修為新式 agent 介面。已完成 P0 sync/hook fail-open、P1 audit 缺陷修正、P2 Agent Plugins 套件（`plugins/med-paper-assistant/`，Copilot/Claude Code/Codex marketplaces）、P3a dev agents/README 多 client、P3 明確 workspace binding（`workspace_state_action(bind)`，因 MCP roots 已 deprecated）、P4 VSIX native `chatSkills`/`chatAgents`/`chatPromptFiles`、Copilot lifecycle hooks 改為 in-process Python（`hook_dispatch.py` + `pythonw`，不再搶 VS Code 焦點）、auto-paper skill progressive disclosure、P5 companion pins（asset-aware 1.4.1、pubmed-search 0.8.0、CGU 0.9.0、zotero 2.4.0；CGU 與 pubmed 皆有 breaking tool rename），以及兩波模組化重構（ratchet 例外 388 → 108，MCP surface 118/12 不變，full pytest 2061 passed）。P6：`bump-version.sh 1.1.0` → PR #15 CI → master `bc84fc9` exact-SHA CI → tag `v1.1.0` → release run `41856686869`：PyPI 1.1.0 與 GitHub Release（含 VSIX）已發布。VS Marketplace 尚未上架：release OIDC job 卡在舊 vsce 的 `npm audit`（已改為 vsce v4.1.0 + `@azure/identity@4.14.1`），`marketplace-recovery.yml` 則因 `VSCE_PAT` 失效被拒；需 publisher owner 更新 `VSCE_PAT` 後以 VSIX SHA-256 `5f6a8b2e92d9fed1ba4a1ca21fdd2d23608f0d88694759e38c6f541fb35e5978` 重跑 recovery，或在 Marketplace 設定 `release.yml` 的 trusted-publishing policy。後續重構候選見 decisionLog 2026-11-04。
 

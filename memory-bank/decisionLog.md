@@ -1,5 +1,24 @@
 # Decision Log
 
+## [2026-11-05] CI Runs Changed Areas Only; Pre-Commit Carries The Fast Gates
+
+### 背景
+
+CI 歷史 127 次中 72 次失敗，多為 lint/format、計數與文件 drift、bundle drift 這類本機即可攔截的問題；pre-commit 從未安裝。每次 push 不論改了什麼都跑 9 個 job（含三平台 smoke）。repo 為 public，標準 runner 不計費，所以成本不在帳單，而在回饋時間與 runner 排隊。
+
+### 決定
+
+1. 新增 `Detect Changed Areas` job（`scripts/ci_changed_areas.py`，僅用 stdlib），其他 job 以 job-level `if: ${{ !cancelled() && needs.changes.outputs.<area> != 'false' }}` 決定是否執行。不使用 workflow-level `paths:`，因為被 `paths:` 過濾掉的 required check 會永遠 pending；job-level 跳過則回報 success。
+2. Fail-open：排程或手動執行、base SHA 缺失或全零、API 錯誤、diff 達 300 檔上限、空 diff、修改 CI wiring 本身，以及 `changes` job 失敗導致 output 為空，都選取全部區域。
+3. Required checks 名稱固定，不加 matrix；smoke OS matrix 由 classifier 輸出 JSON，經 `fromJSON` 讀入。
+4. 每週一 cron 跑全量；`release.yml` 維持獨立的完整 gate，不依賴先前 CI 是否被跳過。
+5. pre-commit 分兩層：commit tier 跑快速靜態與 drift 檢查，pre-push tier 跑 pytest/smoke/VSX。`tests/test_ci_workflows.py` 鎖定兩層與 CI 的 parity。
+
+### 結果
+
+- 只改 Memory Bank 的 commit 在 CI 只跑 `Markdown Format`；改 `src` 會跑 Python、VSX 與 Windows smoke；改 `infrastructure`、`shared`、腳本或 lockfile 會跑三平台 smoke。
+- 新增 area 規則時，必須同步更新 classifier 測試與 workflow parity 測試。
+
 ## [2026-11-04] Workspace Root Is Bound Explicitly Through A Tool Parameter
 
 ### 背景

@@ -1,7 +1,15 @@
-# Progress (Updated: 2026-09-01)
+# Progress (Updated: 2026-11-05)
 
 ## Done
 
+- **Tiered CI + pre-commit parity + dedup (2026-11-05, unreleased)**:
+
+  - `scripts/ci_changed_areas.py` (stdlib, fail-open) feeds a `Detect Changed Areas` job; every `ci.yml` job is gated by a job-level `if:` on its area (`python`/`vsx`/`dashboard`/`markdown`/`sdk2`) so required-check names never change. The smoke OS matrix runs on all three platforms for OS-sensitive paths, on Windows only for other `src`/`tests` edits, and is empty otherwise. It also adds a weekly full cron and a concurrency group, and `check_consistency.py` now runs in CI.
+  - `.pre-commit-config.yaml` rewritten: commit tier ≈15 s (ruff/format/mypy/vulture/drift/ratchet/consistency/VSX bundle/npm lock) and pre-push tier ≈3 min (Bandit, tool-surface, pytest, MCP boot, greedy compact/full, VSX lint/test). Before this change pre-commit had never been installed in `.git/hooks`.
+  - CI history before this change: 127 runs, 54 green / 72 red; failure classes were lint/format, count/doc drift and bundle drift, all now caught by the commit tier.
+  - Dedup: `guard_manuscript_tool` replaces 3 guard functions plus 1 inline guard; the application and infrastructure content-integrity copies now delegate to `domain/services/content_integrity_inspection.py` (−212 lines); the export smoke preamble and the Foam page iterator are shared. jscpd for `src` is ≈0.4%, and the remaining clones are mostly declarative constraint data.
+  - Tests: removed 7 trivial `test_base_has_*` tests and added classifier + workflow/pre-commit parity contracts. Test mix: ≈60% behavioural, 22% edge, 11% smoke/E2E, 4% simple, 3% repo-text contract.
+  - Fixed the greedy smoke misclassifying the export gate's `review loop not completed` as a failure; it only appeared on machines with pandoc.
 - **v1.1.0 revamp released (2026-11-04)**:
 
   - Released from `master` `bc84fc9` (annotated `v1.1.0`, exact-SHA CI `41855834723` green). Release run `41856686869`: authority, three-platform smoke, Python, lint/security, SDK2 archives, bundle drift, build + isolated wheel/VSIX install smoke, PyPI 1.1.0 and the GitHub Release all passed. Release asset SHA-256: VSIX `5f6a8b2e…5978`, wheel `d54c0d21…e208`, sdist `3cd5a1ea…06ee`.

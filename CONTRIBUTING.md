@@ -57,7 +57,13 @@ git remote add upstream https://github.com/u9401066/med-paper-assistant.git
 uv sync --all-groups --all-extras
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate   # Windows
+
+# Install the local gates (commit tier ≈15 s, pre-push tier ≈3 min)
+uv run pre-commit install
 ```
+
+CI only runs the jobs whose inputs changed, so the local hooks are the primary
+quality gate; see [CI tiers](docs/wiki/development-and-release.md#ci-tiers).
 
 #### 3. Create a Branch
 
@@ -129,8 +135,11 @@ uv run pytest tests/test_project_manager.py
 # Run with coverage
 uv run pytest tests/ --cov=src/med_paper_assistant
 
-# Run the repository pre-commit gate
+# Run the repository pre-commit gate (commit tier)
 uv run pre-commit run --all-files
+
+# Run the pre-push tier (pytest, MCP boot, greedy smoke, extension lint/test)
+uv run pre-commit run --all-files --hook-stage pre-push
 ```
 
 Please ensure:
@@ -253,7 +262,13 @@ git remote add upstream https://github.com/u9401066/med-paper-assistant.git
 uv sync --all-groups --all-extras
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate   # Windows
+
+# 安裝本地 gate（commit 層約 15 秒，pre-push 層約 3 分鐘）
+uv run pre-commit install
 ```
+
+CI 只會執行輸入有變更的 job，本地 hooks 是主要的品質關卡；詳見
+[CI tiers](docs/wiki/development-and-release.md#ci-tiers)。
 
 #### 3. 建立分支
 
@@ -325,8 +340,11 @@ uv run pytest tests/test_project_manager.py
 # 執行並顯示覆蓋率
 uv run pytest tests/ --cov=src/med_paper_assistant
 
-# 執行 repository pre-commit gate
+# 執行 repository pre-commit gate（commit 層）
 uv run pre-commit run --all-files
+
+# 執行 pre-push 層（pytest、MCP boot、greedy smoke、extension lint/test）
+uv run pre-commit run --all-files --hook-stage pre-push
 ```
 
 請確保：
