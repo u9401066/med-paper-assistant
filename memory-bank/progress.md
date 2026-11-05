@@ -10,6 +10,7 @@
   - Dedup: `guard_manuscript_tool` replaces 3 guard functions plus 1 inline guard; the application and infrastructure content-integrity copies now delegate to `domain/services/content_integrity_inspection.py` (−212 lines); the export smoke preamble and the Foam page iterator are shared. jscpd for `src` is ≈0.4%, and the remaining clones are mostly declarative constraint data.
   - Tests: removed 7 trivial `test_base_has_*` tests and added classifier + workflow/pre-commit parity contracts. Test mix: ≈60% behavioural, 22% edge, 11% smoke/E2E, 4% simple, 3% repo-text contract.
   - Fixed the greedy smoke misclassifying the export gate's `review loop not completed` as a failure; it only appeared on machines with pandoc.
+
 - **v1.1.0 revamp released (2026-11-04)**:
 
   - Released from `master` `bc84fc9` (annotated `v1.1.0`, exact-SHA CI `41855834723` green). Release run `41856686869`: authority, three-platform smoke, Python, lint/security, SDK2 archives, bundle drift, build + isolated wheel/VSIX install smoke, PyPI 1.1.0 and the GitHub Release all passed. Release asset SHA-256: VSIX `5f6a8b2e…5978`, wheel `d54c0d21…e208`, sdist `3cd5a1ea…06ee`.

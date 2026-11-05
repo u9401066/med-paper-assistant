@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI now runs only the jobs a change affects. A new `Detect Changed Areas` job runs `scripts/ci_changed_areas.py` (stdlib-only) to classify the push or PR diff into the `python`, `vsx`, `dashboard`, `markdown` and `sdk2` areas and to pick the cross-platform smoke OS matrix. Each job checks its area with a job-level `if:`, so the required-check names stay unchanged and a skipped required check still reports success. The classifier fails open: scheduled and manual runs, a missing or zero base SHA, compare-API errors, diffs at the 300-file cap, empty diffs, and any change to the CI wiring itself select every area. A weekly Monday cron runs the full matrix, a concurrency group cancels superseded runs on the same ref, and `release.yml` remains a self-contained full gate. For example, a Memory Bank-only commit now runs only `Markdown Format` instead of all nine jobs.
 - `.pre-commit-config.yaml` mirrors CI locally with uv-locked tools.
+
   - Commit tier: ruff check/format, mypy, vulture, plugin and companion drift, the code-quality ratchet, `check_consistency.py`, VSX bundle drift and the npm lockfile check.
   - Pre-push tier (`default_install_hook_types: [pre-commit, pre-push]`): Bandit, tool-surface authority, pytest, MCP boot, greedy compact/full smoke, and VSX lint/test.
 
