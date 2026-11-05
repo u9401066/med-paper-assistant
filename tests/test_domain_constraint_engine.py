@@ -43,27 +43,6 @@ def case_engine(project_dir: Path) -> DomainConstraintEngine:
 class TestBaseConstraints:
     """Test base constraint templates."""
 
-    def test_base_has_original_research(self) -> None:
-        assert "original-research" in BASE_CONSTRAINTS
-
-    def test_base_has_case_report(self) -> None:
-        assert "case-report" in BASE_CONSTRAINTS
-
-    def test_base_has_systematic_review(self) -> None:
-        assert "systematic-review" in BASE_CONSTRAINTS
-
-    def test_base_has_meta_analysis(self) -> None:
-        assert "meta-analysis" in BASE_CONSTRAINTS
-
-    def test_base_has_review_article(self) -> None:
-        assert "review-article" in BASE_CONSTRAINTS
-
-    def test_base_has_letter(self) -> None:
-        assert "letter" in BASE_CONSTRAINTS
-
-    def test_base_has_other(self) -> None:
-        assert "other" in BASE_CONSTRAINTS
-
     def test_all_domain_paper_types_present(self) -> None:
         assert set(BASE_CONSTRAINTS) == set(PAPER_TYPES)
         assert len(BASE_CONSTRAINTS) == 13

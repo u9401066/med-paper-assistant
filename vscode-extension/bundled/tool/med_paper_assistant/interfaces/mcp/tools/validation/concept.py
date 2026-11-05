@@ -17,12 +17,12 @@ from med_paper_assistant.shared.path_guard import normalize_relative_filename, r
 
 from .._shared import (
     get_optional_tool_decorator,
+    guard_manuscript_tool,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
     log_tool_result,
     validate_project_for_tool,
-    validate_project_for_workflow,
 )
 from .._shared.guidance import build_guidance_hint
 
@@ -68,28 +68,9 @@ def register_concept_validation_tools(
             },
         )
 
-        is_valid, error_msg = validate_project_for_tool(project)
-        if not is_valid:
-            log_agent_misuse(
-                "validate_concept",
-                "valid project context required",
-                {"project": project},
-                error_msg,
-            )
-            return error_msg
-
-        is_valid, error_msg = validate_project_for_workflow(
-            project,
-            required_mode="manuscript",
-        )
-        if not is_valid:
-            log_agent_misuse(
-                "validate_concept",
-                "manuscript workflow required",
-                {"project": project},
-                error_msg,
-            )
-            return error_msg
+        guard_error = guard_manuscript_tool("validate_concept", project, require_project=True)
+        if guard_error:
+            return guard_error
 
         try:
             safe_filename = normalize_relative_filename(

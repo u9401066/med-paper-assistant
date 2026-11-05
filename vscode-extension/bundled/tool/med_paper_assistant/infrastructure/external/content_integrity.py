@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-import hashlib
 import importlib
 import importlib.metadata
-import mimetypes
 import re
 import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from med_paper_assistant.domain.services.content_integrity_inspection import (
+    inspect_content_integrity,
+)
 from med_paper_assistant.domain.value_objects.content_integrity import (
     REMOVAL_PACKAGE_PROVIDER,
     REMOVAL_PACKAGE_REQUIRED_CHECKS,
@@ -26,8 +26,6 @@ from med_paper_assistant.domain.value_objects.content_integrity import (
     RemovalPackageStatus,
     VisibleWatermarkAssessment,
     VisibleWatermarkStatus,
-    decide_integrity_gate,
-    detect_raster_mime_signature,
 )
 
 
@@ -497,87 +495,15 @@ def reinspect_content_integrity(
     *,
     asset_path: str | None = None,
 ) -> ContentIntegrityReceipt:
-    """Reinspect current bytes using only infrastructure adapters.
+    """Reinspect current bytes with the default infrastructure adapters.
 
     Persistence gates use this same-layer entry point so they do not depend on
-    the Application service.  The implementation intentionally mirrors the
-    Application orchestration boundary: adapter failures become explicit,
-    fail-closed assessments and the source file is hashed before and after.
+    the Application service; both share the Domain orchestration.
     """
-    candidate = Path(path)
-    if not candidate.is_file():
-        raise ValueError(f"Asset is not a readable file: {candidate}")
-
-    declared_mime_type = (
-        {".webp": "image/webp"}.get(candidate.suffix.lower())
-        or mimetypes.guess_type(candidate.name)[0]
-        or "application/octet-stream"
-    )
-    with candidate.open("rb") as stream:
-        content_mime_type = detect_raster_mime_signature(stream.read(16))
-    mime_type = content_mime_type or declared_mime_type
-    mime_type_mismatch = content_mime_type is not None and content_mime_type != declared_mime_type
-
-    def sha256() -> str:
-        digest = hashlib.sha256()
-        with candidate.open("rb") as stream:
-            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                digest.update(chunk)
-        return digest.hexdigest()
-
-    before_hash = sha256()
-    size_bytes = candidate.stat().st_size
-    try:
-        provenance = C2paProvenanceAdapter().inspect(candidate, mime_type)
-    except Exception as exc:  # pragma: no cover - defensive adapter boundary
-        provenance = ProvenanceAssessment(
-            status=ProvenanceStatus.ERROR,
-            provider="unknown",
-            summary=f"Provenance adapter failed: {type(exc).__name__}",
-        )
-    try:
-        visible_watermark = ConservativeVisibleWatermarkHeuristic().inspect(candidate, mime_type)
-    except Exception as exc:  # pragma: no cover - defensive adapter boundary
-        visible_watermark = VisibleWatermarkAssessment(
-            status=VisibleWatermarkStatus.HUMAN_REVIEW,
-            summary=f"Visible-watermark heuristic failed: {type(exc).__name__}",
-            signals=("heuristic_error",),
-            applicable=mime_type.startswith("image/"),
-        )
-    try:
-        removal_package_check = RemoveAiWatermarksInspectionAdapter().inspect(candidate, mime_type)
-    except Exception as exc:  # pragma: no cover - defensive adapter boundary
-        removal_package_check = RemovalPackageAssessment(
-            status=RemovalPackageStatus.ERROR,
-            provider=REMOVAL_PACKAGE_PROVIDER,
-            summary=f"Watermark-removal package check failed: {type(exc).__name__}",
-            applicable=mime_type.lower() in {"image/jpeg", "image/png", "image/webp"},
-        )
-
-    after_hash = sha256()
-    original_preserved = before_hash == after_hash
-    gate_status, gate_reasons = decide_integrity_gate(
-        provenance,
-        visible_watermark,
-        removal_package_check,
-        original_preserved=original_preserved,
-        mime_type=mime_type,
-        mime_type_mismatch=mime_type_mismatch,
-    )
-    return ContentIntegrityReceipt(
-        asset_path=asset_path or candidate.as_posix(),
-        inspected_at=datetime.now(timezone.utc).isoformat(),
-        sha256=before_hash,
-        sha256_after_inspection=after_hash,
-        mime_type=mime_type,
-        size_bytes=size_bytes,
-        declared_mime_type=declared_mime_type,
-        content_mime_type=content_mime_type,
-        mime_type_mismatch=mime_type_mismatch,
-        provenance=provenance,
-        visible_watermark=visible_watermark,
-        removal_package_check=removal_package_check,
-        gate_status=gate_status,
-        gate_reasons=gate_reasons,
-        original_preserved=original_preserved,
+    return inspect_content_integrity(
+        path,
+        provenance_inspector=C2paProvenanceAdapter(),
+        visible_watermark_inspector=ConservativeVisibleWatermarkHeuristic(),
+        removal_package_inspector=RemoveAiWatermarksInspectionAdapter(),
+        asset_path=asset_path,
     )

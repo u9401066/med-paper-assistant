@@ -22,15 +22,13 @@ from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .._shared import (
     auto_checkpoint_writing,
-    ensure_project_context,
     get_drafts_dir,
-    get_project_list_for_prompt,
     get_project_path,
+    guard_manuscript_tool,
     log_agent_misuse,
     log_tool_call,
     log_tool_error,
     log_tool_result,
-    resolve_project_context,
 )
 
 
@@ -40,35 +38,6 @@ def _get_references_dir() -> Optional[str]:
     if project_path:
         return os.path.join(project_path, "references")
     return None
-
-
-def _guard_editing_tool(tool_name: str, project: Optional[str]) -> str:
-    """Validate project and manuscript workflow; return an error message or ""."""
-    if project:
-        is_valid, msg, _ = ensure_project_context(project)
-        if not is_valid:
-            error_msg = f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-            log_agent_misuse(
-                tool_name,
-                "valid project context",
-                {"project": project},
-                error_msg,
-            )
-            return error_msg
-
-    _, workflow_error = resolve_project_context(
-        project,
-        required_mode="manuscript",
-    )
-    if workflow_error:
-        log_agent_misuse(
-            tool_name,
-            "manuscript workflow required",
-            {"project": project},
-            workflow_error,
-        )
-        return workflow_error
-    return ""
 
 
 def _load_patch_target(filename: str, drafts_dir: str) -> tuple[str, str, str]:
@@ -275,7 +244,7 @@ def _patch_draft(
         },
     )
 
-    guard_error = _guard_editing_tool("patch_draft", project)
+    guard_error = guard_manuscript_tool("patch_draft", project)
     if guard_error:
         return guard_error
 

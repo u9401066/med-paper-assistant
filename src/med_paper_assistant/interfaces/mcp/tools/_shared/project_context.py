@@ -11,6 +11,8 @@ from typing import Any, Dict, Optional, Tuple
 from med_paper_assistant.infrastructure.persistence import get_project_manager
 from med_paper_assistant.shared.constants import DEFAULT_WORKFLOW_MODE, WORKFLOW_MODES
 
+from .tool_logging import log_agent_misuse
+
 
 def validate_project_slug(project_slug: str) -> Tuple[bool, str, Optional[Dict]]:
     """
@@ -175,6 +177,45 @@ def validate_project_for_workflow(
         return False, "❌ Project context could not be resolved."
 
     return True, ""
+
+
+def guard_manuscript_tool(
+    tool_name: str,
+    project: Optional[str],
+    *,
+    require_project: bool = False,
+    log_invalid: bool = True,
+) -> str:
+    """Validate the project and the manuscript workflow for a manuscript-only tool.
+
+    An explicit ``project`` (or ``require_project=True``) is validated first; the
+    manuscript workflow check always runs. Misuse is logged for agent telemetry.
+
+    Returns:
+        An error message for the agent, or ``""`` when the tool may proceed.
+    """
+    if require_project or project:
+        is_valid, error_msg = validate_project_for_tool(project)
+        if not is_valid:
+            if log_invalid:
+                log_agent_misuse(
+                    tool_name,
+                    "valid project context required",
+                    {"project": project},
+                    error_msg,
+                )
+            return error_msg
+
+    _, workflow_error = resolve_project_context(project, required_mode="manuscript")
+    if workflow_error:
+        log_agent_misuse(
+            tool_name,
+            "manuscript workflow required",
+            {"project": project},
+            workflow_error,
+        )
+        return workflow_error
+    return ""
 
 
 def _format_workflow_mode_error(current_mode: str, required_mode: str) -> str:

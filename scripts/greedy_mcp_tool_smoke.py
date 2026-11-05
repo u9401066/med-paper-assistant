@@ -73,6 +73,9 @@ PRECONDITION_MARKERS = (
     "not found",
     "project context",
     "pandoc not available",
+    # Export hard gate: a fresh smoke project has no completed review rounds. Only
+    # reachable when pandoc is installed, so CI runners never hit it but dev machines do.
+    "review loop not completed",
     "only allowed from phase 7",
     "use `/mdpaper",
     "valid project",

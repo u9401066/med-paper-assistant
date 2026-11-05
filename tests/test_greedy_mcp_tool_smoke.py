@@ -260,6 +260,10 @@ def test_classify_call_outcome_distinguishes_precondition_from_broken() -> None:
     ("rendered", "expected"),
     [
         ("Error executing tool export_docx: ❌ **Pandoc not available**", "precondition"),
+        (
+            "Error executing tool export_docx: ❌ **Export blocked — Review loop not completed**",
+            "precondition",
+        ),
         ("Error executing tool draft_action: ❌ Unsupported action", "error"),
         ("Error executing tool draft_action: KeyError: 'slug'", "broken"),
     ],

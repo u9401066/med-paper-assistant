@@ -11,9 +11,31 @@ from __future__ import annotations
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from defusedxml import ElementTree
+
+
+class _AddCheck(Protocol):
+    def __call__(self, name: str, passed: bool, details: str = "") -> None: ...
+
+
+def _new_smoke_result(schema: str, path: Path) -> tuple[dict[str, Any], _AddCheck]:
+    """Create a smoke-result envelope whose first check records file existence."""
+    result: dict[str, Any] = {
+        "schema": schema,
+        "path": str(path),
+        "passed": False,
+        "checks": [],
+        "stats": {},
+    }
+
+    def add_check(name: str, passed: bool, details: str = "") -> None:
+        result["checks"].append({"name": name, "passed": passed, "details": details})
+
+    exists = path.is_file()
+    add_check("file_exists", exists, "exists" if exists else "MISSING")
+    return result, add_check
 
 
 def inspect_docx_xml_smoke(docx_path: str | Path) -> dict[str, Any]:
@@ -25,21 +47,9 @@ def inspect_docx_xml_smoke(docx_path: str | Path) -> dict[str, Any]:
     zero paragraphs, empty text, or leaked raw citation tokens fail.
     """
     path = Path(docx_path)
-    result: dict[str, Any] = {
-        "schema": "mdpaper.docx_xml_smoke.v1",
-        "path": str(path),
-        "passed": False,
-        "checks": [],
-        "stats": {},
-    }
-
-    def add_check(name: str, passed: bool, details: str = "") -> None:
-        result["checks"].append({"name": name, "passed": passed, "details": details})
-
-    if not path.is_file():
-        add_check("file_exists", False, "MISSING")
+    result, add_check = _new_smoke_result("mdpaper.docx_xml_smoke.v1", path)
+    if not result["checks"][0]["passed"]:
         return result
-    add_check("file_exists", True, "exists")
 
     try:
         with zipfile.ZipFile(path) as archive:
@@ -98,21 +108,9 @@ def inspect_docx_xml_smoke(docx_path: str | Path) -> dict[str, Any]:
 def inspect_pdf_smoke(pdf_path: str | Path) -> dict[str, Any]:
     """Run a lightweight PDF structural smoke test for export success."""
     path = Path(pdf_path)
-    result: dict[str, Any] = {
-        "schema": "mdpaper.pdf_smoke.v1",
-        "path": str(path),
-        "passed": False,
-        "checks": [],
-        "stats": {},
-    }
-
-    def add_check(name: str, passed: bool, details: str = "") -> None:
-        result["checks"].append({"name": name, "passed": passed, "details": details})
-
-    if not path.is_file():
-        add_check("file_exists", False, "MISSING")
+    result, add_check = _new_smoke_result("mdpaper.pdf_smoke.v1", path)
+    if not result["checks"][0]["passed"]:
         return result
-    add_check("file_exists", True, "exists")
 
     try:
         data = path.read_bytes()

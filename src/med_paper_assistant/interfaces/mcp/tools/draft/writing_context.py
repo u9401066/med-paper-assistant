@@ -13,12 +13,12 @@ from med_paper_assistant.infrastructure.services.prompts import SECTION_PROMPTS
 
 from .._shared import (
     get_concept_path,
+    guard_manuscript_tool,
     log_tool_call,
     log_tool_result,
 )
 from .writing_gates import (
     _check_section_prerequisites,
-    _guard_writing_tool,
     _section_gate_error,
 )
 
@@ -97,8 +97,10 @@ def _next_section_hint(sorted_sections: list, existing_lower: list[str]) -> str:
 def _check_writing_order(project: Optional[str]) -> str:
     log_tool_call("check_writing_order", {"project": project})
 
-    guard_error = _guard_writing_tool("check_writing_order", project, log_invalid=False)
-    if guard_error is not None:
+    guard_error = guard_manuscript_tool(
+        "check_writing_order", project, require_project=True, log_invalid=False
+    )
+    if guard_error:
         return guard_error
 
     from med_paper_assistant.domain.paper_types import WRITING_ORDER, _format_writing_order
@@ -236,8 +238,8 @@ def _draft_section(
         },
     )
 
-    guard_error = _guard_writing_tool("draft_section", project)
-    if guard_error is not None:
+    guard_error = guard_manuscript_tool("draft_section", project, require_project=True)
+    if guard_error:
         return guard_error
 
     # 1. Enforce Concept Validation + 1.1 Reference Sufficiency (A7 hard gate)

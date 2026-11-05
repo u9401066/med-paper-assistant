@@ -15,13 +15,10 @@ from med_paper_assistant.infrastructure.services.drafter import normalize_draft_
 from med_paper_assistant.shared.path_guard import resolve_child_path
 
 from .._shared import (
-    ensure_project_context,
     get_optional_tool_decorator,
-    get_project_list_for_prompt,
-    log_agent_misuse,
+    guard_manuscript_tool,
     log_tool_call,
     log_tool_result,
-    resolve_project_context,
 )
 
 # Apply claim type suffix for specialized search
@@ -32,35 +29,6 @@ _CLAIM_TYPE_SUFFIXES = {
     "mechanism": "mechanism pharmacology",
     "definition": "definition criteria",
 }
-
-
-def _guard_citation_tool(tool_name: str, project: Optional[str]) -> str:
-    """Validate project and manuscript workflow; return an error message or ""."""
-    if project:
-        is_valid, msg, _ = ensure_project_context(project)
-        if not is_valid:
-            error_msg = f"❌ {msg}\n\n{get_project_list_for_prompt()}"
-            log_agent_misuse(
-                tool_name,
-                "valid project context",
-                {"project": project},
-                error_msg,
-            )
-            return error_msg
-
-    _, workflow_error = resolve_project_context(
-        project,
-        required_mode="manuscript",
-    )
-    if workflow_error:
-        log_agent_misuse(
-            tool_name,
-            "manuscript workflow required",
-            {"project": project},
-            workflow_error,
-        )
-        return workflow_error
-    return ""
 
 
 def _typed_claim_search(
@@ -118,7 +86,7 @@ def _suggest_citations(
         },
     )
 
-    error = _guard_citation_tool("suggest_citations", project)
+    error = guard_manuscript_tool("suggest_citations", project)
     if error:
         return error
 
@@ -169,7 +137,7 @@ def _scan_draft_citations(
         {"filename": filename, "project": project},
     )
 
-    error = _guard_citation_tool("scan_draft_citations", project)
+    error = guard_manuscript_tool("scan_draft_citations", project)
     if error:
         return error
 

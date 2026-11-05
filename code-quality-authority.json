@@ -12,16 +12,16 @@
     "function": 50
   },
   "summary": {
-    "filesScanned": 461,
+    "filesScanned": 462,
     "definitionsScanned": {
-      "class": 324,
-      "function": 2412
+      "class": 325,
+      "function": 2417
     },
     "violations": {
       "file": 6,
       "class": 6,
-      "function": 96,
-      "total": 108
+      "function": 93,
+      "total": 105
     },
     "maximum": {
       "file": {
@@ -37,17 +37,11 @@
       "function": {
         "path": "src/med_paper_assistant/interfaces/mcp/tools/validation/concept.py",
         "qualifiedSymbol": "register_concept_validation_tools",
-        "lines": 296
+        "lines": 277
       }
     }
   },
   "exceptions": [
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/application/content_integrity.py",
-      "qualifiedSymbol": "ContentIntegrityInspector.inspect",
-      "allowedLines": 78
-    },
     {
       "kind": "file",
       "path": "src/med_paper_assistant/domain/entities/reference.py",
@@ -124,7 +118,7 @@
       "kind": "file",
       "path": "src/med_paper_assistant/infrastructure/external/content_integrity.py",
       "qualifiedSymbol": "<module>",
-      "allowedLines": 583
+      "allowedLines": 509
     },
     {
       "kind": "function",
@@ -143,12 +137,6 @@
       "path": "src/med_paper_assistant/infrastructure/external/content_integrity.py",
       "qualifiedSymbol": "RemoveAiWatermarksInspectionAdapter.inspect",
       "allowedLines": 93
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/external/content_integrity.py",
-      "qualifiedSymbol": "reinspect_content_integrity",
-      "allowedLines": 89
     },
     {
       "kind": "function",
@@ -622,13 +610,13 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/validation/concept.py",
       "qualifiedSymbol": "register_concept_validation_tools",
-      "allowedLines": 296
+      "allowedLines": 277
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/validation/concept.py",
       "qualifiedSymbol": "register_concept_validation_tools.validate_concept",
-      "allowedLines": 182
+      "allowedLines": 163
     },
     {
       "kind": "function",
@@ -664,13 +652,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/shared/export_integrity.py",
       "qualifiedSymbol": "inspect_docx_xml_smoke",
-      "allowedLines": 77
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/shared/export_integrity.py",
-      "qualifiedSymbol": "inspect_pdf_smoke",
-      "allowedLines": 51
+      "allowedLines": 65
     },
     {
       "kind": "function",

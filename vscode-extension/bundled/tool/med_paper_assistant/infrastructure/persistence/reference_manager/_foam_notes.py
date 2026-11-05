@@ -1,6 +1,7 @@
 """Low-level writers and iterators for materialized Foam notes."""
 
 import os
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -90,52 +91,43 @@ class FoamNoteWriterMixin:
             pass
         return Path(file_path).stem.replace("-", " ").title()
 
+    def _iter_markdown_pages(
+        self, page_dir: str, alias_for: Callable[[str], str]
+    ) -> List[Dict[str, str]]:
+        if not os.path.isdir(page_dir):
+            return []
+
+        pages: List[Dict[str, str]] = []
+        for file_name in sorted(os.listdir(page_dir)):
+            if not file_name.endswith(".md"):
+                continue
+            slug = Path(file_name).stem
+            file_path = os.path.join(page_dir, file_name)
+            pages.append(
+                {
+                    "slug": slug,
+                    "alias": alias_for(slug),
+                    "title": self._read_materialized_page_title(file_path),
+                    "path": file_path,
+                }
+            )
+        return pages
+
     def _iter_materialized_pages(self, page_type: str) -> List[Dict[str, str]]:
         page_dir = (
             self._knowledge_maps_dir()
             if page_type == "knowledge_map"
             else self._synthesis_pages_dir()
         )
-        if not os.path.isdir(page_dir):
-            return []
-
-        pages: List[Dict[str, str]] = []
-        for file_name in sorted(os.listdir(page_dir)):
-            if not file_name.endswith(".md"):
-                continue
-            slug = Path(file_name).stem
-            file_path = os.path.join(page_dir, file_name)
-            pages.append(
-                {
-                    "slug": slug,
-                    "alias": self._materialized_page_alias(page_type, slug),
-                    "title": self._read_materialized_page_title(file_path),
-                    "path": file_path,
-                }
-            )
-
-        return pages
+        return self._iter_markdown_pages(
+            page_dir, lambda slug: self._materialized_page_alias(page_type, slug)
+        )
 
     def _iter_library_pages(self) -> List[Dict[str, str]]:
-        page_dir = self._library_pages_dir()
-        if not os.path.isdir(page_dir):
-            return []
-
-        pages: List[Dict[str, str]] = []
-        for file_name in sorted(os.listdir(page_dir)):
-            if not file_name.endswith(".md"):
-                continue
-            slug = Path(file_name).stem
-            file_path = os.path.join(page_dir, file_name)
-            pages.append(
-                {
-                    "slug": slug,
-                    "alias": "library-overview" if slug == "overview" else slug,
-                    "title": self._read_materialized_page_title(file_path),
-                    "path": file_path,
-                }
-            )
-        return pages
+        return self._iter_markdown_pages(
+            self._library_pages_dir(),
+            lambda slug: "library-overview" if slug == "overview" else slug,
+        )
 
     def _write_materialized_page(
         self,

@@ -20,13 +20,13 @@ from med_paper_assistant.shared.path_guard import resolve_child_path
 from .._shared import (
     auto_checkpoint_writing,
     get_drafts_dir,
+    guard_manuscript_tool,
     log_tool_call,
     log_tool_error,
     log_tool_result,
 )
 from .writing_gates import (
     _check_section_prerequisites,
-    _guard_writing_tool,
     _write_gate_error,
 )
 
@@ -139,8 +139,8 @@ def _write_draft(
     if request_error:
         return request_error
 
-    guard_error = _guard_writing_tool("write_draft", project)
-    if guard_error is not None:
+    guard_error = guard_manuscript_tool("write_draft", project, require_project=True)
+    if guard_error:
         return guard_error
 
     is_concept_file = "concept" in filename.lower()
@@ -205,8 +205,8 @@ def _draft_table_row(index: int, drafts_dir: str, draft_file: str) -> str:
 def _list_drafts(project: Optional[str]) -> str:
     log_tool_call("list_drafts", {"project": project})
 
-    guard_error = _guard_writing_tool("list_drafts", project, always_validate=False)
-    if guard_error is not None:
+    guard_error = guard_manuscript_tool("list_drafts", project)
+    if guard_error:
         return guard_error
 
     drafts_dir = get_drafts_dir()
@@ -292,8 +292,8 @@ def _sections_report(filename: str, sections: dict[str, str]) -> str:
 def _read_draft(filename: str, project: Optional[str]) -> str:
     log_tool_call("read_draft", {"filename": filename, "project": project})
 
-    guard_error = _guard_writing_tool("read_draft", project, always_validate=False)
-    if guard_error is not None:
+    guard_error = guard_manuscript_tool("read_draft", project)
+    if guard_error:
         return guard_error
 
     try:
@@ -359,8 +359,8 @@ def _remove_draft(filename: str, basename: str, word_count: int, sections: int) 
 def _delete_draft(filename: str, confirm: bool, project: Optional[str]) -> str:
     log_tool_call("delete_draft", {"filename": filename, "confirm": confirm, "project": project})
 
-    guard_error = _guard_writing_tool("delete_draft", project, always_validate=False)
-    if guard_error is not None:
+    guard_error = guard_manuscript_tool("delete_draft", project)
+    if guard_error:
         return guard_error
 
     # Resolve the full path

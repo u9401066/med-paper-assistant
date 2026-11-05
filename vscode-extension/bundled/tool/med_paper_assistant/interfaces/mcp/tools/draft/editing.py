@@ -19,12 +19,12 @@ from med_paper_assistant.infrastructure.services import Drafter
 
 from .._shared import (
     get_optional_tool_decorator,
+    guard_manuscript_tool,
     log_tool_call,
     log_tool_result,
 )
 from .editing_patch import (
     _get_references_dir,
-    _guard_editing_tool,
     _patch_draft,
 )
 
@@ -75,7 +75,7 @@ def _citations_table(ref_manager: Any, pmids: list[str], refs_dir: str) -> tuple
 def _get_available_citations(drafter: Drafter, project: Optional[str]) -> str:
     log_tool_call("get_available_citations", {"project": project})
 
-    guard_error = _guard_editing_tool("get_available_citations", project)
+    guard_error = guard_manuscript_tool("get_available_citations", project)
     if guard_error:
         return guard_error
 
