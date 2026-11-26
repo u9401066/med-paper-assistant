@@ -6,11 +6,14 @@
 
 ## 當前焦點 (2026-11-27)
 
-> **2026-11-27 v1.2.0（Agent-First Harness & Compact Ergonomics）**：
+> **2026-11-27 v1.2.0（Agent-First & Cognitive Writing Harness）**：
 >
-> - **實測 Dogfooding 驅動翻修**：實際透過預設 12-tool compact surface 跑完整流程後，鎖定並根除「compact 預設介面卻四處洩漏 full-only 工具名」、「gate 只報錯不給可執行修復迴圈」、「`pipeline_doctor` 一次傾倒 15 KB」、「`writing_hooks` 寫死 `manuscript.md` 且在非請求 context 崩潰」、「`development` 模式 hook 雜訊」等核心 Agent 體驗斷點。
-> - **三大高槓桿 Harness 動作（維持 118 full / 12 compact 不變）**：新增 `pipeline_action(action="next")`（精簡 GPS 導航，同時支援 `manuscript` 與 `library-wiki`）、`reference_action(action="evidence_pack")`（單次寫作證據摘要包）、`run_quality_checks(action="repair_plan")`（按嚴重度排序且附具體 compact `suggested_call` + `recheck_call` 的修復計畫），並補齊 `library_action(action="help")` 與跨 facade 模糊錯誤建議。
-> - **Zero Ghost Tools & Quiet Hooks**：重寫 `SERVER_INSTRUCTIONS`（節省 ~45% token、消除 19 個 full-only 洩漏與 4 處不存在/矛盾動作）、升級 9 個 bundled agents、guidance 與 7 個 `mdpaper_hooks` 完整支援 compact facade，`prompt_analyzer` 於 `development` 模式與 repo meta 問題靜音；`code-quality-authority.json` 例外由 102 降至 **99**。
+> - **Part A — 實測 Dogfooding 驅動 Compact Ergonomics**：透過預設 12-tool compact surface 實測並根除 10 項 Agent 摩擦（full-only 幽靈工具名洩漏、15 KB `doctor` 雜訊、`writing_hooks` 寫死 `manuscript.md` 與 `report_tool_progress` context 崩潰、`development` 模式 hook 誤報等）；新增 `pipeline_action(action="next")`（GPS）、`reference_action(action="evidence_pack")`、`run_quality_checks(action="repair_plan")` 與 `library_action(action="help")`。
+> - **Part B — 認知寫作支架、文辭連貫與全文概念貫穿**：
+>   - 新增 `NarrativeThreadStore`（`.memory/narrative-thread.yaml`）與 `draft_action(action="thread")`，將 `central_thesis`、canonical terminology、`selling_point_map` 與各章節自動抽取的 handoff card（首尾段、數值錨點、縮寫、引用 key）結構化持久化，每次 `write`/`patch` 自動更新。
+>   - 新增 `draft_action(action="brief")`：寫前一次載入 5 層認知簡報（Golden Thread、`manuscript-plan.yaml` 段落/圖表藍圖、section 過濾後的 `analysis.json` 證據、依閱讀順序定位的非線性上游/下游章節交接卡、該章節專屬蘇格拉底式思考提問與 Given→New 連貫原則），取代過去 15 行靜態 prompt。
+>   - 新增 `run_quality_checks(action="coherence")`：6 項確定性檢查（`COH-1` Given→New 銜接與機械過渡詞、`COH-2` Results→Discussion 8-gram 防照抄且回報命中片語、`COH-3` 規範術語漂移、`THR-1` 🔒 NOVELTY STATEMENT 實質落地、`THR-2` 🔒 KEY SELLING POINTS 跨章節覆蓋矩陣、`THR-3` Intro 尾段研究目標 ↔ Discussion 首段回應與 Abstract ↔ Results 數據對齊）；並補齊 `tests/test_cognitive_writing_smoke.py` 與修正 `test_writing_session_checkpoint.py` 斷言。
+> - **預發布驗證與技術債**：全量預發布測試 **2,119 passed / 0 failed**、compact greedy smoke 0 error、MCP 118/12/3/3 不變、`code-quality-authority.json` 維持 **99**（472 檔、`draft/facade.py` 行數不增反減）。
 > - **v1.1.1 發布結果**：tag `v1.1.1`（`a0fae8d`）CI 10/10 綠燈、Pages 綠燈；Release `45852366656` 首次因 headless Electron SIGABRT (exit 134) 中斷於 VSIX install smoke，重跑 failed job 後 PyPI `med-paper-assistant==1.1.1` 與 GitHub Release `v1.1.1` 皆成功發布（VS Marketplace 維持既知 OIDC 404 degraded 狀態）；已在 `v1.2.0` 的 `install-smoke.cjs` 加入 60s timeout 與 transient exit-134 重試。
 
 > **2026-11-26 v1.1.1 修正版（Antigravity 原生整合 + Foam 0.47 MCP + Critical-Only CI）**：
@@ -35,7 +38,7 @@
 | VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 9 palette / 10 chat**                                                                     |
 | Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven) + Copilot & Antigravity lifecycle hooks + **33** pre-commit/pre-push hooks                                   |
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                             |
-| Code-Quality Ratchet  | **99 exceptions** (5 file / 5 class / 89 function across 467 files; down from 388)                                                                              |
+| Code-Quality Ratchet  | **99 exceptions** (5 file / 5 class / 89 function across 472 files; down from 388)                                                                              |
 | Validation Gate       | Critical-only push/PR CI + full local pre-commit/pre-push parity + weekly/release full matrix                                                                   |
 | Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**36 pages / 52 Mermaid / 8 accessible SVG**；Phase gate design/code/human contract tests         |
 

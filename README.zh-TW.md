@@ -21,7 +21,7 @@
 >
 > 🚦 **[每階段檢查與修正](https://u9401066.github.io/med-paper-assistant/wiki/research-pipeline/)** — 以人類看得懂的方式說明每個 code phase 的擋關、流程要求、提醒、修正路徑與人工判斷
 
-核心目標不是一次生成整篇文字，而是讓受邊界約束的自主流程與研究者主導的寫作共用可觀察 checkpoint、evidence locator、quality gate、審閱 receipt 與可重現匯出。Solver 負責產生 artifacts，獨立檢查負責評分，未被證據支持的內容不會因文字流暢而取得 evidence credit。在預設 12-tool compact 工具面上，Agent 可透過 `pipeline_action(action="next")`（GPS 導航）、`reference_action(action="evidence_pack")`（單次文獻證據包）與 `run_quality_checks(action="repair_plan")`（結構化修復迴圈）低摩擦推進。
+核心目標不是一次生成整篇文字，而是讓受邊界約束的自主流程與研究者主導的寫作共用可觀察 checkpoint、evidence locator、quality gate、審閱 receipt 與可重現匯出。Solver 負責產生 artifacts，獨立檢查負責評分，未被證據支持的內容不會因文字流暢而取得 evidence credit。在預設 12-tool compact 工具面上，Agent 可透過 `pipeline_action(action="next")`（GPS 導航）、`reference_action(action="evidence_pack")`（單次文獻證據包）、`draft_action(action="brief"|"thread")`（五層認知寫作簡報與 `.memory/narrative-thread.yaml` 全文脈絡）以及 `run_quality_checks(action="coherence"|"repair_plan")`（文辭連貫／概念貫穿審計與結構化修復迴圈）低摩擦推進。
 
 ![MedPaper Assistant 概覽](docs/assets/medpaper-intro.svg)
 

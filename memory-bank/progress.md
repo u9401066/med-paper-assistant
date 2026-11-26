@@ -2,12 +2,13 @@
 
 ## Done
 
-- **v1.2.0 Agent-First Harness & Compact Ergonomics (2026-11-27)**:
+- **v1.2.0 Agent-First & Cognitive Writing Harness (2026-11-27)**:
 
   - Empirical end-to-end dogfooding of the 12-tool compact MCP surface uncovered 10 concrete agent-friction defects (`report_tool_progress` `ValueError` outside request context, empty project name creating `untitled`, `writing_hooks` hardcoding `manuscript.md`, `analysis_save` rejecting `list[str]`, 15 KB `doctor` dump, 19 full-only leaks + 4 wrong actions in `SERVER_INSTRUCTIONS`, leaks across all 9 bundled agents and 7 lifecycle hooks, and `development`-mode hook noise).
-  - Added three high-leverage harness actions within the unchanged 118 full / 12 compact surface: `pipeline_action(action="next")` (GPS next-step navigator for both `manuscript` and `library-wiki`), `reference_action(action="evidence_pack")` (single-call drafting evidence digest), and `run_quality_checks(action="repair_plan")` (prioritized patch loop with exact `suggested_call` + `recheck_call`).
-  - Achieved zero full-only tool leaks across `SERVER_INSTRUCTIONS` (~45% shorter), all 9 bundled research/review agents, `guidance.py`, `writing_gates.py`, `_recovery.py`, and all 7 `mdpaper_hooks` + `antigravity_dispatch.py`; added `library_action(action="help")`, fuzzy `"Did you mean?"` errors across facades, section-aware `writing_hooks`, inline auto-hook previews, and `install-smoke.cjs` Electron exit-134 retry resilience.
-  - Reduced `code-quality-authority.json` exceptions from 102 to **99** across 467 Python files; added `tests/test_agent_harness_ergonomics.py` and verified all targeted/contract tests, static analysis, authorities, compact smoke, docs, and VSIX tests.
+  - Added six high-leverage harness actions within the unchanged 118 full / 12 compact surface: `pipeline_action(action="next")` (GPS next-step navigator), `reference_action(action="evidence_pack")` (single-call drafting evidence digest), `draft_action(action="brief")` (5-layer cognitive drafting brief), `draft_action(action="thread")` (`NarrativeThreadStore` `.memory/narrative-thread.yaml` with auto-refreshed section handoffs), `run_quality_checks(action="coherence")` (`COH-1..3` prose flow/echo/terminology + `THR-1..3` novelty/selling-point/aim-answer/abstract-numeric threading), and `run_quality_checks(action="repair_plan")` (prioritized patch loop).
+  - Dogfooding smoke caught a real signal-to-noise collision where 6-gram `COH-2` penalized legitimate 7-word canonical medical phrases enforced by `COH-3`; refined `COH-2` to 8-gram verbatim clauses (`>=2` overlapping) with matched-snippet reporting.
+  - Achieved zero full-only tool leaks across `SERVER_INSTRUCTIONS`, all 9 bundled research/review agents, `guidance.py`, `writing_gates.py`, `_recovery.py`, and all 7 `mdpaper_hooks` + `antigravity_dispatch.py`; added `library_action(action="help")`, fuzzy `"Did you mean?"` errors, section-aware `writing_hooks`, inline auto-hook previews, and `install-smoke.cjs` Electron exit-134 retry resilience.
+  - Reduced `code-quality-authority.json` exceptions from 102 to **99** across 472 Python files; added `tests/test_agent_harness_ergonomics.py` and `tests/test_cognitive_writing_smoke.py`; verified full pre-release pytest **2,119 passed / 0 failed**, compact greedy smoke 0 errors, mypy (472 files), ruff, bandit, vulture, authorities, and bundle parity.
 
 - **v1.1.1 Antigravity native plugin + Foam 0.47 MCP + critical-only CI (2026-11-26 — Published: PyPI + GitHub Release)**:
 

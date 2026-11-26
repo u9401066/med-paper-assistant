@@ -1,5 +1,26 @@
 # Decision Log
 
+## [2026-11-27] Cognitive Writing Harness: Thinking Scaffold, Prose Coherence, And Concept Threading
+
+### 背景
+
+即便完成了 phase 關卡與 compact 工具人體工學，真實論文寫作仍有三個結構性斷層導致 AI 稿件容易「段對段斷裂、套話空泛、前文提過的創新點到後面蒸發」：
+
+1. **寫作前缺思考支架**：原本 `draft_section` 僅注入 15 行靜態模板與前 5 篇截斷 500 字摘要，完全忽略 `manuscript-plan.yaml`、忽略 `analysis.json`、忽略已寫完的鄰接章節，也沒有章節專屬的科學論證提問。
+2. **非線性寫作缺跨章節記憶**：醫學論文依 `Methods → Results → Introduction → Discussion → Abstract` 非線性撰寫，但讀者依線性順序閱讀；原本沒有結構化的跨章節交接卡（首尾段脈絡、數值錨點、已定義縮寫、規範術語），導致各段像拼裝零件。
+3. **保護規則只查 `concept.md` 不查成稿**：原本 `P5` 只檢查 `concept.md` 的 `🔒` 區塊非空，從未檢查 `🔒 NOVELTY STATEMENT` 與每一條 `🔒 KEY SELLING POINTS` 是否真的在 Intro/Results/Discussion 落地，也未檢查 Given→New 銜接、Results→Discussion 複製貼上與首尾呼應。
+
+### 決定
+
+1. **持久化敘事主軸（`NarrativeThreadStore`）**：在 `.memory/narrative-thread.yaml`（`mdpaper.narrative_thread.v1`）維護 `central_thesis`、`canonical_terms`、`selling_point_map` 與各章節自動抽取的 handoff card，由 `draft_action(action="thread")` 讀寫並在每次 `write`/`patch` 後自動刷新。
+2. **五層認知寫作簡報（`draft_action(action="brief")`）**：寫前單次組裝 Golden Thread + `manuscript-plan.yaml` 段落/圖表藍圖 + 依 section 過濾的 `analysis.json` 證據 + 依閱讀順序定位的上游/下游章節交接卡 + 章節專屬蘇格拉底式思考提問與 Given→New 規則。
+3. **確定性文辭連貫與概念貫穿審計（`run_quality_checks(action="coherence")`）**：拆為 `_coherence.py`（`COH-1..3`）與 `_threading.py`（`THR-1..3`），直接回傳 `coherence_score`、`selling_point_coverage` 矩陣與具 `suggested_call` 的結構化清單。依實測 dogfooding 調整 `COH-2` 為 8-gram（避免懲罰遵守 `COH-3` 的 7 字規範醫學術語）並附上命中片語。
+4. **維持 118/12 工具面與 edge/smoke 測試紀律**：全部收在既有 `draft_action` 與 `run_quality_checks` facade 下，僅以真實非線性煙霧與邊界測試（`tests/test_cognitive_writing_smoke.py`）驗證收斂與邊界條件，不堆砌冗餘 unit test。
+
+### 結果
+
+- 全數通過 472 檔 `mypy`、`ruff`、`bandit`、`vulture`、`code-quality-authority`（維持 99 例外，`draft/facade.py` 行數縮減）、`tool-surface-authority`（118/12/3/3）與全量預發布測試 **2,119 passed / 0 failed**。
+
 ## [2026-11-27] Agent-First Harness Ergonomics Inside The 12-Tool Compact Surface
 
 ### 背景
