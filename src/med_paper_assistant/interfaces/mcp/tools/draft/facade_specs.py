@@ -40,6 +40,13 @@ DRAFT_ACTION_ALIASES = {
     "table": "insert_table",
     "assets": "list_assets",
     "asset": "list_assets",
+    "brief": "brief",
+    "thinking_brief": "brief",
+    "section_brief": "brief",
+    "prepare": "brief",
+    "thread": "thread",
+    "narrative_thread": "thread",
+    "golden_thread": "thread",
 }
 
 

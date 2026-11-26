@@ -12,10 +12,10 @@
     "function": 50
   },
   "summary": {
-    "filesScanned": 467,
+    "filesScanned": 472,
     "definitionsScanned": {
-      "class": 326,
-      "function": 2456
+      "class": 327,
+      "function": 2495
     },
     "violations": {
       "file": 5,
@@ -370,13 +370,13 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/draft/facade.py",
       "qualifiedSymbol": "register_draft_facade_tools",
-      "allowedLines": 91
+      "allowedLines": 76
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/draft/facade.py",
       "qualifiedSymbol": "register_draft_facade_tools.draft_action",
-      "allowedLines": 71
+      "allowedLines": 56
     },
     {
       "kind": "function",

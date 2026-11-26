@@ -17,6 +17,7 @@ from .._shared import (
     invoke_tool_handler,
     normalize_facade_action,
 )
+from .cognitive_brief import build_cognitive_brief, manage_narrative_thread
 from .facade_hooks import _auto_run_post_write_hooks, _infer_section_name
 from .facade_specs import (
     DRAFT_ACTION_ALIASES,
@@ -60,14 +61,27 @@ def _count_words_arguments(args: DraftArgs) -> tuple[str, Optional[str], str]:
 
 
 def _action_schema(action_specs: dict[str, ActionSpec]) -> str:
+    actions = {
+        name: {"handler": spec[1], "params": sorted(k for k in spec[2])}
+        for name, spec in sorted(action_specs.items())
+    }
+    actions["brief"] = {
+        "handler": "build_cognitive_brief",
+        "params": ["notes", "project", "section"],
+    }
+    actions["thread"] = {
+        "handler": "manage_narrative_thread",
+        "params": ["content", "notes", "project"],
+    }
     return facade_schema_json(
         tool="draft_action",
-        actions={
-            name: {"handler": spec[1], "params": sorted(k for k in spec[2])}
-            for name, spec in sorted(action_specs.items())
-        },
+        actions=actions,
         aliases=DRAFT_ACTION_ALIASES,
-        notes=["Use action='list_drafts' to list draft files."],
+        notes=[
+            "Use action='list_drafts' to list draft files.",
+            "Use action='brief' before drafting a section to load Golden Thread, plan, evidence, neighbor handoffs, and thinking scaffold.",
+            "Use action='thread' to inspect or update .memory/narrative-thread.yaml.",
+        ],
     )
 
 
@@ -123,6 +137,15 @@ async def _draft_action(groups: ToolGroups, args: DraftArgs) -> str:
         count_filename, count_section, error = _count_words_arguments(args)
         if error:
             return error
+
+    if normalized == "brief":
+        return build_cognitive_brief(
+            section=args.section or args.topic or args.filename,
+            notes=args.notes or args.content,
+            project=args.project,
+        )
+    if normalized == "thread":
+        return manage_narrative_thread(content=args.content, notes=args.notes, project=args.project)
 
     action_specs = build_action_specs(
         groups, args, write_filename, write_content, count_filename, count_section
@@ -187,26 +210,11 @@ def register_draft_facade_tools(
         confirm: bool = False,
         project: Optional[str] = None,
     ) -> str:
-        """
-        Run manuscript drafting actions through one stable entrypoint.
+        """Run manuscript drafting actions through one stable entrypoint.
 
-        Actions:
-        - check_order
-        - draft_section
-        - write
-        - list
-        - read
-        - delete
-        - insert_citation
-        - sync_references
-        - count_words
-        - list_citations
-        - patch
-        - suggest_citations
-        - scan_citations
-        - insert_figure
-        - insert_table
-        - list_assets
+        Actions: brief, thread, check_order, draft_section, write, list, read, delete,
+        insert_citation, sync_references, count_words, list_citations, patch,
+        suggest_citations, scan_citations, insert_figure, insert_table, list_assets.
         """
         return await _draft_action(
             groups,

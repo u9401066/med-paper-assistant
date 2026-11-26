@@ -16,6 +16,7 @@ Tools:
 from mcp.server import MCPServer
 
 from ..._shared import get_optional_tool_decorator
+from ._coherence_audit import run_coherence_audit
 from ._constraints import check_domain_constraints, evolve_constraint
 from ._data_artifacts import validate_data_artifacts
 from ._evolution import apply_pending_evolutions, verify_evolution
@@ -66,6 +67,7 @@ def register_audit_hook_tools(
         "validate_data_artifacts": registered["validate_data_artifacts"],
         "run_writing_hooks": registered["run_writing_hooks"],
         "run_quality_repair_plan": run_quality_repair_plan,
+        "run_coherence_audit": run_coherence_audit,
         "run_review_hooks": registered["run_review_hooks"],
         "verify_evolution": registered["verify_evolution"],
         "check_domain_constraints": registered["check_domain_constraints"],

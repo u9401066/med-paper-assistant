@@ -9,6 +9,9 @@ from typing import Any
 from med_paper_assistant.infrastructure.persistence.hook_effectiveness_tracker import (
     HookEffectivenessTracker,
 )
+from med_paper_assistant.infrastructure.persistence.narrative_thread_store import (
+    NarrativeThreadStore,
+)
 from med_paper_assistant.infrastructure.persistence.writing_hooks import WritingHooksEngine
 from med_paper_assistant.infrastructure.services.drafter import normalize_draft_filename
 
@@ -141,6 +144,7 @@ def _auto_run_post_write_hooks(
 
         engine = WritingHooksEngine(project_dir)
         results = engine.run_post_write_hooks(content, section=section)
+        NarrativeThreadStore(project_dir).refresh_from_draft(filename, content, section)
         summary, critical, warnings = _record_hook_results(project_dir, results)
         _write_auto_hook_report(
             project_dir, filename, section, len(results), critical, warnings, summary

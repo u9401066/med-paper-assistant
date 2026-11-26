@@ -88,7 +88,7 @@ class QualityChecksTool:
         """Run consolidated review/audit quality actions through one stable entrypoint.
 
         Actions: quality_audit, meta_learning, data_artifacts, writing_hooks, repair_plan,
-        review_hooks, formatting, record_hook_event, verify_evolution, domain_constraints,
+        coherence, review_hooks, formatting, record_hook_event, verify_evolution, domain_constraints,
         evolve_constraint, pending_evolutions, tool_health, constraint_ledger,
         constraint_add, constraint_satisfy, constraint_waive, constraint_reopen.
         """

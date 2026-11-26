@@ -73,19 +73,24 @@ _PHASE_CALL_TEMPLATES: dict[int, list[dict[str, Any]]] = {
     ],
     5: [
         {
-            "tool": "reference_action",
-            "arguments": {"action": "evidence_pack", "usage_sections": "Introduction"},
-            "reason": "Load grounded citation keys and findings before drafting",
+            "tool": "draft_action",
+            "arguments": {"action": "brief", "section": "Introduction"},
+            "reason": "Load 5-layer cognitive brief (Golden Thread, plan, section evidence, neighbor handoffs, thinking scaffold) before drafting",
         },
         {
             "tool": "draft_action",
             "arguments": {"action": "write", "filename": "manuscript.md", "content": "..."},
-            "reason": "Draft or update manuscript sections",
+            "reason": "Draft or update manuscript sections (auto-refreshes narrative-thread.yaml)",
+        },
+        {
+            "tool": "run_quality_checks",
+            "arguments": {"action": "coherence"},
+            "reason": "Audit paragraph flow, Results->Discussion echo, terminology drift, and Golden Thread coverage",
         },
         {
             "tool": "run_quality_checks",
             "arguments": {"action": "repair_plan"},
-            "reason": "Get prioritized hook fixes after drafting",
+            "reason": "Get prioritized writing-hook fixes after drafting",
         },
     ],
     6: [

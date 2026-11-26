@@ -36,6 +36,7 @@ medical terms such as "remimazolam"/"ECMO", or abstracts) unless the user explic
 | `pipeline_action(action="validate_phase", phase=N, response_format="json", compact=True)` | Code-enforced phase gate check (`0,1,2,21,3,4,5,6,65,7,8,9,10,11`) |
 | `pipeline_action(action="heartbeat")` | Overview of completion % across all phases |
 | `pipeline_action(action="start_review"\|"submit_review"\|"approve_section")` | Phase 5/7 review and approval loop |
+| `run_quality_checks(action="coherence")` | **Prose coherence & Golden Thread audit** — checks paragraph flow, Results→Discussion echo, term drift, 🔒 Novelty & Selling Point coverage |
 | `run_quality_checks(action="repair_plan")` | **Prioritized repair plan** — converts writing hook issues into concrete patch calls |
 | `run_quality_checks(action="writing_hooks", hooks="post-write"\|"all", draft_filename=...)` | Run code-enforced writing hooks (A/B/C/F/P/G) |
 | `run_quality_checks(action="review_hooks"\|"formatting"\|"quality_audit"\|"data_artifacts")` | Review, journal format, scorecard, and data-artifact checks |
@@ -73,7 +74,9 @@ External `pubmed-search` MCP provides `unified_search`, `generate_search_queries
 | Tool | When to use |
 |------|-------------|
 | `validation_action(action="concept"\|"wikilinks"\|"literature")` | Validate `concept.md` (mandatory before drafting), auto-fix wikilinks, or compare idea with literature |
-| `draft_action(action="write"\|"patch"\|"draft_section")` | Create/edit drafts (`write` & `patch` auto-run post-write hooks) |
+| `draft_action(action="brief", section=...)` | **Start every section here** — 5-layer cognitive brief (Golden Thread, plan, section evidence, neighbor handoffs, thinking scaffold) |
+| `draft_action(action="thread")` | Read or update persistent `.memory/narrative-thread.yaml` (central thesis, canonical terms, section handoffs) |
+| `draft_action(action="write"\|"patch"\|"draft_section")` | Create/edit drafts (`write` & `patch` auto-run post-write hooks & refresh narrative thread) |
 | `draft_action(action="list_drafts"\|"read"\|"count_words"\|"check_order"\|"delete")` | Inspect, count words, check writing order, or remove drafts |
 | `draft_action(action="list_citations"\|"insert_citation"\|"suggest_citations"\|"scan_citations"\|"sync_references")` | Manage `[[author2024_pmid]]` citations and generate References section |
 | `draft_action(action="list")` | Return machine-readable schema of all `draft_action` actions (use `action="list_drafts"` to list files) |
