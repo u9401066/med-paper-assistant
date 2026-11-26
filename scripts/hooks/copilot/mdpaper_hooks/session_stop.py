@@ -19,7 +19,7 @@ def build_context(tool_count: int) -> str:
     return "\n".join(
         [
             "[SESSION ENDING] Before this session closes, ensure:",
-            "1. sync_workspace_state(doing, next_action) — save current progress",
+            '1. workspace_state_action(action="sync", doing=..., next_action=...) — save current progress',
             "2. Update memory-bank/ (progress.md, activeContext.md) if significant work was done",
             "3. Update projects/{slug}/.memory/ (activeContext.md, progress.md) "
             "if working on a paper",

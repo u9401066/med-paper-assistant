@@ -18,8 +18,8 @@ user-invocable: false
 
 **你沒有 `editFiles` 權限。** 這是刻意的安全設計：
 
-- 所有約束修改 → 必須透過 `evolve_constraint()` MCP tool（內建 ±20% 驗證）
-- 所有演化套用 → 必須透過 `apply_pending_evolutions()` MCP tool
+- 所有約束修改 → 必須透過 `run_quality_checks(action="evolve_constraint", ...)` MCP tool（內建 ±20% 驗證）
+- 所有演化套用 → 必須透過 `run_quality_checks(action="pending_evolutions", reason="apply_all")` MCP tool
 - Hook 傳播（更新 5 個檔案）→ **回報給主 Agent 執行**，由主 Agent 的 L1/L2 約束把關
 - 這確保 Code-Enforced 約束（L2）永遠不被繞過
 
@@ -27,8 +27,8 @@ user-invocable: false
 
 - **三層演進**：L1 Hook（即時品質）→ L2 Code（結構約束）→ L3 CI（長期演進）
 - **自我改進邊界**：
-  - ✅ 閾值 ±20% — 透過 `evolve_constraint()` MCP tool（Code-Enforced）
-  - ✅ Pending Evolution 套用 — 透過 `apply_pending_evolutions()` MCP tool
+  - ✅ 閾值 ±20% — 透過 `run_quality_checks(action="evolve_constraint", ...)`（Code-Enforced）
+  - ✅ Pending Evolution 套用 — 透過 `run_quality_checks(action="pending_evolutions", ...)`
   - ⚠️ Hook 傳播、SKILL 更新 — **只分析回報，由主 Agent 執行**
   - ❌ 禁止：直接改檔案、修改 CONSTITUTION、修改 🔒 保護內容、修改 Hook D 自身邏輯
 
@@ -39,8 +39,8 @@ user-invocable: false
 Pipeline 完成後的閉環分析。按順序執行：
 
 ```
-1. check_domain_constraints()          → 了解當前約束狀態
-2. run_meta_learning(project=slug)     → D1-D9 核心分析（MCP tool 有 Code-Enforced 驗證）
+1. run_quality_checks(action="domain_constraints")     → 了解當前約束狀態
+2. run_quality_checks(action="meta_learning", project=slug) → D1-D9 核心分析（Code-Enforced 驗證）
 3. 解讀分析結果，產出結構化報告：
    - adjustments (auto_apply=true): 已由 MCP tool 內部自動套用（±20%）
    - adjustments (auto_apply=false): 超出 ±20%，需用戶確認
@@ -55,16 +55,16 @@ Pipeline 完成後的閉環分析。按順序執行：
 ### 情境 B：對話開始時的 Pending Evolutions
 
 ```
-1. check_domain_constraints()          → 現狀
-2. apply_pending_evolutions()          → MCP tool 內部驗證後套用
-3. verify_evolution()                  → 驗證每個套用的項目
+1. run_quality_checks(action="domain_constraints")                         → 現狀
+2. run_quality_checks(action="pending_evolutions", reason="apply_all")     → MCP tool 內部驗證後套用
+3. run_quality_checks(action="verify_evolution")                           → 驗證每個套用的項目
 4. 回報結果給主 Agent
 ```
 
 ### 情境 C：Tool Health 診斷
 
 ```
-1. diagnose_tool_health()              → 找出工具問題
+1. run_quality_checks(action="tool_health")            → 找出工具問題
 2. 分析健康報告
 3. 回報建議修復方案給主 Agent（自己不修）
 ```
@@ -140,17 +140,17 @@ hook_spec:
 
 ## 安全邊界
 
-| 操作                   | 權限      | 由誰執行                              | 約束層               |
-| ---------------------- | --------- | ------------------------------------- | -------------------- |
-| 閾值 ±20%              | ✅ 自動   | `evolve_constraint()` MCP tool        | **L2 Code-Enforced** |
-| Pending Evolution 套用 | ✅ 自動   | `apply_pending_evolutions()` MCP tool | **L2 Code-Enforced** |
-| 閾值 > ±20%            | ⚠️ 回報   | 主 Agent + 用戶確認                   | L1 + L2              |
-| 新增/移除 Hook         | ⚠️ 回報   | 主 Agent + 用戶確認                   | L1 + L2              |
-| SKILL.md 更新          | ⚠️ 回報   | 主 Agent 執行                         | L1                   |
-| Hook 傳播（5 檔案）    | ⚠️ 回報   | 主 Agent 執行                         | L1 + L2              |
-| 直接改檔案             | ❌ 無權限 | —                                     | 無 `editFiles` 工具  |
-| 修改 CONSTITUTION      | ❌ 禁止   | —                                     | L2 + 無工具          |
-| 修改 🔒 保護內容       | ❌ 禁止   | —                                     | L2 + 無工具          |
-| 修改 Hook D 自身邏輯   | ❌ 禁止   | —                                     | L2 + 無工具          |
+| 操作                   | 權限      | 由誰執行                                          | 約束層               |
+| ---------------------- | --------- | ------------------------------------------------- | -------------------- |
+| 閾值 ±20%              | ✅ 自動   | `run_quality_checks(action="evolve_constraint")`  | **L2 Code-Enforced** |
+| Pending Evolution 套用 | ✅ 自動   | `run_quality_checks(action="pending_evolutions")` | **L2 Code-Enforced** |
+| 閾值 > ±20%            | ⚠️ 回報   | 主 Agent + 用戶確認                               | L1 + L2              |
+| 新增/移除 Hook         | ⚠️ 回報   | 主 Agent + 用戶確認                               | L1 + L2              |
+| SKILL.md 更新          | ⚠️ 回報   | 主 Agent 執行                                     | L1                   |
+| Hook 傳播（5 檔案）    | ⚠️ 回報   | 主 Agent 執行                                     | L1 + L2              |
+| 直接改檔案             | ❌ 無權限 | —                                                 | 無 `editFiles` 工具  |
+| 修改 CONSTITUTION      | ❌ 禁止   | —                                                 | L2 + 無工具          |
+| 修改 🔒 保護內容       | ❌ 禁止   | —                                                 | L2 + 無工具          |
+| 修改 Hook D 自身邏輯   | ❌ 禁止   | —                                                 | L2 + 無工具          |
 
 **設計原則**：meta-learner 只能透過 MCP tools 修改狀態（有 Code-Enforced 驗證），或回報給主 Agent（有 L1 Agent-Driven 約束）。雙重保險，不留漏洞。

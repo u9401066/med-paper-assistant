@@ -29,9 +29,9 @@ user-invocable: false
 
 ## 限制
 
-- ✅ 可使用 mdpaper MCP 唯讀工具: `read_draft`, `list_drafts`, `count_words`, `scan_draft_citations`, `get_available_citations`, `list_saved_references`, `search_local_references`, `get_reference_details`
+- ✅ 可使用 mdpaper MCP 唯讀工具: `project_action(action="current")`, `draft_action(action="read"|"list_drafts"|"count_words"|"scan_citations"|"list_citations")`, `reference_action(action="list_saved"|"search"|"details"|"evidence_pack")`
 - ✅ 可使用 pubmed-search MCP: `unified_search`, `find_related_articles`, `find_citing_articles`（用於驗證文獻覆蓋）
-- ❌ 不可使用 `write_draft`, `patch_draft`, `draft_section`, `insert_citation`, `save_reference_mcp`
+- ❌ 不可使用寫入類操作：`draft_action(action="write"|"patch"|"draft_section"|"insert_citation")`, `save_reference_mcp`, `reference_action(action="save_agent")`
 - ❌ 不可建立或修改任何檔案
 
 ## 工作流
@@ -40,9 +40,9 @@ user-invocable: false
 
 ```
 project_action(action="current") → 取得專案上下文
-read_draft(section="introduction") → 研究背景與假說
-read_draft(section="discussion") → 論述與比較
-list_saved_references() → 已引用文獻清單
+draft_action(action="read", filename="introduction.md") → 研究背景與假說（或讀取 manuscript.md）
+draft_action(action="read", filename="discussion.md") → 論述與比較
+reference_action(action="evidence_pack") → 已引用文獻證據與摘要清單
 ```
 
 ### Step 2: 文獻覆蓋驗證

@@ -306,8 +306,18 @@ def test_draft_tool_requires_writing_hooks(hooks: ModuleType, tmp_path: Path) ->
     assert result["hookSpecificOutput"]["hookEventName"] == "PostToolUse"
     assert context_of(result) == (
         "[WRITING HOOKS REQUIRED] Draft modified via mcp_mdpaper_patch_draft. You MUST run "
-        "run_writing_hooks(hooks='post-write') to check A1-A6 + A3b before proceeding. "
+        'run_quality_checks(action="writing_hooks", hooks="post-write") '
+        '(or run_quality_checks(action="repair_plan")) to check A1-A6 + A3b before proceeding. '
         "This is Code-Enforced and cannot be skipped."
+    )
+    compact = run(
+        hooks,
+        "post-tool-check",
+        {"tool_name": "draft_action", "tool_input": {"action": "write"}},
+        tmp_path,
+    )
+    assert context_of(compact).startswith(
+        "[WRITING HOOKS REQUIRED] Draft modified via draft_action."
     )
 
 
@@ -429,7 +439,10 @@ NORMAL_SWITCH = "MODE SWITCH DETECTED: User wants normal/research mode. Check .c
         ("我做完了，幫我 commit", "COMMIT INTENT: Load git-precommit SKILL.md."),
         ("整理我的文獻庫", "LIBRARY-WIKI INTENT: Prefer workflow_mode=library-wiki."),
         ("show the reading queue", "LIBRARY-WIKI INTENT:"),
-        ("幫我寫 Introduction", "WRITING INTENT: Remember to validate_concept() before drafting"),
+        (
+            "幫我寫 Introduction",
+            'WRITING INTENT: Remember to run validation_action(action="concept") before drafting',
+        ),
         ("全自動寫論文", "AUTOPILOT INTENT: Load auto-paper SKILL.md. Follow 11-phase pipeline."),
         ("我要離開了，存檔", "CHECKPOINT INTENT: Load memory-checkpoint SKILL.md."),
     ],
@@ -542,8 +555,8 @@ def test_session_init_loads_recovery_pending_and_project_context(
         "RECOVERY: Was doing 'Writing intro'",
         "NEXT ACTION: Run hooks",
         "ACTIVE PROJECT: proj-a",
-        "WRITING SESSION: section=Introduction (call get_workspace_state() for details)",
-        "PENDING EVOLUTIONS: 2 items (call get_workspace_state() for details)",
+        'WRITING SESSION: section=Introduction (call workspace_state_action(action="get") for details)',
+        'PENDING EVOLUTIONS: 2 items (call workspace_state_action(action="get") for details)',
         "PROJECTS: 1 active",
         "WORKFLOW MODE: library-wiki",
     ]
@@ -629,9 +642,9 @@ def test_pre_compact_checkpoint_lists_state_and_tool_count(
         "[PRE-COMPACT CHECKPOINT] Context is being compacted. Critical state to preserve:\n"
         "- Mode: research\n- Doing: Methods\n- Next: Results\n- Project: p1\n- Writing: Methods\n"
         "- Tool calls this session: 3\n\n"
-        "ACTION REQUIRED: Before proceeding, call sync_workspace_state() and "
-        "checkpoint_writing_context() if actively writing. Also call get_workspace_state() "
-        "after compaction to recover full context."
+        'ACTION REQUIRED: Before proceeding, call workspace_state_action(action="sync") and '
+        'workspace_state_action(action="checkpoint") if actively writing. Also call '
+        'workspace_state_action(action="get") after compaction to recover full context.'
     )
 
 
@@ -697,7 +710,7 @@ def test_session_stop_counts_before_appending_and_cleans_up(
     assert result["hookSpecificOutput"]["hookEventName"] == "Stop"
     assert context_of(result).splitlines() == [
         "[SESSION ENDING] Before this session closes, ensure:",
-        "1. sync_workspace_state(doing, next_action) — save current progress",
+        '1. workspace_state_action(action="sync", doing=..., next_action=...) — save current progress',
         "2. Update memory-bank/ (progress.md, activeContext.md) if significant work was done",
         "3. Update projects/{slug}/.memory/ (activeContext.md, progress.md) if working on a paper",
         "4. Total tool calls this session: 2",

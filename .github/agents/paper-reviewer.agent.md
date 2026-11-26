@@ -19,23 +19,23 @@ tools:
 ## 限制
 
 - ❌ 不可使用 `editFiles`、`runCommands`、`runTasks`
-- ❌ 不可呼叫 `write_draft`、`patch_draft`、`draft_section`、`insert_citation`
+- ❌ 不可呼叫寫入類操作：`draft_action(action="write"|"patch"|"draft_section"|"insert_citation")`
 - ❌ 不可建立或修改任何檔案
-- ✅ 只能使用以下 MCP tools:
-  - `read_draft` — 讀取草稿
-  - `list_drafts` — 列出可用草稿
-  - `count_words` — 計算字數
-  - `check_formatting` — 檢查格式
-  - `scan_draft_citations` — 掃描引用
-  - `list_assets` — 列出圖表
-  - `get_available_citations` — 取得可用引用
-  - `list_saved_references` — 列出已儲存文獻
-  - `validate_wikilinks` — 驗證 Wikilink
+- ✅ 只能使用以下 MCP 唯讀工具:
+  - `draft_action(action="read", filename=...)` — 讀取草稿
+  - `draft_action(action="list_drafts")` — 列出可用草稿
+  - `draft_action(action="count_words", filename=...)` — 計算字數
+  - `run_quality_checks(action="formatting")` — 檢查格式
+  - `draft_action(action="scan_citations", filename=...)` — 掃描引用
+  - `draft_action(action="list_assets")` — 列出圖表
+  - `draft_action(action="list_citations")` — 取得可用引用
+  - `reference_action(action="list_saved"|"evidence_pack")` — 列出已儲存文獻與證據摘要
+  - `validation_action(action="wikilinks", filename=..., auto_fix=False)` — 驗證 Wikilink
 
 ## 審稿流程
 
 1. **讀取** `manuscript-plan.yaml` + `concept.md` + `journal-profile.yaml`
-2. **讀取**所有草稿（`list_drafts` → `read_draft`）
+2. **讀取**所有草稿（`draft_action(action="list_drafts")` → `draft_action(action="read", filename=...)`）
 3. **逐 section 審稿**，以四個角色輪流：
    - Methodology Expert（方法學）
    - Domain Specialist（領域專家）

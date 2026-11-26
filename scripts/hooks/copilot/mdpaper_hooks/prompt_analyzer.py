@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from .common import HookContext, HookResult, Payload, build_output, get_prompt
-from .workspace import active_workflow_mode
+from .workspace import active_workflow_mode, read_workspace_mode
 
 
 def _intent(pattern: str) -> re.Pattern[str]:
@@ -21,6 +21,11 @@ LIBRARY_RE = _intent(
 WRITING_RE = _intent(r"(寫草稿|draft|撰寫|Introduction|Methods|Results|Discussion|write section)")
 AUTOPILOT_RE = _intent(r"(autopilot|全自動|一鍵|auto.?paper|從頭到尾)")
 CHECKPOINT_RE = _intent(r"(存檔|checkpoint|save|要離開|暫停|pause|怕忘記)")
+REPO_META_RE = _intent(
+    r"(\b(?:repo|repository|plugin|mcp|harness|ci|github|workflow|pr|issue|codebase|skill|hook)\b"
+    r"|程式碼|架構|測試|發布|改進版本)"
+)
+PAPER_TARGET_RE = _intent(r"(projects/|concept\.md|manuscript\.md|/mdpaper\.)")
 
 LIBRARY_WIKI = "library-wiki"
 
@@ -41,11 +46,14 @@ def _writing(prompt: str, workflow: str) -> list[str]:
             "WRITING INTENT IN LIBRARY-WIKI PROJECT: Confirm whether to switch workflow_mode "
             "to manuscript before applying concept-validation and draft pipeline gates."
         ]
-    return ["WRITING INTENT: Remember to validate_concept() before drafting (CONSTITUTION rule)."]
+    return [
+        'WRITING INTENT: Remember to run validation_action(action="concept") before drafting '
+        "(CONSTITUTION rule)."
+    ]
 
 
 def _autopilot(prompt: str, workflow: str, library_intent: bool) -> list[str]:
-    if not AUTOPILOT_RE.search(prompt):
+    if not AUTOPILOT_RE.search(prompt) or REPO_META_RE.search(prompt):
         return []
     if workflow == LIBRARY_WIKI or library_intent:
         return [
@@ -55,25 +63,31 @@ def _autopilot(prompt: str, workflow: str, library_intent: bool) -> list[str]:
     return ["AUTOPILOT INTENT: Load auto-paper SKILL.md. Follow 11-phase pipeline."]
 
 
-def analyze_prompt(prompt: str, workflow: str) -> list[str]:
-    """Context lines for a prompt, given the active project's workflow mode."""
+def analyze_prompt(
+    prompt: str,
+    workflow: str,
+    workspace_mode: str | None = None,
+) -> list[str]:
+    """Context lines for a prompt, given active workflow and workspace mode."""
     parts: list[str] = []
-    if workflow and workflow != "null":
+    suppress_paper = workspace_mode == "development" and not PAPER_TARGET_RE.search(prompt)
+    if workflow and workflow != "null" and not suppress_paper:
         parts.append(f"ACTIVE WORKFLOW MODE: {workflow}")
     parts += _mode_switch(prompt)
     if COMMIT_RE.search(prompt):
         parts.append(
             "COMMIT INTENT: Load git-precommit SKILL.md. Run G1-G9 + P1-P8 if paper files changed."
         )
-    library_intent = bool(LIBRARY_RE.search(prompt))
-    if library_intent:
-        parts.append(
-            "LIBRARY-WIKI INTENT: Prefer workflow_mode=library-wiki. Route via "
-            "search/save_reference_mcp/materialize_agent_wiki or dashboards. Do not require "
-            "concept validation unless the user explicitly switches to manuscript."
-        )
-    parts += _writing(prompt, workflow)
-    parts += _autopilot(prompt, workflow, library_intent)
+    if not suppress_paper:
+        library_intent = bool(LIBRARY_RE.search(prompt))
+        if library_intent:
+            parts.append(
+                "LIBRARY-WIKI INTENT: Prefer workflow_mode=library-wiki. Route via "
+                'pubmed-search / save_reference_mcp / library_action(action="materialize_concept"|"build_dashboard"). '
+                "Do not require concept validation unless the user explicitly switches to manuscript."
+            )
+        parts += _writing(prompt, workflow)
+        parts += _autopilot(prompt, workflow, library_intent)
     if CHECKPOINT_RE.search(prompt):
         parts.append("CHECKPOINT INTENT: Load memory-checkpoint SKILL.md. Externalize context now.")
     return parts
@@ -83,5 +97,9 @@ def run(payload: Payload, ctx: HookContext) -> HookResult:
     prompt = get_prompt(payload)
     if not prompt:
         return None
-    parts = analyze_prompt(prompt, active_workflow_mode(ctx.workspace_root))
+    parts = analyze_prompt(
+        prompt,
+        active_workflow_mode(ctx.workspace_root),
+        workspace_mode=read_workspace_mode(ctx.workspace_root),
+    )
     return build_output("UserPromptSubmit", "\n".join(parts)) if parts else None

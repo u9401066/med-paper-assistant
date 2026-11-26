@@ -132,7 +132,7 @@ def test_pre_tool_use_allows_safe_calls_and_fails_open(tmp_path: Path) -> None:
 
 
 def test_session_start_and_pre_invocation_inject_system_message(tmp_path: Path) -> None:
-    _write_mode(tmp_path, "development")
+    _write_mode(tmp_path, "research")
     dispatch = _load_dispatcher()
 
     start_raw, code = dispatch.dispatch(
@@ -143,7 +143,7 @@ def test_session_start_and_pre_invocation_inject_system_message(tmp_path: Path) 
     start_out = json.loads(start_raw)
     assert "injectSteps" in start_out
     msg = start_out["injectSteps"][0]["systemMessage"]["systemMessage"]
-    assert "MODE: development" in msg
+    assert "MODE: research" in msg
 
     first_turn_raw, _ = dispatch.dispatch(
         "pre-invocation",
@@ -153,6 +153,10 @@ def test_session_start_and_pre_invocation_inject_system_message(tmp_path: Path) 
     )
     first_turn = json.loads(first_turn_raw)
     assert "WRITING INTENT" in first_turn["injectSteps"][0]["systemMessage"]["systemMessage"]
+    assert (
+        'validation_action(action="concept")'
+        in first_turn["injectSteps"][0]["systemMessage"]["systemMessage"]
+    )
 
     second_step_raw, _ = dispatch.dispatch(
         "pre-invocation",
@@ -161,6 +165,43 @@ def test_session_start_and_pre_invocation_inject_system_message(tmp_path: Path) 
         ).encode("utf-8"),
     )
     assert json.loads(second_step_raw) == {}
+
+
+def test_pre_invocation_suppresses_paper_noise_in_development_mode(tmp_path: Path) -> None:
+    _write_mode(tmp_path, "development")
+    dispatch = _load_dispatcher()
+
+    meta_raw, code = dispatch.dispatch(
+        "pre-invocation",
+        json.dumps(
+            {
+                "cwd": str(tmp_path),
+                "invocationNum": 1,
+                "lastUserInput": "你覺得這個全自動寫論文的repo和plugin還缺什麼？",
+            }
+        ).encode("utf-8"),
+    )
+    assert code == 0
+    assert json.loads(meta_raw) == {}
+
+
+def test_pre_tool_use_asks_on_compact_reference_save_agent(tmp_path: Path) -> None:
+    _write_mode(tmp_path, "development")
+    dispatch = _load_dispatcher()
+    payload = {
+        "hookEventName": "PreToolUse",
+        "cwd": str(tmp_path),
+        "toolCall": {
+            "id": "t6",
+            "name": "med-paper-assistant_mdpaper_reference_action",
+            "args": {"action": "save_agent"},
+        },
+    }
+    raw, code = dispatch.dispatch("pre-tool-use", json.dumps(payload).encode("utf-8"))
+    result = json.loads(raw)
+    assert code == 0
+    assert result["decision"] == "ask"
+    assert "save_reference_mcp" in result["reason"]
 
 
 def test_post_tool_use_and_stop_return_empty_json(tmp_path: Path) -> None:

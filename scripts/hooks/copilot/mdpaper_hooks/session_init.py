@@ -56,7 +56,9 @@ def _state_parts(state: Payload) -> list[str]:
             parts.append(template.format(value))
     section = writing_section(state)
     if section and section != "null":
-        parts.append(f"WRITING SESSION: section={section} (call get_workspace_state() for details)")
+        parts.append(
+            f'WRITING SESSION: section={section} (call workspace_state_action(action="get") for details)'
+        )
     return parts
 
 
@@ -83,7 +85,7 @@ def run(_payload: Payload, ctx: HookContext) -> HookResult:
     pending = count_pending_evolutions(root)
     if pending > 0:
         parts.append(
-            f"PENDING EVOLUTIONS: {pending} items (call get_workspace_state() for details)"
+            f'PENDING EVOLUTIONS: {pending} items (call workspace_state_action(action="get") for details)'
         )
 
     project_parts, project, wf_mode = _project_parts(root, state)

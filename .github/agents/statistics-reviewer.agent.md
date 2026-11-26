@@ -28,8 +28,8 @@ user-invocable: false
 
 ## 限制
 
-- ✅ 可使用 mdpaper MCP 唯讀工具: `read_draft`, `list_drafts`, `count_words`, `check_formatting`, `scan_draft_citations`, `get_available_citations`, `list_saved_references`, `list_assets`
-- ❌ 不可使用 `write_draft`, `patch_draft`, `draft_section`, `insert_citation`
+- ✅ 可使用 mdpaper MCP 唯讀工具: `project_action(action="current")`, `draft_action(action="read"|"list_drafts"|"count_words"|"scan_citations"|"list_citations"|"list_assets")`, `run_quality_checks(action="formatting")`, `reference_action(action="list_saved"|"evidence_pack")`
+- ❌ 不可使用寫入類操作：`draft_action(action="write"|"patch"|"draft_section"|"insert_citation")`
 - ❌ 不可建立或修改任何檔案
 
 ## 工作流
@@ -38,9 +38,9 @@ user-invocable: false
 
 ```
 project_action(action="current") → 取得專案上下文
-read_draft(section="methods") → Statistical Analysis 子節
-read_draft(section="results") → 數據呈現
-list_assets() → 圖表清單
+draft_action(action="read", filename="methods.md") → Statistical Analysis 子節（或讀取 manuscript.md）
+draft_action(action="read", filename="results.md") → 數據呈現
+draft_action(action="list_assets") → 圖表清單
 ```
 
 ### Step 2: 逐項審查

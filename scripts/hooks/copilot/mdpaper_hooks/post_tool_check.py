@@ -22,15 +22,58 @@ from .workspace import active_workflow_mode
 EVENT = "PostToolUse"
 LIBRARY_WIKI = "library-wiki"
 
-DRAFT_TOOL_RE = re.compile(r"mcp_mdpaper_(write_draft|patch_draft|draft_section)", re.IGNORECASE)
+DRAFT_TOOL_RE = re.compile(r"(?:^|_)(write_draft|patch_draft|draft_section)$", re.IGNORECASE)
+DRAFT_ACTION_RE = re.compile(r"(?:^|_)draft_action$", re.IGNORECASE)
+DRAFT_WRITE_ACTIONS = frozenset(
+    {"write", "patch", "draft_section", "section", "create", "update", "edit"}
+)
+DRAFT_CITE_ACTIONS = frozenset({"insert_citation", "cite"})
 FILE_EDIT_RE = re.compile(
-    r"apply_patch|editFiles|replace_string|multi_replace|create_file", re.IGNORECASE
+    r"apply_patch|editFiles|replace_string|multi_replace|create_file|edit_file|write_file",
+    re.IGNORECASE,
 )
 APPLY_PATCH_RE = re.compile(r"apply_patch", re.IGNORECASE)
-INSERT_CITATION_RE = re.compile(r"mcp_mdpaper_insert_citation", re.IGNORECASE)
-SAVE_REFERENCE_RE = re.compile(r"mcp_mdpaper_save_reference", re.IGNORECASE)
+INSERT_CITATION_RE = re.compile(r"(?:^|_)insert_citation$", re.IGNORECASE)
+SAVE_REFERENCE_RE = re.compile(r"(?:^|_)save_reference(?:_mcp)?$", re.IGNORECASE)
+REFERENCE_ACTION_RE = re.compile(r"(?:^|_)reference_action$", re.IGNORECASE)
+REFERENCE_SAVE_ACTIONS = frozenset({"save_agent", "save", "save_reference", "agent_save"})
 TERMINAL_RE = re.compile(r"terminal", re.IGNORECASE)
-VALIDATE_CONCEPT_RE = re.compile(r"mcp_mdpaper_validate_concept$", re.IGNORECASE)
+VALIDATE_CONCEPT_RE = re.compile(r"(?:^|_)validate_concept$", re.IGNORECASE)
+VALIDATION_ACTION_RE = re.compile(r"(?:^|_)validation_action$", re.IGNORECASE)
+VALIDATION_CONCEPT_ACTIONS = frozenset({"concept", "validate_concept", "concept_validation"})
+
+
+def _action_name(tool_input: Payload) -> str:
+    return alt(tool_input.get("action")).strip().lower().replace("-", "_")
+
+
+def _is_draft_write_call(tool: str, tool_input: Payload) -> bool:
+    if DRAFT_TOOL_RE.search(tool):
+        return True
+    return bool(DRAFT_ACTION_RE.search(tool) and _action_name(tool_input) in DRAFT_WRITE_ACTIONS)
+
+
+def _is_insert_citation_call(tool: str, tool_input: Payload) -> bool:
+    if INSERT_CITATION_RE.search(tool):
+        return True
+    return bool(DRAFT_ACTION_RE.search(tool) and _action_name(tool_input) in DRAFT_CITE_ACTIONS)
+
+
+def _is_save_reference_call(tool: str, tool_input: Payload) -> bool:
+    if SAVE_REFERENCE_RE.search(tool):
+        return True
+    return bool(
+        REFERENCE_ACTION_RE.search(tool) and _action_name(tool_input) in REFERENCE_SAVE_ACTIONS
+    )
+
+
+def _is_validate_concept_call(tool: str, tool_input: Payload) -> bool:
+    if VALIDATE_CONCEPT_RE.search(tool):
+        return True
+    return bool(
+        VALIDATION_ACTION_RE.search(tool) and _action_name(tool_input) in VALIDATION_CONCEPT_ACTIONS
+    )
+
 
 DRAFT_FILE_RE = re.compile(r"projects/.*/drafts/.*\.md$")
 CONCEPT_FILE_RE = re.compile(r"projects/.*/concept\.md$")
@@ -40,8 +83,8 @@ GIT_COMMIT_RE = re.compile(r"git\s+commit")
 PATCH_FILE_LINE_RE = re.compile(r"^\*\*\* (?:Update|Add|Delete) File: (.*)$")
 
 
-def _draft_tool_context(tool: str, workflow: str) -> str:
-    if not DRAFT_TOOL_RE.search(tool):
+def _draft_tool_context(tool: str, tool_input: Payload, workflow: str) -> str:
+    if not _is_draft_write_call(tool, tool_input):
         return ""
     if workflow == LIBRARY_WIKI:
         return (
@@ -51,7 +94,8 @@ def _draft_tool_context(tool: str, workflow: str) -> str:
         )
     return (
         f"[WRITING HOOKS REQUIRED] Draft modified via {tool}. You MUST run "
-        "run_writing_hooks(hooks='post-write') to check A1-A6 + A3b before proceeding. "
+        'run_quality_checks(action="writing_hooks", hooks="post-write") '
+        '(or run_quality_checks(action="repair_plan")) to check A1-A6 + A3b before proceeding. '
         "This is Code-Enforced and cannot be skipped."
     )
 
@@ -65,7 +109,7 @@ def _draft_file_context(file_path: str, workflow: str) -> str:
         )
     return (
         f"[WRITING HOOKS REQUIRED] Draft file '{file_path}' was edited directly. Run "
-        "run_writing_hooks(hooks='post-write') to check A1-A6 + A3b."
+        'run_quality_checks(action="writing_hooks", hooks="post-write") to check A1-A6 + A3b.'
     )
 
 
@@ -77,8 +121,8 @@ def _concept_file_context(workflow: str) -> str:
             "manuscript."
         )
     return (
-        "[CONCEPT CHANGED] concept.md was modified. Remember: validate_concept() must pass "
-        "(novelty ≥ 75) before any draft writing."
+        '[CONCEPT CHANGED] concept.md was modified. Remember: validation_action(action="concept") '
+        "must pass (novelty ≥ 75) before any draft writing."
     )
 
 
@@ -91,7 +135,7 @@ def _edited_file_context(file_path: str, workflow: str, context: str) -> str:
         context = _concept_file_context(workflow)
     if PROJECT_YAML_RE.search(normalized):
         context = (
-            "[PROJECT CONFIG CHANGED] .project.yaml was modified. Run get_current_project() "
+            '[PROJECT CONFIG CHANGED] .project.yaml was modified. Run project_action(action="current") '
             "to verify the changes are correct."
         )
     if STATE_FILE_RE.search(normalized):
@@ -146,15 +190,15 @@ def _reference_saved_context(workflow: str) -> str:
             "refreshing knowledge pages, synthesis notes, or dashboard views next."
         )
     return (
-        "[REFERENCE SAVED] Reference saved. Use get_available_citations() to see citation "
-        "keys for use in drafts."
+        '[REFERENCE SAVED] Reference saved. Use draft_action(action="list_citations") or '
+        'reference_action(action="evidence_pack") to see citation keys and findings for drafts.'
     )
 
 
 def _concept_validated_context(workflow: str) -> str:
     if workflow == LIBRARY_WIKI:
         return (
-            "[MANUSCRIPT CHECK IN LIBRARY MODE] validate_concept() was run inside a "
+            '[MANUSCRIPT CHECK IN LIBRARY MODE] validation_action(action="concept") was run inside a '
             "library-wiki project. If you are moving toward drafting, switch workflow_mode to "
             "manuscript so later gates apply."
         )
@@ -164,13 +208,13 @@ def _concept_validated_context(workflow: str) -> str:
     )
 
 
-def _mcp_tool_context(tool: str, workflow: str, context: str) -> str:
-    if INSERT_CITATION_RE.search(tool):
+def _mcp_tool_context(tool: str, tool_input: Payload, workflow: str, context: str) -> str:
+    if _is_insert_citation_call(tool, tool_input):
         context = (
-            "[CITATION ADDED] After inserting citations, remember to run sync_references() "
-            "when done to generate the References section."
+            "[CITATION ADDED] After inserting citations, remember to run "
+            'draft_action(action="sync_references") when done to generate the References section.'
         )
-    if SAVE_REFERENCE_RE.search(tool):
+    if _is_save_reference_call(tool, tool_input):
         context = _reference_saved_context(workflow)
     return context
 
@@ -179,19 +223,19 @@ def _commit_context(tool: str, tool_input: Payload, context: str) -> str:
     if TERMINAL_RE.search(tool) and GIT_COMMIT_RE.search(alt(tool_input.get("command"))):
         return (
             "[POST-COMMIT] Git commit detected. Remember to: 1) Update memory-bank "
-            "(progress.md, activeContext.md), 2) sync_workspace_state, 3) Consider CHANGELOG "
-            "update."
+            '(progress.md, activeContext.md), 2) workspace_state_action(action="sync"), '
+            "3) Consider CHANGELOG update."
         )
     return context
 
 
 def build_context(tool: str, tool_input: Payload, workflow: str) -> str:
     """Reminder text for a finished tool call (the last matching rule wins)."""
-    context = _draft_tool_context(tool, workflow)
+    context = _draft_tool_context(tool, tool_input, workflow)
     context = _file_edit_context(tool, tool_input, workflow, context)
-    context = _mcp_tool_context(tool, workflow, context)
+    context = _mcp_tool_context(tool, tool_input, workflow, context)
     context = _commit_context(tool, tool_input, context)
-    if VALIDATE_CONCEPT_RE.search(tool):
+    if _is_validate_concept_call(tool, tool_input):
         context = _concept_validated_context(workflow)
     return context
 

@@ -7,9 +7,9 @@ from .workspace import mode_or_normal, read_state, writing_section
 
 EVENT = "PreCompact"
 ACTION_REQUIRED = (
-    "ACTION REQUIRED: Before proceeding, call sync_workspace_state() and "
-    "checkpoint_writing_context() if actively writing. Also call get_workspace_state() "
-    "after compaction to recover full context."
+    'ACTION REQUIRED: Before proceeding, call workspace_state_action(action="sync") and '
+    'workspace_state_action(action="checkpoint") if actively writing. Also call '
+    'workspace_state_action(action="get") after compaction to recover full context.'
 )
 
 

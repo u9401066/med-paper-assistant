@@ -162,12 +162,37 @@ def _handle_session_start(payload: dict[str, Any], workspace: Path) -> dict[str,
     return _inject_system_message(_additional_context(result))
 
 
+_LAST_PROMPT_STATE = Path(".github") / "hooks" / "_state" / "last_pre_invocation.json"
+
+
+def _already_injected_prompt(workspace: Path, conversation_id: str, prompt: str) -> bool:
+    if not conversation_id:
+        return False
+    state_path = workspace / _LAST_PROMPT_STATE
+    try:
+        if state_path.is_file():
+            prev = json.loads(state_path.read_text(encoding="utf-8"))
+            if prev.get("conversationId") == conversation_id and prev.get("prompt") == prompt:
+                return True
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps({"conversationId": conversation_id, "prompt": prompt}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except OSError:
+        return False
+    return False
+
+
 def _handle_pre_invocation(payload: dict[str, Any], workspace: Path) -> dict[str, Any]:
     invocation_num = payload.get("invocationNum", 1)
     if isinstance(invocation_num, int) and invocation_num > 1:
         return {}
     prompt = payload.get("lastUserInput") or ""
     if not isinstance(prompt, str) or not prompt.strip():
+        return {}
+    conv_id = str(payload.get("conversationId") or "")
+    if _already_injected_prompt(workspace, conv_id, prompt):
         return {}
     _ensure_imports()
     import mdpaper_hooks

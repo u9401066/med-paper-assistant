@@ -40,7 +40,9 @@ EDIT_TOOL_RE = re.compile(
     r"editFiles|create_file|replace_string|multi_replace|write_file", re.IGNORECASE
 )
 TERMINAL_TOOL_RE = re.compile(r"terminal", re.IGNORECASE)
-SAVE_REFERENCE_RE = re.compile(r"mcp_mdpaper_save_reference$", re.IGNORECASE)
+SAVE_REFERENCE_RE = re.compile(r"(?:^|_)save_reference$", re.IGNORECASE)
+REFERENCE_ACTION_RE = re.compile(r"(?:^|_)reference_action$", re.IGNORECASE)
+SAVE_AGENT_ACTIONS = frozenset({"save_agent", "save", "save_reference", "agent_save"})
 DANGEROUS_COMMAND_RE = re.compile(
     r"(rm\s+-rf\s+/|DROP\s+TABLE|DROP\s+DATABASE|--no-verify|--force\s+push|git\s+push\s+--force)"
 )
@@ -135,17 +137,28 @@ def _terminal_decision(tool: str, tool_input: Payload, root: Path) -> HookResult
     return None
 
 
-def _save_reference_decision(tool: str) -> HookResult:
-    if not SAVE_REFERENCE_RE.search(tool):
-        return None
-    return build_decision(
-        EVENT,
-        "ask",
-        "CONSTITUTION RULE: Use save_reference_mcp(pmid) instead of save_reference(). "
-        "save_reference is only for fallback when API is unavailable.",
-        "save_reference_mcp fetches verified data directly from PubMed API, "
-        "preventing metadata corruption.",
-    )
+def _save_reference_decision(tool: str, tool_input: Payload) -> HookResult:
+    if SAVE_REFERENCE_RE.search(tool):
+        return build_decision(
+            EVENT,
+            "ask",
+            "CONSTITUTION RULE: Use save_reference_mcp(pmid) instead of save_reference(). "
+            "save_reference is only for fallback when API is unavailable.",
+            "save_reference_mcp fetches verified data directly from PubMed API, "
+            "preventing metadata corruption.",
+        )
+    if REFERENCE_ACTION_RE.search(tool):
+        action = first_alt(tool_input.get("action")).strip().lower().replace("-", "_")
+        if action in SAVE_AGENT_ACTIONS:
+            return build_decision(
+                EVENT,
+                "ask",
+                'CONSTITUTION RULE: Use save_reference_mcp(pmid) instead of reference_action(action="save_agent"). '
+                "save_agent is only for fallback when API is unavailable.",
+                "save_reference_mcp fetches verified data directly from PubMed API, "
+                "preventing metadata corruption.",
+            )
+    return None
 
 
 def run(payload: Payload, ctx: HookContext) -> HookResult:
@@ -156,7 +169,7 @@ def run(payload: Payload, ctx: HookContext) -> HookResult:
     decision = (
         _protected_path_decision(tool, tool_input, current_mode(ctx))
         or _terminal_decision(tool, tool_input, ctx.workspace_root)
-        or _save_reference_decision(tool)
+        or _save_reference_decision(tool, tool_input)
     )
     if decision is not None:
         return decision

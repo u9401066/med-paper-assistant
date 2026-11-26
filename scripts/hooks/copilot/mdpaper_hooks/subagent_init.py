@@ -17,7 +17,7 @@ READ_ONLY_REVIEW = (
 )
 AGENT_GUIDANCE = {
     "literature-searcher": (
-        "Use save_reference_mcp(pmid) for saving. Never use save_reference() directly."
+        'Use save_reference_mcp(pmid) for saving. Never use reference_action(action="save_agent") directly unless PubMed API is unavailable.'
     ),
     "paper-reviewer": READ_ONLY_REVIEW,
     "domain-reviewer": READ_ONLY_REVIEW,
