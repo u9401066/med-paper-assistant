@@ -6,7 +6,7 @@
         "--python",
         "3.12",
         "--from",
-        "med-paper-assistant[provenance,watermark]==1.1.0",
+        "med-paper-assistant[provenance,watermark]==1.1.1",
         "med-paper-assistant"
       ],
       "env": {
@@ -41,7 +41,10 @@
         "--from",
         "https://github.com/u9401066/creativity-generation-unit/archive/bb32a8f42123223a1cc54a41f7baed93b0c90d50.tar.gz",
         "cgu-server"
-      ]
+      ],
+      "env": {
+        "CGU_PROVIDER": "passthrough"
+      }
     },
     "drawio": {
       "command": "uvx",

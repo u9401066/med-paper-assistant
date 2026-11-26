@@ -52,11 +52,11 @@
 
 ### 如何選擇安裝面
 
-| 安裝面              | 適合誰                                    | 你會拿到什麼                                                                                                                                                                                 |
-| ------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **完整 repository** | 維護者、進階使用者、workflow 作者         | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、38 個 skills、15 個 prompt workflows、跨 Agent harness、repo scripts、tests 與作者文件                                                         |
-| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者              | `@mdpaper`、9 個 palette commands、compact-first `mdpaper` runtime（預設 12 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件 |
-| **Agent Plugin**    | Copilot CLI / VS Code、Claude Code、Codex | 可攜式 [Agent Plugins](https://agent-plugins.org/) 套件：compact `mdpaper` 與五個協作 MCP（透過 `uvx`）、25 個研究 skills、9 個 Copilot agents                                               |
+| 安裝面              | 適合誰                                                        | 你會拿到什麼                                                                                                                                                                                         |
+| ------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **完整 repository** | 維護者、進階使用者、workflow 作者                             | 核心 `mdpaper` runtime、釘選 MCP 整合/子模組、38 個 skills、15 個 prompt workflows、跨 Agent harness、repo scripts、tests 與作者文件                                                                 |
+| **VSIX 擴充功能**   | 想直接用打包體驗的終端使用者                                  | `@mdpaper`、9 個 palette commands、compact-first `mdpaper` runtime（預設 12 工具 / 可切 118）、14 個 bundled skills、13 個 bundled prompt workflows、9 個 bundled agents，以及 LLM wiki 文件         |
+| **Agent Plugin**    | Copilot CLI / VS Code、Claude Code、Codex、Google Antigravity | 可攜式 [Agent Plugins](https://agent-plugins.org/) 套件：compact `mdpaper` 與五個協作 MCP（透過 `uvx`）、25 個研究 skills、9 個 Copilot + Antigravity agents、`mcp_config.json` 與 `rules/AGENTS.md` |
 
 也就是說：repository 是較寬的工程面；VSIX 是較收斂的終端使用者面。
 
@@ -73,6 +73,11 @@ claude plugin install med-paper-assistant@medpaper
 
 # Codex：開啟本 repository（repo marketplace 為 .agents/plugins/marketplace.json），
 # 再從 /plugins 選單安裝 "med-paper-assistant"。
+
+# Google Antigravity（App / IDE / CLI）：
+# - 在本 repository：透過 .agents/plugins.json 自動探索（另附 .agents/skills.json 與 .agents/hooks.json）。
+# - 全域跨研究專案：將 plugins/med-paper-assistant/ 複製或建立符號連結至
+#   ~/.gemini/config/plugins/med-paper-assistant/
 ```
 
 請在你的研究資料夾中啟動 agent。若有設定 `MEDPAPER_BASE_DIR`，專案會寫到那裡；否則寫到 client 的專案目錄，絕不寫進 plugin 套件內。若 client 在其他位置啟動 server，可呼叫 `workspace_state_action(action="bind", workspace_dir="/absolute/path")` 指向研究資料夾；`workspace_state_action(action="get")` 會回報目前根目錄及其來源。
@@ -83,17 +88,18 @@ claude plugin install med-paper-assistant@medpaper
 
 ![MedPaper Assistant 架構圖](docs/assets/medpaper-architecture.svg)
 
-### Claude Code、Codex、Copilot CLI、Cline 與 OpenClaw
+### Claude Code、Codex、Copilot CLI、Google Antigravity、Cline 與 OpenClaw
 
 各 agent runtime 共用相同的證據與品質 gate：
 
-| Runtime                       | 專案指引                                                                            | 學術寫作 skill / plugin                                                                                |
-| ----------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Claude Code                   | [`CLAUDE.md`](CLAUDE.md) 與 [`AGENTS.md`](AGENTS.md)                                | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) 或 Agent Plugin |
-| Codex                         | [`AGENTS.md`](AGENTS.md)                                                            | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) 或 Agent Plugin |
-| GitHub Copilot（VS Code/CLI） | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) 與 `AGENTS.md` | `.claude/skills/`（自動探索）、[`.github/agents/`](.github/agents/) 或 Agent Plugin                    |
-| Cline                         | [`AGENTS.md`](AGENTS.md)                                                            | 將 `plugins/med-paper-assistant/mcp.json` 的 MCP servers 登錄到 Cline 的 MCP 設定                      |
-| OpenClaw                      | [`AGENTS.md`](AGENTS.md) 加 workspace policy                                        | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                 |
+| Runtime                           | 專案指引                                                                            | 學術寫作 skill / plugin                                                                                                                                               |
+| --------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Google Antigravity（App/IDE/CLI） | [`AGENTS.md`](AGENTS.md)（≤24 KB）與 plugin `rules/AGENTS.md`                       | [`.agents/plugins.json`](.agents/plugins.json) → `plugins/med-paper-assistant/`（`mcp_config.json`、25 skills、9 agents）+ [`.agents/hooks.json`](.agents/hooks.json) |
+| Claude Code                       | [`CLAUDE.md`](CLAUDE.md) 與 [`AGENTS.md`](AGENTS.md)                                | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) 或 Agent Plugin                                                                |
+| Codex                             | [`AGENTS.md`](AGENTS.md)                                                            | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) 或 Agent Plugin                                                                |
+| GitHub Copilot（VS Code/CLI）     | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) 與 `AGENTS.md` | `.claude/skills/`（自動探索）、[`.github/agents/`](.github/agents/) 或 Agent Plugin                                                                                   |
+| Cline                             | [`AGENTS.md`](AGENTS.md)                                                            | 將 `plugins/med-paper-assistant/mcp.json` 的 MCP servers 登錄到 Cline 的 MCP 設定                                                                                     |
+| OpenClaw                          | [`AGENTS.md`](AGENTS.md) 加 workspace policy                                        | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                                                                                |
 
 平台中立的[學術寫作 workflow](docs/harness/academic-writing-workflow.md)涵蓋正式論文、計畫書、結案報告、小論文、preprint、審計 gate 與安全的範本文獻使用方式。
 
@@ -326,7 +332,7 @@ projects/{slug}/
 ### 基礎架構
 
 - **DDD 架構**（Domain-Driven Design）清晰的分層設計
-- **29 個 pre-commit hooks**（ruff、mypy、bandit、pytest、prettier、doc-update...）
+- **33 個 pre-commit hooks**（ruff、mypy、bandit、pytest、prettier、doc-update...）
 - **Workspace State** 跨 session 狀態恢復
 - **uv** 管理所有 Python 套件
 - **MCP SDK 2.x** — 不支援舊 1.x runtime；tools、prompts、resources、elicitation 與長任務 progress notifications 均走 v2 SDK surface
@@ -556,10 +562,11 @@ CGU 執行說明：
 
 ### LLM Wiki 補強點
 
-- `notes/index.md` 會輸出 live Foam query counts
+- `notes/index.md` 會輸出 Foam 0.47 Jexl live `foam-query` counts 與 `.foam/queries/medpaper-*.yaml` saved queries
 - registered figures / tables 會 materialize 成一級 graph notes
 - draft sections 與 journal/author/topic/context hubs 會帶 graph-friendly frontmatter
 - library dashboard 支援 `overview`、`queues`、`concepts`、`links`、`synthesis` 五種 cross-note 視圖
+- VSIX 在系統有 `npx` 時自動以唯讀模式註冊官方 `foam-cli@0.47.0 mcp` 圖譜 server
 
 ### 引用自動補全
 
@@ -671,7 +678,7 @@ med-paper-assistant/
 | ✅   | **新穎性驗證**              | 3 輪評分，門檻 75/100                                                                      |
 | ✅   | **Citation-Aware Editing**  | `patch_draft` 含 wikilink 驗證                                                             |
 | ✅   | **MCP-to-MCP 信任**         | 透過 HTTP 直接取得 PubMed 驗證資料                                                         |
-| ✅   | **Pre-commit Hooks**        | 29 hooks（ruff、mypy、bandit、pytest、prettier...）                                        |
+| ✅   | **Pre-commit Hooks**        | 33 hooks（ruff、mypy、bandit、pytest、prettier...）                                        |
 | 🔜   | **更完整的 VSX UX**         | TreeView、CodeLens、Diagnostics 與更深入的編輯器內表面（方向 C）                           |
 | 🔜   | **Pandoc 匯出**             | Word + LaTeX 雙格式匯出（CSL 引用）                                                        |
 | 📋   | **系統性回顧**              | PRISMA 流程、偏差風險、統合分析                                                            |
@@ -703,7 +710,7 @@ med-paper-assistant/
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.1.0},
+  version = {1.1.1},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

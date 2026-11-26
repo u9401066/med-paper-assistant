@@ -1,8 +1,16 @@
-# Progress (Updated: 2026-11-05)
+# Progress (Updated: 2026-11-26)
 
 ## Done
 
-- **Tiered CI + pre-commit parity + dedup (2026-11-05, unreleased)**:
+- **v1.1.1 Antigravity native plugin + Foam 0.47 MCP + critical-only CI (2026-11-26)**:
+
+  - Converged all local/remote branches onto `master` (`revamp/p2-plugin` `408fe99` fast-forwarded; verified all other branches are already ancestors) and cleaned machine-specific paths out of `.vscode/mcp.json`.
+  - Extended `scripts/build_agent_plugin.py` to generate Antigravity-native `plugins/med-paper-assistant/mcp_config.json`, `rules/AGENTS.md`, 9 `agents/*.md` subagents, `.agents/plugins.json`, and `.agents/skills.json` (75 generated files total). Live-verified via Antigravity Language Server `GetAllPlugins`: 6 MCP servers, 25 skills, 9 agents, and plugin rules discovered cleanly.
+  - Added `.agents/hooks.json` and pure-stdlib fail-open `scripts/hooks/antigravity_dispatch.py` (with `copilot_hook_guard.py` updated for `run_command`/`write_file`/`toolCall`), plus `tests/test_antigravity_hooks.py`. Trimmed `AGENTS.md` from 24,021 bytes to ~20.4 KB to stay safely under Antigravity's 24,000-byte rule cap.
+  - Finished Foam 0.47 modularization (`foam_graph_views.py`, `shared/foam_queries.py`; ratchet 105 → 102) and read-only Foam MCP (`vscode-extension/src/foamMcp.ts` + `node_integrations.foam` in `mcp-integration-lock.json` + `foamMcp.test.ts`).
+  - Narrowed push/PR `.github/workflows/ci.yml` to critical gates only (`ruff check`, `bandit`, authority/plugin drift, `contract|mcp|smoke` pytest, MCP boot, compact smoke, VSX compile/test, docs structure) while moving formatting/static analysis/full pytest/full greedy smoke/VSX validate/dashboard lint into `.pre-commit-config.yaml` (33 hooks) and weekly/manual/release runs; codified targeted-only development testing across docs.
+
+- **Tiered CI + pre-commit parity + dedup (2026-11-05)**:
 
   - `scripts/ci_changed_areas.py` (stdlib, fail-open) feeds a `Detect Changed Areas` job; every `ci.yml` job is gated by a job-level `if:` on its area (`python`/`vsx`/`dashboard`/`markdown`/`sdk2`) so required-check names never change. The smoke OS matrix runs on all three platforms for OS-sensitive paths, on Windows only for other `src`/`tests` edits, and is empty otherwise. It also adds a weekly full cron and a concurrency group, and `check_consistency.py` now runs in CI.
   - `.pre-commit-config.yaml` rewritten: commit tier ≈15 s (ruff/format/mypy/vulture/drift/ratchet/consistency/VSX bundle/npm lock) and pre-push tier ≈3 min (Bandit, tool-surface, pytest, MCP boot, greedy compact/full, VSX lint/test). Before this change pre-commit had never been installed in `.git/hooks`.

@@ -1,5 +1,24 @@
 # Decision Log
 
+## [2026-11-26] Native Antigravity Plugin Integration And Critical-Only Push/PR CI
+
+### 背景
+
+1. `plugins/med-paper-assistant/` 僅提供 Agent Plugins 1.0.0 (`mcp.json`)、Claude Code (`.mcp.json`) 與 Codex marketplace；Google Antigravity 需要 `.agents/plugins.json`、原生 `mcp_config.json`、`rules/AGENTS.md`、`agents/*.md` 與 camelCase `.agents/hooks.json`，且根目錄 `AGENTS.md`（24,021 bytes）剛好超過 Antigravity 24,000 bytes 規則上限而被截斷。
+2. 既有的 `ci.yml` 在每次 push/PR 仍執行全量 pytest（2000+ 案例）、full 118-tool greedy smoke、mypy/vulture/format/ratchet/VSX validate 與 Windows smoke，使日常開發與 CI 回饋偏慢；使用者要求 CI 僅保留最關鍵檢查、其餘放入 pre-commit/pre-push，且開發期間除非必要不跑全量測試。
+
+### 決定
+
+1. **單一可攜 Plugin 同時支援四端**：維持 `plugins/med-paper-assistant/plugin.json` 嚴格符合 Agent Plugins 1.0.0 schema（`additionalProperties: false`），於同目錄由 `scripts/build_agent_plugin.py` 增產 `mcp_config.json`、`rules/AGENTS.md`、9 個 Antigravity `agents/*.md`，並產出 `.agents/plugins.json`（探索 `plugins/`）與 `.agents/skills.json`（載入 `.claude/skills/` 並排除已打包的 25 個研究 skills，零重複）。
+2. **Antigravity Hooks 複用既有核心**：新增 `.agents/hooks.json` 與純 stdlib fail-open `scripts/hooks/antigravity_dispatch.py`，僅對寫入／終端／`save_reference` 工具設 matcher（避免拖慢唯讀查詢），並於 `copilot_hook_guard.py` 補上 `run_command`/`write_file`/`toolCall` 解析。
+3. **`AGENTS.md` 體積硬契約**：精簡重複表格將 `AGENTS.md` 壓至 ≤24,000 bytes 並由 `tests/test_agent_plugin.py` 鎖定。
+4. **Push/PR CI 僅跑關鍵 Gate**：保留 5 個 required check 名稱不變，push/PR 僅跑 `ruff check`、`bandit`、authority/plugin drift、`contract|mcp|smoke` 測試、MCP boot、compact smoke、VSX compile/test、dashboard build 與 docs structure；其餘格式化、靜態分析、全量 pytest、full greedy smoke、VSX validate 與 Prettier 全數由 `.pre-commit-config.yaml` 及每週排程／手動觸發／`release.yml` 負責。
+
+### 結果
+
+- Antigravity Language Server `GetAllPlugins` 實測直接辨識 `med-paper-assistant`（6 MCP servers、25 skills、9 subagents、`rules/AGENTS.md`）。
+- 開發迴圈縮短為數秒 targeted tests，push/PR CI 只驗關鍵契約與安全性，發布品質仍由 `release.yml` 與本機 pre-push 全量把關。
+
 ## [2026-11-05] CI Runs Changed Areas Only; Pre-Commit Carries The Fast Gates
 
 ### 背景

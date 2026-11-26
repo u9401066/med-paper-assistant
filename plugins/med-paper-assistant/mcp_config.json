@@ -1,0 +1,70 @@
+{
+  "mcpServers": {
+    "mdpaper": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "--from",
+        "med-paper-assistant[provenance,watermark]==1.1.1",
+        "med-paper-assistant"
+      ],
+      "env": {
+        "MEDPAPER_TOOL_SURFACE": "compact"
+      }
+    },
+    "pubmed-search": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "--from",
+        "https://github.com/u9401066/pubmed-search-mcp/archive/d8ddc6a0fa9e87a5c9bbc25fa5a496223192eec3.tar.gz",
+        "pubmed-search-mcp"
+      ]
+    },
+    "asset-aware": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "--from",
+        "https://github.com/u9401066/asset-aware-mcp/archive/fa0e3489f83ea5922f06cb6b26bf0726872690c1.tar.gz",
+        "asset-aware-mcp"
+      ]
+    },
+    "cgu": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "--from",
+        "https://github.com/u9401066/creativity-generation-unit/archive/bb32a8f42123223a1cc54a41f7baed93b0c90d50.tar.gz",
+        "cgu-server"
+      ],
+      "env": {
+        "CGU_PROVIDER": "passthrough"
+      }
+    },
+    "drawio": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "--from",
+        "https://github.com/u9401066/next-ai-draw-io/archive/9bde25bac9ec160b912ddfebcb5ac037ce565e2f.tar.gz#subdirectory=mcp-server",
+        "drawio-mcp-server"
+      ]
+    },
+    "zotero-keeper": {
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "--from",
+        "https://github.com/u9401066/zotero-keeper/archive/68a9a1a914cbf3ca8737b8f467cb505e6e445092.tar.gz#subdirectory=mcp-server",
+        "zotero-keeper"
+      ]
+    }
+  }
+}

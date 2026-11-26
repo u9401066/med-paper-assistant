@@ -9,16 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-26
+
+### Added
+
+- **Google Antigravity native integration** (App / IDE / CLI):
+  - `scripts/build_agent_plugin.py` now emits Antigravity-native `plugins/med-paper-assistant/mcp_config.json` (6 pinned `uvx` MCP servers with `MEDPAPER_TOOL_SURFACE=compact` and `CGU_PROVIDER=passthrough`), `plugins/med-paper-assistant/rules/AGENTS.md`, and 9 converted Antigravity subagents under `plugins/med-paper-assistant/agents/*.md`, alongside `.agents/plugins.json` and `.agents/skills.json` for zero-config repository discovery without duplicate skills.
+  - Added `.agents/hooks.json` and pure-stdlib fail-open `scripts/hooks/antigravity_dispatch.py` bridging Antigravity `SessionStart`, `PreInvocation`, `PreToolUse`, `PostToolUse`, and `Stop` events onto `copilot_hook_guard` and `mdpaper_hooks`, plus `run_command`/`write_file`/`toolCall` payload support in `scripts/copilot_hook_guard.py`.
+  - Added `tests/test_antigravity_hooks.py` and expanded `tests/test_agent_plugin.py` to enforce Antigravity plugin/MCP/agent/rule contracts and `AGENTS.md` <= 24,000 bytes.
+- **Foam 0.47 modularization & read-only Foam MCP**:
+  - Split `foam_settings.py` into `infrastructure/services/foam_graph_views.py` and `shared/foam_queries.py` (sandboxed Foam 0.47 `jexl` frontmatter queries and `.foam/queries/medpaper-*.yaml` Smart Folders), reducing `code-quality-authority.json` exceptions from 105 to 102 and syncing the VSIX bundled mirror.
+  - Added `vscode-extension/src/foamMcp.ts` and `node_integrations.foam` in `mcp-integration-lock.json` to register the official read-only `foam-cli@0.47.0 mcp` graph server when `npx` is on `PATH`, covered by `foamMcp.test.ts` and `test_mcp_integration_lock.py`.
+
 ### Changed
 
-- CI now runs only the jobs a change affects. A new `Detect Changed Areas` job runs `scripts/ci_changed_areas.py` (stdlib-only) to classify the push or PR diff into the `python`, `vsx`, `dashboard`, `markdown` and `sdk2` areas and to pick the cross-platform smoke OS matrix. Each job checks its area with a job-level `if:`, so the required-check names stay unchanged and a skipped required check still reports success. The classifier fails open: scheduled and manual runs, a missing or zero base SHA, compare-API errors, diffs at the 300-file cap, empty diffs, and any change to the CI wiring itself select every area. A weekly Monday cron runs the full matrix, a concurrency group cancels superseded runs on the same ref, and `release.yml` remains a self-contained full gate. For example, a Memory Bank-only commit now runs only `Markdown Format` instead of all nine jobs.
-- `.pre-commit-config.yaml` mirrors CI locally with uv-locked tools.
-
-  - Commit tier: ruff check/format, mypy, vulture, plugin and companion drift, the code-quality ratchet, `check_consistency.py`, VSX bundle drift and the npm lockfile check.
-  - Pre-push tier (`default_install_hook_types: [pre-commit, pre-push]`): Bandit, tool-surface authority, pytest, MCP boot, greedy compact/full smoke, and VSX lint/test.
-
-  `tests/test_ci_changed_areas.py` and new parity cases in `tests/test_ci_workflows.py` keep the classifier, `ci.yml` and the pre-commit tiers aligned. CONTRIBUTING and the development wiki now document `uv run pre-commit install` and the tiers.
-
+- **Critical-only push/PR CI + full local pre-commit/pre-push + targeted dev testing**:
+  - Push/PR runs of `.github/workflows/ci.yml` now execute critical gates only (`ruff check`, `bandit`, tool-surface/plugin drift, critical `contract|mcp|smoke` pytest, MCP boot, compact greedy smoke, VSX bundle/compile/test, dashboard build, docs link/nav check).
+  - Non-critical and heavy checks (`ruff format`, `mypy`, `vulture`, code-quality ratchet, `check_consistency`, companion skill drift, full fast pytest, full 118-tool greedy smoke, VSX `validate`/eslint, dashboard lint, Prettier Markdown) live in `.pre-commit-config.yaml` (`pre-commit` / `pre-push`, 33 hooks) and still run on weekly schedule, `workflow_dispatch`, and `release.yml`.
+  - `scripts/ci_changed_areas.py` keeps branch-protection required check names intact while triggering `markdown` only on `docs/`/`mkdocs.yml` and running cross-platform smoke only on OS-sensitive changes (including `.agents/hooks.json`) or scheduled/manual/release runs.
+  - Documented targeted-only development testing in `AGENTS.md`, `CONTRIBUTING.md`, `.github/copilot-instructions.md`, and `docs/wiki/development-and-release.md`.
+- Compacted `AGENTS.md` from 24,021 bytes to ~20.4 KB so Antigravity loads the full rule file without hitting its 24,000-byte per-file cap.
 - Removed duplicated implementations without changing behaviour:
   - The three per-module manuscript guards (`_guard_editing_tool`, `_guard_writing_tool` and the inline guard in `validate_concept`) and the citation guard now share `guard_manuscript_tool()` in `interfaces/mcp/tools/_shared/project_context.py`.
   - The content-integrity inspection had parallel copies in the application and infrastructure layers. Both now delegate to `domain/services/content_integrity_inspection.py`, which removes about 210 lines.

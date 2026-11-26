@@ -50,11 +50,11 @@ Counts in these tables are release-gated via `tool-surface-authority.json` and `
 
 ### Choose Your Install Surface
 
-| Surface             | Best for                                       | What you get                                                                                                                                                                                      |
-| ------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Full repository** | Maintainers, power users, and workflow authors | Core `mdpaper` runtime, pinned MCP integrations/submodules, 38 skills, 15 prompt workflows, cross-agent harness, repo scripts, tests, and authoring docs                                          |
-| **VSIX extension**  | End users who want the packaged experience     | `@mdpaper`, 9 palette commands, compact-first `mdpaper` runtime (12 tools by default / 118 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs |
-| **Agent Plugin**    | Copilot CLI / VS Code, Claude Code, and Codex  | Portable [Agent Plugins](https://agent-plugins.org/) package: compact `mdpaper` plus the five companion MCPs (via `uvx`), 25 research skills, and 9 Copilot agents                                |
+| Surface             | Best for                                                          | What you get                                                                                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Full repository** | Maintainers, power users, and workflow authors                    | Core `mdpaper` runtime, pinned MCP integrations/submodules, 38 skills, 15 prompt workflows, cross-agent harness, repo scripts, tests, and authoring docs                                                               |
+| **VSIX extension**  | End users who want the packaged experience                        | `@mdpaper`, 9 palette commands, compact-first `mdpaper` runtime (12 tools by default / 118 optional), 14 bundled skills, 13 bundled prompt workflows, 9 bundled agents, and bundled LLM wiki docs                      |
+| **Agent Plugin**    | Copilot CLI / VS Code, Claude Code, Codex, and Google Antigravity | Portable [Agent Plugins](https://agent-plugins.org/) package: compact `mdpaper` plus the five companion MCPs (via `uvx`), 25 research skills, 9 Copilot + Antigravity agents, `mcp_config.json`, and `rules/AGENTS.md` |
 
 The repository is the broader engineering surface. The VSIX is the curated end-user surface.
 
@@ -71,6 +71,11 @@ claude plugin install med-paper-assistant@medpaper
 
 # Codex: open this repository (repo marketplace: .agents/plugins/marketplace.json)
 # and install "med-paper-assistant" from the /plugins menu.
+
+# Google Antigravity (App / IDE / CLI):
+# - In this repository: auto-discovered via .agents/plugins.json (+ .agents/skills.json & .agents/hooks.json).
+# - Globally across workspaces: copy or symlink plugins/med-paper-assistant/ into
+#   ~/.gemini/config/plugins/med-paper-assistant/
 ```
 
 Run the agent from your research folder. Projects are written to `MEDPAPER_BASE_DIR` if it is set; otherwise to the client's project directory, and never into the plugin package. If the client starts the server elsewhere, call `workspace_state_action(action="bind", workspace_dir="/absolute/path")` to point it at your research folder; `workspace_state_action(action="get")` reports the active root and its source.
@@ -81,17 +86,18 @@ Run the agent from your research folder. Projects are written to `MEDPAPER_BASE_
 
 ![MedPaper Assistant architecture](docs/assets/medpaper-architecture.svg)
 
-### Claude Code, Codex, Copilot CLI, Cline, and OpenClaw
+### Claude Code, Codex, Copilot CLI, Google Antigravity, Cline, and OpenClaw
 
 The same evidence and quality gates are available across agent runtimes:
 
-| Runtime                      | Project instructions                                                                 | Academic-writing skill / plugin                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| Claude Code                  | [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md)                                | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) or Agent Plugin |
-| Codex                        | [`AGENTS.md`](AGENTS.md)                                                             | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) or Agent Plugin |
-| GitHub Copilot (VS Code/CLI) | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) and `AGENTS.md` | `.claude/skills/` (auto-discovered), [`.github/agents/`](.github/agents/), or Agent Plugin             |
-| Cline                        | [`AGENTS.md`](AGENTS.md)                                                             | Register the MCP servers from `plugins/med-paper-assistant/mcp.json` in Cline's MCP settings           |
-| OpenClaw                     | [`AGENTS.md`](AGENTS.md) plus workspace policy                                       | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                 |
+| Runtime                          | Project instructions                                                                 | Academic-writing skill / plugin                                                                                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Google Antigravity (App/IDE/CLI) | [`AGENTS.md`](AGENTS.md) (≤24 KB) and plugin `rules/AGENTS.md`                       | [`.agents/plugins.json`](.agents/plugins.json) → `plugins/med-paper-assistant/` (`mcp_config.json`, 25 skills, 9 agents) + [`.agents/hooks.json`](.agents/hooks.json) |
+| Claude Code                      | [`CLAUDE.md`](CLAUDE.md) and [`AGENTS.md`](AGENTS.md)                                | [`.claude/skills/academic-writing-harness/`](.claude/skills/academic-writing-harness/) or Agent Plugin                                                                |
+| Codex                            | [`AGENTS.md`](AGENTS.md)                                                             | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/) or Agent Plugin                                                                |
+| GitHub Copilot (VS Code/CLI)     | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) and `AGENTS.md` | `.claude/skills/` (auto-discovered), [`.github/agents/`](.github/agents/), or Agent Plugin                                                                            |
+| Cline                            | [`AGENTS.md`](AGENTS.md)                                                             | Register the MCP servers from `plugins/med-paper-assistant/mcp.json` in Cline's MCP settings                                                                          |
+| OpenClaw                         | [`AGENTS.md`](AGENTS.md) plus workspace policy                                       | [`.agents/skills/academic-writing-harness/`](.agents/skills/academic-writing-harness/)                                                                                |
 
 The platform-neutral [academic-writing workflow](docs/harness/academic-writing-workflow.md) covers manuscripts, proposals, project closeout reports, student papers, preprints, audit gates, and safe exemplar use.
 
@@ -324,7 +330,7 @@ projects/{slug}/
 ### Infrastructure
 
 - **DDD Architecture** (Domain-Driven Design) with clean layer separation
-- **29 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
+- **33 pre-commit hooks** (ruff, mypy, bandit, pytest, prettier, doc-update...)
 - **Workspace State** recovery for cross-session continuity
 - **uv** for all Python package management
 - **MCP SDK 2.x** — the legacy 1.x runtime is not supported; tools, prompts, resources, elicitation, and progress notifications use the v2 SDK surface
@@ -555,10 +561,11 @@ CGU runtime notes:
 
 ### LLM Wiki Enhancements
 
-- `notes/index.md` emits live Foam query counts
+- `notes/index.md` emits live Foam 0.47 Jexl `foam-query` counts and `.foam/queries/medpaper-*.yaml` saved queries
 - registered figures and tables materialize as first-class graph notes
 - draft sections plus journal/author/topic/context hubs carry graph-friendly frontmatter
 - the library dashboard now exposes `overview`, `queues`, `concepts`, `links`, and `synthesis` cross-note views
+- the VSIX registers the official read-only `foam-cli@0.47.0 mcp` graph server automatically when `npx` is available on `PATH`
 
 ### Citation Autocomplete
 
@@ -670,7 +677,7 @@ med-paper-assistant/
 | ✅     | **Novelty Validation**      | 3-round scoring with 75/100 threshold                                                |
 | ✅     | **Citation-Aware Editing**  | `patch_draft` with wikilink validation                                               |
 | ✅     | **MCP-to-MCP Trust**        | Verified PubMed data via direct HTTP                                                 |
-| ✅     | **Pre-commit Hooks**        | 29 hooks (ruff, mypy, bandit, pytest, prettier...)                                   |
+| ✅     | **Pre-commit Hooks**        | 33 hooks (ruff, mypy, bandit, pytest, prettier...)                                   |
 | 🔜     | **Richer VSX UX**           | TreeView, CodeLens, Diagnostics, and deeper in-editor surfaces (Direction C)         |
 | 🔜     | **Pandoc Export**           | Word + LaTeX dual export with CSL citations                                          |
 | 📋     | **Systematic Review**       | PRISMA flow, Risk of Bias, meta-analysis                                             |
@@ -702,7 +709,7 @@ If you use Medical Paper Assistant, cite the software release described in [`CIT
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.1.0},
+  version = {1.1.1},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

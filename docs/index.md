@@ -13,7 +13,7 @@ hide:
 
 # 把自主與人類協作寫作變成可重現的工程流程
 
-MedPaper Assistant 讓 Claude Code、Codex、OpenClaw 與 VS Code Copilot 共用同一套研究契約：自主 agent 可以在明確預算與邊界內推進，人類可以審閱、暫停與回退；文獻必須可追溯、草稿必須經過 gate、每一輪修訂都留下 audit trail。
+MedPaper Assistant 讓 Claude Code、Codex、OpenClaw、Google Antigravity 與 VS Code Copilot 共用同一套研究契約：自主 agent 可以在明確預算與邊界內推進，人類可以審閱、暫停與回退；文獻必須可追溯、草稿必須經過 gate、每一輪修訂都留下 audit trail。
 
 [五分鐘開始](wiki/quickstart.md){ .md-button .md-button--primary }
 [探索完整架構](wiki/harness-architecture.md){ .md-button }
@@ -138,4 +138,4 @@ flowchart TB
 
 !!! info "目前穩定版本"
 
-    `v1.1.0` 提供 MCP SDK2-only runtime、118 full / 12 compact 工具面、13 種正式學術產出、110 個 base constraints、可審計跨 Agent harness、內容來源完整性 gate，以及可安裝 VSIX。版本與 artifact 請見 [GitHub Releases](https://github.com/u9401066/med-paper-assistant/releases)。
+    `v1.1.1` 提供 MCP SDK2-only runtime、118 full / 12 compact 工具面、13 種正式學術產出、110 個 base constraints、可審計跨 Agent harness、內容來源完整性 gate，以及可安裝 VSIX。版本與 artifact 請見 [GitHub Releases](https://github.com/u9401066/med-paper-assistant/releases)。

@@ -4,32 +4,33 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-11-05)
+## 當前焦點 (2026-11-26)
 
-> **2026-11-05 CI 分層（未發布）**：CI 改為依變更區域執行，由 `scripts/ci_changed_areas.py` 判定，任何不確定都 fail-open 跑全量；required checks 名稱不變，每週一全量，`release.yml` 仍是完整 gate。`.pre-commit-config.yaml` 分為 commit（≈15 秒）與 pre-push（≈3 分鐘）兩層，與 CI 對齊；`check_consistency.py` 納入 CI。重複實作已合併：manuscript guard、跨層 content-integrity（−212 行）、export smoke 與 Foam iterator。另移除 7 個 trivial tests，並修正 greedy smoke 誤判 `review loop not completed`。本 repo 為 public，標準 runner 不計費，分層的目的是縮短回饋時間。Memory Bank extension 會重建 `.github/*.chatmode.md`，已加入 `.gitignore`。
+> **2026-11-26 v1.1.1 修正版準備（Antigravity 原生整合 + Foam 0.47 MCP + Critical-Only CI）**：
+>
+> - **分支收斂**：將 `revamp/p2-plugin` (`408fe99`) fast-forward 合併回 `master`，驗證其餘本地與遠端分支均已納入 `master`，並清回 `.vscode/mcp.json` 中不應追蹤的本機硬編碼路徑。
+> - **Google Antigravity 原生整合**：`scripts/build_agent_plugin.py` 同步產出 `plugins/med-paper-assistant/mcp_config.json`、`rules/AGENTS.md`、9 個 Antigravity `agents/*.md` 與 `.agents/plugins.json`／`.agents/skills.json`（75 檔）；新增 `.agents/hooks.json` 與純 stdlib fail-open `scripts/hooks/antigravity_dispatch.py`（並讓 `copilot_hook_guard.py` 支援 `run_command`/`write_file`/`toolCall`）；將 `AGENTS.md` 瘦身至 ~20.4 KB（解決 24,021 bytes 超過 Antigravity 24 KB 截斷問題）。經 Antigravity Language Server `GetAllPlugins` 實測，即時探索到全部 6 個 MCP server、25 skills、9 subagents 與 `rules/AGENTS.md`。
+> - **Foam 0.47 重構與官方 Foam MCP**：完成 `foam_settings.py` 拆分為 `foam_graph_views.py` 與 `shared/foam_queries.py`（code-quality ratchet 105 → 102），補齊 `mcp-integration-lock.json` 的 `node_integrations.foam`（`foam-cli@0.47.0 mcp` read-only）與 `foamMcp.test.ts`／鎖定契約測試。
+> - **CI 僅跑關鍵把關 + 全量下沉 pre-commit／pre-push + 開發期 targeted tests**：push/PR `ci.yml` 僅跑關鍵 gate（`ruff check`、`bandit`、authority/plugin drift、`contract|mcp|smoke` 測試、MCP boot、compact smoke、VSX compile/test、docs structure），其餘移入 `.pre-commit-config.yaml`（33 hooks）與每週排程／`workflow_dispatch`／`release.yml`。
+
+> **2026-11-05 CI 分層**：CI 依變更區域執行（`scripts/ci_changed_areas.py`），合併重複實作（manuscript guard、content-integrity、export smoke、Foam iterator），並將 `check_consistency.py` 納入驗證。
 
 > **2026-11-04 revamp → v1.1.0（已發布：PyPI + GitHub Release；VS Marketplace 待補發）**：分階段翻修為新式 agent 介面。已完成 P0 sync/hook fail-open、P1 audit 缺陷修正、P2 Agent Plugins 套件（`plugins/med-paper-assistant/`，Copilot/Claude Code/Codex marketplaces）、P3a dev agents/README 多 client、P3 明確 workspace binding（`workspace_state_action(bind)`，因 MCP roots 已 deprecated）、P4 VSIX native `chatSkills`/`chatAgents`/`chatPromptFiles`、Copilot lifecycle hooks 改為 in-process Python（`hook_dispatch.py` + `pythonw`，不再搶 VS Code 焦點）、auto-paper skill progressive disclosure、P5 companion pins（asset-aware 1.4.1、pubmed-search 0.8.0、CGU 0.9.0、zotero 2.4.0；CGU 與 pubmed 皆有 breaking tool rename），以及兩波模組化重構（ratchet 例外 388 → 108，MCP surface 118/12 不變，full pytest 2061 passed）。P6：`bump-version.sh 1.1.0` → PR #15 CI → master `bc84fc9` exact-SHA CI → tag `v1.1.0` → release run `41856686869`：PyPI 1.1.0 與 GitHub Release（含 VSIX）已發布。VS Marketplace 尚未上架：release OIDC job 卡在舊 vsce 的 `npm audit`（已改為 vsce v4.1.0 + `@azure/identity@4.14.1`），`marketplace-recovery.yml` 則因 `VSCE_PAT` 失效被拒；需 publisher owner 更新 `VSCE_PAT` 後以 VSIX SHA-256 `5f6a8b2e92d9fed1ba4a1ca21fdd2d23608f0d88694759e38c6f541fb35e5978` 重跑 recovery，或在 Marketplace 設定 `release.yml` 的 trusted-publishing policy。後續重構候選見 decisionLog 2026-11-04。
 
-v1.0.3 Phase gate 說明對齊修正版已正式發布：程式的 hard-gate 行為沒有擴張，而是將 validator 訊息、Auto-Paper skill/design 與公開網站統一成 14 個 code phases 的真實契約。五筆分段 release commits 已推送，annotated `v1.0.3` 指向 `c2c944d68855a5ace18ccdaabef81a0f893fb01c`；exact-SHA CI `33489369223`、Pages `33489369227`、PyPI、GitHub Release、公開 provenance 與 artifacts 均驗證通過。Marketplace OIDC 唯一失敗於 Microsoft token endpoint 404，已做一次安全重試後停止，Release 提供通過隔離安裝 smoke 的同版 VSIX。
-
-v1.0.2 SDK2 hardening 已正式發布：root 與五個 immutable integration 的實際 MCP initialize/list/call 均成功，compact/full greedy smoke 無 broken/error；Python、VSIX、Dashboard、文件、security、build、bundle 與 exact-SHA CI gates 全綠。依賴更新至目前相容的 stable 版本（MCP 2.1.1、C2PA 0.37.8、remove-ai-watermarks 0.36.0），source-build 基線統一為 Node 24。測試移除 fake、print-only、吞例外與永久 skip 案例，改以 `contract`、`mcp`、`smoke`、`integration` 分層；完整 suite coverage 66.43% 如實記錄，不以低價值 tests 灌高。PyPI 與 GitHub Release 已公開且 provenance/digests 相符；VS Marketplace OIDC 兩次遭 Microsoft 503，保留 fail-closed 狀態並提供已驗證 VSIX。
-
-目前進一步完成 Phase gate 三方對齊：`PipelineGateValidator` 的實際 CRITICAL/WARNING 邊界、Auto-Paper workflow/design，以及公開 Wiki 使用相同的 Phase 0–11、2.1、6.5 契約。網站改以「真正擋關／流程要求／提醒／沒通過怎麼修」說明，不再把 Phase 4 approval coverage、Phase 6 的 0-unresolved-critical workflow target、Phase 8 格式／預算或 Phase 11 completion marker 誤稱為現有 code hard gate；C7 family 統一為 C7a/C7b/C7d。
-
 ### 當前狀態
 
-| 項目                  | 數量/狀態                                                                                                                                                                                                                                                                   |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                                                                                                                                                                               |
-| External MCP Surface  | PubMed **45** + CGU **24** + Asset-Aware **30** + Draw.io Python **23** + Zotero Keeper **32**（immutable SDK2 pins）                                                                                                                                                       |
-| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                                                                                                                                                                                  |
-| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 9 palette / 10 chat**                                                                                                                                                                                 |
-| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven)                                                                                                                                                                                                                          |
-| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                                                                                                                                         |
-| Validation Gate       | tool/count/code-quality authorities + Ruff/mypy/Bandit/vulture + `npm run validate`                                                                                                                                                                                         |
-| Latest Validation     | Python fast **1691 passed / 7 skipped / 25 deselected**；contract **36/36**；MCP **43/43**；VSIX **174/174**；compact MCP **11 ok / 1 designed skip**；full MCP **113 ok / 3 expected preconditions / 2 designed skips**；watermark **3/3**；五套 immutable archive **5/5** |
-| Packaging             | **v1.0.3 PyPI + GitHub Release + provenance ✅**；VSIX build/install/公開 digest ✅；VS Marketplace 因 Microsoft OIDC 404 降級並提供 Release asset                                                                                                                          |
-| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**36 pages / 52 Mermaid / 8 accessible SVG**；Phase gate design/code/human contract tests                                                                                                                     |
+| 項目                  | 數量/狀態                                                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP Tools             | **118 full / 12 compact (default)** + 3 prompts + 3 resources                                                                                                   |
+| External MCP Surface  | PubMed **41** (v0.8.0) + CGU **11** (v0.9.0) + Asset-Aware **30** (v1.4.1) + Draw.io Python **23** + Zotero Keeper **50** (v2.4.0) + optional Foam **0.47.0**   |
+| Repo Skills / Prompts | **38 Claude/workflow skills + 1 shared agent skill / 15 prompt workflows**                                                                                      |
+| Agent Plugin Surface  | **75 generated files**: 6 MCPs (`mcp.json` / `.mcp.json` / `mcp_config.json`), 25 skills, 9 Copilot + 9 Antigravity agents, `rules/AGENTS.md`, 4 client configs |
+| VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 9 palette / 10 chat**                                                                     |
+| Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven) + Copilot & Antigravity lifecycle hooks + **33** pre-commit/pre-push hooks                                   |
+| Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                             |
+| Code-Quality Ratchet  | **102 exceptions** (5 file / 5 class / 92 function across 464 files; down from 388)                                                                             |
+| Validation Gate       | Critical-only push/PR CI + full local pre-commit/pre-push parity + weekly/release full matrix                                                                   |
+| Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**36 pages / 52 Mermaid / 8 accessible SVG**；Phase gate design/code/human contract tests         |
 
 > 下方條目保留為近期演進記錄；以本節與 `tool-surface-authority.json` 作為目前 surface 判斷依據。
 

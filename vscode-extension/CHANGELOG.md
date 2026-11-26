@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 - 2026-11-26
+
+- Native Google Antigravity plugin/MCP/hooks support, Foam 0.47 read-only MCP integration, and critical-only push/PR CI with local pre-commit parity.
+- See the repository CHANGELOG for the complete release notes.
+
 ## 1.1.0 - 2026-11-04
 
 - Contributed the bundled skills, agents and prompt files natively through `chatSkills`, `chatAgents` and `chatPromptFiles` (VS Code 1.109+), so they work right after installation; a workspace copy of the same asset hides the bundled one. Older VS Code keeps the Setup Workspace copy flow.
