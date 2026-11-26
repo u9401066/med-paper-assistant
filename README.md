@@ -19,7 +19,7 @@ Core research surfaces: mdpaper 118 full / 12 compact + PubMed 41 + CGU 11 · Ma
 > 🧭 **[GitHub Pages Wiki](https://u9401066.github.io/med-paper-assistant/)** — 36 topic pages with Mermaid workflows, SVG architecture maps, full-text search, and dark mode
 > 🚦 **[Stage-by-stage checks and fixes](https://u9401066.github.io/med-paper-assistant/wiki/research-pipeline/)** — plain-language blockers, workflow duties, warnings, repair paths, and human decisions for every code phase
 
-The goal is not one-shot text generation. MedPaper Assistant supports bounded autonomous runs and researcher-led writing through the same observable checkpoints, evidence locators, quality gates, review receipts, and reproducible exports. A solver produces artifacts; independent checks score those artifacts without granting unsupported claims evidence credit.
+The goal is not one-shot text generation. MedPaper Assistant supports bounded autonomous runs and researcher-led writing through the same observable checkpoints, evidence locators, quality gates, review receipts, and reproducible exports. A solver produces artifacts; independent checks score those artifacts without granting unsupported claims evidence credit. On the default 12-tool compact surface, agents navigate deterministically with `pipeline_action(action="next")` (GPS), `reference_action(action="evidence_pack")` (single-call evidence digest), and `run_quality_checks(action="repair_plan")` (prioritized patch loop).
 
 ![MedPaper Assistant overview](docs/assets/medpaper-intro.svg)
 
@@ -709,7 +709,7 @@ If you use Medical Paper Assistant, cite the software release described in [`CIT
   author  = {{MedPaper Assistant contributors}},
   title   = {Medical Paper Assistant},
   year    = {2026},
-  version = {1.1.1},
+  version = {1.2.0},
   url     = {https://github.com/u9401066/med-paper-assistant},
   license = {Apache-2.0}
 }

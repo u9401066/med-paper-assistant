@@ -4,9 +4,16 @@
 
 - **Git Identity**: u9401066 <u9401066@gap.kmu.edu.tw>
 
-## 當前焦點 (2026-11-26)
+## 當前焦點 (2026-11-27)
 
-> **2026-11-26 v1.1.1 修正版準備（Antigravity 原生整合 + Foam 0.47 MCP + Critical-Only CI）**：
+> **2026-11-27 v1.2.0（Agent-First Harness & Compact Ergonomics）**：
+>
+> - **實測 Dogfooding 驅動翻修**：實際透過預設 12-tool compact surface 跑完整流程後，鎖定並根除「compact 預設介面卻四處洩漏 full-only 工具名」、「gate 只報錯不給可執行修復迴圈」、「`pipeline_doctor` 一次傾倒 15 KB」、「`writing_hooks` 寫死 `manuscript.md` 且在非請求 context 崩潰」、「`development` 模式 hook 雜訊」等核心 Agent 體驗斷點。
+> - **三大高槓桿 Harness 動作（維持 118 full / 12 compact 不變）**：新增 `pipeline_action(action="next")`（精簡 GPS 導航，同時支援 `manuscript` 與 `library-wiki`）、`reference_action(action="evidence_pack")`（單次寫作證據摘要包）、`run_quality_checks(action="repair_plan")`（按嚴重度排序且附具體 compact `suggested_call` + `recheck_call` 的修復計畫），並補齊 `library_action(action="help")` 與跨 facade 模糊錯誤建議。
+> - **Zero Ghost Tools & Quiet Hooks**：重寫 `SERVER_INSTRUCTIONS`（節省 ~45% token、消除 19 個 full-only 洩漏與 4 處不存在/矛盾動作）、升級 9 個 bundled agents、guidance 與 7 個 `mdpaper_hooks` 完整支援 compact facade，`prompt_analyzer` 於 `development` 模式與 repo meta 問題靜音；`code-quality-authority.json` 例外由 102 降至 **99**。
+> - **v1.1.1 發布結果**：tag `v1.1.1`（`a0fae8d`）CI 10/10 綠燈、Pages 綠燈；Release `45852366656` 首次因 headless Electron SIGABRT (exit 134) 中斷於 VSIX install smoke，重跑 failed job 後 PyPI `med-paper-assistant==1.1.1` 與 GitHub Release `v1.1.1` 皆成功發布（VS Marketplace 維持既知 OIDC 404 degraded 狀態）；已在 `v1.2.0` 的 `install-smoke.cjs` 加入 60s timeout 與 transient exit-134 重試。
+
+> **2026-11-26 v1.1.1 修正版（Antigravity 原生整合 + Foam 0.47 MCP + Critical-Only CI）**：
 >
 > - **分支收斂**：將 `revamp/p2-plugin` (`408fe99`) fast-forward 合併回 `master`，驗證其餘本地與遠端分支均已納入 `master`，並清回 `.vscode/mcp.json` 中不應追蹤的本機硬編碼路徑。
 > - **Google Antigravity 原生整合**：`scripts/build_agent_plugin.py` 同步產出 `plugins/med-paper-assistant/mcp_config.json`、`rules/AGENTS.md`、9 個 Antigravity `agents/*.md` 與 `.agents/plugins.json`／`.agents/skills.json`（75 檔）；新增 `.agents/hooks.json` 與純 stdlib fail-open `scripts/hooks/antigravity_dispatch.py`（並讓 `copilot_hook_guard.py` 支援 `run_command`/`write_file`/`toolCall`）；將 `AGENTS.md` 瘦身至 ~20.4 KB（解決 24,021 bytes 超過 Antigravity 24 KB 截斷問題）。經 Antigravity Language Server `GetAllPlugins` 實測，即時探索到全部 6 個 MCP server、25 skills、9 subagents 與 `rules/AGENTS.md`。
@@ -28,7 +35,7 @@
 | VSIX Bundled Surface  | **14 skills / 13 prompts / 9 agents / 4 templates / 7 support files / 9 palette / 10 chat**                                                                     |
 | Hooks                 | **79 checks** (56 Code-Enforced / 23 Agent-Driven) + Copilot & Antigravity lifecycle hooks + **33** pre-commit/pre-push hooks                                   |
 | Pipeline Docs         | **13 main gate checkpoints** (`Phase 0-11 + 6.5`) + **Phase 2.1** fulltext/source-material sub-gate                                                             |
-| Code-Quality Ratchet  | **102 exceptions** (5 file / 5 class / 92 function across 464 files; down from 388)                                                                             |
+| Code-Quality Ratchet  | **99 exceptions** (5 file / 5 class / 89 function across 467 files; down from 388)                                                                              |
 | Validation Gate       | Critical-only push/PR CI + full local pre-commit/pre-push parity + weekly/release full matrix                                                                   |
 | Documentation         | [公開 Wiki](https://u9401066.github.io/med-paper-assistant/)；**36 pages / 52 Mermaid / 8 accessible SVG**；Phase gate design/code/human contract tests         |
 

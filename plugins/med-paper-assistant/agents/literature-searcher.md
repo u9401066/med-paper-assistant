@@ -15,8 +15,8 @@ tools:
 ## 限制
 
 - ✅ 可使用所有 pubmed-search MCP tools
-- ✅ 可使用 mdpaper MCP tools: `save_reference_mcp`, `get_current_project`, `list_saved_references`, `search_local_references`
-- ❌ 不可修改草稿（`write_draft`, `patch_draft`, `draft_section`）
+- ✅ 可使用 mdpaper MCP tools: `save_reference_mcp`, `project_action(action="current")`, `reference_action(action="list_saved"|"search"|"evidence_pack")`
+- ❌ 不可修改草稿（`draft_action(action="write"|"patch"|"draft_section")`）
 - ❌ 不可修改系統檔案（`.claude/`, `.github/`, `src/`）
 
 ## 核心 MCP 工具
@@ -47,10 +47,10 @@ tools:
 
 ### 儲存
 
-| 工具                       | 用途                               |
-| -------------------------- | ---------------------------------- |
-| `save_reference_mcp(pmid)` | **永遠優先** — MCP-to-MCP 驗證儲存 |
-| `list_saved_references()`  | 檢查已儲存文獻（避免重複）         |
+| 工具                                    | 用途                               |
+| --------------------------------------- | ---------------------------------- |
+| `save_reference_mcp(pmid)`              | **永遠優先** — MCP-to-MCP 驗證儲存 |
+| `reference_action(action="list_saved")` | 檢查已儲存文獻（避免重複）         |
 
 ### Session
 
@@ -67,7 +67,7 @@ tools:
 
 ```
 project_action(action="current") → 確認專案上下文
-list_saved_references() → 了解已有文獻（避免重複儲存）
+reference_action(action="list_saved") → 了解已有文獻（避免重複儲存）
 ```
 
 ### Step 2: 搜尋策略制定
@@ -108,7 +108,7 @@ get_citation_metrics(pmids="last", sort_by="relative_citation_ratio")
 
 - 根據 RCR + 相關性選出重要文獻（通常 10-30 篇）
 - 對每篇：`save_reference_mcp(pmid)` 儲存
-- 若 `save_reference_mcp` 失敗，用 `save_reference(article)` 作為 fallback
+- 若 `save_reference_mcp` 失敗，用 `reference_action(action="save_agent", article=...)` 作為 fallback
 
 ### Step 7: 產出結構化報告
 

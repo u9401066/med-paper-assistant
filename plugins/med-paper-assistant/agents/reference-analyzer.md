@@ -22,7 +22,7 @@ tools:
 
 - ✅ 可使用 pubmed-search MCP: `get_fulltext`, `fetch_article_details`, `get_text_mined_terms`
 - ✅ 可使用 asset-aware MCP: `get_docx_content`, `get_section_content`, `list_section_tree`
-- ✅ 可使用 mdpaper MCP: `save_reference_mcp`, `search_local_references`
+- ✅ 可使用 mdpaper MCP: `save_reference_mcp`, `reference_action(action="search"|"analysis_get"|"analysis_save"|"evidence_pack")`
 - ❌ 不可修改草稿
 - ❌ 不可修改系統檔案
 
@@ -44,10 +44,10 @@ tools:
 
 ### 文獻管理
 
-| 工具                             | 用途           |
-| -------------------------------- | -------------- |
-| `save_reference_mcp(pmid)`       | 儲存文獻到專案 |
-| `search_local_references(query)` | 搜尋已儲存文獻 |
+| 工具                                           | 用途           |
+| ---------------------------------------------- | -------------- |
+| `save_reference_mcp(pmid)`                     | 儲存文獻到專案 |
+| `reference_action(action="search", query=...)` | 搜尋已儲存文獻 |
 
 ## 工作流
 

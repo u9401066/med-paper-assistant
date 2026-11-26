@@ -1,8 +1,15 @@
-# Progress (Updated: 2026-11-26)
+# Progress (Updated: 2026-11-27)
 
 ## Done
 
-- **v1.1.1 Antigravity native plugin + Foam 0.47 MCP + critical-only CI (2026-11-26)**:
+- **v1.2.0 Agent-First Harness & Compact Ergonomics (2026-11-27)**:
+
+  - Empirical end-to-end dogfooding of the 12-tool compact MCP surface uncovered 10 concrete agent-friction defects (`report_tool_progress` `ValueError` outside request context, empty project name creating `untitled`, `writing_hooks` hardcoding `manuscript.md`, `analysis_save` rejecting `list[str]`, 15 KB `doctor` dump, 19 full-only leaks + 4 wrong actions in `SERVER_INSTRUCTIONS`, leaks across all 9 bundled agents and 7 lifecycle hooks, and `development`-mode hook noise).
+  - Added three high-leverage harness actions within the unchanged 118 full / 12 compact surface: `pipeline_action(action="next")` (GPS next-step navigator for both `manuscript` and `library-wiki`), `reference_action(action="evidence_pack")` (single-call drafting evidence digest), and `run_quality_checks(action="repair_plan")` (prioritized patch loop with exact `suggested_call` + `recheck_call`).
+  - Achieved zero full-only tool leaks across `SERVER_INSTRUCTIONS` (~45% shorter), all 9 bundled research/review agents, `guidance.py`, `writing_gates.py`, `_recovery.py`, and all 7 `mdpaper_hooks` + `antigravity_dispatch.py`; added `library_action(action="help")`, fuzzy `"Did you mean?"` errors across facades, section-aware `writing_hooks`, inline auto-hook previews, and `install-smoke.cjs` Electron exit-134 retry resilience.
+  - Reduced `code-quality-authority.json` exceptions from 102 to **99** across 467 Python files; added `tests/test_agent_harness_ergonomics.py` and verified all targeted/contract tests, static analysis, authorities, compact smoke, docs, and VSIX tests.
+
+- **v1.1.1 Antigravity native plugin + Foam 0.47 MCP + critical-only CI (2026-11-26 — Published: PyPI + GitHub Release)**:
 
   - Converged all local/remote branches onto `master` (`revamp/p2-plugin` `408fe99` fast-forwarded; verified all other branches are already ancestors) and cleaned machine-specific paths out of `.vscode/mcp.json`.
   - Extended `scripts/build_agent_plugin.py` to generate Antigravity-native `plugins/med-paper-assistant/mcp_config.json`, `rules/AGENTS.md`, 9 `agents/*.md` subagents, `.agents/plugins.json`, and `.agents/skills.json` (75 generated files total). Live-verified via Antigravity Language Server `GetAllPlugins`: 6 MCP servers, 25 skills, 9 agents, and plugin rules discovered cleanly.

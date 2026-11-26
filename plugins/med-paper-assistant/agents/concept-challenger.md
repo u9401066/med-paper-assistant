@@ -22,7 +22,7 @@ tools:
 
 - ✅ 可使用 CGU MCP（共 11 工具；CGU 不替你思考，生成/判斷步驟回傳 `work_order`，由你以自己的模型完成後再回交）: `cgu_status`, `cgu_session`, `cgu_frame`, `cgu_diverge`, `cgu_ideas`, `cgu_judge`, `cgu_question_gate`
 - ✅ 可使用 pubmed-search MCP: `unified_search`, `find_related_articles`
-- ✅ 可使用 mdpaper MCP: `search_local_references`, `list_saved_references`, `get_current_project`
+- ✅ 可使用 mdpaper MCP: `project_action(action="current")`, `reference_action(action="list_saved"|"search"|"evidence_pack")`
 - ❌ 不可修改 concept.md 或任何草稿
 - ❌ 不可修改 NOVELTY 分數
 
@@ -43,11 +43,11 @@ tools:
 
 ### 文獻驗證
 
-| 工具                             | 用途                 |
-| -------------------------------- | -------------------- |
-| `unified_search(query)`          | 搜尋是否已有類似研究 |
-| `find_related_articles(pmid)`    | 找出可能的先行研究   |
-| `search_local_references(query)` | 搜尋已儲存文獻       |
+| 工具                                           | 用途                 |
+| ---------------------------------------------- | -------------------- |
+| `unified_search(query)`                        | 搜尋是否已有類似研究 |
+| `find_related_articles(pmid)`                  | 找出可能的先行研究   |
+| `reference_action(action="search", query=...)` | 搜尋已儲存文獻       |
 
 ## 工作流
 

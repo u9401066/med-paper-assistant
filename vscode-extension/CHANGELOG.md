@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 - 2026-11-27
+
+- Added compact-first agent harness actions (`pipeline_action(action="next")` GPS, `reference_action(action="evidence_pack")`, `run_quality_checks(action="repair_plan")`, `library_action(action="help")`), eliminated full-only tool name leaks across server instructions/agents/hooks, made `writing_hooks` section-aware, and hardened VSIX install smoke against transient Electron SIGABRT shutdown crashes.
+- See the repository CHANGELOG for the complete release notes.
+
 ## 1.1.1 - 2026-11-26
 
 - Native Google Antigravity plugin/MCP/hooks support, Foam 0.47 read-only MCP integration, and critical-only push/PR CI with local pre-commit parity.

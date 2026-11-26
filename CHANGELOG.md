@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-27
+
+### Added
+
+- **Agent-First Harness & Compact Ergonomics** (inside the existing 12-tool compact / 118-tool full surface):
+  - **`pipeline_action(action="next")`** (aliases: `next_step`, `gps`, `what_next`, `navigate`): single-call JSON GPS navigator (`mdpaper.pipeline_next.v1`, ~1–2 KB vs. `doctor`'s 15 KB) returning the first unpassed phase, its concise blockers, and copy-pasteable compact MCP calls for both `manuscript` and `library-wiki` projects.
+  - **`reference_action(action="evidence_pack")`** (aliases: `digest`, `evidence`, `pack`, `synthesis_pack`): single-call drafting evidence digest (`mdpaper.evidence_pack.v1`) returning `citation_key`, `pmid`, `year`, `title`, `summary`, `methodology`, `key_findings`, `limitations`, `usage_sections`, `relevance_score`, `has_fulltext`, `trust_level`, and `unanalyzed_pmids`, filterable by `usage_sections`, `query`, and `relevance_score`.
+  - **`run_quality_checks(action="repair_plan")`** (aliases: `repair`, `fix_plan`, `fixes`): runs writing/manuscript hooks and outputs a prioritized JSON repair plan (`mdpaper.repair_plan.v1`) mapping every `CRITICAL`/`WARNING` issue to a concrete compact MCP fix call plus a `recheck_call` for bounded `patch → recheck → converge` loops.
+  - **`library_action(action="help")`**: added machine-readable `mdpaper.facade_actions.v1` self-inspection parity across all compact facades.
+  - Added `tests/test_agent_harness_ergonomics.py` enforcing zero full-only tool leaks across `SERVER_INSTRUCTIONS` and all 9 bundled research/review agents, plus end-to-end coverage of `next`, `evidence_pack`, `repair_plan`, and hook noise suppression.
+
+### Changed
+
+- **Zero Ghost Tool Names on Compact Surface**:
+  - Rewrote `interfaces/mcp/instructions.py` (`SERVER_INSTRUCTIONS`) to be 100% compact-accurate (~45% fewer prompt tokens), removing 19 full-only tool leaks and 4 non-existent/contradictory compact actions (e.g., `draft_action(action="review_asset")` → `analysis_action(action="review_asset")`, `draft_action(action="list")` → `list_drafts`, replacing bare reference verbs with `reference_action(...)`), and adding `pipeline_action` + `run_quality_checks` quick guides.
+  - Added `compact_tool_hint()` in `tools/_shared/guidance.py` and updated `build_startup_guidance()`, `validate_concept`, `run_meta_learning`, `writing_gates.py`, `reference/manager/save.py`, `pipeline_gate/_doctor.py`, and `workspace_state_manager/_recovery.py` to emit compact facade hints when `MEDPAPER_TOOL_SURFACE=compact`.
+  - Updated all 9 bundled subagent definitions (`.github/agents/*.agent.md`, regenerated into `plugins/med-paper-assistant/agents/*.md` and `vscode-extension/agents/`) to use compact facade actions and valid `draft_action(action="read", filename=...)` parameters.
+  - Added fuzzy `"Did you mean ...?"` + schema-hint error formatting (`format_unsupported_action_error`) across all compact facades, and inlined the top 3 auto-hook findings directly into `draft_action`'s post-write summary.
+  - Refactored `reference/facade.py` and `project/crud/create.py`, reducing `code-quality-authority.json` exceptions from 102 to **99**.
+
+### Fixed
+
+- **`report_tool_progress` crash outside request context**: guarded `ctx.report_progress(...)` against `(ValueError, RuntimeError)` so `run_quality_checks(action="writing_hooks")` and other progress-reporting tools never fail when called in-process or without an active progress token.
+- **Section-aware `writing_hooks`**: `run_quality_checks(action="writing_hooks", draft_filename=...)` now targets a specific section draft and falls back to existing `drafts/*.md` files when `drafts/manuscript.md` has not yet been assembled.
+- **`reference_action(action="analysis_save")`**: now accepts `usage_sections` as either a comma-separated string or a `list[str]` and recognizes the `save_analysis` alias.
+- **`project_action(action="create")`**: now rejects empty/whitespace `name` with an actionable error instead of silently creating an `untitled` project.
+- **Lifecycle hook compact parity & `development`-mode noise**: `pre_tool_guard.py` now intercepts `reference_action(action="save_agent")`, `post_tool_check.py` matches compact `draft_action`/`reference_action`/`validation_action` calls across Copilot and Antigravity namespaces, `prompt_analyzer.py` suppresses manuscript/wiki workflow banners in `development` mode and on repo/architecture meta-questions, and `antigravity_dispatch.py` deduplicates unchanged `PreInvocation` prompts per conversation.
+- **VSIX isolated install smoke resilience**: added a 60s timeout and bounded retry on transient Electron SIGABRT (exit 134) shutdown crashes in `vscode-extension/scripts/install-smoke.cjs` while still requiring a genuine exit-0 verification.
+
 ## [1.1.1] - 2026-11-26
 
 ### Added

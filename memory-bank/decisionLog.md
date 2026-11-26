@@ -1,5 +1,29 @@
 # Decision Log
 
+## [2026-11-27] Agent-First Harness Ergonomics Inside The 12-Tool Compact Surface
+
+### 背景
+
+實際以 AI Agent 視角試用預設 12-tool compact MCP surface 後，發現三大類核心摩擦：
+
+1. **Compact / Full 身分分裂**：`SERVER_INSTRUCTIONS`、`guidance.py`、9 個 bundled agents 與 7 個 `mdpaper_hooks` 仍大量引用 compact 模式下不存在的 full-only 工具名，甚至存在矛盾動作（如 `draft_action(action="review_asset")` 實為 `analysis_action(action="review_asset")`）。
+2. **Gate 重攔截、輕導航與輕修復**：`pipeline_action(action="doctor")` 單次輸出 15 KB 全階段失敗清單；寫作前需逐篇讀取 20+ 參考文獻才能取得 citation key 與 key findings；`writing_hooks` 寫死 `drafts/manuscript.md` 且僅輸出文字報表，缺少可直接執行的 `patch → recheck` 修復計畫。
+3. **Host Hook 雜訊與工具邊界粗糙**：`development` 模式下 `prompt_analyzer` 仍注入 `ACTIVE WORKFLOW MODE: manuscript` 與 `AUTOPILOT INTENT`；`report_tool_progress` 在非請求 context 拋出 `ValueError`；`project_action(action="create")` 允許空名稱建立 `untitled` 專案。
+
+### 決定
+
+1. **維持 118 full / 12 compact 工具數量權威不變**：所有新能力以既有 facade 的新 action 提供，避免增加 LLM tool-selection 認知負擔：
+   - `pipeline_action(action="next")`：單階段精簡 JSON GPS，直接輸出可複製執行的 compact `next_calls` 與 `validate_call`（`library-wiki` 專案則導向 `library_action`）。
+   - `reference_action(action="evidence_pack")`：單次彙整全專案文獻之 `citation_key`、關鍵發現、限制、全文與分析覆蓋率。
+   - `run_quality_checks(action="repair_plan")`：將 writing hooks 問題排序並映射到具體 compact `suggested_call` + `recheck_call`，並讓 `writing_hooks` 支援 `draft_filename` 與 section-draft fallback。
+2. **全鏈路 Compact Parity 契約化**：由 `tests/test_agent_harness_ergonomics.py` 以程式自動掃描 `SERVER_INSTRUCTIONS` 與 9 個 bundled agents，強制 0 個 full-only 幽靈工具名洩漏。
+3. **Quiet Development Mode Hooks**：`prompt_analyzer` 偵測 `.copilot-mode.json` 為 `development` 時（且 prompt 未指向論文檔）靜音論文工作流提示，並排除 repo/plugin/MCP/harness 等開發元問題。
+
+### 結果
+
+- `SERVER_INSTRUCTIONS` 由 13.1 KB 精簡至 ~7.2 KB（~45% token 節省）且 0 處幽靈工具名；9 個 subagents 與 7 個 lifecycle hooks 全數對齊 compact surface。
+- `code-quality-authority.json` 例外由 102 再降至 **99**；不變動 tool-surface 118/12 權威。
+
 ## [2026-11-26] Native Antigravity Plugin Integration And Critical-Only Push/PR CI
 
 ### 背景

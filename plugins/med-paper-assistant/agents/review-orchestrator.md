@@ -35,8 +35,8 @@ tools:
 
 ```
 project_action(action="current") → 確認專案
-list_drafts() → 確認有哪些草稿
-read_draft(section="concept") → 理解研究概念
+draft_action(action="list_drafts") → 確認有哪些草稿
+draft_action(action="read", filename="manuscript.md") → 閱讀稿件內容
 ```
 
 ### Phase 2: 並行派遣 3 個 Reviewer

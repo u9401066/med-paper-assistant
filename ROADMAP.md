@@ -78,6 +78,16 @@ Later               │  Bounded Automation Enhancement                         
 
 ## ✅ 已完成 (Completed)
 
+### Agent-First Harness & Compact Ergonomics v1.2.0 (2026-11)
+
+| Feature                                     | Description                                                                                                                                                                            |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Compact GPS (`pipeline_action:next`)** ✅ | 單次 JSON 導航（~1–2 KB vs `doctor` 15 KB），回傳當前 phase、blockers 與可直接執行的 compact MCP 呼叫（同時支援 `manuscript` 與 `library-wiki`）                                       |
+| **Evidence Pack (`evidence_pack`)** ✅      | `reference_action(action="evidence_pack")` 單次彙整全部文獻的 citation key、摘要、關鍵發現、限制與未分析 PMID，支援 section/query/relevance 篩選                                       |
+| **Quality Repair Plan (`repair_plan`)** ✅  | `run_quality_checks(action="repair_plan")` 將 writing hooks 問題排序為具具體 compact `suggested_call` 與 `recheck_call` 的修復計畫，並支援 section-aware `draft_filename`              |
+| **Zero Ghost Tools + Quiet Hooks** ✅       | 清除 `SERVER_INSTRUCTIONS`（節省 ~45% token）、9 個 bundled agents、guidance 與 7 個 lifecycle hooks 的 full-only 洩漏；修正 `development` 模式誤報、`report_tool_progress` 與空專案名 |
+| **Ratchet < 100 + Smoke Resilience** ✅     | 重構 `reference/facade.py` 與 `create.py`（code-quality 例外 102 → 99）；強化 `install-smoke.cjs` 對 headless Electron exit 134 重試機制                                               |
+
 ### Antigravity Native Plugin + Foam 0.47 MCP + Critical-Only CI v1.1.1 (2026-11)
 
 | Feature                                  | Description                                                                                                                                                         |
