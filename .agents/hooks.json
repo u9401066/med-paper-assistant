@@ -1,0 +1,49 @@
+{
+  "medpaper-lifecycle": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python ../scripts/hooks/antigravity_dispatch.py session-start || python3 ../scripts/hooks/antigravity_dispatch.py session-start",
+        "timeout": 15
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python ../scripts/hooks/antigravity_dispatch.py pre-invocation || python3 ../scripts/hooks/antigravity_dispatch.py pre-invocation",
+        "timeout": 10
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "edit_file|write_file|run_command|.*save_reference.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ../scripts/hooks/antigravity_dispatch.py pre-tool-use || python3 ../scripts/hooks/antigravity_dispatch.py pre-tool-use",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "edit_file|write_file|run_command|.*(write_draft|patch_draft|draft_section|insert_citation|save_reference|validate_concept).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ../scripts/hooks/antigravity_dispatch.py post-tool-use || python3 ../scripts/hooks/antigravity_dispatch.py post-tool-use",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python ../scripts/hooks/antigravity_dispatch.py stop || python3 ../scripts/hooks/antigravity_dispatch.py stop",
+        "timeout": 15
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
-# AGENTS.md - VS Code Copilot Agent 指引
+# AGENTS.md - Multi-Agent 指引（Copilot / Claude Code / Codex / Antigravity）
 
-> 操作前必查 `.copilot-mode.json` 確認當前模式。
+> 操作前必查 `.copilot-mode.json` 確認當前模式。本檔須維持 **≤ 24,000 bytes** 以確保 Antigravity 不截斷規則。
 
 ---
 
@@ -110,58 +110,17 @@ CGU 整合：`cgu_frame` / `cgu_diverge(action=anti_typical)` + `cgu_judge`（�
 
 Copilot Hooks（寫作時即時修正，`auto-paper/SKILL.md` 入口 + `auto-paper/references/hooks-*.md` 詳細規格）↔ Pre-Commit Hooks（git commit 前把關，`git-precommit/SKILL.md`）。
 
-**Code-Enforced**（`run_writing_hooks` / `run_review_hooks` / `run_meta_learning` 有確定性程式碼邏輯）：
+**Code-Enforced**（`run_writing_hooks` / `run_review_hooks` / `run_meta_learning` 具確定性程式碼邏輯）：
 
-| Hook                    | 引擎                                                 | 位置                                          |
-| ----------------------- | ---------------------------------------------------- | --------------------------------------------- |
-| A1 字數合規             | WritingHooksEngine.check_word_count_compliance       | persistence/writing_hooks/\_post_write/       |
-| A2 引用密度             | WritingHooksEngine.check_citation_density            | persistence/writing_hooks/\_post_write/       |
-| A3 Anti-AI 偵測         | WritingHooksEngine.check_anti_ai_patterns            | persistence/writing_hooks/\_post_write/       |
-| A3b AI 結構信號         | WritingHooksEngine.check_ai_writing_signals          | persistence/writing_hooks/\_post_write/       |
-| A3c 語體一致性          | WritingHooksEngine.check_voice_consistency           | persistence/writing_hooks/\_post_write/       |
-| A4 Wikilink 格式        | WritingHooksEngine.check_wikilink_format             | persistence/writing_hooks/\_post_write/       |
-| A5 語言一致性           | WritingHooksEngine.check_language_consistency        | persistence/writing_hooks/\_post_write/       |
-| A6 段落重複             | WritingHooksEngine.check_overlap                     | persistence/writing_hooks/\_post_write/       |
-| A7 文獻數量充足性       | WritingHooksEngine.check_reference_sufficiency       | persistence/writing_hooks/\_engine.py         |
-| B2 🔒保護內容           | WritingHooksEngine.\_run_b2_protected_content        | persistence/writing_hooks/\_engine.py         |
-| B8 統計對齊             | WritingHooksEngine.check_data_claim_alignment        | persistence/writing_hooks/\_section_quality/  |
-| B9 時態一致性           | WritingHooksEngine.check_section_tense               | persistence/writing_hooks/\_section_quality/  |
-| B10 段落品質            | WritingHooksEngine.check_paragraph_quality           | persistence/writing_hooks/\_section_quality/  |
-| B11 Results 客觀性      | WritingHooksEngine.check_results_interpretation      | persistence/writing_hooks/\_section_quality/  |
-| B12 Introduction 結構   | WritingHooksEngine.check_intro_structure             | persistence/writing_hooks/\_section_quality/  |
-| B13 Discussion 結構     | WritingHooksEngine.check_discussion_structure        | persistence/writing_hooks/\_section_quality/  |
-| B14 倫理聲明            | WritingHooksEngine.check_ethical_statements          | persistence/writing_hooks/\_section_quality/  |
-| B15 Hedging 密度        | WritingHooksEngine.check_hedging_density             | persistence/writing_hooks/\_section_quality/  |
-| B16 效果量報告          | WritingHooksEngine.check_effect_size_reporting       | persistence/writing_hooks/\_section_quality/  |
-| C3 N 值一致性           | WritingHooksEngine.check_n_value_consistency         | persistence/writing_hooks/\_manuscript/       |
-| C4 縮寫首次定義         | WritingHooksEngine.check_abbreviation_first_use      | persistence/writing_hooks/\_manuscript/       |
-| C5 Wikilink 可解析      | WritingHooksEngine.check_wikilink_resolvable         | persistence/writing_hooks/\_manuscript/       |
-| C6 全文字數             | WritingHooksEngine.check_total_word_count            | persistence/writing_hooks/\_manuscript/       |
-| C7a 圖表數量限制        | WritingHooksEngine.check_figure_table_counts         | persistence/writing_hooks/\_manuscript/       |
-| C7b 資產計畫覆蓋        | WritingHooksEngine.check_asset_plan_coverage         | persistence/writing_hooks/\_manuscript/       |
-| C7d 交叉引用檢測        | WritingHooksEngine.check_cross_references            | persistence/writing_hooks/\_manuscript/       |
-| C9 補充材料交叉引用     | WritingHooksEngine.check_supplementary_crossref      | persistence/writing_hooks/\_manuscript/       |
-| C10 文獻全文驗證        | WritingHooksEngine.check_reference_fulltext_status   | persistence/writing_hooks/\_manuscript/       |
-| C11 引用分布            | WritingHooksEngine.check_citation_distribution       | persistence/writing_hooks/\_manuscript/       |
-| C12 引用決策審計        | WritingHooksEngine.check_citation_relevance_audit    | persistence/writing_hooks/\_manuscript/       |
-| C13 圖表品質            | WritingHooksEngine.check_figure_table_quality        | persistence/writing_hooks/\_manuscript/       |
-| C14 Claim-Evidence 對齊 | WritingHooksEngine.check_claim_evidence_alignment    | persistence/writing_hooks/\_manuscript/       |
-| C2 投稿清單             | WritingHooksEngine.check_submission_checklist        | persistence/writing_hooks/\_manuscript/       |
-| D1-D9 Meta-Learning     | MetaLearningEngine.analyze()                         | persistence/meta_learning_engine/             |
-| F 數據產出物            | WritingHooksEngine.validate_data_artifacts           | persistence/writing_hooks/\_data_artifacts.py |
-| G9 Git 狀態             | WritingHooksEngine.check_git_status                  | persistence/writing_hooks/\_git.py            |
-| P1 引用完整性           | WritingHooksEngine (delegates to C5)                 | persistence/writing_hooks/\_precommit/        |
-| P2 Anti-AI 掃描         | WritingHooksEngine (delegates to A3+A3b+A3c)         | persistence/writing_hooks/\_precommit/        |
-| P4 字數門檻             | WritingHooksEngine (delegates to A1, 50% threshold)  | persistence/writing_hooks/\_precommit/        |
-| P5 保護內容             | WritingHooksEngine.check_protected_content           | persistence/writing_hooks/\_precommit/        |
-| P6 記憶同步             | WritingHooksEngine.check_memory_sync                 | persistence/writing_hooks/\_precommit/        |
-| P7 文獻完整性           | WritingHooksEngine.check_reference_integrity         | persistence/writing_hooks/\_precommit/        |
-| R1 審查報告深度         | ReviewHooksEngine.check_review_report_depth          | persistence/review_hooks/                     |
-| R2 作者回應完整性       | ReviewHooksEngine.check_author_response_completeness | persistence/review_hooks/                     |
-| R3 EQUATOR 合規門檻     | ReviewHooksEngine.check_equator_compliance           | persistence/review_hooks/                     |
-| R4 審查-修正追蹤性      | ReviewHooksEngine.check_review_fix_traceability      | persistence/review_hooks/                     |
-| R5 審後 Anti-AI 門檻    | ReviewHooksEngine.check_post_review_anti_ai          | persistence/review_hooks/                     |
-| R6 引用預算門檻         | ReviewHooksEngine.check_citation_budget              | persistence/review_hooks/                     |
+| 系列       | Checks（56）                                                                                                                    | 引擎與位置                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **A (9)**  | A1 字數、A2 引用密度、A3 Anti-AI、A3b 結構信號、A3c 語體、A4 Wikilink、A5 語言、A6 重複、A7 文獻充足                            | `WritingHooksEngine` (`writing_hooks/_post_write/`)      |
+| **B (10)** | B2 🔒保護、B8 統計對齊、B9 時態、B10 段落品質、B11 Results 客觀、B12 Intro、B13 Discussion、B14 倫理、B15 Hedging、B16 效果量   | `WritingHooksEngine` (`writing_hooks/_section_quality/`) |
+| **C (14)** | C2 投稿清單、C3 N 值、C4 縮寫、C5 Wikilink 解析、C6 全文字數、C7a/b/d 圖表計畫交叉引用、C9 補材、C10 全文、C11-C14 引用圖表證據 | `WritingHooksEngine` (`writing_hooks/_manuscript/`)      |
+| **D (9)**  | D1–D9 Meta-Learning（Hook 效能、Scorecard、±20% 閾值、SKILL 建議、Audit、Review/EQUATOR 回顧、趨勢）                            | `MetaLearningEngine` (`meta_learning_engine/`)           |
+| **F / G**  | F 數據產出物 (`_data_artifacts.py`)、G9 Git 狀態 (`_git.py`)                                                                    | `WritingHooksEngine` (`writing_hooks/`)                  |
+| **P (6)**  | P1 引用（→C5）、P2 Anti-AI（→A3/b/c）、P4 字數（→A1 50%）、P5 保護內容、P6 記憶同步、P7 文獻完整性                              | `WritingHooksEngine` (`writing_hooks/_precommit/`)       |
+| **R (6)**  | R1 報告深度、R2 回應完整、R3 EQUATOR、R4 修正追蹤、R5 審後 Anti-AI、R6 引用預算（Phase 7 HARD GATE）                            | `ReviewHooksEngine` (`persistence/review_hooks/`)        |
 
 **Agent-Driven**（僅靠 Agent 遵循 SKILL.md 指示，無 Code 強制）：
 
@@ -215,7 +174,18 @@ uv 優先。`pyproject.toml` + `uv.lock`。禁止全域安裝。詳見 `.github/
 
 腳本位於 `scripts/hooks/copilot/`：hook 邏輯為純 stdlib Python（`mdpaper_hooks/`），由 `hook_dispatch.py <name>` 行程內呼叫（Windows 以 `pythonw.exe` 無視窗執行，任何例外皆 fail-open 並記錄至 `.github/hooks/_state/hook_errors.jsonl`）；`*.sh` 僅為 POSIX shim。不再需要 jq 或 bash。
 
-另有補強型 `PreToolUse` runtime guard：`.github/hooks/mode-guard.json` 會在工具執行前透過 fail-open launcher（`scripts/hooks/copilot/mode-guard.{ps1,sh}`，直接用 `.venv` Python、絕不 `uv run`）呼叫 `scripts/copilot_hook_guard.py`，補上 Python / `apply_patch` / Windows PowerShell 路徑解析，專門攔截受保護路徑修改與破壞性 terminal 指令。它是 lifecycle hooks 的補充層，不取代 `mdpaper-lifecycle.json`。
+另有補強型 `PreToolUse` runtime guard：`.github/hooks/mode-guard.json` 透過 fail-open launcher 呼叫 `scripts/copilot_hook_guard.py`，攔截受保護路徑修改與破壞性指令。
+
+### Antigravity 原生整合
+
+- **Plugin 探索**：`.agents/plugins.json` 指向 `plugins/`，自動載入 `plugins/med-paper-assistant/`（含 `mcp_config.json`、`rules/AGENTS.md`、25 skills、9 Antigravity `agents/*.md`）；`.agents/skills.json` 補齊開發期其餘 `.claude/skills/`（排除已打包之研究 skills，無重複）。
+- **Lifecycle Hooks**：`.agents/hooks.json` 透過 `scripts/hooks/antigravity_dispatch.py` 橋接 `copilot_hook_guard` 與 `mdpaper_hooks`（fail-open、純 stdlib）。
+
+### 測試與 CI 分層紀律
+
+- **開發期**：只執行與本次變更直接相關的 **targeted tests**；**除非跨層核心重構、pre-push 或發布前驗證，否則不跑全量 test suite**。
+- **Pre-commit / Pre-push**（`.pre-commit-config.yaml`）：承擔完整本機品質把關（格式化、lint、mypy、vulture、drift、ratchet、consistency、全量 pytest、full greedy smoke、VSX validate）。
+- **CI（`.github/workflows/ci.yml`）**：一般 push / PR **僅跑最關鍵檢查**（`ruff check`、`bandit`、plugin/tool-surface authority、關鍵 `contract|mcp|smoke` 測試、MCP boot、compact smoke、VSX compile/test、docs structure）；全量檢查於每週排程、`workflow_dispatch` 與 `release.yml` 執行。
 
 ---
 

@@ -17,6 +17,8 @@ DESTRUCTIVE_TERMINAL_PATTERNS = {
 TERMINAL_TOOL_NAMES = {
     "run_in_terminal",
     "runinterminal",
+    "run_command",
+    "runcommand",
     "powershell",
     "bash",
     "shell",
@@ -35,6 +37,7 @@ MUTATING_TOOL_KEYWORDS = (
     "move",
     "rename",
     "update",
+    "write",
 )
 PATH_FIELD_NAMES = {
     "path",
@@ -192,16 +195,22 @@ def iter_explicit_tool_paths(tool_input: dict[str, Any]) -> list[str]:
 
 
 def get_tool_name(payload: dict[str, Any]) -> str:
-    """Return the tool name across VS Code (tool_name) and Copilot CLI (toolName) payloads."""
-    value = payload.get("tool_name") or payload.get("toolName") or ""
+    """Return the tool name across VS Code, Copilot CLI, and Antigravity payloads."""
+    tool_call = payload.get("toolCall")
+    nested_name = tool_call.get("name") if isinstance(tool_call, dict) else None
+    value = payload.get("tool_name") or payload.get("toolName") or nested_name or ""
     return value if isinstance(value, str) else ""
 
 
 def get_tool_input(payload: dict[str, Any]) -> dict[str, Any]:
-    """Return tool arguments; Copilot CLI may send ``toolArgs`` as a JSON string."""
+    """Return tool arguments across VS Code, Copilot CLI (JSON string), and Antigravity."""
     value = payload.get("tool_input")
     if value is None:
         value = payload.get("toolArgs")
+    if value is None:
+        tool_call = payload.get("toolCall")
+        if isinstance(tool_call, dict):
+            value = tool_call.get("args")
     if isinstance(value, str):
         try:
             value = json.loads(value)
@@ -292,7 +301,8 @@ def evaluate_pre_tool_use(
     tool_name = get_tool_name(payload)
 
     if tool_name.casefold() in TERMINAL_TOOL_NAMES:
-        command = get_tool_input(payload).get("command", "")
+        tool_input = get_tool_input(payload)
+        command = tool_input.get("command") or tool_input.get("CommandLine") or ""
         reason = detect_dangerous_terminal_command(command if isinstance(command, str) else "")
         if reason:
             return build_pretool_response(

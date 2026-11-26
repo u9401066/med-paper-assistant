@@ -1,0 +1,34 @@
+{
+  "entries": [
+    {
+      "path": ".claude/skills",
+      "exclude": [
+        "academic-debate",
+        "academic-writing-harness",
+        "auto-paper",
+        "concept-development",
+        "concept-validation",
+        "draft-writing",
+        "idea-validation",
+        "literature-review",
+        "manuscript-review",
+        "parallel-search",
+        "pdf-asset-extractor",
+        "pipeline-persistence",
+        "project-management",
+        "pubmed-export-citations",
+        "pubmed-fulltext-access",
+        "pubmed-gene-drug-research",
+        "pubmed-mcp-tools-reference",
+        "pubmed-multi-source-search",
+        "pubmed-paper-exploration",
+        "pubmed-pico-search",
+        "pubmed-quick-search",
+        "pubmed-systematic-search",
+        "reference-management",
+        "submission-preparation",
+        "word-export"
+      ]
+    }
+  ]
+}
