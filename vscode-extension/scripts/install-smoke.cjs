@@ -71,20 +71,40 @@ const profileFlags = [
   '--user-data-dir', userDataDir,
 ];
 
-function runCli(args, capture = false) {
-  const result = spawnSync(cliCommand, [...cliPrefixArgs, ...args, ...profileFlags], {
-    encoding: 'utf8',
-    stdio: capture ? 'pipe' : 'inherit',
-    env: localCliEnvironment(),
-  });
-  if (result.status !== 0) {
-    if (capture) {
-      process.stderr.write(result.stdout || '');
-      process.stderr.write(result.stderr || '');
+function runCli(args, capture = false, retries = 2) {
+  let lastResult = null;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const result = spawnSync(cliCommand, [...cliPrefixArgs, ...args, ...profileFlags], {
+      encoding: 'utf8',
+      stdio: capture ? 'pipe' : 'inherit',
+      env: localCliEnvironment(),
+      timeout: 60_000,
+    });
+    lastResult = result;
+    if (result.status === 0) {
+      return result.stdout || '';
     }
-    throw new Error(`VS Code CLI failed (${result.status}): ${args.join(' ')}`);
+    const transientCrash =
+      result.status === 134 ||
+      result.signal === 'SIGABRT' ||
+      (result.error && result.error.code === 'ETIMEDOUT');
+    if (transientCrash && attempt < retries) {
+      process.stderr.write(
+        `Retrying VS Code CLI (${args.join(' ')}) after transient failure ` +
+          `(status=${result.status}, signal=${result.signal || 'none'}, attempt=${attempt + 1}/${retries})...\n`,
+      );
+      continue;
+    }
+    break;
   }
-  return result.stdout || '';
+  if (capture && lastResult) {
+    process.stderr.write(lastResult.stdout || '');
+    process.stderr.write(lastResult.stderr || '');
+  }
+  const detail = lastResult
+    ? `status=${lastResult.status}, signal=${lastResult.signal || 'none'}`
+    : 'unknown';
+  throw new Error(`VS Code CLI failed (${detail}): ${args.join(' ')}`);
 }
 
 try {
