@@ -253,14 +253,14 @@ class TestRecoverySummaryWritingSession:
         assert "Methods" in summary
 
     def test_banner_includes_read_draft_hint(self, wsm: WorkspaceStateManager):
-        """Should include hint to use read_draft."""
+        """Should include hint to use compact draft_action(action='read')."""
         wsm.sync_writing_session(
             section="Results",
             filename="results.md",
             operation="patch",
         )
         summary = wsm.get_recovery_summary()
-        assert "read_draft" in summary
+        assert 'draft_action(action="read")' in summary
 
 
 # ──────────────────────────────────────────────────────────────────────────────
