@@ -189,6 +189,12 @@ vi.mock('../drawioPanel', () => ({
     },
 }));
 
+// Keep the definition count independent of whether the host has npx on PATH.
+vi.mock('../foamMcp', async importOriginal => ({
+    ...(await importOriginal<typeof import('../foamMcp')>()),
+    findExecutableOnPath: vi.fn(() => null),
+}));
+
 function createExtensionContext() {
     const state = new Map<string, unknown>();
     const extensionPath = path.resolve(__dirname, '..', '..');

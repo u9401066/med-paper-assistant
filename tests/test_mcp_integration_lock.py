@@ -144,3 +144,17 @@ def test_setup_summaries_list_all_managed_mcp_surfaces() -> None:
 
     for relative_path in ("scripts/setup.sh", "scripts/setup.ps1"):
         assert expected in (ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def test_node_foam_lock_matches_vsix_foam_mcp_helper() -> None:
+    foam = _lock()["node_integrations"]["foam"]
+    source = (ROOT / "vscode-extension" / "src" / "foamMcp.ts").read_text(encoding="utf-8")
+
+    assert foam["repository"] == "https://github.com/foambubble/foam"
+    assert foam["package"] == "foam-cli"
+    assert foam["mode"] == "read-only"
+    assert foam["env"] == {"FOAM_TELEMETRY": "0"}
+    assert f"repository: '{foam['repository']}'" in source
+    assert f"package: '{foam['package']}'" in source
+    assert f"version: '{foam['version']}'" in source
+    assert "FOAM_TELEMETRY: '0'" in source

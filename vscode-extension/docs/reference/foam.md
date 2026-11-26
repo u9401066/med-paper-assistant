@@ -68,8 +68,12 @@ Aligned:
   graph notes under `notes/draft-sections/`, `notes/figures/`, and
   `notes/tables/`.
 - Managed `foam.graph.views` are written automatically for Default, Evidence,
-  Writing, Assets, and Review slices, and the VSIX exposes matching command
-  palette commands.
+  Writing, Assets, and Review slices (split into `foam_graph_views.py`), and the
+  VSIX exposes matching command palette commands.
+- Foam 0.47 DQL queries use sandboxed `jexl` frontmatter filters (`shared/foam_queries.py`)
+  and materialize reusable saved queries under `.foam/queries/medpaper-*.yaml`
+  for VS Code Smart Folders and the official read-only `foam-cli@0.47.0 mcp`
+  server (registered automatically by the VSIX when `npx` is on `PATH`).
 - Project-specific `graph_views_json` values now flow into
   `settings.custom_graph_views` in `project.json` and are merged into the
   active `foam.graph.views` set.
@@ -99,13 +103,14 @@ Needs follow-up:
 
 ## Recently Closed Copilot Alignments
 
-| Upstream Foam feature                   | Current MedPaper state                                                                                  | Entry point                                                           |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------- | -------- | ------ | ------------ |
-| Orphans / placeholders panels           | Graph-health dashboards now surface orphan notes, unresolved wikilinks, placeholders, and metadata gaps | `build_library_dashboard(view="graph-health")`                        |
-| Templates / daily notes                 | Inbox, review, and daily templates now ship through the MedPaper note writer                            | `write_library_note(template="capture                                 | review   | daily")` |
-| Foam queries                            | Library dashboards now emit more live operational views                                                 | `build_library_dashboard(view="unread                                 | metadata | review   | assets | synthesis")` |
-| Link reference definitions / publishing | Publish-safe reference packs are materialized for non-Foam renderers                                    | `notes/publish/reference-links.md`, `notes/publish/knowledge-base.md` |
-| Custom graph configs                    | Project-specific graph slices are merged into `foam.graph.views`                                        | `update_project_settings(graph_views_json="...")`                     |
+| Upstream Foam feature                   | Current MedPaper state                                                                                  | Entry point                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Orphans / placeholders panels           | Graph-health dashboards now surface orphan notes, unresolved wikilinks, placeholders, and metadata gaps | `build_library_dashboard(view="graph-health")`                                        |
+| Templates / daily notes                 | Inbox, review, and daily templates now ship through the MedPaper note writer                            | `write_library_note(template="capture \| review \| daily")`                           |
+| Foam queries                            | Library dashboards & `.foam/queries/medpaper-*.yaml` emit Foam 0.47 Jexl queries                        | `build_library_dashboard(view="unread \| metadata \| review \| assets \| synthesis")` |
+| Foam MCP (`foam-cli mcp`)               | VSIX registers pinned `foam-cli@0.47.0 mcp` read-only when `npx` is available                           | `vscode-extension/src/foamMcp.ts` + `mcp-integration-lock.json`                       |
+| Link reference definitions / publishing | Publish-safe reference packs are materialized for non-Foam renderers                                    | `notes/publish/reference-links.md`, `notes/publish/knowledge-base.md`                 |
+| Custom graph configs                    | Project-specific graph slices are merged into `foam.graph.views`                                        | `update_project_settings(graph_views_json="...")`                                     |
 
 ## Remaining Alignment Work
 

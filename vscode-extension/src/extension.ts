@@ -14,6 +14,7 @@ import {
     supportsNativeChatContributions,
 } from './extensionHelpers';
 import { MCP_INTEGRATION_PACKAGES } from './mcpIntegrationPackages';
+import { FOAM_MCP_PACKAGE, buildFoamMcpCommand, findExecutableOnPath } from './foamMcp';
 
 let outputChannel: vscode.OutputChannel;
 let resolvedUvPath: string | null = null;
@@ -411,6 +412,21 @@ function registerMcpServerProvider(context: vscode.ExtensionContext): vscode.Dis
 
             outputChannel.appendLine(`[MCP] Draw.io: ${drawioCommand} ${drawioArgs.join(' ')}`);
             definitions.push(new vscode.McpStdioServerDefinition('Draw.io Diagrams', drawioCommand, drawioArgs, mcpEnv));
+
+            // --- 7. Foam knowledge graph (official foam-cli MCP, read-only) ---
+            const npxPath = wsRoot ? findExecutableOnPath('npx', mcpEnv.PATH ?? process.env.PATH) : null;
+            if (wsRoot && npxPath) {
+                const [foamCommand, foamArgs] = buildFoamMcpCommand(wsRoot);
+                outputChannel.appendLine(`[MCP] Foam: ${foamCommand} ${foamArgs.join(' ')} (read-only)`);
+                definitions.push(
+                    new vscode.McpStdioServerDefinition('Foam Knowledge Graph', foamCommand, foamArgs, {
+                        ...mcpEnv,
+                        ...FOAM_MCP_PACKAGE.env,
+                    }),
+                );
+            } else {
+                outputChannel.appendLine('[MCP] Foam: npx or workspace not found — skipping read-only graph server');
+            }
 
             return definitions;
         },

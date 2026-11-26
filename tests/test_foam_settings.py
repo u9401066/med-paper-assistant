@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import json
 
+import yaml
+
 from med_paper_assistant.infrastructure.services.foam_settings import FoamSettingsManager
+from med_paper_assistant.shared.foam_queries import (
+    frontmatter_equals,
+    frontmatter_query_block,
+    write_saved_queries,
+)
 
 
 def test_update_for_project_writes_graph_views_and_preview_navigation(tmp_path) -> None:
@@ -37,7 +44,58 @@ def test_update_for_project_writes_graph_views_and_preview_navigation(tmp_path) 
         group["match"] == {"property": "type", "value": "library-dashboard"}
         for group in views[0]["groups"]
     )
-    assert "projects/beta/**" in settings["foam.files.ignore"]
+    assert "projects/beta/**" in settings["foam.files.exclude"]
+    assert "foam.files.ignore" not in settings
+    assert "**/node_modules/**/*" in settings["foam.files.exclude"]
+    assert "medpaper-analysis-queue" in result["saved_queries"]
+
+
+def test_update_for_project_migrates_legacy_ignore_and_keeps_user_patterns(tmp_path) -> None:
+    settings_dir = tmp_path / ".vscode"
+    settings_dir.mkdir(parents=True)
+    settings_path = settings_dir / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "foam.files.ignore": ["src/**", "archive/**", "projects/gone/**"],
+                "foam.files.exclude": ["projects/alpha/drafts/**", "**/private/**"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "projects" / "alpha").mkdir(parents=True)
+    (tmp_path / "projects" / "beta").mkdir(parents=True)
+    user_query = tmp_path / ".foam" / "queries" / "my-query.yaml"
+    user_query.parent.mkdir(parents=True)
+    user_query.write_text('filter: "#wip"\n', encoding="utf-8")
+
+    FoamSettingsManager(tmp_path).update_for_project("beta")
+
+    exclude = json.loads(settings_path.read_text(encoding="utf-8"))["foam.files.exclude"]
+    assert "archive/**" in exclude and "**/private/**" in exclude
+    assert "projects/alpha/**" in exclude and "projects/beta/drafts/**" in exclude
+    assert "projects/gone/**" not in exclude and "projects/alpha/drafts/**" not in exclude
+    assert len(exclude) == len(set(exclude))
+    assert user_query.read_text(encoding="utf-8") == 'filter: "#wip"\n'
+
+
+def test_saved_queries_use_jexl_frontmatter_filters_and_parse_as_yaml(tmp_path) -> None:
+    written = write_saved_queries(tmp_path)
+
+    body = yaml.safe_load(
+        (tmp_path / ".foam" / "queries" / "medpaper-references.yaml").read_text(encoding="utf-8")
+    )
+    assert "medpaper-references" in written
+    assert body["filter"] == {"jexl": "resource.properties.type == 'reference'"}
+    assert "properties.type" in body["select"]
+
+
+def test_frontmatter_equals_escapes_jexl_and_yaml_quotes() -> None:
+    expression = frontmatter_equals("my-key", 'O\'Brien \\ "x"')
+    block = yaml.safe_load("\n".join(frontmatter_query_block("my-key", 'O\'Brien \\ "x"')[1:-1]))
+
+    assert expression == "resource.properties['my-key'] == 'O\\'Brien \\\\ \"x\"'"
+    assert block["filter"]["jexl"] == expression
 
 
 def test_update_for_project_preserves_custom_non_managed_views(tmp_path) -> None:

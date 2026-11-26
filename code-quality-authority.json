@@ -12,16 +12,16 @@
     "function": 50
   },
   "summary": {
-    "filesScanned": 462,
+    "filesScanned": 464,
     "definitionsScanned": {
-      "class": 325,
-      "function": 2417
+      "class": 326,
+      "function": 2430
     },
     "violations": {
-      "file": 6,
-      "class": 6,
-      "function": 93,
-      "total": 105
+      "file": 5,
+      "class": 5,
+      "function": 92,
+      "total": 102
     },
     "maximum": {
       "file": {
@@ -30,9 +30,9 @@
         "lines": 609
       },
       "class": {
-        "path": "src/med_paper_assistant/infrastructure/services/foam_settings.py",
-        "qualifiedSymbol": "FoamSettingsManager",
-        "lines": 420
+        "path": "src/med_paper_assistant/infrastructure/services/analyzer.py",
+        "qualifiedSymbol": "Analyzer",
+        "lines": 419
       },
       "function": {
         "path": "src/med_paper_assistant/interfaces/mcp/tools/validation/concept.py",
@@ -305,24 +305,6 @@
       "path": "src/med_paper_assistant/infrastructure/services/exporter.py",
       "qualifiedSymbol": "WordExporter.fill_template",
       "allowedLines": 93
-    },
-    {
-      "kind": "file",
-      "path": "src/med_paper_assistant/infrastructure/services/foam_settings.py",
-      "qualifiedSymbol": "<module>",
-      "allowedLines": 440
-    },
-    {
-      "kind": "class",
-      "path": "src/med_paper_assistant/infrastructure/services/foam_settings.py",
-      "qualifiedSymbol": "FoamSettingsManager",
-      "allowedLines": 420
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/infrastructure/services/foam_settings.py",
-      "qualifiedSymbol": "FoamSettingsManager._build_graph_views",
-      "allowedLines": 95
     },
     {
       "kind": "class",

@@ -3,6 +3,11 @@
 import os
 from typing import Any, Dict, List
 
+from med_paper_assistant.shared.foam_queries import (
+    frontmatter_query_block,
+    linked_reference_query_block,
+)
+
 
 class FoamLibraryMixin:
     """Library overview pages and Foam query blocks."""
@@ -14,48 +19,13 @@ class FoamLibraryMixin:
         *,
         format_name: str = "count",
     ) -> List[str]:
-        lines = [
-            "```foam-query",
-            "filter:",
-            "  and:",
-            f'    - {self._yaml_escape(property_name)}: "{self._yaml_escape(value)}"',
-        ]
-        if format_name == "count":
-            lines.append("format: count")
-        else:
-            lines.extend(
-                [
-                    "select: [title, type, tags, backlink-count]",
-                    "sort: title ASC",
-                    f"format: {format_name}",
-                ]
-            )
-        lines.append("```")
-        return lines
+        return frontmatter_query_block(property_name, value, format_name=format_name)
 
     def _type_query_block(self, note_type: str, *, format_name: str = "count") -> List[str]:
-        return self._property_query_block("type", note_type, format_name=format_name)
+        return frontmatter_query_block("type", note_type, format_name=format_name)
 
     def _linked_reference_query_block(self, *, format_name: str) -> List[str]:
-        lines = [
-            "```foam-query",
-            "filter:",
-            "  and:",
-            '    - type: "reference"',
-            '    - links_from: "$current"',
-        ]
-        if format_name == "count":
-            lines.append("format: count")
-        else:
-            lines.extend(
-                [
-                    "select: [title, type, tags, backlink-count]",
-                    "sort: title ASC",
-                    f"format: {format_name}",
-                ]
-            )
-        lines.append("```")
-        return lines
+        return linked_reference_query_block(format_name=format_name)
 
     def _materialize_library_overview(self, context_nodes: Dict[str, Any]) -> Dict[str, Any]:
         note_path = os.path.join(self._library_pages_dir(), "overview.md")

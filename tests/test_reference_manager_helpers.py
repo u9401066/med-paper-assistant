@@ -173,6 +173,7 @@ def test_import_local_file_creates_reference_note_and_scaffolding(tmp_path) -> N
     assert "## Identity Resolution Queue" in library_overview_text
     assert "## Live Analysis Queue" in library_overview_text
     assert "```foam-query" in library_overview_text
+    assert "jexl: \"resource.properties.analysis_state == 'pending'\"" in library_overview_text
     assert metadata["citation_key"] in library_overview_text
     assert 'type: "publish-links"' in publish_links_text
     assert metadata["citation_key"] in publish_links_text
@@ -278,6 +279,7 @@ def test_materialize_agent_wiki_builds_indexed_pages_from_markdown_intake(tmp_pa
     assert "## Live Reference Table" in knowledge_map_text
     assert "```foam-query" in knowledge_map_text
     assert 'links_from: "$current"' in knowledge_map_text
+    assert "resource.properties.type == 'reference'" in knowledge_map_text
     assert "content-card![[" in knowledge_map_text
     assert "#^key-findings" in knowledge_map_text
     assert 'type: "synthesis-page"' in synthesis_text
