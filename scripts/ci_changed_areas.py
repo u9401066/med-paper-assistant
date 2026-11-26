@@ -26,7 +26,7 @@ import urllib.request
 from collections.abc import Callable, Iterable, Sequence
 
 AREAS: tuple[str, ...] = ("python", "vsx", "dashboard", "markdown", "sdk2")
-FULL_SMOKE_OS: tuple[str, ...] = ("ubuntu-latest", "windows-latest", "macos-14")
+FULL_SMOKE_OS: tuple[str, ...] = ("ubuntu-latest", "windows-latest", "macos-latest")
 COMPARE_FILE_CAP = 300
 DIFF_EVENTS = frozenset({"push", "pull_request"})
 
