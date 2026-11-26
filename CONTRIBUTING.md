@@ -62,8 +62,7 @@ source .venv/bin/activate  # Linux/Mac
 uv run pre-commit install
 ```
 
-CI only runs the jobs whose inputs changed, so the local hooks are the primary
-quality gate; see [CI tiers](docs/wiki/development-and-release.md#ci-tiers).
+CI on push/PR runs **critical gates only** (ruff check, bandit, authority/plugin drift, critical `contract|mcp|smoke` tests, MCP boot, compact smoke, VSX compile/test, docs structure). Formatting, mypy, vulture, ratchet, consistency, full pytest, full greedy smoke, and VSX validate live in local pre-commit/pre-push hooks plus scheduled and release runs; see [CI tiers](docs/wiki/development-and-release.md#ci-tiers).
 
 #### 3. Create a Branch
 
@@ -125,20 +124,22 @@ def save_reference(pmid: str, download_pdf: bool = True) -> str:
 
 ### Testing
 
+During normal development, run **targeted tests for the area you changed** first. Reserve the full fast suite for cross-cutting refactors, `pre-push`, or pre-release verification.
+
 ```bash
-# Run all tests
-uv run pytest tests/
+# Development loop: targeted tests for the changed module
+uv run pytest tests/test_project_manager.py -q
 
-# Run specific test
-uv run pytest tests/test_project_manager.py
+# Critical contract / MCP / smoke subset (matches push/PR CI)
+uv run pytest tests/ -x -q -m "(contract or mcp or smoke) and not integration and not slow"
 
-# Run with coverage
-uv run pytest tests/ --cov=src/med_paper_assistant
+# Full fast suite (run on pre-push or when cross-cutting changes require it)
+uv run pytest tests/ -x -q -m "not integration and not slow"
 
-# Run the repository pre-commit gate (commit tier)
+# Run the repository pre-commit gate (commit tier: format, lint, mypy, vulture, drift, ratchet)
 uv run pre-commit run --all-files
 
-# Run the pre-push tier (pytest, MCP boot, greedy smoke, extension lint/test)
+# Run the pre-push tier (bandit, authority, full pytest, MCP boot, greedy smokes, VSX validate)
 uv run pre-commit run --all-files --hook-stage pre-push
 ```
 
@@ -267,7 +268,7 @@ source .venv/bin/activate  # Linux/Mac
 uv run pre-commit install
 ```
 
-CI 只會執行輸入有變更的 job，本地 hooks 是主要的品質關卡；詳見
+push / PR 的 CI **僅執行最關鍵把關**（ruff check、bandit、authority/plugin drift、關鍵 `contract|mcp|smoke` 測試、MCP boot、compact smoke、VSX compile/test 與 docs structure）；格式化、mypy、vulture、ratchet、consistency、全量 pytest、full greedy smoke 與 VSX validate 放在本地 pre-commit / pre-push hooks 及排程／發布流程；詳見
 [CI tiers](docs/wiki/development-and-release.md#ci-tiers)。
 
 #### 3. 建立分支
@@ -330,20 +331,22 @@ def save_reference(pmid: str, download_pdf: bool = True) -> str:
 
 ### 測試
 
+日常開發請以**本次修改對應的 targeted tests** 為主；只有在跨層核心重構、`pre-push` 或發布前驗證時才執行全量測試。
+
 ```bash
-# 執行所有測試
-uv run pytest tests/
+# 開發迴圈：僅跑修改模組對應測試
+uv run pytest tests/test_project_manager.py -q
 
-# 執行特定測試
-uv run pytest tests/test_project_manager.py
+# 關鍵契約／MCP／smoke 子集（與 push/PR CI 對齊）
+uv run pytest tests/ -x -q -m "(contract or mcp or smoke) and not integration and not slow"
 
-# 執行並顯示覆蓋率
-uv run pytest tests/ --cov=src/med_paper_assistant
+# 全量快速測試（於 pre-push 或跨層變動必要時執行）
+uv run pytest tests/ -x -q -m "not integration and not slow"
 
-# 執行 repository pre-commit gate（commit 層）
+# 執行 repository pre-commit gate（commit 層：格式、lint、mypy、vulture、drift、ratchet）
 uv run pre-commit run --all-files
 
-# 執行 pre-push 層（pytest、MCP boot、greedy smoke、extension lint/test）
+# 執行 pre-push 層（bandit、authority、全量 pytest、MCP boot、greedy smoke、VSX validate）
 uv run pre-commit run --all-files --hook-stage pre-push
 ```
 

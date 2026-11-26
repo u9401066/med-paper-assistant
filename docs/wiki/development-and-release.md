@@ -79,14 +79,15 @@ uv run mkdocs build --strict
 
 ## CI tiers
 
-驗證分成四層，愈靠近開發者愈快、愈早攔截；CI 只跑本次變更真正影響的區域。
+驗證分成五層：日常開發只跑受影響模組的 targeted tests，完整檢驗放在本機 pre-commit／pre-push；push／PR 的 CI 僅執行最關鍵把關。
 
-| 層級       | 觸發                                       | 內容                                                                                                                                | 典型耗時   |
-| ---------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| commit     | `git commit`（pre-commit）                 | ruff check/format、mypy、vulture、plugin／companion drift、code-quality ratchet、`check_consistency.py`、VSX bundle drift、npm lock | ≈15 秒     |
-| pre-push   | `git push`（pre-commit `pre-push`）        | Bandit、tool-surface authority、pytest、MCP boot、greedy compact／full smoke、VSX lint／test                                        | ≈3 分鐘    |
-| CI         | push／PR 到 `master`                       | `Detect Changed Areas` 依 diff 選擇要跑的 job；required checks 名稱固定不變                                                         | 依變更而定 |
-| 全量／發布 | 每週一 cron、`workflow_dispatch`、`v*` tag | `ci.yml` 全部 job + 三平台 smoke；`release.yml` 自帶完整 gate，不依賴先前 CI 結果                                                   | 全量       |
+| 層級       | 觸發                                       | 內容                                                                                                                                                                       | 典型耗時   |
+| ---------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 開發迴圈   | 本機迭代                                   | 只跑變更模組對應的 targeted `pytest`／`vitest`；非跨層重構或發布不跑全量                                                                                                   | 數秒       |
+| commit     | `git commit`（pre-commit）                 | Prettier Markdown、ruff check/format、mypy、vulture、plugin／companion drift、code-quality ratchet、`check_consistency.py`、VSX bundle drift、npm lock                     | ≈15 秒     |
+| pre-push   | `git push`（pre-commit `pre-push`）        | Bandit、tool-surface authority、關鍵與全量快速 pytest、MCP boot、greedy compact／full smoke、VSX lint／test／validate、Dashboard lint、docs structure check                | ≈3 分鐘    |
+| CI（關鍵） | push／PR 到 `master`                       | `Detect Changed Areas` 僅跑關鍵 gate：`ruff check`、`bandit`、authority／plugin drift、`contract\|mcp\|smoke` 測試、MCP boot、compact smoke、VSX compile／test、docs check | 依變更而定 |
+| 全量／發布 | 每週一 cron、`workflow_dispatch`、`v*` tag | `ci.yml` 全部 job 與 deferred 步驟 + 三平台 smoke；`release.yml` 自帶完整 gate，不依賴先前 CI 結果                                                                         | 全量       |
 
 安裝本機 hooks（只需一次）：
 
@@ -102,7 +103,8 @@ uv run pre-commit run --all-files --hook-stage pre-push # pre-push tier
 - **Fail-open**：排程／手動執行、缺少或全零 base SHA、GitHub API 錯誤、diff 達 compare API 300 檔上限、空 diff，或修改 `ci.yml`／classifier／`.pre-commit-config.yaml` 本身，一律選取全部區域。`changes` job 失敗時 output 為空，`!= 'false'` 仍為真，所以所有 job 照跑。
 - **Required checks 不會卡住**：被 job-level `if:` 跳過的 job 回報 success；不可改用 workflow-level `paths:`，否則 required check 會永遠 pending。
 - **Python**：只有 `memory-bank/`、`dashboard/`、`projects/`、`.vscode/` 的變更可跳過 Python lint／tests，因為其他文件與 manifest 都被 contract tests 讀取。
-- **Smoke OS**：腳本、hooks、lockfile、`infrastructure/`、`shared/` 等與作業系統相關的變更跑 Linux／Windows／macOS；其他 `src/`、`tests/` 變更只跑 Windows（Linux 已由 Python Tests 覆蓋，macOS 由每週全量與 release 覆蓋）。
+- **Markdown／Docs**：push／PR 僅在 `docs/`、`mkdocs.yml` 或 `scripts/build_docs_site.py` 變更時執行導覽與連結檢查；一般 `.md` 的 Prettier 格式化由本機 pre-commit 與每週排程把關。
+- **Smoke OS**：僅在腳本、hooks（含 `.agents/hooks.json`）、lockfile、`infrastructure/`、`shared/` 等與作業系統相關的變更時跑三平台 smoke；一般 `src/`、`tests/` 變更由本機 pre-push、Ubuntu 關鍵 CI 與每週／發布全量矩陣覆蓋。
 
 例如只更新 Memory Bank 的 commit，CI 只會跑 `Markdown Format`。本 repo 為 public，GitHub-hosted 標準 runner 不計費；分層的目的在於縮短回饋時間與降低 runner 排隊，而非節省帳單。新增 area 規則時，請同步更新 `tests/test_ci_changed_areas.py` 與 `tests/test_ci_workflows.py` 的 parity 契約。
 

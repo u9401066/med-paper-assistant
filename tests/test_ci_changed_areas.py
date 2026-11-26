@@ -43,7 +43,6 @@ def _load_module():
 
 areas = _load_module()
 FULL = list(areas.FULL_SMOKE_OS)
-WIN = list(areas.WINDOWS_SMOKE_OS)
 
 
 def _ci_jobs() -> dict[str, Any]:
@@ -55,7 +54,7 @@ def _ci_jobs() -> dict[str, Any]:
     [
         (
             ["memory-bank/progress.md"],
-            {"python": False, "vsx": False, "markdown": True, "sdk2": False, "smoke_os": []},
+            {"python": False, "vsx": False, "markdown": False, "sdk2": False, "smoke_os": []},
         ),
         (
             ["dashboard/src/App.tsx"],
@@ -67,17 +66,18 @@ def _ci_jobs() -> dict[str, Any]:
         ),
         (
             ["src/med_paper_assistant/domain/entities/project.py"],
-            {"python": True, "vsx": True, "markdown": False, "sdk2": False, "smoke_os": WIN},
+            {"python": True, "vsx": True, "markdown": False, "sdk2": False, "smoke_os": []},
         ),
         (["src/med_paper_assistant/infrastructure/x.py"], {"vsx": True, "smoke_os": FULL}),
-        (["tests/test_anything.py"], {"python": True, "vsx": False, "smoke_os": WIN}),
+        (["tests/test_anything.py"], {"python": True, "vsx": False, "smoke_os": []}),
         (["uv.lock"], {"python": True, "sdk2": True, "vsx": False, "smoke_os": FULL}),
         (["vscode-extension/src/extension.ts"], {"vsx": True, "smoke_os": FULL}),
         (["integrations/cgu/src/cgu/server.py"], {"vsx": True, "sdk2": True, "smoke_os": FULL}),
         (["scripts/setup-integrations.ps1"], {"python": True, "vsx": False, "smoke_os": FULL}),
+        ([".agents/hooks.json"], {"python": True, "vsx": False, "smoke_os": FULL}),
         (["tool-surface-authority.json"], {"python": True, "vsx": True, "smoke_os": []}),
-        (["README.md"], {"vsx": True, "markdown": True}),
-        (["./src\\med_paper_assistant\\domain\\x.py", "  "], {"python": True, "smoke_os": WIN}),
+        (["README.md"], {"vsx": True, "markdown": False}),
+        (["./src\\med_paper_assistant\\domain\\x.py", "  "], {"python": True, "smoke_os": []}),
     ],
 )
 def test_classify_paths_selects_only_affected_areas(

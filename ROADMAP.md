@@ -78,6 +78,15 @@ Later               │  Bounded Automation Enhancement                         
 
 ## ✅ 已完成 (Completed)
 
+### Antigravity Native Plugin + Foam 0.47 MCP + Critical-Only CI v1.1.1 (2026-11)
+
+| Feature                                  | Description                                                                                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Google Antigravity native plugin** ✅  | `build_agent_plugin.py` 產出 `mcp_config.json`、`rules/AGENTS.md`、9 個 Antigravity `agents/*.md` 與 `.agents/{plugins,skills}.json`，並修正 `AGENTS.md` ≤24 KB     |
+| **Antigravity lifecycle hooks** ✅       | `.agents/hooks.json` + `scripts/hooks/antigravity_dispatch.py` 橋接 `copilot_hook_guard` 與 `mdpaper_hooks`（fail-open、純 stdlib）                                 |
+| **Foam 0.47 queries & read-only MCP** ✅ | `foam_settings.py` 拆分為 `foam_graph_views.py` + `shared/foam_queries.py`（ratchet 105→102），VSIX 註冊 `foam-cli@0.47.0 mcp` 並鎖定於 `mcp-integration-lock.json` |
+| **Critical-only CI + pre-commit** ✅     | push/PR CI 僅跑關鍵 gate；格式、靜態分析、全量 pytest、full greedy smoke 與 VSX validate 下沉至 `.pre-commit-config.yaml`（33 hooks），開發期改採 targeted tests    |
+
 ### Agent Plugins + Modular Revamp v1.1 (2026-11)
 
 | Feature                           | Description                                                                                                                                                   |

@@ -109,7 +109,11 @@ Pipeline 定義「何時」、Skill 定義「如何」、Hook 定義「品質」
 | SubagentStart    | subagent-init.sh    | 注入專案/模式/workflow mode 至 subagent            |
 | Stop             | session-stop.sh     | 審計 + 清理 + memory sync 提醒                     |
 
-補強層：`.github/hooks/mode-guard.json` 會在 `PreToolUse` 階段透過 fail-open launcher（`scripts/hooks/copilot/mode-guard.{ps1,sh}`，直接用 `.venv` Python、絕不 `uv run`）執行 `scripts/copilot_hook_guard.py`。它負責 Python/Windows-safe 的工具路徑解析，特別是 `apply_patch` 這類 shell hook 不易精準判斷的編輯入口。
+補強層：`.github/hooks/mode-guard.json` 會在 `PreToolUse` 階段透過 fail-open launcher（`scripts/hooks/copilot/mode-guard.{ps1,sh}`，直接用 `.venv` Python、絕不 `uv run`）執行 `scripts/copilot_hook_guard.py`。它負責 Python/Windows-safe 的工具路徑解析，特別是 `apply_patch` 這類 shell hook 不易精準判斷的編輯入口。Google Antigravity 則透過 `.agents/plugins.json`、`.agents/skills.json` 與 `.agents/hooks.json`（`scripts/hooks/antigravity_dispatch.py`）共用同一組 MCP 與 hook 邏輯。
+
+## 開發測試與 CI 原則
+
+日常開發僅跑受影響模組的 targeted tests，除非跨層核心重構、pre-push 或發布驗證才跑全量 suite；push/PR CI 只跑最關鍵把關，完整檢查位於 `.pre-commit-config.yaml` 與排程／發布流程。
 
 ## 回應風格
 

@@ -1,6 +1,6 @@
 # Harness 架構
 
-Harness 的核心不是某一個 Agent，而是跨平台都必須遵守的「寫作契約 + 工具邊界 + artifact state」。Claude Code、Codex、OpenClaw 與 Copilot 只是不同 presentation adapters。
+Harness 的核心不是某一個 Agent，而是跨平台都必須遵守的「寫作契約 + 工具邊界 + artifact state」。Claude Code、Codex、OpenClaw、Google Antigravity 與 Copilot 只是不同 presentation adapters。
 
 ![Cross-agent system map](../assets/wiki-system-map.svg){ loading=lazy }
 

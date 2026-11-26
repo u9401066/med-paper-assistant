@@ -181,11 +181,16 @@ _PRECOMMIT_AUTOFIX_EQUIVALENTS = {
     "ruff format --check src/ tests/": "ruff format src/ tests/",
 }
 _PRE_PUSH_COMMANDS = {
+    "bandit -c pyproject.toml -r src/",
+    "python scripts/check_tool_surface_authority.py",
+    'pytest tests/ -x -q --timeout=60 -m "(contract or mcp or smoke) and not integration and not slow"',
     'pytest tests/ -x -q --timeout=60 -m "not integration and not slow"',
     "python scripts/verify_mcp_server_boot.py",
     "python scripts/greedy_mcp_tool_smoke.py --surface compact --stop-on error --json",
     "python scripts/greedy_mcp_tool_smoke.py --surface full --stop-on error --json",
+    "python scripts/build_docs_site.py --check",
 }
+_SCHEDULE_ONLY_GUARD = "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"
 
 
 def _precommit_local_hooks() -> dict[str, dict[str, Any]]:
@@ -202,8 +207,9 @@ def _precommit_local_hooks() -> dict[str, dict[str, Any]]:
 def test_every_ci_python_gate_runs_locally_first_with_locked_tools() -> None:
     """Pre-commit/pre-push replay each CI Python gate with uv.lock versions.
 
-    CI then only re-checks what a change touched; a gate missing locally would
-    surface for the first time on GitHub, which is what the tiering prevents.
+    Push/PR CI runs only critical checks; heavy static analysis, full pytest,
+    and full greedy smoke run locally in pre-commit/pre-push and on scheduled
+    or manual CI runs.
     """
     hooks = _precommit_local_hooks()
     jobs = _workflow_data()["ci.yml"]["jobs"]
@@ -224,8 +230,49 @@ def test_every_ci_python_gate_runs_locally_first_with_locked_tools() -> None:
             assert hook.get("stages") == expected_stages, command
 
     assert all(
-        entry.startswith(("uv run --frozen ", "npm --prefix vscode-extension ")) for entry in hooks
+        entry.startswith(
+            ("uv run --frozen ", "npm --prefix vscode-extension ", "npm --prefix dashboard ")
+        )
+        for entry in hooks
     ), "local hooks must use lockfile-pinned tool versions"
+
+
+def test_push_pr_ci_runs_critical_gates_only_and_defers_full_suite() -> None:
+    """Normal push/PR CI stays fast/critical while full checks live in pre-commit & scheduled."""
+    jobs = _workflow_data()["ci.yml"]["jobs"]
+    deferred_commands = {
+        "uv run ruff format --check src/ tests/",
+        "uv run mypy src/ --ignore-missing-imports",
+        "uv run vulture src/ --min-confidence 80",
+        "uv run python scripts/check_code_quality_authority.py",
+        "uv run python scripts/check_consistency.py",
+        "uv run python scripts/sync_companion_skills.py --check",
+        'uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"',
+        "uv run python scripts/greedy_mcp_tool_smoke.py --surface full --stop-on error --json",
+    }
+    found_deferred: set[str] = set()
+    for job_id in ("python-lint", "python-test"):
+        for step in jobs[job_id]["steps"]:
+            cmd = str(step.get("run", "")).strip()
+            if cmd in deferred_commands:
+                assert step.get("if") == _SCHEDULE_ONLY_GUARD, cmd
+                found_deferred.add(cmd)
+    assert found_deferred == deferred_commands
+
+    push_test_cmds = [
+        str(step.get("run", "")).strip()
+        for step in jobs["python-test"]["steps"]
+        if step.get("if") != _SCHEDULE_ONLY_GUARD and str(step.get("run", "")).startswith("uv run ")
+    ]
+    assert (
+        'uv run pytest tests/ -x -q --timeout=60 -m "(contract or mcp or smoke) and not integration and not slow"'
+        in push_test_cmds
+    )
+    assert "uv run python scripts/verify_mcp_server_boot.py" in push_test_cmds
+    assert (
+        "uv run python scripts/greedy_mcp_tool_smoke.py --surface compact --stop-on error --json"
+        in push_test_cmds
+    )
 
 
 def test_vsx_ci_drift_gates_run_at_commit_time() -> None:

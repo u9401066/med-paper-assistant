@@ -131,8 +131,15 @@ repos:
         pass_filenames: false
         exclude: ^(memory-bank|dashboard|projects|\.vscode)/
         stages: [pre-push]
+      - id: pytest-critical
+        name: pytest critical (contract/mcp/smoke, CI parity)
+        entry: uv run --frozen pytest tests/ -x -q --timeout=60 -m "(contract or mcp or smoke) and not integration and not slow"
+        language: system
+        pass_filenames: false
+        exclude: ^(memory-bank|dashboard|projects|\.vscode)/
+        stages: [pre-push]
       - id: pytest
-        name: pytest (fast tests, CI parity)
+        name: pytest (full fast suite, local pre-push)
         entry: uv run --frozen pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
         language: system
         pass_filenames: false
@@ -176,6 +183,27 @@ repos:
         language: system
         pass_filenames: false
         files: ^vscode-extension/|^src/med_paper_assistant/
+        stages: [pre-push]
+      - id: vsx-validate
+        name: VS Code extension full validate (local pre-push)
+        entry: npm --prefix vscode-extension run validate
+        language: system
+        pass_filenames: false
+        files: ^vscode-extension/|^src/med_paper_assistant/|^tool-surface-authority\.json$|^mcp-integration-lock\.json$
+        stages: [pre-push]
+      - id: dashboard-lint
+        name: Dashboard eslint (local pre-push)
+        entry: npm --prefix dashboard run lint
+        language: system
+        pass_filenames: false
+        files: ^dashboard/
+        stages: [pre-push]
+      - id: docs-site-check
+        name: Docs navigation and link check (local pre-push)
+        entry: uv run --frozen python scripts/build_docs_site.py --check
+        language: system
+        pass_filenames: false
+        files: ^(docs/|mkdocs\.yml$|scripts/build_docs_site\.py$)
         stages: [pre-push]
 
   # ── Advisory: doc reminder (G8) and paper quality (P1,P2,P4,P5,P7) ──

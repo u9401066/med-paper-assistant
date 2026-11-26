@@ -1,9 +1,13 @@
 name: CI
 
 # Tiering (docs/wiki/development-and-release.md "CI tiers"):
-#   local pre-commit/pre-push run the same locked commands first (.pre-commit-config.yaml);
-#   this workflow re-checks only the areas a change touches; the weekly schedule and
-#   workflow_dispatch run everything; release.yml re-runs its own full gate per tag.
+#   - Development loop: run targeted tests for the changed module only.
+#   - Local pre-commit / pre-push (.pre-commit-config.yaml): full lint, format,
+#     mypy, vulture, drift, ratchet, consistency, full pytest, full greedy smoke,
+#     VSX eslint/validate, dashboard lint, and Prettier Markdown checks.
+#   - Push / PR CI: critical-only gates (fast contract/MCP/smoke tests, security,
+#     authority/plugin drift, VSX compile/test, docs structure).
+#   - Weekly schedule / workflow_dispatch / release.yml: full matrix & every gate.
 # Required checks stay stable job names gated by job-level `if:` (a skipped job reports
 # success). Every gate is fail-open: if `changes` fails, its outputs are empty and
 # `!= 'false'` / `!= '[]'` select the job.
@@ -155,28 +159,34 @@ jobs:
       - name: Validate generated Agent Plugin
         run: uv run python scripts/build_agent_plugin.py --check
 
-      - name: Validate vendored companion skills
-        run: uv run python scripts/sync_companion_skills.py --check
-
-      - name: Enforce code-quality debt ratchet
-        run: uv run python scripts/check_code_quality_authority.py
-
-      - name: Check code/docs/test structural consistency
-        run: uv run python scripts/check_consistency.py
-
       - name: Lint (ruff check)
         run: uv run ruff check src/ tests/
-
-      - name: Format check (ruff format)
-        run: uv run ruff format --check src/ tests/
-
-      - name: Type check (mypy)
-        run: uv run mypy src/ --ignore-missing-imports
 
       - name: Security scan (bandit)
         run: uv run bandit -c pyproject.toml -r src/
 
-      - name: Detect high-confidence orphan code
+      - name: Validate vendored companion skills (scheduled/manual; local pre-commit)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: uv run python scripts/sync_companion_skills.py --check
+
+      - name: Enforce code-quality debt ratchet (scheduled/manual; local pre-commit)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: uv run python scripts/check_code_quality_authority.py
+
+      - name: Check code/docs/test structural consistency (scheduled/manual; local pre-commit)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: uv run python scripts/check_consistency.py
+
+      - name: Format check (ruff format; scheduled/manual, local pre-commit)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: uv run ruff format --check src/ tests/
+
+      - name: Type check (mypy; scheduled/manual, local pre-commit)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: uv run mypy src/ --ignore-missing-imports
+
+      - name: Detect high-confidence orphan code (scheduled/manual; local pre-commit)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: uv run vulture src/ --min-confidence 80
 
   python-test:
@@ -203,8 +213,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --all-extras
 
-      - name: Run tests
-        run: uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
+      - name: Run critical contract, MCP, and smoke tests
+        run: uv run pytest tests/ -x -q --timeout=60 -m "(contract or mcp or smoke) and not integration and not slow"
 
       - name: Verify MCP server boots
         run: uv run python scripts/verify_mcp_server_boot.py
@@ -212,7 +222,12 @@ jobs:
       - name: Smoke production compact tool surface
         run: uv run python scripts/greedy_mcp_tool_smoke.py --surface compact --stop-on error --json
 
-      - name: Smoke full diagnostic tool surface
+      - name: Run full fast test suite (scheduled/manual; local pre-push)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: uv run pytest tests/ -x -q --timeout=60 -m "not integration and not slow"
+
+      - name: Smoke full diagnostic tool surface (scheduled/manual; local pre-push)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: uv run python scripts/greedy_mcp_tool_smoke.py --surface full --stop-on error --json
 
   external-mcp-sdk2-smoke:
@@ -271,17 +286,20 @@ jobs:
         working-directory: vscode-extension
         run: npm run bundle:check
 
-      - name: Sync bundled assets for build-time validation
-        working-directory: vscode-extension
-        run: npm run bundle:sync
-
       - name: Compile TypeScript
         working-directory: vscode-extension
         run: npm run compile
 
-      - name: Run extension validate
+      - name: Run extension tests
         working-directory: vscode-extension
-        run: npm run validate
+        run: npm test -- --run
+
+      - name: Sync bundled assets & full validate (scheduled/manual; local pre-push)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        working-directory: vscode-extension
+        run: |
+          npm run bundle:sync
+          npm run validate
 
   # ──────────────────────────────────────────────────────
   # Dashboard: build check
@@ -305,16 +323,17 @@ jobs:
         working-directory: dashboard
         run: npm ci
 
-      - name: Lint
-        working-directory: dashboard
-        run: npm run lint
-
       - name: Build
         working-directory: dashboard
         run: npm run build
 
+      - name: Lint (scheduled/manual; local pre-push)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        working-directory: dashboard
+        run: npm run lint
+
   # ──────────────────────────────────────────────────────
-  # Markdown: prettier format check
+  # Docs & Markdown: critical site structure; Prettier runs in pre-commit + scheduled
   # ──────────────────────────────────────────────────────
   markdown:
     name: "Markdown Format"
@@ -326,10 +345,28 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.5"
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install docs dependencies
+        run: uv sync --frozen --only-group docs
+
+      - name: Validate docs navigation and links
+        run: uv run --no-sync python scripts/build_docs_site.py --check
+
+      - name: Set up Node.js (scheduled/manual Prettier audit)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
 
-      - name: Check markdown formatting
+      - name: Check markdown formatting (scheduled/manual; local pre-commit)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: npx prettier@3.1.0 --check --prose-wrap preserve "**/*.md" "!integrations/**" "!node_modules/**" "!.venv/**" "!projects/**"

@@ -15,12 +15,13 @@ flowchart TD
     Ext & Claude & Shared & MCP --> Workspace[建立或選擇 project]
 ```
 
-| Surface           | Discovery                        | 適合情境                |
-| ----------------- | -------------------------------- | ----------------------- |
-| VS Code extension | bundled agents、skills、commands | 完整圖形介面與安裝體驗  |
-| Claude Code       | `CLAUDE.md` + `.claude/skills/`  | Claude 原生技能路由     |
-| Codex / OpenClaw  | `AGENTS.md` + `.agents/skills/`  | 共用 repo-level harness |
-| 通用 MCP client   | MCP server configuration         | 只需要工具 surface      |
+| Surface            | Discovery                                                              | 適合情境                |
+| ------------------ | ---------------------------------------------------------------------- | ----------------------- |
+| VS Code extension  | bundled agents、skills、commands                                       | 完整圖形介面與安裝體驗  |
+| Google Antigravity | `.agents/plugins.json` → `plugins/med-paper-assistant/` + `hooks.json` | 原生 MCP + Plugin 協作  |
+| Claude Code        | `CLAUDE.md` + `.claude/skills/` 或 Agent Plugin                        | Claude 原生技能路由     |
+| Codex / OpenClaw   | `AGENTS.md` + `.agents/skills/` 或 Agent Plugin                        | 共用 repo-level harness |
+| 通用 MCP client    | MCP server configuration (`mcp.json` / `mcp_config.json`)              | 只需要工具 surface      |
 
 ## 開發安裝
 

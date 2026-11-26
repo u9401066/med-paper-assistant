@@ -27,7 +27,6 @@ from collections.abc import Callable, Iterable, Sequence
 
 AREAS: tuple[str, ...] = ("python", "vsx", "dashboard", "markdown", "sdk2")
 FULL_SMOKE_OS: tuple[str, ...] = ("ubuntu-latest", "windows-latest", "macos-14")
-WINDOWS_SMOKE_OS: tuple[str, ...] = ("windows-latest",)
 COMPARE_FILE_CAP = 300
 DIFF_EVENTS = frozenset({"push", "pull_request"})
 
@@ -53,7 +52,7 @@ AREA_RULES: dict[str, re.Pattern[str]] = {
         r"|docs/design/benchmark-evaluation-roadmap\.md$)"
     ),
     "dashboard": re.compile(r"^dashboard/"),
-    "markdown": re.compile(r"(?:\.md$|^\.prettier)"),
+    "markdown": re.compile(r"^(?:docs/|mkdocs\.yml$|scripts/build_docs_site\.py$)"),
     "sdk2": re.compile(
         r"^(?:mcp-integration-lock\.json$|uv\.lock$|pyproject\.toml$|\.gitmodules$"
         r"|integrations/|tests/integration/test_zotero_sdk2)"
@@ -62,19 +61,17 @@ AREA_RULES: dict[str, re.Pattern[str]] = {
 
 # Paths whose behaviour differs by OS (shell/PowerShell helpers, hook launchers,
 # lockfiles, filesystem/encoding infrastructure, and the smoke tests themselves)
-# re-run the full ubuntu/windows/macOS matrix.
+# re-run the full ubuntu/windows/macOS matrix. Ordinary src/tests edits rely on
+# local pre-push plus the Ubuntu critical CI job and weekly/release full matrices.
 PLATFORM_FULL = re.compile(
-    r"^(?:scripts/|integrations/|\.github/hooks/|\.gitmodules$|pyproject\.toml$|uv\.lock$"
-    r"|mcp-integration-lock\.json$|vscode-extension/(?:src|scripts)/"
-    r"|vscode-extension/package(?:-lock)?\.json$"
+    r"^(?:scripts/|integrations/|\.github/hooks/|\.agents/hooks\.json$|\.gitmodules$"
+    r"|pyproject\.toml$|uv\.lock$|mcp-integration-lock\.json$"
+    r"|vscode-extension/(?:src|scripts)/|vscode-extension/package(?:-lock)?\.json$"
     r"|src/med_paper_assistant/(?:infrastructure|shared)/"
     r"|tests/(?:test_export_pipeline|test_figure_embedding|test_config_paths"
-    r"|test_copilot_hook_guard|test_mcp_integration)\.py$"
+    r"|test_copilot_hook_guard|test_antigravity_hooks|test_mcp_integration)\.py$"
     r"|tests/integration/test_watermark)"
 )
-# Other Python source/test edits get a Windows-only smoke; Linux is already
-# covered by the Python Tests job and macOS by the weekly + release matrix.
-PLATFORM_WINDOWS = re.compile(r"^(?:src|tests)/")
 
 _ZERO_SHA = re.compile(r"^0+$")
 
@@ -104,8 +101,6 @@ def classify_paths(paths: Iterable[str]) -> dict[str, object]:
 
     if any(PLATFORM_FULL.match(path) for path in normalized):
         selection["smoke_os"] = list(FULL_SMOKE_OS)
-    elif any(PLATFORM_WINDOWS.match(path) for path in normalized):
-        selection["smoke_os"] = list(WINDOWS_SMOKE_OS)
     else:
         selection["smoke_os"] = []
     selection["reason"] = f"{len(normalized)} changed path(s)"
