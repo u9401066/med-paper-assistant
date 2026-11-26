@@ -4,6 +4,7 @@ Shared utilities for MCP tools.
 
 from .checkpoint import auto_checkpoint_writing
 from .facade_dispatch import (
+    format_unsupported_action_error,
     get_optional_tool_decorator,
     invoke_tool_handler,
     normalize_facade_action,
@@ -34,6 +35,7 @@ from .tool_logging import (
 
 __all__ = [
     "auto_checkpoint_writing",
+    "format_unsupported_action_error",
     "get_optional_tool_decorator",
     "invoke_tool_handler",
     "normalize_facade_action",

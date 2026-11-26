@@ -52,7 +52,7 @@ class RecoveryMixin(StateIOMixin):
             lines.append(f"**Current Project:** `{project}`")
             lines.append(f"**State File:** `projects/{project}/.mdpaper-state.json`")
         else:
-            lines.append("**Current Project:** None (use `list_projects` or `create_project`)")
+            lines.append('**Current Project:** None (use `project_action(action="list"|"create")`)')
 
         # Last activity
         last_activity = state.get("last_activity")
@@ -99,7 +99,7 @@ class RecoveryMixin(StateIOMixin):
                 lines.append("\n**Sections on Disk:**")
                 for sec in ws["sections_on_disk"]:
                     lines.append(f"  - {sec}")
-            lines.append("\n💡 Use `read_draft` to review current content before continuing.")
+            lines.append('\n💡 Use `draft_action(action="read")` to review before continuing.')
 
         return "\n".join(lines)
 

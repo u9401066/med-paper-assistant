@@ -7,10 +7,19 @@ from typing import Any, Optional
 
 from mcp.server import MCPServer
 
-from .._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
+from .._shared import (
+    facade_schema_json,
+    format_unsupported_action_error,
+    invoke_tool_handler,
+    normalize_facade_action,
+)
 from ..draft.facade import _auto_run_post_write_hooks, _infer_section_name
 
 ToolMap = Mapping[str, Callable[..., Any]]
+
+
+def _unsupported(action: str, specs: dict[str, Any], aliases: dict[str, str]) -> str:
+    return format_unsupported_action_error("analysis_action", action, specs, aliases=aliases)
 
 
 def register_analysis_facade_tools(
@@ -189,8 +198,7 @@ def register_analysis_facade_tools(
             )
 
         if normalized not in action_specs:
-            supported = ", ".join(sorted(action_specs))
-            return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
+            return _unsupported(action, action_specs, aliases)
 
         tool_group, handler_name, kwargs = action_specs[normalized]
         handler = tool_group.get(handler_name)

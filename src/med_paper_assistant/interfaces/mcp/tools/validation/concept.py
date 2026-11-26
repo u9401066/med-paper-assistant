@@ -24,7 +24,7 @@ from .._shared import (
     log_tool_result,
     validate_project_for_tool,
 )
-from .._shared.guidance import build_guidance_hint
+from .._shared.guidance import build_guidance_hint, compact_tool_hint
 
 # Global validator instance
 _concept_validator = ConceptValidator()
@@ -179,7 +179,7 @@ def register_concept_validation_tools(
                     f"novelty {validation_result.novelty_average:.0f}/100 below 75 threshold"
                 )
             report = build_guidance_hint(
-                report, next_tool="write_draft", warnings=_warnings or None
+                report, next_tool=compact_tool_hint("write_draft"), warnings=_warnings or None
             )
 
             log_tool_result(

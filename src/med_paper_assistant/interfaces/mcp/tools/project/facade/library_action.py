@@ -5,10 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from ..._shared import invoke_tool_handler, normalize_facade_action
+from ..._shared import (
+    facade_schema_json,
+    format_unsupported_action_error,
+    invoke_tool_handler,
+    normalize_facade_action,
+)
 from .deps import FACADE_DEPS, FacadeDeps
 
 LIBRARY_ALIASES = {
+    "actions": "help",
+    "help": "help",
+    "supported": "help",
     "list": "list_notes",
     "read": "read_note",
     "write": "write_note",
@@ -183,9 +191,27 @@ async def _dispatch_library_action(args: LibraryActionArgs, deps: FacadeDeps) ->
     normalized = normalize_facade_action(args.action, LIBRARY_ALIASES)
     action_specs = _build_library_specs(args)
 
+    if normalized == "help":
+        return facade_schema_json(
+            tool="library_action",
+            actions={
+                name: {"handler": spec[0], "params": sorted(spec[1])}
+                for name, spec in sorted(action_specs.items())
+            },
+            aliases=LIBRARY_ALIASES,
+            notes=[
+                "Use action='list_notes' (or 'list') to list notes; use action='help' for schema."
+            ],
+        )
+
     if normalized not in action_specs:
-        supported = ", ".join(sorted(action_specs))
-        return f"❌ Unsupported action '{args.action}'. Supported actions: {supported}"
+        return format_unsupported_action_error(
+            "library_action",
+            args.action,
+            action_specs,
+            aliases=LIBRARY_ALIASES,
+            help_action="help",
+        )
 
     handler_name, kwargs = action_specs[normalized]
     handler = deps.library_tools.get(handler_name)

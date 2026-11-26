@@ -12,16 +12,16 @@
     "function": 50
   },
   "summary": {
-    "filesScanned": 464,
+    "filesScanned": 467,
     "definitionsScanned": {
       "class": 326,
-      "function": 2430
+      "function": 2456
     },
     "violations": {
       "file": 5,
       "class": 5,
-      "function": 92,
-      "total": 102
+      "function": 89,
+      "total": 99
     },
     "maximum": {
       "file": {
@@ -358,13 +358,13 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/analysis/facade.py",
       "qualifiedSymbol": "register_analysis_facade_tools",
-      "allowedLines": 199
+      "allowedLines": 198
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/analysis/facade.py",
       "qualifiedSymbol": "register_analysis_facade_tools.analysis_action",
-      "allowedLines": 185
+      "allowedLines": 184
     },
     {
       "kind": "function",
@@ -394,7 +394,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/project/crud/create.py",
       "qualifiedSymbol": "create_project",
-      "allowedLines": 139
+      "allowedLines": 135
     },
     {
       "kind": "function",
@@ -512,18 +512,6 @@
     },
     {
       "kind": "function",
-      "path": "src/med_paper_assistant/interfaces/mcp/tools/reference/facade.py",
-      "qualifiedSymbol": "register_reference_facade_tools",
-      "allowedLines": 166
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/interfaces/mcp/tools/reference/facade.py",
-      "qualifiedSymbol": "register_reference_facade_tools.reference_action",
-      "allowedLines": 156
-    },
-    {
-      "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/reference/manager/wiki.py",
       "qualifiedSymbol": "materialize_agent_wiki",
       "allowedLines": 54
@@ -532,7 +520,7 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/review/audit_hooks/_writing_hooks.py",
       "qualifiedSymbol": "run_writing_hooks",
-      "allowedLines": 73
+      "allowedLines": 69
     },
     {
       "kind": "file",
@@ -557,12 +545,6 @@
       "path": "src/med_paper_assistant/interfaces/mcp/tools/review/constraint.py",
       "qualifiedSymbol": "register_constraint_tools.constraint_action",
       "allowedLines": 147
-    },
-    {
-      "kind": "function",
-      "path": "src/med_paper_assistant/interfaces/mcp/tools/review/facade/quality.py",
-      "qualifiedSymbol": "QualityChecksTool.run_quality_checks",
-      "allowedLines": 63
     },
     {
       "kind": "function",
@@ -610,13 +592,13 @@
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/validation/facade.py",
       "qualifiedSymbol": "register_validation_facade_tools",
-      "allowedLines": 111
+      "allowedLines": 110
     },
     {
       "kind": "function",
       "path": "src/med_paper_assistant/interfaces/mcp/tools/validation/facade.py",
       "qualifiedSymbol": "register_validation_facade_tools.validation_action",
-      "allowedLines": 100
+      "allowedLines": 99
     },
     {
       "kind": "function",

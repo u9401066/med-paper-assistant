@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from mcp.server.mcpserver import Context
 
-from ..._shared import facade_schema_json, invoke_tool_handler, normalize_facade_action
+from ..._shared import (
+    facade_schema_json,
+    format_unsupported_action_error,
+    invoke_tool_handler,
+    normalize_facade_action,
+)
 from .deps import FACADE_DEPS, FacadeDeps
 from .project_args import PROJECT_ALIASES, ProjectActionArgs
 from .project_inline import INLINE_ACTIONS
@@ -35,8 +40,13 @@ async def _dispatch_project_action(args: ProjectActionArgs, deps: FacadeDeps) ->
         return inline_action(args)
 
     if normalized not in action_specs:
-        supported = ", ".join(sorted(action_specs))
-        return f"❌ Unsupported action '{args.action}'. Supported actions: {supported}"
+        return format_unsupported_action_error(
+            "project_action",
+            args.action,
+            action_specs,
+            aliases=PROJECT_ALIASES,
+            help_action="help",
+        )
 
     tool_group, handler_name, kwargs = action_specs[normalized]
     handler = tool_group.get(handler_name)

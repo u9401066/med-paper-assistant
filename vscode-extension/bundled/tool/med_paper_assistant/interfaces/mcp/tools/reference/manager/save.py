@@ -15,9 +15,9 @@ from ._deps import REFERENCE, ensure_project_exists, project_context_error
 # === GUARDRAIL: Deprecation warning ===
 # Always emit warning so even weak models notice
 _DEPRECATION_WARNING = (
-    "\n\n⚠️ **DEPRECATION WARNING**: `save_reference()` accepts unverified metadata.\n"
+    '\n\n⚠️ **DEPRECATION WARNING**: `reference_action(action="save_agent")` accepts unverified metadata.\n'
     "✅ **Preferred**: `save_reference_mcp(pmid='<PMID>')` — fetches verified data from PubMed API.\n"
-    "Only use `save_reference()` when pubmed-search API is confirmed unavailable.\n"
+    'Only use `reference_action(action="save_agent")` when pubmed-search API is confirmed unavailable.\n'
 )
 
 

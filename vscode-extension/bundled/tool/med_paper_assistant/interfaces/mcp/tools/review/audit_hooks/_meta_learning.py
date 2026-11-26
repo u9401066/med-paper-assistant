@@ -29,7 +29,7 @@ from ..._shared import (
     log_tool_result,
     report_tool_progress,
 )
-from ..._shared.guidance import build_guidance_hint
+from ..._shared.guidance import build_guidance_hint, compact_tool_hint
 from .._tool_doc import nested_tool_doc
 from ._common import _coerce_project_info, resolve_manuscript_project
 
@@ -294,7 +294,9 @@ def _guided_report(report: str, result: dict) -> str:
     n_confirm = sum(1 for s in suggestions if s.get("requires_confirmation"))
     if n_confirm > 0:
         _hints.append(f"{n_confirm} suggestion(s) require confirmation")
-    report = build_guidance_hint(report, next_tool="evolve_constraint", warnings=_hints or None)
+    report = build_guidance_hint(
+        report, next_tool=compact_tool_hint("evolve_constraint"), warnings=_hints or None
+    )
     return report
 
 

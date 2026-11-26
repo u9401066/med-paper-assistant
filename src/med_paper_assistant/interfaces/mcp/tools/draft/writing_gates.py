@@ -32,7 +32,7 @@ _NO_CONCEPT_MESSAGE = (
     "1. Use `/mdpaper.concept` to develop your research concept\n"
     "2. Fill in 🔒 NOVELTY STATEMENT\n"
     "3. Fill in 🔒 KEY SELLING POINTS (at least 3)\n"
-    "4. Run `validate_concept` to verify\n\n"
+    '4. Run `validation_action(action="concept", filename="concept.md")` to verify\n\n'
     "Draft writing is blocked until concept.md exists."
 )
 
@@ -174,7 +174,7 @@ def _remediation_message(
         f"(paper type: {paper_type}, need **{deficit}** more)\n\n"
         f"---\n\n"
         f"## 🔧 REMEDIATION REQUIRED\n\n"
-        f"Complete these steps before retrying `write_draft` or `draft_section`:\n\n"
+        f'Complete these steps before retrying `draft_action(action="write")` or `draft_action(action="draft_section")`:\n\n'
         f"### Step 1: Search for more literature\n"
         f"```\n"
         f'unified_search(query="{search_query_example}", limit=20)\n'
@@ -185,7 +185,7 @@ def _remediation_message(
         f"```\n"
         f"Repeat for each relevant article until you have ≥{min_refs} references.\n\n"
         f"### Step 3: Retry writing\n"
-        f"Call `write_draft` or `draft_section` again after saving enough references.\n\n"
+        f'Call `draft_action(action="write")` or `draft_action(action="draft_section")` again after saving enough references.\n\n'
         f"---\n"
         f"⚠️ This is a **Code-Enforced** hard gate. Writing cannot proceed "
         f"until reference count ≥ {min_refs}."

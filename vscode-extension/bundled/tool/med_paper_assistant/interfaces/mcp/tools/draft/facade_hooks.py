@@ -42,11 +42,13 @@ def _record_hook_results(project_dir: Path, results: Any) -> tuple[list[dict[str
         if issue_count:
             critical += sum(1 for issue in result.issues if issue.severity == "CRITICAL")
             warnings += sum(1 for issue in result.issues if issue.severity == "WARNING")
+            top_messages = [f"[{issue.severity}] {issue.message}" for issue in result.issues[:2]]
             summary.append(
                 {
                     "hook": hook_id,
                     "passed": result.passed,
                     "issues": issue_count,
+                    "top_messages": top_messages,
                 }
             )
     tracker.generate_report()
@@ -83,14 +85,30 @@ def _write_auto_hook_report(
     )
 
 
-def _hook_status_message(hooks_run: int, critical: int, warnings: int) -> str:
+def _hook_status_message(
+    hooks_run: int,
+    critical: int,
+    warnings: int,
+    summary: list[dict[str, Any]] | None = None,
+) -> str:
     if critical or warnings:
+        previews: list[str] = []
+        for entry in summary or []:
+            for msg in entry.get("top_messages", []):
+                previews.append(f"- ({entry['hook']}) {msg}")
+                if len(previews) >= 3:
+                    break
+            if len(previews) >= 3:
+                break
+        preview_block = ("\n" + "\n".join(previews)) if previews else ""
         return (
             "\n\n---\n"
             "auto_hooks: warning\n"
             f"hooks_run: {hooks_run}\n"
             f"critical: {critical}\n"
-            f"warnings: {warnings}\n"
+            f"warnings: {warnings}"
+            f"{preview_block}\n"
+            'next: run_quality_checks(action="repair_plan")\n'
             "details: .audit/auto-hooks-latest.json"
         )
     return (
@@ -127,7 +145,7 @@ def _auto_run_post_write_hooks(
         _write_auto_hook_report(
             project_dir, filename, section, len(results), critical, warnings, summary
         )
-        return _hook_status_message(len(results), critical, warnings)
+        return _hook_status_message(len(results), critical, warnings, summary)
     except Exception:
         return (
             "\n\n---\n"

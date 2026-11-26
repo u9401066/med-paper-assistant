@@ -69,7 +69,7 @@ _PHASE_TOOLS: list[dict[str, Any]] = [
             "run_quality_checks:review",
         ],
     },
-    {"phase": 8, "tools": ["sync_references", "validation_action:wikilinks"]},
+    {"phase": 8, "tools": ["draft_action:sync_references", "validation_action:wikilinks"]},
     {
         "phase": 9,
         "tools": [

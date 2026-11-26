@@ -7,7 +7,11 @@ from typing import Optional
 
 from mcp.server.mcpserver import Context
 
-from ..._shared import invoke_tool_handler, normalize_facade_action
+from ..._shared import (
+    format_unsupported_action_error,
+    invoke_tool_handler,
+    normalize_facade_action,
+)
 from ._pipeline_specs import (
     ASSET_ACTIONS,
     PIPELINE_ALIASES,
@@ -27,8 +31,12 @@ async def run_pipeline_action(pipeline_tools: ToolMap, action: str, a: SimpleNam
         return asset_action_error(action)
     action_specs = build_pipeline_action_specs(a)
     if normalized not in action_specs:
-        supported = ", ".join(sorted([*action_specs, "list"]))
-        return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
+        return format_unsupported_action_error(
+            "pipeline_action",
+            action,
+            [*action_specs, "list"],
+            aliases=PIPELINE_ALIASES,
+        )
 
     handler_name, kwargs = action_specs[normalized]
     handler = pipeline_tools.get(handler_name)
@@ -71,6 +79,8 @@ class PipelineActionTool:
         Run consolidated pipeline state-machine actions through one stable entrypoint.
 
         Actions:
+        - next (GPS: current phase, blockers, and exact next compact tool calls)
+        - doctor
         - validate_phase
         - heartbeat
         - start_review

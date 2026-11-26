@@ -24,6 +24,7 @@ from ..._shared import (
 )
 from .._tool_doc import nested_tool_doc
 from ._common import _coerce_project_info, resolve_manuscript_project
+from ._repair_plan import resolve_draft_content
 from ._writing_checks import WritingHookRun
 
 _ALL_HOOKS = {
@@ -205,7 +206,11 @@ async def _run_hook_stages(run: WritingHookRun, prefer_language: str, ctx: Conte
 
 
 async def _writing_hooks(
-    hooks: str, prefer_language: str, project: Optional[str], ctx: Context | None
+    hooks: str,
+    prefer_language: str,
+    project: Optional[str],
+    ctx: Context | None,
+    draft_filename: str = "",
 ) -> str:
     """Run the requested writing hooks and build the TOON report."""
     project_info, workflow_error = resolve_manuscript_project(project)
@@ -218,12 +223,11 @@ async def _writing_hooks(
     project_dir = Path(project_info["project_path"])
     audit_dir = project_dir / ".audit"
 
-    # Read draft content
+    # Read draft content (explicit draft_filename, manuscript.md, or existing drafts/*.md)
     await report_tool_progress(ctx, 1, 6, "Loading manuscript content", end=95)
-    manuscript = project_dir / "drafts" / "manuscript.md"
-    if not manuscript.is_file():
-        return "❌ No manuscript found at drafts/manuscript.md"
-    full_content = manuscript.read_text(encoding="utf-8")
+    full_content, target_label, load_error = resolve_draft_content(project_dir, draft_filename)
+    if load_error:
+        return load_error
 
     requested = _requested_hooks(hooks)
     engine = WritingHooksEngine(project_dir)
@@ -231,7 +235,9 @@ async def _writing_hooks(
     run = WritingHookRun(engine, tracker, requested, full_content)
     await _run_hook_stages(run, prefer_language, ctx)
 
-    result = "\n".join(_report_lines(slug, run))
+    lines = _report_lines(slug, run)
+    lines.insert(2, f"target_file: {target_label}")
+    result = "\n".join(lines)
     log_tool_result(
         "run_writing_hooks",
         f"hooks={','.join(sorted(run.results.keys()))}, critical={run.critical}",
@@ -252,6 +258,7 @@ async def run_writing_hooks(
     prefer_language: str = "american",
     project: Optional[str] = None,
     ctx: Context | None = None,
+    draft_filename: str = "",
 ) -> str:
     """
     DEPRECATED public verb. Prefer `run_quality_checks(action="writing_hooks", ...)`.
@@ -301,21 +308,16 @@ async def run_writing_hooks(
     - G9: Git Status (uncommitted/unpushed changes)
 
     Args:
-        hooks: Comma-separated hook IDs (e.g., "A5,A6,B11") or aliases:
-               "all", "post-write" (A1-A7,A3b,A3c,B9,B10,B15),
-               "post-section" (B8-B16),
-               "post-manuscript" (C3-C13,F),
-               "pre-commit" (P1,P2,P4,P5,P7,G9).
-        prefer_language: "american" or "british" (default: american).
-                         Only affects A5.
+        hooks: Comma-separated hook IDs or aliases (all, post-write, post-section, post-manuscript, pre-commit).
+        prefer_language: "american" or "british" (default: american; affects A5).
         project: Project slug (optional, uses current project).
-
-    Returns:
-        TOON-formatted report with issues from each hook.
+        draft_filename: Optional draft file under drafts/ (defaults to manuscript.md or existing drafts).
     """
-    log_tool_call("run_writing_hooks", {"hooks": hooks, "project": project})
+    log_tool_call(
+        "run_writing_hooks", {"hooks": hooks, "draft_filename": draft_filename, "project": project}
+    )
     try:
-        return await _writing_hooks(hooks, prefer_language, project, ctx)
+        return await _writing_hooks(hooks, prefer_language, project, ctx, draft_filename)
     except Exception as e:
         log_tool_error("run_writing_hooks", e)
         return f"❌ Error running writing hooks: {e}"

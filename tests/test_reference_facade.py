@@ -55,6 +55,7 @@ def test_compact_reference_surface_keeps_only_safe_direct_verb_and_facade() -> N
         "delete_reference",
         "get_reference_for_analysis",
         "save_reference_analysis",
+        "get_reference_evidence_pack",
         "reference_action",
     } == set(handlers)
 
@@ -113,6 +114,7 @@ async def test_reference_action_list_returns_machine_readable_schema() -> None:
         "delete",
         "analysis_get",
         "analysis_save",
+        "evidence_pack",
     } == set(payload["actions"])
     assert payload["actions"]["save_agent"]["handler"] == "save_reference"
     assert payload["actions"]["list_saved"]["handler"] == "list_saved_references"

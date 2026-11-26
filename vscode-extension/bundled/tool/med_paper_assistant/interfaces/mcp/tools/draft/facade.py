@@ -13,6 +13,7 @@ from med_paper_assistant.infrastructure.services.drafter import (
 
 from .._shared import (
     facade_schema_json,
+    format_unsupported_action_error,
     invoke_tool_handler,
     normalize_facade_action,
 )
@@ -73,14 +74,15 @@ def _action_schema(action_specs: dict[str, ActionSpec]) -> str:
 def _unsupported_action_message(
     action: str, normalized: str, action_specs: dict[str, ActionSpec]
 ) -> str:
-    supported = ", ".join(sorted(action_specs))
     if normalized in {"review_asset", "review_asset_for_insertion"}:
         return (
             f"❌ Unsupported draft action '{action}'. "
             'Use `analysis_action(action="review_asset")` for '
             "figure/table asset review."
         )
-    return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
+    return format_unsupported_action_error(
+        "draft_action", action, action_specs, aliases=DRAFT_ACTION_ALIASES
+    )
 
 
 def _post_write_suffix(

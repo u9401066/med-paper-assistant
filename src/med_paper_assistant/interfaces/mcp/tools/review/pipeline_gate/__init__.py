@@ -34,6 +34,7 @@ from ._artifacts import (
 )
 from ._doctor import pipeline_doctor
 from ._gates import pipeline_heartbeat, validate_phase_gate, validate_project_structure
+from ._next_step import pipeline_next
 from ._pause import pause_pipeline, resume_pipeline
 from ._review_start import start_review_round
 from ._review_submit import submit_review_round
@@ -72,6 +73,7 @@ def register_pipeline_tools(
     return {
         "validate_phase_gate": registered["validate_phase_gate"],
         "pipeline_doctor": registered["pipeline_doctor"],
+        "pipeline_next": pipeline_next,
         "pipeline_heartbeat": registered["pipeline_heartbeat"],
         "start_review_round": registered["start_review_round"],
         "submit_review_round": registered["submit_review_round"],

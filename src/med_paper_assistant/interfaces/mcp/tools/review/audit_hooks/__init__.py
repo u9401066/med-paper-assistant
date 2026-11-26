@@ -22,6 +22,7 @@ from ._evolution import apply_pending_evolutions, verify_evolution
 from ._hook_events import record_hook_event
 from ._meta_learning import run_meta_learning
 from ._quality_audit import run_quality_audit
+from ._repair_plan import run_quality_repair_plan
 from ._retrospective import (
     _write_pipeline_retrospective_artifact,
     write_pipeline_retrospective,
@@ -64,6 +65,7 @@ def register_audit_hook_tools(
         "write_pipeline_retrospective": registered["write_pipeline_retrospective"],
         "validate_data_artifacts": registered["validate_data_artifacts"],
         "run_writing_hooks": registered["run_writing_hooks"],
+        "run_quality_repair_plan": run_quality_repair_plan,
         "run_review_hooks": registered["run_review_hooks"],
         "verify_evolution": registered["verify_evolution"],
         "check_domain_constraints": registered["check_domain_constraints"],

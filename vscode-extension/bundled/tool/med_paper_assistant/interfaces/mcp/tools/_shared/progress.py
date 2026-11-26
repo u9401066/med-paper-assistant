@@ -36,4 +36,8 @@ async def report_tool_progress(
     bounded_step = max(0, min(step, total_steps))
     span = max(end - start, 0.0)
     progress = start + (span * bounded_step / total_steps)
-    await ctx.report_progress(progress=progress, total=100.0, message=message)
+    try:
+        await ctx.report_progress(progress=progress, total=100.0, message=message)
+    except (ValueError, RuntimeError):
+        # Context may be created outside an active MCP request (e.g., direct/in-process calls).
+        return

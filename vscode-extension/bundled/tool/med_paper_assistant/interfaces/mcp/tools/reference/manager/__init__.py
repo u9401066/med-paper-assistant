@@ -16,6 +16,7 @@ from ..._binding import register_handlers
 from ..._shared import get_optional_tool_decorator
 from ._deps import REFERENCE, ReferenceDeps
 from .analysis import get_reference_for_analysis, save_reference_analysis
+from .evidence_pack import get_reference_evidence_pack
 from .intake import import_local_papers, ingest_markdown_source, ingest_web_source
 from .maintenance import delete_reference, rebuild_foam_aliases
 from .query import (
@@ -92,5 +93,9 @@ def register_reference_manager_tools(
         **registered_verified,
         **registered_standard,
     }
+    if not register_public_verbs:
+        handlers.update(
+            register_handlers(tool, REFERENCE.bind(deps, (get_reference_evidence_pack,)))
+        )
     handlers.update(registered_wiki)
     return handlers

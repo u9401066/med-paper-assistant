@@ -7,7 +7,11 @@ from typing import Optional
 
 from mcp.server.mcpserver import Context
 
-from ..._shared import invoke_tool_handler, normalize_facade_action
+from ..._shared import (
+    format_unsupported_action_error,
+    invoke_tool_handler,
+    normalize_facade_action,
+)
 from ._quality_specs import QUALITY_ALIASES, build_quality_action_specs, list_quality_actions
 from ._types import QualityTools
 
@@ -20,8 +24,12 @@ async def run_quality_action(tools: QualityTools, action: str, a: SimpleNamespac
     if normalized == "list":
         return list_quality_actions(action_specs)
     if normalized not in action_specs:
-        supported = ", ".join(sorted(action_specs))
-        return f"❌ Unsupported action '{action}'. Supported actions: {supported}"
+        return format_unsupported_action_error(
+            "run_quality_checks",
+            action,
+            action_specs,
+            aliases=QUALITY_ALIASES,
+        )
 
     tool_group, handler_name, kwargs = action_specs[normalized]
     handler = tool_group.get(handler_name)
@@ -77,26 +85,11 @@ class QualityChecksTool:
         project: Optional[str] = None,
         ctx: Context | None = None,
     ) -> str:
-        """
-        Run consolidated review/audit quality actions through one stable entrypoint.
+        """Run consolidated review/audit quality actions through one stable entrypoint.
 
-        Actions:
-        - quality_audit
-        - meta_learning
-        - data_artifacts
-        - writing_hooks
-        - review_hooks
-        - formatting
-        - record_hook_event
-        - verify_evolution
-        - domain_constraints
-        - evolve_constraint
-        - pending_evolutions
-        - tool_health
-        - constraint_ledger
-        - constraint_add
-        - constraint_satisfy
-        - constraint_waive
-        - constraint_reopen
+        Actions: quality_audit, meta_learning, data_artifacts, writing_hooks, repair_plan,
+        review_hooks, formatting, record_hook_event, verify_evolution, domain_constraints,
+        evolve_constraint, pending_evolutions, tool_health, constraint_ledger,
+        constraint_add, constraint_satisfy, constraint_waive, constraint_reopen.
         """
         return await run_quality_action(self._tools, action, SimpleNamespace(**locals()))

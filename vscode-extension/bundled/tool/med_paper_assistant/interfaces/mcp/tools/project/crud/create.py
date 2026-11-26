@@ -9,6 +9,18 @@ from ..._shared import log_tool_call, log_tool_error, log_tool_result
 from .._deps import PROJECT_MANAGER
 
 
+def _parse_authors(authors_json: str) -> tuple[list[object], str]:
+    if not authors_json:
+        return [], ""
+    try:
+        payload = json.loads(authors_json)
+    except json.JSONDecodeError as e:
+        return [], f"❌ Error parsing authors_json: {e}"
+    if not isinstance(payload, list):
+        return [], "❌ Error: authors_json must be a JSON array."
+    return payload, ""
+
+
 def create_project(
     name: str,
     description: str = "",
@@ -43,16 +55,12 @@ def create_project(
         },
     )
 
-    # Parse authors
-    authors: list[object] = []
-    if authors_json:
-        try:
-            authors_payload = json.loads(authors_json)
-        except json.JSONDecodeError as e:
-            return f"❌ Error parsing authors_json: {e}"
-        if not isinstance(authors_payload, list):
-            return "❌ Error: authors_json must be a JSON array."
-        authors = authors_payload
+    if not name or not name.strip():
+        return '❌ Error: `name` is required (e.g., `project_action(action="create", name="...")`).'
+
+    authors, authors_error = _parse_authors(authors_json)
+    if authors_error:
+        return authors_error
 
     try:
         result = project_manager.create_project(
@@ -111,8 +119,8 @@ def create_project(
             if resolved_workflow_mode == "library-wiki":
                 next_steps = """1. Use `/mdpaper.search` to ingest and triage literature
 2. Save references with `save_reference_mcp(pmid=...)`
-3. Capture or curate markdown notes with `write_library_note`, `move_library_note`, and `search_library_notes`
-4. Build knowledge pages or dashboards (`materialize_agent_wiki`, `build_knowledge_map`)
+3. Capture or curate markdown notes with `library_action(action="write_note"|"move_note"|"search_notes")`
+4. Build knowledge pages or dashboards with `library_action(action="materialize_concept"|"build_dashboard")`
 5. Switch to manuscript mode later with `project_action(action=\"update\", workflow_mode=\"manuscript\", paper_type=\"...\")` if you want to draft a paper
 """
             else:

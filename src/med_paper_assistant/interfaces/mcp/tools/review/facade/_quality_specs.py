@@ -17,6 +17,9 @@ QUALITY_ALIASES: dict[str, str] = {
     "artifacts": "data_artifacts",
     "data": "data_artifacts",
     "writing": "writing_hooks",
+    "repair": "repair_plan",
+    "fix_plan": "repair_plan",
+    "fixes": "repair_plan",
     "review": "review_hooks",
     "format": "formatting",
     "record_hook": "record_hook_event",
@@ -71,6 +74,18 @@ def _hook_specs(audit_tools: ToolMap, a: SimpleNamespace) -> QualitySpecs:
             "run_writing_hooks",
             {
                 "hooks": a.hooks,
+                "draft_filename": a.draft_filename,
+                "prefer_language": a.prefer_language,
+                "project": a.project,
+                "ctx": a.ctx,
+            },
+        ),
+        "repair_plan": (
+            audit_tools,
+            "run_quality_repair_plan",
+            {
+                "hooks": a.hooks,
+                "draft_filename": a.draft_filename,
                 "prefer_language": a.prefer_language,
                 "project": a.project,
                 "ctx": a.ctx,

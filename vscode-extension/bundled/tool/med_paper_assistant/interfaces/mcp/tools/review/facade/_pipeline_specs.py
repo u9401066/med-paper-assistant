@@ -13,7 +13,11 @@ PIPELINE_ALIASES: dict[str, str] = {
     "actions": "list",
     "doctor": "doctor",
     "gate": "validate_phase",
+    "gps": "next",
     "help": "list",
+    "navigate": "next",
+    "next": "next",
+    "next_step": "next",
     "status": "heartbeat",
     "start": "start_review",
     "submit": "submit_review",
@@ -22,9 +26,14 @@ PIPELINE_ALIASES: dict[str, str] = {
     "rewrite": "rewrite_section",
     "concept_review": "approve_concept_review",
     "reset": "reset_review_loop",
+    "what_next": "next",
 }
 
 PIPELINE_ACTION_SCHEMAS: dict[str, dict[str, Any]] = {
+    "next": {
+        "handler": "pipeline_next",
+        "params": ["project"],
+    },
     "validate_phase": {
         "handler": "validate_phase_gate",
         "params": ["phase", "project", "response_format", "compact"],
@@ -169,6 +178,10 @@ def _core_specs(a: SimpleNamespace) -> PipelineSpecs:
         ),
         "doctor": (
             "pipeline_doctor",
+            {"project": a.project},
+        ),
+        "next": (
+            "pipeline_next",
             {"project": a.project},
         ),
         "start_review": (

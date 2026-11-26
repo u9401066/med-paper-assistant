@@ -1,227 +1,114 @@
 """
 MCP Server Instructions Module
 
-Contains the tool selection guide and server instructions for the AI agent.
+Contains the compact-first tool selection guide and server instructions for the AI agent.
 Separated from config.py for better maintainability.
 """
 
-TOOL_GUIDE = """## TOOL SELECTION GUIDE (facade-first; 118 full / 12 compact default)
+TOOL_GUIDE = r"""## TOOL SELECTION GUIDE (compact-first; 12 compact default / 118 full)
 
-### 📂 WORKSPACE BINDING
+### 📂 WORKSPACE BINDING (Required First Step)
 At conversation start call `workspace_state_action(action="get")`. If the result has a
 non-empty `workspace.binding_hint` (for example the server fell back to the plugin's
 private data folder), call `workspace_state_action(action="bind", workspace_dir="<absolute
 path of the user's open workspace folder>")` once before creating or editing projects.
 
-### ⚠️ CRITICAL: PROJECT CONTEXT RULE
-**Before ANY operation that modifies project content, you MUST:**
-1. Call `project_action(action="current")` to confirm active project
-2. Show the project name to user: "目前專案: [project name]，確認要在這個專案操作嗎？"
-3. If user wants different project → `project_action(action="switch", slug="xxx")`
-4. If uncertain which project → `project_action(action="list")` then ask user
-
-**Tools that require project confirmation:**
-- All `draft_action(action="write"|"section"|"patch"|"insert_citation")` operations
-- All `save_reference` operations
-- All `validation_action(action="concept")` operations
-- All export operations
-
-**Exception:** `unified_search` can run without project (just searching)
+### ⚠️ PROJECT CONTEXT RULE
+Before ANY operation that modifies project content:
+1. Call `project_action(action="current")` to confirm the active project
+2. Show the project name to the user ("目前專案: [project name]，確認要在這個專案操作嗎？")
+3. Switch with `project_action(action="switch", slug="xxx")` or list via `project_action(action="list")`
+(Exception: `pubmed-search` tools such as `unified_search` can run without a project.)
 
 ### 🌐 LANGUAGE RULES
-**NEVER translate academic English content:**
-- Paper titles → Keep original English (e.g., "Impact of liberal preoperative...")
-- Journal names → Keep original (e.g., "British journal of anaesthesia")
-- Author names → Keep original
-- Medical terms → Keep original (e.g., "remimazolam", "ECMO")
-- Abstract content → Keep original
-
-**Only translate when explicitly asked by user.**
-
-### ⚠️ MANDATORY VALIDATION RULE
-**Before writing ANY draft in manuscript workflow (except concept.md), you MUST:**
-1. Run `validation_action(action="concept", filename="concept.md")`
-2. Ensure novelty score ≥ 75 in all 3 rounds
-3. If validation fails → STOP and ask user to fix concept first
-4. Never skip this step!
+NEVER translate academic English content (paper titles, journal names, author names,
+medical terms such as "remimazolam"/"ECMO", or abstracts) unless the user explicitly asks.
 
 ### 🧭 DUAL WORKFLOW MODEL
-- `workflow_mode="library-wiki"` → Library Wiki Path (Andrej Karpathy LLM Wiki Architecture): inbox/ (Ingest & Triage) → concepts/ (Atomic Notes & `[[bidirectional_links]]`) → projects/ (Synthesizing & Mapping)
-- `workflow_mode="manuscript"` → Manuscript Path: concept → draft → review → export
-- Always read `project.json.workflow_mode` first; do not force concept validation or manuscript pipeline gates onto library-wiki projects unless the user explicitly switches path.
+- `workflow_mode="library-wiki"` → Ingest & Triage (`inbox/`) → Atomic Notes (`concepts/`) → Synthesis (`projects/`). Do NOT force manuscript concept validation or export gates.
+- `workflow_mode="manuscript"` → Concept → Draft → Review → Export. Before drafting any section (except `concept.md`), run `validation_action(action="concept", filename="concept.md")` (novelty target ≥ 75; advisory if lower, structural 🔒 sections required).
 
-### 📁 PROJECT MANAGEMENT
+### 🧭 PIPELINE GPS & QUALITY HARNESS (Start Here in Manuscript Mode)
 | Tool | When to use |
 |------|-------------|
-| `project_action(action="setup")` | Configure project preferences / paper type for manuscript path |
-| `project_action(action="create")` | Create new project (`workflow_mode=manuscript|library-wiki`) |
-| `project_action(action="list")` | List all projects |
-| `project_action(action="switch")` | Switch to different project |
-| `project_action(action="current")` | Check current project |
-| `project_action(action="update")` | Update status, workflow mode, paper type, or preferences |
-| `project_action(action="paths")` | Get project directory paths |
-| `project_action(action="paper_types")` | List available paper types |
+| `pipeline_action(action="next")` | **GPS navigator** — returns current phase, blockers, and exact next compact tool calls |
+| `pipeline_action(action="doctor")` | Full 11-phase readiness snapshot + external MCP server status |
+| `pipeline_action(action="validate_phase", phase=N, response_format="json", compact=True)` | Code-enforced phase gate check (`0,1,2,21,3,4,5,6,65,7,8,9,10,11`) |
+| `pipeline_action(action="heartbeat")` | Overview of completion % across all phases |
+| `pipeline_action(action="start_review"\|"submit_review"\|"approve_section")` | Phase 5/7 review and approval loop |
+| `run_quality_checks(action="repair_plan")` | **Prioritized repair plan** — converts writing hook issues into concrete patch calls |
+| `run_quality_checks(action="writing_hooks", hooks="post-write"\|"all", draft_filename=...)` | Run code-enforced writing hooks (A/B/C/F/P/G) |
+| `run_quality_checks(action="review_hooks"\|"formatting"\|"quality_audit"\|"data_artifacts")` | Review, journal format, scorecard, and data-artifact checks |
+| `run_quality_checks(action="meta_learning"\|"pipeline_retrospective"\|"pending_evolutions"\|"tool_health")` | Phase 10 retrospective, D1-D9 self-improvement, and health checks |
 
-> 💡 **Journal Profile**: 系統內建麻醉學前 20 大期刊投稿設定（`templates/journal-profiles/`），
-> 用戶只需說出目標期刊名稱，Agent 即可讀取對應 YAML 並產生 `journal-profile.yaml`。
-
-### 🔍 LITERATURE EXPLORATION (NEW!)
+### 📁 PROJECT & EXPLORATION
 | Tool | When to use |
 |------|-------------|
-| `project_action(action="start_exploration")` | Start exploring literature without formal project |
-| `project_action(action="current", include_files=true)` | Check exploration workspace contents |
-| `project_action(action="convert_exploration")` | Convert exploration to formal project |
+| `project_action(action="create"\|"list"\|"switch"\|"current"\|"update"\|"setup")` | Manage projects (`workflow_mode="manuscript"\|"library-wiki"`) |
+| `project_action(action="journal_profile"\|"source_materials"\|"record_asset_ingestion"\|"exemplar_usage")` | Phase 0/2.1 journal profile (20 built-in anesthesiology YAML presets) & asset intake |
+| `project_action(action="start_exploration"\|"convert_exploration")` | Browse papers before creating a formal project, then convert |
+| `project_action(action="save_diagram"\|"list_diagrams")` | Save Draw.io source + rendered PNG/SVG diagrams |
+| `project_action(action="help")` | Return machine-readable schema of every `project_action` action |
 
-**Workflow:** User wants to browse papers first → `project_action(action="start_exploration")` → search & save → `project_action(action="convert_exploration", workflow_mode="library-wiki"|"manuscript")`
-
-### 🔍 LITERATURE SEARCH
-| Tool | When to use |
-|------|-------------|
-| `unified_search` | Primary entrypoint for PubMed / multi-source paper search |
-| `generate_search_queries` | Expand MeSH terms / synonyms / search materials |
-| `validate_pico_plan` | Validate agent-provided P/I/C/O and return a runnable PICO pipeline |
-| `find_related_articles` | Find similar papers (by PMID) |
-| `find_citing_articles` | Find papers citing a PMID |
-
-### 📚 REFERENCE MANAGEMENT
-
-**⚠️ CRITICAL: 儲存文獻的正確方式**
-
-| 方法 | 資料完整性 | 使用時機 |
-|------|------------|----------|
-| `save_reference_mcp(pmid)` ✅ 推薦 | 🔒 驗證資料 | **永遠優先使用** |
-| `save_reference(article)` ⚠️ Fallback | ⚠️ Agent 可修改 | 僅當 API 不可用 |
-
-**工作流程：**
-```
-1. pubmed-search: unified_search(query="...")
-2. 用戶選擇要儲存的文獻
-3. mdpaper: save_reference_mcp(pmid="12345678", agent_notes="...")
-   → mdpaper 自動從 pubmed-search API 取得驗證資料
-   → 如果 API 不可用，會提示改用 save_reference()
-```
+### 📚 LITERATURE SEARCH & VERIFIED REFERENCES
+External `pubmed-search` MCP provides `unified_search`, `generate_search_queries`, `validate_pico_plan`, `find_related_articles`, `find_citing_articles`.
 
 | Tool | When to use |
 |------|-------------|
-| `save_reference_mcp` | **PRIMARY** - Save by PMID, fetches verified data directly |
-| `save_reference` | **FALLBACK** - Only when API unavailable, requires full metadata |
-| `list_saved_references` | List saved papers |
-| `search_local_references` | Search within saved library |
-| `get_reference_details` | Get complete citation info |
-| `read_reference_fulltext` | Read PDF content |
-| `format_references` | Format reference list |
-| `retry_pdf_download` | Retry failed PDF download |
-| `set_citation_style` | Set citation format |
+| `save_reference_mcp(pmid, agent_notes=...)` | **PRIMARY (always prefer)** — MCP-to-MCP verified PubMed save |
+| `reference_action(action="evidence_pack", usage_sections=...)` | **Single-call drafting digest** — citation keys, findings, limitations, and analysis status for all saved refs |
+| `reference_action(action="list_saved"\|"search"\|"details"\|"fulltext"\|"format")` | Browse, search, inspect, read PDF fulltext, or format saved references |
+| `reference_action(action="analysis_get"\|"analysis_save")` | Phase 2.1 structured reference analysis (`usage_sections` accepts comma string or list) |
+| `reference_action(action="save_agent", article=...)` | **FALLBACK ONLY** when PubMed API is unavailable (unverified metadata) |
 
-### 🧠 AGENT WIKI
+### 🧠 AGENT WIKI (`workflow_mode="library-wiki"`)
 | Tool | When to use |
 |------|-------------|
-| `library_action(action="write_note")` | Capture or update markdown notes directly in `inbox/`, `concepts/`, or `projects/` |
-| `library_action(action="move_note")` | Triage a note from `inbox/` into `concepts/` or `projects/` |
-| `library_action(action="list_notes")` | Review note inventory across the library-wiki folders |
-| `library_action(action="read_note")` | Read a specific markdown note from the library-wiki folders |
-| `library_action(action="search_notes")` | Query note content across the library-wiki folders |
-| `library_action(action="show_queues")` | Review capture, active-reading, concept-build, and synthesis queues derived from note status |
-| `library_action(action="create_concept")` | Create a structured concept page in `concepts/` with source-note links |
-| `library_action(action="explain_path")` | Explain a note's context or trace a note-to-note path through the wiki graph |
-| `library_action(action="build_dashboard")` | Build cross-note dashboards for queues, concept pages, and link health |
-| `library_action(action="materialize_concept")` | Materialize one Foam-friendly concept page from source notes |
+| `library_action(action="write_note"\|"move_note"\|"triage_note"\|"update_metadata")` | Capture and triage markdown notes across `inbox/`, `concepts/`, `projects/` |
+| `library_action(action="list_notes"\|"read_note"\|"search_notes"\|"show_queues")` | Inspect notes and reading/synthesis queues |
+| `library_action(action="create_concept"\|"materialize_concept"\|"explain_path"\|"build_dashboard")` | Build atomic concepts, trace graph paths, and generate dashboards |
+| `library_action(action="help")` | Return machine-readable schema of all `library_action` actions |
 
-**Workflow:** intake source as a note → `library_action(action="write_note"|"move_note"|"create_concept")` → `library_action(action="show_queues"|"build_dashboard")` → `save_reference_analysis` when tied to a saved reference. Full-surface mode exposes the granular ingestion and wiki materialization verbs.
-
-### ✍️ WRITING (⚠️ Manuscript path only; requires concept validation first!)
+### ✍️ DRAFTING & CITATIONS (Manuscript Path)
 | Tool | When to use |
 |------|-------------|
-| `validation_action(action="concept")` | **MANDATORY before drafting** - Full validation with novelty scoring |
-| `validation_action(action="quick")` | Quick structural check only |
-| `draft_action(action="write")` | Create/update draft file (⚠️ blocked if concept invalid) |
-| `draft_action(action="read")` | Read draft content |
-| `draft_action(action="list")` | List available drafts |
-| `draft_action(action="section")` | Draft a specific section (⚠️ blocked if concept invalid) |
-| `draft_action(action="insert_citation")` | Add citation to text |
-| `draft_action(action="sync_references")` | **Citation manager** - Scan [[wikilinks]], generate References section |
-| `draft_action(action="count_words")` | Count words in draft |
-| `draft_action(action="template")` | Get section guidelines |
+| `validation_action(action="concept"\|"wikilinks"\|"literature")` | Validate `concept.md` (mandatory before drafting), auto-fix wikilinks, or compare idea with literature |
+| `draft_action(action="write"\|"patch"\|"draft_section")` | Create/edit drafts (`write` & `patch` auto-run post-write hooks) |
+| `draft_action(action="list_drafts"\|"read"\|"count_words"\|"check_order"\|"delete")` | Inspect, count words, check writing order, or remove drafts |
+| `draft_action(action="list_citations"\|"insert_citation"\|"suggest_citations"\|"scan_citations"\|"sync_references")` | Manage `[[author2024_pmid]]` citations and generate References section |
+| `draft_action(action="list")` | Return machine-readable schema of all `draft_action` actions (use `action="list_drafts"` to list files) |
 
-### 📊 DATA ANALYSIS
+### 📊 DATA ANALYSIS & ASSETS
 | Tool | When to use |
 |------|-------------|
-| `analysis_action(action="summary")` | Get summary statistics |
-| `analysis_action(action="test")` | Run t-test, correlation, etc. |
-| `analysis_action(action="plot")` | Create visualizations |
-| `analysis_action(action="table_one")` | Generate baseline characteristics table |
-| `draft_action(action="review_asset")` | Record proof that the agent reviewed a figure/table before captioning/inserting |
-| `draft_action(action="insert_figure")` | Insert a figure reference into draft |
-| `draft_action(action="insert_table")` | Insert a table reference into draft |
-| `draft_action(action="list_assets")` | List all figures/tables in project |
+| `analysis_action(action="analyze_dataset"\|"run_statistical_test"\|"create_plot"\|"generate_table_one")` | Summary stats, hypothesis tests, plots, and Table 1 |
+| `analysis_action(action="review_asset")` | **Required before inserting** — record agent visual/data review proof |
+| `analysis_action(action="insert_figure"\|"insert_table"\|"list_assets")` | Register and insert figures/tables into manuscript (`draft_action` also accepts these three) |
 
-### 🎨 DIAGRAM TOOLS (with Draw.io MCP)
-| Tool | When to use |
-|------|-------------|
-| `project_action(action="save_diagram")` | Save diagram to project's results/figures (works with or without project) |
-| `project_action(action="list_diagrams")` | List diagrams in project |
-
-**DIAGRAM WORKFLOW (with Draw.io MCP):**
-1. User asks for diagram → Confirm project first
-2. Call `drawio.create_diagram()` → Shows in browser
-3. User edits in browser → Says "存檔" or "save"
-4. Call `drawio.get_diagram_content()` → Get XML
-5. Call `drawio.export_diagram()` or equivalent → Get PNG/SVG for paper embedding
-6. Call `project_action(action="save_diagram", project="xxx", content=..., rendered_content=..., rendered_format="png|svg")` → Save source + exportable asset
-7. Call `draft_action(action="insert_figure")` with the rendered filename (or original `.drawio` name if companion image was saved beside it) to register it in manifest and insert Markdown image syntax into the draft
-8. If no project → `project_action(action="save_diagram", output_dir="...")` or ask user to create project
-
-### 📄 WORD EXPORT (workflow)
-1. `inspect_export(action="list_templates")` → Available templates
-2. `inspect_export(action="read_template")` → Get template structure
-3. `draft_action(action="read", filename="manuscript.md")` → Get draft content
-4. `export_document(action="session_start")` → Begin editing
-5. `export_document(action="session_insert")` → Insert content (repeat)
-6. `inspect_export(action="verify_document")` → Check insertion
-7. `draft_action(action="count_words", filename="manuscript.md")` → Verify limits before final export
-8. `export_document(action="docx", draft_filename="manuscript.md", output_filename="paper.docx")` or `export_document(action="pdf", draft_filename="manuscript.md", output_filename="paper.pdf")` → Export final file
+### 📄 EXPORT WORKFLOW
+1. `inspect_export(action="list_templates")` → `inspect_export(action="read_template")`
+2. `draft_action(action="read", filename="manuscript.md")` & `draft_action(action="count_words", filename="manuscript.md")`
+3. Optional Word template session: `export_document(action="session_start")` → `session_insert` → `inspect_export(action="verify_document")` → `session_save`
+4. Pandoc export: `export_document(action="docx", draft_filename="manuscript.md", output_filename="paper.docx")` (or `"pdf"`) → `inspect_export(action="inspect_docx_xml", output_filename="paper.docx")`
 
 ## 🔒 PROTECTED CONTENT RULES
 | Section | Must appear in | Rule |
 |---------|---------------|------|
-| 🔒 NOVELTY STATEMENT | Introduction | Cannot weaken or remove |
+| 🔒 NOVELTY STATEMENT | Introduction | Never weaken or remove |
 | 🔒 KEY SELLING POINTS | Discussion | Must emphasize all points |
-| 🔒 Author Notes | Never exported | Do not include in drafts |
+| 🔒 Author Notes | Never exported | Never include in drafts |
 
 ## QUICK DECISION TREE
-- "just want to browse/explore papers" → `project_action(action="start_exploration")`
-- "build a personal literature wiki/library" → `project_action(action="create", workflow_mode="library-wiki")`
-- "search/find papers" → `unified_search`
-- "save this paper" → `save_reference_mcp(pmid)` (auto-creates workspace if needed)
-- "import web/markdown into wiki" → `library_action(action="write_note")` for compact mode; use full surface for automated source ingestion
-- "capture / triage wiki notes" → `library_action(action="write_note"|"move_note"|"search_notes")`
-- "review reading queues / concept graph" → `library_action(action="show_queues"|"build_dashboard"|"explain_path")`
-- "build agent wiki" → `library_action(action="materialize_concept")` for compact mode; use full surface for multi-page materialization
-- "my saved papers" → `list_saved_references`
-- "ready to write, have references" → `project_action(action="convert_exploration", workflow_mode="manuscript")` or `project_action(action="update", workflow_mode="manuscript", paper_type="...")`
-- "write/draft" → **`validation_action(action="concept")` first!** → `draft_action(action="write")`
-- "analyze data" → `analysis_action(action="summary")`
-- "review figure/table before caption" → `draft_action(action="review_asset")`
-- "insert figure" → `draft_action(action="review_asset")` → `draft_action(action="insert_figure")`
-- "insert table" → `draft_action(action="review_asset")` → `draft_action(action="insert_table")` (after generating with `analysis_action(action="table_one")`)
-- "list figures/tables" → `draft_action(action="list_assets")`
-- "create diagram" → **Confirm project first** → `drawio.create_diagram()`
-- "save diagram" → `drawio.get_diagram_content()` → `project_action(action="save_diagram", project=...)`
-- "export to Word" → Use export workflow
-- "Table 1" → `analysis_action(action="table_one")`
-- "references format" → `format_references`
-
-## PROMPTS
-| Prompt | Use when |
-|--------|----------|
-| `/mdpaper.search` | Literature exploration (auto-creates temp workspace) |
-| `/mdpaper.project` | Setup/configure project |
-| `/mdpaper.concept` | Develop research concept |
-| `/mdpaper.strategy` | Configure search strategy |
-| `/mdpaper.draft` | Write paper sections (validates concept first!) |
-| `/mdpaper.analysis` | Analyze data |
-| `/mdpaper.clarify` | Refine content |
-| `/mdpaper.format` | Export to Word |
+- "what should I do next?" → `pipeline_action(action="next")`
+- "fix hook / quality issues" → `run_quality_checks(action="repair_plan")` → `draft_action(action="patch", ...)`
+- "browse/explore papers first" → `project_action(action="start_exploration")`
+- "personal literature wiki" → `project_action(action="create", workflow_mode="library-wiki")`
+- "save paper" → `save_reference_mcp(pmid)`
+- "digest all saved evidence for drafting" → `reference_action(action="evidence_pack", usage_sections="Introduction")`
+- "write/draft" → `validation_action(action="concept")` → `draft_action(action="write")`
+- "review & insert figure/table" → `analysis_action(action="review_asset")` → `analysis_action(action="insert_figure"\|"insert_table")`
+- "export to Word/PDF" → `export_document(action="docx"\|"pdf")`
+- Any facade parameter lookup → call `<facade>(action="list")` (or `action="help"` for `project_action`/`library_action`)
 """
 
 
